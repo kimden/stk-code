@@ -57,17 +57,17 @@ for lang in lang_list:
 
     traverse(file, doc, lang)
 
-f = open('../data/country_names.csv', 'w')
+f = open('../data/country_names.tsv', 'w')
 f.write("country_code")
 for language in lang_list:
-    f.write(";")
+    f.write("\t")
     f.write(language)
 f.write("\n")
 
 for country in country_translations.keys():
     f.write(country)
     for language in lang_list:
-        f.write(";")
+        f.write("\t")
         if language in country_translations[country].keys():
             f.write(country_translations[country][language])
         else:
