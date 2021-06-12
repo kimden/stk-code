@@ -1096,6 +1096,75 @@ void LinearWorld::checkForWrongDirection(unsigned int i, float dt)
 }   // checkForWrongDirection
 
 //-----------------------------------------------------------------------------
+/** Checks if a kart is going in the wrong direction.
+ *  This is the online server only version to kick players
+ *  who misbehave.
+ *  \param i Kart id.
+ *  \param dt Time step size.
+ */
+void LinearWorld::serverCheckForWrongDirection(unsigned int i, float dt)
+{
+    KartInfo &ki = m_kart_info[i];
+
+    const AbstractKart *kart=m_karts[i].get();
+    // If the kart can go in more than one directions from the current track
+    // don't do any reverse message handling, since it is likely that there
+    // will be one direction in which it isn't going backwards anyway.
+    int sector = getTrackSector(i)->getCurrentGraphNode();
+
+    if (DriveGraph::get()->getNumberOfSuccessors(sector) > 1)
+        return;
+
+    // check if the player is going in the wrong direction
+    const DriveNode* node = DriveGraph::get()->getNode(sector);
+    Vec3 center_line = node->getUpperCenter() - node->getLowerCenter();
+    float angle_diff = kart->getVelocity().angle(center_line);
+
+    if (angle_diff > M_PI)
+        angle_diff -= 2*M_PI;
+    else if (angle_diff < -M_PI)
+        angle_diff += 2*M_PI;
+
+    // if the kart is going back way, i.e. if angle
+    // is too big(unless the kart has already finished the race).
+    // record how long this happens
+    if ((angle_diff > DEGREE_TO_RAD * 120.0f ||
+        angle_diff < -DEGREE_TO_RAD * 120.0f) &&
+        kart->getVelocityLC().getY() > 0.0f &&
+        !kart->hasFinishedRace())
+    {
+        ki.m_wrong_way_timer += dt;
+    }
+    else
+    {
+        if (!kart->hasFinishedRace() && !kart->getKartAnimation())
+        {
+            if (kart->getSpeed() < 5.0)
+                // stopping is also trolling
+                ki.m_wrong_way_timer += dt;
+            else if(kart->getSpeed() > 15.0)
+            {
+                // racing normally reduces timer
+                ki.m_wrong_way_timer -= dt;
+                if (ki.m_wrong_way_timer < 0)
+                    ki.m_wrong_way_timer = 0;
+            }
+        }
+    }
+
+    // If a kart is going wrong way for too long, take action
+    if (ki.m_warn_level == 0 && ki.m_wrong_way_timer > ServerConfig::m_troll_warning_time)
+    {   // warning
+        ki.m_warn_level = 1;
+        ki.m_wrong_way_timer = 0;
+    }
+    if (ki.m_warn_level == 1 && ki.m_wrong_way_timer > ServerConfig::m_troll_kick_time)
+    {   // kick
+        ki.m_warn_level = 2;
+    }
+}   // serverCheckForWrongDirection
+
+//-----------------------------------------------------------------------------
 void LinearWorld::setLastTriggeredCheckline(unsigned int kart_index, int index)
 {
     if (m_kart_info.size() == 0) return;

@@ -270,6 +270,23 @@ namespace ServerConfig
         "If this value is set to true, players and the server must have "
         "at least one common official track."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_troll_active
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "use-anti-troll-system",
+        "If this value is set to true, warn and kick players who troll others."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_troll_warn_msg
+        SERVER_CFG_DEFAULT(StringServerConfigParam("WARNING: You troll, you get kicked!",
+        "troll-warn-message",
+        "This message is shown as warning."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_warning_time
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(7.0f, "troll-warning-time",
+        "After this time (in sec) of backwards movement or stopping a warning is issued."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_kick_time
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(9.0f, "troll-kick-time",
+        "After this time (in sec) of backwards movement or stopping the player is kicked."));
+
     SERVER_CFG_PREFIX IntServerConfigParam m_min_start_game_players
         SERVER_CFG_DEFAULT(IntServerConfigParam(2, "min-start-game-players",
         "Only auto start kart selection when number of "

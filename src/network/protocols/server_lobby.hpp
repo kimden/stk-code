@@ -385,6 +385,9 @@ private:
     std::atomic<int> m_token_generation_tries;
 #endif
 
+    // config for troll system
+    bool  m_troll_active;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);

@@ -600,6 +600,22 @@ void MainLoop::run()
                     PROFILER_POP_CPU_MARKER();
                 }
             }
+            else
+            {
+                if (World::getWorld())
+                {
+                    // test if player is driving backward
+                    float frame_duration = num_steps * dt;
+                    LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
+                    if (lin_world && lin_world->getTicksSinceStart() > 0)
+                    {
+                        for (unsigned int i = 0; i < lin_world->getNumKarts(); i++)
+                        {
+                            lin_world->serverCheckForWrongDirection(i,frame_duration);
+                        }
+                    }
+                }
+            }
             // Some protocols in network will use RequestManager
             if (!m_download_assets)
             {

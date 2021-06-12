@@ -2415,6 +2415,29 @@ void ServerLobby::update(int ticks)
                     StringUtils::wideToUtf8(rki.getPlayerName()).c_str(), sec);
                 peer->kick();
             }
+            if (m_troll_active && !peer->isAIPeer())
+            {
+                // for all human players
+                // if they troll, kick them
+                LinearWorld *lin_world = dynamic_cast<LinearWorld*>(w);
+                if (lin_world) {
+                    // check warn level for each player
+                    switch(lin_world->getWarnLevel(i))
+                    {
+                        case 0: // fine
+                            break;
+                        case 1: // print WARNING
+                            {
+                                std::string msg = ServerConfig::m_troll_warn_msg;
+                                sendStringToPeer(msg, peer);
+                            }
+                            break;
+                        default: // kick !!
+                            peer->kick();
+                            break;
+                    }
+                }
+            }
         }
     }
     if (w)
@@ -7673,6 +7696,25 @@ unmute_error:
                 }
                 sendStringToPeer(msg, peer);
             }
+            return;
+        }
+        if (argv[1] == "troll")
+        {
+            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
+            {
+                msg = "Usage: /admin troll [0/1] - disable or enable anti troll system";
+                sendStringToPeer(msg, peer);
+                return;
+            }
+            if (argv[2] == "0")
+            {
+                m_troll_active = false;
+                msg = "Trolls can stay";
+            } else {
+                m_troll_active = true;
+                msg = "Trolls will be kicked";
+            }
+            sendStringToPeer(msg, peer);
             return;
         }
     }

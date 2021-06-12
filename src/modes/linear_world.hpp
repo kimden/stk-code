@@ -104,6 +104,9 @@ private:
          *  direction so that a message can be displayed. */
         float       m_wrong_way_timer;
 
+        int         m_warn_level;
+        int         m_warn_issued;
+
         /** Initialises all fields. */
         KartInfo()  { reset(); }
         // --------------------------------------------------------------------
@@ -116,6 +119,8 @@ private:
             m_estimated_finish  = -1.0f;
             m_overall_distance  = 0.0f;
             m_wrong_way_timer   = 0.0f;
+            m_warn_level        = 0;
+            m_warn_issued       = 0;
         }   // reset
         // --------------------------------------------------------------------
         void saveCompleteState(BareNetworkString* bns);
@@ -192,6 +197,17 @@ public:
     {
         return m_kart_info[kart_index].m_overall_distance;
     }   // getOverallDistance
+    /** Returns the warn level
+     *  \param kart_index World kart id of the kart. */
+    int getWarnLevel(unsigned int kart_index)
+    {
+        if (m_kart_info[kart_index].m_warn_level > m_kart_info[kart_index].m_warn_issued)
+        {
+            m_kart_info[kart_index].m_warn_issued = m_kart_info[kart_index].m_warn_level;
+            return m_kart_info[kart_index].m_warn_level;
+        }
+        return 0;
+    }   // getWarnLevel
     // ------------------------------------------------------------------------
     /** Returns time for the fastest laps */
     float getFastestLap() const
@@ -236,6 +252,8 @@ public:
     void updateCheckLinesClient(const BareNetworkString& b);
     // ------------------------------------------------------------------------
     void handleServerCheckStructureCount(unsigned count);
+
+    void serverCheckForWrongDirection(unsigned int i, float dt);
 };   // LinearWorld
 
 #endif
