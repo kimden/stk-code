@@ -1139,10 +1139,10 @@ void LinearWorld::serverCheckForWrongDirection(unsigned int i, float dt)
     {
         if (!kart->hasFinishedRace() && !kart->getKartAnimation())
         {
-            if (kart->getSpeed() < 5.0)
+            if (kart->getSpeed() < ServerConfig::m_troll_max_stop_speed)
                 // stopping is also trolling
                 ki.m_wrong_way_timer += dt;
-            else if(kart->getSpeed() > 15.0)
+            else if(kart->getSpeed() > ServerConfig::m_troll_min_normal_speed)
             {
                 // racing normally reduces timer
                 ki.m_wrong_way_timer -= dt;

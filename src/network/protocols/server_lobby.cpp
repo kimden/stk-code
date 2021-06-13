@@ -2427,14 +2427,20 @@ void ServerLobby::update(int ticks)
                         case 0: // fine
                             break;
                         case 1: // print WARNING
-                            {
-                                std::string msg = ServerConfig::m_troll_warn_msg;
-                                sendStringToPeer(msg, peer);
-                            }
+                        {
+                            std::string msg = ServerConfig::m_troll_warn_msg;
+                            sendStringToPeer(msg, peer);
+                            std::string player_name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+                            Log::info("ServerLobby-AntiTroll", "Sent WARNING to %s", player_name.c_str());
                             break;
+                        }
                         default: // kick !!
+                        {
+                            std::string player_name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+                            Log::info("ServerLobby-AntiTroll", "KICKING %s", player_name.c_str());
                             peer->kick();
                             break;
+                        }
                     }
                 }
             }

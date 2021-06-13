@@ -284,8 +284,16 @@ namespace ServerConfig
         "After this time (in sec) of backwards movement or stopping a warning is issued."));
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_troll_kick_time
-        SERVER_CFG_DEFAULT(FloatServerConfigParam(9.0f, "troll-kick-time",
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(10.0f, "troll-kick-time",
         "After this time (in sec) of backwards movement or stopping the player is kicked."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_min_normal_speed
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(12.0f, "troll-min-normal-speed",
+        "Minimum speed in correct direction to decrease wron_way timer."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_max_stop_speed
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(5.0f, "troll-max-stop-speed",
+        "A player going slower than this is considered stopping."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_min_start_game_players
         SERVER_CFG_DEFAULT(IntServerConfigParam(2, "min-start-game-players",
