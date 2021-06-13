@@ -245,6 +245,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
 
+    m_troll_active = ServerConfig::m_troll_active;
+
     initAvailableModes();
 
     std::vector<int> all_k =
