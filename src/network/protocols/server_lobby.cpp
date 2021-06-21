@@ -7517,7 +7517,16 @@ unmute_error:
             }
             auto it = m_team_name_to_index.find(argv[2]);
             int index = (it == m_team_name_to_index.end() ? 0 : it->second);
-            std::string player = argv[3];
+            std::string player;
+            auto wide_player_name = StringUtils::utf8ToWide(argv[3]);
+            std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerBySubstring(
+                wide_player_name, player);
+            if (!player_peer)
+            {
+                msg = "Player name not existing or not unique";
+                sendStringToPeer(msg, peer);
+                return;
+            }
             for (const auto& pair: m_team_name_to_index)
             {
                 if (pair.second < 0)
@@ -7536,18 +7545,12 @@ unmute_error:
             }
             index = abs(index);
             m_team_for_player[player] = index;
-            auto wide_player_name = StringUtils::utf8ToWide(player);
-            std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-                wide_player_name);
-            if (player_peer)
+            for (auto& profile : player_peer.get()->getPlayerProfiles())
             {
-                for (auto& profile : player_peer.get()->getPlayerProfiles())
+                if (profile->getName() == wide_player_name)
                 {
-                    if (profile->getName() == wide_player_name)
-                    {
-                        profile->setTemporaryTeam(index - 1);
-                        break;
-                    }
+                    profile->setTemporaryTeam(index - 1);
+                    break;
                 }
             }
             updatePlayerList();

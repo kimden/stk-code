@@ -268,6 +268,7 @@ public:
     std::shared_ptr<STKPeer> findPeerByHostId(uint32_t id) const;
     // ------------------------------------------------------------------------
     std::shared_ptr<STKPeer> findPeerByName(const core::stringw& name) const;
+    std::shared_ptr<STKPeer> findPeerBySubstring(const core::stringw& name, std::string &full_name) const;
     // ------------------------------------------------------------------------
     void sendPacketExcept(STKPeer* peer, NetworkString *data,
                           bool reliable = true);

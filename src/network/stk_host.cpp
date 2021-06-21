@@ -1487,6 +1487,43 @@ std::shared_ptr<STKPeer>
 }   // findPeerByName
 
 //-----------------------------------------------------------------------------
+std::shared_ptr<STKPeer>
+    STKHost::findPeerBySubstring(const core::stringw& name, std::string& full_name) const
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    bool found = false;
+    std::shared_ptr<STKPeer> ret = nullptr;
+    std::map<ENetPeer*, std::shared_ptr<STKPeer>>::const_iterator iter = m_peers.begin();
+    std::map<ENetPeer*, std::shared_ptr<STKPeer>>::const_iterator end  = m_peers.end();
+
+    for (; iter != end; iter++)
+    {
+        auto p = iter->second;
+        for (auto& profile : p->getPlayerProfiles())
+        {
+            if (profile->getName().find(name.c_str()) != -1)
+            {
+                if (profile->getName().size() == name.size()) {
+                    // found exact match
+                    // use that!
+                    full_name = StringUtils::wideToUtf8(name);
+                    return p;
+                } else if (found == true) {
+                    // not unique
+                    // but keep going to not miss exact match
+                    ret = nullptr;
+                } else {
+                    found = true;
+                    full_name = StringUtils::wideToUtf8(profile->getName());
+                    ret = p;
+                }
+            }
+        }
+    }
+    return ret;
+}   // findPeerBySubstring
+
+//-----------------------------------------------------------------------------
 void STKHost::initClientNetwork(ENetEvent& event, Network* new_network)
 {
     assert(NetworkConfig::get()->isClient());
