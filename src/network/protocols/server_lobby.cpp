@@ -7519,13 +7519,23 @@ unmute_error:
             int index = (it == m_team_name_to_index.end() ? 0 : it->second);
             std::string player;
             auto wide_player_name = StringUtils::utf8ToWide(argv[3]);
-            std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerBySubstring(
+            std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByWildcard(
                 wide_player_name, player);
+            // if player not found
             if (!player_peer)
             {
-                msg = "Player name not existing or not unique";
-                sendStringToPeer(msg, peer);
-                return;
+                // don't use if wildcard
+                if (wide_player_name.find("*") != -1 || wide_player_name.find("?") != -1)
+                {
+                    msg = "Player not found or not unique";
+                    sendStringToPeer(msg, peer);
+                    return;
+                }
+                else
+                {
+                    // if no wildcard, reset player name to use for absent players
+                    player = argv[3];
+                }
             }
             for (const auto& pair: m_team_name_to_index)
             {
@@ -7545,12 +7555,15 @@ unmute_error:
             }
             index = abs(index);
             m_team_for_player[player] = index;
-            for (auto& profile : player_peer.get()->getPlayerProfiles())
+            if (player_peer)
             {
-                if (profile->getName() == wide_player_name)
+                for (auto& profile : player_peer.get()->getPlayerProfiles())
                 {
-                    profile->setTemporaryTeam(index - 1);
-                    break;
+                    if (profile->getName() == wide_player_name)
+                    {
+                        profile->setTemporaryTeam(index - 1);
+                        break;
+                    }
                 }
             }
             updatePlayerList();
