@@ -43,6 +43,9 @@
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 
+#include "network/protocols/server_lobby.hpp"
+#include "config/stk_config.hpp"
+
 #define SWAT_POS_OFFSET        core::vector3df(0.0, 0.2f, -0.4f)
 #define SWAT_ANGLE_MIN  45
 #define SWAT_ANGLE_MAX  135
@@ -65,6 +68,8 @@ Swatter::Swatter(AbstractKart *kart, int16_t bomb_ticks, int ticks,
     m_animation_phase  = SWATTER_AIMING;
     m_discard_now      = false;
     m_closest_kart     = NULL;
+    m_has_hit_kart     = false;
+    m_created_ticks    = World::getWorld()->getTicksSinceStart();
     m_discard_ticks    = World::getWorld()->getTicksSinceStart() + ticks;
     m_bomb_remaining   = bomb_ticks;
     m_scene_node       = NULL;
@@ -396,10 +401,47 @@ void Swatter::squashThingsAround()
     float slowdown =  kp->getSwatterSquashSlowdown();
     // The squash attempt may fail because of invulnerability, shield, etc.
     // Making a bomb explode counts as a success
+    bool wasHit = !m_closest_kart->isInvulnerable() && !m_closest_kart->getKartAnimation();
     bool success = m_closest_kart->setSquash(duration, slowdown);
     const bool has_created_explosion_animation =
         success && m_closest_kart->getKartAnimation() != NULL;
 
+    // we can't use success here, because unshielding a kart is not considered a succes
+    // punishment system however, does consider it a hit
+    if (wasHit)
+    {
+        // check if we are in team gp and hit a team mate and should punish attacker
+        if (auto sl=LobbyProtocol::get<ServerLobby>())
+        {
+            if (!m_closest_kart->hasFinishedRace()
+                && RaceManager::get()->getKartColor(m_kart->getWorldKartId()) > 0.0
+                && RaceManager::get()->getKartColor(m_kart->getWorldKartId())
+                == RaceManager::get()->getKartColor(m_closest_kart->getWorldKartId()))
+            {
+                // should we tell the world?
+                if (sl->showTeamMateHits() && success)
+                {
+                    std::string msg = "LOL: ";
+                    msg+=StringUtils::wideToUtf8(m_kart->getController()->getName());
+                    msg+=" just swattered teammate ";
+                    msg+=StringUtils::wideToUtf8(m_closest_kart->getController()->getName());
+                    sl->sendTeamMateHitMsg(msg);
+                }
+                if (sl->useTeamMateHitMode())
+                {
+                    // remove swatter
+                    m_discard_now = true;
+                    m_discard_ticks = World::getWorld()->getTicksSinceStart();
+                    // if this is the first kart hit and the swatter is in use for less than 3s
+                    // the attacker also gets an anvil
+                    if (!m_has_hit_kart && World::getWorld()->getTicksSinceStart() - m_created_ticks < stk_config->time2Ticks(3.0f)
+                        && success)
+                        // we cannot do this here, will be done in Attachment::update()
+                        m_attachment->setPunishAttack();
+                }
+            }
+        }
+    }
     if (success)
     {
         World::getWorld()->kartHit(m_closest_kart->getWorldKartId(),
@@ -424,6 +466,7 @@ void Swatter::squashThingsAround()
                 PlayerManager::increaseAchievement(AchievementsStatus::ALL_HITS_1RACE, 1);
             }
         }
+        m_has_hit_kart = true;
     }
 
     if (!GUIEngine::isNoGraphics() && has_created_explosion_animation &&

@@ -249,6 +249,10 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     m_troll_active = ServerConfig::m_troll_active;
 
+    m_show_teammate_hits = ServerConfig::m_show_teammate_hits;
+    m_teammate_hit_mode = ServerConfig::m_teammate_hit_mode;
+    m_last_teammate_hit_msg = 0;
+
     initAvailableModes();
 
     std::vector<int> all_k =
@@ -1802,6 +1806,10 @@ void ServerLobby::asynchronousUpdate()
         // For WAIT_FOR_WORLD_LOADED and SELECTING make sure there are enough
         // players to start next game, otherwise exiting and let main thread
         // reset
+
+        // maybe this is not the best place for this?
+        m_last_teammate_hit_msg = 0;
+
         if (m_end_voting_period.load() == 0)
             return;
 
@@ -7781,10 +7789,50 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
+        if (argv[1] == "hitmsg")
+        {
+            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
+            {
+                msg = "Usage: /admin hitmsg [0/1] - disable or enable messages if a player makes a teammate explode";
+                sendStringToPeer(msg, peer);
+                return;
+            }
+            if (argv[2] == "0")
+            {
+                m_show_teammate_hits = false;
+                msg = "Teammate hits will not be send";
+            } else {
+                m_show_teammate_hits = true;
+                msg = "Teammate hits will be send to all players";
+            }
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (argv[1] == "teamhit")
+        {
+            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
+            {
+                msg = "Usage: /admin teamhit [0/1] - disable or enable punish mode when hitting team mates";
+                sendStringToPeer(msg, peer);
+                return;
+            }
+            if (argv[2] == "0")
+            {
+                m_teammate_hit_mode = false;
+                msg = "Normal mode";
+            }
+            else
+            {
+                m_teammate_hit_mode = true;
+                msg = "Teammate hits get punished";
+            }
+            sendStringToPeer(msg, peer);
+            return;
+        }
     }
     else if (argv[0] == "version")
     {
-        std::string msg = "1.2-kimden 210621 beta";
+        std::string msg = "1.2-kimden 210621 beta - Heuchi1 test version";
         sendStringToPeer(msg, peer);
     }
     else if (argv[0] == "clear")
@@ -9046,5 +9094,17 @@ std::string ServerLobby::getToken()
     return token;
 }   // getToken
 //-----------------------------------------------------------------------------
-
 #endif // ENABLE_WEB_SUPPORT
+
+void ServerLobby::sendTeamMateHitMsg(std::string& s)
+{
+    if (World* w = World::getWorld())
+    {
+        int ticks = w->getTicksSinceStart();
+        if (ticks - m_last_teammate_hit_msg > stk_config->time2Ticks(1.5f))
+        {
+            m_last_teammate_hit_msg = ticks;
+            sendStringToAllPeers(s);
+        }
+    }
+}

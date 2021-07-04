@@ -160,6 +160,8 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
         if(kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
+            if ((int)m_ticks_since_thrown < stk_config->time2Ticks(MAX_BOWL_TEAMMATE_HIT_TIME))
+                m_karts_hit.push_back(kart);
             return true;
         }
         else
@@ -168,6 +170,7 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
             explode(kart, obj, /*hit_secondary*/false);
         }
     }
+    handleTeammateHits(true);
     return was_real_hit;
 }   // hit
 

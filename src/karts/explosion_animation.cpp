@@ -40,10 +40,13 @@
  *  \param kart The kart that is exploded.
  *  \param pos The position where the explosion happened.
  *  \param direct_hit If the kart was hit directly.
+ *  \param karts_hit  Pointer to a vector of all karts that loose shield (for teammate hits)
+ *  \param karts_exploded Pointer to a vector of all karts that explde (for teammate hits)
  */
 ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
                                                const Vec3 &pos,
-                                               bool direct_hit)
+                                               bool direct_hit,
+                                               std::vector<AbstractKart*>* karts_hit, std::vector<AbstractKart*>* karts_exploded)
 {
     // When goal phase is happening karts is made stationary, so no animation
     // will be created
@@ -58,6 +61,7 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
     if(kart->isShielded())
     {
         kart->decreaseShieldTime();
+        if (karts_hit) karts_hit->push_back(kart);
         return NULL;
     }
 
@@ -69,6 +73,7 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
             ftl_world->leaderHit();
     }
 
+    if (karts_exploded) karts_exploded->push_back(kart);
     return new ExplosionAnimation(kart, direct_hit);
 }   // create
 

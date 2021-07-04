@@ -51,6 +51,10 @@
 #include "utils/string_utils.hpp"
 #include "utils/vs.hpp"
 
+#include "network/protocols/server_lobby.hpp"
+#include "items/attachment.hpp"
+#include "karts/kart_properties.hpp"
+
 #include <typeinfo>
 
 // static variables:
@@ -552,6 +556,10 @@ bool Flyable::isOwnerImmunity(const AbstractKart* kart_hit) const
  */
 bool Flyable::hit(AbstractKart *kart_hit, PhysicalObject* object)
 {
+    // reset vectors for teammate hits
+    m_karts_hit.clear();
+    m_karts_exploded.clear();
+
     if (!m_has_server_state || hasAnimation())
         return false;
     // the owner of this flyable should not be hit by his own flyable
@@ -599,7 +607,7 @@ void Flyable::explode(AbstractKart *kart_hit, PhysicalObject *object,
         {
             // The explosion animation will register itself with the kart
             // and will free it later.
-            ExplosionAnimation::create(kart, getXYZ(), kart==kart_hit);
+            ExplosionAnimation::create(kart, getXYZ(), kart==kart_hit, &m_karts_hit, &m_karts_exploded);
             if (kart == kart_hit)
             {
                 world->kartHit(kart->getWorldKartId(),
@@ -818,4 +826,131 @@ void Flyable::fixSFXSplitscreen(SFXBase* sfx)
         sfx->setVolume(1.0f / (float)RaceManager::get()->getNumLocalPlayers());
 }   // fixSFXSplitscreen
 
-/* EOF */
+// ----------------------------------------------------------------------------
+/* Check if kart is team mate of owner of this flyable */
+bool Flyable::isTeammateHit(AbstractKart* kart)
+{
+    if(kart && !kart->hasFinishedRace()
+            && RaceManager::get()->getKartColor(getOwnerId()) == RaceManager::get()->getKartColor(kart->getWorldKartId())
+            && kart != getOwner())
+        return true;
+    else
+        return false;
+}
+
+// helper function to not have to write this code for both Cake and Bowling
+void Flyable::handleTeammateHits(bool bowling)
+{
+    auto sl = LobbyProtocol::get<ServerLobby>();
+
+    // no lobby, no fun ;)
+    if (!sl) return;
+
+    // If we don't have a custom color, we have no teammates anyway
+    if (RaceManager::get()->getKartColor(getOwnerId()) == 0.0)
+        return;
+
+    // if bowling ball is too old, it doesn't count
+    if (bowling && (int)m_ticks_since_thrown > stk_config->time2Ticks(MAX_BOWL_TEAMMATE_HIT_TIME))
+        return;
+
+    // Show message?
+    if (sl->showTeamMateHits())
+    {
+        // prepare string
+        int num_victims = 0;
+        std::string msg = "LOL: ";
+        std::string victims;
+        msg+=StringUtils::wideToUtf8(getOwner()->getController()->getName());
+        msg+=" just shot ";
+
+        for (unsigned int i=0; i < m_karts_exploded.size(); i++)
+        {
+            if (isTeammateHit(m_karts_exploded[i]))
+            {
+                // hit teammate
+                if (num_victims > 0)
+                    victims+=" and ";
+                victims+=StringUtils::wideToUtf8(m_karts_exploded[i]->getController()->getName());
+                num_victims++;
+            }
+        }
+        if (num_victims > 0) // we found victims, so send message
+        {
+            msg += (num_victims > 1) ? "teammates " : "teammate ";
+            msg += victims;
+            sl->sendTeamMateHitMsg(msg);
+        }
+    }
+
+    if (sl->useTeamMateHitMode())
+    {
+        bool punished = false;
+        // first check if we exploded at least one teammate
+        for (unsigned int i=0; i < m_karts_exploded.size() && !punished; i++)
+        {
+            if (isTeammateHit(m_karts_exploded[i]))
+            {
+                // we did, so punish
+                punished = true;
+                if(m_owner->getAttachment()->getType()==Attachment::ATTACH_BOMB)
+                {
+                    // make bomb explode
+                    m_owner->getAttachment()->update(10000);
+                }
+                else if(m_owner->isShielded())
+                {
+                    // if owner is shielded, take away shield
+                    m_owner->decreaseShieldTime();
+                }
+                else
+                {
+                    int left_over_ticks = 0;
+                    // if owner already has an anvil or a parachute, make new anvil last longer
+                    if (m_owner->getAttachment()->getType()==Attachment::ATTACH_ANVIL
+                        || m_owner->getAttachment()->getType()==Attachment::ATTACH_PARACHUTE)
+                    {
+                        left_over_ticks = m_owner->getAttachment()->getTicksLeft();
+                    }
+                    m_owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                                              stk_config->time2Ticks(m_owner->getKartProperties()->getAnvilDuration()) + left_over_ticks);
+                    m_owner->adjustSpeed(m_owner->getKartProperties()->getAnvilSpeedFactor());
+                }
+            }
+        }
+
+        // now check for deshielding teammates
+        for (unsigned int i=0; i < m_karts_hit.size() && !punished; i++)
+        {
+            if (isTeammateHit(m_karts_hit[i]))
+            {
+                // we did, so punish
+                punished = true;
+                if(m_owner->getAttachment()->getType()==Attachment::ATTACH_BOMB)
+                {
+                    // make bomb explode
+                    m_owner->getAttachment()->update(10000);
+                }
+                else if(m_owner->isShielded())
+                {
+                    // if owner is shielded, take away shield
+                    m_owner->decreaseShieldTime();
+                }
+                else
+                {
+                    // since teammate didn't explode, make anvil less severe
+                    int left_over_ticks = 0;
+                    // if owner already has an anvil or a parachute, make new anvil last longer
+                    if (m_owner->getAttachment()->getType()==Attachment::ATTACH_ANVIL
+                        || m_owner->getAttachment()->getType()==Attachment::ATTACH_PARACHUTE)
+                    {
+                        left_over_ticks = m_owner->getAttachment()->getTicksLeft();
+                    }
+                    m_owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                                              stk_config->time2Ticks(m_owner->getKartProperties()->getAnvilDuration()) / 2 + left_over_ticks);
+                    m_owner->adjustSpeed(m_owner->getKartProperties()->getAnvilSpeedFactor() * 2.0f);
+                }
+            }
+        }
+    }
+}

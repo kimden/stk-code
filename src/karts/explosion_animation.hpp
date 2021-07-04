@@ -75,7 +75,8 @@ friend class KartRewinder;
 public:
     // ------------------------------------------------------------------------
     static ExplosionAnimation *create(AbstractKart* kart, const Vec3 &pos,
-                                      bool direct_hit);
+                                      bool direct_hit,
+                                      std::vector<AbstractKart*>* karts_hit = nullptr, std::vector<AbstractKart*>* karts_exploded = nullptr);
     // ------------------------------------------------------------------------
     static ExplosionAnimation *create(AbstractKart *kart);
     // ------------------------------------------------------------------------

@@ -157,6 +157,12 @@ protected:
      *  that may ticks. */
     int               m_max_lifespan;
 
+    /** for teammate punish mode
+     *  we have to keep track of the karts affected by a hit */
+    const float MAX_BOWL_TEAMMATE_HIT_TIME = 2.0f;
+    std::vector<AbstractKart*> m_karts_hit;
+    std::vector<AbstractKart*> m_karts_exploded;
+
     /* For debugging purpose */
     int               m_created_ticks;
 
@@ -186,6 +192,10 @@ protected:
     void              moveToInfinity(bool set_moveable_trans = true);
     void              removePhysics();
     void              fixSFXSplitscreen(SFXBase* sfx);
+
+    bool              isTeammateHit(AbstractKart* kart);
+    void              handleTeammateHits(bool bowling=false);
+
 public:
 
                  Flyable     (AbstractKart* kart,

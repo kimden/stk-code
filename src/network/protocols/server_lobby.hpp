@@ -392,6 +392,15 @@ private:
     // config for troll system
     bool  m_troll_active;
 
+    // config for team mate hits
+    // show messages about team hits?
+    bool m_show_teammate_hits;
+    // give anvils to attackers?
+    bool m_teammate_hit_mode;
+    // time index of last team mate hit
+    // make sure not to send too many of them
+    int m_last_teammate_hit_msg;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);
@@ -592,6 +601,10 @@ public:
     std::string getRecord(std::string& track, std::string& mode,
         std::string& direction, int laps);
 #endif
+
+    void sendTeamMateHitMsg(std::string& s);
+    bool showTeamMateHits() const    { return m_show_teammate_hits; }
+    bool useTeamMateHitMode() const { return m_teammate_hit_mode; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

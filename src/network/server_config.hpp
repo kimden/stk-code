@@ -295,6 +295,14 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(FloatServerConfigParam(5.0f, "troll-max-stop-speed",
         "A player going slower than this is considered stopping."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_show_teammate_hits
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "show-teammate-hits",
+        "If this value is set to true, a message is send to everybody if a player makes a teammate explode."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_teammate_hit_mode
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "teammate-hit-mode",
+        "Punish teammate hits? If set to true players get an anvil when they hit teammates."));
+
     SERVER_CFG_PREFIX IntServerConfigParam m_min_start_game_players
         SERVER_CFG_DEFAULT(IntServerConfigParam(2, "min-start-game-players",
         "Only auto start kart selection when number of "
