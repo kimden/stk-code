@@ -4183,23 +4183,19 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
 
     if (!m_addon_kts.first.empty())
     {
-        addons_scores[AS_KART] = int
-            ((float)addon_kart / (float)m_addon_kts.first.size() * 100.0);
+        addons_scores[AS_KART] = addon_kart;
     }
     if (!m_addon_kts.second.empty())
     {
-        addons_scores[AS_TRACK] = int
-            ((float)addon_track / (float)m_addon_kts.second.size() * 100.0);
+        addons_scores[AS_TRACK] = addon_track;
     }
     if (!m_addon_arenas.empty())
     {
-        addons_scores[AS_ARENA] = int
-            ((float)addon_arena / (float)m_addon_arenas.size() * 100.0);
+        addons_scores[AS_ARENA] = addon_arena;
     }
     if (!m_addon_soccers.empty())
     {
-        addons_scores[AS_SOCCER] = int
-            ((float)addon_soccer / (float)m_addon_soccers.size() * 100.0);
+        addons_scores[AS_SOCCER] = addon_soccer;
     }
 
     // Save available karts and tracks from clients in STKPeer so if this peer
@@ -7046,7 +7042,8 @@ void ServerLobby::handleServerCommand(Event* event,
         if (player_name.empty() || !player_peer)
         {
             chat->encodeString16(
-                L"Usage: /playeraddonscore [player name] (return 0-100)");
+                L"Usage: /playeraddonscore [player name] "
+                "(returns the number of addons, not a percentage)");
         }
         else
         {
@@ -7055,21 +7052,21 @@ void ServerLobby::handleServerCommand(Event* event,
                 scores[AS_ARENA] == -1 && scores[AS_SOCCER] == -1)
             {
                 chat->encodeString16(StringUtils::utf8ToWide
-                    (player_name + " has no addon"));
+                    (player_name + " has no addons"));
             }
             else
             {
                 std::string msg = player_name;
-                msg += " addon:";
+                msg += " addons:";
                 if (scores[AS_KART] != -1)
-                    msg += " kart: " + StringUtils::toString(scores[AS_KART]) + ",";
+                    msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
                 if (scores[AS_TRACK] != -1)
-                    msg += " track: " + StringUtils::toString(scores[AS_TRACK]) + ",";
+                    msg += " tracks: " + StringUtils::toString(scores[AS_TRACK]) + ",";
                 if (scores[AS_ARENA] != -1)
-                    msg += " arena: " + StringUtils::toString(scores[AS_ARENA]) + ",";
+                    msg += " arenas: " + StringUtils::toString(scores[AS_ARENA]) + ",";
                 if (scores[AS_SOCCER] != -1)
-                    msg += " soccer: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
-                msg = msg.substr(0, msg.size() - 1);
+                    msg += " fields: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
+                msg.pop_back();
                 chat->encodeString16(StringUtils::utf8ToWide(msg));
             }
         }
