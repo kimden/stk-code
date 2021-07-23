@@ -7543,7 +7543,7 @@ unmute_error:
                 m_default_lap_multiplier = -1.0;
                 m_fixed_lap = -1;
                 msg = "Game length will be chosen by players";
-                sendStringToAllPeers(msg, peer);
+                sendStringToAllPeers(msg);
                 return;
             }
             double temp_double = -1.0;
@@ -7556,7 +7556,7 @@ unmute_error:
                 msg = StringUtils::insertValues(
                     "Game length is now %.4f x default",
                     m_default_lap_multiplier);
-                sendStringToAllPeers(msg, peer);
+                sendStringToAllPeers(msg);
                 return;
             }
             if (argv[2] == "=" && argv.size() >= 4 &&
@@ -7566,7 +7566,7 @@ unmute_error:
                 m_default_lap_multiplier = -1.0;
                 msg = StringUtils::insertValues(
                         "Game length is now %d", m_fixed_lap);
-                sendStringToAllPeers(msg, peer);
+                sendStringToAllPeers(msg);
                 return;
             }
             msg = "Usage: /admin length (x (float) | = (int) | check | clear)";
