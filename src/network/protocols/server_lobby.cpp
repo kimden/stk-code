@@ -244,6 +244,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_consent_on_replays = false;
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
+    m_default_lap_multiplier = ServerConfig::m_auto_game_time_ratio;
 
     m_troll_active = ServerConfig::m_troll_active;
 
@@ -3111,7 +3112,7 @@ void ServerLobby::startSelection(const Event *event)
        .addFloat(ServerConfig::m_voting_timeout)
        .addUInt8(/*m_game_setup->isGrandPrixStarted() ? 1 : */0)
        .addUInt8((m_fixed_lap >= 0
-            || ServerConfig::m_auto_game_time_ratio > 0.0f) ? 1 : 0)
+            || m_default_lap_multiplier > 0.0f) ? 1 : 0)
        .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
 
     const auto& all_k = m_available_kts.first;
@@ -3158,7 +3159,7 @@ void ServerLobby::startSelection(const Event *event)
            .addFloat(ServerConfig::m_voting_timeout)
            .addUInt8(/*m_game_setup->isGrandPrixStarted() ? 1 : */0)
            .addUInt8((m_fixed_lap >= 0
-            || ServerConfig::m_auto_game_time_ratio > 0.0f) ? 1 : 0)
+            || m_default_lap_multiplier > 0.0f) ? 1 : 0)
            .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
 
         ns->addUInt16((uint16_t)(has_gnu ? 1 : 0)).addUInt16(
@@ -4988,11 +4989,11 @@ void ServerLobby::handlePlayerVote(Event* event)
     }
     else if (RaceManager::get()->modeHasLaps())
     {
-        if (ServerConfig::m_auto_game_time_ratio > 0.0f)
+        if (m_default_lap_multiplier > 0.0f)
         {
             vote.m_num_laps =
                 (uint8_t)(fmaxf(1.0f, (float)t->getDefaultNumberOfLaps() *
-                ServerConfig::m_auto_game_time_ratio));
+                m_default_lap_multiplier));
         }
         else if (vote.m_num_laps == 0 || vote.m_num_laps > 20)
             vote.m_num_laps = (uint8_t)3;
@@ -5003,9 +5004,9 @@ void ServerLobby::handlePlayerVote(Event* event)
     {
         if (m_game_setup->isSoccerGoalTarget())
         {
-            if (ServerConfig::m_auto_game_time_ratio > 0.0f)
+            if (m_default_lap_multiplier > 0.0f)
             {
-                vote.m_num_laps = (uint8_t)(ServerConfig::m_auto_game_time_ratio *
+                vote.m_num_laps = (uint8_t)(m_default_lap_multiplier *
                                             UserConfigParams::m_num_goals);
             }
             else if (vote.m_num_laps > 10)
@@ -5013,9 +5014,9 @@ void ServerLobby::handlePlayerVote(Event* event)
         }
         else
         {
-            if (ServerConfig::m_auto_game_time_ratio > 0.0f)
+            if (m_default_lap_multiplier > 0.0f)
             {
-                vote.m_num_laps = (uint8_t)(ServerConfig::m_auto_game_time_ratio *
+                vote.m_num_laps = (uint8_t)(m_default_lap_multiplier *
                                             UserConfigParams::m_soccer_time_limit);
             }
             else if (vote.m_num_laps > 15)
@@ -7502,10 +7503,73 @@ unmute_error:
             {
                 m_allowed_to_start = false;
                 msg = "Now starting a race is forbidden";
-            } else {
+            }
+            else
+            {
                 m_allowed_to_start = true;
                 msg = "Now starting a race is allowed";
             }
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (argv[1] == "length")
+        {
+            if (argv.size() < 3)
+            {
+                msg = "Usage: /admin length (x (float) | = (int) | check | clear)";
+                sendStringToPeer(msg, peer);
+                return;
+            }
+            if (argv[2] == "check")
+            {
+                if (m_default_lap_multiplier < 0 && m_fixed_lap < 0)
+                    msg = "Game length is currently chosen by players";
+                else if (m_default_lap_multiplier > 0)
+                    msg = StringUtils::insertValues(
+                        "Game length is %.4f x default",
+                        m_default_lap_multiplier);
+                else if (m_fixed_lap > 0)
+                    msg = StringUtils::insertValues(
+                        "Game length is %d", m_fixed_lap);
+                else
+                    msg = StringUtils::insertValues(
+                        "An error: game length is both %.4f x default and %d",
+                        m_default_lap_multiplier, m_fixed_lap);
+                sendStringToPeer(msg, peer);
+                return;
+            }
+            if (argv[2] == "clear")
+            {
+                m_default_lap_multiplier = -1.0;
+                m_fixed_lap = -1;
+                msg = "Game length will be chosen by players";
+                sendStringToAllPeers(msg, peer);
+                return;
+            }
+            double temp_double = -1.0;
+            int temp_int = -1;
+            if (argv[2] == "x" && argv.size() >= 4 &&
+                StringUtils::parseString<double>(argv[3], &temp_double))
+            {
+                m_default_lap_multiplier = std::max<double>(0.0, temp_double);
+                m_fixed_lap = -1;
+                msg = StringUtils::insertValues(
+                    "Game length is now %.4f x default",
+                    m_default_lap_multiplier);
+                sendStringToAllPeers(msg, peer);
+                return;
+            }
+            if (argv[2] == "=" && argv.size() >= 4 &&
+                StringUtils::parseString<int>(argv[3], &temp_int))
+            {
+                m_fixed_lap = std::max<int>(0, temp_int);
+                m_default_lap_multiplier = -1.0;
+                msg = StringUtils::insertValues(
+                        "Game length is now %d", m_fixed_lap);
+                sendStringToAllPeers(msg, peer);
+                return;
+            }
+            msg = "Usage: /admin length (x (float) | = (int) | check | clear)";
             sendStringToPeer(msg, peer);
             return;
         }

@@ -365,6 +365,8 @@ private:
 
     int m_fixed_lap;
 
+    double m_default_lap_multiplier;
+
     std::vector<int> m_scoring_int_params;
 
     std::string m_scoring_type;
