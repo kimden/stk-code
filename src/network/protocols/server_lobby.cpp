@@ -7526,14 +7526,14 @@ unmute_error:
                     msg = "Game length is currently chosen by players";
                 else if (m_default_lap_multiplier > 0)
                     msg = StringUtils::insertValues(
-                        "Game length is %.4f x default",
+                        "Game length is %f x default",
                         m_default_lap_multiplier);
                 else if (m_fixed_lap > 0)
                     msg = StringUtils::insertValues(
                         "Game length is %d", m_fixed_lap);
                 else
                     msg = StringUtils::insertValues(
-                        "An error: game length is both %.4f x default and %d",
+                        "An error: game length is both %f x default and %d",
                         m_default_lap_multiplier, m_fixed_lap);
                 sendStringToPeer(msg, peer);
                 return;
@@ -7554,7 +7554,7 @@ unmute_error:
                 m_default_lap_multiplier = std::max<double>(0.0, temp_double);
                 m_fixed_lap = -1;
                 msg = StringUtils::insertValues(
-                    "Game length is now %.4f x default",
+                    "Game length is now %f x default",
                     m_default_lap_multiplier);
                 sendStringToAllPeers(msg);
                 return;
