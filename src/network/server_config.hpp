@@ -608,7 +608,9 @@ namespace ServerConfig
         "the list ends. Can be useful for grands prix."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_gp_scoring
-        SERVER_CFG_DEFAULT(StringServerConfigParam("", "grand-prix-scoring",
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "fixed 0 1 10 8 6 5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+        "grand-prix-scoring",
         "A custom Grand Prix scoring system to be used, "
         "empty for default."));
 
