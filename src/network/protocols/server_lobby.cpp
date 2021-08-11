@@ -7398,53 +7398,8 @@ unmute_error:
             }
             else
             {
-                std::string records_table_name = ServerConfig::m_records_table_name;
-                if (!records_table_name.empty())
-                {
-                    std::string get_query = StringUtils::insertValues("SELECT username, "
-                        "result FROM %s LEFT JOIN "
-                        "(SELECT venue as v, reverse as r, mode as m, laps as l, "
-                        "min(result) as min_res FROM %s group by v, r, m, l) "
-                        "ON venue = v and reverse = r and mode = m and laps = l "
-                        "WHERE venue = '%s' and reverse = '%s' "
-                        "and mode = '%s' and laps = %d and result = min_res;",
-                        records_table_name.c_str(), records_table_name.c_str(),
-                        track_name.c_str(), reverse_name.c_str(), mode_name.c_str(),
-                        laps_count);
-                    auto ret = vectorSQLQuery(get_query, 2);
-                    if (!ret.first)
-                    {
-                        chat->encodeString16(L"Failed to make a query");
-                    }
-                    else if (ret.second[0].size() > 0)
-                    {
-                        double best_result = 1e18;
-                        if (!StringUtils::parseString<double>(
-                            ret.second[1][0], &best_result))
-                        {
-                            chat->encodeString16(L"A strange error occured, "
-                                "please take a screenshot "
-                                "and contact the server owner.");
-                        }
-                        else
-                        {
-                            std::string message = StringUtils::insertValues(
-                                "The record is %s by %s",
-                                StringUtils::timeToString(best_result),
-                                ret.second[0][0]);
-                            chat->encodeString16(
-                                StringUtils::utf8ToWide(message));
-                        }
-                    }
-                    else
-                    {
-                        chat->encodeString16(L"No time set yet. Or there is a typo.");
-                    }
-                }
-                else 
-                {
-                    chat->encodeString16(L"No table storing records!");
-                }
+                std::string result = getRecord(track_name, mode_name, reverse_name, laps_count);
+                chat->encodeString16(StringUtils::utf8ToWide(result));
             }
         }
 #else
@@ -8288,11 +8243,19 @@ void ServerLobby::storeResults()
         std::string query = StringUtils::insertValues(
             "INSERT INTO %s "
             "(username, venue, reverse, mode, laps, result) "
-            "VALUES ('%s', '%s', '%s', '%s', %d, '%s');",
+            "VALUES ('%s', ?, '%s', '%s', %d, '%s');",
             m_results_table_name.c_str(), username.c_str(), track_name.c_str(),
             reverse_string.c_str(), mode_name.c_str(), laps_number, elapsed_string.str()
         );
-        easySQLQuery(query);
+        bool written = easySQLQuery(query, [username](sqlite3_stmt* stmt)
+        {
+            if (sqlite3_bind_text(stmt, 1, username.c_str(),
+                -1, SQLITE_TRANSIENT) != SQLITE_OK)
+            {
+                Log::error("easySQLQuery", "Failed to bind %s.",
+                    username.c_str());
+            }
+        });
     }
     if (record_fetched && best_cur_player_idx != -1)
     {
@@ -8959,6 +8922,67 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
         updatePlayerList();
     }
 }   // updateTournamentRole
+//-----------------------------------------------------------------------------
+std::string ServerLobby::getRecord(std::string& track, std::string& mode,
+    std::string& direction, std::string& laps)
+{
+    std::string records_table_name = ServerConfig::m_records_table_name;
+    if (!records_table_name.empty())
+    {
+        std::string get_query = StringUtils::insertValues("SELECT username, "
+            "result FROM %s LEFT JOIN "
+            "(SELECT venue as v, reverse as r, mode as m, laps as l, "
+            "min(result) as min_res FROM %s group by v, r, m, l) "
+            "ON venue = v and reverse = r and mode = m and laps = l "
+            "WHERE venue = ? and reverse = '%s' "
+            "and mode = '%s' and laps = %d and result = min_res;",
+            records_table_name.c_str(), records_table_name.c_str(),
+            direction.c_str(), mode.c_str(),
+            laps.c_str());
+        auto ret = vectorSQLQuery(get_query, 2,
+        [track](sqlite3_stmt* stmt)
+        {
+            // SQLITE_TRANSIENT to copy string
+            if (sqlite3_bind_text(stmt, 1, track.c_str(),
+                -1, SQLITE_TRANSIENT) != SQLITE_OK)
+            {
+                Log::error("vectorSQLQuery", "Failed to bind %s.",
+                    track.c_str());
+            }
+        });
+        if (!ret.first)
+        {
+            return "Failed to make a query";
+        }
+        else if (ret.second[0].size() > 0)
+        {
+            double best_result = 1e18;
+            if (!StringUtils::parseString<double>(
+                ret.second[1][0], &best_result))
+            {
+                return "A strange error occured, "
+                    "please take a screenshot "
+                    "and contact the server owner.";
+            }
+            else
+            {
+                std::string message = StringUtils::insertValues(
+                    "The record is %s by %s",
+                    StringUtils::timeToString(best_result),
+                    ret.second[0][0]);
+                return message;
+            }
+        }
+        else
+        {
+            return "No time set yet. Or there is a typo.";
+        }
+    }
+    else
+    {
+        return "No table storing records!";
+    }
+}   // getRecord
 //-----------------------------------------------------------------------------
 
 #ifdef ENABLE_WEB_SUPPORT
