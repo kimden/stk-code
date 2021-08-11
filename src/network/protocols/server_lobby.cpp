@@ -7398,7 +7398,7 @@ unmute_error:
             }
             else
             {
-                std::string result = getRecord(track_name, mode_name, reverse_name, laps_count);
+                std::string result = getRecord(track_name, mode_name, reverse_name, std::to_string(laps_count));
                 chat->encodeString16(StringUtils::utf8ToWide(result));
             }
         }
@@ -8243,8 +8243,8 @@ void ServerLobby::storeResults()
         std::string query = StringUtils::insertValues(
             "INSERT INTO %s "
             "(username, venue, reverse, mode, laps, result) "
-            "VALUES ('%s', ?, '%s', '%s', %d, '%s');",
-            m_results_table_name.c_str(), username.c_str(), track_name.c_str(),
+            "VALUES (?, '%s', '%s', '%s', %d, '%s');",
+            m_results_table_name.c_str(), track_name.c_str(),
             reverse_string.c_str(), mode_name.c_str(), laps_number, elapsed_string.str()
         );
         bool written = easySQLQuery(query, [username](sqlite3_stmt* stmt)
