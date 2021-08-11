@@ -589,7 +589,7 @@ public:
     void sendStringToPeer(std::string& s, STKPeer* peer) const;
     void sendStringToAllPeers(std::string& s);
     std::string getRecord(std::string& track, std::string& mode,
-        std::string& direction, std::string& laps);
+        std::string& direction, int laps);
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

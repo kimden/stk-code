@@ -7398,7 +7398,7 @@ unmute_error:
             }
             else
             {
-                std::string result = getRecord(track_name, mode_name, reverse_name, std::to_string(laps_count));
+                std::string result = getRecord(track_name, mode_name, reverse_name, laps_count);
                 chat->encodeString16(StringUtils::utf8ToWide(result));
             }
         }
@@ -8924,7 +8924,7 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
 }   // updateTournamentRole
 //-----------------------------------------------------------------------------
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
-    std::string& direction, std::string& laps)
+    std::string& direction, int laps)
 {
     std::string records_table_name = ServerConfig::m_records_table_name;
     if (!records_table_name.empty())
@@ -8938,7 +8938,7 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
             "and mode = '%s' and laps = %d and result = min_res;",
             records_table_name.c_str(), records_table_name.c_str(),
             direction.c_str(), mode.c_str(),
-            laps.c_str());
+            laps);
         auto ret = vectorSQLQuery(get_query, 2,
         [track](sqlite3_stmt* stmt)
         {
