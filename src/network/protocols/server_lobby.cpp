@@ -7441,7 +7441,8 @@ unmute_error:
     {
         std::string msg;
         bool can = (peer->isAngryHost() || (ServerConfig::m_soccer_tournament && hasHostRights(peer)));
-        if (!can) {
+        bool weak_abilities = (ServerConfig::m_only_host_riding && hasHostRights(peer));
+        if (!can && !weak_abilities) {
             msg = "You cannot control this server";
             sendStringToPeer(msg, peer);
             return;
@@ -7449,27 +7450,6 @@ unmute_error:
         if (argv.size() == 1)
         {
             msg = "Usage: /admin command arg1 arg2 ...";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "start")
-        {
-            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
-            {
-                msg = "Usage: /admin start [0/1] - allow or forbid starting a race";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "0")
-            {
-                m_allowed_to_start = false;
-                msg = "Now starting a race is forbidden";
-            }
-            else
-            {
-                m_allowed_to_start = true;
-                msg = "Now starting a race is allowed";
-            }
             sendStringToPeer(msg, peer);
             return;
         }
@@ -7531,6 +7511,109 @@ unmute_error:
                 return;
             }
             msg = "Usage: /admin length (x (float) | = (int) | check | clear)";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (argv[1] == "queue")
+        {
+            std::string format_string = "Format: /admin queue (show | push[_front] (track) | pop[_back])";
+            if (argv.size() < 3)
+            {
+                sendStringToPeer(format_string, peer);
+                return;
+            }
+            if (argv[2] == "show")
+            {
+                std::string msg = "Queue:";
+                for (const std::string& s: m_tracks_queue) {
+                    msg += " " + s;
+                }
+                sendStringToPeer(msg, peer);
+            }
+            else if (argv[2] == "push" || argv[2] == "push_back")
+            {
+                if (argv.size() < 4)
+                {
+                    sendStringToPeer(format_string, peer);
+                    return;
+                }
+                m_tracks_queue.push_back(argv[3]);
+                std::string msg = "Pushed " + argv[3]
+                    + " to the back of queue, current queue size: "
+                    + std::to_string(m_tracks_queue.size());
+                sendStringToPeer(msg, peer);
+            }
+            else if (argv[2] == "push_front")
+            {
+                if (argv.size() < 4)
+                {
+                    sendStringToPeer(format_string, peer);
+                    return;
+                }
+                m_tracks_queue.push_front(argv[3]);
+                std::string msg = "Pushed " + argv[3]
+                    + " to the front of queue, current queue size: "
+                    + std::to_string(m_tracks_queue.size());
+                sendStringToPeer(msg, peer);
+            }
+            else if (argv[2] == "pop" || argv[2] == "pop_back")
+            {
+                std::string msg = "";
+                if (m_tracks_queue.empty()) {
+                    msg = "Queue was empty before.";
+                }
+                else
+                {
+                    std::string msg = "Popped " + m_tracks_queue.front()
+                        + "from the queue,";
+                    m_tracks_queue.pop_front();
+                    msg += " current queue size: "
+                        + std::to_string(m_tracks_queue.size());
+                }
+                sendStringToPeer(msg, peer);
+            }
+            else if (argv[2] == "pop_back")
+            {
+                std::string msg = "";
+                if (m_tracks_queue.empty()) {
+                    msg = "Queue was empty before.";
+                }
+                else
+                {
+                    std::string msg = "Popped " + m_tracks_queue.back()
+                        + "from the queue,";
+                    m_tracks_queue.pop_back();
+                    msg += " current queue size: "
+                        + std::to_string(m_tracks_queue.size());
+                }
+                sendStringToPeer(msg, peer);
+            }
+            return;
+        }
+        if (!can) {
+            msg = "You cannot control this server. As you are the crowned player, "
+                "you can invoke /admin length and /admin queue commands.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (argv[1] == "start")
+        {
+            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
+            {
+                msg = "Usage: /admin start [0/1] - allow or forbid starting a race";
+                sendStringToPeer(msg, peer);
+                return;
+            }
+            if (argv[2] == "0")
+            {
+                m_allowed_to_start = false;
+                msg = "Now starting a race is forbidden";
+            }
+            else
+            {
+                m_allowed_to_start = true;
+                msg = "Now starting a race is allowed";
+            }
             sendStringToPeer(msg, peer);
             return;
         }
@@ -7674,82 +7757,6 @@ unmute_error:
                 m_hidden_categories.insert(category);
             }
             updatePlayerList();
-            return;
-        }
-        if (argv[1] == "queue")
-        {
-            std::string format_string = "Format: /admin queue (show | push[_front] (track) | pop[_back])";
-            if (argv.size() < 3)
-            {
-                sendStringToPeer(format_string, peer);
-                return;
-            }
-            if (argv[2] == "show")
-            {
-                std::string msg = "Queue:";
-                for (const std::string& s: m_tracks_queue) {
-                    msg += " " + s;
-                }
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "push" || argv[2] == "push_back")
-            {
-                if (argv.size() < 4)
-                {
-                    sendStringToPeer(format_string, peer);
-                    return;
-                }
-                m_tracks_queue.push_back(argv[3]);
-                std::string msg = "Pushed " + argv[3]
-                    + " to the back of queue, current queue size: "
-                    + std::to_string(m_tracks_queue.size());
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "push_front")
-            {
-                if (argv.size() < 4)
-                {
-                    sendStringToPeer(format_string, peer);
-                    return;
-                }
-                m_tracks_queue.push_front(argv[3]);
-                std::string msg = "Pushed " + argv[3]
-                    + " to the front of queue, current queue size: "
-                    + std::to_string(m_tracks_queue.size());
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "pop" || argv[2] == "pop_back")
-            {
-                std::string msg = "";
-                if (m_tracks_queue.empty()) {
-                    msg = "Queue was empty before.";
-                }
-                else
-                {
-                    std::string msg = "Popped " + m_tracks_queue.front()
-                        + "from the queue,";
-                    m_tracks_queue.pop_front();
-                    msg += " current queue size: "
-                        + std::to_string(m_tracks_queue.size());
-                }
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "pop_back")
-            {
-                std::string msg = "";
-                if (m_tracks_queue.empty()) {
-                    msg = "Queue was empty before.";
-                }
-                else
-                {
-                    std::string msg = "Popped " + m_tracks_queue.back()
-                        + "from the queue,";
-                    m_tracks_queue.pop_back();
-                    msg += " current queue size: "
-                        + std::to_string(m_tracks_queue.size());
-                }
-                sendStringToPeer(msg, peer);
-            }
             return;
         }
         if (argv[1] == "troll")
