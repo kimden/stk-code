@@ -1352,13 +1352,16 @@ bool ServerLobby::easySQLQuery(const std::string& query,
     {
         if (bind_function)
             bind_function(stmt);
+        char* actual_query_cstr = sqlite3_expanded_sql(stmt);
+        std::string actual_query(actual_query_cstr);
+        sqlite3_free(actual_query_cstr);
         ret = sqlite3_step(stmt);
         ret = sqlite3_finalize(stmt);
         if (ret != SQLITE_OK)
         {
             Log::error("ServerLobby",
                 "Error finalize database for easy query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
+                actual_query.c_str(), sqlite3_errmsg(m_db));
             return false;
         }
     }
@@ -1386,6 +1389,9 @@ ServerLobby::vectorSQLQuery(const std::string& query,
     {
         if (bind_function)
             bind_function(stmt);
+        char* actual_query_cstr = sqlite3_expanded_sql(stmt);
+        std::string actual_query(actual_query_cstr);
+        sqlite3_free(actual_query_cstr);
         ret = sqlite3_step(stmt);
         while (sqlite3_column_text(stmt, 0))
         {
@@ -1401,7 +1407,7 @@ ServerLobby::vectorSQLQuery(const std::string& query,
         {
             Log::error("ServerLobby",
                 "Error finalize database for vector query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
+                actual_query.c_str(), sqlite3_errmsg(m_db));
             return {false, {}};
         }
     }
