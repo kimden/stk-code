@@ -2064,11 +2064,13 @@ bool ServerLobby::canLiveJoinNow() const
         }
         if (!fastest_kart)
             return false;
-        float progress = w->getOverallDistance(
-            fastest_kart->getWorldKartId()) /
-            (Track::getCurrentTrack()->getTrackLength() *
-            (float)RaceManager::get()->getNumLaps());
-        if (progress > 0.9f)
+        float leader_distance = w->getOverallDistance(
+            fastest_kart->getWorldKartId());
+        float total_distance =
+            Track::getCurrentTrack()->getTrackLength() *
+            (float)RaceManager::get()->getNumLaps();
+        float progress = leader_distance / total_distance;
+        if (total_distance - leader_distance < 250.0)
             return false;
     }
     return live_join;
