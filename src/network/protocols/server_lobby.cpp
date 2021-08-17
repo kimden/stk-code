@@ -8768,7 +8768,6 @@ void ServerLobby::updateWorldSettings()
     if (wwr)
     {
         wwr->setCustomScoringSystem(m_scoring_type, m_scoring_int_params);
-        wwr->setShuffled(m_shuffle_gp);
     }
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(World::getWorld());
     if (sw)
