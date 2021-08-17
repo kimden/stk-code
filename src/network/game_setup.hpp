@@ -134,7 +134,8 @@ public:
     const std::string& getCurrentTrack() const      { return m_tracks.back(); }
     // ------------------------------------------------------------------------
     void sortPlayersForGrandPrix(
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
+        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+        bool shuffle_instead) const;
     // ------------------------------------------------------------------------
     void sortPlayersForGame(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;

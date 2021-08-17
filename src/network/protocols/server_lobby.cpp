@@ -1897,7 +1897,7 @@ void ServerLobby::asynchronousUpdate()
                         m_ai_profiles.end());
                 }
             }
-            m_game_setup->sortPlayersForGrandPrix(players);
+            m_game_setup->sortPlayersForGrandPrix(players, m_shuffle_gp);
             m_game_setup->sortPlayersForGame(players);
             for (unsigned i = 0; i < players.size(); i++)
             {

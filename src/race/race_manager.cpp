@@ -566,33 +566,13 @@ void RaceManager::startNextRace()
             player_last_offset = (int)m_player_karts.size();
         }
 
-        WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
-        bool shuffle_instead = false;
-        if (wwr)
-            bool shuffle_instead = wwr->isShuffled();
-        else
+        std::sort(m_kart_status.begin()+offset,
+                  m_kart_status.end() - player_last_offset);
+        // reverse kart order if flagged in user's config
+        if (UserConfigParams::m_gp_most_points_first)
         {
-            Log::error("RaceManager",
-                       "World with scores that is not a WorldWithRank??");
-        }
-
-        if (shuffle_instead)
-        {
-            std::random_device rd;
-            std::mt19937 g(rd());
-            std::shuffle(m_kart_status.begin()+offset,
-                  m_kart_status.end() - player_last_offset, g);
-        }
-        else
-        {
-            std::sort(m_kart_status.begin()+offset,
-                      m_kart_status.end() - player_last_offset);
-            // reverse kart order if flagged in user's config
-            if (UserConfigParams::m_gp_most_points_first)
-            {
-                std::reverse(m_kart_status.begin()+offset,
-                             m_kart_status.end() - player_last_offset);
-            }
+            std::reverse(m_kart_status.begin()+offset,
+                         m_kart_status.end() - player_last_offset);
         }
     }   // not first race
 

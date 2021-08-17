@@ -147,12 +147,13 @@ void GameSetup::addServerInfo(NetworkString* ns)
 
 //-----------------------------------------------------------------------------
 void GameSetup::sortPlayersForGrandPrix(
-    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const
+    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+    bool shuffle_instead) const
 {
     if (!isGrandPrix())
         return;
 
-    if (m_tracks.size() == 1)
+    if (m_tracks.size() == 1 || shuffle_instead)
     {
         std::random_device rd;
         std::mt19937 g(rd());
