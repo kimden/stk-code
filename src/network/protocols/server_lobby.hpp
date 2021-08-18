@@ -588,8 +588,10 @@ public:
     void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const;
     void sendStringToPeer(std::string& s, STKPeer* peer) const;
     void sendStringToAllPeers(std::string& s);
+#ifdef ENABLE_SQLITE3
     std::string getRecord(std::string& track, std::string& mode,
         std::string& direction, int laps);
+#endif
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

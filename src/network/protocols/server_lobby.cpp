@@ -8938,6 +8938,7 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
     }
 }   // updateTournamentRole
 //-----------------------------------------------------------------------------
+#ifdef ENABLE_SQLITE3
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     std::string& direction, int laps)
 {
@@ -8998,6 +8999,7 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
         return "No table storing records!";
     }
 }   // getRecord
+#endif
 //-----------------------------------------------------------------------------
 
 #ifdef ENABLE_WEB_SUPPORT
