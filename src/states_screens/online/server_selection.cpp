@@ -42,7 +42,7 @@
 #include <cassert>
 
 using namespace Online;
-
+bool g_bookmarks_next = false;
 // ----------------------------------------------------------------------------
 /** Constructor, which loads the stkgui file.
  */
@@ -69,6 +69,8 @@ void ServerSelection::tearDown()
     m_servers.clear();
     m_server_list_widget->clear();
     m_server_list = nullptr;
+    if (!UserConfigParams::m_server_bookmarks.empty())
+        user_config->saveConfig();
 }   // tearDown
 
 // ----------------------------------------------------------------------------
@@ -112,6 +114,12 @@ void ServerSelection::loadedFromFile()
     assert(m_searcher != NULL);
     m_ipv6->setState(false);
     m_icon_bank = new irr::gui::STKModifiedSpriteBank(GUIEngine::getGUIEnv());
+    m_bookmark_widget = getWidget<GUIEngine::IconButtonWidget>("bookmark");
+    assert(m_bookmark_widget != NULL);
+    m_bookmark_icon = irr_driver->getTexture
+        (file_manager->getAsset(FileManager::GUI_ICON, "story_mode_book.png"));
+    m_global_icon = irr_driver->getTexture
+        (file_manager->getAsset(FileManager::GUI_ICON, "main_network.png"));
 }   // loadedFromFile
 
 // ----------------------------------------------------------------------------
@@ -132,7 +140,10 @@ void ServerSelection::beforeAddingWidget()
         m_server_list_widget->addColumn(_C("column_name", "Owner"), 3);
         // I18N: In server selection screen, distance to server
         m_server_list_widget->addColumn(_C("column_name", "Distance (km)"), 3);
+        m_bookmark_widget->setVisible(true);
     }
+    else
+        m_bookmark_widget->setVisible(false);
 }   // beforeAddingWidget
 
 // ----------------------------------------------------------------------------
@@ -141,7 +152,9 @@ void ServerSelection::beforeAddingWidget()
 void ServerSelection::init()
 {
     Screen::init();
+
     m_last_load_time = -5000;
+    updateHeader();
 
 #ifndef ENABLE_IPV6
     m_ipv6->setState(false);
@@ -207,6 +220,7 @@ void ServerSelection::init()
 void ServerSelection::loadList()
 {
     m_server_list_widget->clear();
+
     std::stable_sort(m_servers.begin(), m_servers.end(), [this]
         (const std::shared_ptr<Server> a,
          const std::shared_ptr<Server> b)->bool
@@ -323,6 +337,12 @@ void ServerSelection::eventCallback(GUIEngine::Widget* widget,
     {
         refresh();
     }
+    else if (name == "bookmark")
+    {
+        g_bookmarks_next = !g_bookmarks_next;
+        updateHeader();
+        copyFromServerList();
+    }
     else if (name == "private_server" || name == "ipv6")
     {
         if (!m_ip_warning_shown && m_ipv6->getState() &&
@@ -401,6 +421,34 @@ void ServerSelection::onUpdate(float dt)
         m_refreshing_server = false;
         if (!m_server_list->m_servers.empty())
         {
+            std::set<std::string> all_possible_keys;
+            if (NetworkConfig::get()->isWAN())
+            {
+                // Remove offline server from bookmarks if inactive for 3 days
+                for (auto& server : m_server_list->m_servers)
+                    all_possible_keys.insert(server->getBookmarkKey());
+                std::map<std::string, uint32_t>& bookmarks =
+                    UserConfigParams::m_server_bookmarks;
+                auto it = bookmarks.begin();
+                while (it != bookmarks.end())
+                {
+                    uint64_t three_days = 60 * 60 * 24 * 3;
+                    uint64_t limit = StkTime::getTimeSinceEpoch() - three_days;
+                    if (all_possible_keys.find(it->first) ==
+                        all_possible_keys.end())
+                    {
+                        if (it->second < limit)
+                            it = bookmarks.erase(it);
+                        else
+                            it++;
+                    }
+                    else
+                    {
+                        it->second = StkTime::getTimeSinceEpoch();
+                        it++;
+                    }
+                }
+            }
             int selection = m_server_list_widget->getSelectionID();
             std::string selection_str = m_server_list_widget
                 ->getSelectionInternalName();
@@ -460,6 +508,18 @@ void ServerSelection::copyFromServerList()
                 return false;
             }), m_servers.end());
     }
+    if (g_bookmarks_next)
+    {
+        m_servers.erase(std::remove_if(m_servers.begin(), m_servers.end(),
+            [](const std::shared_ptr<Server>& a)->bool
+            {
+                const std::string& key = a->getBookmarkKey();
+                auto it = UserConfigParams::m_server_bookmarks.find(key);
+                if (it == UserConfigParams::m_server_bookmarks.end())
+                    return true;
+                return false;
+            }), m_servers.end());
+    }
     loadList();
 }   // copyFromServerList
 
@@ -469,3 +529,14 @@ void ServerSelection::unloaded()
     delete m_icon_bank;
     m_icon_bank = NULL;
 }   // unloaded
+
+// ----------------------------------------------------------------------------
+void ServerSelection::updateHeader()
+{
+    m_bookmark_widget->setImage(g_bookmarks_next ?
+        m_global_icon : m_bookmark_icon);
+    if (g_bookmarks_next && NetworkConfig::get()->isWAN())
+        getWidget("title_header")->setText(_("Server Bookmarks"));
+    else
+        getWidget("title_header")->setText(_("Server Selection"));
+}   // updateHeader

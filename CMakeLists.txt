@@ -19,11 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "STKRelease")
 endif()
 
-option(USE_SWITCH "Build targeting switch" OFF)
-
-if(NINTENDO_SWITCH)
-  set(USE_SWITCH ON)
-endif()
+CMAKE_DEPENDENT_OPTION(USE_SWITCH "Build targeting switch" OFF "NOT NINTENDO_SWITCH" ON)
 
 if(WIN32)
     option(USE_DIRECTX "Build DirectX 9 driver (requires DirectX SDK)" OFF)
@@ -393,6 +389,13 @@ if(NOT SERVER_ONLY)
         include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/mojoal")
     else()
         find_package(OpenAL REQUIRED)
+        # Unclear why this happens, but on switch OPENAL_LIBRARY never set!
+        if (NOT OPENAL_LIBRARY)
+            find_library(OPENAL_LIBRARY NAMES al OpenAL AL openal REQUIRED)
+        endif()
+        if (NOT OPENAL_INCLUDE_DIR)
+            find_path(OPENAL_INCLUDE_DIR NAMES AL/al.h REQUIRED)
+        endif()
         include_directories(${OPENAL_INCLUDE_DIR})
     endif()
 
