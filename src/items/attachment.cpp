@@ -61,7 +61,6 @@ Attachment::Attachment(AbstractKart* kart)
     m_graphical_type       = ATTACH_NOTHING;
     m_scaling_end_ticks    = -1;
     m_node = NULL;
-    m_punish_attack        = false;
     if (GUIEngine::isNoGraphics())
         return;
     // If we attach a NULL mesh, we get a NULL scene node back. So we
@@ -187,7 +186,6 @@ void Attachment::clear()
     m_type = ATTACH_NOTHING;
     m_ticks_left = 0;
     m_initial_speed = 0;
-    m_punish_attack = false;
 }   // clear
 
 // -----------------------------------------------------------------------------
@@ -475,16 +473,7 @@ void Attachment::update(int ticks)
     {
         if (m_plugin->updateAndTestFinished(ticks))
         {
-            // we need to save this value here, because clear() will reset it
-            bool attachAnvil = m_punish_attack;
             clear();  // also removes the plugin
-            // check if we attacked a team mate with a swatter and
-            // should get an avil attached
-            if (attachAnvil)
-            {
-                set(Attachment::ATTACH_ANVIL,stk_config->time2Ticks(m_kart->getKartProperties()->getAnvilDuration()));
-                m_kart->adjustSpeed(m_kart->getKartProperties()->getAnvilSpeedFactor());
-            }
             return;
         }
     }

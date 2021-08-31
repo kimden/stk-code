@@ -44,7 +44,6 @@
 #include "network/rewind_manager.hpp"
 
 #include "network/protocols/server_lobby.hpp"
-#include "config/stk_config.hpp"
 
 #define SWAT_POS_OFFSET        core::vector3df(0.0, 0.2f, -0.4f)
 #define SWAT_ANGLE_MIN  45
@@ -410,37 +409,11 @@ void Swatter::squashThingsAround()
     // punishment system however, does consider it a hit
     if (wasHit)
     {
-        // check if we are in team gp and hit a team mate and should punish attacker
-        if (auto sl=LobbyProtocol::get<ServerLobby>())
-        {
-            if (!m_closest_kart->hasFinishedRace()
-                && RaceManager::get()->getKartColor(m_kart->getWorldKartId()) > 0.0
-                && RaceManager::get()->getKartColor(m_kart->getWorldKartId())
-                == RaceManager::get()->getKartColor(m_closest_kart->getWorldKartId()))
-            {
-                // should we tell the world?
-                if (sl->showTeamMateHits() && success)
-                {
-                    std::string msg = "LOL: ";
-                    msg+=StringUtils::wideToUtf8(m_kart->getController()->getName());
-                    msg+=" just swattered teammate ";
-                    msg+=StringUtils::wideToUtf8(m_closest_kart->getController()->getName());
-                    sl->sendTeamMateHitMsg(msg);
-                }
-                if (sl->useTeamMateHitMode())
-                {
-                    // remove swatter
-                    m_discard_now = true;
-                    m_discard_ticks = World::getWorld()->getTicksSinceStart();
-                    // if this is the first kart hit and the swatter is in use for less than 3s
-                    // the attacker also gets an anvil
-                    if (!m_has_hit_kart && World::getWorld()->getTicksSinceStart() - m_created_ticks < stk_config->time2Ticks(3.0f)
-                        && success)
-                        // we cannot do this here, will be done in Attachment::update()
-                        m_attachment->setPunishAttack();
-                }
-            }
-        }
+        // check if we are in team gp and hit a teammate and should punish attacker
+        auto sl = LobbyProtocol::get<ServerLobby>();
+        if (sl && !m_closest_kart->hasFinishedRace())
+            sl->handleSwatterHit(m_kart->getWorldKartId(), m_closest_kart->getWorldKartId(), success, m_has_hit_kart,
+                                 World::getWorld()->getTicksSinceStart() - m_created_ticks);
     }
     if (success)
     {

@@ -28,6 +28,7 @@
 #include "modes/follow_the_leader.hpp"
 #include "network/network_string.hpp"
 #include "network/protocols/client_lobby.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "race/race_manager.hpp"
 #include "tracks/track.hpp"
 #include "utils/mini_glm.hpp"
@@ -40,13 +41,10 @@
  *  \param kart The kart that is exploded.
  *  \param pos The position where the explosion happened.
  *  \param direct_hit If the kart was hit directly.
- *  \param karts_hit  Pointer to a vector of all karts that loose shield (for teammate hits)
- *  \param karts_exploded Pointer to a vector of all karts that explde (for teammate hits)
  */
 ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
                                                const Vec3 &pos,
-                                               bool direct_hit,
-                                               std::vector<AbstractKart*>* karts_hit, std::vector<AbstractKart*>* karts_exploded)
+                                               bool direct_hit)
 {
     // When goal phase is happening karts is made stationary, so no animation
     // will be created
@@ -58,10 +56,12 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
     // Ignore explosion that are too far away.
     if(!direct_hit && pos.distance2(kart->getXYZ())>r*r) return NULL;
 
+    auto sl = LobbyProtocol::get<ServerLobby>();
+
     if(kart->isShielded())
     {
         kart->decreaseShieldTime();
-        if (karts_hit) karts_hit->push_back(kart);
+        if (sl) sl->registerTeamMateHit(kart->getWorldKartId());
         return NULL;
     }
 
@@ -73,7 +73,7 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
             ftl_world->leaderHit();
     }
 
-    if (karts_exploded) karts_exploded->push_back(kart);
+    if (sl) sl->registerTeamMateExplode(kart->getWorldKartId());
     return new ExplosionAnimation(kart, direct_hit);
 }   // create
 

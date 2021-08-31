@@ -22,7 +22,7 @@
 #include "config/user_config.hpp"
 #include "items/network_item_manager.hpp"
 #include "items/powerup_manager.hpp"
-#include "karts/abstract_kart.hpp"
+#include "items/attachment.hpp"
 #include "karts/controller/player_controller.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
@@ -252,6 +252,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_show_teammate_hits = ServerConfig::m_show_teammate_hits;
     m_teammate_hit_mode = ServerConfig::m_teammate_hit_mode;
     m_last_teammate_hit_msg = 0;
+    m_teammate_swatter_punish.clear();
 
     initAvailableModes();
 
@@ -2470,6 +2471,16 @@ void ServerLobby::update(int ticks)
                         }
                     }
                 }
+            }
+            if (m_teammate_swatter_punish.size() > 0)
+            {
+                // punish players who swattered teammates
+                for (auto kart : m_teammate_swatter_punish)
+                {
+                    kart->getAttachment()->set(Attachment::ATTACH_ANVIL,stk_config->time2Ticks(kart->getKartProperties()->getAnvilDuration()));
+                    kart->adjustSpeed(kart->getKartProperties()->getAnvilSpeedFactor());
+                }
+                m_teammate_swatter_punish.clear();
             }
         }
     }
@@ -9096,6 +9107,26 @@ std::string ServerLobby::getToken()
 //-----------------------------------------------------------------------------
 #endif // ENABLE_WEB_SUPPORT
 
+// this is called when collisions of an item are handled
+// so we keep track of hits caused by that item
+void ServerLobby::setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown)
+{
+    m_teammate_current_item_ownerID = ownerID;
+    m_teammate_ticks_since_thrown = ticks_since_thrown;
+    m_teammate_karts_hit.clear();
+    m_teammate_karts_exploded.clear();
+}
+
+void ServerLobby::registerTeamMateHit(unsigned int kartID)
+{
+    m_teammate_karts_hit.push_back(kartID);
+}
+
+void ServerLobby::registerTeamMateExplode(unsigned int kartID)
+{
+    m_teammate_karts_exploded.push_back(kartID);
+}
+
 void ServerLobby::sendTeamMateHitMsg(std::string& s)
 {
     if (World* w = World::getWorld())
@@ -9106,5 +9137,164 @@ void ServerLobby::sendTeamMateHitMsg(std::string& s)
             m_last_teammate_hit_msg = ticks;
             sendStringToAllPeers(s);
         }
+    }
+}
+
+void ServerLobby::handleTeamMateHits()
+{
+    // get team of owner of item
+    const std::string ownername = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(m_teammate_current_item_ownerID).getPlayerName());
+    const int ownerTeam = m_team_for_player[ownername];
+
+    if (ownerTeam == 0) // no team, no punishment
+        return;
+
+    AbstractKart *owner = World::getWorld()->getKart(m_teammate_current_item_ownerID);
+
+    // if item is too old, it doesn't count
+    // currently only bowling balls have their creation time registered
+    // so cakes will always count
+
+    if (m_teammate_ticks_since_thrown > stk_config->time2Ticks(MAX_BOWL_TEAMMATE_HIT_TIME))
+        return;
+
+    // Show message?
+    if (showTeamMateHits())
+    {
+        // prepare string
+        int num_victims = 0;
+        std::string msg = "LOL: ";
+        std::string victims;
+        msg+=ownername;
+        msg+=" just shot ";
+
+        for (unsigned int i=0; i < m_teammate_karts_exploded.size(); i++)
+        {
+            const std::string playername = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
+            const int playerTeam = m_team_for_player[playername];
+            if (ownerTeam == playerTeam)
+            {
+                // hit teammate
+                if (num_victims > 0)
+                    victims+=" and ";
+                victims+=StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
+                num_victims++;
+            }
+        }
+        if (num_victims > 0) // we found victims, so send message
+        {
+            msg += (num_victims > 1) ? "teammates " : "teammate ";
+            msg += victims;
+            sendTeamMateHitMsg(msg);
+        }
+    }
+
+    if (useTeamMateHitMode())
+    {
+        bool punished = false;
+        // first check if we exploded at least one teammate
+        for (unsigned int i=0; i < m_teammate_karts_exploded.size() && !punished; i++)
+        {
+            const std::string playername = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
+            const int playerTeam = m_team_for_player[playername];
+            if (ownerTeam == playerTeam)
+            {
+                // we did, so punish
+                punished = true;
+                if(owner->getAttachment()->getType()==Attachment::ATTACH_BOMB)
+                {
+                    // make bomb explode
+                    owner->getAttachment()->update(10000);
+                }
+                else if(owner->isShielded())
+                {
+                    // if owner is shielded, take away shield
+                    owner->decreaseShieldTime();
+                }
+                else
+                {
+                    int left_over_ticks = 0;
+                    // if owner already has an anvil or a parachute, make new anvil last longer
+                    if (owner->getAttachment()->getType()==Attachment::ATTACH_ANVIL
+                        || owner->getAttachment()->getType()==Attachment::ATTACH_PARACHUTE)
+                    {
+                        left_over_ticks = owner->getAttachment()->getTicksLeft();
+                    }
+                    owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                                              stk_config->time2Ticks(owner->getKartProperties()->getAnvilDuration()) + left_over_ticks);
+                    owner->adjustSpeed(owner->getKartProperties()->getAnvilSpeedFactor());
+                }
+            }
+        }
+
+        // now check for deshielding teammates
+        for (unsigned int i=0; i < m_teammate_karts_hit.size() && !punished; i++)
+        {
+            const std::string playername = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(m_teammate_karts_hit[i]).getPlayerName());
+            const int playerTeam = m_team_for_player[playername];
+            if (ownerTeam == playerTeam)
+            {
+                // we did, so punish
+                punished = true;
+                if(owner->getAttachment()->getType()==Attachment::ATTACH_BOMB)
+                {
+                    // make bomb explode
+                    owner->getAttachment()->update(10000);
+                }
+                else if(owner->isShielded())
+                {
+                    // if owner is shielded, take away shield
+                    owner->decreaseShieldTime();
+                }
+                else
+                {
+                    // since teammate didn't explode, make anvil less severe
+                    int left_over_ticks = 0;
+                    // if owner already has an anvil or a parachute, make new anvil last longer
+                    if (owner->getAttachment()->getType()==Attachment::ATTACH_ANVIL
+                        || owner->getAttachment()->getType()==Attachment::ATTACH_PARACHUTE)
+                    {
+                        left_over_ticks = owner->getAttachment()->getTicksLeft();
+                    }
+                    owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                                              stk_config->time2Ticks(owner->getKartProperties()->getAnvilDuration()) / 2 + left_over_ticks);
+                    owner->adjustSpeed(owner->getKartProperties()->getAnvilSpeedFactor() * 2.0f);
+                }
+            }
+        }
+    }
+}
+
+void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID, bool success, bool has_hit_kart, uint16_t ticks_active)
+{
+    const std::string ownername = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(ownerID).getPlayerName());
+    const int ownerTeam = m_team_for_player[ownername];
+    if (ownerTeam == 0)
+        return;
+
+    const std::string victimname = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(victimID).getPlayerName());
+    const int victimTeam = m_team_for_player[victimname];
+    if (victimTeam != ownerTeam)
+        return;
+
+    // should we tell the world?
+    if (showTeamMateHits() && success)
+    {
+        std::string msg = "LOL: ";
+        msg+=ownername;
+        msg+=" just swattered teammate ";
+        msg+=victimname;
+        sendTeamMateHitMsg(msg);
+    }
+    if (useTeamMateHitMode())
+    {
+        // remove swatter
+        AbstractKart *owner = World::getWorld()->getKart(ownerID);
+        owner->getAttachment()->setTicksLeft(0);
+        // if this is the first kart hit and the swatter is in use for less than 3s
+        // the attacker also gets an anvil
+        if (!has_hit_kart && ticks_active < stk_config->time2Ticks(3.0f) && success)
+            // we cannot do this here, will be done in update()
+            m_teammate_swatter_punish.push_back(owner);
     }
 }

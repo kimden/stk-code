@@ -112,11 +112,6 @@ private:
     /** Sound for exploding bubble gum shield */
     SFXBase          *m_bubble_explode_sound;
 
-    /** Punish attacker in team gp mode
-     *  We need to do this here for swatters,
-     *  because we first need to safely remove the swatter */
-    bool            m_punish_attack;
-
 public:
           Attachment(AbstractKart* kart);
          ~Attachment();
@@ -131,7 +126,6 @@ public:
                bool set_by_rewind_parachute = false);
     void rewindTo(BareNetworkString *buffer);
     void saveState(BareNetworkString *buffer) const;
-    void setPunishAttack() { m_punish_attack = true; }
 
     // ------------------------------------------------------------------------
     /** Sets the type of the attachment, but keeps the old time left value. */

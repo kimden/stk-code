@@ -24,6 +24,7 @@
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
 #include "utils/kart_elimination.hpp"
+#include "karts/controller/player_controller.hpp"
 
 #include "irrString.h"
 
@@ -392,7 +393,7 @@ private:
     // config for troll system
     bool  m_troll_active;
 
-    // config for team mate hits
+    // teammate hits
     // show messages about team hits?
     bool m_show_teammate_hits;
     // give anvils to attackers?
@@ -400,6 +401,18 @@ private:
     // time index of last team mate hit
     // make sure not to send too many of them
     int m_last_teammate_hit_msg;
+    // we have to keep track of the karts affected by a hit
+    // we store IDs, because we need to find the team by name (by ID)
+    unsigned int m_teammate_current_item_ownerID;
+    uint16_t m_teammate_ticks_since_thrown;
+    std::vector<unsigned int> m_teammate_karts_hit;
+    std::vector<unsigned int> m_teammate_karts_exploded;
+    // store karts to punish for swattering a teammate
+    std::vector<AbstractKart*> m_teammate_swatter_punish;
+
+    // after a certain time a bowl can be avoided and doesn't
+    // trigger teammate hits anymore
+    const float MAX_BOWL_TEAMMATE_HIT_TIME = 2.0f;
 
     // connection management
     void clientDisconnected(Event* event);
@@ -543,6 +556,7 @@ private:
     bool tournamentGoalsLimit(int game) const;
     bool tournamentColorsSwapped(int game) const;
     void updateTournamentRole(STKPeer* peer);
+
     // bool tournamentHasIcy(int game) const;
 #ifdef ENABLE_WEB_SUPPORT
     void loadAllTokens();
@@ -601,6 +615,15 @@ public:
     std::string getRecord(std::string& track, std::string& mode,
         std::string& direction, int laps);
 #endif
+
+    // handle cakes and bowls
+    void setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown = 0);
+    void registerTeamMateHit(unsigned int kartID);
+    void registerTeamMateExplode(unsigned int kartID);
+    void handleTeamMateHits();
+
+    // handle swatters
+    void handleSwatterHit(unsigned int ownerID, unsigned int victimID, bool success, bool has_hit_kart, uint16_t ticks_active);
 
     void sendTeamMateHitMsg(std::string& s);
     bool showTeamMateHits() const    { return m_show_teammate_hits; }
