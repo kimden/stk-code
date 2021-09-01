@@ -8213,15 +8213,9 @@ void ServerLobby::storeResults()
     if (!records_table_name.empty())
     {
         std::string get_query = StringUtils::insertValues("SELECT username, "
-            "result FROM %s INNER JOIN "
-            "(SELECT venue as v, reverse as r, mode as m, laps as l, "
-            "min(result) as min_res FROM %s group by v, r, m, l) "
-            "ON venue = v and reverse = r and mode = m and laps = l "
-            "and result = min_res "
-            "WHERE venue = '%s' and reverse = '%s' "
-            "and mode = '%s' and laps = %d;",
-            records_table_name.c_str(), records_table_name.c_str(),
-            track_name.c_str(), reverse_string.c_str(), mode_name.c_str(),
+            "result FROM '%s' WHERE venue = '%s' and reverse = '%s' "
+            "and mode = '%s' and laps = %d order by result asc, time asc limit 1;",
+            records_table_name.c_str(), track_name.c_str(), reverse_string.c_str(), mode_name.c_str(),
             laps_number);
         auto ret = vectorSQLQuery(get_query, 2);
         record_fetched = ret.first;
