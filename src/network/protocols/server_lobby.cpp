@@ -8946,14 +8946,9 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     if (!records_table_name.empty())
     {
         std::string get_query = StringUtils::insertValues("SELECT username, "
-            "result FROM %s LEFT JOIN "
-            "(SELECT venue as v, reverse as r, mode as m, laps as l, "
-            "min(result) as min_res FROM %s group by v, r, m, l) "
-            "ON venue = v and reverse = r and mode = m and laps = l "
-            "WHERE venue = ? and reverse = '%s' "
-            "and mode = '%s' and laps = %d and result = min_res;",
-            records_table_name.c_str(), records_table_name.c_str(),
-            direction.c_str(), mode.c_str(),
+            "result FROM '%s' WHERE venue = ? and reverse = '%s' "
+            "and mode = '%s' and laps = %d order by result asc, time asc limit 1;",
+            records_table_name.c_str(), direction.c_str(), mode.c_str(),
             laps);
         auto ret = vectorSQLQuery(get_query, 2,
         [track](sqlite3_stmt* stmt)
