@@ -9171,7 +9171,7 @@ void ServerLobby::handleTeamMateHits()
     {
         // prepare string
         int num_victims = 0;
-        std::string msg = "LOL: ";
+        std::string msg = ServerConfig::m_teammate_hit_msg_prefix;
         std::string victims;
         msg+=ownername;
         msg+=" just shot ";
@@ -9288,7 +9288,7 @@ void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID, 
     // should we tell the world?
     if (showTeamMateHits() && success)
     {
-        std::string msg = "LOL: ";
+        std::string msg = ServerConfig::m_teammate_hit_msg_prefix;
         msg+=ownername;
         msg+=" just swattered teammate ";
         msg+=victimname;
