@@ -26,6 +26,8 @@
 #include "utils/constants.hpp"
 #include "utils/random_generator.hpp"
 
+#include "network/protocols/server_lobby.hpp"
+
 #include "utils/log.hpp" //TODO: remove after debugging is done
 
 float Cake::m_st_max_distance_squared;
@@ -63,17 +65,26 @@ void Cake::init(const XMLNode &node, scene::IMesh *cake_model)
  */
 bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
 {
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (sl) sl->setTeamMateHitOwner(getOwnerId());
+
     bool was_real_hit = Flyable::hit(kart, obj);
     if(was_real_hit)
     {
         if(kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
+            if (sl)
+            {
+                sl->registerTeamMateHit(kart->getWorldKartId());
+                sl->handleTeamMateHits();
+            }
             return false; //Not sure if a shield hit is a real hit.
         }
         explode(kart, obj);
     }
 
+    if (sl) sl->handleTeamMateHits();
     return was_real_hit;
 }   // hit
 

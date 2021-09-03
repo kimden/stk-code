@@ -26,6 +26,8 @@
 #include "karts/abstract_kart.hpp"
 #include "modes/linear_world.hpp"
 
+#include "network/protocols/server_lobby.hpp"
+
 #include "utils/log.hpp" //TODO: remove after debugging is done
 
 float Bowling::m_st_max_distance;   // maximum distance for a bowling ball to be attracted
@@ -154,12 +156,20 @@ bool Bowling::updateAndDelete(int ticks)
  */
 bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
 {
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (sl) sl->setTeamMateHitOwner(getOwnerId(),m_ticks_since_thrown);
+
     bool was_real_hit = Flyable::hit(kart, obj);
     if(was_real_hit)
     {
         if(kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
+            if (sl)
+            {
+                sl->registerTeamMateHit(kart->getWorldKartId());
+                sl->handleTeamMateHits();
+            }
             return true;
         }
         else
@@ -168,6 +178,7 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
             explode(kart, obj, /*hit_secondary*/false);
         }
     }
+    if (sl) sl->handleTeamMateHits();
     return was_real_hit;
 }   // hit
 

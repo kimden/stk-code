@@ -28,6 +28,7 @@
 #include "modes/follow_the_leader.hpp"
 #include "network/network_string.hpp"
 #include "network/protocols/client_lobby.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "race/race_manager.hpp"
 #include "tracks/track.hpp"
 #include "utils/mini_glm.hpp"
@@ -55,9 +56,12 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
     // Ignore explosion that are too far away.
     if(!direct_hit && pos.distance2(kart->getXYZ())>r*r) return NULL;
 
+    auto sl = LobbyProtocol::get<ServerLobby>();
+
     if(kart->isShielded())
     {
         kart->decreaseShieldTime();
+        if (sl) sl->registerTeamMateHit(kart->getWorldKartId());
         return NULL;
     }
 
@@ -69,6 +73,7 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
             ftl_world->leaderHit();
     }
 
+    if (sl) sl->registerTeamMateExplode(kart->getWorldKartId());
     return new ExplosionAnimation(kart, direct_hit);
 }   // create
 

@@ -72,6 +72,8 @@ private:
     scene::IAnimatedMeshSceneNode *m_bomb_scene_node;
 
     int                m_discard_ticks;
+    int                m_created_ticks;
+    bool               m_has_hit_kart;
 
     int                m_swatter_duration;
 
