@@ -7846,7 +7846,7 @@ unmute_error:
     }
     else if (argv[0] == "version")
     {
-        std::string msg = "1.2-kimden 210903 beta";
+        std::string msg = "1.3-rc1 k 210903 beta";
         sendStringToPeer(msg, peer);
     }
     else if (argv[0] == "clear")
