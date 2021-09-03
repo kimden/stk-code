@@ -403,6 +403,10 @@ private:
     int m_last_teammate_hit_msg;
     // we have to keep track of the karts affected by a hit
     // we store IDs, because we need to find the team by name (by ID)
+    // m_collecting_teammate_hit_info is set to true if we are processing a
+    // cake or bowl hit, so we make sure we never fill the vectors with
+    // unneeded data.
+    bool m_collecting_teammate_hit_info;
     unsigned int m_teammate_current_item_ownerID;
     uint16_t m_teammate_ticks_since_thrown;
     std::vector<unsigned int> m_teammate_karts_hit;

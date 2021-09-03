@@ -74,7 +74,11 @@ bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
         if(kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
-            if (sl) sl->registerTeamMateHit(kart->getWorldKartId());
+            if (sl)
+            {
+                sl->registerTeamMateHit(kart->getWorldKartId());
+                sl->handleTeamMateHits();
+            }
             return false; //Not sure if a shield hit is a real hit.
         }
         explode(kart, obj);

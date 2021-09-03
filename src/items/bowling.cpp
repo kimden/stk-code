@@ -165,7 +165,11 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
         if(kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
-            if (sl) sl->registerTeamMateHit(kart->getWorldKartId());
+            if (sl)
+            {
+                sl->registerTeamMateHit(kart->getWorldKartId());
+                sl->handleTeamMateHits();
+            }
             return true;
         }
         else

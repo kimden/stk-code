@@ -253,6 +253,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_teammate_hit_mode = ServerConfig::m_teammate_hit_mode;
     m_last_teammate_hit_msg = 0;
     m_teammate_swatter_punish.clear();
+    m_collecting_teammate_hit_info = false;
 
     initAvailableModes();
 
@@ -806,6 +807,7 @@ void ServerLobby::setup()
     m_winner_peer_id = 0;
     m_client_starting_time = 0;
     m_ai_count = 0;
+    m_collecting_teammate_hit_info = false;
     auto players = STKHost::get()->getPlayersForNewGame();
     if (m_game_setup->isGrandPrix() && !m_game_setup->isGrandPrixStarted())
     {
@@ -7843,7 +7845,7 @@ unmute_error:
     }
     else if (argv[0] == "version")
     {
-        std::string msg = "1.2-kimden 210621 beta - Heuchi1 test version";
+        std::string msg = "1.2-kimden 210903 beta";
         sendStringToPeer(msg, peer);
     }
     else if (argv[0] == "clear")
@@ -9115,16 +9117,21 @@ void ServerLobby::setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since
     m_teammate_ticks_since_thrown = ticks_since_thrown;
     m_teammate_karts_hit.clear();
     m_teammate_karts_exploded.clear();
+    m_collecting_teammate_hit_info = true;
 }
 
 void ServerLobby::registerTeamMateHit(unsigned int kartID)
 {
-    m_teammate_karts_hit.push_back(kartID);
+    // only register if we know the item owner and victim is still racing
+    if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
+        m_teammate_karts_hit.push_back(kartID);
 }
 
 void ServerLobby::registerTeamMateExplode(unsigned int kartID)
 {
-    m_teammate_karts_exploded.push_back(kartID);
+    // only register if we know the item owner and victim is still racing
+    if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
+        m_teammate_karts_exploded.push_back(kartID);
 }
 
 void ServerLobby::sendTeamMateHitMsg(std::string& s)
@@ -9142,6 +9149,7 @@ void ServerLobby::sendTeamMateHitMsg(std::string& s)
 
 void ServerLobby::handleTeamMateHits()
 {
+    m_collecting_teammate_hit_info = false;
     // get team of owner of item
     const std::string ownername = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(m_teammate_current_item_ownerID).getPlayerName());
     const int ownerTeam = m_team_for_player[ownername];
