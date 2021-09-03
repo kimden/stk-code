@@ -66,12 +66,13 @@ void Cake::init(const XMLNode &node, scene::IMesh *cake_model)
 bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
 {
     auto sl = LobbyProtocol::get<ServerLobby>();
-    if (sl) sl->setTeamMateHitOwner(getOwnerId());
+    if (sl)
+        sl->setTeamMateHitOwner(getOwnerId());
 
     bool was_real_hit = Flyable::hit(kart, obj);
-    if(was_real_hit)
+    if (was_real_hit)
     {
-        if(kart && kart->isShielded())
+        if (kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
             if (sl)
@@ -84,7 +85,8 @@ bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
         explode(kart, obj);
     }
 
-    if (sl) sl->handleTeamMateHits();
+    if (sl)
+        sl->handleTeamMateHits();
     return was_real_hit;
 }   // hit
 

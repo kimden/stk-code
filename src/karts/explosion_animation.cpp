@@ -61,7 +61,8 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
     if(kart->isShielded())
     {
         kart->decreaseShieldTime();
-        if (sl) sl->registerTeamMateHit(kart->getWorldKartId());
+        if (sl)
+            sl->registerTeamMateHit(kart->getWorldKartId());
         return NULL;
     }
 
@@ -73,7 +74,8 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
             ftl_world->leaderHit();
     }
 
-    if (sl) sl->registerTeamMateExplode(kart->getWorldKartId());
+    if (sl)
+        sl->registerTeamMateExplode(kart->getWorldKartId());
     return new ExplosionAnimation(kart, direct_hit);
 }   // create
 

@@ -412,8 +412,9 @@ void Swatter::squashThingsAround()
         // check if we are in team gp and hit a teammate and should punish attacker
         auto sl = LobbyProtocol::get<ServerLobby>();
         if (sl && !m_closest_kart->hasFinishedRace())
-            sl->handleSwatterHit(m_kart->getWorldKartId(), m_closest_kart->getWorldKartId(), success, m_has_hit_kart,
-                                 World::getWorld()->getTicksSinceStart() - m_created_ticks);
+            sl->handleSwatterHit(m_kart->getWorldKartId(),
+                m_closest_kart->getWorldKartId(), success, m_has_hit_kart,
+                World::getWorld()->getTicksSinceStart() - m_created_ticks);
     }
     if (success)
     {

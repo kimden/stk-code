@@ -157,12 +157,13 @@ bool Bowling::updateAndDelete(int ticks)
 bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
 {
     auto sl = LobbyProtocol::get<ServerLobby>();
-    if (sl) sl->setTeamMateHitOwner(getOwnerId(),m_ticks_since_thrown);
+    if (sl)
+        sl->setTeamMateHitOwner(getOwnerId(),m_ticks_since_thrown);
 
     bool was_real_hit = Flyable::hit(kart, obj);
-    if(was_real_hit)
+    if (was_real_hit)
     {
-        if(kart && kart->isShielded())
+        if (kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
             if (sl)
@@ -178,7 +179,8 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
             explode(kart, obj, /*hit_secondary*/false);
         }
     }
-    if (sl) sl->handleTeamMateHits();
+    if (sl)
+        sl->handleTeamMateHits();
     return was_real_hit;
 }   // hit
 
