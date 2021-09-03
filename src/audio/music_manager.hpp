@@ -24,6 +24,7 @@
 #include "audio/music_information.hpp"
 #include "utils/no_copy.hpp"
 
+#include <atomic>
 #include <map>
 #include <string>
 #include <vector>
@@ -36,8 +37,9 @@ class Vec3;
   */
 class MusicManager : public NoCopy
 {
+friend class MusicInformation;
 private:
-    MusicInformation        *m_current_music;
+    std::atomic<MusicInformation*> m_current_music;
 
     /** If the sound could not be initialized, e.g. if the player doesn't has
      *  a sound card, we want to avoid anything sound related so we crash the
@@ -79,7 +81,11 @@ public:
     MusicInformation* getCurrentMusic() { return m_current_music; }
     // ------------------------------------------------------------------------
     /** Stops and removes the current music. */
-    void clearCurrentMusic() { m_current_music = NULL; }
+    void clearCurrentMusic()
+    {
+        stopMusic();
+        m_current_music = NULL;
+    }
 };
 
 extern MusicManager* music_manager;
