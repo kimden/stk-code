@@ -880,6 +880,8 @@ void NetworkingLobby::setStartingTimerTo(float t)
 // ----------------------------------------------------------------------------
 void NetworkingLobby::setHeader(const core::stringw& header)
 {
+    if (!m_header)
+        return;
     if (m_header->getText() == header)
         return;
     m_header_text_width =
