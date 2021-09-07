@@ -25,6 +25,7 @@
 #include "utils/track_filter.hpp"
 #include "utils/kart_elimination.hpp"
 #include "karts/controller/player_controller.hpp"
+#include "network/protocols/command_manager.hpp"
 
 #include "irrString.h"
 
@@ -48,6 +49,7 @@ class NetworkString;
 class NetworkPlayerProfile;
 class STKPeer;
 class SocketAddress;
+// class CommandManager;
 
 namespace Online
 {
@@ -417,6 +419,8 @@ private:
     // after a certain time a bowl can be avoided and doesn't
     // trigger teammate hits anymore
     const float MAX_BOWL_TEAMMATE_HIT_TIME = 2.0f;
+
+    CommandManager m_command_manager;
 
     // connection management
     void clientDisconnected(Event* event);
