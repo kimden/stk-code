@@ -40,29 +40,50 @@ class ServerLobby;
 class Event;
 class STKPeer;
 
-class CommandManager {
+class CommandManager
+{
+    struct Context
+    {
+        Event* m_event;
+        std::shared_ptr<STKPeer> m_peer;
+        std::vector<std::string> m_argv;
+        Context(Event* event, std::shared_ptr<STKPeer> peer, std::vector<std::string>& argv):
+            m_event(event), m_peer(peer), m_argv(argv) {}
+    };
 
-	struct Command {
-		std::string m_name;
+    struct Command
+    {
+        std::string m_name;
 
-		Command(std::string name): m_name(name) {}
-	};
+        int m_permissions;
+
+        void (CommandManager::*m_action)(Context& context);
+
+        Command(std::string name,
+            void (CommandManager::*f)(Context& context), int permissions):
+                m_name(name), m_permissions(permissions), m_action(f) {}
+    };
 
 private:
-	
-	ServerLobby* m_lobby;
 
-	std::vector<Command> m_commands;
+    ServerLobby* m_lobby;
 
-	void initCommands();
+    std::vector<Command> m_commands;
+
+    void initCommands();
+
+    void process_commands(Context& context);
+    void process_replay(Context& context);
+    void process_start(Context& context);
+    void process_config(Context& context);
 
 public:
-	
-	CommandManager(ServerLobby* lobby = nullptr): m_lobby(lobby) { initCommands(); }
-	
-	void handleCommand(Event* event, std::shared_ptr<STKPeer> peer);
 
-	bool isInitialized() { return m_lobby != nullptr; }
+    CommandManager(ServerLobby* lobby = nullptr): m_lobby(lobby) { initCommands(); }
+
+    void handleCommand(Event* event, std::shared_ptr<STKPeer> peer);
+
+    bool isInitialized() { return m_lobby != nullptr; }
 };
 
 #endif // COMMAND_MANAGER_HPP

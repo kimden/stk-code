@@ -49,7 +49,6 @@ class NetworkString;
 class NetworkPlayerProfile;
 class STKPeer;
 class SocketAddress;
-// class CommandManager;
 
 namespace Online
 {
@@ -420,6 +419,7 @@ private:
     // trigger teammate hits anymore
     const float MAX_BOWL_TEAMMATE_HIT_TIME = 2.0f;
 
+    friend CommandManager;
     CommandManager m_command_manager;
 
     // connection management
@@ -619,6 +619,12 @@ public:
     void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const;
     void sendStringToPeer(std::string& s, STKPeer* peer) const;
     void sendStringToAllPeers(std::string& s);
+    int getPermissions(std::shared_ptr<STKPeer>& peer) const;
+    int getPermissions(STKPeer* peer) const;
+    bool hasConsentOnReplays() const { return m_consent_on_replays; }
+    void setConsentOnReplays(bool value) { m_consent_on_replays = value; }
+    bool isSoccerGoalTarget() const;
+
 #ifdef ENABLE_SQLITE3
     std::string getRecord(std::string& track, std::string& mode,
         std::string& direction, int laps);

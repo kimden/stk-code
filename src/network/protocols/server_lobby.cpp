@@ -39,6 +39,7 @@
 #include "network/peer_vote.hpp"
 #include "network/protocol_manager.hpp"
 #include "network/protocols/connect_to_peer.hpp"
+#include "network/protocols/command_permissions.hpp"
 #include "network/protocols/game_protocol.hpp"
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/race_event_manager.hpp"
@@ -2851,7 +2852,7 @@ void ServerLobby::startSelection(const Event *event)
             sendStringToPeer(msg, peer);
             return;
         }
-        if (peer != m_server_owner.lock())
+        if (!hasHostRights(peer))
         {
             Log::warn("ServerLobby",
                 "Client %d is not authorised to start selection.",
@@ -7030,6 +7031,36 @@ bool ServerLobby::hasHostRights(STKPeer* peer) const
     return false;
 }   // hasHostRights
 //-----------------------------------------------------------------------------
+int ServerLobby::getPermissions(std::shared_ptr<STKPeer>& peer) const
+{
+    return getPermissions(peer.get());
+}   // getPermissions
+//-----------------------------------------------------------------------------
+int ServerLobby::getPermissions(STKPeer* peer) const
+{
+    int mask = 0;
+    mask |= CommandPermissions::PE_USUAL;
+    mask |= CommandPermissions::PE_VOTED;
+    if (peer == m_server_owner.lock().get())
+    {
+        mask |= CommandPermissions::PE_CROWNED;
+        if (ServerConfig::m_only_host_riding)
+            mask |= CommandPermissions::PE_SINGLE;
+    }
+    if (peer->isAngryHost())
+    {
+        mask |= CommandPermissions::PE_HAMMER;
+    }
+    else if (ServerConfig::m_soccer_tournament)
+    {
+        std::string username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
+        if (m_tournament_referees.count(username) > 0)
+            mask |= CommandPermissions::PE_HAMMER;
+    }
+    return mask;
+}   // getPermissions
+//-----------------------------------------------------------------------------
 void ServerLobby::loadTracksQueueFromConfig()
 {
     std::vector<std::string> tokens = StringUtils::split(
@@ -7389,21 +7420,24 @@ void ServerLobby::setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since
     m_teammate_karts_hit.clear();
     m_teammate_karts_exploded.clear();
     m_collecting_teammate_hit_info = true;
-}
+}   // setTeamMateHitOwner
+//-----------------------------------------------------------------------------
 
 void ServerLobby::registerTeamMateHit(unsigned int kartID)
 {
     // only register if we know the item owner and victim is still racing
     if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
         m_teammate_karts_hit.push_back(kartID);
-}
+}   // registerTeamMateHit
+//-----------------------------------------------------------------------------
 
 void ServerLobby::registerTeamMateExplode(unsigned int kartID)
 {
     // only register if we know the item owner and victim is still racing
     if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
         m_teammate_karts_exploded.push_back(kartID);
-}
+}   // registerTeamMateExplode
+//-----------------------------------------------------------------------------
 
 void ServerLobby::sendTeamMateHitMsg(std::string& s)
 {
@@ -7416,7 +7450,8 @@ void ServerLobby::sendTeamMateHitMsg(std::string& s)
             sendStringToAllPeers(s);
         }
     }
-}
+}   // sendTeamMateHitMsg
+//-----------------------------------------------------------------------------
 
 void ServerLobby::handleTeamMateHits()
 {
@@ -7546,7 +7581,8 @@ void ServerLobby::handleTeamMateHits()
             }
         }
     }
-}
+}   // handleTeamMateHits
+//-----------------------------------------------------------------------------
 
 void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
     bool success, bool has_hit_kart, uint16_t ticks_active)
@@ -7583,4 +7619,11 @@ void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
             // we cannot do this here, will be done in update()
             m_teammate_swatter_punish.push_back(owner);
     }
-}
+}   // handleSwatterHit
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::isSoccerGoalTarget() const
+{
+    return m_game_setup->isSoccerGoalTarget();
+}   // isSoccerGoalTarget
+//-----------------------------------------------------------------------------
