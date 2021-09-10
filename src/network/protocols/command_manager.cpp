@@ -1201,7 +1201,7 @@ void CommandManager::process_queue(Context& context)
         else
         {
             msg = "Popped " + m_lobby->m_tracks_queue.front()
-                + "from the queue,";
+                + " from the front of the queue,";
             m_lobby->m_tracks_queue.pop_front();
             msg += " current queue size: "
                 + std::to_string(m_lobby->m_tracks_queue.size());
@@ -1217,7 +1217,7 @@ void CommandManager::process_queue(Context& context)
         else
         {
             msg = "Popped " + m_lobby->m_tracks_queue.back()
-                + "from the queue,";
+                + " from the back of the queue,";
             m_lobby->m_tracks_queue.pop_back();
             msg += " current queue size: "
                 + std::to_string(m_lobby->m_tracks_queue.size());
