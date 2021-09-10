@@ -85,7 +85,7 @@ void CommandManager::initCommands()
     m_commands.emplace_back("kick",             &CommandManager::process_kick,       UP_CROWNED);
     m_commands.emplace_back("kickban",          &CommandManager::process_kick,       UP_HAMMER);
     m_commands.emplace_back("unban",            &CommandManager::process_unban,      UP_HAMMER);
-    m_commands.emplace_back("ban",              &CommandManager::process_unban,      UP_HAMMER);
+    m_commands.emplace_back("ban",              &CommandManager::process_ban,        UP_HAMMER);
     m_commands.emplace_back("playeraddonscore", &CommandManager::process_pas,        UP_EVERYONE);
     m_commands.emplace_back("serverhasaddon",   &CommandManager::process_sha,        UP_EVERYONE);
     m_commands.emplace_back("mute",             &CommandManager::process_mute,       UP_EVERYONE);
@@ -1086,7 +1086,7 @@ void CommandManager::process_length(Context& context)
 {
     auto& argv = context.m_argv;
     std::string msg;
-    if (argv.size() < 3)
+    if (argv.size() < 2)
     {
         msg = "Usage: /length (x (float) | = (int) | check | clear)";
         m_lobby->sendStringToPeer(msg, context.m_peer);
@@ -1152,7 +1152,7 @@ void CommandManager::process_queue(Context& context)
     std::string msg;
     auto& argv = context.m_argv;
     std::string format_string = "Format: /queue (show | push[_front] (track) | pop[_back])";
-    if (argv.size() < 3)
+    if (argv.size() < 2)
     {
         m_lobby->sendStringToPeer(format_string, context.m_peer);
         return;
