@@ -943,7 +943,7 @@ void ServerLobby::handleChat(Event* event)
             teams.insert(profile->getTeam());
         bool tournament_limit = false;
         std::set<std::string> important_players;
-        if (ServerConfig::m_soccer_tournament && m_tournament_limited_chat)
+        if (ServerConfig::m_soccer_tournament)
         {
             tournament_limit = true;
             for (auto& profile: sender->getPlayerProfiles())
@@ -959,12 +959,15 @@ void ServerLobby::handleChat(Event* event)
         // Note that mutealls are still spectators
         if (tournament_limit)
         {
-            for (const std::string& s: m_tournament_referees)
-                important_players.insert(s);
-            for (const std::string& s: m_tournament_red_players)
-                important_players.insert(s);
-            for (const std::string& s: m_tournament_blue_players)
-                important_players.insert(s);
+            if (m_tournament_limited_chat)
+            {
+                for (const std::string& s: m_tournament_referees)
+                    important_players.insert(s);
+                for (const std::string& s: m_tournament_red_players)
+                    important_players.insert(s);
+                for (const std::string& s: m_tournament_blue_players)
+                    important_players.insert(s);
+            }
             for (const std::string& s: m_tournament_mutealls)
                 important_players.insert(s);
         }
