@@ -165,7 +165,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         if (argv[0] == command.m_name)
         {
             found_command = true;
-            if ((permissions & command.m_permissions) == 0)
+            if ((permissions & command.m_permissions) == 0 || !isAvailable(command))
             {
                 std::string msg = "You don't have permissions to invoke this command";
                 m_lobby->sendStringToPeer(msg, peer);
@@ -1192,7 +1192,7 @@ void CommandManager::process_queue(Context& context)
             + std::to_string(m_lobby->m_tracks_queue.size());
         m_lobby->sendStringToPeer(msg, context.m_peer);
     }
-    else if (argv[1] == "pop" || argv[1] == "pop_back")
+    else if (argv[1] == "pop" || argv[1] == "pop_front")
     {
         msg = "";
         if (m_lobby->m_tracks_queue.empty()) {
@@ -1200,7 +1200,7 @@ void CommandManager::process_queue(Context& context)
         }
         else
         {
-            std::string msg = "Popped " + m_lobby->m_tracks_queue.front()
+            msg = "Popped " + m_lobby->m_tracks_queue.front()
                 + "from the queue,";
             m_lobby->m_tracks_queue.pop_front();
             msg += " current queue size: "
@@ -1216,7 +1216,7 @@ void CommandManager::process_queue(Context& context)
         }
         else
         {
-            std::string msg = "Popped " + m_lobby->m_tracks_queue.back()
+            msg = "Popped " + m_lobby->m_tracks_queue.back()
                 + "from the queue,";
             m_lobby->m_tracks_queue.pop_back();
             msg += " current queue size: "
