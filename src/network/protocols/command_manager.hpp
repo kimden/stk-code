@@ -32,9 +32,12 @@
 #include <deque>
 #include <vector>
 
+
 #ifdef ENABLE_SQLITE3
 #include <sqlite3.h>
 #endif
+
+#include "network/protocols/command_voting.hpp"
 
 class ServerLobby;
 class Event;
@@ -60,11 +63,13 @@ class CommandManager
 
         int m_user_permissions;
 
+        bool m_voting;
+
         Context(Event* event, std::shared_ptr<STKPeer> peer,
             std::vector<std::string>& argv, std::string& cmd,
-            int user_permissions):
+            int user_permissions, bool voting):
                 m_event(event), m_peer(peer), m_argv(argv),
-                m_cmd(cmd), m_user_permissions(user_permissions) {}
+                m_cmd(cmd), m_user_permissions(user_permissions), m_voting(voting) {}
     };
 
     struct Command
@@ -88,7 +93,11 @@ private:
 
     std::vector<Command> m_commands;
 
+    std::multiset<std::string> m_users;
+
     std::map<std::string, std::string> m_text_response;
+
+    std::map<std::string, CommandVoting> m_votables;
 
     void initCommands();
 
@@ -96,6 +105,7 @@ private:
 
     bool isAvailable(const Command& c);
 
+    void vote(Context& context, std::string category, std::string value);
     void process_text(Context& context);
     void process_commands(Context& context);
     void process_replay(Context& context);
@@ -145,6 +155,8 @@ private:
     void process_lobby(Context& context);
     void process_init(Context& context);
     void process_mimiz(Context& context);
+    void process_test(Context& context);
+    void special(Context& context);
 
 public:
 
@@ -157,6 +169,9 @@ public:
     template<typename T>
     void addTextResponse(std::string key, T&& value)
                                               { m_text_response[key] = value; }
+
+    void addUser(std::string& s);
+    void deleteUser(std::string& s);
 };
 
 #endif // COMMAND_MANAGER_HPP

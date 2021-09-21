@@ -3969,6 +3969,7 @@ void ServerLobby::clientDisconnected(Event* event)
         std::string name = StringUtils::wideToUtf8(p->getName());
         msg->encodeString(name);
         Log::info("ServerLobby", "%s disconnected", name.c_str());
+        m_command_manager.deleteUser(name);
     }
 
     unsigned players_number;
@@ -4510,6 +4511,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             name = name.subString(0, 30);
 
         std::string utf8_name = StringUtils::wideToUtf8(name);
+        m_command_manager.addUser(utf8_name);
         float default_kart_color = data.getFloat();
         HandicapLevel handicap = (HandicapLevel)data.getUInt8();
         auto player = std::make_shared<NetworkPlayerProfile>
@@ -5702,7 +5704,7 @@ void ServerLobby::testBannedForIP(STKPeer* peer) const
 }   // testBannedForIP
 
 //-----------------------------------------------------------------------------
-void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id) const
+void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id)
 {
 #ifdef ENABLE_SQLITE3
     if (!m_db || !m_player_reports_table_exists || online_id == 0)
@@ -6682,6 +6684,8 @@ void ServerLobby::writeOwnReport(STKPeer* reporter, STKPeer* reporting, const st
 #ifdef ENABLE_SQLITE3
     if (!m_db || !m_player_reports_table_exists)
         return;
+    if (!reporting)
+        reporting = reporter;
     if (!reporter->hasPlayerProfiles())
         return;
     auto reporter_npp = reporter->getPlayerProfiles()[0];
@@ -6959,10 +6963,13 @@ void ServerLobby::changeColors()
     updatePlayerList();
 }   // changeColors
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const
+void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer)
 {
     if (!peer)
+    {
+        sendStringToAllPeers(s);
         return;
+    }
     NetworkString* chat = getNetworkString();
     chat->addUInt8(LE_CHAT);
     chat->setSynchronous(true);
@@ -6971,10 +6978,13 @@ void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& pee
     delete chat;
 }   // sendStringToPeer
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, STKPeer* peer) const
+void ServerLobby::sendStringToPeer(std::string& s, STKPeer* peer)
 {
     if (!peer)
+    {
+        sendStringToAllPeers(s);
         return;
+    }
     NetworkString* chat = getNetworkString();
     chat->addUInt8(LE_CHAT);
     chat->setSynchronous(true);

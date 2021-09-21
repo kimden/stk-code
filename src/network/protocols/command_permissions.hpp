@@ -21,6 +21,7 @@
 
 enum CommandPermissions : unsigned int
 {
+    PE_NONE = 0,
     PE_USUAL = 1,
     PE_VOTED = 2,
     PE_CROWNED = 4,

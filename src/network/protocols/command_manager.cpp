@@ -40,6 +40,7 @@
 // #include "network/protocol_manager.hpp"
 // #include "network/protocols/connect_to_peer.hpp"
 #include "network/protocols/command_permissions.hpp"
+// #include "network/protocols/command_voting.hpp"
 // #include "network/protocols/game_protocol.hpp"
 // #include "network/protocols/game_events_protocol.hpp"
 #include "network/protocols/server_lobby.hpp"
@@ -82,8 +83,8 @@ void CommandManager::initCommands()
     m_commands.emplace_back("moreaddons",       &CommandManager::process_addons,     UP_EVERYONE);
     m_commands.emplace_back("listserveraddon",  &CommandManager::process_lsa,        UP_EVERYONE);
     m_commands.emplace_back("playerhasaddon",   &CommandManager::process_pha,        UP_EVERYONE);
-    m_commands.emplace_back("kick",             &CommandManager::process_kick,       UP_CROWNED);
-    m_commands.emplace_back("kickban",          &CommandManager::process_kick,       UP_HAMMER);
+    m_commands.emplace_back("kick",             &CommandManager::process_kick,       UP_CROWNED | PE_VOTED);
+    m_commands.emplace_back("kickban",          &CommandManager::process_kick,       UP_HAMMER | PE_VOTED);
     m_commands.emplace_back("unban",            &CommandManager::process_unban,      UP_HAMMER);
     m_commands.emplace_back("ban",              &CommandManager::process_ban,        UP_HAMMER);
     m_commands.emplace_back("playeraddonscore", &CommandManager::process_pas,        UP_EVERYONE);
@@ -91,7 +92,7 @@ void CommandManager::initCommands()
     m_commands.emplace_back("mute",             &CommandManager::process_mute,       UP_EVERYONE);
     m_commands.emplace_back("unmute",           &CommandManager::process_unmute,     UP_EVERYONE);
     m_commands.emplace_back("listmute",         &CommandManager::process_listmute,   UP_EVERYONE);
-    m_commands.emplace_back("help",             &CommandManager::process_text,       UP_EVERYONE);
+    m_commands.emplace_back("moreinfo",         &CommandManager::process_text,       UP_EVERYONE);
     m_commands.emplace_back("gnu",              &CommandManager::process_gnu,        UP_CROWNED);
     m_commands.emplace_back("nognu",            &CommandManager::process_nognu,      UP_CROWNED);
     m_commands.emplace_back("tell",             &CommandManager::process_tell,       UP_EVERYONE);
@@ -128,12 +129,25 @@ void CommandManager::initCommands()
     m_commands.emplace_back("resume",           &CommandManager::process_go,         UP_HAMMER, CS_SOCCER_TOURNAMENT);
     m_commands.emplace_back("lobby",            &CommandManager::process_lobby,      UP_HAMMER, CS_SOCCER_TOURNAMENT);
     m_commands.emplace_back("init",             &CommandManager::process_init,       UP_HAMMER, CS_SOCCER_TOURNAMENT);
+    m_commands.emplace_back("vote",             &CommandManager::special,            UP_EVERYONE);
 
     m_commands.emplace_back("mimiz",            &CommandManager::process_mimiz,      UP_EVERYONE);
+    m_commands.emplace_back("test",             &CommandManager::process_test,       UP_EVERYONE | PE_VOTED);
 
-    addTextResponse("help", StringUtils::wideToUtf8(m_lobby->m_help_message));
+    addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     addTextResponse("version", "1.3-rc1 k 210fff beta");
     addTextResponse("clear", std::string(30, '\n'));
+
+    std::sort(m_commands.begin(), m_commands.end(), [](const Command& a, const Command& b) -> bool {
+        return a.m_name < b.m_name;
+    });
+
+    m_votables.emplace("replay", 1.0);
+    m_votables.emplace("start", 0.9);
+    m_votables.emplace("config", 0.6);
+    m_votables.emplace("kick", 0.9);
+    m_votables.emplace("kickban", 0.9);
+
 } // initCommands
 // ========================================================================
 
@@ -159,21 +173,64 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
 
     int permissions = m_lobby->getPermissions(peer);
     bool found_command = false;
+    bool voting = false;
+    std::string action = "invoke";
+    if (argv[0] == "vote")
+    {
+        if (argv.size() == 1 || argv[1] == "vote")
+        {
+            std::string msg = "Usage: /vote (a command with arguments)";
+            m_lobby->sendStringToPeer(msg, peer);
+            return;
+        }
+        std::reverse(argv.begin(), argv.end());
+        argv.pop_back();
+        std::reverse(argv.begin(), argv.end());
+        voting = true;
+        action = "vote for";
+    }
 
     for (auto& command: m_commands)
     {
-        if (argv[0] == command.m_name)
+        if (argv[0] != command.m_name)
+            continue;
+
+        found_command = true;
+        if (!isAvailable(command))
         {
-            found_command = true;
-            if ((permissions & command.m_permissions) == 0 || !isAvailable(command))
+            std::string msg = "You don't have permissions to " + action + " this command";
+            m_lobby->sendStringToPeer(msg, peer);
+            return;
+        }
+        int mask = (permissions & command.m_permissions);
+        if (mask == 0)
+        {
+            std::string msg = "You don't have permissions to " + action + " this command";
+            m_lobby->sendStringToPeer(msg, peer);
+            return;
+        }
+        int mask_without_voting = (mask & ~PE_VOTED);
+        if (mask != PE_NONE && mask_without_voting == PE_NONE)
+            voting = true;
+
+        Context context(event, peer, argv, cmd, permissions, voting);
+        (this->*command.m_action)(context);
+
+        auto it = m_votables.find(argv[0]);
+        if (it != m_votables.end() && it->second.needsCheck())
+        {
+            auto res = it->second.process(m_users);
+            if (!res.empty())
             {
-                std::string msg = "You don't have permissions to invoke this command";
-                m_lobby->sendStringToPeer(msg, peer);
-            }
-            else
-            {
-                Context context(event, peer, argv, cmd, permissions);
-                (this->*command.m_action)(context);
+                for (auto& p: res)
+                {
+                    std::string new_cmd = p.first + " " + p.second;
+                    std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
+                    m_lobby->sendStringToAllPeers(msg);
+                    auto new_argv = StringUtils::split(new_cmd, ' ');
+                    Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
+                    (this->*command.m_action)(new_context);
+                }
             }
         }
     }
@@ -203,6 +260,20 @@ bool CommandManager::isAvailable(const Command& c)
 {
     return (getCurrentScope() & c.m_scope) != 0;
 } // getCurrentScope
+// ========================================================================
+
+void CommandManager::vote(Context& context, std::string category, std::string value)
+{
+    auto& cmd = context.m_cmd;
+    auto& peer = context.m_peer;
+    auto& argv = context.m_argv;
+    std::string username = StringUtils::wideToUtf8(
+        peer->getPlayerProfiles()[0]->getName());
+    auto& votable = m_votables[argv[0]];
+    int count = votable.castVote(username, category, value);
+    std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
+    m_lobby->sendStringToAllPeers(msg);
+} // vote
 // ========================================================================
 
 void CommandManager::process_text(Context& context)
@@ -657,13 +728,18 @@ void CommandManager::process_kick(Context& context)
         m_lobby->sendStringToPeer(msg, context.m_peer);
         return;
     }
+    if (context.m_voting)
+    {
+        vote(context, "kick " + player_name, "");
+        return;
+    }
     if (!peer->isAngryHost() && !ServerConfig::m_kicks_allowed)
     {
         std::string msg = "Kicking players is not allowed on this server";
         m_lobby->sendStringToPeer(msg, peer);
         return;
     }
-    Log::info("CommandManager", "Crown player kicks %s", player_name.c_str());
+    Log::info("CommandManager", "%s kicks %s", (peer.get() ? "Crown player" : "Vote"), player_name.c_str());
     player_peer->kick();
     if (ServerConfig::m_track_kicks)
     {
@@ -1885,4 +1961,52 @@ void CommandManager::process_mimiz(Context& context)
         msg = cmd.substr(argv[0].length() + 1);
     m_lobby->sendStringToPeer(msg, peer);
 } // process_mimiz
+// ========================================================================
+
+void CommandManager::process_test(Context& context)
+{
+    auto& argv = context.m_argv;
+    argv.resize(3, "");
+    auto& peer = context.m_peer;
+    if (context.m_voting)
+    {
+        vote(context, "test " + argv[1], argv[2]);
+        return;
+    }
+    std::string username = "Vote";
+    if (peer.get())
+    {
+        username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
+    }
+    std::string msg = username + ", " + argv[1] + ", " + argv[2];
+    m_lobby->sendStringToAllPeers(msg);
+} // process_test
+// ========================================================================
+
+void CommandManager::special(Context& context)
+{
+    // This function is used as a function for /vote and possibly several
+    // other future special functions that are never executed "as usual"
+    // but need to be displayed in /commands output. So, in fact, this
+    // function is only a placeholder and should be never executed.
+} // special
+// ========================================================================
+
+void CommandManager::addUser(std::string& s)
+{
+    m_users.insert(s);
+} // addUser
+// ========================================================================
+
+void CommandManager::deleteUser(std::string& s)
+{
+    auto it = m_users.find(s);
+    if (it == m_users.end())
+    {
+        Log::error("CommandManager", "No user %s in user list!", s.c_str());
+        return;
+    }
+    m_users.erase(it);
+} // deleteUser
 // ========================================================================

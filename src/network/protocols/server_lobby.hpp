@@ -541,7 +541,7 @@ private:
     void testBannedForIP(STKPeer* peer) const;
     void testBannedForIPv6(STKPeer* peer) const;
     void testBannedForOnlineId(STKPeer* peer, uint32_t online_id) const;
-    void getMessagesFromHost(STKPeer* peer, int online_id) const;
+    void getMessagesFromHost(STKPeer* peer, int online_id);
     void writeDisconnectInfoTable(STKPeer* peer);
     void writePlayerReport(Event* event);
     bool supportsAI();
@@ -616,8 +616,8 @@ public:
         const std::string& info);
     // int getTrackMaxPlayers(std::string& name) const;
     void updateGnuElimination();
-    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const;
-    void sendStringToPeer(std::string& s, STKPeer* peer) const;
+    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer);
+    void sendStringToPeer(std::string& s, STKPeer* peer);
     void sendStringToAllPeers(std::string& s);
     int getPermissions(std::shared_ptr<STKPeer>& peer) const;
     int getPermissions(STKPeer* peer) const;
