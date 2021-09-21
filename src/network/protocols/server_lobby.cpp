@@ -3969,7 +3969,7 @@ void ServerLobby::clientDisconnected(Event* event)
         std::string name = StringUtils::wideToUtf8(p->getName());
         msg->encodeString(name);
         Log::info("ServerLobby", "%s disconnected", name.c_str());
-        m_command_manager.deleteUser(name);
+        getCommandManager().deleteUser(name);
     }
 
     unsigned players_number;
@@ -4511,7 +4511,6 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             name = name.subString(0, 30);
 
         std::string utf8_name = StringUtils::wideToUtf8(name);
-        m_command_manager.addUser(utf8_name);
         float default_kart_color = data.getFloat();
         HandicapLevel handicap = (HandicapLevel)data.getUInt8();
         auto player = std::make_shared<NetworkPlayerProfile>
@@ -4550,6 +4549,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             }
         }
         std::string username = StringUtils::wideToUtf8(player->getName());
+        getCommandManager().addUser(username);
         if (m_game_setup->isGrandPrix())
         {
             auto it = m_gp_scores.find(username);
@@ -6515,11 +6515,7 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
 void ServerLobby::handleServerCommand(Event* event,
                                       std::shared_ptr<STKPeer> peer)
 {
-    if (!m_command_manager.isInitialized())
-    {
-        m_command_manager = CommandManager(this);
-    }
-    m_command_manager.handleCommand(event, peer);
+    getCommandManager().handleCommand(event, peer);
 }   // handleServerCommand
 //-----------------------------------------------------------------------------
 void ServerLobby::updateGnuElimination()
@@ -7319,6 +7315,17 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
     }
 }   // updateTournamentRole
 //-----------------------------------------------------------------------------
+
+CommandManager& ServerLobby::getCommandManager()
+{
+    if (!m_command_manager.isInitialized())
+    {
+        m_command_manager = CommandManager(this);
+    }
+    return m_command_manager;
+}   // getCommandManager
+//-----------------------------------------------------------------------------
+
 #ifdef ENABLE_SQLITE3
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     std::string& direction, int laps)

@@ -564,6 +564,7 @@ private:
     bool tournamentGoalsLimit(int game) const;
     bool tournamentColorsSwapped(int game) const;
     void updateTournamentRole(STKPeer* peer);
+    CommandManager& getCommandManager();
 
     // bool tournamentHasIcy(int game) const;
 #ifdef ENABLE_WEB_SUPPORT

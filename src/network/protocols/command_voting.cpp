@@ -24,13 +24,14 @@ CommandVoting::CommandVoting(double threshold): m_threshold(threshold)
 } // CommandVoting
 // ========================================================================
 
-int CommandVoting::castVote(std::string player, std::string category, std::string vote)
+void CommandVoting::castVote(std::string player, std::string category, std::string vote)
 {
     uncastVote(player, category);
     m_votes_by_player[player][category] = vote;
     m_votes_by_poll[category][vote].insert(player);
     m_need_check = true;
-    return m_votes_by_poll[category][vote].size();
+    m_selected_category = category;
+    m_selected_option = vote;
 } // castVote
 // ========================================================================
 
@@ -43,14 +44,16 @@ void CommandVoting::uncastVote(std::string player, std::string category)
         m_votes_by_poll[category][previous_vote].erase(player);
     }
     m_need_check = true;
+    m_selected_category = "";
+    m_selected_option = "";
 } // uncastVote
 // ========================================================================
 
-std::map<std::string, std::string> CommandVoting::process(std::multiset<std::string>& all_users)
+std::pair<int, std::map<std::string, std::string>> CommandVoting::process(std::multiset<std::string>& all_users)
 {
-    m_need_check = false;
     std::map<std::string, std::string> result;
-    int required_number = (int)(all_users.size() * m_threshold);
+    int num_votes = 0;
+    int required_number = std::max<int>(1, (int)ceil((double)all_users.size() * m_threshold));
     for (const auto& p: m_votes_by_poll)
     {
         std::string category = p.first;
@@ -67,6 +70,8 @@ std::map<std::string, std::string> CommandVoting::process(std::multiset<std::str
         }
         for (const auto& q: category_results)
         {
+            if (category == m_selected_category && q.first == m_selected_option)
+                num_votes = q.second;
             if (q.second >= required_number)
             {
                 result[category] = q.first;
@@ -74,6 +79,9 @@ std::map<std::string, std::string> CommandVoting::process(std::multiset<std::str
             }
         }
     }
+    m_need_check = false;
+    m_selected_category = "";
+    m_selected_option = "";
     for (const auto& p: result)
     {
         std::string category = p.first;
@@ -87,6 +95,6 @@ std::map<std::string, std::string> CommandVoting::process(std::multiset<std::str
         }
         m_votes_by_poll[category].clear();
     }
-    return result;
+    return make_pair(num_votes, result);
 } // process
 // ========================================================================

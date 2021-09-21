@@ -219,7 +219,13 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         auto it = m_votables.find(argv[0]);
         if (it != m_votables.end() && it->second.needsCheck())
         {
-            auto res = it->second.process(m_users);
+            auto response = it->second.process(m_users);
+            int count = response.first;
+            std::string username = StringUtils::wideToUtf8(
+                peer->getPlayerProfiles()[0]->getName());
+            std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
+            m_lobby->sendStringToAllPeers(msg);
+            auto res = response.second;
             if (!res.empty())
             {
                 for (auto& p: res)
@@ -270,9 +276,7 @@ void CommandManager::vote(Context& context, std::string category, std::string va
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     auto& votable = m_votables[argv[0]];
-    int count = votable.castVote(username, category, value);
-    std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
-    m_lobby->sendStringToAllPeers(msg);
+    votable.castVote(username, category, value);
 } // vote
 // ========================================================================
 

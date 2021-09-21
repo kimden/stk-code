@@ -35,15 +35,17 @@ class CommandVoting
 {
 	double m_threshold;
 	bool m_need_check = false;
+	std::string m_selected_category = "";
+	std::string m_selected_option = "";
 private:
 	std::map<std::string, std::map<std::string, std::set<std::string>>> m_votes_by_poll;
 	std::map<std::string, std::map<std::string, std::string>> m_votes_by_player;
 public:
 	CommandVoting(double threshold = 0.500001);
 	bool needsCheck() { return m_need_check; }
-	int castVote(std::string player, std::string category, std::string vote);
+	void castVote(std::string player, std::string category, std::string vote);
 	void uncastVote(std::string player, std::string category);
-	std::map<std::string, std::string> process(std::multiset<std::string>& all_users);
+	std::pair<int, std::map<std::string, std::string>> process(std::multiset<std::string>& all_users);
 };
 
 #endif // COMMAND_VOTING_HPP
