@@ -74,65 +74,65 @@
 
 void CommandManager::initCommands()
 {
-    m_commands.emplace_back("commands",         &CommandManager::process_commands,   UP_EVERYONE);
-    m_commands.emplace_back("replay",           &CommandManager::process_replay,     UP_SINGLE);
-    m_commands.emplace_back("start",            &CommandManager::process_start,      UP_EVERYONE);
-    m_commands.emplace_back("config",           &CommandManager::process_config,     UP_CROWNED);
-    m_commands.emplace_back("spectate",         &CommandManager::process_spectate,   UP_EVERYONE);
-    m_commands.emplace_back("addons",           &CommandManager::process_addons,     UP_EVERYONE);
-    m_commands.emplace_back("moreaddons",       &CommandManager::process_addons,     UP_EVERYONE);
-    m_commands.emplace_back("listserveraddon",  &CommandManager::process_lsa,        UP_EVERYONE);
-    m_commands.emplace_back("playerhasaddon",   &CommandManager::process_pha,        UP_EVERYONE);
-    m_commands.emplace_back("kick",             &CommandManager::process_kick,       UP_CROWNED | PE_VOTED);
-    m_commands.emplace_back("kickban",          &CommandManager::process_kick,       UP_HAMMER | PE_VOTED);
-    m_commands.emplace_back("unban",            &CommandManager::process_unban,      UP_HAMMER);
-    m_commands.emplace_back("ban",              &CommandManager::process_ban,        UP_HAMMER);
-    m_commands.emplace_back("playeraddonscore", &CommandManager::process_pas,        UP_EVERYONE);
-    m_commands.emplace_back("serverhasaddon",   &CommandManager::process_sha,        UP_EVERYONE);
-    m_commands.emplace_back("mute",             &CommandManager::process_mute,       UP_EVERYONE);
-    m_commands.emplace_back("unmute",           &CommandManager::process_unmute,     UP_EVERYONE);
-    m_commands.emplace_back("listmute",         &CommandManager::process_listmute,   UP_EVERYONE);
-    m_commands.emplace_back("moreinfo",         &CommandManager::process_text,       UP_EVERYONE);
-    m_commands.emplace_back("gnu",              &CommandManager::process_gnu,        UP_CROWNED);
-    m_commands.emplace_back("nognu",            &CommandManager::process_nognu,      UP_CROWNED);
-    m_commands.emplace_back("tell",             &CommandManager::process_tell,       UP_EVERYONE);
-    m_commands.emplace_back("standings",        &CommandManager::process_standings,  UP_EVERYONE);
-    m_commands.emplace_back("teamchat" ,        &CommandManager::process_teamchat,   UP_EVERYONE);
-    m_commands.emplace_back("to",               &CommandManager::process_to,         UP_EVERYONE);
-    m_commands.emplace_back("public",           &CommandManager::process_public,     UP_EVERYONE);
-    m_commands.emplace_back("record",           &CommandManager::process_record,     UP_EVERYONE);
-    m_commands.emplace_back("power",            &CommandManager::process_power,      UP_EVERYONE);
-    m_commands.emplace_back("length",           &CommandManager::process_length,     UP_SINGLE);
-    m_commands.emplace_back("queue",            &CommandManager::process_queue,      UP_SINGLE);
-    m_commands.emplace_back("adminstart",       &CommandManager::process_adminstart, UP_HAMMER);
-    m_commands.emplace_back("shuffle",          &CommandManager::process_shuffle,    UP_HAMMER);
-    m_commands.emplace_back("timeout",          &CommandManager::process_timeout,    UP_HAMMER);
-    m_commands.emplace_back("team",             &CommandManager::process_team,       UP_HAMMER);
-    m_commands.emplace_back("cat+",             &CommandManager::process_cat,        UP_HAMMER);
-    m_commands.emplace_back("cat-",             &CommandManager::process_cat,        UP_HAMMER);
-    m_commands.emplace_back("cat*",             &CommandManager::process_cat,        UP_HAMMER);
-    m_commands.emplace_back("troll",            &CommandManager::process_troll,      UP_HAMMER);
-    m_commands.emplace_back("hitmsg",           &CommandManager::process_hitmsg,     UP_HAMMER);
-    m_commands.emplace_back("teamhit",          &CommandManager::process_teamhit,    UP_HAMMER);
-    m_commands.emplace_back("version",          &CommandManager::process_text,       UP_EVERYONE);
-    m_commands.emplace_back("clear",            &CommandManager::process_text,       UP_EVERYONE);
-    m_commands.emplace_back("register",         &CommandManager::process_register,   UP_EVERYONE);
+    m_commands.emplace_back("commands",         &CommandManager::process_commands,   UP_EVERYONE,            CS_ALWAYS,                    "/commands", "everyone", "Prints the list of commands available to you. This list may differ depending on server settings and your permissions.");
+    m_commands.emplace_back("replay",           &CommandManager::process_replay,     UP_SINGLE,              CS_ALWAYS,                    "/replay [0 | 1]", "hammers, singleplayers", "Toggles whether the replay of the race is recorded.");
+    m_commands.emplace_back("start",            &CommandManager::process_start,      UP_EVERYONE,            CS_ALWAYS,                    "/start", "everyone", "Basically clicks on the green “Ready” button.");
+    m_commands.emplace_back("config",           &CommandManager::process_config,     UP_CROWNED,             CS_ALWAYS,                    "/config <mode> <difficulty>", "crowns", "Changes game mode and difficulty if allowed.");
+    m_commands.emplace_back("spectate",         &CommandManager::process_spectate,   UP_EVERYONE,            CS_ALWAYS,                    "/spectate [0 | 1]", "everyone", "Toggles autospectate mode.");
+    m_commands.emplace_back("addons",           &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/addons [type]", "everyone", "Lists addons installed for all players that can play, in random order. Limits the list to a certain addon type if specified.");
+    m_commands.emplace_back("moreaddons",       &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/moreaddons [type]", "everyone", "Lists top 5 addons that are missing for at least one player, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified.");
+    m_commands.emplace_back("listserveraddon",  &CommandManager::process_lsa,        UP_EVERYONE,            CS_ALWAYS,                    "/listserveraddon [-type] (substring)", "everyone", "Lists addons installed on the server that have a specified substring in their id. Limits the list to a certain addon type if specified.");
+    m_commands.emplace_back("playerhasaddon",   &CommandManager::process_pha,        UP_EVERYONE,            CS_ALWAYS,                    "/playerhasaddon (addon) (username)", "everyone", "Checks whether a player has a certain addon.");
+    m_commands.emplace_back("kick",             &CommandManager::process_kick,       UP_CROWNED | PE_VOTED,  CS_ALWAYS,                    "/kick (username)", "crowns if server allows, hammers; votable", "Kicks a player from the server.");
+    m_commands.emplace_back("kickban",          &CommandManager::process_kick,       UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/kickban (username)", "hammers; votable", "Kicks a player from the server and temporarily bans him.");
+    m_commands.emplace_back("unban",            &CommandManager::process_unban,      UP_HAMMER,              CS_ALWAYS,                    "/unban (username)", "hammers", "Removes a temporary ban from a player.");
+    m_commands.emplace_back("ban",              &CommandManager::process_ban,        UP_HAMMER,              CS_ALWAYS,                    "/ban (username)", "hammers", "Adds a temporary ban to a player without kicking.");
+    m_commands.emplace_back("playeraddonscore", &CommandManager::process_pas,        UP_EVERYONE,            CS_ALWAYS,                    "/playeraddonscore (username)", "everyone", "Returns the number (not the percentage!) of addons of different types installed by a player.");
+    m_commands.emplace_back("serverhasaddon",   &CommandManager::process_sha,        UP_EVERYONE,            CS_ALWAYS,                    "/serverhasaddon (addon)", "everyone", "Checks whether the server has a certain addon.");
+    m_commands.emplace_back("mute",             &CommandManager::process_mute,       UP_EVERYONE,            CS_ALWAYS,                    "/mute (username)", "everyone", "Temporarily blocks player’s messages from reaching you (until the server restart).");
+    m_commands.emplace_back("unmute",           &CommandManager::process_unmute,     UP_EVERYONE,            CS_ALWAYS,                    "/unmute (username)", "everyone", "Unblocks player’s messages from reaching you.");
+    m_commands.emplace_back("listmute",         &CommandManager::process_listmute,   UP_EVERYONE,            CS_ALWAYS,                    "/listmute", "everyone", "Lists players whom you blocked using /mute command.");
+    m_commands.emplace_back("moreinfo",         &CommandManager::process_text,       UP_EVERYONE,            CS_ALWAYS,                    "/moreinfo", "everyone", "Displays an additional server message.");
+    m_commands.emplace_back("gnu",              &CommandManager::process_gnu,        UP_CROWNED,             CS_ALWAYS,                    "/gnu [kart]", "crowns", "Starts kart elimination with Gnu (or a specified kart).");
+    m_commands.emplace_back("nognu",            &CommandManager::process_nognu,      UP_CROWNED,             CS_ALWAYS,                    "/nognu", "crowns", "Cancels kart elimination.");
+    m_commands.emplace_back("tell",             &CommandManager::process_tell,       UP_EVERYONE,            CS_ALWAYS,                    "/tell (report contents)", "everyone", "Makes a report to the server owner (if the server has a database to store the reports).");
+    m_commands.emplace_back("standings",        &CommandManager::process_standings,  UP_EVERYONE,            CS_ALWAYS,                    "/standings [gp | gnu]", "everyone", "Displays standings of grand prix or kart elimination, picks whatever of them is played now.");
+    m_commands.emplace_back("teamchat",         &CommandManager::process_teamchat,   UP_EVERYONE,            CS_ALWAYS,                    "/teamchat", "everyone", "Limits your future messages to be sent only to your teammates.");
+    m_commands.emplace_back("to",               &CommandManager::process_to,         UP_EVERYONE,            CS_ALWAYS,                    "/to (username1) ... (usernameN)", "everyone", "Limits your future messages to be sent only to specified usernames.");
+    m_commands.emplace_back("public",           &CommandManager::process_public,     UP_EVERYONE,            CS_ALWAYS,                    "/public", "everyone", "Allows your future messages to be sent to everyone.");
+    m_commands.emplace_back("record",           &CommandManager::process_record,     UP_EVERYONE,            CS_ALWAYS,                    "/record (track id) (mode) (direction) (laps)", "everyone", "Receives the server record for the race settings if there is any (and if the server has a database to store the records).");
+    m_commands.emplace_back("power",            &CommandManager::process_power,      UP_EVERYONE,            CS_ALWAYS,                    "/power (password)", "everyone", "Enters the hammer mode if the password is correct.");
+    m_commands.emplace_back("length",           &CommandManager::process_length,     UP_SINGLE,              CS_ALWAYS,                    "/length (x (float) | = (int) | check | clear)", "hammers, singleplayers", "Manipulates the length of the games, “= n” fixes the number of laps to n, “x k” sets it to k times default number of laps, “check” displays the setting, “clear” allows players to choose it freely.");
+    m_commands.emplace_back("queue",            &CommandManager::process_queue,      UP_SINGLE,              CS_ALWAYS,                    "/queue (show | push[_front] (track) | pop[_back])", "hammers, singleplayers", "Manipulates the track queue aka the next played tracks. “show” displays it, “push” adds the track to the end of the queue, “pop” removes a track at the front. You can use “_back” and “_front” to specify on which end of the queue to add or remove the tracks.");
+    m_commands.emplace_back("adminstart",       &CommandManager::process_adminstart, UP_HAMMER,              CS_ALWAYS,                    "/adminstart [0 | 1]", "hammers", "Toggles whether the game can be started on the server.");
+    m_commands.emplace_back("shuffle",          &CommandManager::process_shuffle,    UP_HAMMER,              CS_ALWAYS,                    "/shuffle [0 | 1]", "hammers", "Toggles whether the Grand Prix grid is shuffled before each race (1), or it corresponds to the standings (0).");
+    m_commands.emplace_back("timeout",          &CommandManager::process_timeout,    UP_HAMMER,              CS_ALWAYS,                    "/timeout [positive int x]", "hammers", "Sets the timeout in seconds, whatever it may mean.");
+    m_commands.emplace_back("team",             &CommandManager::process_team,       UP_HAMMER,              CS_ALWAYS,                    "/team ([roygbp-]) (username)", "hammers", "Move a player to one of six teams denoted by square emojis (r - red, o - orange, y - yellow, g - green, b - blue, p – purple), or removes the player from the teams (“-”).");
+    m_commands.emplace_back("cat+",             &CommandManager::process_cat,        UP_HAMMER,              CS_ALWAYS,                    "/cat+ (category) (username)", "hammers", "Adds the player to a certain category.");
+    m_commands.emplace_back("cat-",             &CommandManager::process_cat,        UP_HAMMER,              CS_ALWAYS,                    "/cat- (category) (username)", "hammers", "Removes the player from a certain category.");
+    m_commands.emplace_back("cat*",             &CommandManager::process_cat,        UP_HAMMER,              CS_ALWAYS,                    "/cat* (category) (0 | 1)", "hammers", "Toggles whether a category is displayed in the player list.");
+    m_commands.emplace_back("troll",            &CommandManager::process_troll,      UP_HAMMER,              CS_ALWAYS,                    "/troll [0 | 1]", "hammers", "Toggles anti-troll system.");
+    m_commands.emplace_back("hitmsg",           &CommandManager::process_hitmsg,     UP_HAMMER,              CS_ALWAYS,                    "/hitmsg [0 | 1]", "hammers", "Toggles whether the messages about teammate hits are displayed.");
+    m_commands.emplace_back("teamhit",          &CommandManager::process_teamhit,    UP_HAMMER,              CS_ALWAYS,                    "/teamhit [0 | 1]", "hammers", "Toggles whether the teammate hits are punished ingame.");
+    m_commands.emplace_back("version",          &CommandManager::process_text,       UP_EVERYONE,            CS_ALWAYS,                    "/version", "everyone", "Displays version.");
+    m_commands.emplace_back("clear",            &CommandManager::process_text,       UP_EVERYONE,            CS_ALWAYS,                    "/clear", "everyone", "Puts newlines onto the screen so that the previous messages are not visible.");
+    m_commands.emplace_back("register",         &CommandManager::process_register,   UP_EVERYONE,            CS_ALWAYS,                    "/register [info]", "everyone", "The command is used to register to an event (if the server has a database to store the registrations). Players can provide information while registering.");
 #ifdef ENABLE_WEB_SUPPORT
-    m_commands.emplace_back("token",            &CommandManager::process_token,      UP_EVERYONE);
+    m_commands.emplace_back("token",            &CommandManager::process_token,      UP_EVERYONE,            CS_ALWAYS,                    "/token", "everyone", "Produces a token for a player and stores it in the database (if the server has a database to store tokens). Tokens may be used to authenticate players using their STK accounts.");
 #endif
-    m_commands.emplace_back("muteall",          &CommandManager::process_muteall,    UP_EVERYONE, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("game",             &CommandManager::process_game,       UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("role",             &CommandManager::process_role,       UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("stop",             &CommandManager::process_stop,       UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("go",               &CommandManager::process_go,         UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("play",             &CommandManager::process_go,         UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("resume",           &CommandManager::process_go,         UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("lobby",            &CommandManager::process_lobby,      UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("init",             &CommandManager::process_init,       UP_HAMMER, CS_SOCCER_TOURNAMENT);
-    m_commands.emplace_back("vote",             &CommandManager::special,            UP_EVERYONE);
-
-    m_commands.emplace_back("mimiz",            &CommandManager::process_mimiz,      UP_EVERYONE);
-    m_commands.emplace_back("test",             &CommandManager::process_test,       UP_EVERYONE | PE_VOTED);
+    m_commands.emplace_back("muteall",          &CommandManager::process_muteall,    UP_EVERYONE,            CS_SOCCER_TOURNAMENT,         "/muteall [0 | 1]", "everyone in soccer tournament mode", "Toggles whether a player wants to receive messages from anyone except acting players and referees in soccer tournament mode (this may be forced for acting player and referees using config).");
+    m_commands.emplace_back("game",             &CommandManager::process_game,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/game [number] [length]", "soccer tournament referees", "Prepares the server for a certain game, with certain duration or number of goals.");
+    m_commands.emplace_back("role",             &CommandManager::process_role,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/role ([rbjsRBJS]) (username | #Category)", "soccer tournament referees", "Assigns a role to a player. Roles include: “r” and “b” - acting players with red and blue colors, respectively; “j” - judge/referee, “s” – spectator. May be done simultaneously for a specified category. Fails if the player doesn’t satisfy the requirements for the role.");
+    m_commands.emplace_back("stop",             &CommandManager::process_stop,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/stop", "soccer tournament referees", "Disables goal counting during the game.");
+    m_commands.emplace_back("go",               &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/go", "soccer tournament referees", "Enables goal counting during the game.");
+    m_commands.emplace_back("play",             &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/play", "soccer tournament referees", "Enables goal counting during the game.");
+    m_commands.emplace_back("resume",           &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/resume", "soccer tournament referees", "Enables goal counting during the game.");
+    m_commands.emplace_back("lobby",            &CommandManager::process_lobby,      UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/lobby", "soccer tournament referees", "Forces players to the lobby through the final screen, stoppng the game.");
+    m_commands.emplace_back("init",             &CommandManager::process_init,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/init (red count) (blue count)", "soccer tournament referees", "Initializes the match score to start from (red count):(blue count) instead of 0:0.");
+    m_commands.emplace_back("vote",             &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/vote (command with arguments, without “/”)", "everyone", "Casts a vote for the provided command, if it can be voted. Only useful for those players who can enforce their command but opt to vote instead of forcing; for those players who cannot invoke the command alone, /(command) is equivalent to /vote (command).");
+    m_commands.emplace_back("mimiz",            &CommandManager::process_mimiz,      UP_EVERYONE,            CS_ALWAYS,                    "/mimiz [text]", "everyone", "A joke command.");
+    m_commands.emplace_back("test",             &CommandManager::process_test,       UP_EVERYONE | PE_VOTED, CS_ALWAYS,                    "/test [poll name] [option name]", "everyone; votable", "A test command.");
+    m_commands.emplace_back("help",             &CommandManager::process_help,       UP_EVERYONE,            CS_ALWAYS,                    "/help (command name)", "everyone", "Gives description of a given command.");
 
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     addTextResponse("version", "1.3-rc1 k 210fff beta");
@@ -141,6 +141,8 @@ void CommandManager::initCommands()
     std::sort(m_commands.begin(), m_commands.end(), [](const Command& a, const Command& b) -> bool {
         return a.m_name < b.m_name;
     });
+    for (auto& command: m_commands)
+        m_name_to_command[command.m_name] = command;
 
     m_votables.emplace("replay", 1.0);
     m_votables.emplace("start", 0.9);
@@ -190,12 +192,12 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         action = "vote for";
     }
 
-    for (auto& command: m_commands)
-    {
-        if (argv[0] != command.m_name)
-            continue;
+    auto command_iterator = m_name_to_command.find(argv[0]);
+    found_command = (command_iterator != m_name_to_command.end());
 
-        found_command = true;
+    if (found_command)
+    {
+        const auto& command = command_iterator->second;
         if (!isAvailable(command))
         {
             std::string msg = "You don't have permissions to " + action + " this command";
@@ -239,15 +241,13 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 }
             }
         }
-    }
-
-    if (!found_command)
-    {
-        std::string msg = "Command " + argv[0] + " not found";
-        m_lobby->sendStringToPeer(msg, peer);
+        return;
     }
 
     // TODO: process commands with typos
+    std::string msg = "Command " + argv[0] + " not found";
+    m_lobby->sendStringToPeer(msg, peer);
+
     // TODO: add votedness
 
 } // handleCommand
@@ -280,6 +280,63 @@ void CommandManager::vote(Context& context, std::string category, std::string va
 } // vote
 // ========================================================================
 
+void CommandManager::update()
+{
+    for (auto& votable_pairs: m_votables)
+    {
+        auto& votable = votable_pairs.second;
+        auto response = votable.process(m_users);
+        auto res = response.second;
+        if (!res.empty())
+        {
+            for (auto& p: res)
+            {
+                std::string new_cmd = p.first + " " + p.second;
+                std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
+                m_lobby->sendStringToAllPeers(msg);
+                auto new_argv = StringUtils::split(new_cmd, ' ');
+                auto& command = m_name_to_command[new_argv[0]];
+                // We don't know the event though it is only needed in
+                // ServerLobby::startSelection where it is nullptr when they vote
+                Context new_context(nullptr, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
+                (this->*command.m_action)(new_context);
+            }
+        }
+    }
+} // update
+// ========================================================================
+
+void CommandManager::error(Context& context)
+{
+    std::string command = context.m_argv[0];
+    // Here we assume that the command argv[0] exists,
+    // as we intend to invoke error() from process_* functions
+    std::string msg = m_name_to_command[command].getUsage();
+    if (msg.empty())
+        msg = "An error occurred while invoking command \"" + context.m_argv[0] + "\".";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // error
+// ========================================================================
+
+void CommandManager::process_help(Context& context)
+{
+    auto argv = context.m_argv;
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    std::string msg;
+    auto it = m_name_to_command.find(argv[1]);
+    if (it == m_name_to_command.end())
+        msg = "Unknown command \"" + argv[1] + "\"";
+    else
+        msg = it->second.getHelp();
+
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_commands
+// ========================================================================
+
 void CommandManager::process_text(Context& context)
 {
     std::string response;
@@ -290,7 +347,7 @@ void CommandManager::process_text(Context& context)
     else
         response = it->second;
     m_lobby->sendStringToPeer(response, context.m_peer);
-} // process_commands
+} // process_text
 // ========================================================================
 
 void CommandManager::process_commands(Context& context)
@@ -426,8 +483,7 @@ void CommandManager::process_spectate(Context& context)
 
     if (argv.size() != 2 || (argv[1] != "0" && argv[1] != "1"))
     {
-        std::string msg = "Usage: /spectate [empty or 0 or 1]";
-        m_lobby->sendStringToPeer(msg, peer);
+        error(context);
         return;
     }
 
@@ -707,22 +763,16 @@ void CommandManager::process_kick(Context& context)
 {
     auto& cmd = context.m_cmd;
     auto& peer = context.m_peer;
-    std::string player_name;
-    if (StringUtils::startsWith(cmd, "kickban"))
-    {
-        if (cmd.length() > 8)
-            player_name = cmd.substr(8);
-    }
-    else if (cmd.length() > 5)
-    {
-        player_name = cmd.substr(5);
-    }
+    auto& argv = context.m_argv;
+
+    int arg_length = argv[0].size();
+    std::string player_name = cmd.substr(arg_length + 1);
+
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer || player_peer->isAIPeer())
     {
-        std::string msg = "Usage: /kick [player name]";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     if (player_peer->isAngryHost())
@@ -891,8 +941,7 @@ void CommandManager::process_mute(Context& context)
 
     if (argv.size() != 2 || argv[1].empty())
     {
-        std::string msg = "Usage: /mute player_name (not including yourself)";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
 
@@ -901,8 +950,7 @@ void CommandManager::process_mute(Context& context)
 
     if (!player_peer || player_peer == peer)
     {
-        std::string msg = "Usage: /mute player_name (not including yourself)";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
 
@@ -922,8 +970,7 @@ void CommandManager::process_unmute(Context& context)
 
     if (argv.size() != 2 || argv[1].empty())
     {
-        result_msg = "Usage: /unmute player_name";
-        m_lobby->sendStringToPeer(result_msg, context.m_peer);
+        error(context);
         return;
     }
 
@@ -944,8 +991,7 @@ void CommandManager::process_unmute(Context& context)
         }
     }
 
-    result_msg = "Usage: /unmute player_name";
-    m_lobby->sendStringToPeer(result_msg, context.m_peer);
+    error(context);
 } // process_unmute
 // ========================================================================
 
@@ -1019,8 +1065,7 @@ void CommandManager::process_tell(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1)
     {
-        std::string response = "Tell something non-empty";
-        m_lobby->sendStringToPeer(response, context.m_peer);
+        error(context);
         return;
     }
     std::string ans;
@@ -1038,21 +1083,22 @@ void CommandManager::process_standings(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
-    if (argv.size() > 1)
+    if (argv.size() == 1)
     {
-        if (argv[1] == "gp")
-            msg = m_lobby->getGrandPrixStandings();
-        else if (argv[1] == "gnu")
-            msg = m_lobby->m_kart_elimination.getStandings();
+        if (m_lobby->m_game_setup->isGrandPrix())
+            argv.push_back("gp");
         else
-            msg = "Usage: /standings [gp | gnu]";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+            argv.push_back("gnu");
+    }
+    if (argv[1] == "gp")
+        msg = m_lobby->getGrandPrixStandings();
+    else if (argv[1] == "gnu")
+        msg = m_lobby->m_kart_elimination.getStandings();
+    else
+    {
+        error(context);
         return;
     }
-    if (m_lobby->m_game_setup->isGrandPrix())
-        msg = m_lobby->getGrandPrixStandings();
-    else
-        msg = m_lobby->m_kart_elimination.getStandings();
     m_lobby->sendStringToPeer(msg, context.m_peer);
 } // process_standings
 // ========================================================================
@@ -1168,8 +1214,7 @@ void CommandManager::process_length(Context& context)
     std::string msg;
     if (argv.size() < 2)
     {
-        msg = "Usage: /length (x (float) | = (int) | check | clear)";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     if (argv[1] == "check")
@@ -1221,9 +1266,8 @@ void CommandManager::process_length(Context& context)
         m_lobby->sendStringToAllPeers(msg);
         return;
     }
-    msg = "Usage: /length (x (float) | = (int) | check | clear)";
-    m_lobby->sendStringToPeer(msg, context.m_peer);
-    return;
+
+    error(context);
 } // process_length
 // ========================================================================
 
@@ -1231,10 +1275,9 @@ void CommandManager::process_queue(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
-    std::string format_string = "Format: /queue (show | push[_front] (track) | pop[_back])";
     if (argv.size() < 2)
     {
-        m_lobby->sendStringToPeer(format_string, context.m_peer);
+        error(context);
         return;
     }
     if (argv[1] == "show")
@@ -1250,7 +1293,7 @@ void CommandManager::process_queue(Context& context)
     {
         if (argv.size() < 3)
         {
-            m_lobby->sendStringToPeer(format_string, context.m_peer);
+            error(context);
             return;
         }
         m_lobby->m_tracks_queue.push_back(argv[2]);
@@ -1263,7 +1306,7 @@ void CommandManager::process_queue(Context& context)
     {
         if (argv.size() < 3)
         {
-            m_lobby->sendStringToPeer(format_string, context.m_peer);
+            error(context);
             return;
         }
         m_lobby->m_tracks_queue.push_front(argv[2]);
@@ -1313,8 +1356,7 @@ void CommandManager::process_adminstart(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        msg = "Usage: /adminstart [0/1] - allow or forbid starting a race";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     if (argv[1] == "0")
@@ -1337,8 +1379,7 @@ void CommandManager::process_shuffle(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        msg = "Usage: /shuffle [0/1] - make the GP grid shuffled all the time, or make it result-based";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     if (argv[1] == "0")
@@ -1360,8 +1401,7 @@ void CommandManager::process_timeout(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() < 2 || !StringUtils::parseString(argv[1], &seconds) || seconds <= 0)
     {
-        msg = "Usage: /timeout [positive int x] - set timeout to x seconds";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     m_lobby->m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
@@ -1376,10 +1416,9 @@ void CommandManager::process_team(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
-    if (argv.size() != 3) {
-        msg = "Usage: /team (color/0..6) (player) - move a player "
-            "to a team, or remove from teams (none/0)";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+    if (argv.size() != 3)
+    {
+        error(context);
         return;
     }
     auto it = m_lobby->m_team_name_to_index.find(argv[1]);
@@ -1444,9 +1483,9 @@ void CommandManager::process_cat(Context& context)
     auto& argv = context.m_argv;
     if (argv[0] == "cat+")
     {
-        if (argv.size() != 3) {
-            msg = "Usage: /cat+ (category) (player) - add a player to a category";
-            m_lobby->sendStringToPeer(msg, context.m_peer);
+        if (argv.size() != 3)
+        {
+            error(context);
             return;
         }
         std::string category = argv[1];
@@ -1458,9 +1497,9 @@ void CommandManager::process_cat(Context& context)
     }
     if (argv[0] == "cat-")
     {
-        if (argv.size() != 3) {
-            msg = "Usage: /cat- (category) (player) - remove a player from a category";
-            m_lobby->sendStringToPeer(msg, context.m_peer);
+        if (argv.size() != 3)
+        {
+            error(context);
             return;
         }
         std::string category = argv[1];
@@ -1474,9 +1513,9 @@ void CommandManager::process_cat(Context& context)
     {
         int displayed;
         if (argv.size() != 3 || !StringUtils::parseString(argv[2], &displayed)
-                || displayed < 0 || displayed > 1) {
-            msg = "Usage: /cat* (category) (0|1) - make category displayed or not";
-            m_lobby->sendStringToPeer(msg, context.m_peer);
+                || displayed < 0 || displayed > 1)
+        {
+            error(context);
             return;
         }
         std::string category = argv[1];
@@ -1497,8 +1536,7 @@ void CommandManager::process_troll(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        msg = "Usage: /troll [0/1] - disable or enable anti troll system";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     if (argv[1] == "0")
@@ -1519,9 +1557,7 @@ void CommandManager::process_hitmsg(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        msg = "Usage: /hitmsg [0/1] - disable or enable messages "
-            "if a player makes a teammate explode";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     if (argv[1] == "0")
@@ -1542,8 +1578,7 @@ void CommandManager::process_teamhit(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        msg = "Usage: /teamhit [0/1] - disable or enable punish mode when hitting team mates";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
         return;
     }
     if (argv[1] == "0")
@@ -1686,9 +1721,7 @@ void CommandManager::process_game(Context& context)
             bool ok = StringUtils::parseString(argv[2], &length);
             if (!ok || length <= 0)
             {
-                std::string msg = "Please specify a correct number. "
-                    "Format: /game [number] [length]";
-                m_lobby->sendStringToPeer(msg, peer);
+                error(context);
                 return;
             }
         }
@@ -1717,8 +1750,7 @@ void CommandManager::process_role(Context& context)
         peer->getPlayerProfiles()[0]->getName());
     if (argv.size() < 3)
     {
-        std::string msg = "Format: /role (R|B|J|S) username";
-        m_lobby->sendStringToPeer(msg, peer);
+        error(context);
         return;
     }
     std::string role = argv[1];
@@ -1729,8 +1761,7 @@ void CommandManager::process_role(Context& context)
         std::swap(role, username);
     if (role.length() != 1)
     {
-        std::string msg = "Please specify one-letter role (R/B/J/S) and player";
-        m_lobby->sendStringToPeer(msg, peer);
+        error(context);
         return;
     }
     if (role[0] >= 'A' && role[0] <= 'Z')
@@ -1934,8 +1965,7 @@ void CommandManager::process_init(Context& context)
         !StringUtils::parseString<int>(argv[1], &red) ||
         !StringUtils::parseString<int>(argv[2], &blue))
     {
-        std::string msg = "Usage: /init [red_count] [blue_count]";
-        m_lobby->sendStringToPeer(msg, peer);
+        error(context);
         return;
     }
     World* w = World::getWorld();
@@ -2000,6 +2030,7 @@ void CommandManager::special(Context& context)
 void CommandManager::addUser(std::string& s)
 {
     m_users.insert(s);
+    update();
 } // addUser
 // ========================================================================
 
@@ -2012,5 +2043,6 @@ void CommandManager::deleteUser(std::string& s)
         return;
     }
     m_users.erase(it);
+    update();
 } // deleteUser
 // ========================================================================

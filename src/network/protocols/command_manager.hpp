@@ -82,9 +82,24 @@ class CommandManager
 
         int m_scope;
 
+        std::string m_usage;
+
+        std::string m_description;
+
+        std::string m_verbose_permissions;
+
+        Command() {}
+
         Command(std::string name,
-            void (CommandManager::*f)(Context& context), int permissions, int scope = CS_ALWAYS):
-                m_name(name), m_permissions(permissions), m_action(f), m_scope(scope) {}
+            void (CommandManager::*f)(Context& context), int permissions, int scope = CS_ALWAYS,
+            std::string usage = "", std::string verbose_permissions = "", std::string description = ""):
+                m_name(name), m_permissions(permissions), m_action(f), m_scope(scope),
+                m_usage(usage), m_description(description),
+                m_verbose_permissions(verbose_permissions) {}
+
+        std::string getUsage() { return "Usage: " + m_usage; }
+
+        std::string getHelp() { return "Usage: " + m_usage + "\n" + m_verbose_permissions + "\n" + m_description; }
     };
 
 private:
@@ -92,6 +107,8 @@ private:
     ServerLobby* m_lobby;
 
     std::vector<Command> m_commands;
+
+    std::map<std::string, Command> m_name_to_command;
 
     std::multiset<std::string> m_users;
 
@@ -106,6 +123,10 @@ private:
     bool isAvailable(const Command& c);
 
     void vote(Context& context, std::string category, std::string value);
+    void update();
+    void error(Context& context);
+
+    void process_help(Context& context);
     void process_text(Context& context);
     void process_commands(Context& context);
     void process_replay(Context& context);
