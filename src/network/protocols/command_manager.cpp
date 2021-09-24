@@ -145,10 +145,10 @@ void CommandManager::initCommands()
         m_name_to_command[command.m_name] = command;
 
     m_votables.emplace("replay", 1.0);
-    m_votables.emplace("start", 0.9);
+    m_votables.emplace("start", 0.81);
     m_votables.emplace("config", 0.6);
-    m_votables.emplace("kick", 0.9);
-    m_votables.emplace("kickban", 0.9);
+    m_votables.emplace("kick", 0.81);
+    m_votables.emplace("kickban", 0.81);
 
 } // initCommands
 // ========================================================================
@@ -169,7 +169,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     data.decodeString(&language);
     std::string cmd;
     data.decodeString(&cmd);
-    auto argv = StringUtils::split(cmd, ' ');
+    auto argv = StringUtils::splitQuoted(cmd, ' ', '"', '\\');
     if (argv.size() == 0)
         return;
 
@@ -185,6 +185,11 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
             m_lobby->sendStringToPeer(msg, peer);
             return;
         }
+        std::reverse(cmd.begin(), cmd.end());
+        cmd.resize((int)cmd.size() - 4);
+        while (!cmd.empty() && cmd.back() == ' ')
+            cmd.pop_back();
+        std::reverse(cmd.begin(), cmd.end());
         std::reverse(argv.begin(), argv.end());
         argv.pop_back();
         std::reverse(argv.begin(), argv.end());
@@ -235,7 +240,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     std::string new_cmd = p.first + " " + p.second;
                     std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
                     m_lobby->sendStringToAllPeers(msg);
-                    auto new_argv = StringUtils::split(new_cmd, ' ');
+                    auto new_argv = StringUtils::splitQuoted(cmd, ' ', '"', '\\');
                     Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
                     (this->*command.m_action)(new_context);
                 }
@@ -294,7 +299,7 @@ void CommandManager::update()
                 std::string new_cmd = p.first + " " + p.second;
                 std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
                 m_lobby->sendStringToAllPeers(msg);
-                auto new_argv = StringUtils::split(new_cmd, ' ');
+                auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '\\');
                 auto& command = m_name_to_command[new_argv[0]];
                 // We don't know the event though it is only needed in
                 // ServerLobby::startSelection where it is nullptr when they vote
@@ -320,7 +325,7 @@ void CommandManager::error(Context& context)
 
 void CommandManager::process_help(Context& context)
 {
-    auto argv = context.m_argv;
+    auto& argv = context.m_argv;
     if (argv.size() < 2)
     {
         error(context);
@@ -447,7 +452,7 @@ void CommandManager::process_spectate(Context& context)
 {
     std::string response = "";
     auto& argv = context.m_argv;
-    auto peer = context.m_peer;
+    auto& peer = context.m_peer;
 
     if (ServerConfig::m_soccer_tournament || ServerConfig::m_only_host_riding)
         response = "All spectators already have auto spectate ability";
@@ -643,63 +648,59 @@ void CommandManager::process_lsa(Context& context)
         (argv.size() == 2 && (argv[1].size() < 3 || has_options)) ||
         (argv.size() == 3 && (!has_options || argv[2].size() < 3)))
     {
-        response = "Usage: /listserveraddon [option][addon string to find "
-            "(at least 3 characters)]. Available options: "
-            "-track, -arena, -kart, -soccer.";
+        error(context);
+        return;
     }
+    std::string type = "";
+    std::string text = "";
+    if (argv.size() > 1)
+    {
+        if (argv[1].compare("-track") == 0 ||
+            argv[1].compare("-arena") == 0 ||
+            argv[1].compare("-kart") == 0 ||
+            argv[1].compare("-soccer") == 0)
+            type = argv[1].substr(1);
+        if ((argv.size() == 2 && type.empty()) || argv.size() == 3)
+            text = argv[argv.size() - 1];
+    }
+
+    std::set<std::string> total_addons;
+    if (type.empty() || // not specify addon type
+       (!type.empty() && type.compare("kart") == 0)) // list kart addon
+    {
+        total_addons.insert(m_lobby->m_addon_kts.first.begin(), m_lobby->m_addon_kts.first.end());
+    }
+    if (type.empty() || // not specify addon type
+       (!type.empty() && type.compare("track") == 0))
+    {
+        total_addons.insert(m_lobby->m_addon_kts.second.begin(), m_lobby->m_addon_kts.second.end());
+    }
+    if (type.empty() || // not specify addon type
+       (!type.empty() && type.compare("arena") == 0))
+    {
+        total_addons.insert(m_lobby->m_addon_arenas.begin(), m_lobby->m_addon_arenas.end());
+    }
+    if (type.empty() || // not specify addon type
+       (!type.empty() && type.compare("soccer") == 0))
+    {
+        total_addons.insert(m_lobby->m_addon_soccers.begin(), m_lobby->m_addon_soccers.end());
+    }
+    std::string msg = "";
+    for (auto& addon : total_addons)
+    {
+        // addon_ (6 letters)
+        if (!text.empty() && addon.find(text, 6) == std::string::npos)
+            continue;
+
+        msg += addon.substr(6);
+        msg += ", ";
+    }
+    if (msg.empty())
+        response = "Addon not found";
     else
     {
-        std::string type = "";
-        std::string text = "";
-        if (argv.size() > 1)
-        {
-            if (argv[1].compare("-track") == 0 ||
-                argv[1].compare("-arena") == 0 ||
-                argv[1].compare("-kart") == 0 ||
-                argv[1].compare("-soccer") == 0)
-                type = argv[1].substr(1);
-            if ((argv.size() == 2 && type.empty()) || argv.size() == 3)
-                text = argv[argv.size() - 1];
-        }
-
-        std::set<std::string> total_addons;
-        if (type.empty() || // not specify addon type
-           (!type.empty() && type.compare("kart") == 0)) // list kart addon
-        {
-            total_addons.insert(m_lobby->m_addon_kts.first.begin(), m_lobby->m_addon_kts.first.end());
-        }
-        if (type.empty() || // not specify addon type
-           (!type.empty() && type.compare("track") == 0))
-        {
-            total_addons.insert(m_lobby->m_addon_kts.second.begin(), m_lobby->m_addon_kts.second.end());
-        }
-        if (type.empty() || // not specify addon type
-           (!type.empty() && type.compare("arena") == 0))
-        {
-            total_addons.insert(m_lobby->m_addon_arenas.begin(), m_lobby->m_addon_arenas.end());
-        }
-        if (type.empty() || // not specify addon type
-           (!type.empty() && type.compare("soccer") == 0))
-        {
-            total_addons.insert(m_lobby->m_addon_soccers.begin(), m_lobby->m_addon_soccers.end());
-        }
-        std::string msg = "";
-        for (auto& addon : total_addons)
-        {
-            // addon_ (6 letters)
-            if (!text.empty() && addon.find(text, 6) == std::string::npos)
-                continue;
-
-            msg += addon.substr(6);
-            msg += ", ";
-        }
-        if (msg.empty())
-            response = "Addon not found";
-        else
-        {
-            msg = msg.substr(0, msg.size() - 2);
-            response = "Server's addons: " + msg;
-        }
+        msg = msg.substr(0, msg.size() - 2);
+        response = "Server's addons: " + msg;
     }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_lsa
@@ -708,52 +709,52 @@ void CommandManager::process_lsa(Context& context)
 void CommandManager::process_pha(Context& context)
 {
     std::string response = "";
-    std::string cmd = context.m_cmd;
-    std::string part;
-    if (cmd.length() > 15)
-        part = cmd.substr(15);
-    std::string addon_id = part.substr(0, part.find(' '));
-    std::string player_name;
-    if (part.length() > addon_id.length() + 1)
-        player_name = part.substr(addon_id.length() + 1);
+    auto& argv = context.m_argv;
+    if (argv.size() < 3)
+    {
+        error(context);
+        return;
+    }
+
+    std::string addon_id = argv[1];
+    std::string player_name = argv[2];
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer || addon_id.empty())
     {
-        response = "Usage: /playerhasaddon [addon_identity] [player name]";
+        error(context);
+        return;
     }
-    else
+
+    std::string addon_id_test = Addon::createAddonId(addon_id);
+    bool found = false;
+    const auto& kt = player_peer->getClientAssets();
+    for (auto& kart : kt.first)
     {
-        std::string addon_id_test = Addon::createAddonId(addon_id);
-        bool found = false;
-        const auto& kt = player_peer->getClientAssets();
-        for (auto& kart : kt.first)
+        if (kart == addon_id_test)
         {
-            if (kart == addon_id_test)
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+    {
+        for (auto& track : kt.second)
+        {
+            if (track == addon_id_test)
             {
                 found = true;
                 break;
             }
         }
-        if (!found)
-        {
-            for (auto& track : kt.second)
-            {
-                if (track == addon_id_test)
-                {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        if (found)
-        {
-            response = player_name + " has addon " + addon_id;
-        }
-        else
-        {
-            response = player_name + " has no addon " + addon_id;
-        }
+    }
+    if (found)
+    {
+        response = player_name + " has addon " + addon_id;
+    }
+    else
+    {
+        response = player_name + " has no addon " + addon_id;
     }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_pha
@@ -761,12 +762,15 @@ void CommandManager::process_pha(Context& context)
 
 void CommandManager::process_kick(Context& context)
 {
-    auto& cmd = context.m_cmd;
     auto& peer = context.m_peer;
     auto& argv = context.m_argv;
 
-    int arg_length = argv[0].size();
-    std::string player_name = cmd.substr(arg_length + 1);
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    std::string player_name = argv[1];
 
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
@@ -800,7 +804,7 @@ void CommandManager::process_kick(Context& context)
         std::string auto_report = "[ Auto report caused by kick ]";
         m_lobby->writeOwnReport(player_peer.get(), peer.get(), auto_report);
     }
-    if (StringUtils::startsWith(cmd, "kickban"))
+    if (argv[0] == "kickban")
     {
         Log::info("CommandManager", "%s is now banned", player_name.c_str());
         m_lobby->m_temp_banned.insert(player_name);
@@ -813,49 +817,46 @@ void CommandManager::process_kick(Context& context)
 
 void CommandManager::process_unban(Context& context)
 {
-    std::string player_name;
-    auto& cmd = context.m_cmd;
-    if (cmd.length() > 6)
+    auto& argv = context.m_argv;
+    if (argv.size() < 2)
     {
-        player_name = cmd.substr(6);
+        error(context);
+        return;
     }
+    std::string player_name = argv[1];
     if (player_name.empty())
     {
-        std::string msg = "Usage: /unban [player name]";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
+        return;
     }
-    else
-    {
-        Log::info("CommandManager", "%s is now unbanned", player_name.c_str());
-        m_lobby->m_temp_banned.erase(player_name);
-        std::string msg = StringUtils::insertValues(
-            "%s is now unbanned", player_name.c_str());
-        m_lobby->sendStringToPeer(msg, context.m_peer);
-    }
+    Log::info("CommandManager", "%s is now unbanned", player_name.c_str());
+    m_lobby->m_temp_banned.erase(player_name);
+    std::string msg = StringUtils::insertValues(
+        "%s is now unbanned", player_name.c_str());
+    m_lobby->sendStringToPeer(msg, context.m_peer);
 } // process_unban
 // ========================================================================
 
 void CommandManager::process_ban(Context& context)
 {
     std::string player_name;
-    auto& cmd = context.m_cmd;
-    if (cmd.length() > 4)
+    auto& argv = context.m_argv;
+    if (argv.size() < 2)
     {
-        player_name = cmd.substr(4);
+        error(context);
+        return;
     }
+    player_name = argv[1];
     if (player_name.empty())
     {
-        std::string msg = "Usage: /ban [player name]";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        error(context);
+        return;
     }
-    else
-    {
-        Log::info("CommandManager", "%s is now banned", player_name.c_str());
-        m_lobby->m_temp_banned.insert(player_name);
-        std::string msg = StringUtils::insertValues(
-            "%s is now banned", player_name.c_str());
-        m_lobby->sendStringToPeer(msg, context.m_peer);
-    }
+    Log::info("CommandManager", "%s is now banned", player_name.c_str());
+    m_lobby->m_temp_banned.insert(player_name);
+    std::string msg = StringUtils::insertValues(
+        "%s is now banned", player_name.c_str());
+    m_lobby->sendStringToPeer(msg, context.m_peer);
 } // process_ban
 // ========================================================================
 
@@ -863,39 +864,40 @@ void CommandManager::process_pas(Context& context)
 {
     std::string response;
     std::string player_name;
-    auto& cmd = context.m_cmd;
-    if (cmd.length() > 17)
-        player_name = cmd.substr(17);
+    auto& argv = context.m_argv;
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    player_name = argv[1];
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer)
     {
-        response = "Usage: /playeraddonscore [player name] "
-            "(returns the number of addons, not a percentage)";
+        error(context);
+        return;
+    }
+    auto& scores = player_peer->getAddonsScores();
+    if (scores[AS_KART] == -1 && scores[AS_TRACK] == -1 &&
+        scores[AS_ARENA] == -1 && scores[AS_SOCCER] == -1)
+    {
+        response = player_name + " has no addons";
     }
     else
     {
-        auto& scores = player_peer->getAddonsScores();
-        if (scores[AS_KART] == -1 && scores[AS_TRACK] == -1 &&
-            scores[AS_ARENA] == -1 && scores[AS_SOCCER] == -1)
-        {
-            response = player_name + " has no addons";
-        }
-        else
-        {
-            std::string msg = player_name;
-            msg += " addons:";
-            if (scores[AS_KART] != -1)
-                msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
-            if (scores[AS_TRACK] != -1)
-                msg += " tracks: " + StringUtils::toString(scores[AS_TRACK]) + ",";
-            if (scores[AS_ARENA] != -1)
-                msg += " arenas: " + StringUtils::toString(scores[AS_ARENA]) + ",";
-            if (scores[AS_SOCCER] != -1)
-                msg += " fields: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
-            msg.pop_back();
-            response = msg;
-        }
+        std::string msg = player_name;
+        msg += " addons:";
+        if (scores[AS_KART] != -1)
+            msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
+        if (scores[AS_TRACK] != -1)
+            msg += " tracks: " + StringUtils::toString(scores[AS_TRACK]) + ",";
+        if (scores[AS_ARENA] != -1)
+            msg += " arenas: " + StringUtils::toString(scores[AS_ARENA]) + ",";
+        if (scores[AS_SOCCER] != -1)
+            msg += " fields: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
+        msg.pop_back();
+        response = msg;
     }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_pas
@@ -907,25 +909,23 @@ void CommandManager::process_sha(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() != 2)
     {
-        response = "Usage: /serverhasaddon [addon_identity]";
+        error(context);
+        return;
+    }
+    std::set<std::string> total_addons;
+    total_addons.insert(m_lobby->m_addon_kts.first.begin(), m_lobby->m_addon_kts.first.end());
+    total_addons.insert(m_lobby->m_addon_kts.second.begin(), m_lobby->m_addon_kts.second.end());
+    total_addons.insert(m_lobby->m_addon_arenas.begin(), m_lobby->m_addon_arenas.end());
+    total_addons.insert(m_lobby->m_addon_soccers.begin(), m_lobby->m_addon_soccers.end());
+    std::string addon_id_test = Addon::createAddonId(argv[1]);
+    bool found = total_addons.find(addon_id_test) != total_addons.end();
+    if (found)
+    {
+        response = "Server has addon " + argv[1];
     }
     else
     {
-        std::set<std::string> total_addons;
-        total_addons.insert(m_lobby->m_addon_kts.first.begin(), m_lobby->m_addon_kts.first.end());
-        total_addons.insert(m_lobby->m_addon_kts.second.begin(), m_lobby->m_addon_kts.second.end());
-        total_addons.insert(m_lobby->m_addon_arenas.begin(), m_lobby->m_addon_arenas.end());
-        total_addons.insert(m_lobby->m_addon_soccers.begin(), m_lobby->m_addon_soccers.end());
-        std::string addon_id_test = Addon::createAddonId(argv[1]);
-        bool found = total_addons.find(addon_id_test) != total_addons.end();
-        if (found)
-        {
-            response = "Server has addon " + argv[1];
-        }
-        else
-        {
-            response = "Server has no addon " + argv[1];
-        }
+        response = "Server has no addon " + argv[1];
     }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_sha
@@ -1116,19 +1116,18 @@ void CommandManager::process_to(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1)
     {
-        std::string msg = "Usage: /to (username1) ... (usernameN)";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
-    } else {
-        auto& peer = context.m_peer;
-        m_lobby->m_message_receivers[peer.get()].clear();
-        for (unsigned i = 1; i < argv.size(); ++i)
-        {
-            m_lobby->m_message_receivers[peer.get()].insert(
-                StringUtils::utf8ToWide(argv[i]));
-        }
-        std::string msg = "Successfully changed chat settings";
-        m_lobby->sendStringToPeer(msg, peer);
+        error(context);
+        return;
     }
+    auto& peer = context.m_peer;
+    m_lobby->m_message_receivers[peer.get()].clear();
+    for (unsigned i = 1; i < argv.size(); ++i)
+    {
+        m_lobby->m_message_receivers[peer.get()].insert(
+            StringUtils::utf8ToWide(argv[i]));
+    }
+    std::string msg = "Successfully changed chat settings";
+    m_lobby->sendStringToPeer(msg, peer);
 } // process_to
 // ========================================================================
 
@@ -1149,31 +1148,29 @@ void CommandManager::process_record(Context& context)
 #ifdef ENABLE_SQLITE3
     if (argv.size() < 5)
     {
-        response = "Usage: /record (track id) "
-            "(normal/time-trial) (normal/reverse) (laps)\n"
-            "Receives the server record for the race settings if any";
-    } else {
-        bool error = false;
-        std::string track_name = argv[1];
-        std::string mode_name = (argv[2] == "t" || argv[2] == "tt"
-            || argv[2] == "time-trial" || argv[2] == "timetrial" ?
-            "time-trial" : "normal");
-        std::string reverse_name = (argv[3] == "r" ||
-            argv[3] == "rev" || argv[3] == "reverse" ? "reverse" :
-            "normal");
-        int laps_count = -1;
-        if (!StringUtils::parseString<int>(argv[4], &laps_count))
-            error = true;
-        if (!error && laps_count < 0)
-            error = true;
-        if (error)
-        {
-            response = "Invalid lap count";
-        }
-        else
-        {
-            response = m_lobby->getRecord(track_name, mode_name, reverse_name, laps_count);
-        }
+        error(context);
+        return;
+    }
+    bool error = false;
+    std::string track_name = argv[1];
+    std::string mode_name = (argv[2] == "t" || argv[2] == "tt"
+        || argv[2] == "time-trial" || argv[2] == "timetrial" ?
+        "time-trial" : "normal");
+    std::string reverse_name = (argv[3] == "r" ||
+        argv[3] == "rev" || argv[3] == "reverse" ? "reverse" :
+        "normal");
+    int laps_count = -1;
+    if (!StringUtils::parseString<int>(argv[4], &laps_count))
+        error = true;
+    if (!error && laps_count < 0)
+        error = true;
+    if (error)
+    {
+        response = "Invalid lap count";
+    }
+    else
+    {
+        response = m_lobby->getRecord(track_name, mode_name, reverse_name, laps_count);
     }
 #else
     response = "This command is not supported.";

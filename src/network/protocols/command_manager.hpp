@@ -99,7 +99,7 @@ class CommandManager
 
         std::string getUsage() { return "Usage: " + m_usage; }
 
-        std::string getHelp() { return "Usage: " + m_usage + "\n" + m_verbose_permissions + "\n" + m_description; }
+        std::string getHelp() { return "Usage: " + m_usage + "\nAvailable to: " + m_verbose_permissions + "\n" + m_description + "\n"; }
     };
 
 private:

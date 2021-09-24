@@ -144,6 +144,74 @@ namespace StringUtils
     }   // toLowerCase
 
     //-------------------------------------------------------------------------
+    /** Splits a string into substrings separated by a certain character `c`,
+     *  and returns a std::vector of all those substrings. The only exception
+     *  from that is when a substring is enclosed into `d` chars, `c` chars
+     *  inside do not split the substring. `d` chars are escaped with `e`, just
+     *  as `e` chars. E.g.:
+     *  splitQuoted("a b=c |multi word phrase| /|o //", ' ', '|', '/') -->
+     *  ["a", "b=c", "multi word phrase", "|o", "/"]
+     *  \param s The string to split.
+     *  \param c The character  by which the string is split.
+     */
+    std::vector<std::string> splitQuoted(const std::string& s, char c,
+                                   char d, char e)
+    {
+        std::vector<std::string> result;
+
+        try
+        {
+            result.emplace_back();
+            bool quoted = false;
+            bool escaped = false;
+            for (unsigned i = 0; i < s.length(); ++i)
+            {
+                if (s[i] == e)
+                {
+                    if (escaped)
+                        result.back().push_back(e);
+                    else
+                        escaped = true;
+                }
+                else if (s[i] == d && !escaped)
+                {
+                    quoted ^= 1;
+                }
+                else if (s[i] == c && !quoted)
+                {
+                    result.emplace_back();
+                }
+                else
+                {
+                    result.back().push_back(s[i]);
+                }
+            }
+            std::vector<std::string> cleared_result;
+            for (const std::string& s: result)
+            {
+                if (!s.empty())
+                    cleared_result.push_back(s);
+            }
+            return cleared_result;
+        }
+        catch (std::exception& e)
+        {
+            Log::error("StringUtils",
+                       "Error in splitQuoted(std::string) : %s @ line %i : %s.",
+                     __FILE__, __LINE__, e.what());
+            Log::error("StringUtils", "Splitting '%s'.", s.c_str());
+
+            for (int n = 0; n < (int)result.size(); n++)
+            {
+                Log::error("StringUtils", "Split : %s", result[n].c_str());
+            }
+
+            assert(false); // in debug mode, trigger debugger
+            exit(1);
+        }
+    }   // split
+
+    //-------------------------------------------------------------------------
     /** Splits a string into substrings separated by a certain character, and
      *  returns a std::vector of all those substring. E.g.:
      *  split("a b=c d=e",' ')  --> ["a", "b=c", "d=e"]
