@@ -468,12 +468,12 @@ void GPInfoScreen::updateHighscores()
     if(m_gp.isRandomGP())
         return;
     const Highscores::HighscoreType type = "HST_GRANDPRIX";
-    Highscores* highscores = highscore_manager->getHighscores(type, 
-                                                              RaceManager::get()->getNumberOfKarts(),
-                                                              RaceManager::get()->getDifficulty(),
-                                                              m_gp.getId(),
-                                                              0,
-                                                              getReverse() == GrandPrixData::GP_ALL_REVERSE);
+    Highscores* highscores = highscore_manager->getGPHighscores(
+                                                                RaceManager::get()->getNumberOfKarts(),
+                                                                RaceManager::get()->getDifficulty(),
+                                                                m_gp.getId(),
+                                                                getReverse(),
+                                                                RaceManager::get()->getMinorMode());
     m_highscore_list->clear();
     int count = highscores->getNumberEntries();
     std::string kart;
@@ -511,3 +511,10 @@ void GPInfoScreen::updateHighscores()
         m_highscore_list->addItem(StringUtils::toString(i),row);
     }
 }   // updateHighscores
+
+// -----------------------------------------------------------------------
+void GPInfoScreen::unloaded()
+{
+    delete m_icon_bank;
+    m_icon_bank = NULL;
+}   // unloaded

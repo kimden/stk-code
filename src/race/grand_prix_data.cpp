@@ -47,6 +47,7 @@ GrandPrixData::GrandPrixData(const std::string& filename, enum GPGroupType group
     m_id       = StringUtils::getBasename(StringUtils::removeExtension(filename));
     m_editable = (filename.find(file_manager->getGPDir(), 0) == 0);
     m_group    = group;
+    m_reverse_type = GP_NO_REVERSE;
 
     reload();
 }   // GrandPrixData
@@ -628,6 +629,24 @@ irr::core::stringw GrandPrixData::getRandomGPName()
 irr::core::stringw GrandPrixData::getName() const
 {
     return m_editable ? m_name.c_str() : _(m_name.c_str());
+}
+// ----------------------------------------------------------------------------
+irr::core::stringw GrandPrixData::reverseTypeToString(GPReverseType reverse_type)
+{
+    switch (reverse_type)
+    {
+    case GrandPrixData::GP_DEFAULT_REVERSE:
+        return _("Default");
+    case GrandPrixData::GP_NO_REVERSE:
+        return _("None");
+    case GrandPrixData::GP_ALL_REVERSE:
+        return _("All");
+    case GrandPrixData::GP_RANDOM_REVERSE:
+        return _("Random");
+    default:
+        return "N/A";
+    }
+    return "N/A";
 }
 
 /* EOF */

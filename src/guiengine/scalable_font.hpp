@@ -89,7 +89,7 @@ public:
     // ------------------------------------------------------------------------
    virtual void initGlyphLayouts(const core::stringw& text,
                                  std::vector<GlyphLayout>& gls,
-                                std::vector<std::u32string>* line_data = NULL);
+                                 u32 shape_flag = 0);
     // ------------------------------------------------------------------------
     /** returns the dimension of a text */
     virtual core::dimension2d<u32> getDimension(const wchar_t* text) const;
@@ -125,7 +125,10 @@ public:
     virtual void setInvisibleCharacters( const wchar_t *s ) {}
     // ------------------------------------------------------------------------
     virtual f32 getInverseShaping() const;
-
+    // ------------------------------------------------------------------------
+    virtual s32 getFaceFontMaxHeight() const;
+    // ------------------------------------------------------------------------
+    virtual s32 getFaceGlyphMaxHeight() const;
 };
 
 } // end namespace gui

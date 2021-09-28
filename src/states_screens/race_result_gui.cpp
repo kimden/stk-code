@@ -205,10 +205,11 @@ void RaceResultGUI::init()
 #endif
     
     if (RaceManager::get()->getMajorMode() == RaceManager::MAJOR_MODE_GRAND_PRIX &&
-        !NetworkConfig::get()->isNetworking())
+        !NetworkConfig::get()->isNetworking() &&
+        (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE || RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL))
     {
         if (RaceManager::get()->getNumOfTracks() == RaceManager::get()->getTrackNumber() + 1
-           && !RaceManager::get()->getGrandPrix().isRandomGP())
+           && !RaceManager::get()->getGrandPrix().isRandomGP() && RaceManager::get()->getSkippedTracksInGP() == 0)
         {
             Highscores* highscores = World::getWorld()->getGPHighscores();
             const AbstractKart* k = RaceManager::get()->getKartWithGPRank(RaceManager::get()->getLocalPlayerGPRank(PLAYER_ID_GAME_MASTER));
@@ -372,6 +373,16 @@ void RaceResultGUI::eventCallback(GUIEngine::Widget* widget,
     {
         const std::string& action =
             getWidget<GUIEngine::RibbonWidget>("operations")->getSelectionIDString(PLAYER_ID_GAME_MASTER);
+        if (m_animation_state == RR_WAITING_GP_RESULT && action == "left")
+        {
+            GUIEngine::IconButtonWidget *left = getWidget<GUIEngine::IconButtonWidget>("left");
+            left->setVisible(false);
+            m_all_row_infos = m_all_row_info_waiting;
+            m_animation_state = RR_OLD_GP_RESULTS;
+            m_timer = 0;
+            return;
+        }
+
         // If we're playing online :
         if (World::getWorld()->isNetworkWorld())
         {
@@ -1061,6 +1072,7 @@ void RaceResultGUI::unload()
         m_timer += dt;
         assert(World::getWorld()->getPhase() == WorldStatus::RESULT_DISPLAY_PHASE);
         unsigned int num_karts = (unsigned int)m_all_row_infos.size();
+        float time_overall_scroll = m_time_overall_scroll;
 
         // First: Update the finite state machine
         // ======================================
@@ -1077,7 +1089,11 @@ void RaceResultGUI::unload()
             m_animation_state = RR_RACE_RESULT;
             break;
         case RR_RACE_RESULT:
-            if (m_timer > m_time_overall_scroll)
+            // GP mode has a continue button so no extra time is needed
+            if (RaceManager::get()->getMajorMode() ==
+                RaceManager::MAJOR_MODE_GRAND_PRIX)
+                time_overall_scroll -= 2.0f;
+            if (m_timer > time_overall_scroll)
             {
                 // Make sure that all lines are aligned to the left
                 // (in case that the animation was skipped).
@@ -1094,10 +1110,21 @@ void RaceResultGUI::unload()
                     break;
                 }
 
+                m_animation_state = RR_WAITING_GP_RESULT;
+                std::vector<RowInfo> prev_infos = m_all_row_infos;
                 determineGPLayout();
-                m_animation_state = RR_OLD_GP_RESULTS;
-                m_timer = 0;
+                m_all_row_info_waiting = m_all_row_infos;
+                m_all_row_infos = prev_infos;
+                GUIEngine::IconButtonWidget *left = getWidget<GUIEngine::IconButtonWidget>("left");
+                GUIEngine::RibbonWidget *operations = getWidget<GUIEngine::RibbonWidget>("operations");
+                operations->setFocusForPlayer(PLAYER_ID_GAME_MASTER);
+                left->setLabel(_("Continue"));
+                left->setImage("gui/icons/green_check.png");
+                left->setVisible(true);
+                operations->select("left", PLAYER_ID_GAME_MASTER);
             }
+            break;
+        case RR_WAITING_GP_RESULT:
             break;
         case RR_OLD_GP_RESULTS:
             if (m_timer > m_time_overall_scroll)
@@ -1183,6 +1210,7 @@ void RaceResultGUI::unload()
                     // Both states use the same scrolling:
                 case RR_INIT: break;   // Remove compiler warning
                 case RR_RACE_RESULT:
+                case RR_WAITING_GP_RESULT:
                 case RR_OLD_GP_RESULTS:
                     if (m_timer > ri->m_start_at)
                     {   // if active
@@ -1229,7 +1257,7 @@ void RaceResultGUI::unload()
 
         // Display highscores
         if (RaceManager::get()->getMajorMode() != RaceManager::MAJOR_MODE_GRAND_PRIX ||
-            m_animation_state == RR_RACE_RESULT)
+            m_animation_state == RR_WAITING_GP_RESULT)
         {
             displayPostRaceInfo();
         }
@@ -1245,9 +1273,6 @@ void RaceResultGUI::unload()
 #ifndef SERVER_ONLY
         unsigned int num_karts = RaceManager::get()->getNumberOfKarts();
         std::vector<int> old_rank(num_karts, 0);
-        // Update the kart GP ranks
-        // This is useful, e.g., when continuing a saved GP.
-        RaceManager::get()->computeGPRanks();
 
         int time_precision = RaceManager::get()->currentModeTimePrecision();
 
@@ -1344,7 +1369,9 @@ void RaceResultGUI::unload()
             : video::SColor(255, 255, 255, 255);
 
         unsigned int current_x = x;
-        if (!ri->m_finish_time_string.empty() && RaceManager::get()->getNumberOfKarts() >= 10)
+        if (RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_FREE_FOR_ALL &&
+            !ri->m_finish_time_string.empty() &&
+            RaceManager::get()->getNumberOfKarts() >= 10)
         {
             int pos_rank_width = m_font->getDimension(core::stringw(n + 1).c_str()).Width;
             core::recti pos_rank(current_x, y, pos_rank_width, m_distance_between_rows);
@@ -1400,7 +1427,8 @@ void RaceResultGUI::unload()
         // Only display points in GP mode and when the GP results are displayed.
         // =====================================================================
         if (RaceManager::get()->getMajorMode() == RaceManager::MAJOR_MODE_GRAND_PRIX &&
-            m_animation_state != RR_RACE_RESULT)
+            m_animation_state != RR_RACE_RESULT &&
+            m_animation_state != RR_WAITING_GP_RESULT)
         {
             // Draw the new points
             // -------------------
@@ -1935,29 +1963,52 @@ void RaceResultGUI::unload()
         }   // if not soccer mode
 
         // Display challenge result and goals
+        bool is_gp = RaceManager::get()->getMajorMode() == RaceManager::MAJOR_MODE_GRAND_PRIX;
         if(RaceManager::get()->raceWasStartedFromOverworld() &&
-            (RaceManager::get()->getMajorMode() != RaceManager::MAJOR_MODE_GRAND_PRIX ||
+            (!is_gp ||
             RaceManager::get()->getTrackNumber() + 1 == RaceManager::get()->getNumOfTracks()))
         {
             current_y += int(m_distance_between_meta_rows * 0.4f);
 
             const ChallengeStatus* c_stat = PlayerManager::getCurrentPlayer()->getCurrentChallengeStatus();
+            if (!c_stat)
+                return;
             const ChallengeData* c_data = c_stat->getData();
+            if (!c_data)
+                return;
             RaceManager::Difficulty difficulty = RaceManager::get()->getDifficulty();
             video::SColor win_color = video::SColor(255, 0, 255, 0);
             video::SColor lose_color = video::SColor(255, 255, 0, 0);
             video::SColor special_color = video::SColor(255, 0, 255, 255);
             AbstractKart* kart = World::getWorld()->getPlayerKart(0);
             bool lose_all = false;
+            bool position_passed = false;
+            bool time_passed = false;
+            bool energy_passed = false;
 
-            if (kart->isEliminated())
+            if (is_gp)
+            {
+                // GP has no best while slower
                 lose_all = true;
-            bool position_passed = (kart->getPosition() <= c_data->getMaxPosition(difficulty) && lose_all == false)
+                if (c_data->isGPFulfilled())
+                {
+                    position_passed = true;
+                    time_passed = true;
+                    energy_passed = true;
+                }
+            }
+            else
+            {
+                if (kart->isEliminated())
+                    lose_all = true;
+                position_passed = (kart->getPosition() <= c_data->getMaxPosition(difficulty) && lose_all == false)
                                 || c_data->getMaxPosition(difficulty) == -1;
-            bool time_passed = (kart->getFinishTime() <= c_data->getTimeRequirement(difficulty) && lose_all == false)
+                time_passed = (kart->getFinishTime() <= c_data->getTimeRequirement(difficulty) && lose_all == false)
                                 || c_data->getTimeRequirement(difficulty) <= 0.0f;
-            bool energy_passed = (kart->getEnergy() >= c_data->getEnergy(difficulty) && lose_all == false)
+                energy_passed = (kart->getEnergy() >= c_data->getEnergy(difficulty) && lose_all == false)
                                 || c_data->getEnergy(difficulty) <= 0;
+            }
+
             bool all_passed = position_passed && time_passed && energy_passed;
 
             core::stringw text_string = all_passed ? _("You completed the challenge!") : _("You failed the challenge!");

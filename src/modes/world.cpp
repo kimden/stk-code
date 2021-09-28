@@ -947,25 +947,16 @@ void World::updateTimeTargetSound()
 {
     if (RaceManager::get()->hasTimeTarget() && !RewindManager::get()->isRewinding())
     {
-        float time_elapsed = getTime();
+        float time_left = getTime();
         float time_target = RaceManager::get()->getTimeTarget();
-        if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER ||
-            RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL ||
-            RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+        // In linear mode, the internal time still counts up even when displayed down.
+        if (RaceManager::get()->isLinearRaceMode())
+            time_left = time_target - time_left;
+
+        if (time_left <= 5 && getTimeTicks() % stk_config->time2Ticks(1.0f) == 0 &&
+                !World::getWorld()->isRaceOver() && time_left > 0)
         {
-            if (time_elapsed <= 5 && getTimeTicks() % stk_config->time2Ticks(1.0f) == 0 &&
-                !World::getWorld()->isRaceOver() && time_elapsed > 0)
-            {
                 SFXManager::get()->quickSound("pre_start_race");
-            }
-        }
-        else
-        {
-            if (time_target - time_elapsed <= 5 && stk_config->time2Ticks(1.0f) == 0 &&
-                time_target - time_elapsed > 0)
-            {
-                SFXManager::get()->quickSound("pre_start_race");
-            }
         }
     }
 }  // updateTimeTargetSound
@@ -1280,13 +1271,11 @@ Highscores* World::getHighscores() const
 // ---------------------------------------------------------------------------
 Highscores* World::getGPHighscores() const
 {
-    const Highscores::HighscoreType type = "HST_GRANDPRIX";
-    Highscores* highscores = highscore_manager->getHighscores(type,
-                                                              RaceManager::get()->getNumNonGhostKarts(),
-                                                              RaceManager::get()->getDifficulty(),
-                                                              RaceManager::get()->getGrandPrix().getId(),
-                                                              0,
-                                                              RaceManager::get()->getGrandPrix().getReverseType() == GrandPrixData::GP_ALL_REVERSE);
+    Highscores* highscores = highscore_manager->getGPHighscores(RaceManager::get()->getNumNonGhostKarts(),
+                                                                RaceManager::get()->getDifficulty(),
+                                                                RaceManager::get()->getGrandPrix().getId(),
+                                                                RaceManager::get()->getGrandPrix().getReverseType(),
+                                                                RaceManager::get()->getMinorMode());
     return highscores;
 }
 
