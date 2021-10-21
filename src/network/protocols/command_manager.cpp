@@ -445,8 +445,8 @@ void CommandManager::process_config(Context& context)
         {"d3", "supertux", "super", "best"}
     };
     std::vector<std::vector<std::string>> goal_aliases = {
-        {"gl", "goal-limit", "goal", "goals"},
-        {"tl", "time-limit", "time", "minutes"}
+        {"tl", "time-limit", "time", "minutes"},
+        {"gl", "goal-limit", "goal", "goals"}
     };
     for (unsigned i = 1; i < argv.size(); i++)
     {
@@ -1075,7 +1075,7 @@ void CommandManager::process_gnu(Context& context)
         argv[1] = "off";
     }
     // "nognu" and "gnu off" are equivalent
-    bool turn_on = (argv[2] != "off");
+    bool turn_on = (argv.size() < 2 || argv[1] != "off");
     if (turn_on && m_lobby->m_kart_elimination.isEnabled())
     {
         std::string msg = "Gnu Elimination mode was already enabled!";
@@ -1100,7 +1100,6 @@ void CommandManager::process_gnu(Context& context)
     if (!turn_on)
     {
         kart = "off";
-        m_votables["gnu"].reset("gnu kart");
     }
     else
     {
@@ -1115,7 +1114,6 @@ void CommandManager::process_gnu(Context& context)
         else // voted
         {
             kart = m_votables["gnu"].getAnyBest("gnu kart");
-            m_votables["gnu"].reset("gnu kart");
         }
     }
     if (context.m_voting)
@@ -1131,6 +1129,7 @@ void CommandManager::process_gnu(Context& context)
         }
         return;
     }
+    m_votables["gnu"].reset("gnu kart");
     if (kart == "off")
     {
         m_lobby->m_kart_elimination.disable();
