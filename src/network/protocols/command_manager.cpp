@@ -74,16 +74,21 @@
 
 void CommandManager::initCommands()
 {
+    auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED);
+    auto start_permissions = (ServerConfig::m_owner_less ? UP_EVERYONE : UP_CROWNED | PE_VOTED);
     m_commands.emplace_back("commands",         &CommandManager::process_commands,   UP_EVERYONE,            CS_ALWAYS,                    "/commands", "everyone", "Prints the list of commands available to you. This list may differ depending on server settings and your permissions.");
     m_commands.emplace_back("replay",           &CommandManager::process_replay,     UP_SINGLE,              CS_ALWAYS,                    "/replay [0 | 1]", "hammers, singleplayers", "Toggles whether the replay of the race is recorded.");
-    m_commands.emplace_back("start",            &CommandManager::process_start,      UP_EVERYONE,            CS_ALWAYS,                    "/start", "everyone", "Basically clicks on the green “Ready” button.");
-    m_commands.emplace_back("config",           &CommandManager::process_config,     UP_CROWNED,             CS_ALWAYS,                    "/config <mode> <difficulty>", "crowns", "Changes game mode and difficulty if allowed.");
+    m_commands.emplace_back("start",            &CommandManager::process_start,      UP_EVERYONE | PE_VOTED, CS_ALWAYS,                    "/start", "everyone", "Basically clicks on the green “Ready” button.");
+    if (ServerConfig::m_server_configurable)
+    {
+        m_commands.emplace_back("config",       &CommandManager::process_config,     UP_CROWNED | PE_VOTED,  CS_ALWAYS,                    "/config <mode> <difficulty> <goal or time limit>", "crowns; votable", "Changes game mode and difficulty if allowed.");
+    }
     m_commands.emplace_back("spectate",         &CommandManager::process_spectate,   UP_EVERYONE,            CS_ALWAYS,                    "/spectate [0 | 1]", "everyone", "Toggles autospectate mode.");
     m_commands.emplace_back("addons",           &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/addons [type]", "everyone", "Lists addons installed for all players that can play, in random order. Limits the list to a certain addon type if specified.");
     m_commands.emplace_back("moreaddons",       &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/moreaddons [type]", "everyone", "Lists top 5 addons that are missing for at least one player, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified.");
     m_commands.emplace_back("listserveraddon",  &CommandManager::process_lsa,        UP_EVERYONE,            CS_ALWAYS,                    "/listserveraddon [-type] (substring)", "everyone", "Lists addons installed on the server that have a specified substring in their id. Limits the list to a certain addon type if specified.");
     m_commands.emplace_back("playerhasaddon",   &CommandManager::process_pha,        UP_EVERYONE,            CS_ALWAYS,                    "/playerhasaddon (addon) (username)", "everyone", "Checks whether a player has a certain addon.");
-    m_commands.emplace_back("kick",             &CommandManager::process_kick,       UP_CROWNED | PE_VOTED,  CS_ALWAYS,                    "/kick (username)", "crowns if server allows, hammers; votable", "Kicks a player from the server.");
+    m_commands.emplace_back("kick",             &CommandManager::process_kick,       kick_permissions,       CS_ALWAYS,                    "/kick (username)", "crowns if server allows, hammers; votable", "Kicks a player from the server.");
     m_commands.emplace_back("kickban",          &CommandManager::process_kick,       UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/kickban (username)", "hammers; votable", "Kicks a player from the server and temporarily bans him.");
     m_commands.emplace_back("unban",            &CommandManager::process_unban,      UP_HAMMER,              CS_ALWAYS,                    "/unban (username)", "hammers", "Removes a temporary ban from a player.");
     m_commands.emplace_back("ban",              &CommandManager::process_ban,        UP_HAMMER,              CS_ALWAYS,                    "/ban (username)", "hammers", "Adds a temporary ban to a player without kicking.");
@@ -93,8 +98,8 @@ void CommandManager::initCommands()
     m_commands.emplace_back("unmute",           &CommandManager::process_unmute,     UP_EVERYONE,            CS_ALWAYS,                    "/unmute (username)", "everyone", "Unblocks player’s messages from reaching you.");
     m_commands.emplace_back("listmute",         &CommandManager::process_listmute,   UP_EVERYONE,            CS_ALWAYS,                    "/listmute", "everyone", "Lists players whom you blocked using /mute command.");
     m_commands.emplace_back("moreinfo",         &CommandManager::process_text,       UP_EVERYONE,            CS_ALWAYS,                    "/moreinfo", "everyone", "Displays an additional server message.");
-    m_commands.emplace_back("gnu",              &CommandManager::process_gnu,        UP_CROWNED,             CS_ALWAYS,                    "/gnu [kart]", "crowns", "Starts kart elimination with Gnu (or a specified kart).");
-    m_commands.emplace_back("nognu",            &CommandManager::process_nognu,      UP_CROWNED,             CS_ALWAYS,                    "/nognu", "crowns", "Cancels kart elimination.");
+    m_commands.emplace_back("gnu",              &CommandManager::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/gnu [kart]", "hammers; voted", "Starts kart elimination with Gnu (or a specified kart).");
+    m_commands.emplace_back("nognu",            &CommandManager::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/nognu", "hammers; voted", "Cancels kart elimination.");
     m_commands.emplace_back("tell",             &CommandManager::process_tell,       UP_EVERYONE,            CS_ALWAYS,                    "/tell (report contents)", "everyone", "Makes a report to the server owner (if the server has a database to store the reports).");
     m_commands.emplace_back("standings",        &CommandManager::process_standings,  UP_EVERYONE,            CS_ALWAYS,                    "/standings [gp | gnu]", "everyone", "Displays standings of grand prix or kart elimination, picks whatever of them is played now.");
     m_commands.emplace_back("teamchat",         &CommandManager::process_teamchat,   UP_EVERYONE,            CS_ALWAYS,                    "/teamchat", "everyone", "Limits your future messages to be sent only to your teammates.");
@@ -144,11 +149,13 @@ void CommandManager::initCommands()
     for (auto& command: m_commands)
         m_name_to_command[command.m_name] = command;
 
-    m_votables.emplace("replay", 1.0);
+    // m_votables.emplace("replay", 1.0);
     m_votables.emplace("start", 0.81);
     m_votables.emplace("config", 0.6);
     m_votables.emplace("kick", 0.81);
     m_votables.emplace("kickban", 0.81);
+    m_votables.emplace("gnu", 0.81);
+    m_votables["gnu"].setCustomThreshold("gnu kart", 1.1);
 
 } // initCommands
 // ========================================================================
@@ -223,26 +230,31 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         Context context(event, peer, argv, cmd, permissions, voting);
         (this->*command.m_action)(context);
 
-        auto it = m_votables.find(argv[0]);
-        if (it != m_votables.end() && it->second.needsCheck())
+        while (!m_triggered_votables.empty())
         {
-            auto response = it->second.process(m_users);
-            int count = response.first;
-            std::string username = StringUtils::wideToUtf8(
-                peer->getPlayerProfiles()[0]->getName());
-            std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
-            m_lobby->sendStringToAllPeers(msg);
-            auto res = response.second;
-            if (!res.empty())
+            std::string votable_name = m_triggered_votables.front();
+            m_triggered_votables.pop();
+            auto it = m_votables.find(argv[0]);
+            if (it != m_votables.end() && it->second.needsCheck())
             {
-                for (auto& p: res)
+                auto response = it->second.process(m_users);
+                int count = response.first;
+                std::string username = StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[0]->getName());
+                std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
+                m_lobby->sendStringToAllPeers(msg);
+                auto res = response.second;
+                if (!res.empty())
                 {
-                    std::string new_cmd = p.first + " " + p.second;
-                    std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
-                    m_lobby->sendStringToAllPeers(msg);
-                    auto new_argv = StringUtils::splitQuoted(cmd, ' ', '"', '\\');
-                    Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
-                    (this->*command.m_action)(new_context);
+                    for (auto& p: res)
+                    {
+                        std::string new_cmd = p.first + " " + p.second;
+                        std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
+                        m_lobby->sendStringToAllPeers(msg);
+                        auto new_argv = StringUtils::splitQuoted(cmd, ' ', '"', '\\');
+                        Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
+                        (this->*command.m_action)(new_context);
+                    }
                 }
             }
         }
@@ -282,6 +294,8 @@ void CommandManager::vote(Context& context, std::string category, std::string va
         peer->getPlayerProfiles()[0]->getName());
     auto& votable = m_votables[argv[0]];
     votable.castVote(username, category, value);
+    if (votable.needsCheck())
+        m_triggered_votables.push(argv[0]);
 } // vote
 // ========================================================================
 
@@ -397,6 +411,11 @@ void CommandManager::process_replay(Context& context)
 
 void CommandManager::process_start(Context& context)
 {
+    if (context.m_voting)
+    {
+        vote(context, "start", "");
+        return;
+    }
     m_lobby->startSelection(context.m_event);
 } // process_start
 // ========================================================================
@@ -408,42 +427,74 @@ void CommandManager::process_config(Context& context)
     int mode = m_lobby->getGameMode();
     bool goal_target = m_lobby->isSoccerGoalTarget();
     bool gp = false;
+    std::vector<std::vector<std::string>> mode_aliases = {
+        {"m0"},
+        {"m1"},
+        {"m2"},
+        {"m3", "normal", "normal-race", "race"},
+        {"m4", "tt", "time-trial", "trial"},
+        {"m5"},
+        {"m6", "soccer", "football"},
+        {"m7", "ffa", "free-for-all", "free", "for", "all"},
+        {"m8", "ctf", "capture-the-flag", "capture", "the", "flag"}
+    };
+    std::vector<std::vector<std::string>> difficulty_aliases = {
+        {"d0", "novice", "easy"},
+        {"d1", "intermediate", "medium"},
+        {"d2", "expert", "hard"},
+        {"d3", "supertux", "super", "best"}
+    };
+    std::vector<std::vector<std::string>> goal_aliases = {
+        {"gl", "goal-limit", "goal", "goals"},
+        {"tl", "time-limit", "time", "minutes"}
+    };
     for (unsigned i = 1; i < argv.size(); i++)
     {
-        if (argv[i] == "tt" || argv[i] == "time-trial"||
-            argv[i] == "trial" || argv[i] == "m4")
-            mode = 4;
-        if (argv[i] == "normal" || argv[i] == "normal-race" ||
-            argv[i] == "race" || argv[i] == "m3")
-            mode = 3;
-        if (argv[i] == "soccer" || argv[i] == "football" ||
-            argv[i] == "m6")
-            mode = 6;
-        if (argv[i] == "ffa" || argv[i] == "free-for-all" ||
-            argv[i] == "free" || argv[i] == "for" ||
-            argv[i] == "all" || argv[i] == "m7")
-            mode = 7;
-        if (argv[i] == "ctf" || argv[i] == "capture-the-flag"
-            || argv[i] == "capture" || argv[i] == "the" ||
-            argv[i] == "flag" || argv[i] == "m8")
-            mode = 8;
-        // if (argv[i] == "gp" || argv[i] == "grand-prix")
-        //     gp = true;
-        if (argv[i] == "d0" || argv[i] == "novice" || argv[i] == "easy")
-            difficulty = 0;
-        if (argv[i] == "d1" || argv[i] == "intermediate" || argv[i] == "medium")
-            difficulty = 1;
-        if (argv[i] == "d2" || argv[i] == "expert" || argv[i] == "hard")
-            difficulty = 2;
-        if (argv[i] == "d3" || argv[i] == "supertux" || argv[i] == "super" || argv[i] == "best")
-            difficulty = 3;
-        if (argv[i] == "goal-limit" || argv[i] == "gl" || argv[i] == "goal" || argv[i] == "goals")
-            goal_target = true;
-        if (argv[i] == "time-limit" || argv[i] == "tl" || argv[i] == "time" || argv[i] == "minutes")
-            goal_target = false;
+        for (int j = 0; j < mode_aliases.size(); ++j) {
+            if (j <= 2 || j == 5) {
+                // Switching to GP or modes 2, 5 is not supported yet
+                continue;
+            }
+            for (std::string& alias: mode_aliases[j]) {
+                if (argv[i] == alias) {
+                    mode = j;
+                }
+            }
+        }
+        for (int j = 0; j < difficulty_aliases.size(); ++j) {
+            for (std::string& alias: difficulty_aliases[j]) {
+                if (argv[i] == alias) {
+                    difficulty = j;
+                }
+            }
+        }
+        for (int j = 0; j < goal_aliases.size(); ++j) {
+            for (std::string& alias: goal_aliases[j]) {
+                if (argv[i] == alias) {
+                    goal_target = (bool)j;
+                }
+            }
+        }
     }
-    // if (gp && (mode == 3 || mode == 4))
-    //     mode -= 3;
+    // if (mode != 6) {
+    //     goal_target = false;
+    // }
+    if (!m_lobby->isDifficultyAvailable(difficulty)
+        || !m_lobby->isModeAvailable(mode))
+    {
+        std::string response = "Mode or difficulty are not permitted on this server";
+        m_lobby->sendStringToPeer(response, context.m_peer);
+        return;
+    }
+    if (context.m_voting)
+    {
+        // Definitely not the best format as there are extra words
+        // but I'll think how to resolve it
+        vote(context, "config mode", mode_aliases[mode][0]);
+        vote(context, "config difficulty", difficulty_aliases[difficulty][0]);
+        vote(context, "config target", goal_aliases[goal_target ? 1 : 0][0]);
+        return;
+    }
     m_lobby->handleServerConfiguration(context.m_peer, difficulty, mode, goal_target);
 } // process_config
 // ========================================================================
@@ -788,13 +839,7 @@ void CommandManager::process_kick(Context& context)
     }
     if (context.m_voting)
     {
-        vote(context, "kick " + player_name, "");
-        return;
-    }
-    if (!peer->isAngryHost() && !ServerConfig::m_kicks_allowed)
-    {
-        std::string msg = "Kicking players is not allowed on this server";
-        m_lobby->sendStringToPeer(msg, peer);
+        vote(context, argv[0] + " " + player_name, "");
         return;
     }
     Log::info("CommandManager", "%s kicks %s", (peer.get() ? "Crown player" : "Vote"), player_name.c_str());
@@ -1020,44 +1065,85 @@ void CommandManager::process_listmute(Context& context)
 
 void CommandManager::process_gnu(Context& context)
 {
-    if (m_lobby->m_kart_elimination.isEnabled())
+    auto& argv = context.m_argv;
+    if (argv[0] != "gnu")
+    {
+        argv[0] = "gnu";
+        if (argv.size() < 2) {
+            argv.resize(2);
+        }
+        argv[1] = "off";
+    }
+    // "nognu" and "gnu off" are equivalent
+    bool turn_on = (argv[2] != "off");
+    if (turn_on && m_lobby->m_kart_elimination.isEnabled())
     {
         std::string msg = "Gnu Elimination mode was already enabled!";
         m_lobby->sendStringToPeer(msg, context.m_peer);
         return;
     }
-    if (RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_NORMAL_RACE &&
+    if (!turn_on && !m_lobby->m_kart_elimination.isEnabled())
+    {
+        std::string msg = "Gnu Elimination mode was already off!";
+        m_lobby->sendStringToPeer(msg, context.m_peer);
+        return;
+    }
+    if (turn_on &&
+        RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_NORMAL_RACE &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
         std::string msg = "Gnu Elimination is available only with racing modes";
         m_lobby->sendStringToPeer(msg, context.m_peer);
         return;
     }
-    auto& argv = context.m_argv;
-    if (argv.size() > 1 && m_lobby->m_available_kts.first.count(argv[1]) > 0)
+    std::string kart;
+    if (!turn_on)
     {
-        m_lobby->m_kart_elimination.enable(argv[1]);
-    } else {
-        m_lobby->m_kart_elimination.enable("gnu");
+        kart = "off";
+        m_votables["gnu"].reset("gnu kart");
     }
-    std::string msg = m_lobby->m_kart_elimination.getStartingMessage();
-    m_lobby->sendStringToAllPeers(msg);
-} // process_gnu
-// ========================================================================
-
-void CommandManager::process_nognu(Context& context)
-{
-    if (!m_lobby->m_kart_elimination.isEnabled())
+    else
     {
-        std::string msg = "Gnu Elimination mode was already off!";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        if (context.m_peer)
+        {
+            kart = "gnu";
+            if (argv.size() > 1 && m_lobby->m_available_kts.first.count(argv[1]) > 0)
+            {
+                kart = argv[1];
+            }
+        }
+        else // voted
+        {
+            kart = m_votables["gnu"].getAnyBest("gnu kart");
+            m_votables["gnu"].reset("gnu kart");
+        }
+    }
+    if (context.m_voting)
+    {
+        if (kart != "off")
+        {
+            vote(context, "gnu", "on");
+            vote(context, "gnu kart", kart);
+        }
+        else
+        {
+            vote(context, "gnu", "off");
+        }
         return;
     }
-
-    m_lobby->m_kart_elimination.disable();
-    std::string msg = "Gnu Elimination is now off";
-    m_lobby->sendStringToAllPeers(msg);
-} // process_nognu
+    if (kart == "off")
+    {
+        m_lobby->m_kart_elimination.disable();
+        std::string msg = "Gnu Elimination is now off";
+        m_lobby->sendStringToAllPeers(msg);
+    }
+    else
+    {
+        m_lobby->m_kart_elimination.enable(kart);
+        std::string msg = m_lobby->m_kart_elimination.getStartingMessage();
+        m_lobby->sendStringToAllPeers(msg);
+    }
+} // process_gnu
 // ========================================================================
 
 void CommandManager::process_tell(Context& context)

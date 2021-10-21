@@ -40,12 +40,19 @@ class CommandVoting
 private:
 	std::map<std::string, std::map<std::string, std::set<std::string>>> m_votes_by_poll;
 	std::map<std::string, std::map<std::string, std::string>> m_votes_by_player;
+	std::map<std::string, double> m_custom_thresholds;
 public:
 	CommandVoting(double threshold = 0.500001);
+	void setCustomThreshold(std::string category, double value)
+	                                 { m_custom_thresholds[category] = value; }
+	void resetCustomThreshold(std::string category)
+	                                   { m_custom_thresholds.erase(category); }
 	bool needsCheck() { return m_need_check; }
 	void castVote(std::string player, std::string category, std::string vote);
 	void uncastVote(std::string player, std::string category);
 	std::pair<int, std::map<std::string, std::string>> process(std::multiset<std::string>& all_users);
+	std::string getAnyBest(std::string category);
+	void reset(std::string category);
 };
 
 #endif // COMMAND_VOTING_HPP

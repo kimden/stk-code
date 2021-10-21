@@ -5989,6 +5989,8 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     if ((m_available_difficulties.count(difficulty) == 0 || 
         m_available_modes.count(mode) == 0))
     {
+        // It remains just in case, but kimden thinks that
+        // this is already covered in command manager (?)
         Log::error("ServerLobby", "Mode %d and/or difficulty %d are not permitted.");
         std::string msg = "Mode or difficulty are not permitted on this server";
         sendStringToPeer(msg, peer);

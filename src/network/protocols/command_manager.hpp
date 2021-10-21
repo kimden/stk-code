@@ -31,6 +31,7 @@
 #include <set>
 #include <deque>
 #include <vector>
+#include <queue>
 
 
 #ifdef ENABLE_SQLITE3
@@ -116,6 +117,8 @@ private:
 
     std::map<std::string, CommandVoting> m_votables;
 
+    std::queue<std::string> m_triggered_votables;
+
     void initCommands();
 
     int getCurrentScope();
@@ -145,7 +148,6 @@ private:
     void process_unmute(Context& context);
     void process_listmute(Context& context);
     void process_gnu(Context& context);
-    void process_nognu(Context& context);
     void process_tell(Context& context);
     void process_standings(Context& context);
     void process_teamchat(Context& context);

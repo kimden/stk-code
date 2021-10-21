@@ -622,8 +622,8 @@ public:
     void sendStringToAllPeers(std::string& s);
     int getPermissions(std::shared_ptr<STKPeer>& peer) const;
     int getPermissions(STKPeer* peer) const;
-    bool hasConsentOnReplays() const { return m_consent_on_replays; }
-    void setConsentOnReplays(bool value) { m_consent_on_replays = value; }
+    bool hasConsentOnReplays() const           { return m_consent_on_replays; }
+    void setConsentOnReplays(bool value)      { m_consent_on_replays = value; }
     bool isSoccerGoalTarget() const;
 
 #ifdef ENABLE_SQLITE3
@@ -641,8 +641,12 @@ public:
     void handleSwatterHit(unsigned int ownerID, unsigned int victimID, bool success, bool has_hit_kart, uint16_t ticks_active);
 
     void sendTeamMateHitMsg(std::string& s);
-    bool showTeamMateHits() const    { return m_show_teammate_hits; }
-    bool useTeamMateHitMode() const { return m_teammate_hit_mode; }
+    bool showTeamMateHits() const              { return m_show_teammate_hits; }
+    bool useTeamMateHitMode() const             { return m_teammate_hit_mode; }
+    bool isDifficultyAvailable(int difficulty) const
+                     { return m_available_difficulties.count(difficulty) > 0; }
+    bool isModeAvailable(int mode) const
+                                  { return m_available_modes.count(mode) > 0; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

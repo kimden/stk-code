@@ -17,6 +17,7 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "network/protocols/command_voting.hpp"
+#include "utils/random_generator.hpp"
 
 CommandVoting::CommandVoting(double threshold): m_threshold(threshold)
 {
@@ -53,10 +54,15 @@ std::pair<int, std::map<std::string, std::string>> CommandVoting::process(std::m
 {
     std::map<std::string, std::string> result;
     int num_votes = 0;
-    int required_number = std::max<int>(1, (int)ceil((double)all_users.size() * m_threshold));
+    int required_number;
     for (const auto& p: m_votes_by_poll)
     {
         std::string category = p.first;
+        double category_threshold = m_threshold;
+        auto it = m_custom_thresholds.find(category);
+        if (it != m_custom_thresholds.end())
+            category_threshold = it->second;
+        required_number = std::max<int>(1, (int)ceil((double)all_users.size() * category_threshold));
         std::map<std::string, int> category_results;
         for (const std::string& user: all_users)
         {
@@ -85,16 +91,51 @@ std::pair<int, std::map<std::string, std::string>> CommandVoting::process(std::m
     for (const auto& p: result)
     {
         std::string category = p.first;
-        for (const auto& q: m_votes_by_poll[category])
-        {
-            std::string vote = q.first;
-            for (const auto& player: q.second)
-            {
-                m_votes_by_player[player].erase(category);
-            }
-        }
-        m_votes_by_poll[category].clear();
+        reset(category);
     }
     return make_pair(num_votes, result);
 } // process
 // ========================================================================
+
+std::string CommandVoting::getAnyBest(std::string category)
+{
+    int best = 0;
+    std::vector<std::string> best_options;
+    for (auto& vote_to_set: m_votes_by_poll[category])
+    {
+        unsigned int count = vote_to_set.second.size();
+        std::string option = vote_to_set.first;
+        if (count > best)
+        {
+            best_options.clear();
+            best_options.push_back(option);
+        }
+        else if (count == best)
+        {
+            best_options.push_back(option);
+        }
+    }
+    if (best_options.empty())
+        return ""; // shouldn't happen mainly
+    RandomGenerator rg;
+    std::vector<std::string>::iterator it = best_options.begin();
+    std::advance(it, rg.get((int)best_options.size()));
+    return *it;
+} // getAnyBest
+// ========================================================================
+
+void CommandVoting::reset(std::string category)
+{
+    for (auto& vote_to_set: m_votes_by_poll[category])
+    {
+        std::string vote = vote_to_set.first;
+        auto& players = vote_to_set.second;
+        for (const std::string& player: players)
+        {
+            m_votes_by_player[player].erase(category);
+        }
+    }
+    m_votes_by_poll[category].clear();
+} // reset
+// ========================================================================
+
