@@ -179,12 +179,6 @@ SDLController::SDLController(int device_id)
         cfg->initSDLMapping();
     cfg->setPlugged();
 
-#if SDL_VERSION_ATLEAST(1,3,0)
-    m_haptic = SDL_HapticOpenFromJoystick(m_joystick);
-    if (m_haptic)
-        SDL_HapticRumbleInit(m_haptic);
-#endif
-
     for (int i = 0; i < dm->getGamePadAmount(); i++)
     {
         GamePadDevice* d = dm->getGamePad(i);
@@ -196,7 +190,7 @@ SDLController::SDLController(int device_id)
             d->setConfiguration(cfg);
             if (created)
                 dm->save();
-            return;
+            goto finish;
         }
     }
 
@@ -204,6 +198,14 @@ SDLController::SDLController(int device_id)
     dm->addGamepad(m_gamepad);
     if (created)
         dm->save();
+
+finish:
+    m_haptic = SDL_HapticOpenFromJoystick(m_joystick);
+    if (m_haptic)
+    {
+        SDL_HapticRumbleInit(m_haptic);
+        updateAutoCenter(getGamePadDevice()->getAutoCenterStrength());
+    }
 }   // SDLController
 
 // ----------------------------------------------------------------------------
@@ -214,10 +216,8 @@ SDLController::~SDLController()
         SDL_GameControllerClose(m_game_controller);
     else
         SDL_JoystickClose(m_joystick);
-#if SDL_VERSION_ATLEAST(1,3,0)
     if (m_haptic)
         SDL_HapticClose(m_haptic);
-#endif
     m_gamepad->getConfiguration()->unPlugged();
     m_gamepad->setIrrIndex(-1);
     m_gamepad->setConnected(false);
@@ -261,13 +261,11 @@ void SDLController::checkPowerLevel()
 
 void SDLController::doRumble(float strength_low, float strength_high, uint32_t duration_ms)
 {
-#if SDL_VERSION_ATLEAST(1,3,0)
     if (m_haptic)
     {
         SDL_HapticRumblePlay(m_haptic, (strength_low + strength_high) / 2, duration_ms);
     }
     else
-#endif
     {
 #if SDL_VERSION_ATLEAST(2,0,9)
         uint16_t scaled_low = strength_low * pow(2, 16);
@@ -275,6 +273,12 @@ void SDLController::doRumble(float strength_low, float strength_high, uint32_t d
         SDL_GameControllerRumble(m_game_controller, scaled_low, scaled_high, duration_ms);
 #endif
     }
+}
+
+void SDLController::updateAutoCenter(int state)
+{
+    m_auto_center = state;
+    SDL_HapticSetAutocenter(m_haptic, m_auto_center);
 }
 
 // ----------------------------------------------------------------------------

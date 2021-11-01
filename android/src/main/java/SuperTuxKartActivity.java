@@ -51,6 +51,7 @@ import android.widget.TextView;
 import android.util.DisplayMetrics;
 
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Set;
 
 import org.minidns.hla.DnssecResolverApi;
@@ -70,6 +71,8 @@ public class SuperTuxKartActivity extends SDLActivity
     private float m_bottom_padding;
     private float m_left_padding;
     private float m_right_padding;
+    private AtomicInteger m_keyboard_height;
+    private AtomicInteger m_moved_height;
     // ------------------------------------------------------------------------
     public native static void debugMsg(String msg);
     // ------------------------------------------------------------------------
@@ -186,6 +189,8 @@ public class SuperTuxKartActivity extends SDLActivity
     public void onCreate(Bundle instance)
     {
         super.onCreate(instance);
+        m_keyboard_height = new AtomicInteger();
+        m_moved_height = new AtomicInteger();
         m_progress_dialog = null;
         m_progress_bar = null;
         m_splash_screen = null;
@@ -204,12 +209,12 @@ public class SuperTuxKartActivity extends SDLActivity
                     root.getWindowVisibleDisplayFrame(r);
                     int screen_height = root.getRootView().getHeight();
                     int keyboard_height = screen_height - (r.bottom);
-                    saveKeyboardHeight(keyboard_height);
+                    m_keyboard_height.set(keyboard_height);
                     int moved_height = 0;
                     int margin = screen_height - m_bottom_y;
                     if (keyboard_height > margin)
                         moved_height = -keyboard_height + margin;
-                    saveMovedHeight(-moved_height);
+                    m_moved_height.set(-moved_height);
                     SDLActivity.moveView(moved_height);
                 }
             });
@@ -266,17 +271,29 @@ public class SuperTuxKartActivity extends SDLActivity
     }
     // ------------------------------------------------------------------------
     @Override
+    public void onStart()
+    {
+        super.onStart();
+        m_keyboard_height.set(0);
+        m_moved_height.set(0);
+    }
+    // ------------------------------------------------------------------------
+    @Override
     public void onPause()
     {
         super.onPause();
         hideKeyboardNative(false/*clear_text*/);
     }
     // ------------------------------------------------------------------------
-
-    /* STK statically link SDL2. */
+    /* SDL manually dlopen main to allow unload after main thread exit. */
     protected String[] getLibraries()
     {
-        return new String[]{ "main" };
+        return new String[]{ "hidapi", "SDL2" };
+    }
+    // ------------------------------------------------------------------------
+    protected String getMainSharedObject()
+    {
+        return getContext().getApplicationInfo().nativeLibraryDir + "/libmain.so";
     }
     // ------------------------------------------------------------------------
     public void showKeyboard(final int type, final int y)
@@ -499,5 +516,9 @@ public class SuperTuxKartActivity extends SDLActivity
     {
         handlePadding(isInMultiWindowMode);
     }
+    // ------------------------------------------------------------------------
+    public int getKeyboardHeight()          { return m_keyboard_height.get(); }
+    // ------------------------------------------------------------------------
+    public int getMovedHeight()                { return m_moved_height.get(); }
 
 }

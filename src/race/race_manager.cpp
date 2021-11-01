@@ -47,6 +47,7 @@
 #include "modes/world.hpp"
 #include "modes/three_strikes_battle.hpp"
 #include "modes/soccer_world.hpp"
+#include "modes/lap_trial.hpp"
 #include "network/protocol_manager.hpp"
 #include "network/network_config.hpp"
 #include "network/network_string.hpp"
@@ -133,6 +134,8 @@ RaceManager::RaceManager()
     m_flag_return_ticks = stk_config->time2Ticks(20.0f);
     m_flag_deactivated_ticks = stk_config->time2Ticks(3.0f);
     m_skipped_tracks_in_gp = 0;
+    m_gp_time_target = 0.0f;
+    m_gp_total_laps = 0;
     setMaxGoal(0);
     setTimeTarget(0.0f);
     setReverseTrack(false);
@@ -422,6 +425,12 @@ void RaceManager::startNew(bool from_overworld)
                                                 m_saved_gp->getReverseType());
                     m_reverse_track = m_grand_prix.getReverse();
                     m_skipped_tracks_in_gp = m_saved_gp->getSkippedTracks();
+                    Log::info("RaceManager","%d",isLapTrialMode());
+                    if (isLapTrialMode())
+                    {
+                        m_gp_time_target = m_saved_gp->getTimeTarget();
+                        m_gp_total_laps = m_saved_gp->getPlayerTotalLaps();
+                    }
                 }   // if m_saved_gp==NULL
             }   // if m_continue_saved_gp
         }   // if !network_world
@@ -533,7 +542,7 @@ void RaceManager::startNextRace()
 #ifdef __SWITCH__
     // Throttles GPU while boosting CPU
     appletSetCpuBoostMode(ApmCpuBoostMode_FastLoad);
-#endif
+#endif  
     ProcessType type = STKProcess::getType();
     main_loop->renderGUI(0);
     // Uncomment to debug audio leaks
@@ -551,15 +560,14 @@ void RaceManager::startNextRace()
 
     m_num_finished_karts   = 0;
     m_num_finished_players = 0;
+    // In follow the leader mode do not change the first kart,
+    // since it's always the leader.
+    int offset = (m_minor_mode==MINOR_MODE_FOLLOW_LEADER) ? 1 : 0;
 
     // if subsequent race, sort kart status structure
     // ==============================================
     if (m_track_number > 0)
     {
-        // In follow the leader mode do not change the first kart,
-        // since it's always the leader.
-        int offset = (m_minor_mode==MINOR_MODE_FOLLOW_LEADER) ? 1 : 0;
-
         // Keep players at the end if needed
         int player_last_offset = 0;
         if (UserConfigParams::m_gp_player_last)
@@ -580,6 +588,23 @@ void RaceManager::startNextRace()
                          m_kart_status.end() - player_last_offset);
         }
     }   // not first race
+    else
+    {
+        const bool random_pos_available = !NetworkConfig::get()->isNetworking() &&
+            (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE
+            || RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL
+            || RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FOLLOW_LEADER);
+
+        if (UserConfigParams::m_random_player_pos)
+        {
+            if (random_pos_available)
+            {
+                unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+                std::shuffle(m_kart_status.begin() + offset, m_kart_status.end(),
+                    std::default_random_engine(seed));
+            }
+        }
+    }
 
     // set boosted AI status for AI karts
     int boosted_ai_count = std::min<int>((int)m_ai_kart_list.size(),
@@ -621,6 +646,12 @@ void RaceManager::startNextRace()
     else if(m_minor_mode==MINOR_MODE_NORMAL_RACE ||
             m_minor_mode==MINOR_MODE_TIME_TRIAL)
         World::setWorld(new StandardRace());
+    else if(m_minor_mode==MINOR_MODE_LAP_TRIAL)
+    {
+        World::setWorld(new LapTrial());
+        if (m_major_mode == MAJOR_MODE_GRAND_PRIX)
+            RaceManager::get()->setTimeTarget(m_gp_time_target);
+    }
     else if(m_minor_mode==MINOR_MODE_TUTORIAL)
         World::setWorld(new TutorialWorld());
     else if (isBattleMode())
@@ -750,6 +781,8 @@ void RaceManager::saveGP()
             m_track_number,
             m_grand_prix.getReverseType(),
             m_skipped_tracks_in_gp,
+            isLapTrialMode() ? m_gp_time_target : 0.0f,
+            isLapTrialMode() ? m_gp_total_laps : 0,
             m_kart_status);
 
         // If a new GP is saved, delete any other saved data for this
