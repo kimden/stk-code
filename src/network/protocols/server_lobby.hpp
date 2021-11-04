@@ -366,6 +366,8 @@ private:
 
     int m_fixed_lap;
 
+    float m_additional_seconds;
+
     double m_default_lap_multiplier;
 
     std::vector<int> m_scoring_int_params;
