@@ -61,13 +61,15 @@ private:
     /** Utf8 server name (with xml decoded) */
     std::string m_server_name_utf8;
 
+    float m_additional_seconds;
+
 public:
     // ------------------------------------------------------------------------
     GameSetup();
     // ------------------------------------------------------------------------
     ~GameSetup() {}
     // ------------------------------------------------------------------------
-    void setRace(const PeerVote &vote);
+    void setRace(const PeerVote &vote, float additional_seconds = 0.0f);
     // ------------------------------------------------------------------------
     void reset()
     {

@@ -245,6 +245,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_consent_on_replays = false;
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
+    m_additional_seconds = 0.0f;
     m_default_lap_multiplier = ServerConfig::m_auto_game_time_ratio;
 
     m_troll_active = ServerConfig::m_troll_active;
@@ -1870,7 +1871,7 @@ void ServerLobby::asynchronousUpdate()
             *m_default_vote = winner_vote;
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
-            m_game_setup->setRace(winner_vote);
+            m_game_setup->setRace(winner_vote, m_additional_seconds);
             std::string track_name = winner_vote.m_track_name;
             if (ServerConfig::m_soccer_tournament)
                 m_tournament_arenas[m_tournament_game] = track_name;
@@ -7620,6 +7621,19 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
+        if (argv[1] == "seconds")
+        {
+            float seconds = 0.0f;
+            std::string msg = "Usage: /admin seconds [amount of additional seconds]";
+            if (argv.size() >= 3 && StringUtils::parseString<float>(argv[2], &seconds))
+            {
+                m_additional_seconds = seconds;
+                std::string msg = "There are " + StringUtils::toString(seconds)
+                    + " additional seconds to the time now";
+            }
+            sendStringToPeer(msg, peer);
+            return;
+        }
         if (argv[1] == "start")
         {
             if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
@@ -7982,6 +7996,21 @@ unmute_error:
                     }
                 }
                 m_fixed_lap = length;
+                float addition = 0.0f;
+                if (argv.size() >= 4)
+                {
+                    bool ok = StringUtils::parseString(argv[2], &addition);
+                    if (!ok)
+                    {
+                        std::string msg = "Please specify a correct number. "
+                            "Format: /game [number] [length] [additional seconds]";
+                        sendStringToPeer(msg, peer);
+                        return;
+                    }
+                    m_additional_seconds = addition;
+                } else {
+                    m_additional_seconds = 0.0f;
+                }
             }
             if (tournamentColorsSwapped(m_tournament_game) ^ tournamentColorsSwapped(old_game))
                 changeColors();
@@ -7990,6 +8019,8 @@ unmute_error:
             std::string msg = StringUtils::insertValues(
                 "Ready to start game %d for %d ", m_tournament_game, m_fixed_lap)
                 + (tournamentGoalsLimit(m_tournament_game) ? "goals" : "minutes");
+            if (!tournamentGoalsLimit(m_tournament_game) && m_additional_seconds > 0.0f)
+                msg += " " + std::to_string(m_additional_seconds) + " seconds";
             sendStringToAllPeers(msg);
             Log::info("ServerLobby", "SoccerMatchLog: Game number changed from %d to %d",
                 old_game, m_tournament_game);
