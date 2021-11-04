@@ -7999,7 +7999,7 @@ unmute_error:
                 float addition = 0.0f;
                 if (argv.size() >= 4)
                 {
-                    bool ok = StringUtils::parseString(argv[2], &addition);
+                    bool ok = StringUtils::parseString(argv[3], &addition);
                     if (!ok)
                     {
                         std::string msg = "Please specify a correct number. "
