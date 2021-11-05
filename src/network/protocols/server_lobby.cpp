@@ -7988,7 +7988,7 @@ unmute_error:
                 if (argv.size() >= 3)
                 {
                     bool ok = StringUtils::parseString(argv[2], &length);
-                    if (!ok || length <= 0)
+                    if (!ok || length < 0)
                     {
                         std::string msg = "Please specify a correct number. "
                             "Format: /game [number] [length]";
