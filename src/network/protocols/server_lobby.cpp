@@ -8009,7 +8009,6 @@ unmute_error:
                     }
                     m_extra_seconds = 0.0f;
                     if (addition > 0) {
-                        ++m_fixed_lap;
                         m_extra_seconds = 60.0f - addition;
                     }
                 } else {
@@ -8024,7 +8023,10 @@ unmute_error:
                 "Ready to start game %d for %d ", m_tournament_game, m_fixed_lap)
                 + (tournamentGoalsLimit(m_tournament_game) ? "goals" : "minutes");
             if (!tournamentGoalsLimit(m_tournament_game) && addition > 0)
+            {
                 msg += " " + std::to_string(addition) + " seconds";
+                ++m_fixed_lap;
+            }
             sendStringToAllPeers(msg);
             Log::info("ServerLobby", "SoccerMatchLog: Game number changed from %d to %d",
                 old_game, m_tournament_game);
