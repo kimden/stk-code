@@ -528,7 +528,9 @@ void RaceResultGUI::eventCallback(GUIEngine::Widget* widget,
             else if (action == "right")        // Abort
             {
                 new MessageDialog(_("Do you really want to abort the Grand Prix?"),
-                    MessageDialog::MESSAGE_DIALOG_CONFIRM, this, false);
+                    MessageDialog::MESSAGE_DIALOG_CONFIRM, this,
+                    /*delete_listener*/false, /*from_queue*/false,
+                    /*width*/0.6f, /*height*/0.6f, /*focus_on_cancel*/true);
             }
             else if (!getWidget(action.c_str())->isVisible())
             {
@@ -849,6 +851,7 @@ void RaceResultGUI::unload()
                 continue;
             // Save a pointer to the current row_info entry
             RowInfo *ri = &(m_all_row_infos[position - first_position]);
+            ri->m_kart_id = kart->getWorldKartId();
             ri->m_is_player_kart = kart->getController()->isLocalPlayerController();
             ri->m_kart_name = kart->getController()->getName();
             if (RaceManager::get()->getKartGlobalPlayerId(kart->getWorldKartId()) > -1)
@@ -1439,16 +1442,17 @@ void RaceResultGUI::unload()
             true /* ignoreRTL */);
         current_x += m_width_kart_name + m_width_column_space;
 
-
-        core::recti dest_rect = core::recti(current_x, y, current_x + 100, y + 10);
-        m_font->draw(ri->m_finish_time_string, dest_rect, color, false, false,
-            NULL, true /* ignoreRTL */);
-        current_x += m_width_finish_time + m_width_column_space;
-
+        if (!RaceManager::get()->isLapTrialMode())
+        {
+            core::recti dest_rect = core::recti(current_x, y, current_x + 100, y + 10);
+            m_font->draw(ri->m_finish_time_string, dest_rect, color, false, false,
+                NULL, true /* ignoreRTL */);
+            current_x += m_width_finish_time + m_width_column_space;
+        }
         if (RaceManager::get()->isLapTrialMode())
         {
             core::recti pos_laps = core::recti(current_x, y, current_x + 100, y + 10);
-            int laps = World::getWorld()->getFinishedLapsOfKart(n);
+            int laps = World::getWorld()->getFinishedLapsOfKart(ri->m_kart_id);
             m_font->draw(irr::core::stringw(laps), pos_laps, color, false, false,
                 NULL, true /* ignoreRTL */);
         }
@@ -1954,8 +1958,23 @@ void RaceResultGUI::unload()
                     white_color, false, false, nullptr, true);
             }
             // display difficulty
-            const core::stringw& difficulty_name =
+            core::stringw difficulty_name =
                 RaceManager::get()->getDifficultyName(RaceManager::get()->getDifficulty());
+            core::stringw difficulty_one;
+            core::stringw difficulty_two;
+            if (RaceManager::get()->hasGhostKarts() && ReplayPlay::get()->isSecondReplayEnabled())
+            {
+                unsigned idw = ReplayPlay::get()->getCurrentReplayFileIndex();
+                unsigned idx = ReplayPlay::get()->getSecondReplayFileIndex();
+                const ReplayPlay::ReplayData& rd1 = ReplayPlay::get()->getReplayData(idw);
+                const ReplayPlay::ReplayData& rd2 = ReplayPlay::get()->getReplayData(idx);
+                difficulty_one = RaceManager::get()->getDifficultyName((RaceManager::Difficulty)rd1.m_difficulty);
+                difficulty_two = RaceManager::get()->getDifficultyName((RaceManager::Difficulty)rd2.m_difficulty);
+                if (difficulty_one != difficulty_two)
+                    difficulty_name = difficulty_one +" / "+ difficulty_two;
+                else
+                    difficulty_name = difficulty_one;
+            }
             core::stringw difficulty_string = _("Difficulty: %s", difficulty_name);
             current_y += int(m_distance_between_meta_rows * 0.8f);
             GUIEngine::getFont()->draw(difficulty_string,
