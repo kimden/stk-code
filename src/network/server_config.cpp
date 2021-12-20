@@ -370,6 +370,10 @@ void loadServerLobbyFromConfig()
 #endif
     }
 
+    if (m_only_host_riding) {
+        m_max_players_in_game = 1;
+    }
+
     if (m_soccer_tournament) {
         m_server_mode = 6;
         m_server_difficulty = 3;

@@ -2902,7 +2902,7 @@ void ServerLobby::startSelection(const Event *event)
         bool can_race = canRace(peer);
         if (!can_race)
         {
-            if (ServerConfig::m_soccer_tournament || ServerConfig::m_only_host_riding)
+            if (ServerConfig::m_soccer_tournament/* || ServerConfig::m_only_host_riding*/)
                 peer->setAlwaysSpectate(ASM_COMMAND);
         }
         if (!can_race && !peer->alwaysSpectate())
@@ -6657,7 +6657,7 @@ void ServerLobby::handleServerCommand(Event* event,
     }
     else if (argv[0] == "spectate")
     {
-        if (ServerConfig::m_soccer_tournament || ServerConfig::m_only_host_riding)
+        if (ServerConfig::m_soccer_tournament /*|| ServerConfig::m_only_host_riding*/)
         {
             std::string msg = "All spectators already have auto spectate ability";
             sendStringToPeer(msg, peer);
@@ -8809,8 +8809,8 @@ bool ServerLobby::canRace(STKPeer* peer) const
     if (ServerConfig::m_soccer_tournament)
         return m_tournament_red_players.count(username) > 0 || 
             m_tournament_blue_players.count(username) > 0;
-    else if (ServerConfig::m_only_host_riding)
-        return peer == m_server_owner.lock().get();
+    // else if (ServerConfig::m_only_host_riding)
+    //     return peer == m_server_owner.lock().get();
     else if (!m_tracks_queue.empty())
         return peer->getClientAssets().second.count(m_tracks_queue.front());
     else
