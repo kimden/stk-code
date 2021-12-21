@@ -2892,6 +2892,8 @@ void ServerLobby::startSelection(const Event *event)
 
     unsigned max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
+    auto peers = STKHost::get()->getPeers();
+    std::set<STKPeer*> always_spectate_peers;
 
     // Set late coming player to spectate if too many players
     auto spectators_by_limit = getSpectatorsByLimit();
@@ -2910,8 +2912,6 @@ void ServerLobby::startSelection(const Event *event)
 
     // Remove karts / tracks from server that are not supported on all clients
     std::set<std::string> karts_erase, tracks_erase;
-    auto peers = STKHost::get()->getPeers();
-    std::set<STKPeer*> always_spectate_peers;
     bool has_peer_plays_game = false;
     for (auto peer : peers)
     {
