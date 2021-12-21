@@ -8805,6 +8805,8 @@ bool ServerLobby::canRace(STKPeer* peer) const
     if (ServerConfig::m_soccer_tournament)
         return m_tournament_red_players.count(username) > 0 || 
             m_tournament_blue_players.count(username) > 0;
+    else if (spectators_by_limit.find(peer) != spectators_by_limit.end())
+        return false;
     // else if (ServerConfig::m_only_host_riding)
     //     return peer == m_server_owner.lock().get();
     else if (!m_tracks_queue.empty())
