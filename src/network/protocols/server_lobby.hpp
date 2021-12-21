@@ -537,7 +537,7 @@ private:
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
-    std::set<std::shared_ptr<STKPeer>>& getSpectatorsByLimit(bool update = false);
+    std::set<STKPeer*>& getSpectatorsByLimit(bool update = false);
     void kickPlayerWithReason(STKPeer* peer, const char* reason) const;
     void testBannedForIP(STKPeer* peer) const;
     void testBannedForIPv6(STKPeer* peer) const;
