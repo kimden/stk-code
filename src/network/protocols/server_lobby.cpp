@@ -2890,6 +2890,24 @@ void ServerLobby::startSelection(const Event *event)
         }
     }
 
+    unsigned max_player = 0;
+    STKHost::get()->updatePlayers(&max_player);
+
+    // Set late coming player to spectate if too many players
+    auto spectators_by_limit = getSpectatorsByLimit();
+    if (spectators_by_limit.size() == peers.size())
+    {
+        Log::error("ServerLobby", "Too many players and cannot set "
+            "spectate for late coming players!");
+        return;
+    }
+    for (auto &peer : spectators_by_limit)
+    {
+        peer->setAlwaysSpectate(ASM_FULL);
+        peer->setWaitingForGame(true);
+        always_spectate_peers.insert(peer.get());
+    }
+
     // Remove karts / tracks from server that are not supported on all clients
     std::set<std::string> karts_erase, tracks_erase;
     auto peers = STKHost::get()->getPeers();
@@ -2900,13 +2918,10 @@ void ServerLobby::startSelection(const Event *event)
         if (!peer->isValidated() || peer->isWaitingForGame())
             continue;
         bool can_race = canRace(peer);
-        if (!can_race)
+        if (!can_race && !peer->alwaysSpectate())
         {
             if (ServerConfig::m_soccer_tournament/* || ServerConfig::m_only_host_riding*/)
                 peer->setAlwaysSpectate(ASM_COMMAND);
-        }
-        if (!can_race && !peer->alwaysSpectate())
-        {
             peer->setWaitingForGame(true);
             m_peers_ready.erase(peer);
             need_to_update = true;
@@ -2922,7 +2937,7 @@ void ServerLobby::startSelection(const Event *event)
         if (!peer->isAIPeer())
             has_peer_plays_game = true;
     }
-    m_default_always_spectate_peers = always_spectate_peers;
+    // m_default_always_spectate_peers = always_spectate_peers;
 
     // kimden thinks if someone wants to race he should disable spectating
     // // Disable always spectate peers if no players join the game
@@ -2945,24 +2960,6 @@ void ServerLobby::startSelection(const Event *event)
         // arena players handling
         for (STKPeer* peer : always_spectate_peers)
             peer->setWaitingForGame(true);
-    }
-
-    unsigned max_player = 0;
-    STKHost::get()->updatePlayers(&max_player);
-
-    // Set late coming player to spectate if too many players
-    auto spectators_by_limit = getSpectatorsByLimit();
-    if (spectators_by_limit.size() == peers.size())
-    {
-        Log::error("ServerLobby", "Too many players and cannot set "
-            "spectate for late coming players!");
-        return;
-    }
-    for(auto &peer : spectators_by_limit)
-    {
-        peer->setAlwaysSpectate(ASM_FULL);
-        peer->setWaitingForGame(true);
-        always_spectate_peers.insert(peer.get());
     }
 
     for (const std::string& kart_erase : karts_erase)
@@ -6461,7 +6458,6 @@ std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
     std::set<std::shared_ptr<STKPeer>> spectators_by_limit;
 
     auto peers = STKHost::get()->getPeers();
-    std::set<std::shared_ptr<STKPeer>> always_spectate_peers;
 
     unsigned player_limit = ServerConfig::m_max_players_in_game;
     // only 10 players allowed for FFA and 14 for CTF and soccer
