@@ -286,7 +286,7 @@ private:
     // Calculated before each game started
     unsigned m_ai_count;
 
-    std::set<std::shared_ptr<STKPeer>> m_spectators_by_limit;
+    std::set<STKPeer*> m_spectators_by_limit;
 
     std::vector<std::string> m_must_have_tracks;
 

@@ -2160,7 +2160,7 @@ void ServerLobby::liveJoinRequest(Event* event)
             used_id.push_back(id);
         }
         if ((used_id.size() != peer->getPlayerProfiles().size()) ||
-            (spectators_by_limit.find(event->getPeerSP()) != spectators_by_limit.end()))
+            (spectators_by_limit.find(event->getPeerSP().get()) != spectators_by_limit.end()))
         {
             for (unsigned i = 0; i < peer->getPlayerProfiles().size(); i++)
                 peer->getPlayerProfiles()[i]->setKartName("");
@@ -2907,7 +2907,7 @@ void ServerLobby::startSelection(const Event *event)
     {
         peer->setAlwaysSpectate(ASM_FULL);
         peer->setWaitingForGame(true);
-        always_spectate_peers.insert(peer.get());
+        always_spectate_peers.insert(peer);
     }
 
     // Remove karts / tracks from server that are not supported on all clients
@@ -4831,7 +4831,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             profile_name = StringUtils::utf32ToWide({0x1F4F1}) + profile_name;
 
         // Add an hourglass emoji for players waiting because of the player limit
-        if (spectators_by_limit.find(profile->getPeer()) != spectators_by_limit.end())
+        if (spectators_by_limit.find(profile->getPeer().get()) != spectators_by_limit.end())
             profile_name = StringUtils::utf32ToWide({ 0x231B }) + profile_name;
 
         // Add a hammer emoji for angry host
@@ -6453,7 +6453,7 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
 }   // clientSelectingAssetsWantsToBackLobby
 
 //-----------------------------------------------------------------------------
-std::set<std::shared_ptr<STKPeer>>& ServerLobby::getSpectatorsByLimit(bool update)
+std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
 {
     if (!update)
         return m_spectators_by_limit;
@@ -6505,7 +6505,7 @@ std::set<std::shared_ptr<STKPeer>>& ServerLobby::getSpectatorsByLimit(bool updat
                 continue;
             player_count += (unsigned)peer->getPlayerProfiles().size();
             if (player_count > player_limit)
-                m_spectators_by_limit.insert(peer);
+                m_spectators_by_limit.insert(peer.get());
         }
         else
         {
@@ -6513,7 +6513,7 @@ std::set<std::shared_ptr<STKPeer>>& ServerLobby::getSpectatorsByLimit(bool updat
                 continue;
             player_count += (unsigned)peer->getPlayerProfiles().size();
             if (peer->isWaitingForGame() && (player_count > player_limit || ingame_players >= player_limit))
-                m_spectators_by_limit.insert(peer);
+                m_spectators_by_limit.insert(peer.get());
         }
     }
     return m_spectators_by_limit;
