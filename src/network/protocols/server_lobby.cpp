@@ -2148,7 +2148,7 @@ void ServerLobby::liveJoinRequest(Event* event)
     peer->clearAvailableKartIDs();
     if (!spectator)
     {
-        auto spectators_by_limit = getSpectatorsByLimit();
+        auto& spectators_by_limit = getSpectatorsByLimit();
         setPlayerKarts(data, peer);
 
         std::vector<int> used_id;
@@ -2896,7 +2896,7 @@ void ServerLobby::startSelection(const Event *event)
     std::set<STKPeer*> always_spectate_peers;
 
     // Set late coming player to spectate if too many players
-    auto spectators_by_limit = getSpectatorsByLimit();
+    auto& spectators_by_limit = getSpectatorsByLimit();
     if (spectators_by_limit.size() == peers.size())
     {
         Log::error("ServerLobby", "Too many players and cannot set "
@@ -4770,7 +4770,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             all_profiles_size--;
     }
 
-    auto spectators_by_limit = getSpectatorsByLimit();
+    auto& spectators_by_limit = getSpectatorsByLimit(true);
 
     // N - 1 AI
     auto ai_instance = m_ai_peer.lock();
@@ -6453,9 +6453,12 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
 }   // clientSelectingAssetsWantsToBackLobby
 
 //-----------------------------------------------------------------------------
-std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
+std::set<std::shared_ptr<STKPeer>>& ServerLobby::getSpectatorsByLimit(bool update)
 {
-    std::set<std::shared_ptr<STKPeer>> spectators_by_limit;
+    if (!update)
+        return m_spectators_by_limit;
+
+    m_spectators_by_limit.clear();
 
     auto peers = STKHost::get()->getPeers();
 
@@ -6476,7 +6479,7 @@ std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
     unsigned ingame_players = 0, waiting_players = 0, total_players = 0;
     STKHost::get()->updatePlayers(&ingame_players, &waiting_players, &total_players);
     if (total_players <= player_limit)
-        return spectators_by_limit;
+        return m_spectators_by_limit;
 
     std::sort(peers.begin(), peers.end(),
         [](const std::shared_ptr<STKPeer>& a,
@@ -6502,7 +6505,7 @@ std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
                 continue;
             player_count += (unsigned)peer->getPlayerProfiles().size();
             if (player_count > player_limit)
-                spectators_by_limit.insert(peer);
+                m_spectators_by_limit.insert(peer);
         }
         else
         {
@@ -6510,10 +6513,10 @@ std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
                 continue;
             player_count += (unsigned)peer->getPlayerProfiles().size();
             if (peer->isWaitingForGame() && (player_count > player_limit || ingame_players >= player_limit))
-                spectators_by_limit.insert(peer);
+                m_spectators_by_limit.insert(peer);
         }
     }
-    return spectators_by_limit;
+    return m_spectators_by_limit;
 }   // getSpectatorsByLimit
 
 //-----------------------------------------------------------------------------
@@ -8805,7 +8808,7 @@ bool ServerLobby::canRace(STKPeer* peer) const
     if (ServerConfig::m_soccer_tournament)
         return m_tournament_red_players.count(username) > 0 || 
             m_tournament_blue_players.count(username) > 0;
-    else if (spectators_by_limit.find(peer) != spectators_by_limit.end())
+    else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
         return false;
     // else if (ServerConfig::m_only_host_riding)
     //     return peer == m_server_owner.lock().get();
