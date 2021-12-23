@@ -146,16 +146,21 @@ namespace StringUtils
     //-------------------------------------------------------------------------
     /** Splits a string into substrings separated by a certain character `c`,
      *  and returns a std::vector of all those substrings. The only exception
-     *  from that is when a substring is enclosed into `d` chars, `c` chars
-     *  inside do not split the substring. `d` chars are escaped with `e`, just
-     *  as `e` chars. E.g.:
-     *  splitQuoted("a b=c |multi word phrase| /|o //", ' ', '|', '/') -->
-     *  ["a", "b=c", "multi word phrase", "|o", "/"]
+     *  from that is when a substring is enclosed into `d` and `e` chars,
+     *  `c` chars inside do not split the substring. `d` and `e` chars are
+     *  escaped with `f`, just as `f` chars. E.g.:
+     *  splitQuoted("a b=c <multi word phrase> /<o //", ' ', '<', '>', '/') -->
+     *  ["a", "b=c", "multi word phrase", "<o", "/"]
+     *  Note that a quoted empty string is added to the result, while an
+     *  unqouted empty string (between two `c`s) isn't.
      *  \param s The string to split.
-     *  \param c The character  by which the string is split.
+     *  \param c The character by which the string is split.
+     *  \param d The character that opens the area where `c` doesn't matter.
+     *  \param e The character that closes the area where `c` doesn't matter.
+     *  \param f The character to escape `d`, `e`, and `f`.
      */
     std::vector<std::string> splitQuoted(const std::string& s, char c,
-                                   char d, char e)
+                                   char d, char e, char f)
     {
         std::vector<std::string> result;
 
@@ -164,35 +169,40 @@ namespace StringUtils
             result.emplace_back();
             bool quoted = false;
             bool escaped = false;
+            bool previous_space = true;
             for (unsigned i = 0; i < s.length(); ++i)
             {
-                if (s[i] == e)
+                if (s[i] == f)
                 {
-                    if (escaped)
-                        result.back().push_back(e);
+                    if (escaped) {
+                        result.back().push_back(f);
+                        escaped = false;
+                    }
                     else
                         escaped = true;
                 }
-                else if (s[i] == d && !escaped)
+                else if (s[i] == d && quoted == 0 && !escaped)
                 {
-                    quoted ^= 1;
+                    quoted = 1;
                 }
-                else if (s[i] == c && !quoted)
+                else if (s[i] == e && quoted == 1 && !escaped)
                 {
-                    result.emplace_back();
+                    quoted = 0;
+                }
+                else if (s[i] == c && !quoted && !escaped)
+                {
+                    if (!result.back().empty() || !previous_space) {
+                        result.emplace_back();
+                    }
                 }
                 else
                 {
                     result.back().push_back(s[i]);
+                    escaped = false;
                 }
+                previous_space = (s[i] == c);
             }
-            std::vector<std::string> cleared_result;
-            for (const std::string& s: result)
-            {
-                if (!s.empty())
-                    cleared_result.push_back(s);
-            }
-            return cleared_result;
+            return result;
         }
         catch (std::exception& e)
         {
@@ -1494,6 +1504,42 @@ namespace StringUtils
             unit = _("%s KB", 1);
         return unit;
     }   // getReadableFileSize
+    // ------------------------------------------------------------------------
+    bool isEqual(char a, char b, bool case_sensitive)
+    {
+        if (a == b)
+            return true;
+        return case_sensitive && toupper(a) == toupper(b);
+    }   // isEqual
+    // ------------------------------------------------------------------------
+    int getEditDistance(const std::string& a, const std::string& b,
+        bool case_sensitive)
+    {
+        int n = a.length();
+        int m = b.length();
+        std::vector<std::vector<int>> distance(n + 1,
+            std::vector<int>(m + 1, n + m));
+        distance[0][0] = 0;
+        for (int i = 0; i <= n; ++i) {
+            for (int j = 0; j <= m; ++j) {
+                if (i < n) {
+                    distance[i + 1][j] = std::min(distance[i + 1][j],
+                        distance[i][j] + 1);
+                }
+                if (j < m) {
+                    distance[i][j + 1] = std::min(distance[i][j + 1],
+                        distance[i][j] + 1);
+                }
+                if (i < n && j < m) {
+                    int value = distance[i][j] + (isEqual(a[i], b[j],
+                        case_sensitive) ? 0 : 1);
+                    distance[i + 1][j + 1] = std::min(
+                        distance[i + 1][j + 1], value);
+                }
+            }
+        }
+        return distance[n][m];
+    }   // getEditDistance
 } // namespace StringUtils
 
 /* EOF */

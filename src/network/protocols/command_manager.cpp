@@ -138,6 +138,11 @@ void CommandManager::initCommands()
     m_commands.emplace_back("mimiz",            &CommandManager::process_mimiz,      UP_EVERYONE,            CS_ALWAYS,                    "/mimiz [text]", "everyone", "A joke command.");
     m_commands.emplace_back("test",             &CommandManager::process_test,       UP_EVERYONE | PE_VOTED, CS_ALWAYS,                    "/test [poll name] [option name]", "everyone; votable", "A test command.");
     m_commands.emplace_back("help",             &CommandManager::process_help,       UP_EVERYONE,            CS_ALWAYS,                    "/help (command name)", "everyone", "Gives description of a given command.");
+    m_commands.emplace_back("1",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/1", "everyone", "This command allows to choose 1st of suggested options when a typo is made");
+    m_commands.emplace_back("2",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/2", "everyone", "This command allows to choose 2nd of suggested options when a typo is made");
+    m_commands.emplace_back("3",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/3", "everyone", "This command allows to choose 3rd of suggested options when a typo is made");
+    m_commands.emplace_back("4",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/4", "everyone", "This command allows to choose 4th of suggested options when a typo is made");
+    m_commands.emplace_back("5",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/5", "everyone", "This command allows to choose 5th of suggested options when a typo is made");
 
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     addTextResponse("version", "1.3-rc1 k 210fff beta");
@@ -157,6 +162,9 @@ void CommandManager::initCommands()
     m_votables.emplace("gnu", 0.81);
     m_votables["gnu"].setCustomThreshold("gnu kart", 1.1);
 
+    for (const Command& command: m_commands) {
+        m_stf_command_names.add(command.m_name);
+    }
 } // initCommands
 // ========================================================================
 
@@ -176,14 +184,18 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     data.decodeString(&language);
     std::string cmd;
     data.decodeString(&cmd);
-    auto argv = StringUtils::splitQuoted(cmd, ' ', '"', '\\');
+    auto argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
     if (argv.size() == 0)
         return;
+    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 
     int permissions = m_lobby->getPermissions(peer);
     bool found_command = false;
     bool voting = false;
     std::string action = "invoke";
+    std::string username = StringUtils::wideToUtf8(
+        peer->getPlayerProfiles()[0]->getName());
+
     if (argv[0] == "vote")
     {
         if (argv.size() == 1 || argv[1] == "vote")
@@ -192,80 +204,110 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
             m_lobby->sendStringToPeer(msg, peer);
             return;
         }
-        std::reverse(cmd.begin(), cmd.end());
-        cmd.resize((int)cmd.size() - 4);
-        while (!cmd.empty() && cmd.back() == ' ')
-            cmd.pop_back();
-        std::reverse(cmd.begin(), cmd.end());
         std::reverse(argv.begin(), argv.end());
         argv.pop_back();
         std::reverse(argv.begin(), argv.end());
+        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
         voting = true;
         action = "vote for";
     }
-
-    auto command_iterator = m_name_to_command.find(argv[0]);
-    found_command = (command_iterator != m_name_to_command.end());
-
-    if (found_command)
-    {
-        const auto& command = command_iterator->second;
-        if (!isAvailable(command))
-        {
-            std::string msg = "You don't have permissions to " + action + " this command";
-            m_lobby->sendStringToPeer(msg, peer);
-            return;
-        }
-        int mask = (permissions & command.m_permissions);
-        if (mask == 0)
-        {
-            std::string msg = "You don't have permissions to " + action + " this command";
-            m_lobby->sendStringToPeer(msg, peer);
-            return;
-        }
-        int mask_without_voting = (mask & ~PE_VOTED);
-        if (mask != PE_NONE && mask_without_voting == PE_NONE)
-            voting = true;
-
-        Context context(event, peer, argv, cmd, permissions, voting);
-        (this->*command.m_action)(context);
-
-        while (!m_triggered_votables.empty())
-        {
-            std::string votable_name = m_triggered_votables.front();
-            m_triggered_votables.pop();
-            auto it = m_votables.find(argv[0]);
-            if (it != m_votables.end() && it->second.needsCheck())
-            {
-                auto response = it->second.process(m_users);
-                int count = response.first;
-                std::string username = StringUtils::wideToUtf8(
-                    peer->getPlayerProfiles()[0]->getName());
-                std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
-                m_lobby->sendStringToAllPeers(msg);
-                auto res = response.second;
-                if (!res.empty())
-                {
-                    for (auto& p: res)
-                    {
-                        std::string new_cmd = p.first + " " + p.second;
-                        std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
-                        m_lobby->sendStringToAllPeers(msg);
-                        auto new_argv = StringUtils::splitQuoted(cmd, ' ', '"', '\\');
-                        Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
-                        (this->*command.m_action)(new_context);
-                    }
-                }
+    for (int i = 1; i <= 5; ++i) {
+        if (argv[0] == std::to_string(i)) {
+            if (i - 1 < m_user_command_replacements[username].size()) {
+                cmd = m_user_command_replacements[username][i - 1];
+                argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
+                if (argv.size() == 0)
+                    return;
+                CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+                break;
+            } else {
+                std::string msg = "Pick one of " +
+                    std::to_string(m_user_command_replacements[username].size())
+                    + " options using /1, etc., or type a different command";
+                m_lobby->sendStringToPeer(msg, peer);
+                return;
             }
         }
+    }
+    m_user_command_replacements.erase(username);
+
+    auto closest_commands = m_stf_command_names.getClosest(argv[0], 3, false);
+    if (closest_commands.empty())
+    {
+        std::string msg = "Command " + argv[0] + " not found";
+        m_lobby->sendStringToPeer(msg, peer);
+        return;
+    }
+    if (closest_commands[0].second != 0)
+    {
+        m_user_command_replacements[username].clear();
+        std::string initial_command = argv[0];
+        std::string response = "You invoked \"" + cmd + "\", but there is "
+            "no command \"" + initial_command + "\". Choose a fix or ignore:";
+
+        for (int i = 0; i < closest_commands.size(); ++i) {
+            argv[0] = closest_commands[i].first;
+            CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+            m_user_command_replacements[username].push_back(cmd);
+            response += "\ntype /" + std::to_string(i + 1) + " to choose /" + argv[0];
+        }
+        argv[0] = initial_command;
+        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        m_lobby->sendStringToPeer(response, peer);
         return;
     }
 
-    // TODO: process commands with typos
-    std::string msg = "Command " + argv[0] + " not found";
-    m_lobby->sendStringToPeer(msg, peer);
+    auto command_iterator = m_name_to_command.find(argv[0]);
 
-    // TODO: add votedness
+    const auto& command = command_iterator->second;
+
+    if (!isAvailable(command))
+    {
+        std::string msg = "You don't have permissions to " + action + " this command";
+        m_lobby->sendStringToPeer(msg, peer);
+        return;
+    }
+    int mask = (permissions & command.m_permissions);
+    if (mask == 0)
+    {
+        std::string msg = "You don't have permissions to " + action + " this command";
+        m_lobby->sendStringToPeer(msg, peer);
+        return;
+    }
+    int mask_without_voting = (mask & ~PE_VOTED);
+    if (mask != PE_NONE && mask_without_voting == PE_NONE)
+        voting = true;
+
+    Context context(event, peer, argv, cmd, permissions, voting);
+    (this->*command.m_action)(context);
+
+    while (!m_triggered_votables.empty())
+    {
+        std::string votable_name = m_triggered_votables.front();
+        m_triggered_votables.pop();
+        auto it = m_votables.find(argv[0]);
+        if (it != m_votables.end() && it->second.needsCheck())
+        {
+            auto response = it->second.process(m_users);
+            int count = response.first;
+            std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
+            m_lobby->sendStringToAllPeers(msg);
+            auto res = response.second;
+            if (!res.empty())
+            {
+                for (auto& p: res)
+                {
+                    std::string new_cmd = p.first + " " + p.second;
+                    auto new_argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
+                    CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
+                    std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
+                    m_lobby->sendStringToAllPeers(msg);
+                    Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
+                    (this->*command.m_action)(new_context);
+                }
+            }
+        }
+    }
 
 } // handleCommand
 // ========================================================================
@@ -311,9 +353,10 @@ void CommandManager::update()
             for (auto& p: res)
             {
                 std::string new_cmd = p.first + " " + p.second;
+                auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
+                CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                 std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
                 m_lobby->sendStringToAllPeers(msg);
-                auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '\\');
                 auto& command = m_name_to_command[new_argv[0]];
                 // We don't know the event though it is only needed in
                 // ServerLobby::startSelection where it is nullptr when they vote
@@ -2127,4 +2170,31 @@ void CommandManager::deleteUser(std::string& s)
     m_users.erase(it);
     update();
 } // deleteUser
+// ========================================================================
+
+void CommandManager::restoreCmdByArgv(std::string& cmd, std::vector<std::string>& argv, char c, char d, char e, char f)
+{
+    cmd.clear();
+    for (int i = 0; i < argv.size(); ++i) {
+        bool quoted = false;
+        if (argv[i].find(c) != std::string::npos || argv[i].empty()) {
+            quoted = true;
+        }
+        if (i > 0) {
+            cmd.push_back(c);
+        }
+        if (quoted) {
+            cmd.push_back(d);
+        }
+        for (int j = 0; j < argv[i].size(); ++j) {
+            if (argv[i][j] == d || argv[i][j] == e || argv[i][j] == f) {
+                cmd.push_back(f);
+            }
+            cmd.push_back(argv[i][j]);
+        }
+        if (quoted) {
+            cmd.push_back(e);
+        }
+    }
+} // restoreCmdByArgv
 // ========================================================================

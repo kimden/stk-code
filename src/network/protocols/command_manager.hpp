@@ -39,6 +39,7 @@
 #endif
 
 #include "network/protocols/command_voting.hpp"
+#include "utils/set_typo_fixer.hpp"
 
 class ServerLobby;
 class Event;
@@ -100,7 +101,7 @@ class CommandManager
 
         std::string getUsage() { return "Usage: " + m_usage; }
 
-        std::string getHelp() { return "Usage: " + m_usage + "\nAvailable to: " + m_verbose_permissions + "\n" + m_description + "\n"; }
+        std::string getHelp() { return "Usage: " + m_usage + "\nAvailable to: " + m_verbose_permissions + "\n" + m_description; }
     };
 
 private:
@@ -118,6 +119,14 @@ private:
     std::map<std::string, CommandVoting> m_votables;
 
     std::queue<std::string> m_triggered_votables;
+
+    std::map<std::string, std::vector<std::string>> m_user_command_replacements;
+
+    SetTypoFixer m_stf_command_names;
+
+    SetTypoFixer m_stf_present_users;
+
+    SetTypoFixer m_stf_maps;
 
     void initCommands();
 
@@ -194,7 +203,10 @@ public:
                                               { m_text_response[key] = value; }
 
     void addUser(std::string& s);
+
     void deleteUser(std::string& s);
+
+    static void restoreCmdByArgv(std::string& cmd, std::vector<std::string>& argv, char c, char d, char e, char f);
 };
 
 #endif // COMMAND_MANAGER_HPP

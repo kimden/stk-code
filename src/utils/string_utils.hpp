@@ -54,7 +54,8 @@ namespace StringUtils
     irr::core::stringw loadingDots(const irr::core::stringw& s);
     std::string                     toUpperCase(const std::string&);
     std::string                     toLowerCase(const std::string&);
-    std::vector<std::string>        splitQuoted(const std::string& s, char c, char d, char e);
+    std::vector<std::string>        splitQuoted(const std::string& s, char c,
+                                        char d, char e, char f);
     std::vector<std::string>        split(const std::string& s, char c,
                                           bool keepSplitChar=false);
     std::vector<std::u32string>     split(const std::u32string& s, char32_t c,
@@ -339,6 +340,10 @@ namespace StringUtils
             }
         }
     }
+    // ------------------------------------------------------------------------
+    bool isEqual(char a, char b, bool case_sensitive = true);
+    int getEditDistance(const std::string& a, const std::string& b,
+        bool case_sensitive = true);
 
 } // namespace StringUtils
 
