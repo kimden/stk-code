@@ -25,6 +25,7 @@
 #include <functional>
 #include <set>
 #include <vector>
+#include <string>
 
 // A lazy class that stores a set of strings.
 // For a query string, it finds exactly the same string in the set
