@@ -63,7 +63,8 @@ public:
     };
 
     enum MessageDialogType { MESSAGE_DIALOG_OK, MESSAGE_DIALOG_CONFIRM,
-                             MESSAGE_DIALOG_OK_CANCEL, MESSAGE_DIALOG_YESNO };
+                             MESSAGE_DIALOG_OK_CANCEL, MESSAGE_DIALOG_YESNO,
+                             MESSAGE_DIALOG_OK_DONTSHOWAGAIN };
     
     MessageDialogType m_type;
 
@@ -88,14 +89,16 @@ public:
       */
     MessageDialog(const irr::core::stringw &msg, MessageDialogType type,
                   IConfirmDialogListener* listener, bool delete_listener,
-                  bool from_queue = false, float width = 0.6f, float height = 0.6f);
-    
+                  bool from_queue = false, float width = 0.6f, float height = 0.6f,
+                  bool focus_on_cancel = false);
+
     /**
       * Variant of MessageDialog where cancelling is not possible (i.e. just shows a message box with OK)
       * \param msg Message to display in the dialog
       */
-    MessageDialog(const irr::core::stringw &msg, bool from_queue = false);
-    
+    MessageDialog(const irr::core::stringw &msg, bool from_queue = false,
+                  bool focus_on_cancel = false);
+
     ~MessageDialog();
     
     virtual void onEnterPressedInternal() OVERRIDE;

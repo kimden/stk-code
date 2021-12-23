@@ -154,17 +154,15 @@ s32 ScalableFont::getHeightPerLine() const
 }   // getHeightPerLine
 
 // ----------------------------------------------------------------------------
-/** Convert text to glyph layouts for fast rendering with caching enabled
- *  If line_data is not null, each broken line u32string will be saved and
- *  can be used for advanced glyph and text mapping, and cache will be
- *  disabled.
+/** Convert text to glyph layouts for fast rendering with optional caching
+ *  enabled.
  */
 void ScalableFont::initGlyphLayouts(const core::stringw& text,
                                     std::vector<GlyphLayout>& gls,
-                                    std::vector<std::u32string>* line_data)
+                                    u32 shape_flag)
 {
 #ifndef SERVER_ONLY
-    font_manager->initGlyphLayouts(text, gls, line_data);
+    font_manager->initGlyphLayouts(text, gls, shape_flag);
 #endif
 }   // initGlyphLayouts
 
@@ -177,6 +175,26 @@ f32 ScalableFont::getInverseShaping() const
     return 1.0f;
 #endif
 }   // getShapingScale
+
+// ----------------------------------------------------------------------------
+s32 ScalableFont::getFaceFontMaxHeight() const
+{
+#ifndef SERVER_ONLY
+    return m_face->getFontMaxHeight();
+#else
+    return 1;
+#endif
+}   // getFaceFontMaxHeight
+
+// ----------------------------------------------------------------------------
+s32 ScalableFont::getFaceGlyphMaxHeight() const
+{
+#ifndef SERVER_ONLY
+    return m_face->getGlyphMaxHeight();
+#else
+    return 1;
+#endif
+}   // getFaceGlyphMaxHeight
 
 } // end namespace gui
 } // end namespace irr

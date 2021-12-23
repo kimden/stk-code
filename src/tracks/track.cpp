@@ -2732,6 +2732,62 @@ const core::vector3df& Track::getSunRotation()
 {
     return m_sun->getRotation();
 }
+
+//-----------------------------------------------------------------------------
+bool Track::isOnGround(const Vec3& xyz, const Vec3& down, Vec3* hit_point,
+                       Vec3* normal, bool print_warning)
+{
+    // Material and hit point are not needed;
+    const Material *m;
+    bool over_ground = m_track_mesh->castRay(xyz, down, hit_point,
+                                             &m, normal);
+
+    // Now also raycast against all track objects (that are driveable). If
+    // there should be a closer result (than the one against the main track
+    // mesh), its data will be returned.
+    // From TerrainInfo::update
+    bool over_driveable = m_track_object_manager->castRay(xyz, down,
+        hit_point, &m, normal, /*interpolate*/false);
+
+    if (!over_ground && !over_driveable)
+    {
+        if (print_warning)
+        {
+            Log::warn("physics", "Kart at (%f %f %f) can not be dropped.",
+                xyz.getX(),xyz.getY(),xyz.getZ());
+        }
+        return false;
+    }
+
+    // Check if the material the kart is about to be placed on would trigger
+    // a reset. If so, this is not a valid position.
+    if(m && m->isDriveReset())
+    {
+        if (print_warning)
+        {
+            Log::warn("physics","Kart at (%f %f %f) over reset terrain '%s'",
+                xyz.getX(),xyz.getY(),xyz.getZ(),
+                m->getTexFname().c_str());
+        }
+        return false;
+    }
+
+    // See if the kart is too high above the ground - it would drop
+    // too long.
+    if(xyz.getY() - hit_point->getY() > 5)
+    {
+        if (print_warning)
+        {
+            Log::warn("physics",
+                "Kart at (%f %f %f) is too high above ground at (%f %f %f)",
+                xyz.getX(),xyz.getY(),xyz.getZ(),
+                hit_point->getX(),hit_point->getY(),hit_point->getZ());
+        }
+        return false;
+    }
+    return true;
+}   // isOnGround
+
 //-----------------------------------------------------------------------------
 /** Determines if the kart is over ground.
  *  Used in setting the starting positions of all the karts.
@@ -2744,46 +2800,9 @@ bool Track::findGround(AbstractKart *kart)
     const Vec3 &xyz = kart->getXYZ();
     Vec3 down = kart->getTrans().getBasis() * Vec3(0, -10000.0f, 0);
 
-    // Material and hit point are not needed;
-    const Material *m;
     Vec3 hit_point, normal;
-    bool over_ground = m_track_mesh->castRay(xyz, down, &hit_point,
-                                             &m, &normal);
-
-    // Now also raycast against all track objects (that are driveable). If
-    // there should be a closer result (than the one against the main track
-    // mesh), its data will be returned.
-    // From TerrainInfo::update
-    bool over_driveable = m_track_object_manager->castRay(xyz, down,
-        &hit_point, &m, &normal, /*interpolate*/false);
-
-    if (!over_ground && !over_driveable)
-    {
-        Log::warn("physics", "Kart at (%f %f %f) can not be dropped.",
-                  xyz.getX(),xyz.getY(),xyz.getZ());
+    if (!isOnGround(xyz, down, &hit_point, &normal))
         return false;
-    }
-
-    // Check if the material the kart is about to be placed on would trigger
-    // a reset. If so, this is not a valid position.
-    if(m && m->isDriveReset())
-    {
-        Log::warn("physics","Kart at (%f %f %f) over reset terrain '%s'",
-                   xyz.getX(),xyz.getY(),xyz.getZ(),
-                   m->getTexFname().c_str());
-        return false;
-    }
-
-    // See if the kart is too high above the ground - it would drop
-    // too long.
-    if(xyz.getY() - hit_point.getY() > 5)
-    {
-        Log::warn("physics",
-                  "Kart at (%f %f %f) is too high above ground at (%f %f %f)",
-                  xyz.getX(),xyz.getY(),xyz.getZ(),
-                  hit_point.getX(),hit_point.getY(),hit_point.getZ());
-        return false;
-    }
 
     btTransform t = kart->getBody()->getCenterOfMassTransform();
     // The computer offset is slightly too large, it should take

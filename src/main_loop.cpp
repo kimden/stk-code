@@ -129,6 +129,7 @@ MainLoop::~MainLoop()
 }   // ~MainLoop
 
 #ifdef MOBILE_STK
+extern "C" void update_swap_interval(int swap_interval);
 //-----------------------------------------------------------------------------
 extern "C" void pause_mainloop()
 {
@@ -168,6 +169,8 @@ extern "C" void resume_mainloop()
     if (World::getWorld() && RewindManager::isEnabled())
         RewindManager::get()->resetSmoothNetworkBody();
     Online::RequestManager::get()->setPaused(false);
+    // Android atm needs this to reset the swap interval when changing activity
+    update_swap_interval(UserConfigParams::m_swap_interval);
 }  // resume_mainloop
 #endif
 
@@ -355,7 +358,7 @@ void MainLoop::updateRace(int ticks, bool fast_forward)
 
 //-----------------------------------------------------------------------------
 /** Run the actual main loop.
- *  The sequnce in which various parts of STK are updated is:
+ *  The sequence in which various parts of STK are updated is:
  *  - Determine next time step size (`getLimitedDt`). This takes maximum fps
  *    into account (i.e. sleep if the fps would be too high), and will actually
  *    slow down the in-game clock if the fps are too low (if more than 3/60 of

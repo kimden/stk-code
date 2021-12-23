@@ -48,6 +48,7 @@
 #include "network/server.hpp"
 #include "network/stk_host.hpp"
 #include "network/network_timer_synchronizer.hpp"
+#include "online/link_helper.hpp"
 #include "states_screens/dialogs/addons_pack.hpp"
 #include "states_screens/dialogs/splitscreen_player_dialog.hpp"
 #include "states_screens/dialogs/network_player_dialog.hpp"
@@ -78,6 +79,8 @@ NetworkingLobby::NetworkingLobby() : Screen("online/networking_lobby.stkgui")
     m_header_text_width = 0;
 
     m_back_widget = NULL;
+    //I18N: In the networking lobby
+    m_header_text = _("Lobby");
     m_header = NULL;
     m_text_bubble = NULL;
     m_timeout_message = NULL;
@@ -198,9 +201,7 @@ void NetworkingLobby::init()
     m_spectate_text = _("Spectate");
     m_install_addon_text = _("Install addon");
 
-    //I18N: In the networking lobby
-    setHeader(_("Lobby"));
-
+    setHeader(m_header_text);
     m_server_info_height = GUIEngine::getFont()->getDimension(L"X").Height;
     m_start_button->setVisible(false);
     m_config_button->setVisible(false);
@@ -257,6 +258,82 @@ void NetworkingLobby::init()
                 updatePlayers();
         }
     }
+#ifndef SERVER_ONLY
+    gui::IGUIStaticText* st =
+        m_text_bubble->getIrrlichtElement<gui::IGUIStaticText>();
+    st->setMouseCallback([](gui::IGUIStaticText* text, SEvent::SMouseInput mouse)->bool
+    {
+        if (mouse.Event == EMIE_LMOUSE_PRESSED_DOWN)
+        {
+            std::shared_ptr<std::u32string> s;
+            int glyph_idx = -1;
+            int cluster = text->getCluster(mouse.X, mouse.Y, &s, &glyph_idx);
+            if (cluster == -1 || (unsigned)cluster > s->size())
+                return false;
+            const std::vector<gui::GlyphLayout>& gls = text->getGlyphLayouts();
+            int start_cluster = -1;
+            const std::u32string ia = U"/installaddon ";
+            std::u32string url = gui::extractURLFromGlyphLayouts(gls,
+                glyph_idx, &start_cluster);
+            if (url.empty())
+                goto handle_player_message_copy;
+            if ((unsigned)start_cluster >= ia.size() &&
+                s->substr(start_cluster - (int)ia.size(), ia.size()) == ia)
+            {
+                AddonsPack::install(StringUtils::utf32ToUtf8(url));
+            }
+            else
+            {
+                Online::LinkHelper::openURL(StringUtils::utf32ToUtf8(url));
+            }
+            return true;
+handle_player_message_copy:
+            size_t start = s->substr(0, cluster).rfind(U'\n');
+            size_t end = s->substr(cluster, s->size()).find(U'\n');
+            if (start == std::string::npos)
+                start = 0;
+            else
+                start += 1; // Skip newline character
+            if (end == std::string::npos)
+                end = s->size();
+            else
+                end += cluster - start;
+
+            std::u32string substr = s->substr(start, end);
+            int local_pos = cluster - (int)start;
+            if ((size_t)local_pos > substr.size())
+                return false;
+            for (auto& p : NetworkingLobby::getInstance()->m_player_names)
+            {
+                size_t colon = substr.substr(0, local_pos).rfind(U": ");
+                if (colon == std::string::npos)
+                    continue;
+                std::u32string player_name = substr.substr(0, colon);
+                if (player_name.empty())
+                    continue;
+                int padding = 2;
+                // RTL handling
+                if (player_name[0] == 0x200F || player_name[0] == 0x200E)
+                {
+                    player_name = player_name.substr(1, player_name.size() - 1);
+                    padding++;
+                }
+                if (StringUtils::wideToUtf32(p.second.m_user_name)
+                    .find(player_name) != std::string::npos)
+                {
+                    GUIEngine::getGUIEnv()->getOSOperator()->copyToClipboard(
+                        StringUtils::utf32ToUtf8(
+                        substr.substr(player_name.size() + padding)).c_str());
+                    return true;
+                }
+            }
+            GUIEngine::getGUIEnv()->getOSOperator()->copyToClipboard(
+                StringUtils::utf32ToUtf8(substr).c_str());
+            return true;
+        }
+        return false;
+    });
+#endif
 }   // init
 
 // ----------------------------------------------------------------------------
@@ -265,10 +342,66 @@ void NetworkingLobby::addMoreServerInfo(core::stringw info)
 #ifndef SERVER_ONLY
     const unsigned box_width = m_text_bubble->getDimension().Width;
     const float box_height = m_text_bubble->getDimension().Height;
-    // For future copy text from lobby chat
-    std::vector<std::u32string> text_line;
     std::vector<GlyphLayout> cur_info;
-    font_manager->initGlyphLayouts(info, cur_info, &text_line);
+    font_manager->initGlyphLayouts(info, cur_info, gui::SF_DISABLE_CACHE |
+        gui::SF_ENABLE_CLUSTER_TEST);
+
+    // Highlight addon name from /installaddon
+    std::set<int> addon_names;
+    const std::u32string ia = U"/installaddon ";
+    size_t pos = 0;
+    std::shared_ptr<std::u32string> orig_str;
+    for (gui::GlyphLayout& gl : cur_info)
+    {
+        orig_str = gl.orig_string;
+        if (orig_str)
+            break;
+    }
+    if (!orig_str)
+        goto break_glyph_layouts;
+
+    pos = orig_str->find(ia, 0);
+    while (pos != std::u32string::npos)
+    {
+        size_t newline_pos = orig_str->find(U'\n', pos + ia.size());
+        size_t space_pos = orig_str->find(U' ', pos + ia.size());
+        size_t end_pos = std::u32string::npos;
+        if (newline_pos != std::u32string::npos ||
+            space_pos != std::u32string::npos)
+        {
+            if (space_pos > newline_pos)
+                end_pos = newline_pos;
+            else
+                end_pos = space_pos;
+        }
+        else
+            end_pos = orig_str->size();
+        std::u32string name = orig_str->substr(pos + ia.size(),
+            end_pos - pos - ia.size());
+        if (name.rfind(U"https://", 0) == 0 ||
+            name.rfind(U"http://", 0) == 0)
+        {
+            pos = orig_str->find(ia, pos + ia.size());
+            continue;
+        }
+        for (size_t p = pos + ia.size(); p < end_pos; p++)
+            addon_names.insert((int)p);
+        pos = orig_str->find(ia, pos + ia.size());
+    }
+
+    for (gui::GlyphLayout& gl : cur_info)
+    {
+        for (int c : gl.cluster)
+        {
+            if (addon_names.find(c) != addon_names.end())
+            {
+                gl.flags |= gui::GLF_URL;
+                continue;
+            }
+        }
+    }
+
+break_glyph_layouts:
     gui::IGUIFont* font = GUIEngine::getFont();
     gui::breakGlyphLayouts(cur_info, box_width,
         font->getInverseShaping(), font->getScale());
@@ -306,6 +439,27 @@ void NetworkingLobby::onUpdate(float delta)
     m_addon_install = NULL;
     if (NetworkConfig::get()->isServer() || !STKHost::existHost())
         return;
+
+    if (m_header->getText() != m_header_text)
+    {
+        m_header_text_width =
+            GUIEngine::getTitleFont()->getDimension(m_header_text.c_str()).Width;
+        m_header->getIrrlichtElement()->remove();
+        if (m_header_text_width > m_header->m_w)
+        {
+            m_header->setScrollSpeed(GUIEngine::getTitleFontHeight() / 2);
+            m_header->add();
+            m_header->setText(m_header_text, true);
+        }
+        else
+        {
+            m_header->setScrollSpeed(0);
+            m_header->add();
+            m_header->setText(m_header_text, true);
+        }
+        // Make sure server name is not clickable for URL
+        m_header->getIrrlichtElement<IGUIStaticText>()->setMouseCallback(nullptr);
+    }
 
     if (m_header_text_width > m_header->m_w)
     {
@@ -719,8 +873,13 @@ void NetworkingLobby::unloaded()
 // ----------------------------------------------------------------------------
 void NetworkingLobby::tearDown()
 {
+    gui::IGUIStaticText* st =
+        m_text_bubble->getIrrlichtElement<gui::IGUIStaticText>();
+    st->setMouseCallback(nullptr);
     m_player_list = NULL;
     m_joined_server.reset();
+    m_header_text = _("Lobby");
+    m_header_text_width = 0;
     // Server has a dummy network lobby too
     if (!NetworkConfig::get()->isClient())
         return;
@@ -734,6 +893,8 @@ bool NetworkingLobby::onEscapePressed()
     if (NetworkConfig::get()->isAddingNetworkPlayers())
         NetworkConfig::get()->cleanNetworkPlayers();
     m_joined_server.reset();
+    m_header_text = _("Lobby");
+    m_header_text_width = 0;
     input_manager->getDeviceManager()->mapFireToSelect(false);
     input_manager->getDeviceManager()->setAssignMode(NO_ASSIGN);
     STKHost::get()->shutdown();
@@ -878,25 +1039,9 @@ void NetworkingLobby::setStartingTimerTo(float t)
 }   // setStartingTimerTo
 
 // ----------------------------------------------------------------------------
-void NetworkingLobby::setHeader(const core::stringw& header)
+void NetworkingLobby::setJoinedServer(std::shared_ptr<Server> server)
 {
-    if (!m_header)
-        return;
-    if (m_header->getText() == header)
-        return;
-    m_header_text_width =
-        GUIEngine::getTitleFont()->getDimension(header.c_str()).Width;
-    m_header->getIrrlichtElement()->remove();
-    if (m_header_text_width > m_header->m_w)
-    {
-        m_header->setScrollSpeed(GUIEngine::getTitleFontHeight() / 2);
-        m_header->add();
-        m_header->setText(header, true);
-    }
-    else
-    {
-        m_header->setScrollSpeed(0);
-        m_header->add();
-        m_header->setText(header, true);
-    }
-}   // setHeader
+    m_joined_server = server;
+    m_server_info.clear();
+    m_header_text = _("Lobby");
+}   // setJoinedServer

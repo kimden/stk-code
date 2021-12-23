@@ -557,6 +557,7 @@ int FontWithFace::getCharacterFromPos(const wchar_t* text, int pixel_x,
  *  \param font_settings \ref FontSettings to use.
  *  \param char_collector \ref FontCharCollector to render billboard text.
  */
+#undef DEBUG_NEWLINE
 void FontWithFace::render(const std::vector<gui::GlyphLayout>& gl,
                           const core::rect<s32>& position,
                           const video::SColor& color, bool hcenter,
@@ -591,59 +592,17 @@ void FontWithFace::render(const std::vector<gui::GlyphLayout>& gl,
         font_settings->setShadow(true);
     }
 
-    core::position2d<float> offset(float(position.UpperLeftCorner.X),
-        float(position.UpperLeftCorner.Y));
-    core::dimension2d<s32> text_dimension;
-    auto width_per_line = gui::getGlyphLayoutsWidthPerLine(gl,
-        m_inverse_shaping, scale);
-    if (width_per_line.empty())
+    core::position2d<float> offset;
+    f32 next_line_height = 0.0f;
+    std::vector<f32> width_per_line;
+    if (!gui::getDrawOffset(position, hcenter, vcenter, gl, m_inverse_shaping,
+        m_font_max_height, m_glyph_max_height, scale, clip, &offset,
+        &next_line_height, &width_per_line))
         return;
-
-    bool too_long_broken_text = false;
-    float next_line_height = m_font_max_height * scale;
-    if (width_per_line.size() > 1 &&
-        width_per_line.size() * next_line_height > position.getHeight())
-    {
-        // Make too long broken text draw as fit as possible
-        next_line_height = (float)position.getHeight() / width_per_line.size();
-        too_long_broken_text = true;
-    }
-
-    // The offset must be round to integer when setting the offests
-    // or * m_inverse_shaping, so the glyph is drawn without blurring effects
-    if (hcenter || vcenter || clip)
-    {
-        text_dimension = gui::getGlyphLayoutsDimension(
-            gl, next_line_height, m_inverse_shaping, scale);
-
-        if (hcenter)
-        {
-            offset.X += (s32)(
-                (position.getWidth() - width_per_line[0]) / 2.0f);
-        }
-        if (vcenter)
-        {
-            if (too_long_broken_text)
-                offset.Y -= (s32)
-                    ((m_font_max_height - m_glyph_max_height) * scale);
-            else
-            {
-                offset.Y += (s32)(
-                    (position.getHeight() - text_dimension.Height) / 2.0f);
-            }
-        }
-        if (clip)
-        {
-            core::rect<s32> clippedRect(core::position2d<s32>
-                (s32(offset.X), s32(offset.Y)), text_dimension);
-            clippedRect.clipAgainst(*clip);
-            if (!clippedRect.isValid()) return;
-        }
-    }
 
     // Collect character locations
     const unsigned int text_size = gl.size();
-    std::vector<std::pair<s32, bool> > indices;
+    std::vector<std::pair<int, int> > indices;
     core::array<core::position2d<float>> offsets(text_size);
     std::vector<bool> fallback(text_size);
     core::array<core::position2d<float>> gld_offsets;
@@ -661,6 +620,21 @@ void FontWithFace::render(const std::vector<gui::GlyphLayout>& gl,
         const gui::GlyphLayout& glyph_layout = gl[i];
         if ((glyph_layout.flags & gui::GLF_NEWLINE) != 0)
         {
+#ifdef DEBUG_NEWLINE
+            if ((glyph_layout.flags & gui::GLF_BREAKTEXT_NEWLINE) != 0)
+            {
+                GL32_draw2DRectangle(video::SColor(255, 255, 50, 50),
+                    core::recti(offset.X, offset.Y, offset.X + 3,
+                    offset.Y + next_line_height));
+            }
+            else
+            {
+                GL32_draw2DRectangle(video::SColor(255, 50, 50, 255),
+                    core::recti(offset.X, offset.Y, offset.X + 3,
+                    offset.Y + next_line_height));
+            }
+#endif
+            offset.X = float(position.UpperLeftCorner.X);
             offset.Y += (s32)next_line_height;
             cur_line++;
             line_changed = true;
@@ -670,7 +644,6 @@ void FontWithFace::render(const std::vector<gui::GlyphLayout>& gl,
         {
             line_changed = false;
             rtl = (glyph_layout.flags & gui::GLF_RTL_LINE) != 0;
-            offset.X = float(position.UpperLeftCorner.X);
             if (hcenter)
             {
                 offset.X += (s32)(
@@ -746,8 +719,7 @@ void FontWithFace::render(const std::vector<gui::GlyphLayout>& gl,
             offset.Y -= glyph_offset_y;
         }
 
-        indices.emplace_back(area->spriteno,
-            (glyph_layout.flags & gui::GLF_COLORED) != 0);
+        indices.emplace_back(area->spriteno, glyph_layout.flags);
         if ((glyph_layout.flags & gui::GLF_QUICK_DRAW) != 0)
         {
             offset.X += glyph_layout.x_advance * scale;
@@ -902,7 +874,8 @@ void FontWithFace::render(const std::vector<gui::GlyphLayout>& gl,
             m_fallback_font->m_spritebank->getTexture(tex_id) :
             m_spritebank->getTexture(tex_id));
 
-        const bool is_colored = indices[n].second;
+        const bool is_colored = (indices[n].second & gui::GLF_COLORED) != 0;
+        const bool is_url = (indices[n].second & gui::GLF_URL) != 0;
         if (isBold())
         {
             if (char_collector != NULL)
@@ -927,8 +900,13 @@ void FontWithFace::render(const std::vector<gui::GlyphLayout>& gl,
             }
             else
             {
+                video::SColor single_color = color;
+                if (is_url)
+                    single_color = text_marked;
+                else if (is_colored)
+                    single_color = video::SColor(-1);
                 FontDrawer::addGlyph(texture, dest, source, clip,
-                    is_colored ? video::SColor(-1) : color);
+                    single_color);
             }
         }
     }

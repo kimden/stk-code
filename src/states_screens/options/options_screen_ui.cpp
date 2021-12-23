@@ -548,7 +548,7 @@ void OptionsScreenUI::eventCallback(Widget* widget, const std::string& name, con
     }
     else if(name == "custom_camera")
     {
-        new CustomCameraSettingsDialog(0.8f, 0.9f);
+        new CustomCameraSettingsDialog(0.8f, 0.95f);
     }
 #endif
 }   // eventCallback
@@ -583,8 +583,7 @@ void OptionsScreenUI::reloadGUIEngine()
         if (reload_font)
         {
             delete font_manager;
-            font_manager = new FontManager();
-            font_manager->loadFonts();
+            font_manager = new FontManager(); // Fonts are loaded in GUIEngine::init
             GUIEngine::init(irr_driver->getDevice(), irr_driver->getVideoDriver(),
                 StateManager::get(), false/*loading*/);
         }

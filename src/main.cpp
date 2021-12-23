@@ -686,6 +686,8 @@ void cmdLineHelp()
     "                           texture filtering.\n"
     "       --shadows=n         Set resolution of shadows (0 to disable).\n"
     "       --render-driver=n   Render driver to use (gl or directx9).\n"
+    "       --disable-addon-karts Disable loading of addon karts.\n"
+    "       --disable-addon-tracks Disable loading of addon tracks.\n"
     "       --dump-official-karts Dump official karts for current stk-assets.\n"
     "       --apitrace          This will disable buffer storage and\n"
     "                           writing gpu query strings to opengl, which\n"
@@ -736,7 +738,7 @@ void cmdDebugHelp()
     "       --rendering-debug           Enable displaying of ambient/diffuse/specularity\n"
     "                                   in RGB & all anisotropic.\n"
     "       --ai-debug                  Enable displaying of AI controllers as on-screen text.\n"
-    "                                   Makes it easier to distingush between different AI controllers.\n"
+    "                                   Makes it easier to distinguish between different AI controllers.\n"
     "       --fps-debug                 Enable verbose logging of the FPS counter on every frame.\n"
     "       --rewind                    Enable the rewind manager.\n"
     "       --battle-ai-stats           Enable verbose logging of AI karts in battle modes.\n"
@@ -999,6 +1001,11 @@ int handleCmdLinePreliminary()
         srand(n);
         Log::info("main", "STK using random seed (%d)", n);
     }
+
+    if (CommandLine::has("--disable-addon-karts"))
+        UserConfigParams::m_disable_addon_karts = true;
+    if (CommandLine::has("--disable-addon-tracks"))
+        UserConfigParams::m_disable_addon_tracks = true;
 
     return 0;
 }   // handleCmdLinePreliminary
@@ -1856,13 +1863,7 @@ void initRest()
         exit(0);
     }
 
-    // We need a temporary skin to load the font list from skin (if any)
-    GUIEngine::Skin* tmp_skin = new GUIEngine::Skin(NULL);
-    GUIEngine::setSkin(tmp_skin);
-    font_manager = new FontManager();
-    font_manager->loadFonts();
-    delete tmp_skin;
-    GUIEngine::setSkin(NULL);
+    font_manager = new FontManager(); // Fonts are loaded in GUIEngine::init
 
     input_manager = new InputManager();
 #ifdef __SWITCH__
@@ -1939,10 +1940,16 @@ void initRest()
     // The maximum texture size can not be set earlier, since
     // e.g. the background image needs to be loaded in high res.
     irr_driver->setMaxTextureSize();
-    KartPropertiesManager::addKartSearchDir(
-                 file_manager->getAddonsFile("karts/"));
-    track_manager->addTrackSearchDir(
-                 file_manager->getAddonsFile("tracks/"));
+    if (!UserConfigParams::m_disable_addon_karts)
+    {
+        KartPropertiesManager::addKartSearchDir(
+            file_manager->getAddonsFile("karts/"));
+    }
+    if (!UserConfigParams::m_disable_addon_tracks)
+    {
+        track_manager->addTrackSearchDir(
+            file_manager->getAddonsFile("tracks/"));
+    }
 
     {
         XMLNode characteristicsNode(file_manager->getAsset("kart_characteristics.xml"));
@@ -2401,6 +2408,22 @@ int main(int argc, char *argv[])
             }
             #endif
 
+            class DriverDialog :
+                  public MessageDialog::IConfirmDialogListener
+            {
+            public:
+                virtual void onConfirm()
+                {
+                    GUIEngine::ModalDialog::dismiss();
+                }   // onConfirm
+                // --------------------------------------------------------
+                virtual void onCancel()
+                {
+                    UserConfigParams::m_old_driver_popup = false;
+                    GUIEngine::ModalDialog::dismiss();
+                }   // onCancel
+            };   // DriverDialog
+
             if (GraphicsRestrictions::isDisabled(
                 GraphicsRestrictions::GR_DRIVER_RECENT_ENOUGH))
             {
@@ -2409,7 +2432,9 @@ int main(int argc, char *argv[])
                     MessageDialog *dialog =
                         new MessageDialog(_("Your driver version is too old. "
                                             "Please install the latest video "
-                                            "drivers."), /*from queue*/ true);
+                                            "drivers."),
+                        MessageDialog::MESSAGE_DIALOG_OK_DONTSHOWAGAIN,
+                        new DriverDialog(), /*delete_listener*/ true, /*from queue*/ true);
                     GUIEngine::DialogQueue::get()->pushDialog(dialog);
                 }
                 Log::warn("OpenGL", "Driver is too old!");
@@ -2429,7 +2454,9 @@ int main(int argc, char *argv[])
                         "check if an update is available. SuperTuxKart "
                         "recommends a driver supporting %s or better. The game "
                         "will likely still run, but in a reduced-graphics mode.",
-                        version), /*from queue*/ true);
+                        version),
+                        MessageDialog::MESSAGE_DIALOG_OK_DONTSHOWAGAIN,
+                        new DriverDialog(), /*delete_listener*/ true, /*from queue*/ true);
                     GUIEngine::DialogQueue::get()->pushDialog(dialog);
                 }
                 #endif

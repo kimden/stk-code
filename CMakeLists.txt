@@ -58,6 +58,10 @@ if((UNIX AND NOT APPLE) OR NINTENDO_SWITCH)
     include(FindPkgConfig)
 endif()
 
+if(IOS)
+    include(cmake/XcodeHelper.cmake)
+endif()
+
 if(APPLE AND NOT IOS)
     if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm")
 	set(ARCHFLAGS "arm64")
@@ -124,7 +128,11 @@ endif()
 
 set(STK_SOURCE_DIR "src")
 set(STK_DATA_DIR "${PROJECT_SOURCE_DIR}/data")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
+
+# CMAKE_RUNTIME_OUTPUT_DIRECTORY removes dSYMs in Xcode archive
+if(NOT CMAKE_GENERATOR MATCHES "Xcode")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
+endif()
 
 # Define install paths
 set(STK_INSTALL_BINARY_DIR "bin" CACHE
@@ -573,6 +581,15 @@ else()
             XCODE_ATTRIBUTE_INSTALL_PATH /Applications
             XCODE_ATTRIBUTE_SKIP_INSTALL No
             XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
+        if(CMAKE_GENERATOR MATCHES "Xcode")
+            get_all_targets(supertuxkart_targets ${CMAKE_CURRENT_LIST_DIR})
+            foreach(target IN LISTS supertuxkart_targets)
+                if (NOT target MATCHES "supertuxkart")
+                    set_target_properties(${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib$(EFFECTIVE_PLATFORM_NAME)/${target})
+                endif()
+                configure_xcode_defaults(${target})
+            endforeach()
+        endif()
     else()
         add_executable(supertuxkart ${STK_SOURCES} ${STK_RESOURCES} ${STK_HEADERS})
     endif()

@@ -55,6 +55,9 @@ private:
     /** Spinner for number of AI karts. */
     GUIEngine::SpinnerWidget* m_ai_kart_spinner;
 
+    /** Spinner for time target in Lap Trial */
+    GUIEngine::SpinnerWidget* m_time_target_spinner;
+
     /** List with last 5 highscores */
     GUIEngine::ListWidget* m_highscore_list;
 
@@ -108,6 +111,7 @@ public:
     virtual void onUpdate(float dt) OVERRIDE;
 
     void setGP(const std::string &gp_ident);
+    virtual void unloaded() OVERRIDE;
 };   // GPInfoScreen
 
 #endif

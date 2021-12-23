@@ -20,6 +20,7 @@
 #include "io/file_manager.hpp"
 #include "graphics/irr_driver.hpp"
 #include "guiengine/engine.hpp"
+#include "guiengine/widgets/CGUISTKListBox.hpp"
 #include "guiengine/widgets/icon_button_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
 #include "guiengine/widgets/list_widget.hpp"
@@ -63,7 +64,10 @@ ServerInfoDialog::ServerInfoDialog(std::shared_ptr<Server> server)
         (file_manager->getAsset(FileManager::GUI_ICON, "remove.png"));
 
     loadFromFile("online/server_info_dialog.stkgui");
-    getWidget<LabelWidget>("title")->setText(server->getName(), true);
+    LabelWidget* title = getWidget<LabelWidget>("title");
+    title->setText(server->getName(), true);
+    // Make sure server name is not clickable for URL
+    title->getIrrlichtElement<IGUIStaticText>()->setMouseCallback(nullptr);
 
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
@@ -280,7 +284,17 @@ void ServerInfoDialog::updateBookmarkStatus(bool change_bookmark)
             m_bookmark_widget->setImage(m_remove_icon);
         }
     }
+    GUIEngine::ListWidget* w =
+        ServerSelection::getInstance()->getServerList();
+    CGUISTKListBox* box = NULL;
+    if (w)
+        box = w->getIrrlichtElement<CGUISTKListBox>();
+    int old_pos = -1;
+    if (box)
+        old_pos = box->getScrollBar()->getPos();
     ServerSelection::getInstance()->copyFromServerList();
+    if (box)
+        box->getScrollBar()->setPos(old_pos);
 }   // updateBookmarkStatus
 
 // -----------------------------------------------------------------------------

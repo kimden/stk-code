@@ -252,8 +252,10 @@ public:
     void updateCheckLinesClient(const BareNetworkString& b);
     // ------------------------------------------------------------------------
     void handleServerCheckStructureCount(unsigned count);
-
+    // ------------------------------------------------------------------------
     void serverCheckForWrongDirection(unsigned int i, float dt);
+    // ------------------------------------------------------------------------
+    virtual bool showLapsTarget() OVERRIDE { return true; }
 };   // LinearWorld
 
 #endif

@@ -56,6 +56,7 @@ private:
     /** Finite state machine for the animations:
         INIT:            Set up data structures.
         RACE_RESULT:     The rows scroll into place.
+        WAITING_GP_RESULT: Waiting for user pressing continue button
         OLD_GP_TABLE:    Scroll new table into place, sorted by previous
                          GP ranks
         INCREASE_POINTS: The overall points are added up
@@ -65,6 +66,7 @@ private:
                          wii automatically end. */
     enum                       {RR_INIT,
                                 RR_RACE_RESULT,
+                                RR_WAITING_GP_RESULT,
                                 RR_OLD_GP_RESULTS,
                                 RR_INCREASE_POINTS,
                                 RR_RESORT_TABLE,
@@ -74,6 +76,8 @@ private:
     class RowInfo
     {
     public:
+        /** Kart ID in World */
+        unsigned int     m_kart_id;
         /** Start time for each line of the animation. */
         float            m_start_at;
         /** Currenct X position. */
@@ -93,6 +97,8 @@ private:
         float            m_new_points;
         /** New overall points after this race. */
         int              m_new_overall_points;
+        /** New GP rank after this race. */
+        int              m_new_gp_rank;
         /** When updating the number of points in the display, this is the
             currently displayed number of points. This is a floating point number
             since it stores the increments during increasing the points. */
@@ -107,7 +113,7 @@ private:
 
     /** The team icons. */
 
-    std::vector<RowInfo>       m_all_row_infos;
+    std::vector<RowInfo>       m_all_row_infos, m_all_row_info_waiting;
 
     /** Time to wait till the next row starts to be animated. */
     float                      m_time_between_rows;

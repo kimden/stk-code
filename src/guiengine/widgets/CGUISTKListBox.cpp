@@ -590,6 +590,8 @@ void CGUISTKListBox::draw()
                         int text_width = (textRect.LowerRightCorner.X - textRect.UpperLeftCorner.X);
                         Font->initGlyphLayouts(Items[i].m_contents[x].m_text,
                             Items[i].m_contents[x].m_glyph_layouts);
+                        // Remove highlighted link if cache already has it
+                        gui::removeHighlightedURL(Items[i].m_contents[x].m_glyph_layouts);
                         if (Items[i].m_word_wrap)
                         {
                             gui::breakGlyphLayouts(Items[i].m_contents[x].m_glyph_layouts,

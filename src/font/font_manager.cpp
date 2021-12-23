@@ -264,7 +264,7 @@ namespace LineBreakingRules
 /* Turn text into glyph layout for rendering by libraqm. */
 void FontManager::shape(const std::u32string& text,
                         std::vector<irr::gui::GlyphLayout>& gls,
-                        std::vector<std::u32string>* line_data)
+                        u32 shape_flag)
 {
     // Helper struct
     struct ShapeGlyph
@@ -301,6 +301,88 @@ void FontManager::shape(const std::u32string& text,
     if (text.back() == U'\n')
         lines.push_back(U"");
 
+    // URL marker
+    std::vector<std::pair<int, int> > http_pos;
+    auto fix_end_pos = [](const std::u32string& url, size_t start_pos,
+                          size_t pos)->size_t
+    {
+        // https:// has 8 characters, shortest URL has 3 characters (like t.me)
+        // so 8 is valid for http:// too
+        size_t next_forward_slash = url.find(U'/', start_pos + 8);
+        if (next_forward_slash > pos)
+            next_forward_slash = std::string::npos;
+
+        // Tested in gnome terminal, URL ends with 0-9, aA-zZ, /- or ~:_=#$%&'+@*]) only
+        // ~:_=#$%&'+@*]) will not be highlighted unless it's after / (forward slash)
+        // We assume the URL is valid so we only test ]) instead of ([ blah ])
+        std::u32string valid_end_characters = U"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/-";
+        std::u32string valid_end_characters_extra = U"~:_=#$%&'+@*])";
+        if (next_forward_slash != std::string::npos)
+            valid_end_characters += valid_end_characters_extra;
+
+        while (pos > 1)
+        {
+            char32_t url_char = url[pos - 1];
+            for (char32_t valid_char : valid_end_characters)
+            {
+                if (valid_char == url_char)
+                    return pos;
+            }
+            pos--;
+        }
+        return 0;
+    };
+
+    // Auto URL highlighting for http:// or https://
+    size_t pos = text.find(U"http://", 0);
+    while (pos != std::u32string::npos)
+    {
+        // Find nearest newline or whitespace
+        size_t newline_pos = text.find(U'\n', pos + 1);
+        size_t space_pos = text.find(U' ', pos + 1);
+        size_t end_pos = std::u32string::npos;
+        if (newline_pos != std::u32string::npos ||
+            space_pos != std::u32string::npos)
+        {
+            if (space_pos > newline_pos)
+                end_pos = newline_pos;
+            else
+                end_pos = space_pos;
+        }
+        else
+            end_pos = text.size();
+        end_pos = fix_end_pos(text, pos, end_pos);
+        http_pos.emplace_back((int)pos, (int)end_pos);
+        pos = text.find(U"http://", pos + 1);
+    }
+    pos = text.find(U"https://", 0);
+    while (pos != std::u32string::npos)
+    {
+        size_t newline_pos = text.find(U'\n', pos + 1);
+        size_t space_pos = text.find(U' ', pos + 1);
+        size_t end_pos = std::u32string::npos;
+        if (newline_pos != std::u32string::npos ||
+            space_pos != std::u32string::npos)
+        {
+            if (space_pos > newline_pos)
+                end_pos = newline_pos;
+            else
+                end_pos = space_pos;
+        }
+        else
+            end_pos = text.size();
+        end_pos = fix_end_pos(text, pos, end_pos);
+        http_pos.emplace_back((int)pos, (int)end_pos);
+        pos = text.find(U"https://", pos + 1);
+    }
+
+    bool save_orig_string = (shape_flag & gui::SF_ENABLE_CLUSTER_TEST) != 0;
+    if (!http_pos.empty())
+        save_orig_string = true;
+
+    int start = 0;
+    std::shared_ptr<std::u32string> orig_string =
+        std::make_shared<std::u32string>(text);
     for (unsigned l = 0; l < lines.size(); l++)
     {
         std::vector<ShapeGlyph> glyphs;
@@ -312,12 +394,9 @@ void FontManager::shape(const std::u32string& text,
         }
 
         std::u32string& str = lines[l];
-        str.erase(std::remove(str.begin(), str.end(), U'\r'), str.end());
-        str.erase(std::remove(str.begin(), str.end(), U'\t'), str.end());
         if (str.empty())
         {
-            if (line_data)
-                line_data->push_back(str);
+            start += 1;
             continue;
         }
 
@@ -501,6 +580,10 @@ void FontManager::shape(const std::u32string& text,
             translations->insertThaiBreakMark(str, breakable);
             for (unsigned idx = 0; idx < glyphs.size(); idx++)
             {
+                // Skip some control characters
+                if (str[glyphs[idx].cluster] == U'\t' ||
+                    str[glyphs[idx].cluster] == U'\r')
+                    continue;
                 gui::GlyphLayout gl = { 0 };
                 gl.index = glyphs[idx].index;
                 gl.cluster.push_back(glyphs[idx].cluster);
@@ -515,6 +598,8 @@ void FontManager::shape(const std::u32string& text,
                     gl.flags |= gui::GLF_RTL_CHAR;
                 if (FT_HAS_COLOR(glyphs[idx].ftface))
                     gl.flags |= gui::GLF_COLORED;
+                if (save_orig_string)
+                    gl.orig_string = orig_string;
                 cur_line.push_back(gl);
             }
             // Sort glyphs in logical order
@@ -560,11 +645,22 @@ void FontManager::shape(const std::u32string& text,
                 int last_cluster = gl.cluster.back();
                 if (breakable[last_cluster])
                     gl.flags |= gui::GLF_BREAKABLE;
+                // Add start offset to clusters
+                for (int& each_cluster : gl.cluster)
+                {
+                    each_cluster += start;
+                    for (auto& p : http_pos)
+                    {
+                        if (each_cluster >= p.first &&
+                            each_cluster < p.second)
+                            gl.flags |= gui::GLF_URL;
+                    }
+                }
             }
             gls.insert(gls.end(), cur_line.begin(), cur_line.end());
-            if (line_data)
-                line_data->push_back(str);
         }
+        // Next str will have a newline
+        start += str.size() + 1;
     }
 }   // shape
 
@@ -586,28 +682,25 @@ std::vector<irr::gui::GlyphLayout>&
 }   // getCachedLayouts
 
 // ----------------------------------------------------------------------------
-/** Convert text to glyph layouts for fast rendering with caching enabled
- *  If line_data is not null, each broken line u32string will be saved and
- *  can be used for advanced glyph and text mapping, and cache will be
- *  disabled, no newline characters are allowed in text if line_data is not
- *  NULL.
+/** Convert text to glyph layouts for fast rendering with (optional) caching
+ *  enabled.
  */
 void FontManager::initGlyphLayouts(const core::stringw& text,
                                    std::vector<irr::gui::GlyphLayout>& gls,
-                                   std::vector<std::u32string>* line_data)
+                                   u32 shape_flag)
 {
     if (GUIEngine::isNoGraphics() || text.empty())
         return;
 
-    if (line_data != NULL)
+    if ((shape_flag & gui::SF_DISABLE_CACHE) != 0)
     {
-        shape(StringUtils::wideToUtf32(text), gls, line_data);
+        shape(StringUtils::wideToUtf32(text), gls, shape_flag);
         return;
     }
 
     auto& cached_gls = getCachedLayouts(text);
     if (cached_gls.empty())
-        shape(StringUtils::wideToUtf32(text), cached_gls);
+        shape(StringUtils::wideToUtf32(text), cached_gls, shape_flag);
     gls = cached_gls;
 }   // initGlyphLayouts
 

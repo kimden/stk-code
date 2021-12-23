@@ -79,6 +79,7 @@
 #include "tracks/track_manager.hpp"
 #include "tracks/track.hpp"
 #include "utils/constants.hpp"
+#include "utils/file_utils.hpp"
 #include "utils/log.hpp"
 #include "utils/profiler.hpp"
 #include "utils/string_utils.hpp"
@@ -1054,8 +1055,7 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
         SP::loadShaders();
 #endif
 
-    font_manager = new FontManager();
-    font_manager->loadFonts();
+    font_manager = new FontManager(); // Fonts are loaded in GUIEngine::init
 
     input_manager = new InputManager();
     input_manager->setMode(InputManager::MENU);
@@ -2197,8 +2197,10 @@ void IrrDriver::setRecording(bool val)
             timeInfo->tm_year + 1900, timeInfo->tm_mon + 1,
             timeInfo->tm_mday, timeInfo->tm_hour,
             timeInfo->tm_min, timeInfo->tm_sec);
-        ogrSetSavedName((file_manager->getScreenshotDir() +
-            track_name + "_" + time_buffer).c_str());
+        std::string portable_path = FileUtils::getPortableWritingPath(
+            file_manager->getScreenshotDir());
+        ogrSetSavedName(
+            (portable_path + track_name + "_" + time_buffer).c_str());
         ogrPrepareCapture();
     }
     else

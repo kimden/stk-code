@@ -78,14 +78,14 @@ void GPInfoScreen::loadedFromFile()
     m_reverse_spinner->addLabel(_("None"));
     m_reverse_spinner->addLabel(_("All"));
     m_reverse_spinner->addLabel(_("Random"));
-    m_reverse_spinner->setValue(0);
 
     m_num_tracks_spinner = getWidget<SpinnerWidget>("track-spinner");
     // Only init the number of tracks here, this way the previously selected
     // number of tracks will be the default.
-    m_num_tracks_spinner->setValue(1);
 
     m_ai_kart_spinner = getWidget<SpinnerWidget>("ai-spinner");
+
+    m_time_target_spinner = getWidget<SpinnerWidget>("time-target-spinner");
     
     GUIEngine::IconButtonWidget* screenshot = getWidget<IconButtonWidget>("screenshot");
     screenshot->setFocusable(false);
@@ -101,6 +101,7 @@ void GPInfoScreen::loadedFromFile()
     }
     video::ITexture* kart_not_found = irr_driver->getTexture(file_manager->getAsset(FileManager::GUI_ICON, "random_kart.png"));
     m_unknown_kart_icon = m_icon_bank->addTextureAsSprite(kart_not_found);
+
     
 }   // loadedFromFile
 
@@ -190,6 +191,11 @@ void GPInfoScreen::init()
     getWidget<LabelWidget  >("group-text"   )->setVisible(random);
     m_group_spinner->setVisible(random);
 
+    m_time_target_spinner->setVisible(RaceManager::get()->isLapTrialMode());
+    getWidget<LabelWidget>("time-target-text")->setVisible(RaceManager::get()->isLapTrialMode());
+    if (RaceManager::get()->isLapTrialMode())
+        m_time_target_spinner->setValue(UserConfigParams::m_lap_trial_time_limit);
+
     // Number of AIs
     // -------------
     const bool has_AI = RaceManager::get()->hasAI();
@@ -215,6 +221,8 @@ void GPInfoScreen::init()
         m_ai_kart_spinner->setMax(stk_config->m_max_karts - local_players);
         m_ai_kart_spinner->setMin(min_ai);
     }   // has_AI
+
+    m_reverse_spinner->setValue( UserConfigParams::m_gp_reverse );
 
     if(random)
     {
@@ -246,6 +254,7 @@ void GPInfoScreen::init()
         else
             m_group_name = stringc(m_group_names[m_group_spinner->getValue()].c_str()).c_str();
 
+        m_num_tracks_spinner->setValue( UserConfigParams::m_rand_gp_num_tracks );
         m_max_num_tracks = getMaxNumTracks(m_group_name);
 
         m_num_tracks_spinner->setMax(m_max_num_tracks);
@@ -349,6 +358,11 @@ void GPInfoScreen::eventCallback(Widget *, const std::string &name,
             RaceManager::get()->setNumKarts(local_players + num_ai);
             UserConfigParams::m_num_karts_per_gamemode[RaceManager::MAJOR_MODE_GRAND_PRIX] = local_players + num_ai;
             
+            if (RaceManager::get()->isLapTrialMode())
+            {
+                RaceManager::get()->setGPTimeTarget(static_cast<int>(m_time_target_spinner->getValue()) * 60);
+            }
+
             m_gp.changeReverse(getReverse());
             RaceManager::get()->startGP(m_gp, false, false);
         }
@@ -377,7 +391,9 @@ void GPInfoScreen::eventCallback(Widget *, const std::string &name,
     }
     else if (name=="track-spinner")
     {
-        m_gp.changeTrackNumber(m_num_tracks_spinner->getValue(), m_group_name);
+        const int num_tranks = m_num_tracks_spinner->getValue();
+        m_gp.changeTrackNumber(num_tranks, m_group_name);
+        UserConfigParams::m_rand_gp_num_tracks = num_tranks;
         addTracks();
     }
     else if (name=="ai-spinner")
@@ -393,6 +409,13 @@ void GPInfoScreen::eventCallback(Widget *, const std::string &name,
     }
     else if(name=="reverse-spinner")
     {
+        const int reverse = m_reverse_spinner->getValue();
+        UserConfigParams::m_gp_reverse = reverse;
+        updateHighscores();
+    }
+    else if(name == "time-target-spinner")
+    {
+        UserConfigParams::m_lap_trial_time_limit = m_time_target_spinner->getValue();
         updateHighscores();
     }
 
@@ -468,12 +491,13 @@ void GPInfoScreen::updateHighscores()
     if(m_gp.isRandomGP())
         return;
     const Highscores::HighscoreType type = "HST_GRANDPRIX";
-    Highscores* highscores = highscore_manager->getHighscores(type, 
-                                                              RaceManager::get()->getNumberOfKarts(),
-                                                              RaceManager::get()->getDifficulty(),
-                                                              m_gp.getId(),
-                                                              0,
-                                                              getReverse() == GrandPrixData::GP_ALL_REVERSE);
+    Highscores* highscores = highscore_manager->getGPHighscores(
+                                                                RaceManager::get()->getNumberOfKarts(),
+                                                                RaceManager::get()->getDifficulty(),
+                                                                m_gp.getId(),
+                                                                RaceManager::get()->isLapTrialMode() ? m_time_target_spinner->getValue() * 60 : 0,
+                                                                getReverse(),
+                                                                RaceManager::get()->getMinorMode());
     m_highscore_list->clear();
     int count = highscores->getNumberEntries();
     std::string kart;
@@ -486,7 +510,13 @@ void GPInfoScreen::updateHighscores()
         if(i < count)
         {
             highscores->getEntry(i, kart, name, &time);
-            std::string time_string = StringUtils::timeToString(time);
+
+            std::string highscore_string;
+            if (RaceManager::get()->isLapTrialMode())
+                highscore_string = std::to_string(static_cast<int>(time));
+            else
+                highscore_string = StringUtils::timeToString(time);
+
             for(unsigned int n=0; n<kart_properties_manager->getNumberOfKarts(); n++)
             {
                 const KartProperties* prop = kart_properties_manager->getKartById(n);
@@ -496,7 +526,7 @@ void GPInfoScreen::updateHighscores()
                     break;
                 }
             }
-            line = name + "    " + irr::core::stringw(time_string.c_str());
+            line = name + "    " + irr::core::stringw(highscore_string.c_str());
         }
         else
         {
@@ -511,3 +541,10 @@ void GPInfoScreen::updateHighscores()
         m_highscore_list->addItem(StringUtils::toString(i),row);
     }
 }   // updateHighscores
+
+// -----------------------------------------------------------------------
+void GPInfoScreen::unloaded()
+{
+    delete m_icon_bank;
+    m_icon_bank = NULL;
+}   // unloaded

@@ -7,15 +7,24 @@
 
 #include "irrTypes.h"
 #include "dimension2d.h"
+#include "rect.h"
 
 #include <algorithm>
+#include <memory>
 #include <numeric>
+#include <string>
 #include <vector>
 
 namespace irr
 {
 namespace gui
 {
+
+enum ShapeFlag
+{
+SF_DISABLE_CACHE = 1, /* Disable caching glyph layouts. */
+SF_ENABLE_CLUSTER_TEST = 2, /* If on getCluster will work on these layouts, which the original string will be stored, it will be turned on too if any URL is found. */
+};
 
 enum GlyphLayoutFlag
 {
@@ -24,7 +33,9 @@ GLF_RTL_CHAR = 2, /* This character(s) from this glyph is RTL. */
 GLF_BREAKABLE = 4, /* This glyph is breakable when line breaking. */
 GLF_QUICK_DRAW = 8, /* This glyph is not created by libraqm, which get x_advance_x directly from font. */
 GLF_NEWLINE = 16, /* This glyph will start a newline. */
-GLF_COLORED = 32 /* This glyph is a colored one (for example emoji). */
+GLF_COLORED = 32, /* This glyph is a colored one (for example emoji). */
+GLF_URL = 64, /* This glyph contains clickable url (https or http atm). */
+GLF_BREAKTEXT_NEWLINE = 128 /* Newline added via breakGlyphLayouts. */
 };
 
 enum GlyphLayoutDraw
@@ -51,6 +62,8 @@ u32 original_index;
 u16 flags;
 //! this is the face_idx used in stk face ttf
 u16 face_idx;
+//! original string, which is used to map with cluster above
+std::shared_ptr<std::u32string> orig_string;
 };
 
 namespace Private
@@ -226,6 +239,17 @@ inline void breakGlyphLayouts(std::vector<GlyphLayout>& gls, f32 max_line_width,
 {
     if (gls.size() < 2)
         return;
+    auto it = gls.begin();
+    while (it != gls.end())
+    {
+        if ((it->flags & GLF_BREAKTEXT_NEWLINE) != 0)
+        {
+            it = gls.erase(it);
+            continue;
+        }
+        it++;
+    }
+
     std::vector<std::vector<GlyphLayout> > broken_line;
     u32 start = 0;
     for (u32 i = 0; i < gls.size(); i++)
@@ -233,12 +257,13 @@ inline void breakGlyphLayouts(std::vector<GlyphLayout>& gls, f32 max_line_width,
         GlyphLayout& glyph = gls[i];
         if ((glyph.flags & GLF_NEWLINE) != 0)
         {
-            Private::breakLine({ gls.begin() + start, gls.begin() + i},
+            Private::breakLine({ gls.begin() + start, gls.begin() + i },
                 max_line_width, inverse_shaping, scale, broken_line);
             start = i + 1;
+            broken_line.push_back(std::vector<GlyphLayout>());
         }
     }
-    if (start - gls.size() - 1 > 0)
+    if (gls.size() > start)
     {
         Private::breakLine({ gls.begin() + start, gls.begin() + gls.size() },
             max_line_width, inverse_shaping, scale, broken_line);
@@ -248,12 +273,6 @@ inline void breakGlyphLayouts(std::vector<GlyphLayout>& gls, f32 max_line_width,
     // Sort glyphs in original order
     for (u32 i = 0; i < broken_line.size(); i++)
     {
-        if (i != 0)
-        {
-            gui::GlyphLayout gl = { 0 };
-            gl.flags = gui::GLF_NEWLINE;
-            gls.push_back(gl);
-        }
         auto& line = broken_line[i];
         std::sort(line.begin(), line.end(), []
             (const irr::gui::GlyphLayout& a_gi,
@@ -263,7 +282,158 @@ inline void breakGlyphLayouts(std::vector<GlyphLayout>& gls, f32 max_line_width,
             });
         for (auto& glyph : line)
             gls.push_back(glyph);
+        if (i != broken_line.size() - 1)
+        {
+            gui::GlyphLayout gl = { 0 };
+            gl.flags = gui::GLF_NEWLINE | gui::GLF_BREAKTEXT_NEWLINE;
+            if (broken_line.at(i + 1).empty())
+            {
+                gl.flags &= ~gui::GLF_BREAKTEXT_NEWLINE;
+                i += 1;
+            }
+            gls.push_back(gl);
+        }
     }
+}
+
+inline bool getDrawOffset(const core::rect<s32>& position, bool hcenter,
+                          bool vcenter, const std::vector<GlyphLayout>& gls,
+                          f32 inverse_shaping, s32 font_max_height,
+                          s32 glyph_max_height, f32 scale,
+                          const core::rect<s32>* clip,
+                          core::position2d<f32>* out_offset,
+                          f32* out_next_line_height,
+                          std::vector<f32>* out_width_per_line)
+{
+    core::position2d<f32> offset(f32(position.UpperLeftCorner.X),
+        f32(position.UpperLeftCorner.Y));
+    core::dimension2d<s32> text_dimension;
+    std::vector<f32> width_per_line = gui::getGlyphLayoutsWidthPerLine(gls,
+        inverse_shaping, scale);
+    if (width_per_line.empty())
+        return false;
+
+    bool too_long_broken_text = false;
+    f32 next_line_height = font_max_height * scale;
+    if (width_per_line.size() > 1 &&
+        width_per_line.size() * next_line_height > position.getHeight())
+    {
+        // Make too long broken text draw as fit as possible
+        next_line_height = (f32)position.getHeight() / width_per_line.size();
+        too_long_broken_text = true;
+    }
+
+    // The offset must be round to integer when setting the offests
+    // or * inverse_shaping, so the glyph is drawn without blurring effects
+    if (hcenter || vcenter || clip)
+    {
+        text_dimension = gui::getGlyphLayoutsDimension(
+            gls, next_line_height, inverse_shaping, scale);
+
+        if (hcenter)
+        {
+            offset.X += (s32)(
+                (position.getWidth() - width_per_line[0]) / 2.0f);
+        }
+        if (vcenter)
+        {
+            if (too_long_broken_text)
+                offset.Y -= (s32)
+                    ((font_max_height - glyph_max_height) * scale);
+            else
+            {
+                offset.Y += (s32)(
+                    (position.getHeight() - text_dimension.Height) / 2.0f);
+            }
+        }
+        if (clip)
+        {
+            core::rect<s32> clippedRect(core::position2d<s32>
+                (s32(offset.X), s32(offset.Y)), text_dimension);
+            clippedRect.clipAgainst(*clip);
+            if (!clippedRect.isValid())
+                return false;
+        }
+    }
+    *out_offset = offset;
+    *out_next_line_height = next_line_height;
+    *out_width_per_line = width_per_line;
+    return true;
+}
+
+inline void removeHighlightedURL(std::vector<GlyphLayout>& gls)
+{
+    for (GlyphLayout& gl : gls)
+        gl.flags &= ~gui::GLF_URL;
+}
+
+inline int getGlyphIndexFromCluster(const std::vector<GlyphLayout>& gls, int cluster, std::shared_ptr<std::u32string> orig_string_in_gls = nullptr)
+{
+    if (gls.empty())
+        return -1;
+    if (!orig_string_in_gls)
+        orig_string_in_gls = gls[0].orig_string;
+    if (!orig_string_in_gls)
+        return -1;
+    for (int i = 0; i < (int)gls.size(); i++)
+    {
+        const GlyphLayout& gl = gls[i];
+        if (gl.orig_string != orig_string_in_gls)
+            continue;
+        if ((gl.flags & gui::GLF_NEWLINE) != 0)
+            continue;
+        for (int c : gl.cluster)
+        {
+            if (c == cluster)
+                return i;
+        }
+    }
+    return -1;
+}
+
+inline std::u32string extractURLFromGlyphLayouts(const std::vector<GlyphLayout>& gls, unsigned url_glyph, int* start_cluster = NULL)
+{
+    if (gls.empty() || url_glyph >= gls.size())
+        return U"";
+
+    const gui::GlyphLayout& gl = gls[url_glyph];
+    if ((gl.flags & gui::GLF_URL) == 0 || !gl.orig_string || gl.cluster.empty())
+        return U"";
+
+    std::shared_ptr<std::u32string> orig_string_in_gls = gl.orig_string;
+    int start = gl.cluster.back();
+    while (start != 0)
+    {
+        char32_t ch = (*orig_string_in_gls)[start - 1];
+        if (ch == U'\n' || ch == U'\t' || ch == U'\r')
+            break;
+        int gi = getGlyphIndexFromCluster(gls, start - 1, orig_string_in_gls);
+        if (gi == -1 || gi >= (int)gls.size())
+            return U"";
+        const gui::GlyphLayout& cur_gl = gls[gi];
+        if ((cur_gl.flags & gui::GLF_URL) == 0)
+            break;
+        start--;
+    }
+    int end = gl.cluster.front();
+    while ((int)orig_string_in_gls->size() - end > 1)
+    {
+        size_t next_end = end + 1;
+        char32_t ch = (*orig_string_in_gls)[next_end];
+        if (ch == U'\n' || ch == U'\t' || ch == U'\r')
+            break;
+        int gi = getGlyphIndexFromCluster(gls, next_end, orig_string_in_gls);
+        if (gi == -1 || gi >= (int)gls.size())
+            return U"";
+        const gui::GlyphLayout& cur_gl = gls[gi];
+        if ((cur_gl.flags & gui::GLF_URL) == 0)
+            break;
+        end = next_end;
+    }
+    std::u32string url = orig_string_in_gls->substr(start, end - start + 1);
+    if (start_cluster)
+        *start_cluster = start;
+    return url;
 }
 
 namespace Private

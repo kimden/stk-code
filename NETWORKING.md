@@ -95,6 +95,12 @@ The current server configuration xml looks like this (this is only an example, j
 
     <!-- Time to wait before entering kart selection screen if satisfied min-start-game-players below for owner less or ranked server. -->
     <start-game-counter value="60" />
+    
+    <!-- If this value is set to true, a message is send to everybody if a player makes a teammate explode. -->
+    <show-teammate-hits value="false" />
+
+    <!-- Punish teammate hits? If set to true players get an anvil when they hit teammates. -->
+    <teammate-hit-mode value="false" />
 
     <!-- Clients below this value will be rejected from joining this server. It's determined by number of official karts in client / number of official karts in server -->
     <official-karts-threshold value="1" />

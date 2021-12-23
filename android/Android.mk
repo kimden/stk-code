@@ -4,91 +4,91 @@ include $(CLEAR_VARS)
 
 # OpenAL
 LOCAL_MODULE := openal
-LOCAL_SRC_FILES := obj/openal/libopenal.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/openal/libopenal.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # OGG
 LOCAL_MODULE := ogg
-LOCAL_SRC_FILES := obj/libogg/libogg.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/libogg/libogg.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # Vorbis
 LOCAL_MODULE := vorbis
-LOCAL_SRC_FILES := obj/libvorbis/lib/libvorbis.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/libvorbis/lib/libvorbis.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # Vorbisfile
 LOCAL_MODULE := vorbisfile
-LOCAL_SRC_FILES := obj/libvorbis/lib/libvorbisfile.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/libvorbis/lib/libvorbisfile.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # CURL
 LOCAL_MODULE := curl
-LOCAL_SRC_FILES := obj/curl/lib/libcurl.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/curl/lib/libcurl.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # libmbedtls
 LOCAL_MODULE := libmbedtls
-LOCAL_SRC_FILES := obj/mbedtls/library/libmbedtls.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/mbedtls/library/libmbedtls.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # libmbedcrypto
 LOCAL_MODULE := libmbedcrypto
-LOCAL_SRC_FILES := obj/mbedtls/library/libmbedcrypto.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/mbedtls/library/libmbedcrypto.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # libmbedx509
 LOCAL_MODULE := libmbedx509
-LOCAL_SRC_FILES := obj/mbedtls/library/libmbedx509.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/mbedtls/library/libmbedx509.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # JPEG
 LOCAL_MODULE := libjpeg
-LOCAL_SRC_FILES := obj/libjpeg/libjpeg.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/libjpeg/libjpeg.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # zlib
 LOCAL_MODULE := zlib
-LOCAL_SRC_FILES := obj/zlib/libz.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/zlib/libz.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # PNG
 LOCAL_MODULE := png
-LOCAL_SRC_FILES := obj/libpng/libpng.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/libpng/libpng.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # Freetype
 LOCAL_MODULE := freetype
-LOCAL_SRC_FILES := obj/freetype/build/libfreetype.a
+LOCAL_SRC_FILES := deps-$(TARGET_ARCH_ABI)/freetype/build/libfreetype.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
 # Harfbuzz
 LOCAL_MODULE       := harfbuzz
-LOCAL_SRC_FILES    := obj/harfbuzz/build/libharfbuzz.a
+LOCAL_SRC_FILES    := deps-$(TARGET_ARCH_ABI)/harfbuzz/build/libharfbuzz.a
 include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -98,6 +98,11 @@ LOCAL_MODULE    := ifaddrs
 LOCAL_PATH      := .
 LOCAL_SRC_FILES := ../lib/ifaddrs/ifaddrs.c
 LOCAL_CFLAGS    := -I../lib/ifaddrs
+# Starting NDK21 it enables NEON by default on 32-bit ARM target
+# Disable it to support more phones
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON  := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -109,6 +114,9 @@ LOCAL_CPP_FEATURES += rtti exceptions
 LOCAL_SRC_FILES    := $(wildcard ../lib/angelscript/source/*.S)   \
                       $(wildcard ../lib/angelscript/source/*.cpp)
 LOCAL_CFLAGS       := -I../lib/angelscript/source/
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -119,6 +127,9 @@ LOCAL_PATH         := .
 LOCAL_CPP_FEATURES += rtti
 LOCAL_SRC_FILES    := $(wildcard ../lib/enet/*.c)
 LOCAL_CFLAGS       := -I../lib/enet/include/ -DHAS_SOCKLEN_T -DENABLE_IPV6
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -130,6 +141,9 @@ LOCAL_CPP_FEATURES += rtti
 LOCAL_SRC_FILES    := $(wildcard ../lib/bullet/src/*/*.cpp)   \
                       $(wildcard ../lib/bullet/src/*/*/*.cpp)
 LOCAL_CFLAGS       := -I../lib/bullet/src/
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -140,6 +154,9 @@ LOCAL_PATH         := .
 LOCAL_CPP_FEATURES += rtti
 LOCAL_SRC_FILES    := $(wildcard ../lib/graphics_utils/mipmap/*.c)
 LOCAL_CFLAGS       := -I../lib/graphics_utils/mipmap
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -153,6 +170,9 @@ LOCAL_SRC_FILES    := $(wildcard ../lib/graphics_engine/src/*.c) \
 LOCAL_CFLAGS       := -I../lib/graphics_engine/include \
                       -I../lib/sdl2/include/           \
                       -I../lib/irrlicht/include/
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -163,6 +183,9 @@ LOCAL_PATH         := .
 LOCAL_CPP_FEATURES += rtti
 LOCAL_SRC_FILES    := $(wildcard ../lib/mcpp/*.c)
 LOCAL_CFLAGS       := -DMCPP_LIB -DHAVE_CONFIG_H
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -173,6 +196,9 @@ LOCAL_PATH         := .
 LOCAL_CPP_FEATURES += rtti
 LOCAL_SRC_FILES    := $(wildcard ../lib/sheenbidi/Source/*.c)
 LOCAL_CFLAGS       := -I../lib/sheenbidi/Headers
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -183,6 +209,9 @@ LOCAL_PATH         := .
 LOCAL_CPP_FEATURES += rtti exceptions
 LOCAL_SRC_FILES    := $(wildcard ../lib/tinygettext/src/*.cpp)
 LOCAL_CFLAGS       := -I../lib/tinygettext/include -DDISABLE_ICONV
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
@@ -195,27 +224,46 @@ LOCAL_SRC_FILES    := $(wildcard ../lib/irrlicht/source/Irrlicht/*.cpp)
 LOCAL_CFLAGS       := -I../lib/irrlicht/source/Irrlicht/ \
                       -I../lib/irrlicht/include/         \
                       -I../src                           \
-                      -Iobj/libjpeg/                     \
-                      -Iobj/libpng/                      \
-                      -Iobj/zlib/                        \
+                      -Ideps-$(TARGET_ARCH_ABI)/libjpeg/ \
+                      -Ideps-$(TARGET_ARCH_ABI)/libpng/  \
+                      -Ideps-$(TARGET_ARCH_ABI)/zlib/    \
                       -I../lib/sdl2/include/             \
                       -I../lib/graphics_engine/include   \
                       -DMOBILE_STK                       \
                       -DANDROID_PACKAGE_CALLBACK_NAME=$(PACKAGE_CALLBACK_NAME)
 LOCAL_CPPFLAGS     := -std=gnu++0x
 LOCAL_STATIC_LIBRARIES := libjpeg png zlib
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
+
+
+# hidapi
+LOCAL_MODULE       := libhidapi
+LOCAL_CPPFLAGS     += -std=c++11
+LOCAL_SRC_FILES    := ../lib/sdl2/src/hidapi/android/hid.cpp
+LOCAL_LDLIBS       := -llog
+
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
+include $(BUILD_SHARED_LIBRARY)
+include $(CLEAR_VARS)
+
 
 # SDL2
 LOCAL_MODULE       := SDL2
 LOCAL_PATH         := .
-LOCAL_CPP_FEATURES += rtti
 LOCAL_SRC_FILES    := $(wildcard ../lib/sdl2/src/*.c) \
                       $(wildcard ../lib/sdl2/src/audio/*.c) \
                       $(wildcard ../lib/sdl2/src/audio/android/*.c) \
                       $(wildcard ../lib/sdl2/src/audio/dummy/*.c) \
+                      $(wildcard ../lib/sdl2/src/audio/aaudio/*.c) \
                       $(wildcard ../lib/sdl2/src/audio/openslES/*.c) \
+                      ../lib/sdl2/src/atomic/SDL_atomic.c.arm \
+                      ../lib/sdl2/src/atomic/SDL_spinlock.c.arm \
                       $(wildcard ../lib/sdl2/src/core/android/*.c) \
                       $(wildcard ../lib/sdl2/src/cpuinfo/*.c) \
                       $(wildcard ../lib/sdl2/src/dynapi/*.c) \
@@ -246,15 +294,16 @@ LOCAL_SRC_FILES    := $(wildcard ../lib/sdl2/src/*.c) \
                       $(wildcard ../lib/sdl2/src/timer/unix/*.c) \
                       $(wildcard ../lib/sdl2/src/video/*.c) \
                       $(wildcard ../lib/sdl2/src/video/android/*.c) \
-                      $(wildcard ../lib/sdl2/src/video/yuv2rgb/*.c) \
-                      ../lib/sdl2/src/atomic/SDL_atomic.c.arm \
-                      ../lib/sdl2/src/atomic/SDL_spinlock.c.arm \
-                      ../lib/sdl2/src/hidapi/android/hid.cpp
+                      $(wildcard ../lib/sdl2/src/video/yuv2rgb/*.c)
 LOCAL_CFLAGS       := -I../lib/sdl2/include/ -DGL_GLEXT_PROTOTYPES
-LOCAL_CPPFLAGS     := -std=gnu++0x
+LOCAL_LDLIBS       := -ldl -lGLESv1_CM -lGLESv2 -lOpenSLES -llog -landroid
+LOCAL_SHARED_LIBRARIES := hidapi
 LOCAL_STATIC_LIBRARIES := cpufeatures
 
-include $(BUILD_STATIC_LIBRARY)
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
+include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 
 # STK
@@ -264,7 +313,7 @@ LOCAL_CPP_FEATURES += rtti exceptions
 LOCAL_SRC_FILES    := $(wildcard ../src/*.cpp)     \
                       $(wildcard ../src/*/*.cpp)   \
                       $(wildcard ../src/*/*/*.cpp)
-LOCAL_LDLIBS       := -llog -landroid -lGLESv1_CM -lGLESv2 -lOpenSLES -ldl -lm
+LOCAL_LDLIBS       := -llog -lm -lOpenSLES
 LOCAL_CFLAGS       := -I../lib/angelscript/include      \
                       -I../lib/bullet/src               \
                       -I../lib/sheenbidi/Headers        \
@@ -278,24 +327,24 @@ LOCAL_CFLAGS       := -I../lib/angelscript/include      \
                       -I../lib/sdl2/include             \
                       -I../lib/tinygettext/include      \
                       -I../src                          \
-                      -Iobj/curl/include                \
-                      -Iobj/freetype/include            \
-                      -Iobj/harfbuzz/include            \
-                      -Iobj/libogg/include              \
-                      -Iobj/libvorbis/include           \
-                      -Iobj/openal/include              \
-                      -Iobj/mbedtls/include             \
+                      -Ideps-$(TARGET_ARCH_ABI)/curl/include      \
+                      -Ideps-$(TARGET_ARCH_ABI)/freetype/include  \
+                      -Ideps-$(TARGET_ARCH_ABI)/harfbuzz/include  \
+                      -Ideps-$(TARGET_ARCH_ABI)/libogg/include    \
+                      -Ideps-$(TARGET_ARCH_ABI)/libvorbis/include \
+                      -Ideps-$(TARGET_ARCH_ABI)/openal/include    \
+                      -Ideps-$(TARGET_ARCH_ABI)/mbedtls/include   \
                       -DUSE_GLES2      \
                       -DMOBILE_STK     \
                       -DENABLE_SOUND   \
                       -DENABLE_IPV6    \
-                      -DENABLE_CRYPTO_MBEDTLS           \
+                      -DENABLE_CRYPTO_MBEDTLS \
                       -DNDEBUG         \
                       -DDISABLE_ICONV  \
                       -DANDROID_PACKAGE_NAME=\"$(PACKAGE_NAME)\"    \
                       -DANDROID_APP_DIR_NAME=\"$(APP_DIR_NAME)\"    \
                       -DSUPERTUXKART_VERSION=\"$(PROJECT_VERSION)\" \
-                      -DANDROID_PACKAGE_CALLBACK_NAME=$(PACKAGE_CALLBACK_NAME)
+                      -DANDROID_PACKAGE_CLASS_NAME=\"$(PACKAGE_CLASS_NAME)\"
 LOCAL_CPPFLAGS     := -std=gnu++0x
 
 LOCAL_STATIC_LIBRARIES := irrlicht bullet enet ifaddrs angelscript mcpp SDL2 \
@@ -304,6 +353,9 @@ LOCAL_STATIC_LIBRARIES := irrlicht bullet enet ifaddrs angelscript mcpp SDL2 \
                           harfbuzz freetype tinygettext graphics_utils       \
                           graphics_engine
 
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_ARM_NEON     := false
+endif
 include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 $(call import-module, android/cpufeatures)

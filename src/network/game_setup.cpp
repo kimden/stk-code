@@ -47,6 +47,7 @@ GameSetup::GameSetup()
     m_server_name_utf8 = StringUtils::wideToUtf8
         (StringUtils::xmlDecode(server_name));
     m_extra_server_info = -1;
+    m_extra_seconds = 0.0f;
     m_is_grand_prix.store(false);
     reset();
 }   // GameSetup
@@ -78,12 +79,12 @@ void GameSetup::loadWorld()
             if (isSoccerGoalTarget())
                 RaceManager::get()->setMaxGoal(m_laps);
             else
-                RaceManager::get()->setTimeTarget((float)m_laps * 60.0f);
+                RaceManager::get()->setTimeTarget((float)m_laps * 60.0f - m_extra_seconds);
         }
         else
         {
             RaceManager::get()->setHitCaptureTime(m_hit_capture_limit,
-                m_battle_time_limit);
+                m_battle_time_limit - m_extra_seconds);
         }
         RaceManager::get()->startSingleRace(m_tracks.back(), -1,
             false/*from_overworld*/);
@@ -195,11 +196,12 @@ void GameSetup::sortPlayersForGame(
 }   // sortPlayersForGame
 
 // ----------------------------------------------------------------------------
-void GameSetup::setRace(const PeerVote &vote)
+void GameSetup::setRace(const PeerVote &vote, float extra_seconds)
 {
     m_tracks.push_back(vote.m_track_name);
     m_laps = vote.m_num_laps;
     m_reverse = vote.m_reverse;
+    m_extra_seconds = extra_seconds;
 }   // setRace
 // ----------------------------------------------------------------------------
 irr::core::stringw GameSetup::readOrLoadFromFile(std::string value)

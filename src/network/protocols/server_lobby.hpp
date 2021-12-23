@@ -287,6 +287,8 @@ private:
     // Calculated before each game started
     unsigned m_ai_count;
 
+    std::set<STKPeer*> m_spectators_by_limit;
+
     std::vector<std::string> m_must_have_tracks;
 
     std::vector<std::string> m_tournament_must_have_tracks;
@@ -366,6 +368,8 @@ private:
     int m_tournament_game;
 
     int m_fixed_lap;
+
+    float m_extra_seconds;
 
     double m_default_lap_multiplier;
 
@@ -537,6 +541,7 @@ private:
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
+    std::set<STKPeer*>& getSpectatorsByLimit(bool update = false);
     void kickPlayerWithReason(STKPeer* peer, const char* reason) const;
     void testBannedForIP(STKPeer* peer) const;
     void testBannedForIPv6(STKPeer* peer) const;

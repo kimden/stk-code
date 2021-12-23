@@ -360,11 +360,18 @@ void loadServerLobbyFromConfig()
         m_server_max_players > 10 && !m_server_configurable)
         m_server_max_players = 10;
 
+    m_max_players_in_game = (m_max_players_in_game <= 0) ? m_server_max_players :
+        std::min(m_max_players_in_game, m_server_max_players);
+
     if (m_ipv6_connection)
     {
 #ifndef ENABLE_IPV6
         Log::warn("ServerConfig", "IPv6 support not compiled.");
 #endif
+    }
+
+    if (m_only_host_riding) {
+        m_max_players_in_game = 1;
     }
 
     if (m_soccer_tournament) {
@@ -417,7 +424,7 @@ void loadServerLobbyFromConfig()
         if (m_sleeping_server) {
             m_min_start_game_players = 256;
         } else {
-            if (m_min_start_game_players > m_server_max_players)
+            if (m_min_start_game_players > m_max_players_in_game)
                 m_min_start_game_players = 1;
         }
         if (!m_live_players)

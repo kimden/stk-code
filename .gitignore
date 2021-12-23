@@ -60,10 +60,12 @@ android/android-sdk*
 android/assets
 android/bin
 android/build
+android/deps-*
 android/libs
 android/obj
 android/res
 android/.gradle
+android/.cxx
 android/src/main/java/HID*
 android/src/main/java/SDL*
 android-*

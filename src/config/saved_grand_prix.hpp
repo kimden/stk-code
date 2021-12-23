@@ -82,6 +82,15 @@ protected:
     /** GPReverseType of the GP as int */
     IntUserConfigParam          m_reverse_type;
 
+    /** Count of tracks that player skipped */
+    IntUserConfigParam          m_skipped_tracks;
+
+    /** Time target used in Lap Trial mode */
+    FloatUserConfigParam        m_time_target;
+
+    /** Total laps count, used in Lap Trial mode */
+    IntUserConfigParam          m_player_total_laps;
+
     PtrVector<SavedGPKart> m_karts;
 
 public:
@@ -96,6 +105,9 @@ public:
                    int player_karts,
                    int last_track,
                    int reverse_type,
+                   int skipped_tracks,
+                   float time_target,
+                   int player_total_laps,
                    const std::vector<RaceManager::KartStatus> &kart_list);
 
     /**
@@ -137,6 +149,18 @@ public:
     // ------------------------------------------------------------------------
     /** Returns the reverse Type. */
     int getReverseType() const { return m_reverse_type; }
+
+    // ------------------------------------------------------------------------
+    /** Returns skipped tracks count */
+    int getSkippedTracks() const { return m_skipped_tracks; }
+
+    // ------------------------------------------------------------------------
+    /** Returns time target used in Lap Trial mode */
+    float getTimeTarget() const { return m_time_target; }
+
+    // ------------------------------------------------------------------------
+    /** Returns total laps in GP */
+    int getPlayerTotalLaps() const { return m_player_total_laps; }
 
     // ------------------------------------------------------------------------
     /** Sets the index of the last track finished. */
