@@ -285,7 +285,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     {
         std::string votable_name = m_triggered_votables.front();
         m_triggered_votables.pop();
-        auto it = m_votables.find(argv[0]);
+        auto it = m_votables.find(votable_name);
         if (it != m_votables.end() && it->second.needsCheck())
         {
             auto response = it->second.process(m_users);
