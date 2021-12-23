@@ -245,6 +245,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
 
+    m_current_max_players_in_game.store(ServerConfig::m_max_players_in_game);
+
     m_consent_on_replays = false;
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
@@ -6472,7 +6474,7 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
 
     auto peers = STKHost::get()->getPeers();
 
-    unsigned player_limit = ServerConfig::m_max_players_in_game;
+    unsigned player_limit = m_current_max_players_in_game.load();
     // only 10 players allowed for FFA and 14 for CTF and soccer
     if (RaceManager::get()->getMinorMode() ==
             RaceManager::MINOR_MODE_FREE_FOR_ALL)

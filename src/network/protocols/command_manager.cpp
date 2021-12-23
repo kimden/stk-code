@@ -143,6 +143,7 @@ void CommandManager::initCommands()
     m_commands.emplace_back("3",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/3", "everyone", "This command allows to choose 3rd of suggested options when a typo is made");
     m_commands.emplace_back("4",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/4", "everyone", "This command allows to choose 4th of suggested options when a typo is made");
     m_commands.emplace_back("5",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/5", "everyone", "This command allows to choose 5th of suggested options when a typo is made");
+    m_commands.emplace_back("slots",            &CommandManager::process_slots,      UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/slots (number of slots)", "hammers; voted", "Sets the number of playable slots to a certain value");
 
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     addTextResponse("version", "1.3-rc1 k 210fff beta");
@@ -2141,6 +2142,33 @@ void CommandManager::process_test(Context& context)
     std::string msg = username + ", " + argv[1] + ", " + argv[2];
     m_lobby->sendStringToAllPeers(msg);
 } // process_test
+// ========================================================================
+
+void CommandManager::process_slots(Context& context)
+{
+    auto& argv = context.m_argv;
+    auto& peer = context.m_peer;
+    bool fail = false;
+    unsigned number = 0;
+    if (argv.size() < 2 || !StringUtils::parseString<unsigned>(argv[1], &number))
+        fail = true;
+    else if (number <= 0 || number > ServerConfig::m_server_max_players)
+        fail = true;
+    if (fail)
+    {
+        error(context);
+        return;
+    }
+    if (context.m_voting)
+    {
+        vote(context, "slots", argv[1]);
+        return;
+    }
+    m_lobby->m_current_max_players_in_game.store(number);
+    m_lobby->updatePlayerList();
+    std::string msg = "Number of playable slots is now " + argv[1];
+    m_lobby->sendStringToAllPeers(msg);
+} // process_slots
 // ========================================================================
 
 void CommandManager::special(Context& context)

@@ -389,6 +389,8 @@ private:
 
     bool m_shuffle_gp;
 
+    std::atomic<unsigned> m_current_max_players_in_game;
+
 #ifdef ENABLE_WEB_SUPPORT
     std::set<std::string> m_web_tokens;
 
