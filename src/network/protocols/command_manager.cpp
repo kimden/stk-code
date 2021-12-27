@@ -75,7 +75,6 @@
 void CommandManager::initCommands()
 {
     auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED);
-    auto start_permissions = (ServerConfig::m_owner_less ? UP_EVERYONE : UP_CROWNED | PE_VOTED);
     m_commands.emplace_back("commands",         &CommandManager::process_commands,   UP_EVERYONE,            CS_ALWAYS,                    "/commands", "everyone", "Prints the list of commands available to you. This list may differ depending on server settings and your permissions.");
     m_commands.emplace_back("replay",           &CommandManager::process_replay,     UP_SINGLE,              CS_ALWAYS,                    "/replay [0 | 1]", "hammers, singleplayers", "Toggles whether the replay of the race is recorded.");
     m_commands.emplace_back("start",            &CommandManager::process_start,      UP_EVERYONE | PE_VOTED, CS_ALWAYS,                    "/start", "everyone", "Basically clicks on the green “Ready” button.");
@@ -191,7 +190,6 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 
     int permissions = m_lobby->getPermissions(peer);
-    bool found_command = false;
     bool voting = false;
     std::string action = "invoke";
     std::string username = StringUtils::wideToUtf8(
@@ -214,7 +212,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     }
     for (int i = 1; i <= 5; ++i) {
         if (argv[0] == std::to_string(i)) {
-            if (i - 1 < m_user_command_replacements[username].size()) {
+            if (i - 1 < (int)m_user_command_replacements[username].size()) {
                 cmd = m_user_command_replacements[username][i - 1];
                 argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
                 if (argv.size() == 0)
@@ -246,7 +244,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         std::string response = "You invoked \"" + cmd + "\", but there is "
             "no command \"" + initial_command + "\". Choose a fix or ignore:";
 
-        for (int i = 0; i < closest_commands.size(); ++i) {
+        for (unsigned i = 0; i < closest_commands.size(); ++i) {
             argv[0] = closest_commands[i].first;
             CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
             m_user_command_replacements[username].push_back(cmd);
@@ -330,7 +328,6 @@ bool CommandManager::isAvailable(const Command& c)
 
 void CommandManager::vote(Context& context, std::string category, std::string value)
 {
-    auto& cmd = context.m_cmd;
     auto& peer = context.m_peer;
     auto& argv = context.m_argv;
     std::string username = StringUtils::wideToUtf8(
@@ -455,7 +452,7 @@ void CommandManager::process_replay(Context& context)
 
 void CommandManager::process_start(Context& context)
 {
-    if (!ServerConfig::m_owner_less && (m_user_permissions & UP_HAMMER) == 0)
+    if (!ServerConfig::m_owner_less && (context.m_user_permissions & UP_HAMMER) == 0)
     {
         context.m_voting = true;
     }
@@ -474,7 +471,7 @@ void CommandManager::process_config(Context& context)
     int difficulty = m_lobby->getDifficulty();
     int mode = m_lobby->getGameMode();
     bool goal_target = m_lobby->isSoccerGoalTarget();
-    bool gp = false;
+    // bool gp = false;
     std::vector<std::vector<std::string>> mode_aliases = {
         {"m0"},
         {"m1"},
@@ -498,7 +495,7 @@ void CommandManager::process_config(Context& context)
     };
     for (unsigned i = 1; i < argv.size(); i++)
     {
-        for (int j = 0; j < mode_aliases.size(); ++j) {
+        for (unsigned j = 0; j < mode_aliases.size(); ++j) {
             if (j <= 2 || j == 5) {
                 // Switching to GP or modes 2, 5 is not supported yet
                 continue;
@@ -509,14 +506,14 @@ void CommandManager::process_config(Context& context)
                 }
             }
         }
-        for (int j = 0; j < difficulty_aliases.size(); ++j) {
+        for (unsigned j = 0; j < difficulty_aliases.size(); ++j) {
             for (std::string& alias: difficulty_aliases[j]) {
                 if (argv[i] == alias) {
                     difficulty = j;
                 }
             }
         }
-        for (int j = 0; j < goal_aliases.size(); ++j) {
+        for (unsigned j = 0; j < goal_aliases.size(); ++j) {
             for (std::string& alias: goal_aliases[j]) {
                 if (argv[i] == alias) {
                     goal_target = (bool)j;
@@ -2151,12 +2148,11 @@ void CommandManager::process_test(Context& context)
 void CommandManager::process_slots(Context& context)
 {
     auto& argv = context.m_argv;
-    auto& peer = context.m_peer;
     bool fail = false;
     unsigned number = 0;
     if (argv.size() < 2 || !StringUtils::parseString<unsigned>(argv[1], &number))
         fail = true;
-    else if (number <= 0 || number > ServerConfig::m_server_max_players)
+    else if (number <= 0 || (int)number > ServerConfig::m_server_max_players)
         fail = true;
     if (fail)
     {
@@ -2207,7 +2203,7 @@ void CommandManager::deleteUser(std::string& s)
 void CommandManager::restoreCmdByArgv(std::string& cmd, std::vector<std::string>& argv, char c, char d, char e, char f)
 {
     cmd.clear();
-    for (int i = 0; i < argv.size(); ++i) {
+    for (unsigned i = 0; i < argv.size(); ++i) {
         bool quoted = false;
         if (argv[i].find(c) != std::string::npos || argv[i].empty()) {
             quoted = true;
@@ -2218,7 +2214,7 @@ void CommandManager::restoreCmdByArgv(std::string& cmd, std::vector<std::string>
         if (quoted) {
             cmd.push_back(d);
         }
-        for (int j = 0; j < argv[i].size(); ++j) {
+        for (unsigned j = 0; j < argv[i].size(); ++j) {
             if (argv[i][j] == d || argv[i][j] == e || argv[i][j] == f) {
                 cmd.push_back(f);
             }
