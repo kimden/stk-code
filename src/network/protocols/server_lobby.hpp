@@ -443,7 +443,7 @@ private:
     void unregisterServer(bool now,
         std::weak_ptr<ServerLobby> sl = std::weak_ptr<ServerLobby>());
     void updatePlayerList(bool update_when_reset_server = false);
-    void updateServerOwner();
+    void updateServerOwner(bool force = false);
     void handleServerConfiguration(Event* event);
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);

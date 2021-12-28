@@ -591,7 +591,7 @@ void CommandManager::process_spectate(Context& context)
     }
     else
         peer->setAlwaysSpectate(ASM_NONE);
-    m_lobby->updateServerOwner();
+    m_lobby->updateServerOwner(true);
     m_lobby->updatePlayerList();
 } // process_spectate
 // ========================================================================
