@@ -85,6 +85,7 @@ void CommandManager::initCommands()
     m_commands.emplace_back("spectate",         &CommandManager::process_spectate,   UP_EVERYONE,            CS_ALWAYS,                    "/spectate [0 | 1]", "everyone", "Toggles autospectate mode.");
     m_commands.emplace_back("addons",           &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/addons [type]", "everyone", "Lists addons installed for all players that can play, in random order. Limits the list to a certain addon type if specified.");
     m_commands.emplace_back("moreaddons",       &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/moreaddons [type]", "everyone", "Lists top 5 addons that are missing for at least one player, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified.");
+    m_commands.emplace_back("checkaddon",       &CommandManager::process_checkaddon, UP_EVERYONE,            CS_ALWAYS,                    "/checkaddon (addon)", "everyone", "Displays numbers of players who have the corresponding addon, and whether server has it. Displays up to 5 random players from each category.");
     m_commands.emplace_back("listserveraddon",  &CommandManager::process_lsa,        UP_EVERYONE,            CS_ALWAYS,                    "/listserveraddon [-type] (substring)", "everyone", "Lists addons installed on the server that have a specified substring in their id. Limits the list to a certain addon type if specified.");
     m_commands.emplace_back("playerhasaddon",   &CommandManager::process_pha,        UP_EVERYONE,            CS_ALWAYS,                    "/playerhasaddon (addon) (username)", "everyone", "Checks whether a player has a certain addon.");
     m_commands.emplace_back("kick",             &CommandManager::process_kick,       kick_permissions,       CS_ALWAYS,                    "/kick (username)", "crowns if server allows, hammers; votable", "Kicks a player from the server.");
@@ -126,7 +127,7 @@ void CommandManager::initCommands()
 #endif
     m_commands.emplace_back("muteall",          &CommandManager::process_muteall,    UP_EVERYONE,            CS_SOCCER_TOURNAMENT,         "/muteall [0 | 1]", "everyone in soccer tournament mode", "Toggles whether a player wants to receive messages from anyone except acting players and referees in soccer tournament mode (this may be forced for acting player and referees using config).");
     m_commands.emplace_back("game",             &CommandManager::process_game,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/game [number] [length]", "soccer tournament referees", "Prepares the server for a certain game, with certain duration or number of goals.");
-    m_commands.emplace_back("role",             &CommandManager::process_role,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/role ([rbjsRBJS]) (username | #Category)", "soccer tournament referees", "Assigns a role to a player. Roles include: “r” and “b” - acting players with red and blue colors, respectively; “j” - judge/referee, “s” – spectator. May be done simultaneously for a specified category. Fails if the player doesn’t satisfy the requirements for the role.");
+    m_commands.emplace_back("role",             &CommandManager::process_role,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/role ([rbjsRBJS]) (username | #Category)", "soccer tournament referees", "Assigns a role to a player. Roles include: “r” and “b” - acting players with red and blue colors, respectively; “j” - judge/referee, “s” – spectator. May be done simultaneously for a specified category. Fails if the player doesn't satisfy the requirements for the role.");
     m_commands.emplace_back("stop",             &CommandManager::process_stop,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/stop", "soccer tournament referees", "Disables goal counting during the game.");
     m_commands.emplace_back("go",               &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/go", "soccer tournament referees", "Enables goal counting during the game.");
     m_commands.emplace_back("play",             &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/play", "soccer tournament referees", "Enables goal counting during the game.");
@@ -730,6 +731,112 @@ void CommandManager::process_addons(Context& context)
     }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_addons
+// ========================================================================
+
+void CommandManager::process_checkaddon(Context& context)
+{
+    auto& argv = context.m_argv;
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    std::string id = "addon_" + argv[1];
+    const unsigned HAS_KART = 1;
+    const unsigned HAS_MAP = 2;
+
+    unsigned server_status = 0;
+    std::vector<std::string> players[4];
+
+    if (m_lobby->m_addon_kts.first.count(id))
+        server_status |= HAS_KART;
+    if (m_lobby->m_addon_kts.second.count(id))
+        server_status |= HAS_MAP;
+
+    auto peers = STKHost::get()->getPeers();
+    unsigned total_players = 0;
+    for (auto peer : peers)
+    {
+        if (!peer || !peer->isValidated() || peer->isWaitingForGame() || !m_lobby->canRace(peer))
+            continue;
+        std::string username = StringUtils::wideToUtf8(
+                peer->getPlayerProfiles()[0]->getName());
+        const auto& kt = peer->getClientAssets();
+        unsigned status = 0;
+        if (kt.first.find(id) != kt.first.end())
+            status |= HAS_KART;
+        if (kt.second.find(id) != kt.second.end())
+            status |= HAS_MAP;
+        players[status].push_back(username);
+        ++total_players;
+    }
+
+    std::string response = "";
+    std::string item_name[3];
+    bool needed[3];
+    item_name[HAS_KART] = "kart";
+    item_name[HAS_MAP] = "map";
+    needed[HAS_KART] = (players[HAS_KART].size() + players[HAS_MAP | HAS_KART].size() > 0);
+    needed[HAS_MAP] = (players[HAS_MAP].size() + players[HAS_MAP | HAS_KART].size() > 0);
+    if (server_status & HAS_KART)
+        needed[HAS_KART] = true;
+    if (server_status & HAS_MAP)
+        needed[HAS_MAP] = true;
+
+    if (!needed[HAS_KART] && !needed[HAS_MAP])
+    {
+        response = "Neither server nor clients have addon " + argv[1] + " installed";
+    }
+    else
+    {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::string installed_text[2] = {"Not installed", "Installed"};
+        for (unsigned item = 1; item <= 2; ++item)
+        {
+            if (!needed[item])
+                continue;
+            response += "Server ";
+            if (server_status & item)
+                response += "has";
+            else
+                response += "doesn't have";
+            response += " " + item_name[item] + " " + argv[1] + "\n";
+
+            std::vector<std::string> categories[2];
+            for (unsigned status = 0; status < 4; ++status)
+            {
+                for (const std::string& s: players[status])
+                    categories[(status & item ? 1 : 0)].push_back(s);
+            }
+            for (int i = 0; i < 2; ++i)
+                shuffle(categories[i].begin(), categories[i].end(), g);
+            if (categories[0].empty())
+                response += "Everyone who can play has this " + item_name[item] + "\n";
+            else if (categories[1].empty())
+                response += "No one of those who can play has this " + item_name[item] + "\n";
+            else
+            {
+                for (int i = 1; i >= 0; --i)
+                {
+                    response += installed_text[i] + " for ";
+                    response += std::to_string(categories[i].size()) + " player(s): ";
+                    for (int j = 0; j < 5 && j < (int)categories[i].size(); ++j)
+                    {
+                        if (j)
+                            response += ", ";
+                        response += categories[i][j];
+                    }
+                    if (categories[i].size() > 5)
+                        response += ", ...";
+                    response += "\n";
+                }
+            }
+        }
+        response.pop_back();
+    }
+    m_lobby->sendStringToPeer(response, context.m_peer);
+} // process_checkaddon
 // ========================================================================
 
 void CommandManager::process_lsa(Context& context)

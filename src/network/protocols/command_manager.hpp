@@ -146,6 +146,7 @@ private:
     void process_config(Context& context);
     void process_spectate(Context& context);
     void process_addons(Context& context);
+    void process_checkaddon(Context& context);
     void process_lsa(Context& context);
     void process_pha(Context& context);
     void process_kick(Context& context);
