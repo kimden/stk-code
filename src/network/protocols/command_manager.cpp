@@ -566,38 +566,15 @@ void CommandManager::process_spectate(Context& context)
 
     if (argv.size() == 1)
     {
-        if (m_lobby->m_state.load() != m_lobby->WAITING_FOR_START_GAME)
-        {
-            std::string username = StringUtils::wideToUtf8(
-                peer->getPlayerProfiles()[0]->getName());
-            if (m_lobby->m_default_always_spectate_peers.count(peer.get()))
-                argv.push_back("0");
-            else
-                argv.push_back("1");
-        }
+        if (peer->isCommandSpectator())
+            argv.push_back("0");
         else
-        {
-            if (peer->alwaysSpectate())
-                argv.push_back("0");
-            else
-                argv.push_back("1");
-        }
+            argv.push_back("1");
     }
 
-    if (argv.size() != 2 || (argv[1] != "0" && argv[1] != "1"))
+    if (argv.size() < 2 || (argv[1] != "0" && argv[1] != "1"))
     {
         error(context);
-        return;
-    }
-
-    if (m_lobby->m_state.load() != m_lobby->WAITING_FOR_START_GAME)
-    {
-        std::string username = StringUtils::wideToUtf8(
-            peer->getPlayerProfiles()[0]->getName());
-        if (argv[1] == "1")
-            m_lobby->m_default_always_spectate_peers.insert(peer.get());
-        else
-            m_lobby->m_default_always_spectate_peers.erase(peer.get());
         return;
     }
 
@@ -614,6 +591,7 @@ void CommandManager::process_spectate(Context& context)
     }
     else
         peer->setAlwaysSpectate(ASM_NONE);
+    m_lobby->updateServerOwner();
     m_lobby->updatePlayerList();
 } // process_spectate
 // ========================================================================

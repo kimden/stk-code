@@ -377,8 +377,6 @@ private:
 
     std::string m_scoring_type;
 
-    std::set<STKPeer*> m_default_always_spectate_peers;
-
     std::set<std::string> m_usernames_white_list;
 
     bool m_allowed_to_start;

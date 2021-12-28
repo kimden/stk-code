@@ -1893,7 +1893,7 @@ void ServerLobby::asynchronousUpdate()
                 if (peer->alwaysSpectate() &&
                     peer->getClientAssets().second.count(track_name) == 0)
                 {
-                    peer->setAlwaysSpectate(ASM_NONE);
+                    // peer->setAlwaysSpectate(ASM_NONE);
                     peer->setWaitingForGame(true);
                     m_peers_ready.erase(peer);
                     bad_spectators.insert(peer.get());
@@ -2928,11 +2928,11 @@ void ServerLobby::startSelection(const Event *event)
         bool can_race = canRace(peer);
         if (!can_race && !peer->alwaysSpectate())
         {
-            if (ServerConfig::m_soccer_tournament/* || ServerConfig::m_only_host_riding*/)
-                peer->setAlwaysSpectate(ASM_COMMAND);
+            peer->setAlwaysSpectate(ASM_FULL);
             peer->setWaitingForGame(true);
             m_peers_ready.erase(peer);
             need_to_update = true;
+            always_spectate_peers.insert(peer.get());
             continue;
         }
         else if (peer->alwaysSpectate())
@@ -2945,7 +2945,6 @@ void ServerLobby::startSelection(const Event *event)
         if (!peer->isAIPeer())
             has_peer_plays_game = true;
     }
-    // m_default_always_spectate_peers = always_spectate_peers;
 
     // kimden thinks if someone wants to race he should disable spectating
     // // Disable always spectate peers if no players join the game
@@ -4755,23 +4754,6 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
     const bool game_started = m_state.load() != WAITING_FOR_START_GAME &&
         !update_when_reset_server;
 
-    if (update_when_reset_server)
-    {
-        if (!ServerConfig::m_soccer_tournament)
-        {
-            for (auto& peer : m_default_always_spectate_peers)
-                peer->setAlwaysSpectate(ASM_COMMAND);
-        }
-        else
-        {
-            auto peers = STKHost::get()->getPeers();
-            for (auto& peer: peers)
-            {
-                peer->setAlwaysSpectate(ASM_NONE);
-            }
-        }
-    }
-
     auto all_profiles = STKHost::get()->getAllPlayerProfiles();
     size_t all_profiles_size = all_profiles.size();
     for (auto& profile : all_profiles)
@@ -4920,7 +4902,9 @@ void ServerLobby::updateServerOwner()
     std::sort(peers.begin(), peers.end(), [](const std::shared_ptr<STKPeer> a,
         const std::shared_ptr<STKPeer> b)->bool
         {
-            return a->getHostId() < b->getHostId();
+            if (a->isCommandSpectator() ^ b->isCommandSpectator())
+                return b->isCommandSpectator();
+            return a->getRejoinTime() < b->getRejoinTime();
         });
 
     std::shared_ptr<STKPeer> owner;
@@ -6493,10 +6477,20 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
     if (total_players <= player_limit)
         return m_spectators_by_limit;
 
+    for (int i = 0; i < (int)peers.size(); ++i)
+    {
+        if (!peers[i]->isValidated() || peers[i]->isCommandSpectator())
+        {
+            swap(peers[i], peers.back());
+            peers.pop_back();
+            --i;
+        }
+    }
+
     std::sort(peers.begin(), peers.end(),
         [](const std::shared_ptr<STKPeer>& a,
             const std::shared_ptr<STKPeer>& b)
-        { return a->getHostId() < b->getHostId(); });
+        { return a->getRejoinTime() < b->getRejoinTime(); });
 
     if (m_state.load() >= RACING)
     {
@@ -6521,10 +6515,10 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
         }
         else
         {
-            if (peer->isSpectator())
-                continue;
+            // if (peer->isSpectator())
+            //     continue;
             player_count += (unsigned)peer->getPlayerProfiles().size();
-            if (peer->isWaitingForGame() && (player_count > player_limit || ingame_players >= player_limit))
+            if (/*peer->isWaitingForGame() && */(player_count > player_limit || ingame_players >= player_limit))
                 m_spectators_by_limit.insert(peer.get());
         }
     }
