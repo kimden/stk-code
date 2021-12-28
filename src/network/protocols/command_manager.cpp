@@ -143,6 +143,7 @@ void CommandManager::initCommands()
     m_commands.emplace_back("4",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/4", "everyone", "This command allows to choose 4th of suggested options when a typo is made");
     m_commands.emplace_back("5",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/5", "everyone", "This command allows to choose 5th of suggested options when a typo is made");
     m_commands.emplace_back("slots",            &CommandManager::process_slots,      UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/slots (number of slots)", "hammers; voted", "Sets the number of playable slots to a certain value");
+    m_commands.emplace_back("time",             &CommandManager::process_time,       UP_EVERYONE,            CS_ALWAYS,                    "/time", "everyone", "Displays server time");
 
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     addTextResponse("version", "1.3-rc1 k 210fff beta");
@@ -2169,6 +2170,14 @@ void CommandManager::process_slots(Context& context)
     std::string msg = "Number of playable slots is now " + argv[1];
     m_lobby->sendStringToAllPeers(msg);
 } // process_slots
+// ========================================================================
+
+void CommandManager::process_time(Context& context)
+{
+    auto& peer = context.m_peer;
+    std::string msg = "Server time: " + StkTime::getLogTime();
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_time
 // ========================================================================
 
 void CommandManager::special(Context& context)
