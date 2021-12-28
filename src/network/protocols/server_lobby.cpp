@@ -4890,12 +4890,12 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
 //-----------------------------------------------------------------------------
 void ServerLobby::updateServerOwner()
 {
-    if (m_state.load() < WAITING_FOR_START_GAME ||
-        m_state.load() > RESULT_DISPLAY ||
+    if (/*m_state.load() < WAITING_FOR_START_GAME ||
+        m_state.load() > RESULT_DISPLAY ||*/
         ServerConfig::m_owner_less)
         return;
-    if (!m_server_owner.expired())
-        return;
+    // if (!m_server_owner.expired())
+    //     return;
     auto peers = STKHost::get()->getPeers();
     if (peers.empty())
         return;
