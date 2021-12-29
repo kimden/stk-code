@@ -335,8 +335,9 @@ void CommandManager::vote(Context& context, std::string category, std::string va
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     auto& votable = m_votables[argv[0]];
+    bool neededCheck = votable.needsCheck();
     votable.castVote(username, category, value);
-    if (votable.needsCheck())
+    if (votable.needsCheck() && !neededCheck)
         m_triggered_votables.push(argv[0]);
 } // vote
 // ========================================================================
@@ -634,7 +635,8 @@ void CommandManager::process_addons(Context& context)
     int num_players = 0;
     for (auto peer : peers)
     {
-        if (!peer || !peer->isValidated() || peer->isWaitingForGame() || !m_lobby->canRace(peer))
+        if (!peer || !peer->isValidated() || peer->isWaitingForGame()
+            || !m_lobby->canRace(peer) || peer->isCommandSpectator())
             continue;
         ++num_players;
         std::string username = StringUtils::wideToUtf8(
@@ -730,12 +732,17 @@ void CommandManager::process_checkaddon(Context& context)
         server_status |= HAS_KART;
     if (m_lobby->m_addon_kts.second.count(id))
         server_status |= HAS_MAP;
+    if (m_lobby->m_addon_arenas.count(id))
+        server_status |= HAS_MAP;
+    if (m_lobby->m_addon_soccers.count(id))
+        server_status |= HAS_MAP;
 
     auto peers = STKHost::get()->getPeers();
     unsigned total_players = 0;
     for (auto peer : peers)
     {
-        if (!peer || !peer->isValidated() || peer->isWaitingForGame() || !m_lobby->canRace(peer))
+        if (!peer || !peer->isValidated() || peer->isWaitingForGame()
+            || !m_lobby->canRace(peer) || peer->isCommandSpectator())
             continue;
         std::string username = StringUtils::wideToUtf8(
                 peer->getPlayerProfiles()[0]->getName());

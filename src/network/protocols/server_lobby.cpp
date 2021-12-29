@@ -4922,11 +4922,14 @@ void ServerLobby::updateServerOwner(bool force)
     }
     if (owner)
     {
-        NetworkString* ns = getNetworkString();
-        ns->setSynchronous(true);
-        ns->addUInt8(LE_SERVER_OWNERSHIP);
-        owner->sendPacket(ns);
-        delete ns;
+        if (m_server_owner.expired() || m_server_owner.lock() != owner)
+        {
+            NetworkString* ns = getNetworkString();
+            ns->setSynchronous(true);
+            ns->addUInt8(LE_SERVER_OWNERSHIP);
+            owner->sendPacket(ns);
+            delete ns;
+        }
         m_server_owner = owner;
         m_server_owner_id.store(owner->getHostId());
         updatePlayerList();
