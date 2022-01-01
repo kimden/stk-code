@@ -1887,21 +1887,23 @@ void ServerLobby::asynchronousUpdate()
             if (ServerConfig::m_soccer_tournament)
                 m_tournament_arenas[m_tournament_game] = track_name;
             auto peers = STKHost::get()->getPeers();
-            std::set<STKPeer*> bad_spectators;
+            std::map<std::shared_ptr<STKPeer>, AlwaysSpectateMode> bad_spectators;
             for (auto peer : peers)
             {
                 if (peer->alwaysSpectate() &&
                     peer->getClientAssets().second.count(track_name) == 0)
                 {
-                    // peer->setAlwaysSpectate(ASM_NONE);
+                    bad_spectators[peer] = peer->getAlwaysSpectate();
+                    peer->setAlwaysSpectate(ASM_NONE);
                     peer->setWaitingForGame(true);
                     m_peers_ready.erase(peer);
-                    bad_spectators.insert(peer.get());
                 }
             }
             bool has_always_on_spectators = false;
             auto players = STKHost::get()
                 ->getPlayersForNewGame(&has_always_on_spectators);
+            for (auto& p: bad_spectators)
+                p.first->setAlwaysSpectate(p.second);
             auto ai_instance = m_ai_peer.lock();
             if (supportsAI())
             {
