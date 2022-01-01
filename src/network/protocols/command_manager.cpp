@@ -694,7 +694,7 @@ void CommandManager::process_addons(Context& context)
                 response += ". More addons to install:";
                 for (unsigned i = 0; i < result.size(); ++i)
                 {
-                    response += "\n" + result[i].first + ", missing for "
+                    response += "\n/installaddon " + result[i].first.substr(6) + ", missing for "
                         + std::to_string(result[i].second.size())
                         + " player(s):";
                     std::sort(result[i].second.begin(), result[i].second.end());
