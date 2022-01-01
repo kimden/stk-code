@@ -20,6 +20,7 @@
 
 #include "addons/addon.hpp"
 // #include "config/user_config.hpp"
+#include "io/file_manager.hpp"
 // #include "items/network_item_manager.hpp"
 // #include "items/powerup_manager.hpp"
 // #include "items/attachment.hpp"
@@ -72,83 +73,138 @@
 
 // ========================================================================
 
+void CommandManager::initCommandsInfo()
+{
+    const std::string file_name = file_manager->getAsset("commands.xml");
+    const XMLNode *root = file_manager->createXMLTree(file_name);
+    unsigned int num_nodes = root->getNumNodes();
+    uint32_t version = 1;
+    root->get("version", &version);
+    if (version != 1)
+        Log::warn("CommandManager", "command.xml has version %d which is not supported", version);
+    for (unsigned int i = 0; i < num_nodes; i++)
+    {
+        const XMLNode *node = root->getNode(i);
+        std::string node_name = node->getName();
+        if (node_name == "command")
+        {
+            std::string name = "";
+            std::string usage = "";
+            std::string permissions = "";
+            std::string description = "";
+            node->get("name", &name);
+            node->get("usage", &usage);
+            node->get("permissions", &permissions);
+            node->get("description", &description);
+            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
+        }
+        else if (node_name == "text-command")
+        {
+            std::string name = "";
+            std::string text = "";
+            node->get("name", &name);
+            node->get("text", &text);
+            m_commands.emplace_back(name, &CommandManager::process_text, UP_EVERYONE, CS_ALWAYS);
+            addTextResponse(name, text);
+        }
+    }
+} // initCommandsInfo
+// ========================================================================
+
 void CommandManager::initCommands()
 {
+    initCommandsInfo();
+    using CM = CommandManager;
     auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED);
-    m_commands.emplace_back("commands",         &CommandManager::process_commands,   UP_EVERYONE,            CS_ALWAYS,                    "/commands", "everyone", "Prints the list of commands available to you. This list may differ depending on server settings and your permissions.");
-    m_commands.emplace_back("replay",           &CommandManager::process_replay,     UP_SINGLE,              CS_ALWAYS,                    "/replay [0 | 1]", "hammers, singleplayers", "Toggles whether the replay of the race is recorded.");
-    m_commands.emplace_back("start",            &CommandManager::process_start,      UP_EVERYONE | PE_VOTED, CS_ALWAYS,                    "/start", "everyone", "Basically clicks on the green “Ready” button.");
+    auto& v = m_commands;
+    v.emplace_back("commands",         &CM::process_commands,   UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("replay",           &CM::process_replay,     UP_SINGLE,              CS_ALWAYS);
+    v.emplace_back("start",            &CM::process_start,      UP_EVERYONE | PE_VOTED, CS_ALWAYS);
     if (ServerConfig::m_server_configurable)
     {
-        m_commands.emplace_back("config",       &CommandManager::process_config,     UP_CROWNED | PE_VOTED,  CS_ALWAYS,                    "/config <mode> <difficulty> <goal or time limit>", "crowns; votable", "Changes game mode and difficulty if allowed.");
+        v.emplace_back("config",       &CM::process_config,     UP_CROWNED | PE_VOTED,  CS_ALWAYS);
     }
-    m_commands.emplace_back("spectate",         &CommandManager::process_spectate,   UP_EVERYONE,            CS_ALWAYS,                    "/spectate [0 | 1]", "everyone", "Toggles autospectate mode.");
-    m_commands.emplace_back("addons",           &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/addons [type]", "everyone", "Lists addons installed for all players that can play, in random order. Limits the list to a certain addon type if specified.");
-    m_commands.emplace_back("moreaddons",       &CommandManager::process_addons,     UP_EVERYONE,            CS_ALWAYS,                    "/moreaddons [type]", "everyone", "Lists top 5 addons that are missing for at least one player, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified.");
-    m_commands.emplace_back("checkaddon",       &CommandManager::process_checkaddon, UP_EVERYONE,            CS_ALWAYS,                    "/checkaddon (addon)", "everyone", "Displays numbers of players who have the corresponding addon, and whether server has it. Displays up to 5 random players from each category.");
-    m_commands.emplace_back("listserveraddon",  &CommandManager::process_lsa,        UP_EVERYONE,            CS_ALWAYS,                    "/listserveraddon [-type] (substring)", "everyone", "Lists addons installed on the server that have a specified substring in their id. Limits the list to a certain addon type if specified.");
-    m_commands.emplace_back("playerhasaddon",   &CommandManager::process_pha,        UP_EVERYONE,            CS_ALWAYS,                    "/playerhasaddon (addon) (username)", "everyone", "Checks whether a player has a certain addon.");
-    m_commands.emplace_back("kick",             &CommandManager::process_kick,       kick_permissions,       CS_ALWAYS,                    "/kick (username)", "crowns if server allows, hammers; votable", "Kicks a player from the server.");
-    m_commands.emplace_back("kickban",          &CommandManager::process_kick,       UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/kickban (username)", "hammers; votable", "Kicks a player from the server and temporarily bans him.");
-    m_commands.emplace_back("unban",            &CommandManager::process_unban,      UP_HAMMER,              CS_ALWAYS,                    "/unban (username)", "hammers", "Removes a temporary ban from a player.");
-    m_commands.emplace_back("ban",              &CommandManager::process_ban,        UP_HAMMER,              CS_ALWAYS,                    "/ban (username)", "hammers", "Adds a temporary ban to a player without kicking.");
-    m_commands.emplace_back("playeraddonscore", &CommandManager::process_pas,        UP_EVERYONE,            CS_ALWAYS,                    "/playeraddonscore (username)", "everyone", "Returns the number (not the percentage!) of addons of different types installed by a player.");
-    m_commands.emplace_back("serverhasaddon",   &CommandManager::process_sha,        UP_EVERYONE,            CS_ALWAYS,                    "/serverhasaddon (addon)", "everyone", "Checks whether the server has a certain addon.");
-    m_commands.emplace_back("mute",             &CommandManager::process_mute,       UP_EVERYONE,            CS_ALWAYS,                    "/mute (username)", "everyone", "Temporarily blocks player’s messages from reaching you (until the server restart).");
-    m_commands.emplace_back("unmute",           &CommandManager::process_unmute,     UP_EVERYONE,            CS_ALWAYS,                    "/unmute (username)", "everyone", "Unblocks player’s messages from reaching you.");
-    m_commands.emplace_back("listmute",         &CommandManager::process_listmute,   UP_EVERYONE,            CS_ALWAYS,                    "/listmute", "everyone", "Lists players whom you blocked using /mute command.");
-    m_commands.emplace_back("moreinfo",         &CommandManager::process_text,       UP_EVERYONE,            CS_ALWAYS,                    "/moreinfo", "everyone", "Displays an additional server message.");
-    m_commands.emplace_back("gnu",              &CommandManager::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/gnu [kart]", "hammers; voted", "Starts kart elimination with Gnu (or a specified kart).");
-    m_commands.emplace_back("nognu",            &CommandManager::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/nognu", "hammers; voted", "Cancels kart elimination.");
-    m_commands.emplace_back("tell",             &CommandManager::process_tell,       UP_EVERYONE,            CS_ALWAYS,                    "/tell (report contents)", "everyone", "Makes a report to the server owner (if the server has a database to store the reports).");
-    m_commands.emplace_back("standings",        &CommandManager::process_standings,  UP_EVERYONE,            CS_ALWAYS,                    "/standings [gp | gnu]", "everyone", "Displays standings of grand prix or kart elimination, picks whatever of them is played now.");
-    m_commands.emplace_back("teamchat",         &CommandManager::process_teamchat,   UP_EVERYONE,            CS_ALWAYS,                    "/teamchat", "everyone", "Limits your future messages to be sent only to your teammates.");
-    m_commands.emplace_back("to",               &CommandManager::process_to,         UP_EVERYONE,            CS_ALWAYS,                    "/to (username1) ... (usernameN)", "everyone", "Limits your future messages to be sent only to specified usernames.");
-    m_commands.emplace_back("public",           &CommandManager::process_public,     UP_EVERYONE,            CS_ALWAYS,                    "/public", "everyone", "Allows your future messages to be sent to everyone.");
-    m_commands.emplace_back("record",           &CommandManager::process_record,     UP_EVERYONE,            CS_ALWAYS,                    "/record (track id) (mode) (direction) (laps)", "everyone", "Receives the server record for the race settings if there is any (and if the server has a database to store the records).");
-    m_commands.emplace_back("power",            &CommandManager::process_power,      UP_EVERYONE,            CS_ALWAYS,                    "/power (password)", "everyone", "Enters the hammer mode if the password is correct.");
-    m_commands.emplace_back("length",           &CommandManager::process_length,     UP_SINGLE,              CS_ALWAYS,                    "/length (x (float) | = (int) | check | clear)", "hammers, singleplayers", "Manipulates the length of the games, “= n” fixes the number of laps to n, “x k” sets it to k times default number of laps, “check” displays the setting, “clear” allows players to choose it freely.");
-    m_commands.emplace_back("queue",            &CommandManager::process_queue,      UP_SINGLE,              CS_ALWAYS,                    "/queue (show | push[_front] (track) | pop[_back])", "hammers, singleplayers", "Manipulates the track queue aka the next played tracks. “show” displays it, “push” adds the track to the end of the queue, “pop” removes a track at the front. You can use “_back” and “_front” to specify on which end of the queue to add or remove the tracks.");
-    m_commands.emplace_back("adminstart",       &CommandManager::process_adminstart, UP_HAMMER,              CS_ALWAYS,                    "/adminstart [0 | 1]", "hammers", "Toggles whether the game can be started on the server.");
-    m_commands.emplace_back("shuffle",          &CommandManager::process_shuffle,    UP_HAMMER,              CS_ALWAYS,                    "/shuffle [0 | 1]", "hammers", "Toggles whether the Grand Prix grid is shuffled before each race (1), or it corresponds to the standings (0).");
-    m_commands.emplace_back("timeout",          &CommandManager::process_timeout,    UP_HAMMER,              CS_ALWAYS,                    "/timeout [positive int x]", "hammers", "Sets the timeout in seconds, whatever it may mean.");
-    m_commands.emplace_back("team",             &CommandManager::process_team,       UP_HAMMER,              CS_ALWAYS,                    "/team ([roygbp-]) (username)", "hammers", "Move a player to one of six teams denoted by square emojis (r - red, o - orange, y - yellow, g - green, b - blue, p – purple), or removes the player from the teams (“-”).");
-    m_commands.emplace_back("cat+",             &CommandManager::process_cat,        UP_HAMMER,              CS_ALWAYS,                    "/cat+ (category) (username)", "hammers", "Adds the player to a certain category.");
-    m_commands.emplace_back("cat-",             &CommandManager::process_cat,        UP_HAMMER,              CS_ALWAYS,                    "/cat- (category) (username)", "hammers", "Removes the player from a certain category.");
-    m_commands.emplace_back("cat*",             &CommandManager::process_cat,        UP_HAMMER,              CS_ALWAYS,                    "/cat* (category) (0 | 1)", "hammers", "Toggles whether a category is displayed in the player list.");
-    m_commands.emplace_back("troll",            &CommandManager::process_troll,      UP_HAMMER,              CS_ALWAYS,                    "/troll [0 | 1]", "hammers", "Toggles anti-troll system.");
-    m_commands.emplace_back("hitmsg",           &CommandManager::process_hitmsg,     UP_HAMMER,              CS_ALWAYS,                    "/hitmsg [0 | 1]", "hammers", "Toggles whether the messages about teammate hits are displayed.");
-    m_commands.emplace_back("teamhit",          &CommandManager::process_teamhit,    UP_HAMMER,              CS_ALWAYS,                    "/teamhit [0 | 1]", "hammers", "Toggles whether the teammate hits are punished ingame.");
-    m_commands.emplace_back("version",          &CommandManager::process_text,       UP_EVERYONE,            CS_ALWAYS,                    "/version", "everyone", "Displays version.");
-    m_commands.emplace_back("clear",            &CommandManager::process_text,       UP_EVERYONE,            CS_ALWAYS,                    "/clear", "everyone", "Puts newlines onto the screen so that the previous messages are not visible.");
-    m_commands.emplace_back("register",         &CommandManager::process_register,   UP_EVERYONE,            CS_ALWAYS,                    "/register [info]", "everyone", "The command is used to register to an event (if the server has a database to store the registrations). Players can provide information while registering.");
+    v.emplace_back("spectate",         &CM::process_spectate,   UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("addons",           &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("moreaddons",       &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("checkaddon",       &CM::process_checkaddon, UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("listserveraddon",  &CM::process_lsa,        UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("playerhasaddon",   &CM::process_pha,        UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("kick",             &CM::process_kick,       kick_permissions,       CS_ALWAYS);
+    v.emplace_back("kickban",          &CM::process_kick,       UP_HAMMER | PE_VOTED,   CS_ALWAYS);
+    v.emplace_back("unban",            &CM::process_unban,      UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("ban",              &CM::process_ban,        UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("playeraddonscore", &CM::process_pas,        UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("serverhasaddon",   &CM::process_sha,        UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("mute",             &CM::process_mute,       UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("unmute",           &CM::process_unmute,     UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("listmute",         &CM::process_listmute,   UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("moreinfo",         &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("gnu",              &CM::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS);
+    v.emplace_back("nognu",            &CM::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS);
+    v.emplace_back("tell",             &CM::process_tell,       UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("standings",        &CM::process_standings,  UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("teamchat",         &CM::process_teamchat,   UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("to",               &CM::process_to,         UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("public",           &CM::process_public,     UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("record",           &CM::process_record,     UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("power",            &CM::process_power,      UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("length",           &CM::process_length,     UP_SINGLE,              CS_ALWAYS);
+    v.emplace_back("queue",            &CM::process_queue,      UP_SINGLE,              CS_ALWAYS);
+    v.emplace_back("adminstart",       &CM::process_adminstart, UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("shuffle",          &CM::process_shuffle,    UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("timeout",          &CM::process_timeout,    UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("team",             &CM::process_team,       UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("cat+",             &CM::process_cat,        UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("cat-",             &CM::process_cat,        UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("cat*",             &CM::process_cat,        UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("troll",            &CM::process_troll,      UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("hitmsg",           &CM::process_hitmsg,     UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("teamhit",          &CM::process_teamhit,    UP_HAMMER,              CS_ALWAYS);
+    v.emplace_back("version",          &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("clear",            &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("register",         &CM::process_register,   UP_EVERYONE,            CS_ALWAYS);
 #ifdef ENABLE_WEB_SUPPORT
-    m_commands.emplace_back("token",            &CommandManager::process_token,      UP_EVERYONE,            CS_ALWAYS,                    "/token", "everyone", "Produces a token for a player and stores it in the database (if the server has a database to store tokens). Tokens may be used to authenticate players using their STK accounts.");
+    v.emplace_back("token",            &CM::process_token,      UP_EVERYONE,            CS_ALWAYS);
 #endif
-    m_commands.emplace_back("muteall",          &CommandManager::process_muteall,    UP_EVERYONE,            CS_SOCCER_TOURNAMENT,         "/muteall [0 | 1]", "everyone in soccer tournament mode", "Toggles whether a player wants to receive messages from anyone except acting players and referees in soccer tournament mode (this may be forced for acting player and referees using config).");
-    m_commands.emplace_back("game",             &CommandManager::process_game,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/game [number] [length]", "soccer tournament referees", "Prepares the server for a certain game, with certain duration or number of goals.");
-    m_commands.emplace_back("role",             &CommandManager::process_role,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/role ([rbjsRBJS]) (username | #Category)", "soccer tournament referees", "Assigns a role to a player. Roles include: “r” and “b” - acting players with red and blue colors, respectively; “j” - judge/referee, “s” – spectator. May be done simultaneously for a specified category. Fails if the player doesn't satisfy the requirements for the role.");
-    m_commands.emplace_back("stop",             &CommandManager::process_stop,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/stop", "soccer tournament referees", "Disables goal counting during the game.");
-    m_commands.emplace_back("go",               &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/go", "soccer tournament referees", "Enables goal counting during the game.");
-    m_commands.emplace_back("play",             &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/play", "soccer tournament referees", "Enables goal counting during the game.");
-    m_commands.emplace_back("resume",           &CommandManager::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/resume", "soccer tournament referees", "Enables goal counting during the game.");
-    m_commands.emplace_back("lobby",            &CommandManager::process_lobby,      UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/lobby", "soccer tournament referees", "Forces players to the lobby through the final screen, stoppng the game.");
-    m_commands.emplace_back("init",             &CommandManager::process_init,       UP_HAMMER,              CS_SOCCER_TOURNAMENT,         "/init (red count) (blue count)", "soccer tournament referees", "Initializes the match score to start from (red count):(blue count) instead of 0:0.");
-    m_commands.emplace_back("vote",             &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/vote (command with arguments, without “/”)", "everyone", "Casts a vote for the provided command, if it can be voted. Only useful for those players who can enforce their command but opt to vote instead of forcing; for those players who cannot invoke the command alone, /(command) is equivalent to /vote (command).");
-    m_commands.emplace_back("mimiz",            &CommandManager::process_mimiz,      UP_EVERYONE,            CS_ALWAYS,                    "/mimiz [text]", "everyone", "A joke command.");
-    m_commands.emplace_back("test",             &CommandManager::process_test,       UP_EVERYONE | PE_VOTED, CS_ALWAYS,                    "/test [poll name] [option name]", "everyone; votable", "A test command.");
-    m_commands.emplace_back("help",             &CommandManager::process_help,       UP_EVERYONE,            CS_ALWAYS,                    "/help (command name)", "everyone", "Gives description of a given command.");
-    m_commands.emplace_back("1",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/1", "everyone", "This command allows to choose 1st of suggested options when a typo is made");
-    m_commands.emplace_back("2",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/2", "everyone", "This command allows to choose 2nd of suggested options when a typo is made");
-    m_commands.emplace_back("3",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/3", "everyone", "This command allows to choose 3rd of suggested options when a typo is made");
-    m_commands.emplace_back("4",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/4", "everyone", "This command allows to choose 4th of suggested options when a typo is made");
-    m_commands.emplace_back("5",                &CommandManager::special,            UP_EVERYONE,            CS_ALWAYS,                    "/5", "everyone", "This command allows to choose 5th of suggested options when a typo is made");
-    m_commands.emplace_back("slots",            &CommandManager::process_slots,      UP_HAMMER | PE_VOTED,   CS_ALWAYS,                    "/slots (number of slots)", "hammers; voted", "Sets the number of playable slots to a certain value");
-    m_commands.emplace_back("time",             &CommandManager::process_time,       UP_EVERYONE,            CS_ALWAYS,                    "/time", "everyone", "Displays server time");
+    v.emplace_back("muteall",          &CM::process_muteall,    UP_EVERYONE,            CS_SOCCER_TOURNAMENT);
+    v.emplace_back("game",             &CM::process_game,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("role",             &CM::process_role,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("stop",             &CM::process_stop,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("go",               &CM::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("play",             &CM::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("resume",           &CM::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("lobby",            &CM::process_lobby,      UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("init",             &CM::process_init,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
+    v.emplace_back("vote",             &CM::special,            UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("mimiz",            &CM::process_mimiz,      UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("test",             &CM::process_test,       UP_EVERYONE | PE_VOTED, CS_ALWAYS);
+    v.emplace_back("help",             &CM::process_help,       UP_EVERYONE,            CS_ALWAYS);
+    // v.emplace_back("1",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
+    // v.emplace_back("2",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
+    // v.emplace_back("3",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
+    // v.emplace_back("4",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
+    // v.emplace_back("5",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("slots",            &CM::process_slots,      UP_HAMMER | PE_VOTED,   CS_ALWAYS);
+    v.emplace_back("time",             &CM::process_time,       UP_EVERYONE,            CS_ALWAYS);
+
+    v.emplace_back("addondownloadprogress",  &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("stopaddondownload",      &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("installaddon",           &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("uninstalladdon",         &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("music",                  &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("addonrevision",          &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("liststkaddon",           &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("listlocaladdon",         &CM::special, UP_EVERYONE, CS_ALWAYS);
 
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     addTextResponse("version", "1.3-rc1 k 210fff beta");
     addTextResponse("clear", std::string(30, '\n'));
+
+    for (Command& command: m_commands) {
+        m_stf_command_names.add(command.m_name);
+        command.m_description = m_config_descriptions[command.m_name];
+    }
 
     std::sort(m_commands.begin(), m_commands.end(), [](const Command& a, const Command& b) -> bool {
         return a.m_name < b.m_name;
@@ -163,10 +219,6 @@ void CommandManager::initCommands()
     m_votables.emplace("kickban", 0.81);
     m_votables.emplace("gnu", 0.81);
     m_votables["gnu"].setCustomThreshold("gnu kart", 1.1);
-
-    for (const Command& command: m_commands) {
-        m_stf_command_names.add(command.m_name);
-    }
 } // initCommands
 // ========================================================================
 

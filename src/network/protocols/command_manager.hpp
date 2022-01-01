@@ -74,6 +74,25 @@ class CommandManager
                 m_cmd(cmd), m_user_permissions(user_permissions), m_voting(voting) {}
     };
 
+    struct CommandDescription
+    {
+        std::string m_usage;
+        std::string m_permissions;
+        std::string m_description;
+        CommandDescription(std::string usage = "", std::string permissions = "",
+            std::string description = ""): m_usage(usage),
+            m_permissions(permissions), m_description(description) {}
+
+        std::string getUsage() { return "Usage: " + m_usage; }
+
+        std::string getHelp()
+        {
+            return "Usage: " + m_usage
+                + "\nAvailable to: " + m_permissions
+                + "\n" + m_description;
+        }
+    };
+
     struct Command
     {
         std::string m_name;
@@ -84,24 +103,17 @@ class CommandManager
 
         int m_scope;
 
-        std::string m_usage;
-
-        std::string m_description;
-
-        std::string m_verbose_permissions;
+        CommandDescription m_description;
 
         Command() {}
 
         Command(std::string name,
-            void (CommandManager::*f)(Context& context), int permissions, int scope = CS_ALWAYS,
-            std::string usage = "", std::string verbose_permissions = "", std::string description = ""):
-                m_name(name), m_permissions(permissions), m_action(f), m_scope(scope),
-                m_usage(usage), m_description(description),
-                m_verbose_permissions(verbose_permissions) {}
+            void (CommandManager::*f)(Context& context), int permissions, int scope = CS_ALWAYS):
+                m_name(name), m_permissions(permissions), m_action(f), m_scope(scope) {}
 
-        std::string getUsage() { return "Usage: " + m_usage; }
+        std::string getUsage() { return m_description.getUsage(); }
 
-        std::string getHelp() { return "Usage: " + m_usage + "\nAvailable to: " + m_verbose_permissions + "\n" + m_description; }
+        std::string getHelp() { return m_description.getHelp(); }
     };
 
 private:
@@ -122,12 +134,15 @@ private:
 
     std::map<std::string, std::vector<std::string>> m_user_command_replacements;
 
+    std::map<std::string, CommandDescription> m_config_descriptions;
+
     SetTypoFixer m_stf_command_names;
 
     SetTypoFixer m_stf_present_users;
 
     SetTypoFixer m_stf_maps;
 
+    void initCommandsInfo();
     void initCommands();
 
     int getCurrentScope();

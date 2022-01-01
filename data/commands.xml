@@ -1,0 +1,371 @@
+<?xml version="1.0"?>
+<!-- Server commands descriptions go here -->
+<commands version="1">
+    <command name="commands"
+             usage="/commands"
+             permissions="everyone"
+             description="Prints the list of commands available to you. This list may differ depending on server settings and your permissions."
+    />
+    <command name="replay"
+             usage="/replay [0 | 1]"
+             permissions="hammers, singleplayers"
+             description="Toggles whether the replay of the race is recorded."
+    />
+    <command name="start"
+             usage="/start"
+             permissions="everyone"
+             description="Basically clicks on the green “Ready” button."
+    />
+    <command name="config"
+             usage="/config &lt;mode&gt; &lt;difficulty&gt; &lt;goal or time limit&gt;"
+             permissions="crowns; votable"
+             description="Changes game mode and difficulty if allowed."
+    />
+    <command name="spectate"
+             usage="/spectate [0 | 1]"
+             permissions="everyone"
+             description="Toggles autospectate mode."
+    />
+    <command name="addons"
+             usage="/addons [type]"
+             permissions="everyone"
+             description="Lists addons installed for all players that can play, in random order. Limits the list to a certain addon type if specified."
+    />
+    <command name="moreaddons"
+             usage="/moreaddons [type]"
+             permissions="everyone"
+             description="Lists top 5 addons that are missing for at least one player, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified."
+    />
+    <command name="checkaddon"
+             usage="/checkaddon (addon)"
+             permissions="everyone"
+             description="Displays numbers of players who have the corresponding addon, and whether server has it. Displays up to 5 random players from each category."
+    />
+    <command name="listserveraddon"
+             usage="/listserveraddon [-type] (substring)"
+             permissions="everyone"
+             description="Lists addons installed on the server that have a specified substring in their id. Limits the list to a certain addon type if specified."
+    />
+    <command name="playerhasaddon"
+             usage="/playerhasaddon (addon) (username)"
+             permissions="everyone"
+             description="Checks whether a player has a certain addon."
+    />
+    <command name="kick"
+             usage="/kick (username)"
+             permissions="crowns if server allows, hammers; votable"
+             description="Kicks a player from the server."
+    />
+    <command name="kickban"
+             usage="/kickban (username)"
+             permissions="hammers; votable"
+             description="Kicks a player from the server and temporarily bans him."
+    />
+    <command name="unban"
+             usage="/unban (username)"
+             permissions="hammers"
+             description="Removes a temporary ban from a player."
+    />
+    <command name="ban"
+             usage="/ban (username)"
+             permissions="hammers"
+             description="Adds a temporary ban to a player without kicking."
+    />
+    <command name="playeraddonscore"
+             usage="/playeraddonscore (username)"
+             permissions="everyone"
+             description="Returns the number (not the percentage!) of addons of different types installed by a player."
+    />
+    <command name="serverhasaddon"
+             usage="/serverhasaddon (addon)"
+             permissions="everyone"
+             description="Checks whether the server has a certain addon."
+    />
+    <command name="mute"
+             usage="/mute (username)"
+             permissions="everyone"
+             description="Temporarily blocks player’s messages from reaching you (until the server restart)."
+    />
+    <command name="unmute"
+             usage="/unmute (username)"
+             permissions="everyone"
+             description="Unblocks player’s messages from reaching you."
+    />
+    <command name="listmute"
+             usage="/listmute"
+             permissions="everyone"
+             description="Lists players whom you blocked using /mute command."
+    />
+    <command name="moreinfo"
+             usage="/moreinfo"
+             permissions="everyone"
+             description="Displays an additional server message."
+    />
+    <command name="gnu"
+             usage="/gnu [kart]"
+             permissions="hammers; voted"
+             description="Starts kart elimination with Gnu (or a specified kart)."
+    />
+    <command name="nognu"
+             usage="/nognu"
+             permissions="hammers; voted"
+             description="Cancels kart elimination."
+    />
+    <command name="tell"
+             usage="/tell (report contents)"
+             permissions="everyone"
+             description="Makes a report to the server owner (if the server has a database to store the reports)."
+    />
+    <command name="standings"
+             usage="/standings [gp | gnu]"
+             permissions="everyone"
+             description="Displays standings of grand prix or kart elimination, picks whatever of them is played now."
+    />
+    <command name="teamchat"
+             usage="/teamchat"
+             permissions="everyone"
+             description="Limits your future messages to be sent only to your teammates."
+    />
+    <command name="to"
+             usage="/to (username1) ... (usernameN)"
+             permissions="everyone"
+             description="Limits your future messages to be sent only to specified usernames."
+    />
+    <command name="public"
+             usage="/public"
+             permissions="everyone"
+             description="Allows your future messages to be sent to everyone."
+    />
+    <command name="record"
+             usage="/record (track id) (mode) (direction) (laps)"
+             permissions="everyone"
+             description="Receives the server record for the race settings if there is any (and if the server has a database to store the records)."
+    />
+    <command name="power"
+             usage="/power (password)"
+             permissions="everyone"
+             description="Enters the hammer mode if the password is correct."
+    />
+    <command name="length"
+             usage="/length (x (float) | = (int) | check | clear)"
+             permissions="hammers, singleplayers"
+             description="Manipulates the length of the games, “= n” fixes the number of laps to n, “x k” sets it to k times default number of laps, “check” displays the setting, “clear” allows players to choose it freely."
+    />
+    <command name="queue"
+             usage="/queue (show | push[_front] (track) | pop[_back])"
+             permissions="hammers, singleplayers"
+             description="Manipulates the track queue aka the next played tracks. “show” displays it, “push” adds the track to the end of the queue, “pop” removes a track at the front. You can use “_back” and “_front” to specify on which end of the queue to add or remove the tracks."
+    />
+    <command name="adminstart"
+             usage="/adminstart [0 | 1]"
+             permissions="hammers"
+             description="Toggles whether the game can be started on the server."
+    />
+    <command name="shuffle"
+             usage="/shuffle [0 | 1]"
+             permissions="hammers"
+             description="Toggles whether the Grand Prix grid is shuffled before each race (1), or it corresponds to the standings (0)."
+    />
+    <command name="timeout"
+             usage="/timeout [positive int x]"
+             permissions="hammers"
+             description="Sets the timeout in seconds, whatever it may mean."
+    />
+    <command name="team"
+             usage="/team ([roygbp-]) (username)"
+             permissions="hammers"
+             description="Move a player to one of six teams denoted by square emojis (r - red, o - orange, y - yellow, g - green, b - blue, p – purple), or removes the player from the teams (“-”)."
+    />
+    <command name="cat+"
+             usage="/cat+ (category) (username)"
+             permissions="hammers"
+             description="Adds the player to a certain category."
+    />
+    <command name="cat-"
+             usage="/cat- (category) (username)"
+             permissions="hammers"
+             description="Removes the player from a certain category."
+    />
+    <command name="cat*"
+             usage="/cat* (category) (0 | 1)"
+             permissions="hammers"
+             description="Toggles whether a category is displayed in the player list."
+    />
+    <command name="troll"
+             usage="/troll [0 | 1]"
+             permissions="hammers"
+             description="Toggles anti-troll system."
+    />
+    <command name="hitmsg"
+             usage="/hitmsg [0 | 1]"
+             permissions="hammers"
+             description="Toggles whether the messages about teammate hits are displayed."
+    />
+    <command name="teamhit"
+             usage="/teamhit [0 | 1]"
+             permissions="hammers"
+             description="Toggles whether the teammate hits are punished ingame."
+    />
+    <command name="version"
+             usage="/version"
+             permissions="everyone"
+             description="Displays version."
+    />
+    <command name="clear"
+             usage="/clear"
+             permissions="everyone"
+             description="Puts newlines onto the screen so that the previous messages are not visible."
+    />
+    <command name="register"
+             usage="/register [info]"
+             permissions="everyone"
+             description="The command is used to register to an event (if the server has a database to store the registrations). Players can provide information while registering."
+    />
+    <command name="token"
+             usage="/token"
+             permissions="everyone"
+             description="Produces a token for a player and stores it in the database (if the server has a database to store tokens). Tokens may be used to authenticate players using their STK accounts."
+    />
+    <command name="muteall"
+             usage="/muteall [0 | 1]"
+             permissions="everyone in soccer tournament mode"
+             description="Toggles whether a player wants to receive messages from anyone except acting players and referees in soccer tournament mode (this may be forced for acting player and referees using config)."
+    />
+    <command name="game"
+             usage="/game [number] [length]"
+             permissions="soccer tournament referees"
+             description="Prepares the server for a certain game, with certain duration or number of goals."
+    />
+    <command name="role"
+             usage="/role ([rbjsRBJS]) (username | #Category)"
+             permissions="soccer tournament referees"
+             description="Assigns a role to a player. Roles include: “r” and “b” - acting players with red and blue colors, respectively; “j” - judge/referee, “s” – spectator. May be done simultaneously for a specified category. Fails if the player doesn't satisfy the requirements for the role."
+    />
+    <command name="stop"
+             usage="/stop"
+             permissions="soccer tournament referees"
+             description="Disables goal counting during the game."
+    />
+    <command name="go"
+             usage="/go"
+             permissions="soccer tournament referees"
+             description="Enables goal counting during the game."
+    />
+    <command name="play"
+             usage="/play"
+             permissions="soccer tournament referees"
+             description="Enables goal counting during the game."
+    />
+    <command name="resume"
+             usage="/resume"
+             permissions="soccer tournament referees"
+             description="Enables goal counting during the game."
+    />
+    <command name="lobby"
+             usage="/lobby"
+             permissions="soccer tournament referees"
+             description="Forces players to the lobby through the final screen, stoppng the game."
+    />
+    <command name="init"
+             usage="/init (red count) (blue count)"
+             permissions="soccer tournament referees"
+             description="Initializes the match score to start from (red count):(blue count) instead of 0:0."
+    />
+    <command name="vote"
+             usage="/vote (command with arguments, without “/”)"
+             permissions="everyone"
+             description="Casts a vote for the provided command, if it can be voted. Only useful for those players who can enforce their command but opt to vote instead of forcing; for those players who cannot invoke the command alone, /(command) is equivalent to /vote (command)."
+    />
+    <command name="mimiz"
+             usage="/mimiz [text]"
+             permissions="everyone"
+             description="A joke command."
+    />
+    <command name="test"
+             usage="/test [poll name] [option name]"
+             permissions="everyone; votable"
+             description="A test command."
+    />
+    <command name="help"
+             usage="/help (command name)"
+             permissions="everyone"
+             description="Gives description of a given command."
+    />
+    <!--
+        <command name="1"
+                 usage="/1"
+                 permissions="everyone"
+                 description="This command allows to choose 1st of suggested options when a typo is made."
+        />
+        <command name="2"
+                 usage="/2"
+                 permissions="everyone"
+                 description="This command allows to choose 2nd of suggested options when a typo is made."
+        />
+        <command name="3"
+                 usage="/3"
+                 permissions="everyone"
+                 description="This command allows to choose 3rd of suggested options when a typo is made."
+        />
+        <command name="4"
+                 usage="/4"
+                 permissions="everyone"
+                 description="This command allows to choose 4th of suggested options when a typo is made."
+        />
+        <command name="5"
+                 usage="/5"
+                 permissions="everyone"
+                 description="This command allows to choose 5th of suggested options when a typo is made."
+        />
+    -->
+    <command name="slots"
+             usage="/slots (number of slots)"
+             permissions="hammers; voted"
+             description="Sets the number of playable slots to a certain value."
+    />
+    <command name="time"
+             usage="/time"
+             permissions="everyone"
+             description="Displays server time."
+    />
+    <command name="addondownloadprogress"
+             usage="/addondownloadprogress"
+             permissions="everyone (client command)"
+             description="Displays the progress of background addon installation."
+    />
+    <command name="stopaddondownload"
+             usage="/stopaddondownload"
+             permissions="everyone (client command)"
+             description="Stops the background download."
+    />
+    <command name="installaddon"
+             usage="/installaddon  (addon | http(s) link)"
+             permissions="everyone (client command)"
+             description="Installs an addon by the identifier, or a zip archive with addons by the http(s) link."
+    />
+    <command name="uninstalladdon"
+             usage="/uninstalladdon (addon)"
+             permissions="everyone (client command)"
+             description="Uninstalls an addon by its identifier."
+    />
+    <command name="music"
+             usage="/music (0..10)"
+             permissions="everyone (client command)"
+             description="Changes music volume (but not the sound effects volume)."
+    />
+    <command name="addonrevision"
+             usage="/addonrevision (addon)"
+             permissions="everyone (client command)"
+             description="Displays addon revision by addon's identifier."
+    />
+    <command name="liststkaddon"
+             usage="/liststkaddon [-type] (substring)"
+             permissions="everyone (client command)"
+             description="Displays the game addons by the substring of the identifier."
+    />
+    <command name="listlocaladdon"
+             usage="/listlocaladdon [-type] (substring)"
+             permissions="everyone (client command)"
+             description="Displays locally installed addons by the substring of the identifier."
+    />
+</commands>
