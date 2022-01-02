@@ -134,13 +134,17 @@ private:
 
     std::map<std::string, std::vector<std::string>> m_user_command_replacements;
 
+    std::map<std::string, int> m_user_correct_arguments;
+
     std::map<std::string, CommandDescription> m_config_descriptions;
 
     SetTypoFixer m_stf_command_names;
 
     SetTypoFixer m_stf_present_users;
 
-    SetTypoFixer m_stf_maps;
+    SetTypoFixer m_stf_all_maps;
+
+    SetTypoFixer m_stf_addon_maps;
 
     void initCommandsInfo();
     void initCommands();
@@ -225,6 +229,10 @@ public:
     void deleteUser(std::string& s);
 
     static void restoreCmdByArgv(std::string& cmd, std::vector<std::string>& argv, char c, char d, char e, char f);
+
+    bool hasTypo(std::shared_ptr<STKPeer> peer,
+        std::vector<std::string>& argv, std::string& cmd, int idx,
+        SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is);
 };
 
 #endif // COMMAND_MANAGER_HPP

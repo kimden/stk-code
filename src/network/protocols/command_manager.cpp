@@ -264,51 +264,33 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         voting = true;
         action = "vote for";
     }
-    for (int i = 1; i <= 5; ++i) {
+    bool restored = false;
+    for (int i = 0; i <= 5; ++i) {
         if (argv[0] == std::to_string(i)) {
-            if (i - 1 < (int)m_user_command_replacements[username].size()) {
-                cmd = m_user_command_replacements[username][i - 1];
+            if (i < (int)m_user_command_replacements[username].size() &&
+                    !m_user_command_replacements[username][i].empty()) {
+                cmd = m_user_command_replacements[username][i];
                 argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
                 if (argv.size() == 0)
                     return;
                 CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+                restored = true;
                 break;
             } else {
                 std::string msg = "Pick one of " +
-                    std::to_string(m_user_command_replacements[username].size())
-                    + " options using /1, etc., or type a different command";
+                    std::to_string(-1 + (int)m_user_command_replacements[username].size())
+                    + " options using /1, etc., or use /0, or type a different command";
                 m_lobby->sendStringToPeer(msg, peer);
                 return;
             }
         }
     }
     m_user_command_replacements.erase(username);
+    if (!restored)
+        m_user_correct_arguments.erase(username);
 
-    auto closest_commands = m_stf_command_names.getClosest(argv[0], 3, false);
-    if (closest_commands.empty())
-    {
-        std::string msg = "Command " + argv[0] + " not found";
-        m_lobby->sendStringToPeer(msg, peer);
+    if (hasTypo(peer, argv, cmd, 0, m_stf_command_names, 3, false, false))
         return;
-    }
-    if (closest_commands[0].second != 0)
-    {
-        m_user_command_replacements[username].clear();
-        std::string initial_command = argv[0];
-        std::string response = "You invoked \"" + cmd + "\", but there is "
-            "no command \"" + initial_command + "\". Choose a fix or ignore:";
-
-        for (unsigned i = 0; i < closest_commands.size(); ++i) {
-            argv[0] = closest_commands[i].first;
-            CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
-            m_user_command_replacements[username].push_back(cmd);
-            response += "\ntype /" + std::to_string(i + 1) + " to choose /" + argv[0];
-        }
-        argv[0] = initial_command;
-        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
-        m_lobby->sendStringToPeer(response, peer);
-        return;
-    }
 
     auto command_iterator = m_name_to_command.find(argv[0]);
 
@@ -956,6 +938,9 @@ void CommandManager::process_pha(Context& context)
         error(context);
         return;
     }
+    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        2, m_stf_present_users, 3, false, false))
+        return;
 
     std::string addon_id = argv[1];
     std::string player_name = argv[2];
@@ -1011,6 +996,11 @@ void CommandManager::process_kick(Context& context)
         error(context);
         return;
     }
+
+    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        1, m_stf_present_users, 3, false, false))
+        return;
+
     std::string player_name = argv[1];
 
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
@@ -1105,6 +1095,11 @@ void CommandManager::process_pas(Context& context)
         error(context);
         return;
     }
+
+    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        1, m_stf_present_users, 3, false, false))
+        return;
+
     player_name = argv[1];
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
@@ -1179,6 +1174,10 @@ void CommandManager::process_mute(Context& context)
         error(context);
         return;
     }
+
+    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        1, m_stf_present_users, 3, false, false))
+        return;
 
     player_name = StringUtils::utf8ToWide(argv[1]);
     player_peer = STKHost::get()->findPeerByName(player_name);
@@ -1398,6 +1397,9 @@ void CommandManager::process_to(Context& context)
     m_lobby->m_message_receivers[peer.get()].clear();
     for (unsigned i = 1; i < argv.size(); ++i)
     {
+        if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+            i, m_stf_present_users, 3, false, true))
+            return;
         m_lobby->m_message_receivers[peer.get()].insert(
             StringUtils::utf8ToWide(argv[i]));
     }
@@ -1761,6 +1763,9 @@ void CommandManager::process_cat(Context& context)
             return;
         }
         std::string category = argv[1];
+        if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+            2, m_stf_present_users, 3, false, true))
+            return;
         std::string player = argv[2];
         m_lobby->m_player_categories[category].insert(player);
         m_lobby->m_categories_for_player[player].insert(category);
@@ -1776,6 +1781,9 @@ void CommandManager::process_cat(Context& context)
         }
         std::string category = argv[1];
         std::string player = argv[2];
+        if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+            2, m_stf_present_users, 3, false, true))
+            return;
         m_lobby->m_player_categories[category].erase(player);
         m_lobby->m_categories_for_player[player].erase(category);
         m_lobby->updatePlayerList();
@@ -2025,12 +2033,17 @@ void CommandManager::process_role(Context& context)
         error(context);
         return;
     }
+    if (argv[1].length() > argv[2].length())
+    {
+        swap(argv[1], argv[2]);
+    }
+    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        2, m_stf_present_users, 3, false, true))
+        return;
     std::string role = argv[1];
     std::string username = argv[2];
     bool permanent = (argv.size() >= 4 &&
         (argv[3] == "p" || argv[3] == "permanent"));
-    if (role.length() != 1)
-        std::swap(role, username);
     if (role.length() != 1)
     {
         error(context);
@@ -2336,6 +2349,7 @@ void CommandManager::special(Context& context)
 void CommandManager::addUser(std::string& s)
 {
     m_users.insert(s);
+    m_stf_present_users.add(s);
     update();
 } // addUser
 // ========================================================================
@@ -2349,6 +2363,7 @@ void CommandManager::deleteUser(std::string& s)
         return;
     }
     m_users.erase(it);
+    m_stf_present_users.remove(s);
     update();
 } // deleteUser
 // ========================================================================
@@ -2378,4 +2393,60 @@ void CommandManager::restoreCmdByArgv(std::string& cmd, std::vector<std::string>
         }
     }
 } // restoreCmdByArgv
+// ========================================================================
+
+bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer,
+    std::vector<std::string>& argv, std::string& cmd, int idx,
+    SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is)
+{
+    std::string username = StringUtils::wideToUtf8(
+        peer->getPlayerProfiles()[0]->getName());
+    if (idx < m_user_correct_arguments[username])
+        return false;
+    auto closest_commands = stf.getClosest(argv[idx], top, case_sensitive);
+    if (closest_commands.empty())
+    {
+        std::string msg = "Command " + cmd + " not found";
+        m_lobby->sendStringToPeer(msg, peer);
+        return true;
+    }
+    if (closest_commands[0].second != 0 || (closest_commands[0].second == 0
+        && closest_commands.size() > 1 && closest_commands[1].second == 0))
+    {
+        m_user_command_replacements[username].clear();
+        m_user_correct_arguments[username] = idx + 1;
+        std::string initial_argument = argv[idx];
+        std::string response = "";
+        if (idx == 0)
+            response += "There is no command \"" + argv[idx] + "\"";
+        else
+            response += "Argument \"" + argv[idx] + "\" may be invalid";
+
+        if (allow_as_is)
+        {
+            response += ". Type /0 to continue, or choose a fix:";
+            m_user_command_replacements[username].push_back(cmd);
+        }
+        else
+        {
+            response += ". Choose a fix or ignore:";
+            m_user_command_replacements[username].push_back("");
+        }
+        for (unsigned i = 0; i < closest_commands.size(); ++i) {
+            argv[idx] = closest_commands[i].first;
+            CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+            m_user_command_replacements[username].push_back(cmd);
+            response += "\ntype /" + std::to_string(i + 1) + " to choose \"" + argv[idx] + "\"";
+        }
+        argv[idx] = initial_argument;
+        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        m_lobby->sendStringToPeer(response, peer);
+        return true;
+    }
+
+    argv[idx] = closest_commands[0].first; // converts case or regex
+    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    return false;
+
+} // hasTypo
 // ========================================================================

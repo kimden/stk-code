@@ -1335,7 +1335,7 @@ namespace StringUtils
     {
         if (a == b)
             return true;
-        return case_sensitive && toupper(a) == toupper(b);
+        return !case_sensitive && toupper(a) == toupper(b);
     }   // isEqual
     // ------------------------------------------------------------------------
     int getEditDistance(const std::string& a, const std::string& b,
