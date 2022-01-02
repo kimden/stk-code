@@ -4312,18 +4312,8 @@ void ServerLobby::connectionRequested(Event* event)
 
     unsigned total_players = 0;
     STKHost::get()->updatePlayers(NULL, NULL, &total_players);
-    unsigned max_players_mode = (unsigned)ServerConfig::m_server_max_players;
-    if (RaceManager::get()->getMinorMode() ==
-        RaceManager::MINOR_MODE_FREE_FOR_ALL)
-        max_players_mode = std::min<unsigned>(10, max_players_mode);
-    if (RaceManager::get()->getMinorMode() ==
-        RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
-        max_players_mode = std::min<unsigned>(14, max_players_mode);
-    if (RaceManager::get()->getMinorMode() ==
-        RaceManager::MINOR_MODE_SOCCER && !ServerConfig::m_soccer_tournament)
-        max_players_mode = std::min<unsigned>(14, max_players_mode);
     if (total_players + player_count + m_ai_profiles.size() >
-        max_players_mode)
+        (unsigned)ServerConfig::m_server_max_players)
     {
         NetworkString *message = getNetworkString(2);
         message->setSynchronous(true);
