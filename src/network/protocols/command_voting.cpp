@@ -38,11 +38,13 @@ void CommandVoting::castVote(std::string player, std::string category, std::stri
 
 void CommandVoting::uncastVote(std::string player, std::string category)
 {
+    std::string previous_vote = "";
     auto it = m_votes_by_player[player].find(category);
     if (it != m_votes_by_player[player].end())
     {
-        std::string previous_vote = it->second;
+        previous_vote = it->second;
         m_votes_by_poll[category][previous_vote].erase(player);
+        m_votes_by_player[player].erase(it);
     }
     m_need_check = true;
     m_selected_category = "";
@@ -77,7 +79,9 @@ std::pair<int, std::map<std::string, std::string>> CommandVoting::process(std::m
         for (const auto& q: category_results)
         {
             if (category == m_selected_category && q.first == m_selected_option)
+            {
                 num_votes = q.second;
+            }
             if (q.second >= required_number)
             {
                 result[category] = q.first;
