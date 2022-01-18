@@ -134,6 +134,8 @@ private:
 
     std::map<std::string, std::vector<std::string>> m_user_command_replacements;
 
+    std::map<std::string, bool> m_user_saved_voting;
+
     std::map<std::string, int> m_user_correct_arguments;
 
     std::map<std::string, CommandDescription> m_config_descriptions;
@@ -230,7 +232,7 @@ public:
 
     static void restoreCmdByArgv(std::string& cmd, std::vector<std::string>& argv, char c, char d, char e, char f);
 
-    bool hasTypo(std::shared_ptr<STKPeer> peer,
+    bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
         SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is);
 };

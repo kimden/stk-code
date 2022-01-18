@@ -47,7 +47,7 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
     for (const std::string& s: m_set)
     {
         int distance = StringUtils::getEditDistance(s,
-            query_ref, case_sensitive);
+            query_ref, case_sensitive, '*');
         
         ans.emplace_back(s, distance);
     }

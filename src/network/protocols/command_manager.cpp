@@ -274,6 +274,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 if (argv.size() == 0)
                     return;
                 CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+                voting = m_user_saved_voting[username];
                 restored = true;
                 break;
             } else {
@@ -289,7 +290,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     if (!restored)
         m_user_correct_arguments.erase(username);
 
-    if (hasTypo(peer, argv, cmd, 0, m_stf_command_names, 3, false, false))
+    if (hasTypo(peer, voting, argv, cmd, 0, m_stf_command_names, 3, false, false))
         return;
 
     auto command_iterator = m_name_to_command.find(argv[0]);
@@ -938,7 +939,7 @@ void CommandManager::process_pha(Context& context)
         error(context);
         return;
     }
-    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
         2, m_stf_present_users, 3, false, false))
         return;
 
@@ -997,7 +998,7 @@ void CommandManager::process_kick(Context& context)
         return;
     }
 
-    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
         1, m_stf_present_users, 3, false, false))
         return;
 
@@ -1096,7 +1097,7 @@ void CommandManager::process_pas(Context& context)
         return;
     }
 
-    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
         1, m_stf_present_users, 3, false, false))
         return;
 
@@ -1175,7 +1176,7 @@ void CommandManager::process_mute(Context& context)
         return;
     }
 
-    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
         1, m_stf_present_users, 3, false, false))
         return;
 
@@ -1397,7 +1398,7 @@ void CommandManager::process_to(Context& context)
     m_lobby->m_message_receivers[peer.get()].clear();
     for (unsigned i = 1; i < argv.size(); ++i)
     {
-        if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
             i, m_stf_present_users, 3, false, true))
             return;
         m_lobby->m_message_receivers[peer.get()].insert(
@@ -1763,7 +1764,7 @@ void CommandManager::process_cat(Context& context)
             return;
         }
         std::string category = argv[1];
-        if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
             2, m_stf_present_users, 3, false, true))
             return;
         std::string player = argv[2];
@@ -1781,7 +1782,7 @@ void CommandManager::process_cat(Context& context)
         }
         std::string category = argv[1];
         std::string player = argv[2];
-        if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
             2, m_stf_present_users, 3, false, true))
             return;
         m_lobby->m_player_categories[category].erase(player);
@@ -2037,7 +2038,7 @@ void CommandManager::process_role(Context& context)
     {
         swap(argv[1], argv[2]);
     }
-    if (hasTypo(context.m_peer, context.m_argv, context.m_cmd,
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
         2, m_stf_present_users, 3, false, true))
         return;
     std::string role = argv[1];
@@ -2395,10 +2396,12 @@ void CommandManager::restoreCmdByArgv(std::string& cmd, std::vector<std::string>
 } // restoreCmdByArgv
 // ========================================================================
 
-bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer,
+bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     std::vector<std::string>& argv, std::string& cmd, int idx,
     SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is)
 {
+    if (!peer.get()) // voted
+        return false;
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (idx < m_user_correct_arguments[username])
@@ -2421,6 +2424,8 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer,
             response += "There is no command \"" + argv[idx] + "\"";
         else
             response += "Argument \"" + argv[idx] + "\" may be invalid";
+
+        m_user_saved_voting[username] = voting;
 
         if (allow_as_is)
         {
