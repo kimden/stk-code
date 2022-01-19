@@ -96,6 +96,11 @@
              permissions="everyone"
              description="Lists players whom you blocked using /mute command."
     />
+    <command name="description"
+             usage="/description"
+             permissions="everyone"
+             description="Displays server description, also known as MOTD."
+    />
     <command name="moreinfo"
              usage="/moreinfo"
              permissions="everyone"

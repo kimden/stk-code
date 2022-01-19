@@ -217,13 +217,6 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     m_command_manager = CommandManager(nullptr);
 
-    m_available_commands = "admin ban commands config game gnu go help init "
-        "installaddon kick kickban listlocaladdon listserveraddon "
-        "liststkaddon lobby nognu play playeraddonscore playerhasaddon "
-        "power public record register replay resume role serverhasaddon "
-        "spectate standings start stop teamchat tell to token unban "
-        "uninstalladdon version";
-
     m_team_name_to_index = {
            {"red", 1}, {"r", 1}, {StringUtils::utf32ToUtf8({0x1f7e5}), -1},
         {"orange", 2}, {"o", 2}, {StringUtils::utf32ToUtf8({0x1f7e7}), -2},

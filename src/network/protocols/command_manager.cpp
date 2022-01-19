@@ -139,6 +139,7 @@ void CommandManager::initCommands()
     v.emplace_back("mute",             &CM::process_mute,       UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("unmute",           &CM::process_unmute,     UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("listmute",         &CM::process_listmute,   UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("description",      &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("moreinfo",         &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("gnu",              &CM::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS);
     v.emplace_back("nognu",            &CM::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS);
@@ -197,6 +198,8 @@ void CommandManager::initCommands()
     v.emplace_back("liststkaddon",           &CM::special, UP_EVERYONE, CS_ALWAYS);
     v.emplace_back("listlocaladdon",         &CM::special, UP_EVERYONE, CS_ALWAYS);
 
+
+    addTextResponse("description", ServerConfig::m_motd);
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     addTextResponse("version", "1.3-rc1 k 210fff beta");
     addTextResponse("clear", std::string(30, '\n'));

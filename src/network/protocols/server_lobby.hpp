@@ -303,8 +303,6 @@ private:
 
     irr::core::stringw m_help_message;
 
-    std::string m_available_commands;
-
     std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;
 
     std::set<STKPeer*> m_team_speakers;
