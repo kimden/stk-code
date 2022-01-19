@@ -36,6 +36,11 @@
              permissions="everyone"
              description="Lists top 5 addons that are missing for at least one player, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified."
     />
+    <command name="getaddons"
+             usage="/getaddons [type]"
+             permissions="everyone"
+             description="Lists top 5 addons that are missing for the player who calls the command, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified."
+    />
     <command name="checkaddon"
              usage="/checkaddon (addon)"
              permissions="everyone"

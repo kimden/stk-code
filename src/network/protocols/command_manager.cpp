@@ -127,6 +127,7 @@ void CommandManager::initCommands()
     v.emplace_back("spectate",         &CM::process_spectate,   UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("addons",           &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("moreaddons",       &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("getaddons",        &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("checkaddon",       &CM::process_checkaddon, UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("listserveraddon",  &CM::process_lsa,        UP_EVERYONE,            CS_ALWAYS);
     v.emplace_back("playerhasaddon",   &CM::process_pha,        UP_EVERYONE,            CS_ALWAYS);
@@ -639,6 +640,7 @@ void CommandManager::process_addons(Context& context)
 {
     auto& argv = context.m_argv;
     bool more = (argv[0] == "moreaddons");
+    bool more_own = (argv[0] == "getaddons");
     if (argv.size() == 1)
     {
         argv.push_back("");
@@ -706,9 +708,30 @@ void CommandManager::process_addons(Context& context)
     if (num_players > 0) {
         response = "Found " + std::to_string(all_have.size()) + " asset(s)";
         std::reverse(result.begin(), result.end());
+        if (more_own)
+        {
+            auto result2 = result;
+            result.clear();
+            std::string asking_username = StringUtils::wideToUtf8(
+                    context.m_peer->getPlayerProfiles()[0]->getName());
+            for (int i = 0; i < result2.size(); ++i)
+            {
+                bool present = false;
+                for (int j = 0; j < result2[i].second.size(); ++j)
+                {
+                    if (result2[i].second[j] == asking_username)
+                    {
+                        present = true;
+                        break;
+                    }
+                }
+                if (present)
+                    result.push_back(result2[i]);
+            }
+        }
         if (result.size() > NEXT_ADDONS)
             result.resize(NEXT_ADDONS);
-        if (!more)
+        if (!more && !more_own)
         {
             bool nothing = true;
             for (const std::string& s: all_have)
