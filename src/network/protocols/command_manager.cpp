@@ -58,6 +58,7 @@
 // #include "tracks/check_manager.hpp"
 // #include "tracks/track.hpp"
 // #include "tracks/track_manager.hpp"
+#include "utils/file_utils.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
@@ -72,6 +73,51 @@
 #include <iterator>
 
 // ========================================================================
+
+
+CommandManager::FileResource::FileResource(std::string file_name, uint64_t interval)
+{
+    m_file_name = file_name;
+    m_interval = interval;
+    m_contents = "";
+    m_last_invoked = 0;
+    read();
+} // FileResource::FileResource
+// ========================================================================
+
+void CommandManager::FileResource::read()
+{
+    if (m_file_name.empty()) // in case it is not properly initialized
+        return;
+    // idk what to do with absolute or relative paths
+    const std::string& path = /*ServerConfig::getConfigDirectory() + "/" + */m_file_name;
+    std::ifstream message(FileUtils::getPortableReadingPath(path));
+    std::string answer = "";
+    if (message.is_open())
+    {
+        for (std::string line; std::getline(message, line); )
+        {
+            answer += line;
+            answer.push_back('\n');
+        }
+        if (!answer.empty())
+            answer.pop_back();
+    }
+    m_contents = answer;
+    m_last_invoked = StkTime::getMonoTimeMs();
+} // FileResource::read
+// ========================================================================
+
+std::string CommandManager::FileResource::get()
+{
+    uint64_t current_time = StkTime::getMonoTimeMs();
+    if (m_interval == 0 || current_time < m_interval + m_last_invoked)
+        return m_contents;
+    read();
+    return m_contents;
+} // FileResource::get
+// ========================================================================
+
 
 void CommandManager::initCommandsInfo()
 {
@@ -102,10 +148,35 @@ void CommandManager::initCommandsInfo()
         {
             std::string name = "";
             std::string text = "";
+            std::string usage = "";
+            std::string permissions = "";
+            std::string description = "";
             node->get("name", &name);
             node->get("text", &text);
             m_commands.emplace_back(name, &CommandManager::process_text, UP_EVERYONE, CS_ALWAYS);
             addTextResponse(name, text);
+            node->get("usage", &usage);
+            node->get("permissions", &permissions);
+            node->get("description", &description);
+            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
+        }
+        else if (node_name == "file-command")
+        {
+            std::string name = "";
+            std::string file = "";
+            std::string usage = "";
+            std::string permissions = "";
+            std::string description = "";
+            uint64_t interval = 0;
+            node->get("name", &name);
+            node->get("file", &file);
+            node->get("interval", &interval);
+            m_commands.emplace_back(name, &CommandManager::process_file, UP_EVERYONE, CS_ALWAYS);
+            addFileResource(name, file, interval);
+            node->get("usage", &usage);
+            node->get("permissions", &permissions);
+            node->get("description", &description);
+            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
         }
     }
 } // initCommandsInfo
@@ -448,6 +519,19 @@ void CommandManager::process_text(Context& context)
             + " is defined without text";
     else
         response = it->second;
+    m_lobby->sendStringToPeer(response, context.m_peer);
+} // process_text
+// ========================================================================
+
+void CommandManager::process_file(Context& context)
+{
+    std::string response;
+    auto it = m_file_resources.find(context.m_argv[0]);
+    if (it == m_file_resources.end())
+        response = "Error: file not found for a file command "
+            + context.m_argv[0];
+    else
+        response = it->second.get();
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_text
 // ========================================================================

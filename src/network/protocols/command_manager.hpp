@@ -47,7 +47,22 @@ class STKPeer;
 
 class CommandManager
 {
-    enum CommandScope: int {
+    struct FileResource
+    {
+        std::string m_file_name;
+        uint64_t m_interval;
+        uint64_t m_last_invoked;
+        std::string m_contents;
+
+        FileResource(std::string file_name = "", uint64_t interval = 0);
+
+        void read();
+
+        std::string get();
+    };
+
+    enum CommandScope: int
+    {
         CS_ALWAYS = 1,
         CS_SOCCER_TOURNAMENT = 2
         // add more powers of two if needed
@@ -128,6 +143,8 @@ private:
 
     std::map<std::string, std::string> m_text_response;
 
+    std::map<std::string, FileResource> m_file_resources;
+
     std::map<std::string, CommandVoting> m_votables;
 
     std::queue<std::string> m_triggered_votables;
@@ -161,6 +178,7 @@ private:
 
     void process_help(Context& context);
     void process_text(Context& context);
+    void process_file(Context& context);
     void process_commands(Context& context);
     void process_replay(Context& context);
     void process_start(Context& context);
@@ -225,6 +243,9 @@ public:
     template<typename T>
     void addTextResponse(std::string key, T&& value)
                                               { m_text_response[key] = value; }
+
+    void addFileResource(std::string key, std::string file, uint64_t interval)
+                      { m_file_resources[key] = FileResource(file, interval); }
 
     void addUser(std::string& s);
 
