@@ -132,50 +132,62 @@ void CommandManager::initCommandsInfo()
     {
         const XMLNode *node = root->getNode(i);
         std::string node_name = node->getName();
+        // here the commands go
+        std::string name = "";
+        std::string text = ""; // for text-command
+        std::string file = ""; // for file-command
+        uint64_t interval = 0; // for file-command
+        std::string usage = "";
+        std::string permissions = "";
+        std::string description = "";
+        // If enabled is not empty, command is added iff the server name is in enabled
+        // Otherwise it is added iff the server name is not in disabled
+        std::string enabled = "";
+        std::string disabled = "";
+        node->get("enabled", &enabled);
+        node->get("disabled", &disabled);
+        std::vector<std::string> enabled_split = StringUtils::split(enabled, ' ');
+        std::vector<std::string> disabled_split = StringUtils::split(disabled, ' ');
+        bool ok;
+        if (!enabled.empty())
+        {
+            ok = false;
+            for (const std::string& s: enabled_split)
+                if (s == ServerConfig::m_server_uid)
+                    ok = true;
+        }
+        else
+        {
+            ok = true;
+            for (const std::string& s: disabled_split)
+                if (s == ServerConfig::m_server_uid)
+                    ok = false;
+        }
+        if (!ok)
+            continue;
+
+        node->get("name", &name);
+        node->get("usage", &usage);
+        node->get("permissions", &permissions);
+        node->get("description", &description);
+
         if (node_name == "command")
         {
-            std::string name = "";
-            std::string usage = "";
-            std::string permissions = "";
-            std::string description = "";
-            node->get("name", &name);
-            node->get("usage", &usage);
-            node->get("permissions", &permissions);
-            node->get("description", &description);
             m_config_descriptions[name] = CommandDescription(usage, permissions, description);
         }
         else if (node_name == "text-command")
         {
-            std::string name = "";
-            std::string text = "";
-            std::string usage = "";
-            std::string permissions = "";
-            std::string description = "";
-            node->get("name", &name);
             node->get("text", &text);
             m_commands.emplace_back(name, &CommandManager::process_text, UP_EVERYONE, CS_ALWAYS);
             addTextResponse(name, text);
-            node->get("usage", &usage);
-            node->get("permissions", &permissions);
-            node->get("description", &description);
             m_config_descriptions[name] = CommandDescription(usage, permissions, description);
         }
         else if (node_name == "file-command")
         {
-            std::string name = "";
-            std::string file = "";
-            std::string usage = "";
-            std::string permissions = "";
-            std::string description = "";
-            uint64_t interval = 0;
-            node->get("name", &name);
             node->get("file", &file);
             node->get("interval", &interval);
             m_commands.emplace_back(name, &CommandManager::process_file, UP_EVERYONE, CS_ALWAYS);
             addFileResource(name, file, interval);
-            node->get("usage", &usage);
-            node->get("permissions", &permissions);
-            node->get("description", &description);
             m_config_descriptions[name] = CommandDescription(usage, permissions, description);
         }
     }
