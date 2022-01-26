@@ -82,6 +82,10 @@ class CommandManager
 
         bool m_voting;
 
+        Context(Event* event, std::shared_ptr<STKPeer> peer):
+                m_event(event), m_peer(peer), m_argv(),
+                m_cmd(""), m_user_permissions(0), m_voting(false) {}
+
         Context(Event* event, std::shared_ptr<STKPeer> peer,
             std::vector<std::string>& argv, std::string& cmd,
             int user_permissions, bool voting):

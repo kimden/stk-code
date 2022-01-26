@@ -323,15 +323,21 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     NetworkString& data = event->data();
     std::string language;
     data.decodeString(&language);
-    std::string cmd;
+
+    Context context(event, peer);
+    auto& argv = context.m_argv;
+    auto& cmd = context.m_cmd;
+    auto& permissions = context.m_user_permissions;
+    auto& voting = context.m_voting;
+
     data.decodeString(&cmd);
-    auto argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
+    argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
     if (argv.size() == 0)
         return;
     CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 
-    int permissions = m_lobby->getPermissions(peer);
-    bool voting = false;
+    permissions = m_lobby->getPermissions(peer);
+    voting = false;
     std::string action = "invoke";
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
@@ -401,7 +407,6 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     if (mask != PE_NONE && mask_without_voting == PE_NONE)
         voting = true;
 
-    Context context(event, peer, argv, cmd, permissions, voting);
     (this->*command.m_action)(context);
 
     while (!m_triggered_votables.empty())
