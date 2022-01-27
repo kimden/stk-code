@@ -337,9 +337,9 @@ namespace StringUtils
         }
     }
     // ------------------------------------------------------------------------
-    bool isEqual(char a, char b, bool case_sensitive = true);
+    bool isEqual(char a, char b, char any_char, bool case_sensitive = true);
     int getEditDistance(const std::string& a, const std::string& b,
-        bool case_sensitive = true, char wildcard = 0);
+        bool case_sensitive = true, char any_substr = 0, char any_char = 0);
 
 } // namespace StringUtils
 

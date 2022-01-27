@@ -1839,26 +1839,12 @@ void CommandManager::process_team(Context& context)
     }
     auto it = m_lobby->m_team_name_to_index.find(argv[1]);
     int index = (it == m_lobby->m_team_name_to_index.end() ? 0 : it->second);
-    std::string player;
-    auto wide_player_name = StringUtils::utf8ToWide(argv[2]);
-    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByWildcard(
-        wide_player_name, player);
-    // if player not found
-    if (!player_peer)
-    {
-        // don't use if wildcard
-        if (wide_player_name.find("*") != -1 || wide_player_name.find("?") != -1)
-        {
-            msg = "Player not found or not unique";
-            m_lobby->sendStringToPeer(msg, context.m_peer);
-            return;
-        }
-        else
-        {
-            // if no wildcard, reset player name to use for absent players
-            player = argv[2];
-        }
-    }
+
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+                2, m_stf_present_users, 3, false, true))
+        return;
+
+    std::string player = argv[2];
     for (const auto& pair: m_lobby->m_team_name_to_index)
     {
         if (pair.second < 0)
@@ -1877,7 +1863,9 @@ void CommandManager::process_team(Context& context)
     }
     index = abs(index);
     m_lobby->m_team_for_player[player] = index;
-    wide_player_name = StringUtils::utf8ToWide(player);
+    irr::core::stringw wide_player_name = StringUtils::utf8ToWide(player);
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
+            wide_player_name);
     if (player_peer)
     {
         for (auto& profile : player_peer.get()->getPlayerProfiles())

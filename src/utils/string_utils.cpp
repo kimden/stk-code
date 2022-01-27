@@ -1331,15 +1331,17 @@ namespace StringUtils
         return unit;
     }   // getReadableFileSize
     // ------------------------------------------------------------------------
-    bool isEqual(char a, char b, bool case_sensitive)
+    bool isEqual(char a, char b, char any_char, bool case_sensitive)
     {
+        if (a == any_char || b == any_char)
+            return true;
         if (a == b)
             return true;
         return !case_sensitive && toupper(a) == toupper(b);
     }   // isEqual
     // ------------------------------------------------------------------------
     int getEditDistance(const std::string& a, const std::string& b,
-        bool case_sensitive, char wildcard)
+        bool case_sensitive, char any_substr, char any_char)
     {
         int n = a.length();
         int m = b.length();
@@ -1350,15 +1352,18 @@ namespace StringUtils
             for (int j = 0; j <= m; ++j) {
                 if (i < n) {
                     distance[i + 1][j] = std::min(distance[i + 1][j],
-                        distance[i][j] + (j < m && b[j] == wildcard ? 0 : 1));
+                        distance[i][j] + (j < m && b[j] == any_substr ? 0 : 1));
                 }
                 if (j < m) {
                     distance[i][j + 1] = std::min(distance[i][j + 1],
-                        distance[i][j] + (i < n && a[i] == wildcard ? 0 : 1));
+                        distance[i][j] + (i < n && a[i] == any_substr ? 0 : 1));
                 }
                 if (i < n && j < m) {
-                    int value = distance[i][j] + ((isEqual(a[i], b[j],
-                        case_sensitive) || a[i] == wildcard || b[j] == wildcard) ? 0 : 1);
+                    int value = distance[i][j] + 1;
+                    if (isEqual(a[i], b[j], any_char, case_sensitive))
+                        --value;
+                    else if (a[i] == any_substr || b[j] == any_substr)
+                        --value;
                     distance[i + 1][j + 1] = std::min(
                         distance[i + 1][j + 1], value);
                 }
