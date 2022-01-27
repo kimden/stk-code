@@ -2950,6 +2950,7 @@ void ServerLobby::startSelection(const Event *event)
         // spectating commands, I'll try to fix it later but beware
         Log::warn("ServerLobby",
             "An attempt to start a game while no one is able to play.");
+        addWaitingPlayersToGame();
         return;
         // for (STKPeer* peer : always_spectate_peers)
         //     peer->setAlwaysSpectate(ASM_NONE);
