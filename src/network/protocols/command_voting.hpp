@@ -42,7 +42,8 @@ private:
 	std::map<std::string, std::map<std::string, std::string>> m_votes_by_player;
 	std::map<std::string, double> m_custom_thresholds;
 public:
-	CommandVoting(double threshold = 0.500001);
+    static const double DEFAULT_THRESHOLD;
+	CommandVoting(double threshold = DEFAULT_THRESHOLD);
 	void setCustomThreshold(std::string category, double value)
 	                                 { m_custom_thresholds[category] = value; }
 	void resetCustomThreshold(std::string category)
@@ -53,6 +54,7 @@ public:
 	std::pair<int, std::map<std::string, std::string>> process(std::multiset<std::string>& all_users);
 	std::string getAnyBest(std::string category);
 	void reset(std::string category);
+    void resetAllVotes();
 };
 
 #endif // COMMAND_VOTING_HPP

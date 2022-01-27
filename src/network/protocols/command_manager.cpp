@@ -178,7 +178,7 @@ void CommandManager::initCommandsInfo()
         else if (node_name == "text-command")
         {
             node->get("text", &text);
-            m_commands.emplace_back(name, &CommandManager::process_text, UP_EVERYONE, CS_ALWAYS);
+            m_commands.emplace_back(name, &CommandManager::process_text, UP_EVERYONE, MS_DEFAULT);
             addTextResponse(name, text);
             m_config_descriptions[name] = CommandDescription(usage, permissions, description);
         }
@@ -186,11 +186,12 @@ void CommandManager::initCommandsInfo()
         {
             node->get("file", &file);
             node->get("interval", &interval);
-            m_commands.emplace_back(name, &CommandManager::process_file, UP_EVERYONE, CS_ALWAYS);
+            m_commands.emplace_back(name, &CommandManager::process_file, UP_EVERYONE, MS_DEFAULT);
             addFileResource(name, file, interval);
             m_config_descriptions[name] = CommandDescription(usage, permissions, description);
         }
     }
+    delete root;
 } // initCommandsInfo
 // ========================================================================
 
@@ -200,87 +201,86 @@ void CommandManager::initCommands()
     using CM = CommandManager;
     auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED);
     auto& v = m_commands;
-    v.emplace_back("commands",         &CM::process_commands,   UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("replay",           &CM::process_replay,     UP_SINGLE,              CS_ALWAYS);
-    v.emplace_back("start",            &CM::process_start,      UP_EVERYONE | PE_VOTED, CS_ALWAYS);
-    if (ServerConfig::m_server_configurable)
-    {
-        v.emplace_back("config",       &CM::process_config,     UP_CROWNED | PE_VOTED,  CS_ALWAYS);
+    v.emplace_back("commands", &CM::process_commands, UP_EVERYONE);
+    v.emplace_back("replay", &CM::process_replay, UP_SINGLE);
+    v.emplace_back("start", &CM::process_start, UP_EVERYONE | PE_VOTED, MS_DEFAULT, SS_LOBBY);
+    if (ServerConfig::m_server_configurable) {
+        v.emplace_back("config", &CM::process_config, UP_CROWNED | PE_VOTED, MS_DEFAULT, SS_LOBBY);
     }
-    v.emplace_back("spectate",         &CM::process_spectate,   UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("addons",           &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("moreaddons",       &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("getaddons",        &CM::process_addons,     UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("checkaddon",       &CM::process_checkaddon, UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("listserveraddon",  &CM::process_lsa,        UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("playerhasaddon",   &CM::process_pha,        UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("kick",             &CM::process_kick,       kick_permissions,       CS_ALWAYS);
-    v.emplace_back("kickban",          &CM::process_kick,       UP_HAMMER | PE_VOTED,   CS_ALWAYS);
-    v.emplace_back("unban",            &CM::process_unban,      UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("ban",              &CM::process_ban,        UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("playeraddonscore", &CM::process_pas,        UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("serverhasaddon",   &CM::process_sha,        UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("mute",             &CM::process_mute,       UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("unmute",           &CM::process_unmute,     UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("listmute",         &CM::process_listmute,   UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("description",      &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("moreinfo",         &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("gnu",              &CM::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS);
-    v.emplace_back("nognu",            &CM::process_gnu,        UP_HAMMER | PE_VOTED,   CS_ALWAYS);
-    v.emplace_back("tell",             &CM::process_tell,       UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("standings",        &CM::process_standings,  UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("teamchat",         &CM::process_teamchat,   UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("to",               &CM::process_to,         UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("public",           &CM::process_public,     UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("record",           &CM::process_record,     UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("power",            &CM::process_power,      UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("length",           &CM::process_length,     UP_SINGLE,              CS_ALWAYS);
-    v.emplace_back("queue",            &CM::process_queue,      UP_SINGLE,              CS_ALWAYS);
-    v.emplace_back("adminstart",       &CM::process_adminstart, UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("shuffle",          &CM::process_shuffle,    UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("timeout",          &CM::process_timeout,    UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("team",             &CM::process_team,       UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("cat+",             &CM::process_cat,        UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("cat-",             &CM::process_cat,        UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("cat*",             &CM::process_cat,        UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("troll",            &CM::process_troll,      UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("hitmsg",           &CM::process_hitmsg,     UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("teamhit",          &CM::process_teamhit,    UP_HAMMER,              CS_ALWAYS);
-    v.emplace_back("version",          &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("clear",            &CM::process_text,       UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("register",         &CM::process_register,   UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("spectate", &CM::process_spectate, UP_EVERYONE);
+    v.emplace_back("addons", &CM::process_addons, UP_EVERYONE);
+    v.emplace_back("moreaddons", &CM::process_addons, UP_EVERYONE);
+    v.emplace_back("getaddons", &CM::process_addons, UP_EVERYONE);
+    v.emplace_back("checkaddon", &CM::process_checkaddon, UP_EVERYONE);
+    v.emplace_back("listserveraddon", &CM::process_lsa, UP_EVERYONE);
+    v.emplace_back("playerhasaddon", &CM::process_pha, UP_EVERYONE);
+    v.emplace_back("kick", &CM::process_kick, kick_permissions);
+    v.emplace_back("kickban", &CM::process_kick, UP_HAMMER | PE_VOTED);
+    v.emplace_back("unban", &CM::process_unban, UP_HAMMER);
+    v.emplace_back("ban", &CM::process_ban, UP_HAMMER);
+    v.emplace_back("playeraddonscore", &CM::process_pas, UP_EVERYONE);
+    v.emplace_back("serverhasaddon", &CM::process_sha, UP_EVERYONE);
+    v.emplace_back("mute", &CM::process_mute, UP_EVERYONE);
+    v.emplace_back("unmute", &CM::process_unmute, UP_EVERYONE);
+    v.emplace_back("listmute", &CM::process_listmute, UP_EVERYONE);
+    v.emplace_back("description", &CM::process_text, UP_EVERYONE);
+    v.emplace_back("moreinfo", &CM::process_text, UP_EVERYONE);
+    v.emplace_back("gnu", &CM::process_gnu, UP_HAMMER | PE_VOTED, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("nognu", &CM::process_gnu, UP_HAMMER | PE_VOTED, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("tell", &CM::process_tell, UP_EVERYONE);
+    v.emplace_back("standings", &CM::process_standings, UP_EVERYONE);
+    v.emplace_back("teamchat", &CM::process_teamchat, UP_EVERYONE);
+    v.emplace_back("to", &CM::process_to, UP_EVERYONE);
+    v.emplace_back("public", &CM::process_public, UP_EVERYONE);
+    v.emplace_back("record", &CM::process_record, UP_EVERYONE);
+    v.emplace_back("power", &CM::process_power, UP_EVERYONE);
+    v.emplace_back("length", &CM::process_length, UP_SINGLE);
+    v.emplace_back("queue", &CM::process_queue, UP_SINGLE);
+    v.emplace_back("adminstart", &CM::process_adminstart, UP_HAMMER);
+    v.emplace_back("shuffle", &CM::process_shuffle, UP_HAMMER);
+    v.emplace_back("timeout", &CM::process_timeout, UP_HAMMER);
+    v.emplace_back("team", &CM::process_team, UP_HAMMER);
+    v.emplace_back("cat+", &CM::process_cat, UP_HAMMER);
+    v.emplace_back("cat-", &CM::process_cat, UP_HAMMER);
+    v.emplace_back("cat*", &CM::process_cat, UP_HAMMER);
+    v.emplace_back("troll", &CM::process_troll, UP_HAMMER);
+    v.emplace_back("hitmsg", &CM::process_hitmsg, UP_HAMMER);
+    v.emplace_back("teamhit", &CM::process_teamhit, UP_HAMMER);
+    v.emplace_back("version", &CM::process_text, UP_EVERYONE);
+    v.emplace_back("clear", &CM::process_text, UP_EVERYONE);
+    v.emplace_back("register", &CM::process_register, UP_EVERYONE);
 #ifdef ENABLE_WEB_SUPPORT
-    v.emplace_back("token",            &CM::process_token,      UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("token", &CM::process_token, UP_EVERYONE);
 #endif
-    v.emplace_back("muteall",          &CM::process_muteall,    UP_EVERYONE,            CS_SOCCER_TOURNAMENT);
-    v.emplace_back("game",             &CM::process_game,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("role",             &CM::process_role,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("stop",             &CM::process_stop,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("go",               &CM::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("play",             &CM::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("resume",           &CM::process_go,         UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("lobby",            &CM::process_lobby,      UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("init",             &CM::process_init,       UP_HAMMER,              CS_SOCCER_TOURNAMENT);
-    v.emplace_back("vote",             &CM::special,            UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("mimiz",            &CM::process_mimiz,      UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("test",             &CM::process_test,       UP_EVERYONE | PE_VOTED, CS_ALWAYS);
-    v.emplace_back("help",             &CM::process_help,       UP_EVERYONE,            CS_ALWAYS);
-    // v.emplace_back("1",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
-    // v.emplace_back("2",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
-    // v.emplace_back("3",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
-    // v.emplace_back("4",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
-    // v.emplace_back("5",                &CM::special,            UP_EVERYONE,            CS_ALWAYS);
-    v.emplace_back("slots",            &CM::process_slots,      UP_HAMMER | PE_VOTED,   CS_ALWAYS);
-    v.emplace_back("time",             &CM::process_time,       UP_EVERYONE,            CS_ALWAYS);
+    v.emplace_back("muteall", &CM::process_muteall, UP_EVERYONE, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("game", &CM::process_game, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("role", &CM::process_role, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("stop", &CM::process_stop, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("go", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("play", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("resume", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("lobby", &CM::process_lobby, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("init", &CM::process_init, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("vote", &CM::special, UP_EVERYONE);
+    v.emplace_back("mimiz", &CM::process_mimiz, UP_EVERYONE);
+    v.emplace_back("test", &CM::process_test, UP_EVERYONE | PE_VOTED);
+    v.emplace_back("help", &CM::process_help, UP_EVERYONE);
+//    v.emplace_back("1", &CM::special, UP_EVERYONE, MS_DEFAULT);
+//    v.emplace_back("2", &CM::special, UP_EVERYONE, MS_DEFAULT);
+//    v.emplace_back("3", &CM::special, UP_EVERYONE, MS_DEFAULT);
+//    v.emplace_back("4", &CM::special, UP_EVERYONE, MS_DEFAULT);
+//    v.emplace_back("5", &CM::special, UP_EVERYONE, MS_DEFAULT);
+    v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("time", &CM::process_time, UP_EVERYONE);
 
-    v.emplace_back("addondownloadprogress",  &CM::special, UP_EVERYONE, CS_ALWAYS);
-    v.emplace_back("stopaddondownload",      &CM::special, UP_EVERYONE, CS_ALWAYS);
-    v.emplace_back("installaddon",           &CM::special, UP_EVERYONE, CS_ALWAYS);
-    v.emplace_back("uninstalladdon",         &CM::special, UP_EVERYONE, CS_ALWAYS);
-    v.emplace_back("music",                  &CM::special, UP_EVERYONE, CS_ALWAYS);
-    v.emplace_back("addonrevision",          &CM::special, UP_EVERYONE, CS_ALWAYS);
-    v.emplace_back("liststkaddon",           &CM::special, UP_EVERYONE, CS_ALWAYS);
-    v.emplace_back("listlocaladdon",         &CM::special, UP_EVERYONE, CS_ALWAYS);
+    v.emplace_back("addondownloadprogress", &CM::special, UP_EVERYONE);
+    v.emplace_back("stopaddondownload", &CM::special, UP_EVERYONE);
+    v.emplace_back("installaddon", &CM::special, UP_EVERYONE);
+    v.emplace_back("uninstalladdon", &CM::special, UP_EVERYONE);
+    v.emplace_back("music", &CM::special, UP_EVERYONE);
+    v.emplace_back("addonrevision", &CM::special, UP_EVERYONE);
+    v.emplace_back("liststkaddon", &CM::special, UP_EVERYONE);
+    v.emplace_back("listlocaladdon", &CM::special, UP_EVERYONE);
 
 
     addTextResponse("description", ServerConfig::m_motd);
@@ -305,6 +305,7 @@ void CommandManager::initCommands()
     m_votables.emplace("kick", 0.81);
     m_votables.emplace("kickban", 0.81);
     m_votables.emplace("gnu", 0.81);
+    m_votables.emplace("slots", CommandVoting::DEFAULT_THRESHOLD);
     m_votables["gnu"].setCustomThreshold("gnu kart", 1.1);
 } // initCommands
 // ========================================================================
@@ -440,19 +441,32 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
 } // handleCommand
 // ========================================================================
 
-int CommandManager::getCurrentScope()
+int CommandManager::getCurrentModeScope()
 {
-    int mask = CS_ALWAYS;
+    int mask = MS_DEFAULT;
     if (ServerConfig::m_soccer_tournament)
-        mask |= CS_SOCCER_TOURNAMENT;
+        mask |= MS_SOCCER_TOURNAMENT;
     return mask;
-} // getCurrentScope
+} // getCurrentModeScope
+// ========================================================================
+
+int CommandManager::getCurrentStateScope()
+{
+    auto state = m_lobby->m_state.load();
+    if (state < ServerLobby::WAITING_FOR_START_GAME
+        || state > ServerLobby::RESULT_DISPLAY)
+        return 0;
+    if (state == ServerLobby::WAITING_FOR_START_GAME)
+        return SS_LOBBY;
+    return SS_INGAME;
+} // getCurrentStateScope
 // ========================================================================
 
 bool CommandManager::isAvailable(const Command& c)
 {
-    return (getCurrentScope() & c.m_scope) != 0;
-} // getCurrentScope
+    return (getCurrentModeScope() & c.m_mode_scope) != 0
+        && (getCurrentStateScope() & c.m_state_scope) != 0;
+} // getCurrentModeScope
 // ========================================================================
 
 void CommandManager::vote(Context& context, std::string category, std::string value)
@@ -2581,4 +2595,20 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     return false;
 
 } // hasTypo
+// ========================================================================
+
+void CommandManager::onResetServer()
+{
+    update();
+} // onResetServer
+// ========================================================================
+
+void CommandManager::onStartSelection()
+{
+    m_votables["start"].resetAllVotes();
+    m_votables["config"].resetAllVotes();
+    m_votables["gnu"].resetAllVotes();
+    m_votables["slots"].resetAllVotes();
+    update();
+} // onStartSelection
 // ========================================================================

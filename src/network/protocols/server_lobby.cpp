@@ -845,6 +845,7 @@ void ServerLobby::setup()
     resetPeersReady();
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
+    getCommandManager().onResetServer();
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -2816,7 +2817,7 @@ void ServerLobby::startSelection(const Event *event)
     bool need_to_update = false;
     if (event != NULL)
     {
-        if (m_state != WAITING_FOR_START_GAME)
+        if (m_state.load() != WAITING_FOR_START_GAME)
         {
             Log::warn("ServerLobby",
                 "Received startSelection while being in state %d.",
@@ -3243,6 +3244,8 @@ void ServerLobby::startSelection(const Event *event)
         m_gp_scores.clear();
         m_gp_team_scores.clear();
     }
+
+    getCommandManager().onStartSelection();
 }   // startSelection
 
 //-----------------------------------------------------------------------------

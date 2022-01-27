@@ -61,11 +61,18 @@ class CommandManager
         std::string get();
     };
 
-    enum CommandScope: int
+    enum ModeScope: int
     {
-        CS_ALWAYS = 1,
-        CS_SOCCER_TOURNAMENT = 2
+        MS_DEFAULT = 1,
+        MS_SOCCER_TOURNAMENT = 2
         // add more powers of two if needed
+    };
+
+    enum StateScope: int
+    {
+        SS_LOBBY = 1,
+        SS_INGAME = 2,
+        SS_ALWAYS = SS_LOBBY | SS_INGAME
     };
 
     struct Context
@@ -120,15 +127,19 @@ class CommandManager
 
         void (CommandManager::*m_action)(Context& context);
 
-        int m_scope;
+        int m_mode_scope;
+
+        int m_state_scope;
 
         CommandDescription m_description;
 
         Command() {}
 
         Command(std::string name,
-            void (CommandManager::*f)(Context& context), int permissions, int scope = CS_ALWAYS):
-                m_name(name), m_permissions(permissions), m_action(f), m_scope(scope) {}
+                void (CommandManager::*f)(Context& context), int permissions,
+                int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS):
+                m_name(name), m_permissions(permissions), m_action(f),
+                m_mode_scope(mode_scope), m_state_scope(state_scope) {}
 
         std::string getUsage() { return m_description.getUsage(); }
 
@@ -172,7 +183,8 @@ private:
     void initCommandsInfo();
     void initCommands();
 
-    int getCurrentScope();
+    int getCurrentModeScope();
+    int getCurrentStateScope();
 
     bool isAvailable(const Command& c);
 
@@ -260,6 +272,10 @@ public:
     bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
         SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is);
+
+    void onResetServer();
+
+    void onStartSelection();
 };
 
 #endif // COMMAND_MANAGER_HPP

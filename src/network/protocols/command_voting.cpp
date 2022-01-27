@@ -19,6 +19,8 @@
 #include "network/protocols/command_voting.hpp"
 #include "utils/random_generator.hpp"
 
+const double CommandVoting::DEFAULT_THRESHOLD = 0.500001;
+
 CommandVoting::CommandVoting(double threshold): m_threshold(threshold)
 {
 
@@ -143,3 +145,9 @@ void CommandVoting::reset(std::string category)
 } // reset
 // ========================================================================
 
+void CommandVoting::resetAllVotes()
+{
+    m_votes_by_poll.clear();
+    m_votes_by_player.clear();
+} // resetAllVotes
+// ========================================================================
