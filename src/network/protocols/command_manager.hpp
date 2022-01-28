@@ -180,6 +180,8 @@ private:
 
     SetTypoFixer m_stf_addon_maps;
 
+    std::vector<std::string> m_current_argv;
+
     void initCommandsInfo();
     void initCommands();
 
@@ -191,6 +193,8 @@ private:
     void vote(Context& context, std::string category, std::string value);
     void update();
     void error(Context& context);
+
+    void execute(const Command& command, Context& context);
 
     void process_help(Context& context);
     void process_text(Context& context);
@@ -279,6 +283,8 @@ public:
     void onResetServer();
 
     void onStartSelection();
+
+    std::vector<std::string> getCurrentArgv()         { return m_current_argv; }
 };
 
 #endif // COMMAND_MANAGER_HPP

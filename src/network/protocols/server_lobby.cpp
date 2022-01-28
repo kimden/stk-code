@@ -2872,10 +2872,13 @@ void ServerLobby::startSelection(const Event *event)
         }
         if (!hasHostRights(peer))
         {
-            Log::warn("ServerLobby",
-                "Client %d is not authorised to start selection.",
-                event->getPeer()->getHostId());
-            return;
+            auto argv = getCommandManager().getCurrentArgv();
+            if (argv.size() <= 1 || argv[0] != "start") {
+                Log::warn("ServerLobby",
+                          "Client %d is not authorised to start selection.",
+                          event->getPeer()->getHostId());
+                return;
+            }
         }
     } else {
         if (!m_allowed_to_start)

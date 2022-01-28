@@ -411,7 +411,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     if (mask != PE_NONE && mask_without_voting == PE_NONE)
         voting = true;
 
-    (this->*command.m_action)(context);
+    execute(command, context);
 
     while (!m_triggered_votables.empty())
     {
@@ -435,7 +435,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
                     m_lobby->sendStringToAllPeers(msg);
                     Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
-                    (this->*command.m_action)(new_context);
+                    execute(command, new_context);
                 }
             }
         }
@@ -506,7 +506,7 @@ void CommandManager::update()
                 // We don't know the event though it is only needed in
                 // ServerLobby::startSelection where it is nullptr when they vote
                 Context new_context(nullptr, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
-                (this->*command.m_action)(new_context);
+                execute(command, new_context);
             }
         }
     }
@@ -523,6 +523,14 @@ void CommandManager::error(Context& context)
         msg = "An error occurred while invoking command \"" + context.m_argv[0] + "\".";
     m_lobby->sendStringToPeer(msg, context.m_peer);
 } // error
+// ========================================================================
+
+void CommandManager::execute(const Command& command, Context& context)
+{
+    m_current_argv = context.m_argv;
+    (this->*command.m_action)(context);
+    m_current_argv = {};
+} // execute
 // ========================================================================
 
 void CommandManager::process_help(Context& context)
@@ -1874,7 +1882,7 @@ void CommandManager::process_randomteams(Context& context)
 
     int teams_number = -1;
     if (argv.size() < 2 || !StringUtils::parseString(argv[1], &teams_number)
-        || teams_number < 2 || teams_number > 6)
+        || teams_number < 1 || teams_number > 6)
     {
         teams_number = (int)round(sqrt(players_number));
         if (teams_number > 6)
