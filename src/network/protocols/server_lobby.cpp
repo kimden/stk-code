@@ -218,13 +218,24 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_command_manager = CommandManager(nullptr);
 
     m_team_name_to_index = {
-           {"red", 1}, {"r", 1}, {StringUtils::utf32ToUtf8({0x1f7e5}), -1},
-        {"orange", 2}, {"o", 2}, {StringUtils::utf32ToUtf8({0x1f7e7}), -2},
-        {"yellow", 3}, {"y", 3}, {StringUtils::utf32ToUtf8({0x1f7e8}), -3},
-         {"green", 4}, {"g", 4}, {StringUtils::utf32ToUtf8({0x1f7e9}), -4},
-          {"blue", 5}, {"b", 5}, {StringUtils::utf32ToUtf8({0x1f7e6}), -5},
-        {"purple", 6}, {"p", 6}, {StringUtils::utf32ToUtf8({0x1f7ea}), -6},
+           {"red", 1}, {"r", 1},
+        {"orange", 2}, {"o", 2},
+        {"yellow", 3}, {"y", 3},
+         {"green", 4}, {"g", 4},
+          {"blue", 5}, {"b", 5},
+        {"purple", 6}, {"p", 6},
         {"violet", 6}, {"v", 6}
+    };
+
+    m_team_default_names = {"none", "red", "orange", "yellow", "green", "blue", "purple"};
+
+    m_team_index_to_icon = {
+        {1, StringUtils::utf32ToUtf8({0x1f7e5})},
+        {2, StringUtils::utf32ToUtf8({0x1f7e7})},
+        {3, StringUtils::utf32ToUtf8({0x1f7e8})},
+        {4, StringUtils::utf32ToUtf8({0x1f7e9})},
+        {5, StringUtils::utf32ToUtf8({0x1f7e6})},
+        {6, StringUtils::utf32ToUtf8({0x1f7ea})}
     };
 
     m_team_name = {"No Team",
@@ -7690,4 +7701,57 @@ bool ServerLobby::isSoccerGoalTarget() const
 {
     return m_game_setup->isSoccerGoalTarget();
 }   // isSoccerGoalTarget
+//-----------------------------------------------------------------------------
+
+// This should be moved later to another unit.
+void ServerLobby::setTemporaryTeam(const std::string& username, std::string& arg)
+{
+    auto it = m_team_name_to_index.find(arg);
+    int index = (it == m_team_name_to_index.end() ? 0 : it->second);
+    for (const auto& pair: m_team_index_to_icon)
+    {
+        if (pair.first == index)
+        {
+            m_player_categories[pair.second].insert(username);
+            m_categories_for_player[username].insert(pair.second);
+        }
+        else
+        {
+            m_player_categories[pair.second].erase(username);
+            m_categories_for_player[username].erase(pair.second);
+        }
+    }
+    m_team_for_player[username] = index;
+    irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
+            wide_player_name);
+    if (player_peer)
+    {
+        for (auto& profile : player_peer.get()->getPlayerProfiles())
+        {
+            if (profile->getName() == wide_player_name)
+            {
+                profile->setTemporaryTeam(index - 1);
+                break;
+            }
+        }
+    }
+}   // setTemporaryTeam
+//-----------------------------------------------------------------------------
+
+// This should be moved later to another unit.
+void ServerLobby::clearTemporaryTeams()
+{
+    for (const auto& pair: m_team_index_to_icon)
+    {
+        for (const std::string& username: m_player_categories[pair.second])
+            m_categories_for_player[username].erase(pair.second);
+        m_player_categories[pair.second].clear();
+    }
+    m_team_for_player.clear();
+
+    for (auto& peer : STKHost::get()->getPeers())
+        for (auto& profile : peer->getPlayerProfiles())
+            profile->setTemporaryTeam(-1);
+}   // clearTemporaryTeams
 //-----------------------------------------------------------------------------

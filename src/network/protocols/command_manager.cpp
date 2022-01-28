@@ -240,6 +240,8 @@ void CommandManager::initCommands()
     v.emplace_back("shuffle", &CM::process_shuffle, UP_HAMMER);
     v.emplace_back("timeout", &CM::process_timeout, UP_HAMMER);
     v.emplace_back("team", &CM::process_team, UP_HAMMER);
+    v.emplace_back("resetteams", &CM::process_resetteams, UP_HAMMER);
+    v.emplace_back("randomteams", &CM::process_randomteams, UP_HAMMER);
     v.emplace_back("cat+", &CM::process_cat, UP_HAMMER);
     v.emplace_back("cat-", &CM::process_cat, UP_HAMMER);
     v.emplace_back("cat*", &CM::process_cat, UP_HAMMER);
@@ -1837,48 +1839,83 @@ void CommandManager::process_team(Context& context)
         error(context);
         return;
     }
-    auto it = m_lobby->m_team_name_to_index.find(argv[1]);
-    int index = (it == m_lobby->m_team_name_to_index.end() ? 0 : it->second);
-
     if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
                 2, m_stf_present_users, 3, false, true))
         return;
-
     std::string player = argv[2];
-    for (const auto& pair: m_lobby->m_team_name_to_index)
-    {
-        if (pair.second < 0)
-        {
-            if (pair.second == -index)
-            {
-                m_lobby->m_player_categories[pair.first].insert(player);
-                m_lobby->m_categories_for_player[player].insert(pair.first);
-            }
-            else
-            {
-                m_lobby->m_player_categories[pair.first].erase(player);
-                m_lobby->m_categories_for_player[player].erase(pair.first);
-            }
-        }
-    }
-    index = abs(index);
-    m_lobby->m_team_for_player[player] = index;
-    irr::core::stringw wide_player_name = StringUtils::utf8ToWide(player);
-    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            wide_player_name);
-    if (player_peer)
-    {
-        for (auto& profile : player_peer.get()->getPlayerProfiles())
-        {
-            if (profile->getName() == wide_player_name)
-            {
-                profile->setTemporaryTeam(index - 1);
-                break;
-            }
-        }
-    }
+    m_lobby->setTemporaryTeam(player, argv[1]);
+
     m_lobby->updatePlayerList();
 } // process_team
+// ========================================================================
+
+void CommandManager::process_resetteams(Context& context)
+{
+    std::string msg = "Teams are reset now";
+    m_lobby->clearTemporaryTeams();
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+    m_lobby->updatePlayerList();
+} // process_resetteams
+// ========================================================================
+
+void CommandManager::process_randomteams(Context& context)
+{
+    auto& argv = context.m_argv;
+    int players_number = 0;
+    for (auto& peer : STKHost::get()->getPeers())
+    {
+        if (peer->alwaysSpectate())
+            continue;
+        players_number += peer->getPlayerProfiles().size();
+        for (auto& profile : peer->getPlayerProfiles())
+            profile->setTemporaryTeam(-1);
+    }
+
+    int teams_number = -1;
+    if (argv.size() < 2 || !StringUtils::parseString(argv[1], &teams_number)
+        || teams_number < 2 || teams_number > 6)
+    {
+        teams_number = (int)round(sqrt(players_number));
+        if (teams_number > 6)
+            teams_number = 6;
+        if (players_number > 1 && teams_number <= 1)
+            teams_number = 2;
+    }
+
+    std::string msg = StringUtils::insertValues(
+            "Created %d teams for %d players", teams_number, players_number);
+    std::vector<int> available_colors;
+    std::vector<int> profile_colors;
+    for (int i = 1; i <= 6; ++i)
+        available_colors.push_back(i);
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(available_colors.begin(), available_colors.end(), g);
+    available_colors.resize(teams_number);
+
+    for (int i = 0; i < players_number; ++i)
+        profile_colors.push_back(available_colors[i % teams_number]);
+
+    std::shuffle(profile_colors.begin(), profile_colors.end(), g);
+
+    m_lobby->clearTemporaryTeams();
+    for (auto& peer : STKHost::get()->getPeers())
+    {
+        if (peer->alwaysSpectate())
+            continue;
+        for (auto& profile : peer->getPlayerProfiles()) {
+            std::string name = StringUtils::wideToUtf8(profile->getName());
+            std::string color = m_lobby->m_team_default_names[profile_colors.back()];
+            m_lobby->setTemporaryTeam(name, color);
+            if (profile_colors.size() > 1) // prevent crash just in case
+                profile_colors.pop_back();
+        }
+    }
+
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+    m_lobby->updatePlayerList();
+} // process_resetteams
 // ========================================================================
 
 void CommandManager::process_cat(Context& context)

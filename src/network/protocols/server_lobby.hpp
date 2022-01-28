@@ -383,6 +383,10 @@ private:
     
     std::map<std::string, int> m_team_name_to_index;
 
+    std::vector<std::string> m_team_default_names;
+
+    std::map<int, std::string> m_team_index_to_icon;
+
     bool m_shuffle_gp;
 
     std::atomic<unsigned> m_current_max_players_in_game;
@@ -650,6 +654,8 @@ public:
                      { return m_available_difficulties.count(difficulty) > 0; }
     bool isModeAvailable(int mode) const
                                   { return m_available_modes.count(mode) > 0; }
+    void setTemporaryTeam(const std::string& username, std::string& arg);
+    void clearTemporaryTeams();
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

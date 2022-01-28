@@ -182,9 +182,19 @@
              description="Sets the timeout in seconds, whatever it may mean."
     />
     <command name="team"
-             usage="/team ([roygbp-]) (username)"
+             usage="/team ([roygbp-] or color name) (username)"
              permissions="hammers"
              description="Move a player to one of six teams denoted by square emojis (r - red, o - orange, y - yellow, g - green, b - blue, p – purple), or removes the player from the teams (“-”)."
+    />
+    <command name="resetteams"
+             usage="/resetteams"
+             permissions="hammers"
+             description="Reset all temporary teams."
+    />
+    <command name="randomteams"
+             usage="/randomteams [teams number]"
+             permissions="hammers"
+             description="Put all players into a certain number of teams. The default number of teams is max(2, min(6, round(sqrt(number of players)))) unless there is 1 player."
     />
     <command name="cat+"
              usage="/cat+ (category) (username)"
