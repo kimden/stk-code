@@ -228,6 +228,7 @@ private:
     void process_team(Context& context);
     void process_resetteams(Context& context);
     void process_randomteams(Context& context);
+    void process_resetgp(Context& context);
     void process_cat(Context& context);
     void process_troll(Context& context);
     void process_hitmsg(Context& context);

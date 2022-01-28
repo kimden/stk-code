@@ -202,7 +202,7 @@ void CommandManager::initCommands()
     auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED);
     auto& v = m_commands;
     v.emplace_back("commands", &CM::process_commands, UP_EVERYONE);
-    v.emplace_back("replay", &CM::process_replay, UP_SINGLE);
+    v.emplace_back("replay", &CM::process_replay, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("start", &CM::process_start, UP_EVERYONE | PE_VOTED, MS_DEFAULT, SS_LOBBY);
     if (ServerConfig::m_server_configurable) {
         v.emplace_back("config", &CM::process_config, UP_CROWNED | PE_VOTED, MS_DEFAULT, SS_LOBBY);
@@ -234,20 +234,21 @@ void CommandManager::initCommands()
     v.emplace_back("public", &CM::process_public, UP_EVERYONE);
     v.emplace_back("record", &CM::process_record, UP_EVERYONE);
     v.emplace_back("power", &CM::process_power, UP_EVERYONE);
-    v.emplace_back("length", &CM::process_length, UP_SINGLE);
-    v.emplace_back("queue", &CM::process_queue, UP_SINGLE);
+    v.emplace_back("length", &CM::process_length, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("queue", &CM::process_queue, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("adminstart", &CM::process_adminstart, UP_HAMMER);
     v.emplace_back("shuffle", &CM::process_shuffle, UP_HAMMER);
     v.emplace_back("timeout", &CM::process_timeout, UP_HAMMER);
     v.emplace_back("team", &CM::process_team, UP_HAMMER);
     v.emplace_back("resetteams", &CM::process_resetteams, UP_HAMMER);
     v.emplace_back("randomteams", &CM::process_randomteams, UP_HAMMER);
+    v.emplace_back("resetgp", &CM::process_resetgp, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("cat+", &CM::process_cat, UP_HAMMER);
     v.emplace_back("cat-", &CM::process_cat, UP_HAMMER);
-    v.emplace_back("cat*", &CM::process_cat, UP_HAMMER);
-    v.emplace_back("troll", &CM::process_troll, UP_HAMMER);
-    v.emplace_back("hitmsg", &CM::process_hitmsg, UP_HAMMER);
-    v.emplace_back("teamhit", &CM::process_teamhit, UP_HAMMER);
+    v.emplace_back("catsee", &CM::process_cat, UP_HAMMER);
+    v.emplace_back("troll", &CM::process_troll, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("hitmsg", &CM::process_hitmsg, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("teamhit", &CM::process_teamhit, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("version", &CM::process_text, UP_EVERYONE);
     v.emplace_back("clear", &CM::process_text, UP_EVERYONE);
     v.emplace_back("register", &CM::process_register, UP_EVERYONE);
@@ -255,14 +256,14 @@ void CommandManager::initCommands()
     v.emplace_back("token", &CM::process_token, UP_EVERYONE);
 #endif
     v.emplace_back("muteall", &CM::process_muteall, UP_EVERYONE, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("game", &CM::process_game, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("game", &CM::process_game, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_LOBBY);
     v.emplace_back("role", &CM::process_role, UP_HAMMER, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("stop", &CM::process_stop, UP_HAMMER, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("go", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("play", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("resume", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("lobby", &CM::process_lobby, UP_HAMMER, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("init", &CM::process_init, UP_HAMMER, MS_SOCCER_TOURNAMENT);
+    v.emplace_back("stop", &CM::process_stop, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
+    v.emplace_back("go", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
+    v.emplace_back("play", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
+    v.emplace_back("resume", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
+    v.emplace_back("lobby", &CM::process_lobby, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
+    v.emplace_back("init", &CM::process_init, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
     v.emplace_back("vote", &CM::special, UP_EVERYONE);
     v.emplace_back("mimiz", &CM::process_mimiz, UP_EVERYONE);
     v.emplace_back("test", &CM::process_test, UP_EVERYONE | PE_VOTED);
@@ -1915,7 +1916,15 @@ void CommandManager::process_randomteams(Context& context)
 
     m_lobby->sendStringToPeer(msg, context.m_peer);
     m_lobby->updatePlayerList();
-} // process_resetteams
+} // process_randomteams
+// ========================================================================
+
+void CommandManager::process_resetgp(Context& context)
+{
+    std::string msg = "GP is now reset";
+    m_lobby->resetGrandPrix();
+    m_lobby->sendStringToAllPeers(msg);
+} // process_resetgp
 // ========================================================================
 
 void CommandManager::process_cat(Context& context)

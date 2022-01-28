@@ -196,6 +196,11 @@
              permissions="hammers"
              description="Put all players into a certain number of teams. The default number of teams is max(2, min(6, round(sqrt(number of players)))) unless there is 1 player."
     />
+    <command name="resetgp"
+             usage="/resetgp"
+             permissions="hammers"
+             description="Reset the Grand Prix to a state with no races and no results, but preserve teams."
+    />
     <command name="cat+"
              usage="/cat+ (category) (username)"
              permissions="hammers"

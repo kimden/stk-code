@@ -656,6 +656,7 @@ public:
                                   { return m_available_modes.count(mode) > 0; }
     void setTemporaryTeam(const std::string& username, std::string& arg);
     void clearTemporaryTeams();
+    void resetGrandPrix();
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

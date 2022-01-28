@@ -7744,3 +7744,19 @@ void ServerLobby::clearTemporaryTeams()
             profile->setTemporaryTeam(-1);
 }   // clearTemporaryTeams
 //-----------------------------------------------------------------------------
+
+void ServerLobby::resetGrandPrix()
+{
+    m_gp_scores.clear();
+    m_gp_team_scores.clear();
+    m_game_setup->stopGrandPrix();
+
+    NetworkString* server_info = getNetworkString();
+    server_info->setSynchronous(true);
+    server_info->addUInt8(LE_SERVER_INFO);
+    m_game_setup->addServerInfo(server_info);
+    sendMessageToPeers(server_info);
+    delete server_info;
+    updatePlayerList();
+}   // resetGrandPrix
+//-----------------------------------------------------------------------------
