@@ -5949,17 +5949,6 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     }
     unsigned total_players = 0;
     STKHost::get()->updatePlayers(NULL, NULL, &total_players);
-    if ((mode == 6 && total_players > 14) ||
-        (mode == 7 && total_players > 10) ||
-        (mode == 8 && total_players > 14))
-    {
-        Log::error("ServerLobby", "Too many players (%d) to change mode to %d.",
-            total_players, mode);
-        std::string msg = "Too many players present to activate this mode. "
-            "Soccer and CTF require at most 14, and FFA requires at most 10.";
-        sendStringToPeer(msg, peer);
-        return;
-    }
     if ((m_available_difficulties.count(difficulty) == 0 || 
         m_available_modes.count(mode) == 0))
     {
