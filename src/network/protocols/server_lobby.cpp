@@ -6621,17 +6621,18 @@ void ServerLobby::storeResults()
     int best_cur_player_idx = -1;
     std::string best_cur_player_name = "";
     double best_cur_time = 1e18;
+    const double DISCONNECT_TIME = 123454321;
     for (int i = 0; i < player_count; i++)
     {
-        if (w->getKart(i)->isEliminated())
-            continue;
         std::string username = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(i).getPlayerName());
         auto profile = RaceManager::get()->getKartInfo(i).getNetworkPlayerProfile().lock();
         // TODO fix this properly.
         if (profile && profile->getOnlineId() == 0)
             username = "* " + username;
-        double elapsed_time = RaceManager::get()->getKartRaceTime(i);
+        double elapsed_time = DISCONNECT_TIME;
+        if (!w->getKart(i)->isEliminated())
+            elapsed_time = RaceManager::get()->getKartRaceTime(i);
         std::stringstream elapsed_string;
         elapsed_string << std::setprecision(4) << std::fixed << elapsed_time;
         if (best_cur_player_idx == -1 || elapsed_time < best_cur_time)
