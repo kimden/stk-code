@@ -386,10 +386,10 @@ void loadServerLobbyFromConfig()
         // m_owner_less = false;
         m_official_karts_threshold = 1.0f;
         m_official_tracks_threshold = 0.0f;
-        m_addon_karts_threshold = 0;
-        m_addon_tracks_threshold = 0;
-        m_addon_arenas_threshold = 0;
-        m_addon_soccers_threshold = 0; // maybe 1 ?
+        m_addon_karts_join_threshold = 0;
+        m_addon_tracks_join_threshold = 0;
+        m_addon_arenas_join_threshold = 0;
+        m_addon_soccers_join_threshold = 0; // maybe 1 ?
         m_team_choosing = true;
         m_ranked = false;
         m_server_configurable = false;

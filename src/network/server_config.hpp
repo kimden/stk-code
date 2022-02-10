@@ -232,34 +232,63 @@ namespace ServerConfig
         "android players from joining this server, because STK android apk "
         "has some official tracks removed."));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_threshold
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_karts_threshold",
+        "addon-karts-join-threshold",
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of addon karts in client"));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_threshold
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_tracks_threshold",
+        "addon-tracks-join-threshold",
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of addon tracks in client"));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_threshold
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_arenas_threshold",
+        "addon-arenas-join-threshold",
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of addon arenas in client"));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_threshold
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_soccers_threshold",
+        "addon-soccers-join-threshold",
         "Clients below this value will be rejected from joining this server. "
+        "It's determined by number of addon soccer fields in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-karts-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon karts in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-tracks-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon tracks in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-arenas-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon arenas in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-soccers-play-threshold",
+        "Clients below this value will be rejected from playing games. "
         "It's determined by number of addon soccer fields in client"));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_must_have_tracks_string
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
         "must-have-tracks", "Tracks needed to enter the server, "
         "leave empty for no restriction."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_play_requirement_tracks_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+       "play-requirement-tracks", "Tracks needed to be able to play, "
+       "leave empty for no restriction."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_only_played_tracks_string
         SERVER_CFG_DEFAULT(StringServerConfigParam("",

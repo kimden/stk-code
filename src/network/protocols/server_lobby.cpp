@@ -2963,7 +2963,9 @@ void ServerLobby::startSelection(const Event *event)
         // The always spectating code will probably behave kinda weird with
         // spectating commands, I'll try to fix it later but beware
         Log::warn("ServerLobby",
-            "An attempt to start a game while no one is able to play.");
+            "An attempt to start a game while no one can play.");
+        std::string msg = "No one can play!";
+        sendStringToPeer(msg, event->getPeer());
         addWaitingPlayersToGame();
         return;
         // for (STKPeer* peer : always_spectate_peers)
@@ -4116,10 +4118,10 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
 
     Log::info("ServerLobby", "Player has the following addons: %d/%d karts,"
         " %d/%d tracks, %d/%d arenas, %d/%d soccer fields.", addon_karts,
-        (int)ServerConfig::m_addon_karts_threshold, addon_tracks,
-        (int)ServerConfig::m_addon_tracks_threshold, addon_arenas,
-        (int)ServerConfig::m_addon_arenas_threshold, addon_soccers,
-        (int)ServerConfig::m_addon_soccers_threshold);
+        (int)ServerConfig::m_addon_karts_join_threshold, addon_tracks,
+        (int)ServerConfig::m_addon_tracks_join_threshold, addon_arenas,
+        (int)ServerConfig::m_addon_arenas_join_threshold, addon_soccers,
+        (int)ServerConfig::m_addon_soccers_join_threshold);
 
     peer->addon_karts_count = addon_karts;
     peer->addon_tracks_count = addon_tracks;
@@ -4134,13 +4136,13 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
         Log::verbose("ServerLobby", "Bad player: bad official kart threshold");
     if (ott < ServerConfig::m_official_tracks_threshold)
         Log::verbose("ServerLobby", "Bad player: bad official track threshold");
-    if (addon_karts < (int)ServerConfig::m_addon_karts_threshold)
+    if (addon_karts < (int)ServerConfig::m_addon_karts_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon karts");
-    if (addon_tracks < (int)ServerConfig::m_addon_tracks_threshold)
+    if (addon_tracks < (int)ServerConfig::m_addon_tracks_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon tracks");
-    if (addon_arenas < (int)ServerConfig::m_addon_arenas_threshold)
+    if (addon_arenas < (int)ServerConfig::m_addon_arenas_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon arenas");
-    if (addon_soccers < (int)ServerConfig::m_addon_soccers_threshold)
+    if (addon_soccers < (int)ServerConfig::m_addon_soccers_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon soccers");
     if (!has_required_tracks)
         Log::verbose("ServerLobby", "Bad player: no required tracks");
@@ -4149,35 +4151,43 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
         tracks_erase.size() == m_entering_kts.second.size() ||
         okt < ServerConfig::m_official_karts_threshold ||
         ott < ServerConfig::m_official_tracks_threshold ||
-        addon_karts < (int)ServerConfig::m_addon_karts_threshold ||
-        addon_tracks < (int)ServerConfig::m_addon_tracks_threshold ||
-        addon_arenas < (int)ServerConfig::m_addon_arenas_threshold ||
-        addon_soccers < (int)ServerConfig::m_addon_soccers_threshold ||
+        addon_karts < (int)ServerConfig::m_addon_karts_join_threshold ||
+        addon_tracks < (int)ServerConfig::m_addon_tracks_join_threshold ||
+        addon_arenas < (int)ServerConfig::m_addon_arenas_join_threshold ||
+        addon_soccers < (int)ServerConfig::m_addon_soccers_join_threshold ||
         !has_required_tracks)
     {
-        NetworkString *message = getNetworkString(2);
-        message->setSynchronous(true);
-        message->addUInt8(LE_CONNECTION_REFUSED)
-            .addUInt8(RR_INCOMPATIBLE_DATA);
-
-        std::string advice = ServerConfig::m_incompatible_advice;
-        if (!advice.empty())
+        if (peer->isValidated())
         {
-            NetworkString* incompatible_reason = getNetworkString();
-            incompatible_reason->addUInt8(LE_CHAT);
-            incompatible_reason->setSynchronous(true);
-            incompatible_reason->encodeString16(
-                StringUtils::utf8ToWide(advice));
-            peer->sendPacket(incompatible_reason,
-                true/*reliable*/, false/*encrypted*/);
-            Log::info("ServerLobby", "Sent advice");
-            delete incompatible_reason;
+            std::string msg = "You deleted some assets that are required to stay on the server";
+            sendStringToPeer(msg, peer);
+            peer->kick();
         }
+        else
+        {
+            NetworkString *message = getNetworkString(2);
+            message->setSynchronous(true);
+            message->addUInt8(LE_CONNECTION_REFUSED)
+                    .addUInt8(RR_INCOMPATIBLE_DATA);
 
-        peer->cleanPlayerProfiles();
-        peer->sendPacket(message, true/*reliable*/, false/*encrypted*/);
-        peer->reset();
-        delete message;
+            std::string advice = ServerConfig::m_incompatible_advice;
+            if (!advice.empty()) {
+                NetworkString *incompatible_reason = getNetworkString();
+                incompatible_reason->addUInt8(LE_CHAT);
+                incompatible_reason->setSynchronous(true);
+                incompatible_reason->encodeString16(
+                        StringUtils::utf8ToWide(advice));
+                peer->sendPacket(incompatible_reason,
+                                 true/*reliable*/, false/*encrypted*/);
+                Log::info("ServerLobby", "Sent advice");
+                delete incompatible_reason;
+            }
+
+            peer->cleanPlayerProfiles();
+            peer->sendPacket(message, true/*reliable*/, false/*encrypted*/);
+            peer->reset();
+            delete message;
+        }
         Log::verbose("ServerLobby", "Player has incompatible karts / tracks.");
         return false;
     }
@@ -4241,6 +4251,7 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
 
     if (ServerConfig::m_soccer_tournament)
         updateTournamentRole(peer);
+    updatePlayerList();
     return true;
 }   // handleAssets
 
@@ -6469,8 +6480,6 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
 
     unsigned ingame_players = 0, waiting_players = 0, total_players = 0;
     STKHost::get()->updatePlayers(&ingame_players, &waiting_players, &total_players);
-    if (total_players <= player_limit)
-        return m_spectators_by_limit;
 
     for (int i = 0; i < (int)peers.size(); ++i)
     {
@@ -6504,6 +6513,11 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
         {
             if (peer->alwaysSpectate() || peer->isWaitingForGame())
                 continue;
+            if (!canRace(peer))
+            {
+                m_spectators_by_limit.insert(peer.get());
+                continue;
+            }
             player_count += (unsigned)peer->getPlayerProfiles().size();
             if (player_count > player_limit)
                 m_spectators_by_limit.insert(peer.get());
@@ -7059,12 +7073,23 @@ bool ServerLobby::canRace(STKPeer* peer) const
             m_tournament_blue_players.count(username) > 0;
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
         return false;
-    // else if (ServerConfig::m_only_host_riding)
-    //     return peer == m_server_owner.lock().get();
-    else if (!m_tracks_queue.empty())
-        return peer->getClientAssets().second.count(m_tracks_queue.front());
-    else
-        return true;
+
+    if (!m_tracks_queue.empty())
+        if (peer->getClientAssets().second.count(m_tracks_queue.front()) == 0)
+            return false;
+    if (!m_play_requirement_tracks.empty())
+        for (const std::string& track: m_play_requirement_tracks)
+            if (peer->getClientAssets().second.count(track) == 0)
+                return false;
+    if (peer->addon_karts_count < ServerConfig::m_addon_karts_play_threshold)
+        return false;
+    if (peer->addon_tracks_count < ServerConfig::m_addon_tracks_play_threshold)
+        return false;
+    if (peer->addon_arenas_count < ServerConfig::m_addon_arenas_play_threshold)
+        return false;
+    if (peer->addon_soccers_count < ServerConfig::m_addon_soccers_play_threshold)
+        return false;
+    return true;
 }   // canRace
 
 //-----------------------------------------------------------------------------
@@ -7292,6 +7317,8 @@ void ServerLobby::initAvailableTracks()
     m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
     m_must_have_tracks = StringUtils::split(
         ServerConfig::m_must_have_tracks_string, ' ', false);
+    m_play_requirement_tracks = StringUtils::split(
+            ServerConfig::m_play_requirement_tracks_string, ' ', false);
     m_tournament_must_have_tracks = StringUtils::split(
         ServerConfig::m_soccer_tournament_enforced_tracks_string, ' ', false);
 }   // initAvailableTracks

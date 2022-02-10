@@ -291,6 +291,8 @@ private:
 
     std::vector<std::string> m_must_have_tracks;
 
+    std::vector<std::string> m_play_requirement_tracks;
+
     std::vector<std::string> m_tournament_must_have_tracks;
 
     bool m_restricting_config;

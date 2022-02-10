@@ -1728,6 +1728,7 @@ void CommandManager::process_queue(Context& context)
             + " to the back of queue, current queue size: "
             + std::to_string(m_lobby->m_tracks_queue.size());
         m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->updatePlayerList();
     }
     else if (argv[1] == "push_front")
     {
@@ -1741,6 +1742,7 @@ void CommandManager::process_queue(Context& context)
             + " to the front of queue, current queue size: "
             + std::to_string(m_lobby->m_tracks_queue.size());
         m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->updatePlayerList();
     }
     else if (argv[1] == "pop" || argv[1] == "pop_front")
     {
@@ -1757,6 +1759,7 @@ void CommandManager::process_queue(Context& context)
                 + std::to_string(m_lobby->m_tracks_queue.size());
         }
         m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->updatePlayerList();
     }
     else if (argv[1] == "pop_back")
     {
@@ -1773,6 +1776,7 @@ void CommandManager::process_queue(Context& context)
                 + std::to_string(m_lobby->m_tracks_queue.size());
         }
         m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->updatePlayerList();
     }
 } // process_queue
 // ========================================================================
