@@ -236,7 +236,7 @@ void CommandManager::initCommands()
     v.emplace_back("power", &CM::process_power, UP_EVERYONE);
     v.emplace_back("length", &CM::process_length, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("queue", &CM::process_queue, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("adminstart", &CM::process_adminstart, UP_HAMMER);
+    v.emplace_back("allowstart", &CM::process_allowstart, UP_HAMMER);
     v.emplace_back("shuffle", &CM::process_shuffle, UP_HAMMER);
     v.emplace_back("timeout", &CM::process_timeout, UP_HAMMER);
     v.emplace_back("team", &CM::process_team, UP_HAMMER);
@@ -245,7 +245,7 @@ void CommandManager::initCommands()
     v.emplace_back("resetgp", &CM::process_resetgp, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("cat+", &CM::process_cat, UP_HAMMER);
     v.emplace_back("cat-", &CM::process_cat, UP_HAMMER);
-    v.emplace_back("catsee", &CM::process_cat, UP_HAMMER);
+    v.emplace_back("catshow", &CM::process_cat, UP_HAMMER);
     v.emplace_back("troll", &CM::process_troll, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("hitmsg", &CM::process_hitmsg, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("teamhit", &CM::process_teamhit, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
@@ -1802,7 +1802,7 @@ void CommandManager::process_queue(Context& context)
 } // process_queue
 // ========================================================================
 
-void CommandManager::process_adminstart(Context& context)
+void CommandManager::process_allowstart(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
@@ -1822,7 +1822,7 @@ void CommandManager::process_adminstart(Context& context)
         msg = "Now starting a race is allowed";
     }
     m_lobby->sendStringToPeer(msg, context.m_peer);
-} // process_adminstart
+} // process_allowstart
 // ========================================================================
 
 void CommandManager::process_shuffle(Context& context)
@@ -1998,7 +1998,7 @@ void CommandManager::process_cat(Context& context)
         m_lobby->updatePlayerList();
         return;
     }
-    if (argv[0] == "cat*")
+    if (argv[0] == "catshow")
     {
         int displayed;
         if (argv.size() != 3 || !StringUtils::parseString(argv[2], &displayed)

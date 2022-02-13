@@ -226,7 +226,7 @@ private:
     void process_power(Context& context);
     void process_length(Context& context);
     void process_queue(Context& context);
-    void process_adminstart(Context& context);
+    void process_allowstart(Context& context);
     void process_shuffle(Context& context);
     void process_timeout(Context& context);
     void process_team(Context& context);

@@ -166,8 +166,8 @@
              permissions="hammers, singleplayers"
              description="Manipulates the track queue aka the next played tracks. “show” displays it, “push” adds the track to the end of the queue, “pop” removes a track at the front. You can use “_back” and “_front” to specify on which end of the queue to add or remove the tracks."
     />
-    <command name="adminstart"
-             usage="/adminstart [0 | 1]"
+    <command name="allowstart"
+             usage="/allowstart [0 | 1]"
              permissions="hammers"
              description="Toggles whether the game can be started on the server."
     />
@@ -211,8 +211,8 @@
              permissions="hammers"
              description="Removes the player from a certain category."
     />
-    <command name="cat*"
-             usage="/cat* (category) (0 | 1)"
+    <command name="catshow"
+             usage="/catshow (category) (0 | 1)"
              permissions="hammers"
              description="Toggles whether a category is displayed in the player list."
     />
