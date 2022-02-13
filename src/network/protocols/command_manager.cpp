@@ -542,6 +542,10 @@ void CommandManager::process_help(Context& context)
         error(context);
         return;
     }
+
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd, 1, m_stf_command_names, 3, false, false))
+        return;
+
     std::string msg;
     auto it = m_name_to_command.find(argv[1]);
     if (it == m_name_to_command.end())
