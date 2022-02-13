@@ -13,12 +13,12 @@
     />
     <command name="start"
              usage="/start"
-             permissions="everyone"
+             permissions="non-spectators"
              description="Basically clicks on the green “Ready” button."
     />
     <command name="config"
              usage="/config &lt;mode&gt; &lt;difficulty&gt; &lt;goal or time limit&gt;"
-             permissions="crowns; votable"
+             permissions="crowns; votable for non-spectators"
              description="Changes game mode and difficulty if allowed."
     />
     <command name="spectate"
@@ -58,12 +58,12 @@
     />
     <command name="kick"
              usage="/kick (username)"
-             permissions="crowns if server allows, hammers; votable"
+             permissions="crowns if server allows, hammers; votable for non-spectators"
              description="Kicks a player from the server."
     />
     <command name="kickban"
              usage="/kickban (username)"
-             permissions="hammers; votable"
+             permissions="hammers; votable for non-spectators"
              description="Kicks a player from the server and temporarily bans him."
     />
     <command name="unban"
@@ -113,12 +113,12 @@
     />
     <command name="gnu"
              usage="/gnu [kart]"
-             permissions="hammers; voted"
+             permissions="hammers; votable for non-spectators"
              description="Starts kart elimination with Gnu (or a specified kart)."
     />
     <command name="nognu"
              usage="/nognu"
-             permissions="hammers; voted"
+             permissions="hammers; votable for non-spectators"
              description="Cancels kart elimination."
     />
     <command name="tell"
@@ -345,7 +345,7 @@
     -->
     <command name="slots"
              usage="/slots (number of slots)"
-             permissions="hammers; voted"
+             permissions="hammers; votable for non-spectators"
              description="Sets the number of playable slots to a certain value."
     />
     <command name="time"

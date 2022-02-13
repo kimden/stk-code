@@ -7121,8 +7121,19 @@ int ServerLobby::getPermissions(std::shared_ptr<STKPeer>& peer) const
 int ServerLobby::getPermissions(STKPeer* peer) const
 {
     int mask = 0;
-    mask |= CommandPermissions::PE_USUAL;
-    mask |= CommandPermissions::PE_VOTED;
+    if (!peer)
+        return mask;
+    bool isSpectator = (peer->alwaysSpectate());
+    if (isSpectator)
+    {
+        mask |= CommandPermissions::PE_SPECTATOR;
+        mask |= CommandPermissions::PE_VOTED_SPECTATOR;
+    }
+    else
+    {
+        mask |= CommandPermissions::PE_USUAL;
+        mask |= CommandPermissions::PE_VOTED_NORMAL;
+    }
     if (peer == m_server_owner.lock().get())
     {
         mask |= CommandPermissions::PE_CROWNED;

@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2021 kimden
+//  Copyright (C) 2021-2022 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -199,14 +199,14 @@ void CommandManager::initCommands()
 {
     initCommandsInfo();
     using CM = CommandManager;
-    auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED);
+    auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED_NORMAL);
     auto& v = m_commands;
+
     v.emplace_back("commands", &CM::process_commands, UP_EVERYONE);
     v.emplace_back("replay", &CM::process_replay, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("start", &CM::process_start, UP_EVERYONE | PE_VOTED, MS_DEFAULT, SS_LOBBY);
-    if (ServerConfig::m_server_configurable) {
-        v.emplace_back("config", &CM::process_config, UP_CROWNED | PE_VOTED, MS_DEFAULT, SS_LOBBY);
-    }
+    v.emplace_back("start", &CM::process_start, UP_NORMAL | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
+    if (ServerConfig::m_server_configurable)
+        v.emplace_back("config", &CM::process_config, UP_CROWNED | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("spectate", &CM::process_spectate, UP_EVERYONE);
     v.emplace_back("addons", &CM::process_addons, UP_EVERYONE);
     v.emplace_back("moreaddons", &CM::process_addons, UP_EVERYONE);
@@ -215,7 +215,7 @@ void CommandManager::initCommands()
     v.emplace_back("listserveraddon", &CM::process_lsa, UP_EVERYONE);
     v.emplace_back("playerhasaddon", &CM::process_pha, UP_EVERYONE);
     v.emplace_back("kick", &CM::process_kick, kick_permissions);
-    v.emplace_back("kickban", &CM::process_kick, UP_HAMMER | PE_VOTED);
+    v.emplace_back("kickban", &CM::process_kick, UP_HAMMER | PE_VOTED_NORMAL);
     v.emplace_back("unban", &CM::process_unban, UP_HAMMER);
     v.emplace_back("ban", &CM::process_ban, UP_HAMMER);
     v.emplace_back("playeraddonscore", &CM::process_pas, UP_EVERYONE);
@@ -225,8 +225,8 @@ void CommandManager::initCommands()
     v.emplace_back("listmute", &CM::process_listmute, UP_EVERYONE);
     v.emplace_back("description", &CM::process_text, UP_EVERYONE);
     v.emplace_back("moreinfo", &CM::process_text, UP_EVERYONE);
-    v.emplace_back("gnu", &CM::process_gnu, UP_HAMMER | PE_VOTED, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("nognu", &CM::process_gnu, UP_HAMMER | PE_VOTED, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("gnu", &CM::process_gnu, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("nognu", &CM::process_gnu, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("tell", &CM::process_tell, UP_EVERYONE);
     v.emplace_back("standings", &CM::process_standings, UP_EVERYONE);
     v.emplace_back("teamchat", &CM::process_teamchat, UP_EVERYONE);
@@ -268,12 +268,12 @@ void CommandManager::initCommands()
     v.emplace_back("mimiz", &CM::process_mimiz, UP_EVERYONE);
     v.emplace_back("test", &CM::process_test, UP_EVERYONE | PE_VOTED);
     v.emplace_back("help", &CM::process_help, UP_EVERYONE);
-//    v.emplace_back("1", &CM::special, UP_EVERYONE, MS_DEFAULT);
-//    v.emplace_back("2", &CM::special, UP_EVERYONE, MS_DEFAULT);
-//    v.emplace_back("3", &CM::special, UP_EVERYONE, MS_DEFAULT);
-//    v.emplace_back("4", &CM::special, UP_EVERYONE, MS_DEFAULT);
-//    v.emplace_back("5", &CM::special, UP_EVERYONE, MS_DEFAULT);
-    v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED, MS_DEFAULT, SS_LOBBY);
+// v.emplace_back("1", &CM::special, UP_EVERYONE, MS_DEFAULT);
+// v.emplace_back("2", &CM::special, UP_EVERYONE, MS_DEFAULT);
+// v.emplace_back("3", &CM::special, UP_EVERYONE, MS_DEFAULT);
+// v.emplace_back("4", &CM::special, UP_EVERYONE, MS_DEFAULT);
+// v.emplace_back("5", &CM::special, UP_EVERYONE, MS_DEFAULT);
+    v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("time", &CM::process_time, UP_EVERYONE);
 
     v.emplace_back("addondownloadprogress", &CM::special, UP_EVERYONE);
@@ -284,6 +284,7 @@ void CommandManager::initCommands()
     v.emplace_back("addonrevision", &CM::special, UP_EVERYONE);
     v.emplace_back("liststkaddon", &CM::special, UP_EVERYONE);
     v.emplace_back("listlocaladdon", &CM::special, UP_EVERYONE);
+
 
 
     addTextResponse("description", ServerConfig::m_motd);
