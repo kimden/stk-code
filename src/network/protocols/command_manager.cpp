@@ -1510,22 +1510,38 @@ void CommandManager::process_standings(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
-    if (argv.size() == 1)
+    bool isGP = false;
+    bool isGnu = false;
+    bool isGPTeams = false;
+    bool isGPPlayers = false;
+    for (int i = 1; i < argv.size(); ++i)
+    {
+        if (argv[i] == "gp")
+            isGP = true;
+        else if (argv[i] == "gnu")
+            isGnu = true;
+        else if (argv[i] == "team" || argv[i] == "teams")
+            isGPTeams = true;
+        else if (argv[i] == "player" || argv[i] == "players")
+            isGPPlayers = true;
+        else if (argv[i] == "both" || argv[i] == "all")
+            isGPPlayers = isGPTeams = true;
+    }
+    if (!isGP && !isGnu)
     {
         if (m_lobby->m_game_setup->isGrandPrix())
-            argv.push_back("gp");
+            isGP = true;
         else
-            argv.push_back("gnu");
+            isGnu = true;
     }
-    if (argv[1] == "gp")
-        msg = m_lobby->getGrandPrixStandings();
-    else if (argv[1] == "gnu")
-        msg = m_lobby->m_kart_elimination.getStandings();
-    else
+    if (isGP)
     {
-        error(context);
-        return;
+        // the function will decide itself what to show if nothing is specified:
+        // if there are teams, teams will be shown, otherwise players
+        msg = m_lobby->getGrandPrixStandings(isGPPlayers, isGPTeams);
     }
+    else if (isGnu)
+        msg = m_lobby->m_kart_elimination.getStandings();
     m_lobby->sendStringToPeer(msg, context.m_peer);
 } // process_standings
 // ========================================================================

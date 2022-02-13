@@ -7152,38 +7152,53 @@ void ServerLobby::loadTracksQueueFromConfig()
         m_tracks_queue.push_back(s);
 }   // loadTracksQueueFromConfig
 //-----------------------------------------------------------------------------
-std::string ServerLobby::getGrandPrixStandings() const
+std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTeam) const
 {
-    std::vector<std::pair<GPScore, std::string>> results;
-    for (auto& p: m_gp_scores)
-        results.emplace_back(p.second, p.first);
-    std::stable_sort(results.rbegin(), results.rend());
     std::stringstream response;
     response << "Grand Prix standings\n";
-    for (unsigned i = 0; i < results.size(); i++)
-    {
-        response << (i + 1) << ". ";
-        response << "  " << results[i].second;
-        response << "  " << results[i].first.score;
-        response << "  " << "(" << StringUtils::timeToString(results[i].first.time) << ")";
-        response << "\n";
-    }
-    results.clear();
 
-    if (!m_gp_team_scores.empty())
+    if (!showIndividual && !showTeam)
     {
-        std::vector<std::pair<GPScore, int>> results2;
-        response << "\n";
-        for (auto& p: m_gp_team_scores)
-            results2.emplace_back(p.second, p.first);
-        std::stable_sort(results2.rbegin(), results2.rend());
-        for (unsigned i = 0; i < results2.size(); i++)
+        if (m_gp_team_scores.empty())
+            showIndividual = true;
+        else
+            showTeam = true;
+    }
+
+    if (showIndividual)
+    {
+        std::vector<std::pair<GPScore, std::string>> results;
+        for (auto &p: m_gp_scores)
+            results.emplace_back(p.second, p.first);
+        std::stable_sort(results.rbegin(), results.rend());
+        for (unsigned i = 0; i < results.size(); i++)
         {
             response << (i + 1) << ". ";
-            response << "  " << m_team_name[results2[i].second];
-            response << "  " << results2[i].first.score;
-            response << "  " << "(" << StringUtils::timeToString(results2[i].first.time) << ")";
+            response << "  " << results[i].second;
+            response << "  " << results[i].first.score;
+            response << "  " << "(" << StringUtils::timeToString(results[i].first.time) << ")";
             response << "\n";
+        }
+    }
+
+    if (showTeam)
+    {
+        if (!m_gp_team_scores.empty())
+        {
+            std::vector<std::pair<GPScore, int>> results2;
+            if (showIndividual)
+                response << "\n";
+            for (auto &p: m_gp_team_scores)
+                results2.emplace_back(p.second, p.first);
+            std::stable_sort(results2.rbegin(), results2.rend());
+            for (unsigned i = 0; i < results2.size(); i++)
+            {
+                response << (i + 1) << ". ";
+                response << "  " << m_team_name[results2[i].second];
+                response << "  " << results2[i].first.score;
+                response << "  " << "(" << StringUtils::timeToString(results2[i].first.time) << ")";
+                response << "\n";
+            }
         }
     }
     return response.str();

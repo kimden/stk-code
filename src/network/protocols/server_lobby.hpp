@@ -565,7 +565,7 @@ private:
     std::vector<std::string> getMissingTournamentAssets(std::shared_ptr<STKPeer>& peer) const;
     std::vector<std::string> getMissingTournamentAssets(STKPeer* peer) const;
     void loadTracksQueueFromConfig();
-    std::string getGrandPrixStandings() const;
+    std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
     void loadCustomScoring();
     void updateWorldSettings();
     void loadWhiteList();
