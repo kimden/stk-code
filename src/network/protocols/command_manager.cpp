@@ -57,7 +57,7 @@
 // #include "race/race_manager.hpp"
 // #include "tracks/check_manager.hpp"
 // #include "tracks/track.hpp"
-// #include "tracks/track_manager.hpp"
+#include "tracks/track_manager.hpp"
 #include "utils/file_utils.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
@@ -328,12 +328,49 @@ void CommandManager::initCommands()
 } // initCommands
 // ========================================================================
 
+void CommandManager::initAssets()
+{
+    auto all_t = track_manager->getAllTrackIdentifiers();
+    std::map<std::string, int> what_exists;
+    for (std::string& s: all_t)
+    {
+        if (StringUtils::startsWith(s, "addon_"))
+            what_exists[s.substr(6)] |= 2;
+        else
+            what_exists[s] |= 1;
+    }
+    for (const auto& p: what_exists)
+    {
+        if (p.second != 3)
+        {
+            bool is_addon = (p.second == 2);
+            std::string value = (is_addon ? "addon_" : "") + p.first;
+            m_stf_all_maps.add(p.first, value);
+            m_stf_all_maps.add("addon_" + p.first, value);
+            if (is_addon)
+            {
+                m_stf_addon_maps.add(p.first, value);
+                m_stf_addon_maps.add("addon_" + p.first, value);
+            }
+        }
+        else
+        {
+            m_stf_all_maps.add(p.first, p.first);
+            m_stf_all_maps.add("addon_" + p.first, "addon_" + p.first);
+            m_stf_addon_maps.add(p.first, "addon_" + p.first);
+            m_stf_addon_maps.add("addon_" + p.first, "addon_" + p.first);
+        }
+    }
+} // initAssets
+// ========================================================================
+
 CommandManager::CommandManager(ServerLobby* lobby):
     m_lobby(lobby)
 {
     if (!lobby)
         return;
     initCommands();
+    initAssets();
 } // CommandManager
 // ========================================================================
 
@@ -924,7 +961,10 @@ void CommandManager::process_checkaddon(Context& context)
         error(context);
         return;
     }
-    std::string id = "addon_" + argv[1];
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+        1, m_stf_addon_maps, 3, false, true))
+        return;
+    std::string id = argv[1];
     const unsigned HAS_KART = 1;
     const unsigned HAS_MAP = 2;
 
@@ -1107,11 +1147,17 @@ void CommandManager::process_pha(Context& context)
         error(context);
         return;
     }
+
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+        1, m_stf_addon_maps, 3, false, true))
+        return;
     if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
         2, m_stf_present_users, 3, false, false))
         return;
 
     std::string addon_id = argv[1];
+    if (StringUtils::startsWith(addon_id, "addon_"))
+        addon_id = addon_id.substr(6);
     std::string player_name = argv[2];
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
@@ -1614,6 +1660,9 @@ void CommandManager::process_record(Context& context)
         return;
     }
     bool error = false;
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+                1, m_stf_all_maps, 3, false, true))
+        return;
     std::string track_name = argv[1];
     std::string mode_name = (argv[2] == "t" || argv[2] == "tt"
         || argv[2] == "time-trial" || argv[2] == "timetrial" ?
@@ -1755,6 +1804,9 @@ void CommandManager::process_queue(Context& context)
             error(context);
             return;
         }
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+            2, m_stf_all_maps, 3, false, false))
+            return;
         m_lobby->m_tracks_queue.push_back(argv[2]);
         std::string msg = "Pushed " + argv[2]
             + " to the back of queue, current queue size: "
@@ -1769,6 +1821,9 @@ void CommandManager::process_queue(Context& context)
             error(context);
             return;
         }
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+            2, m_stf_all_maps, 3, false, false))
+            return;
         m_lobby->m_tracks_queue.push_front(argv[2]);
         std::string msg = "Pushed " + argv[2]
             + " to the front of queue, current queue size: "

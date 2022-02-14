@@ -187,6 +187,8 @@ private:
     void initCommandsInfo();
     void initCommands();
 
+    void initAssets();
+
     int getCurrentModeScope();
     int getCurrentStateScope();
 
