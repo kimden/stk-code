@@ -273,7 +273,8 @@ void CommandManager::initCommands()
 // v.emplace_back("3", &CM::special, UP_EVERYONE, MS_DEFAULT);
 // v.emplace_back("4", &CM::special, UP_EVERYONE, MS_DEFAULT);
 // v.emplace_back("5", &CM::special, UP_EVERYONE, MS_DEFAULT);
-    v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
+    if (!ServerConfig::m_only_host_riding)
+        v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("time", &CM::process_time, UP_EVERYONE);
 
     v.emplace_back("addondownloadprogress", &CM::special, UP_EVERYONE);
@@ -722,9 +723,6 @@ void CommandManager::process_spectate(Context& context)
     std::string response = "";
     auto& argv = context.m_argv;
     auto& peer = context.m_peer;
-
-    if (ServerConfig::m_soccer_tournament || ServerConfig::m_only_host_riding)
-        response = "All spectators already have auto spectate ability";
 
     if (/*m_game_setup->isGrandPrix() || */!ServerConfig::m_live_players)
         response = "Server doesn't support spectating";
