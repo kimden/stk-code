@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2021 kimden
+//  Copyright (C) 2021-2022 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,20 +26,25 @@
 #include <set>
 #include <vector>
 #include <string>
+#include <map>
 
 // A lazy class that stores a set of strings.
 // For a query string, it finds exactly the same string in the set
 // if it exists, otherwise iterates over the set and suggests to you
 // the closest string according to edit distance.
+// You can also use it as a map after you found
+// the closest key.
 
 class SetTypoFixer
 {
 private:
-	std::multiset<std::string> m_set;
+    std::multiset<std::string> m_set;
+    std::map<std::string, std::string> m_map;
 public:
-	void add(const std::string& value);
-	void remove(const std::string& value);
-	std::vector<std::pair<std::string, int>> getClosest(
-		const std::string& query, int count = 3, bool case_sensitive = true) const;
+    void add(const std::string& key);
+    void add(const std::string& key, const std::string& value);
+    void remove(const std::string& key);
+    std::vector<std::pair<std::string, int>> getClosest(
+            const std::string& query, int count = 3, bool case_sensitive = true) const;
 };
 #endif // SET_TYPO_FIXER_HPP

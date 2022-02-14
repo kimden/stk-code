@@ -140,6 +140,7 @@ void CommandManager::initCommandsInfo()
         std::string usage = "";
         std::string permissions = "";
         std::string description = "";
+        std::string aliases = "";
         // If enabled is not empty, command is added iff the server name is in enabled
         // Otherwise it is added iff the server name is not in disabled
         std::string enabled = "";
@@ -170,6 +171,10 @@ void CommandManager::initCommandsInfo()
         node->get("usage", &usage);
         node->get("permissions", &permissions);
         node->get("description", &description);
+        node->get("aliases", &aliases);
+        std::vector<std::string> aliases_split = StringUtils::split(aliases, ' ');
+        for (const std::string& alias_name: aliases_split)
+            m_aliases[name].push_back(alias_name);
 
         if (node_name == "command")
         {
@@ -303,6 +308,14 @@ void CommandManager::initCommands()
     });
     for (auto& command: m_commands)
         m_name_to_command[command.m_name] = command;
+    for (auto& p: m_aliases)
+    {
+        for (const std::string& alias_name: p.second)
+        {
+            m_stf_command_names.add(alias_name, p.first);
+            m_name_to_command[alias_name] = m_name_to_command[p.first];
+        }
+    }
 
     // m_votables.emplace("replay", 1.0);
     m_votables.emplace("start", 0.81);

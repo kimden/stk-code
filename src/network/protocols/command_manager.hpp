@@ -172,6 +172,8 @@ private:
 
     std::map<std::string, CommandDescription> m_config_descriptions;
 
+    std::map<std::string, std::vector<std::string>> m_aliases;
+
     SetTypoFixer m_stf_command_names;
 
     SetTypoFixer m_stf_present_users;

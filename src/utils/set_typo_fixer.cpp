@@ -19,28 +19,39 @@
 #include "utils/set_typo_fixer.hpp"
 #include "utils/string_utils.hpp"
 
-void SetTypoFixer::add(const std::string& value)
+void SetTypoFixer::add(const std::string& key)
 {
-    m_set.insert(value);
+    m_set.insert(key);
+    m_map[key] = key;
 } // add
 // ========================================================================
 
-void SetTypoFixer::remove(const std::string& value)
+void SetTypoFixer::add(const std::string& key, const std::string& value)
 {
-    m_set.erase(m_set.find(value));
+    m_set.insert(key);
+    m_map[key] = value;
+} // add
+// ========================================================================
+
+void SetTypoFixer::remove(const std::string& key)
+{
+    m_set.erase(m_set.find(key));
+    if (m_set.find(key) == m_set.end())
+        m_map.erase(key);
 } // remove
 // ========================================================================
 
 std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
     const std::string& query, int count, bool case_sensitive) const
 {
+    std::map<std::string, int> ans_map;
     std::vector<std::pair<std::string, int>> ans;
     if (m_set.empty())
         return ans;
     auto it = m_set.find(query);
     if (it != m_set.end())
     {
-        ans.emplace_back(query, 0);
+        ans.emplace_back(m_map.find(query)->second, 0);
         return ans;
     }
     const std::string& query_ref = query;
@@ -48,9 +59,15 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
     {
         int distance = StringUtils::getEditDistance(s,
             query_ref, case_sensitive, '*', '?');
-        
-        ans.emplace_back(s, distance);
+
+        std::string value = m_map.find(s)->second;
+        if (ans_map.count(value))
+            ans_map[value] = std::min(ans_map[value], distance);
+        else
+            ans_map[value] = distance;
     }
+    for (const auto& p: ans_map)
+        ans.emplace_back(p.first, p.second);
     std::sort(ans.begin(), ans.end(),
         [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b) -> bool
     {
