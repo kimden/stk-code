@@ -2960,12 +2960,14 @@ void ServerLobby::startSelection(const Event *event)
     // // Disable always spectate peers if no players join the game
     if (!has_peer_plays_game)
     {
-        // The always spectating code will probably behave kinda weird with
-        // spectating commands, I'll try to fix it later but beware
-        Log::warn("ServerLobby",
-            "An attempt to start a game while no one can play.");
-        std::string msg = "No one can play!";
-        sendStringToPeer(msg, event->getPeer());
+        if (event)
+        {
+            // inside if to not produce log spam for ownerless
+            Log::warn("ServerLobby",
+                "An attempt to start a game while no one can play.");
+            std::string msg = "No one can play!";
+            sendStringToPeer(msg, event->getPeer());
+        }
         addWaitingPlayersToGame();
         return;
         // for (STKPeer* peer : always_spectate_peers)
