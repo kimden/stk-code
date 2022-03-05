@@ -38,6 +38,8 @@
 #include "utils/string_utils.hpp"
 #include "utils/log.hpp" //TODO: remove after debugging is done
 
+#include "network/protocols/server_lobby.hpp"
+
 //-----------------------------------------------------------------------------
 /** Constructor, stores the kart to which this powerup belongs.
  *  \param kart The kart to which this powerup belongs.
@@ -400,6 +402,11 @@ void Powerup::use()
             if(kart == m_kart) continue;
             if(kart->getPosition() == 1)
             {
+                // check if we are in team gp and hit a teammate and should punish the attacker
+                auto sl = LobbyProtocol::get<ServerLobby>();
+                if(sl && !kart->hasFinishedRace())
+                    sl->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
+
                 kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
                                            stk_config->
                                            time2Ticks(kp->getAnvilDuration()) );
