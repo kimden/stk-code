@@ -648,6 +648,8 @@ public:
 
     // handle swatters
     void handleSwatterHit(unsigned int ownerID, unsigned int victimID, bool success, bool has_hit_kart, uint16_t ticks_active);
+    // handle anvil
+    void handleAnvilHit(unsigned int ownerID, unsigned int victimID);
 
     void sendTeamMateHitMsg(std::string& s);
     bool showTeamMateHits() const              { return m_show_teammate_hits; }

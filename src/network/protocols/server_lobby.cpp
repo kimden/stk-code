@@ -7745,6 +7745,65 @@ void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
 }   // handleSwatterHit
 //-----------------------------------------------------------------------------
 
+void ServerLobby::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
+{
+    const std::string ownername = StringUtils::wideToUtf8(
+        RaceManager::get()->getKartInfo(ownerID).getPlayerName());
+    const int ownerTeam = m_team_for_player[ownername];
+    if (ownerTeam == 0)
+        return;
+
+    const std::string victimname = StringUtils::wideToUtf8(
+        RaceManager::get()->getKartInfo(victimID).getPlayerName());
+    const int victimTeam = m_team_for_player[victimname];
+    if (victimTeam != ownerTeam)
+        return;
+
+    AbstractKart *owner = World::getWorld()->getKart(ownerID);
+
+    // should we tell the world?
+    if (showTeamMateHits())
+    {
+        std::string msg = ServerConfig::m_teammate_hit_msg_prefix;
+        msg += ownername;
+        msg += " just gave an anchor to teammate ";
+        msg += victimname;
+        sendTeamMateHitMsg(msg);
+    }
+    if (useTeamMateHitMode())
+    {
+        if (owner->getAttachment()->getType() == Attachment::ATTACH_BOMB)
+        {
+            // make bomb explode
+            owner->getAttachment()->update(10000);
+        }
+        else
+        {
+            if (owner->isShielded())
+            {
+                // if owner is shielded, take away shield
+                // since the anvil will also destroy the shield of the victim
+                // we also punish this severely
+                owner->decreaseShieldTime();
+            }
+
+            // now give anvil to owner
+            int left_over_ticks = 0;
+            // if owner already has an anvil or a parachute, make new anvil last longer
+            if (owner->getAttachment()->getType() == Attachment::ATTACH_ANVIL
+                || owner->getAttachment()->getType() == Attachment::ATTACH_PARACHUTE)
+            {
+                left_over_ticks = owner->getAttachment()->getTicksLeft();
+            }
+            owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                                        stk_config->time2Ticks(owner->getKartProperties()->getAnvilDuration()) + left_over_ticks);
+            // the powerup anvil is very strong, copy these values (from powerup.cpp)
+            owner->adjustSpeed(owner->getKartProperties()->getAnvilSpeedFactor() * 0.5f);
+        }
+    }
+}   // handleAnvilHit
+//-----------------------------------------------------------------------------
+
 bool ServerLobby::isSoccerGoalTarget() const
 {
     return m_game_setup->isSoccerGoalTarget();
