@@ -11,6 +11,8 @@
 #include "../source/Irrlicht/CNullDriver.h"
 #include "SIrrCreationParameters.h"
 #include "SColor.h"
+#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -19,6 +21,11 @@ using namespace video;
 
 namespace GE
 {
+    enum GEVulkanSampler : unsigned
+    {
+        GVS_MIN,
+        GVS_NEAREST = GVS_MIN
+    };
     class GEVulkanDriver : public video::CNullDriver
     {
     public:
@@ -199,7 +206,7 @@ namespace GE
 
         //! Only used by the internal engine. Used to notify the driver that
         //! the window was resized.
-        virtual void OnResize(const core::dimension2d<u32>& size) {}
+        virtual void OnResize(const core::dimension2d<u32>& size);
 
         //! Returns type of video driver
         virtual E_DRIVER_TYPE getDriverType() const { return video::EDT_VULKAN; }
@@ -261,18 +268,36 @@ namespace GE
 
         virtual void enableScissorTest(const core::rect<s32>& r) {}
         virtual void disableScissorTest() {}
+        VkSampler getSampler(GEVulkanSampler s) const
+        {
+            if (m_vk->samplers.find(s) == m_vk->samplers.end())
+                return VK_NULL_HANDLE;
+            return m_vk->samplers.at(s);
+        }
+        VkDevice getDevice() const { return m_vk->device; }
+        void destroyVulkan()
+        {
+            delete m_vk.get();
+            m_vk.release();
+        }
+        bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                          VkMemoryPropertyFlags properties, VkBuffer& buffer,
+                          VkDeviceMemory& buffer_memory);
+        VkPhysicalDevice getPhysicalDevice() const { return m_physical_device; }
+        VkCommandBuffer beginSingleTimeCommands();
+        void endSingleTimeCommands(VkCommandBuffer command_buffer);
 
     private:
+        struct SwapChainSupportDetails
+        {
+            VkSurfaceCapabilitiesKHR capabilities;
+            std::vector<VkSurfaceFormatKHR> formats;
+            std::vector<VkPresentModeKHR> presentModes;
+        };
+
         //! returns a device dependent texture from a software surface (IImage)
         //! THIS METHOD HAS TO BE OVERRIDDEN BY DERIVED DRIVERS WITH OWN TEXTURES
         virtual video::ITexture* createDeviceDependentTexture(IImage* surface, const io::path& name, void* mipmapData=0) { return NULL; }
-
-        //! returns the current size of the screen or rendertarget
-        virtual const core::dimension2d<u32>& getCurrentRenderTargetSize() const
-        {
-            static core::dimension2d<u32> unused;
-            return unused;
-        }
 
         //! Adds a new material renderer to the VideoDriver, based on a high level shading
         //! language.
@@ -294,20 +319,52 @@ namespace GE
             s32 userData = 0,
             E_GPU_SHADING_LANGUAGE shadingLang = EGSL_DEFAULT) { return 0; }
 
+        SIrrlichtCreationParameters m_params;
         // RAII to auto cleanup
         struct VK
         {
             VkInstance instance;
             VkSurfaceKHR surface;
             VkDevice device;
+            VkSwapchainKHR swap_chain;
+            std::vector<VkImage> swap_chain_images;
+            std::vector<VkImageView> swap_chain_image_views;
+            std::vector<VkSemaphore> image_available_semaphores;
+            std::vector<VkSemaphore> render_finished_semaphores;
+            std::vector<VkFence> in_flight_fences;
+            VkCommandPool command_pool;
+            std::vector<VkCommandBuffer> command_buffers;
+            std::map<GEVulkanSampler, VkSampler> samplers;
             VK()
             {
                 instance = VK_NULL_HANDLE;
                 surface = VK_NULL_HANDLE;
                 device = VK_NULL_HANDLE;
+                swap_chain = VK_NULL_HANDLE;
+                command_pool = VK_NULL_HANDLE;
             }
             ~VK()
             {
+                for (auto& sampler : samplers)
+                    vkDestroySampler(device, sampler.second, NULL);
+                if (!command_buffers.empty())
+                {
+                    vkFreeCommandBuffers(device, command_pool,
+                        (uint32_t)(command_buffers.size()),
+                        &command_buffers[0]);
+                }
+                if (command_pool != VK_NULL_HANDLE)
+                    vkDestroyCommandPool(device, command_pool, NULL);
+                for (VkSemaphore& semaphore : image_available_semaphores)
+                    vkDestroySemaphore(device, semaphore, NULL);
+                for (VkSemaphore& semaphore : render_finished_semaphores)
+                    vkDestroySemaphore(device, semaphore, NULL);
+                for (VkFence& fence : in_flight_fences)
+                    vkDestroyFence(device, fence, NULL);
+                for (VkImageView& image_view : swap_chain_image_views)
+                    vkDestroyImageView(device, image_view, NULL);
+                if (swap_chain != VK_NULL_HANDLE)
+                    vkDestroySwapchainKHR(device, swap_chain, NULL);
                 if (device != VK_NULL_HANDLE)
                     vkDestroyDevice(device, NULL);
                 if (surface != VK_NULL_HANDLE)
@@ -316,7 +373,9 @@ namespace GE
                     vkDestroyInstance(instance, NULL);
             }
         };
-        VK m_vk;
+        std::unique_ptr<VK> m_vk;
+        VkFormat m_swap_chain_image_format;
+        VkExtent2D m_swap_chain_extent;
         VkPhysicalDevice m_physical_device;
         std::vector<const char*> m_device_extensions;
         VkSurfaceCapabilitiesKHR m_surface_capabilities;
@@ -339,6 +398,11 @@ namespace GE
                                       std::vector<VkSurfaceFormatKHR>* surface_formats,
                                       std::vector<VkPresentModeKHR>* present_modes);
         void createDevice();
+        void createSwapChain();
+        void createSyncObjects();
+        void createCommandPool();
+        void createCommandBuffers();
+        void createSamplers();
         std::string getVulkanVersionString() const;
         std::string getDriverVersionString() const;
     };

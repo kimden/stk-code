@@ -616,6 +616,9 @@ create_package()
     strip --strip-debug "$STK_PACKAGE_DIR/bin/supertuxkart"
     strip --strip-debug "$STK_PACKAGE_DIR/bin/supertuxkart-editor"
     
+    find "$STK_PACKAGE_DIR/bin" -type f -exec chrpath -d {} \;
+    find "$STK_PACKAGE_DIR/lib" -type f -exec chrpath -d {} \;
+    
     chmod a+rwx "$STK_PACKAGE_DIR" -R
     find "$STK_PACKAGE_DIR" -type f -exec chmod a-x {} \;
     find "$STK_PACKAGE_DIR/bin" -type f -exec chmod a+x {} \;
@@ -628,7 +631,7 @@ create_package()
     echo "Compress package..."
     
     cd "$STK_INSTALL_DIR"
-    tar cf - "SuperTuxKart-$STK_VERSION-linux-$ARCH" | xz -z -e -f - > "SuperTuxKart-$STK_VERSION-linux-$ARCH.tar.xz"
+    tar cf - "SuperTuxKart-$STK_VERSION-linux-$ARCH" | xz -T$THREADS_NUMBER -z -e -f - > "SuperTuxKart-$STK_VERSION-linux-$ARCH.tar.xz"
     cd -
 }
 

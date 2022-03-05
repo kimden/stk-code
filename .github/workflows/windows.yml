@@ -26,7 +26,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           echo "wget=C:\msys64\usr\bin\wget.exe" >> $GITHUB_ENV
-          echo "unzip=C:\msys64\usr\bin\unzip.exe" >> $GITHUB_ENV
+          echo "unzip=unzip" >> $GITHUB_ENV
           if [ ${{ matrix.arch }} = "i686" ]; then
             echo "cmake_arch=Win32" >> $GITHUB_ENV
           elif [ ${{ matrix.arch }} = "x86_64" ]; then
@@ -118,7 +118,7 @@ jobs:
         run: |
           mkdir -Force build
           cd build
-          cmake .. -G "Visual Studio 16 2019" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.arch }} -A ${{ env.cmake_arch }} -DCHECK_ASSETS=OFF
+          cmake .. -G "Visual Studio 17 2022" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.arch }} -A ${{ env.cmake_arch }} -DCHECK_ASSETS=OFF
       - name: Configure bulid for MinGW (i686 or x86_64)
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch != 'aarch64' }}
         run: |
@@ -213,7 +213,8 @@ jobs:
       - name: Generate .pdb files
         if: ${{ env.release_tag != '' }}
         run: |
-          C:\msys64\usr\bin\wget.exe https://github.com/supertuxkart/dependencies/releases/download/preview/cv2pdb.exe
+          C:\msys64\usr\bin\wget.exe https://github.com/rainers/cv2pdb/releases/download/v0.50/cv2pdb-0.50.zip
+          unzip cv2pdb-0.50.zip
           cd i686
           ..\cv2pdb.exe supertuxkart.exe
           cd ..
@@ -246,7 +247,7 @@ jobs:
       - name: Start packaging STK
         if: ${{ env.release_tag != '' }}
         run: |
-          C:\msys64\usr\bin\zip.exe -r SuperTuxKart-${{ env.release_tag }}-win.zip SuperTuxKart-${{ env.release_tag }}-win
+          Compress-Archive -LiteralPath SuperTuxKart-${{ env.release_tag }}-win -DestinationPath SuperTuxKart-${{ env.release_tag }}-win.zip
       - name: Configure NSIS script
         shell : bash
         if: ${{ env.release_tag != '' && startsWith(github.ref, 'refs/tags/') }}
@@ -258,11 +259,12 @@ jobs:
             cp supertuxkart-github-actions.nsi $arch.nsi
             sed -i "s/define APPNAMEANDVERSION \"\"/define APPNAMEANDVERSION \"SuperTuxKart ${{ env.release_tag }}\"/g" $arch.nsi
             sed -i "s/define ARCH \"\"/define ARCH \"$arch\"/g" $arch.nsi
+            sed -i "s/define VERSION \"\"/define VERSION \"${{ env.release_tag }}\"/g" $arch.nsi
             sed -i "s/OutFile \"\"/OutFile \"SuperTuxKart-${{ env.release_tag }}-installer-$arch.exe\"/g" $arch.nsi
             for filename in $(ls ../../build-$arch/bin)
             do
               file="\\\\$filename"
-              sed -i "286a\  DELETE /REBOOTOK \"\$INSTDIR$file\"" $arch.nsi
+              sed -i "288a\  DELETE /REBOOTOK \"\$INSTDIR$file\"" $arch.nsi
             done
             # Print result
             #cat $arch.nsi
@@ -273,7 +275,7 @@ jobs:
         run: |
           cd SuperTuxKart-${{ env.release_tag }}-win\stk-code\tools\windows_installer
           C:\msys64\usr\bin\wget.exe https://nsis.sourceforge.io/mediawiki/images/6/6c/Shelllink.zip
-          C:\msys64\usr\bin\unzip.exe Shelllink.zip
+          unzip Shelllink.zip
           Move-Item Unicode\Plugins\ShellLink.dll .
           & "C:\Program Files (x86)\NSIS\makensis.exe" i686.nsi
           & "C:\Program Files (x86)\NSIS\makensis.exe" x86_64.nsi

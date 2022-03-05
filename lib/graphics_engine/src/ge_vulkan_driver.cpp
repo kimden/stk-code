@@ -1,7 +1,9 @@
 #include "ge_vulkan_driver.hpp"
 
 #ifdef _IRR_COMPILE_WITH_VULKAN_
+const unsigned int MAX_FRAMES_IN_FLIGHT = 2;
 #include "SDL_vulkan.h"
+#include <limits>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -437,8 +439,10 @@ namespace GE
 {
 GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
                                io::IFileSystem* io, SDL_Window* window)
-              : CNullDriver(io, core::dimension2d<u32>(0, 0))
+              : CNullDriver(io, core::dimension2d<u32>(0, 0)),
+                m_params(params)
 {
+    m_vk.reset(new VK());
     m_physical_device = VK_NULL_HANDLE;
     m_graphics_queue = VK_NULL_HANDLE;
     m_present_queue = VK_NULL_HANDLE;
@@ -450,7 +454,7 @@ GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
 
 #if !defined(__APPLE__) || defined(DLOPEN_MOLTENVK)
     GE_VK_UserPointer user_ptr = {};
-    user_ptr.instance = m_vk.instance;
+    user_ptr.instance = m_vk->instance;
     if (gladLoadVulkanUserPtr(NULL,
         (GLADuserptrloadfunc)loader, &user_ptr) == 0)
     {
@@ -459,14 +463,19 @@ GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
     }
 #endif
 
-    if (SDL_Vulkan_CreateSurface(window, m_vk.instance, &m_vk.surface) == SDL_FALSE)
+    if (SDL_Vulkan_CreateSurface(window, m_vk->instance, &m_vk->surface) == SDL_FALSE)
         throw std::runtime_error("SDL_Vulkan_CreateSurface failed");
+    int w, h = 0;
+    SDL_Vulkan_GetDrawableSize(window, &w, &h);
+    ScreenSize.Width = w;
+    ScreenSize.Height = h;
+
     m_device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     findPhysicalDevice();
     createDevice();
 
 #if !defined(__APPLE__) || defined(DLOPEN_MOLTENVK)
-    user_ptr.device = m_vk.device;
+    user_ptr.device = m_vk->device;
     if (gladLoadVulkanUserPtr(m_physical_device,
         (GLADuserptrloadfunc)loader, &user_ptr) == 0)
     {
@@ -476,6 +485,11 @@ GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
 #endif
 
     vkGetPhysicalDeviceProperties(m_physical_device, &m_properties);
+    createSwapChain();
+    createSyncObjects();
+    createCommandPool();
+    createCommandBuffers();
+    createSamplers();
     os::Printer::log("Vulkan version", getVulkanVersionString().c_str());
     os::Printer::log("Vulkan vendor", getVendorInfo().c_str());
     os::Printer::log("Vulkan renderer", m_properties.deviceName);
@@ -509,7 +523,7 @@ void GEVulkanDriver::createInstance(SDL_Window* window)
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.enabledExtensionCount = extensions.size();
     create_info.ppEnabledExtensionNames = extensions.data();
-    VkResult result = vkCreateInstance(&create_info, NULL, &m_vk.instance);
+    VkResult result = vkCreateInstance(&create_info, NULL, &m_vk->instance);
     if (result != VK_SUCCESS)
         throw std::runtime_error("vkCreateInstance failed");
 }   // createInstance
@@ -518,13 +532,13 @@ void GEVulkanDriver::createInstance(SDL_Window* window)
 void GEVulkanDriver::findPhysicalDevice()
 {
     uint32_t device_count = 0;
-    vkEnumeratePhysicalDevices(m_vk.instance, &device_count, NULL);
+    vkEnumeratePhysicalDevices(m_vk->instance, &device_count, NULL);
 
     if (device_count < 1)
         throw std::runtime_error("findPhysicalDevice has < 1 device_count");
 
     std::vector<VkPhysicalDevice> devices(device_count);
-    vkEnumeratePhysicalDevices(m_vk.instance, &device_count, &devices[0]);
+    vkEnumeratePhysicalDevices(m_vk->instance, &device_count, &devices[0]);
 
     for (VkPhysicalDevice& device : devices)
     {
@@ -591,25 +605,25 @@ bool GEVulkanDriver::updateSurfaceInformation(VkPhysicalDevice device,
                                               std::vector<VkPresentModeKHR>* present_modes)
 {
     uint32_t format_count;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_vk.surface, &format_count, NULL);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_vk->surface, &format_count, NULL);
 
     if (format_count < 1)
         return false;
 
     uint32_t mode_count;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_vk.surface, &mode_count, NULL);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_vk->surface, &mode_count, NULL);
 
     if (mode_count < 1)
         return false;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_vk.surface, surface_capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_vk->surface, surface_capabilities);
 
     (*surface_formats).resize(format_count);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_vk.surface, &format_count,
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_vk->surface, &format_count,
         &(*surface_formats)[0]);
 
     (*present_modes).resize(mode_count);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_vk.surface, &mode_count,
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_vk->surface, &mode_count,
         &(*present_modes)[0]);
 
     return true;
@@ -646,7 +660,7 @@ bool GEVulkanDriver::findQueueFamilies(VkPhysicalDevice device,
     for (unsigned int i = 0; i < queue_families.size(); i++)
     {
         VkBool32 present_support = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_vk.surface, &present_support);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_vk->surface, &present_support);
 
         if (queue_families[i].queueCount > 0 && present_support)
         {
@@ -688,13 +702,13 @@ void GEVulkanDriver::createDevice()
     create_info.ppEnabledExtensionNames = &m_device_extensions[0];
     create_info.enabledLayerCount = 0;
 
-    VkResult result = vkCreateDevice(m_physical_device, &create_info, NULL, &m_vk.device);
+    VkResult result = vkCreateDevice(m_physical_device, &create_info, NULL, &m_vk->device);
 
     if (result != VK_SUCCESS)
         throw std::runtime_error("vkCreateDevice failed");
 
-    vkGetDeviceQueue(m_vk.device, m_graphics_family, 0, &m_graphics_queue);
-    vkGetDeviceQueue(m_vk.device, m_present_family, 0, &m_present_queue);
+    vkGetDeviceQueue(m_vk->device, m_graphics_family, 0, &m_graphics_queue);
+    vkGetDeviceQueue(m_vk->device, m_present_family, 0, &m_present_queue);
 }   // createDevice
 
 // ----------------------------------------------------------------------------
@@ -741,6 +755,355 @@ std::string GEVulkanDriver::getDriverVersionString() const
     }
     return driver_version.str();
 }   // getDriverVersionString
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::createSwapChain()
+{
+    VkSurfaceFormatKHR surface_format = m_surface_formats[0];
+
+    if (m_surface_formats.size() == 1 &&
+        m_surface_formats[0].format == VK_FORMAT_UNDEFINED)
+    {
+        surface_format =
+        {
+            VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+        };
+    }
+    else
+    {
+        for (VkSurfaceFormatKHR& available_format : m_surface_formats)
+        {
+            if (available_format.format == VK_FORMAT_B8G8R8A8_UNORM &&
+                available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+                surface_format = available_format;
+                break;
+            }
+        }
+    }
+
+    VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
+    if (m_params.SwapInterval == 0)
+    {
+        for (VkPresentModeKHR& available_mode : m_present_modes)
+        {
+            if (available_mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+            {
+                present_mode = available_mode;
+                break;
+            }
+        }
+    }
+    else
+    {
+        for (VkPresentModeKHR& available_mode : m_present_modes)
+        {
+            if (available_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+            {
+                present_mode = available_mode;
+                break;
+            }
+        }
+    }
+
+    VkExtent2D image_extent = m_surface_capabilities.currentExtent;
+    if (m_surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
+    {
+        VkExtent2D max_extent = m_surface_capabilities.maxImageExtent;
+        VkExtent2D min_extent = m_surface_capabilities.minImageExtent;
+
+        VkExtent2D actual_extent =
+        {
+            std::max(
+                std::min(ScreenSize.Width, max_extent.width), min_extent.width),
+            std::max(
+                std::min(ScreenSize.Height, max_extent.height), min_extent.height)
+        };
+        image_extent = actual_extent;
+    }
+
+    // Try to get triple buffering by default
+    // https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain
+    uint32_t swap_chain_images_count = m_surface_capabilities.minImageCount + 1;
+    if (m_surface_capabilities.maxImageCount > 0 &&
+        swap_chain_images_count > m_surface_capabilities.maxImageCount)
+    {
+        swap_chain_images_count = m_surface_capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    create_info.surface = m_vk->surface;
+    create_info.minImageCount = swap_chain_images_count;
+    create_info.imageFormat = surface_format.format;
+    create_info.imageColorSpace = surface_format.colorSpace;
+    create_info.imageExtent = image_extent;
+    create_info.imageArrayLayers = 1;
+    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    if (m_graphics_family != m_present_family)
+    {
+        uint32_t queueFamilyIndices[] =
+            { m_graphics_family, m_present_family };
+        create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        create_info.queueFamilyIndexCount = 2;
+        create_info.pQueueFamilyIndices = queueFamilyIndices;
+    }
+    else
+    {
+        create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
+
+    create_info.preTransform = m_surface_capabilities.currentTransform;
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    create_info.presentMode = present_mode;
+    create_info.clipped = VK_TRUE;
+    create_info.oldSwapchain = VK_NULL_HANDLE;
+
+    VkResult result = vkCreateSwapchainKHR(m_vk->device, &create_info, NULL,
+        &m_vk->swap_chain);
+
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("vkCreateSwapchainKHR failed");
+
+    vkGetSwapchainImagesKHR(m_vk->device, m_vk->swap_chain, &swap_chain_images_count, NULL);
+    m_vk->swap_chain_images.resize(swap_chain_images_count);
+    vkGetSwapchainImagesKHR(m_vk->device, m_vk->swap_chain, &swap_chain_images_count,
+        &m_vk->swap_chain_images[0]);
+
+    m_swap_chain_image_format = surface_format.format;
+    m_swap_chain_extent = image_extent;
+
+    for (unsigned int i = 0; i < m_vk->swap_chain_images.size(); i++)
+    {
+        VkImageViewCreateInfo create_info = {};
+        create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        create_info.image = m_vk->swap_chain_images[i];
+        create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        create_info.format = m_swap_chain_image_format;
+        create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        create_info.subresourceRange.baseMipLevel = 0;
+        create_info.subresourceRange.levelCount = 1;
+        create_info.subresourceRange.baseArrayLayer = 0;
+        create_info.subresourceRange.layerCount = 1;
+
+        VkImageView swap_chain_image_view = VK_NULL_HANDLE;
+        VkResult result = vkCreateImageView(m_vk->device, &create_info, NULL,
+            &swap_chain_image_view);
+
+        if (result != VK_SUCCESS)
+            throw std::runtime_error("vkCreateImageView failed");
+        m_vk->swap_chain_image_views.push_back(swap_chain_image_view);
+    }
+}   // createSwapChain
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::createSyncObjects()
+{
+    VkSemaphoreCreateInfo semaphore_info = {};
+    semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fence_info = {};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (unsigned int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        VkSemaphore image_available_semaphore;
+        VkResult result = vkCreateSemaphore(m_vk->device, &semaphore_info, NULL,
+            &image_available_semaphore);
+
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error(
+                "vkCreateSemaphore on image_available_semaphore failed");
+        }
+
+        VkSemaphore render_finished_semaphore;
+        result = vkCreateSemaphore(m_vk->device, &semaphore_info, NULL,
+            &render_finished_semaphore);
+
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error(
+                "vkCreateSemaphore on render_finished_semaphore failed");
+        }
+
+        VkFence in_flight_fence;
+        result = vkCreateFence(m_vk->device, &fence_info, NULL,
+            &in_flight_fence);
+
+        if (result != VK_SUCCESS)
+            throw std::runtime_error("vkCreateFence failed");
+
+        m_vk->image_available_semaphores.push_back(image_available_semaphore);
+        m_vk->render_finished_semaphores.push_back(render_finished_semaphore);
+        m_vk->in_flight_fences.push_back(in_flight_fence);
+    }
+}   // createSyncObjects
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::createCommandPool()
+{
+    VkCommandPoolCreateInfo pool_info = {};
+    pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    pool_info.queueFamilyIndex = m_graphics_family;
+
+    VkResult result = vkCreateCommandPool(m_vk->device, &pool_info, NULL,
+        &m_vk->command_pool);
+
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("vkCreateCommandPool failed");
+}   // createCommandPool
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::createCommandBuffers()
+{
+    std::vector<VkCommandBuffer> buffers(m_vk->swap_chain_images.size());
+
+    VkCommandBufferAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc_info.commandPool = m_vk->command_pool;
+    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandBufferCount = (uint32_t)buffers.size();
+
+    VkResult result = vkAllocateCommandBuffers(m_vk->device, &alloc_info,
+        &buffers[0]);
+
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("vkAllocateCommandBuffers failed");
+
+    m_vk->command_buffers = buffers;
+}   // createCommandBuffers
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::createSamplers()
+{
+    VkSampler sampler = VK_NULL_HANDLE;
+    bool supported_anisotropy = m_features.samplerAnisotropy == VK_TRUE;
+    // GVS_NEAREST
+    VkSamplerCreateInfo sampler_info = {};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = VK_FILTER_NEAREST;
+    sampler_info.minFilter = VK_FILTER_NEAREST;
+    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.anisotropyEnable = supported_anisotropy;
+    sampler_info.maxAnisotropy = 1.0;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable = VK_FALSE;
+    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    VkResult result = vkCreateSampler(m_vk->device, &sampler_info, NULL,
+        &sampler);
+
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("vkCreateSampler failed for GVS_NEAREST");
+    m_vk->samplers[GVS_NEAREST] = sampler;
+}   // createSamplers
+
+// ----------------------------------------------------------------------------
+bool GEVulkanDriver::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                                  VkMemoryPropertyFlags properties,
+                                  VkBuffer& buffer,
+                                  VkDeviceMemory& buffer_memory)
+{
+    VkBufferCreateInfo buffer_info = {};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size = size;
+    buffer_info.usage = usage;
+    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VkResult result = vkCreateBuffer(m_vk->device, &buffer_info, NULL, &buffer);
+
+    if (result != VK_SUCCESS)
+        return false;
+
+    VkMemoryRequirements mem_requirements;
+    vkGetBufferMemoryRequirements(m_vk->device, buffer, &mem_requirements);
+
+    VkPhysicalDeviceMemoryProperties mem_properties;
+    vkGetPhysicalDeviceMemoryProperties(m_physical_device, &mem_properties);
+
+    uint32_t memory_type_index = std::numeric_limits<uint32_t>::max();
+    uint32_t type_filter = mem_requirements.memoryTypeBits;
+
+    for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
+    {
+        if ((type_filter & (1 << i)) &&
+            (mem_properties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            memory_type_index = i;
+            break;
+        }
+    }
+
+    if (memory_type_index == std::numeric_limits<uint32_t>::max())
+        return false;
+
+    VkMemoryAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info.allocationSize = mem_requirements.size;
+    alloc_info.memoryTypeIndex = memory_type_index;
+
+    result = vkAllocateMemory(m_vk->device, &alloc_info, NULL, &buffer_memory);
+
+    if (result != VK_SUCCESS)
+        return false;
+
+    vkBindBufferMemory(m_vk->device, buffer, buffer_memory, 0);
+
+    return true;
+}   // createBuffer
+
+// ----------------------------------------------------------------------------
+VkCommandBuffer GEVulkanDriver::beginSingleTimeCommands()
+{
+    VkCommandBufferAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandPool = m_vk->command_pool;
+    alloc_info.commandBufferCount = 1;
+
+    VkCommandBuffer command_buffer;
+    vkAllocateCommandBuffers(m_vk->device, &alloc_info, &command_buffer);
+
+    VkCommandBufferBeginInfo begin_info = {};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(command_buffer, &begin_info);
+
+    return command_buffer;
+}   // beginSingleTimeCommands
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::endSingleTimeCommands(VkCommandBuffer command_buffer)
+{
+    vkEndCommandBuffer(command_buffer);
+
+    VkSubmitInfo submit_info = {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+
+    vkQueueSubmit(m_graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_graphics_queue);
+
+    vkFreeCommandBuffers(m_vk->device, m_vk->command_pool, 1, &command_buffer);
+}   // beginSingleTimeCommands
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::OnResize(const core::dimension2d<u32>& size)
+{
+    CNullDriver::OnResize(size);
+}   // OnResize
 
 }
 
