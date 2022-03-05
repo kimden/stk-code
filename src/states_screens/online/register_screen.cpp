@@ -367,7 +367,7 @@ void RegisterScreen::doRegister()
     }
     else if (namecheck)
     {
-        m_info_widget->setText(_("Online username can only contain alphanumeric characters, periods, dashes and underscores!"), false);
+        m_info_widget->setText(_("Online username can only contain alphanumeric (ASCII) characters, periods, dashes and underscores!"), false);
     }
     else if (username.size() < 3 || username.size() > 30)
     {
@@ -386,7 +386,7 @@ void RegisterScreen::doRegister()
         m_info_widget->setText(_("Email has to be between 5 and 254 characters long!"), false);
     }
     else if (  email.find(L"@")== -1 || email.find(L".")== -1 ||
-              (email.findLast(L'.') - email.findLast(L'@') <= 2 ) ||
+              (email.findLast(L'.') - email.findLast(L'@') <= 1 ) ||
                 email.findLast(L'@')==0 || email[(email.size())-1]=='.')
     {
         m_info_widget->setText(_("Email is invalid!"), false);
