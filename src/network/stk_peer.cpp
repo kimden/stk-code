@@ -46,6 +46,7 @@ STKPeer::STKPeer(ENetPeer *enet_peer, STKHost* host, uint32_t host_id)
     m_rejoin_time         = m_connected_time;
     m_validated.store(false);
     m_always_spectate.store(ASM_NONE);
+    m_default_always_spectate.store(ASM_NONE);
     m_average_ping.store(0);
     m_packet_loss.store(0);
     m_waiting_for_game.store(true);

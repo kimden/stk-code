@@ -3167,7 +3167,8 @@ void ServerLobby::startSelection(const Event *event)
                 for (auto& profile : p->getPlayerProfiles())
                 {
                     if (remaining.count(
-                        StringUtils::wideToUtf8(profile->getName())) != 0)
+                        StringUtils::wideToUtf8(profile->getName())) != 0
+                        && !p->isWaitingForGame())
                     {
                         return true;
                     }
@@ -3208,7 +3209,8 @@ void ServerLobby::startSelection(const Event *event)
                 for (auto& profile : p->getPlayerProfiles())
                 {
                     if (remaining.count(
-                        StringUtils::wideToUtf8(profile->getName())) != 0)
+                        StringUtils::wideToUtf8(profile->getName())) != 0
+                        && !p->isWaitingForGame())
                     {
                         return false;
                     }
@@ -3221,7 +3223,7 @@ void ServerLobby::startSelection(const Event *event)
         STKHost::get()->sendPacketToAllPeersWith(
             [this](STKPeer* p) -> bool
             {
-                return canRace(p);
+                return canRace(p) && !p->isWaitingForGame();
             }, ns, /*reliable*/true);
         delete ns;
     }

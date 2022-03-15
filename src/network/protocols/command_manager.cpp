@@ -797,6 +797,10 @@ void CommandManager::process_spectate(Context& context)
         return;
     }
 
+    bool selection_started = (m_lobby->m_state.load() >= ServerLobby::SELECTING);
+    bool no_racing_yet = (m_lobby->m_state.load() < ServerLobby::RACING);
+//    if (selection_started)
+//        m_lobby->erasePeerReady(peer);
     if (argv[1] == "1")
     {
         if (m_lobby->m_process_type == PT_CHILD &&
@@ -806,10 +810,22 @@ void CommandManager::process_spectate(Context& context)
             m_lobby->sendStringToPeer(msg, peer);
             return;
         }
-        peer->setAlwaysSpectate(ASM_COMMAND);
+        peer->setDefaultAlwaysSpectate(ASM_COMMAND);
+        if (!selection_started || !no_racing_yet)
+            peer->setAlwaysSpectate(ASM_COMMAND);
     }
     else
-        peer->setAlwaysSpectate(ASM_NONE);
+    {
+        peer->setDefaultAlwaysSpectate(ASM_NONE);
+        if (!selection_started || !no_racing_yet)
+            peer->setAlwaysSpectate(ASM_NONE);
+        else
+        {
+            m_lobby->erasePeerReady(peer);
+            peer->setAlwaysSpectate(ASM_NONE);
+            peer->setWaitingForGame(true);
+        }
+    }
     m_lobby->updateServerOwner(true);
     m_lobby->updatePlayerList();
 } // process_spectate

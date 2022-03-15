@@ -94,6 +94,8 @@ protected:
 
     std::atomic<uint8_t> m_always_spectate;
 
+    std::atomic<uint8_t> m_default_always_spectate;
+
     /** Host id of this peer. */
     uint32_t m_host_id;
 
@@ -320,6 +322,13 @@ public:
         m_always_spectate.store(mode);
     }
     // ------------------------------------------------------------------------
+    void setDefaultAlwaysSpectate(AlwaysSpectateMode mode)
+    {
+        if (m_default_always_spectate.load() == ASM_COMMAND && mode == ASM_NONE)
+            m_rejoin_time = StkTime::getMonoTimeMs();
+        m_default_always_spectate.store(mode);
+    }
+    // ------------------------------------------------------------------------
     bool alwaysSpectate() const
                                { return m_always_spectate.load() != ASM_NONE; }
     // ------------------------------------------------------------------------
@@ -335,6 +344,8 @@ public:
     {
         if (m_always_spectate.load() == ASM_FULL)
             m_always_spectate.store(ASM_NONE);
+        if (m_always_spectate.load() != m_default_always_spectate.load())
+            m_always_spectate.store(m_default_always_spectate.load());
     }
     // ------------------------------------------------------------------------
     bool isAngryHost() const                    { return m_angry_host.load(); }

@@ -661,6 +661,8 @@ public:
     void setTemporaryTeam(const std::string& username, std::string& arg);
     void clearTemporaryTeams();
     void resetGrandPrix();
+    void erasePeerReady(std::shared_ptr<STKPeer> peer)
+                                                 { m_peers_ready.erase(peer); }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP
