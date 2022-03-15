@@ -3094,7 +3094,7 @@ void ServerLobby::startSelection(const Event *event)
         {
             if (ServerConfig::m_soccer_tournament)
             {
-                m_default_vote->m_num_laps = 10;
+                m_default_vote->m_num_laps = m_tournament_length;
                 m_default_vote->m_reverse = false;
             }
             else

@@ -2286,7 +2286,7 @@ void CommandManager::process_game(Context& context)
             m_lobby->sendStringToPeer(msg, peer);
             return;
         }
-        int length = 10;
+        int length = m_lobby->m_tournament_length;
         if (argv.size() >= 3)
         {
             bool ok = StringUtils::parseString(argv[2], &length);
