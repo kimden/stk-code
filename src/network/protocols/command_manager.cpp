@@ -2269,6 +2269,7 @@ void CommandManager::process_game(Context& context)
     std::string peer_username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     int old_game = m_lobby->m_tournament_game;
+    int addition = 0;
     if (argv.size() < 2)
     {
         ++m_lobby->m_tournament_game;
@@ -2290,13 +2291,30 @@ void CommandManager::process_game(Context& context)
         if (argv.size() >= 3)
         {
             bool ok = StringUtils::parseString(argv[2], &length);
-            if (!ok || length <= 0)
+            if (!ok || length < 0)
             {
                 error(context);
                 return;
             }
         }
         m_lobby->m_fixed_lap = length;
+        if (argv.size() >= 4)
+        {
+            bool ok = StringUtils::parseString(argv[3], &addition);
+            if (!ok || addition < 0 || addition > 59)
+            {
+                std::string msg = "Please specify a correct number. "
+                                  "Format: /game [number] [length] [0..59 additional seconds]";
+                m_lobby->sendStringToPeer(msg, peer);
+                return;
+            }
+            m_lobby->m_extra_seconds = 0.0f;
+            if (addition > 0) {
+                m_lobby->m_extra_seconds = 60.0f - addition;
+            }
+        } else {
+            m_lobby->m_extra_seconds = 0.0f;
+        }
     }
     if (m_lobby->tournamentColorsSwapped(m_lobby->m_tournament_game)
         ^ m_lobby->tournamentColorsSwapped(old_game))
@@ -2307,6 +2325,11 @@ void CommandManager::process_game(Context& context)
     std::string msg = StringUtils::insertValues(
         "Ready to start game %d for %d ", m_lobby->m_tournament_game, m_lobby->m_fixed_lap)
         + (m_lobby->tournamentGoalsLimit(m_lobby->m_tournament_game) ? "goals" : "minutes");
+    if (!m_lobby->tournamentGoalsLimit(m_lobby->m_tournament_game) && addition > 0)
+    {
+        msg += " " + std::to_string(addition) + " seconds";
+        ++m_lobby->m_fixed_lap;
+    }
     m_lobby->sendStringToAllPeers(msg);
     Log::info("CommandManager", "SoccerMatchLog: Game number changed from %d to %d",
         old_game, m_lobby->m_tournament_game);
