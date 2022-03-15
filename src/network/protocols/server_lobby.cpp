@@ -1790,9 +1790,16 @@ void ServerLobby::asynchronousUpdate()
                 m_game_setup->isGrandPrixStarted()) &&
                 m_timeout.load() == std::numeric_limits<int64_t>::max())
             {
-                m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
-                    (int64_t)
-                    (ServerConfig::m_start_game_counter * 1000.0f));
+                if (ServerConfig::m_start_game_counter >= -1e-5)
+                {
+                    m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
+                        (int64_t)
+                        (ServerConfig::m_start_game_counter * 1000.0f));
+                }
+                else
+                {
+                    m_timeout.store(std::numeric_limits<int64_t>::max());
+                }
             }
             else if ((int)players < ServerConfig::m_min_start_game_players &&
                 !m_game_setup->isGrandPrixStarted())

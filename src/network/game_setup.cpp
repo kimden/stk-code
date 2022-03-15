@@ -136,7 +136,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
     if (ServerConfig::m_owner_less)
     {
         ns->addUInt8(ServerConfig::m_min_start_game_players)
-            .addFloat(ServerConfig::m_start_game_counter);
+            .addFloat(std::max<float>(0.0f, ServerConfig::m_start_game_counter));
     }
     else
         ns->addUInt8(0).addFloat(0.0f);

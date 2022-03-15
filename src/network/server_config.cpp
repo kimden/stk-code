@@ -401,7 +401,8 @@ void loadServerLobbyFromConfig()
         if (m_owner_less)
         {
             m_min_start_game_players = 1;
-            m_start_game_counter = 1000001;
+            m_start_game_counter = -1;
+//            m_start_game_counter = 1000001;
         }
         else
         {

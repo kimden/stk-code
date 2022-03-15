@@ -214,7 +214,8 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(FloatServerConfigParam(60.0f, "start-game-counter",
         "Time to wait before entering kart selection screen "
         "if satisfied min-start-game-players below for owner less or ranked "
-        "server."));
+        "server. Negative to disable the timer, you will need to use /start "
+        "then instead of the button."));
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_official_karts_threshold
         SERVER_CFG_DEFAULT(FloatServerConfigParam(1.0f,
