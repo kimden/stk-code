@@ -2277,9 +2277,11 @@ void CommandManager::process_game(Context& context)
             m_lobby->m_tournament_game = 0;
         m_lobby->m_fixed_lap = ServerConfig::m_fixed_lap_count;
     } else {
-        if (!StringUtils::parseString(argv[1], &m_lobby->m_tournament_game)
-            || m_lobby->m_tournament_game < 0
-            || m_lobby->m_tournament_game >= m_lobby->m_tournament_max_games)
+        int new_game_number;
+        int new_length = m_lobby->m_tournament_length;
+        if (!StringUtils::parseString(argv[1], &new_game_number)
+            || new_game_number < 0
+            || new_game_number >= m_lobby->m_tournament_max_games)
         {
             std::string msg = "Please specify a correct number. "
                 "Format: /game [number 0.."
@@ -2287,17 +2289,15 @@ void CommandManager::process_game(Context& context)
             m_lobby->sendStringToPeer(msg, peer);
             return;
         }
-        int length = m_lobby->m_tournament_length;
         if (argv.size() >= 3)
         {
-            bool ok = StringUtils::parseString(argv[2], &length);
-            if (!ok || length < 0)
+            bool ok = StringUtils::parseString(argv[2], &new_length);
+            if (!ok || new_length < 0)
             {
                 error(context);
                 return;
             }
         }
-        m_lobby->m_fixed_lap = length;
         if (argv.size() >= 4)
         {
             bool ok = StringUtils::parseString(argv[3], &addition);
@@ -2315,6 +2315,8 @@ void CommandManager::process_game(Context& context)
         } else {
             m_lobby->m_extra_seconds = 0.0f;
         }
+        m_lobby->m_tournament_game = new_game_number;
+        m_lobby->m_fixed_lap = new_length;
     }
     if (m_lobby->tournamentColorsSwapped(m_lobby->m_tournament_game)
         ^ m_lobby->tournamentColorsSwapped(old_game))
