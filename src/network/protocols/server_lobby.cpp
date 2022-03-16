@@ -7177,7 +7177,7 @@ void ServerLobby::loadTracksQueueFromConfig()
 std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTeam) const
 {
     std::stringstream response;
-    response << "Grand Prix standings\n";
+    response << "Grand Prix standings";
 
     if (!showIndividual && !showTeam)
     {
@@ -7186,6 +7186,13 @@ std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTea
         else
             showTeam = true;
     }
+
+    uint8_t passed = (uint8_t)m_game_setup->getAllTracks().size();
+    uint8_t total = m_game_setup->getExtraServerInfo();
+    if (passed != 0)
+        response << " after " << (int)passed << " of " << (int)total << " games:\n";
+    else
+        response << ", " << (int)total << " games:\n";
 
     if (showIndividual)
     {
