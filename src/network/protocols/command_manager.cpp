@@ -694,7 +694,7 @@ void CommandManager::process_config(Context& context)
     const auto& argv = context.m_argv;
     int difficulty = m_lobby->getDifficulty();
     int mode = m_lobby->getGameMode();
-    bool goal_target = m_lobby->isSoccerGoalTarget();
+    bool goal_target = (m_lobby->m_game_setup->hasExtraSeverInfo() ? m_lobby->isSoccerGoalTarget() : false);
     // bool gp = false;
     std::vector<std::vector<std::string>> mode_aliases = {
         {"m0"},
