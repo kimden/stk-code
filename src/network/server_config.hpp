@@ -104,8 +104,7 @@ namespace ServerConfig
         "Game mode in server, 0 is normal race (grand prix), "
         "1 is time trial (grand prix), 3 is normal race, "
         "4 time trial, 6 is soccer, 7 is free-for-all and "
-        "8 is capture the flag. Notice: grand prix server doesn't "
-        "allow for players to join and wait for ongoing game."));
+        "8 is capture the flag."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_server_difficulty
         SERVER_CFG_DEFAULT(IntServerConfigParam(0, "server-difficulty",
@@ -661,7 +660,8 @@ namespace ServerConfig
         "fixed 0 1 10 8 6 5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
         "grand-prix-scoring",
         "A custom Grand Prix scoring system to be used, "
-        "empty for default."));
+        "should have format 'type int int int int ...', where "
+        "type is either 'inc' or 'fixed'."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_white_list
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
