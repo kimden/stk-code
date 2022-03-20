@@ -871,8 +871,10 @@ void CommandManager::process_addons(Context& context)
     int num_players = 0;
     for (auto peer : peers)
     {
-        if (!peer || !peer->isValidated() || peer->isWaitingForGame()
-            || !m_lobby->canRace(peer) || peer->isCommandSpectator())
+        if (!peer || !peer->isValidated())
+            continue;
+        if ((!more_own || peer != context.m_peer) && (peer->isWaitingForGame()
+            || !m_lobby->canRace(peer) || peer->isCommandSpectator()))
             continue;
         ++num_players;
         std::string username = StringUtils::wideToUtf8(
