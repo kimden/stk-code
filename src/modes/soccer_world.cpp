@@ -1297,16 +1297,24 @@ void SoccerWorld::setInitialCount(int red, int blue)
 }   // setInitialCount
 // ----------------------------------------------------------------------------
 
-void SoccerWorld::tellCount() const
+std::pair<int, int> SoccerWorld::getCount() const {
+    int red = (int)m_red_scorers.size() - m_bad_red_goals
+              + m_init_red_goals;
+    int blue = (int)m_blue_scorers.size() - m_bad_blue_goals
+               + m_init_blue_goals;
+    return std::make_pair(red, blue);
+}   // getCount
+// ----------------------------------------------------------------------------
+
+void SoccerWorld::tellCountToEveryoneInGame() const
 {
     auto peers = STKHost::get()->getPeers();
     NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
     chat->addUInt8(17); // LE_CHAT
     chat->setSynchronous(true);
-    int real_red = (int)m_red_scorers.size() - m_bad_red_goals
-        + m_init_red_goals;
-    int real_blue = (int)m_blue_scorers.size() - m_bad_blue_goals
-        + m_init_blue_goals;
+    auto real_score = getCount();
+    int real_red = real_score.first;
+    int real_blue = real_score.second;
     std::string real_count =
         std::to_string(real_red) + " : " + std::to_string(real_blue);
     chat->encodeString16(StringUtils::utf8ToWide(real_count));
@@ -1314,6 +1322,23 @@ void SoccerWorld::tellCount() const
         if (peer->isValidated() && !peer->isWaitingForGame())
             peer->sendPacket(chat, true/*reliable*/);
 
+    delete chat;
+}   // tellCountToEveryoneInGame
+// ----------------------------------------------------------------------------
+void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
+{
+    if (!peer->isValidated())
+        return;
+    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
+    chat->addUInt8(17); // LE_CHAT
+    chat->setSynchronous(true);
+    auto real_score = getCount();
+    int real_red = real_score.first;
+    int real_blue = real_score.second;
+    std::string real_count =
+            std::to_string(real_red) + " : " + std::to_string(real_blue);
+    chat->encodeString16(StringUtils::utf8ToWide(real_count));
+    peer->sendPacket(chat, true/*reliable*/);
     delete chat;
 }   // tellCount
 // ----------------------------------------------------------------------------
@@ -1323,7 +1348,7 @@ void SoccerWorld::tellCountIfDiffers() const
     if (m_init_red_goals - m_bad_red_goals != 0 ||
         m_init_blue_goals - m_bad_blue_goals != 0)
     {
-        tellCount();
+        tellCountToEveryoneInGame();
     }
 }   // tellCountIfDiffers
 // ----------------------------------------------------------------------------

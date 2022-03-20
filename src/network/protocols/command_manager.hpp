@@ -257,6 +257,7 @@ private:
     void process_test(Context& context);
     void process_slots(Context& context);
     void process_time(Context& context);
+    void process_result(Context& context);
     void special(Context& context);
 
 public:

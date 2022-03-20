@@ -281,6 +281,7 @@ void CommandManager::initCommands()
     if (!ServerConfig::m_only_host_riding)
         v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("time", &CM::process_time, UP_EVERYONE);
+    v.emplace_back("result", &CM::process_result, UP_EVERYONE);
 
     v.emplace_back("addondownloadprogress", &CM::special, UP_EVERYONE);
     v.emplace_back("stopaddondownload", &CM::special, UP_EVERYONE);
@@ -2580,7 +2581,7 @@ void CommandManager::process_init(Context& context)
     }
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->setInitialCount(red, blue);
-    sw->tellCount();
+    sw->tellCountToEveryoneInGame();
 } // process_init
 // ========================================================================
 
@@ -2649,6 +2650,27 @@ void CommandManager::process_time(Context& context)
 {
     auto& peer = context.m_peer;
     std::string msg = "Server time: " + StkTime::getLogTime();
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_time
+// ========================================================================
+
+void CommandManager::process_result(Context& context)
+{
+    auto& peer = context.m_peer;
+    std::string msg = "";
+    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
+    {
+        SoccerWorld *sw = dynamic_cast<SoccerWorld*>(World::getWorld());
+        if (sw)
+        {
+            sw->tellCount(peer);
+            return;
+        }
+        else
+            msg = "No game to show the score!";
+    }
+    else
+        msg = "This command is not yet supported for this game mode";
     m_lobby->sendStringToPeer(msg, peer);
 } // process_time
 // ========================================================================

@@ -359,6 +359,11 @@
              permissions="everyone"
              description="Displays server time."
     />
+    <command name="result"
+             usage="/result"
+             permissions="everyone"
+             description="Displays the result of an ongoing game."
+    />
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions="everyone (client command)"
