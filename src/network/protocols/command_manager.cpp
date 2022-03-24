@@ -677,7 +677,7 @@ void CommandManager::process_replay(Context& context)
 
 void CommandManager::process_start(Context& context)
 {
-    if (!ServerConfig::m_owner_less && (context.m_user_permissions & UP_HAMMER) == 0)
+    if (!ServerConfig::m_owner_less && (context.m_user_permissions & UP_CROWNED) == 0)
     {
         context.m_voting = true;
     }
