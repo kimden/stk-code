@@ -260,6 +260,9 @@ private:
     void process_result(Context& context);
     void special(Context& context);
 
+    std::string getRandomMap() const;
+    std::string getRandomAddonMap() const;
+
 public:
 
     CommandManager(ServerLobby* lobby = nullptr);

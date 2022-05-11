@@ -56,7 +56,7 @@
 // #include "online/xml_request.hpp"
 // #include "race/race_manager.hpp"
 // #include "tracks/check_manager.hpp"
-// #include "tracks/track.hpp"
+#include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/file_utils.hpp"
 #include "utils/log.hpp"
@@ -1823,6 +1823,10 @@ void CommandManager::process_queue(Context& context)
             error(context);
             return;
         }
+        if (argv[2] == "-")
+            argv[2] = getRandomMap();
+        else if (argv[2] == "-addon")
+            argv[2] = getRandomAddonMap();
         if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
             2, m_stf_all_maps, 3, false, false))
             return;
@@ -1830,7 +1834,7 @@ void CommandManager::process_queue(Context& context)
         std::string msg = "Pushed " + argv[2]
             + " to the back of queue, current queue size: "
             + std::to_string(m_lobby->m_tracks_queue.size());
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->sendStringToAllPeers(msg);
         m_lobby->updatePlayerList();
     }
     else if (argv[1] == "push_front")
@@ -1840,6 +1844,10 @@ void CommandManager::process_queue(Context& context)
             error(context);
             return;
         }
+        if (argv[2] == "-")
+            argv[2] = getRandomMap();
+        else if (argv[2] == "-addon")
+            argv[2] = getRandomAddonMap();
         if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
             2, m_stf_all_maps, 3, false, false))
             return;
@@ -1847,7 +1855,7 @@ void CommandManager::process_queue(Context& context)
         std::string msg = "Pushed " + argv[2]
             + " to the front of queue, current queue size: "
             + std::to_string(m_lobby->m_tracks_queue.size());
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->sendStringToAllPeers(msg);
         m_lobby->updatePlayerList();
     }
     else if (argv[1] == "pop" || argv[1] == "pop_front")
@@ -1864,7 +1872,7 @@ void CommandManager::process_queue(Context& context)
             msg += " current queue size: "
                 + std::to_string(m_lobby->m_tracks_queue.size());
         }
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->sendStringToAllPeers(msg);
         m_lobby->updatePlayerList();
     }
     else if (argv[1] == "pop_back")
@@ -1881,7 +1889,7 @@ void CommandManager::process_queue(Context& context)
             msg += " current queue size: "
                 + std::to_string(m_lobby->m_tracks_queue.size());
         }
-        m_lobby->sendStringToPeer(msg, context.m_peer);
+        m_lobby->sendStringToAllPeers(msg);
         m_lobby->updatePlayerList();
     }
 } // process_queue
@@ -2686,6 +2694,33 @@ void CommandManager::special(Context& context)
 } // special
 // ========================================================================
 
+std::string CommandManager::getRandomMap() const
+{
+    if (m_lobby->m_entering_kts.second.empty())
+        return "";
+    RandomGenerator rg;
+    std::set<std::string>::iterator it = m_lobby->m_entering_kts.second.begin();
+    std::advance(it, rg.get((int)m_lobby->m_entering_kts.second.size()));
+    return *it;
+} // getRandomMap
+// ========================================================================
+
+std::string CommandManager::getRandomAddonMap() const
+{
+    std::vector<std::string> items;
+    for (const std::string& s: m_lobby->m_entering_kts.second) {
+        Track* t = track_manager->getTrack(s);
+        if (t->isAddon())
+            items.push_back(s);
+    }
+    if (items.empty())
+        return "";
+    RandomGenerator rg;
+    std::vector<std::string>::iterator it = items.begin();
+    std::advance(it, rg.get((int)items.size()));
+    return *it;
+} // getRandomAddonMap
+// ========================================================================
 void CommandManager::addUser(std::string& s)
 {
     m_users.insert(s);
