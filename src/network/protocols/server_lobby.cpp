@@ -5004,6 +5004,8 @@ void ServerLobby::handlePlayerVote(Event* event)
 
     if (isVotingOver())  return;
 
+    if (!canVote(event->getPeer())) return;
+
     NetworkString& data = event->data();
     PeerVote vote(data);
     Log::debug("ServerLobby",
@@ -6966,17 +6968,18 @@ void ServerLobby::initTournamentPlayers()
     if (!fallback)
     {
         general = StringUtils::split(tokens[0], ' ');
-        if (general.size() < 4)
+        if (general.size() < 5)
             fallback = true;
     }
     if (fallback)
     {
-        Log::warn("ServerLobby", "Tournament rules not complete, fallback to default");
+        Log::warn("ServerLobby", "Tournament rules are not complete, fallback to default");
         general.clear();
         general.push_back("nochat");
         general.push_back("10");
         general.push_back("GGGGT");
         general.push_back("RRBBR");
+        general.push_back("+++++");
         tokens.clear();
         tokens.push_back("nochat 10 GGGT RRBBR");
         tokens.push_back("");
@@ -6984,7 +6987,7 @@ void ServerLobby::initTournamentPlayers()
         tokens.push_back("not %0");
         tokens.push_back("not %0" " %1");
         tokens.push_back("");
-        ServerConfig::m_soccer_tournament_rules = "nochat 10 TTTTG RRBBR;"
+        ServerConfig::m_soccer_tournament_rules = "nochat 10 TTTTG RRBBR +++++;"
             ";;not %1;"
             "not %1 "
             "%2;;;";
@@ -7008,6 +7011,7 @@ void ServerLobby::initTournamentPlayers()
     m_tournament_colors = general[3];
     m_tournament_max_games = std::min(general[2].length(), general[3].length());
     m_tournament_max_games = std::min(m_tournament_max_games, (int)tokens.size() - 1);
+    m_tournament_votability = general[4];
     m_tournament_arenas.resize(m_tournament_max_games, "");
     for (int i = 0; i < m_tournament_max_games; i++)
         m_tournament_track_filters.emplace_back(tokens[i + 1]);
@@ -7102,7 +7106,28 @@ bool ServerLobby::canRace(STKPeer* peer) const
         return false;
     return true;
 }   // canRace
-
+//-----------------------------------------------------------------------------
+bool ServerLobby::canVote(std::shared_ptr<STKPeer>& peer) const
+{
+    return canVote(peer.get());
+}   // canVote
+//-----------------------------------------------------------------------------
+bool ServerLobby::canVote(STKPeer* peer) const
+{
+    std::string username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
+    if (ServerConfig::m_soccer_tournament) {
+        bool first = m_tournament_red_players.count(username) > 0;
+        bool second = m_tournament_blue_players.count(username) > 0;
+        if (!first && !second)
+            return false;
+        char votable = m_tournament_votability[m_tournament_game];
+        if (votable == '+')
+            return true;
+        return (votable == 'F' && first) || (votable == 'S' && second);
+    }
+    return true;
+}   // canVote
 //-----------------------------------------------------------------------------
 bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer>& peer) const
 {

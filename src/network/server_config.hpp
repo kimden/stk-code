@@ -618,7 +618,7 @@ namespace ServerConfig
         "Use ## to hide the category from the player list."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_soccer_tournament_rules
-        SERVER_CFG_DEFAULT(StringServerConfigParam("nochat 10 TTTTG RRBBR;"
+        SERVER_CFG_DEFAULT(StringServerConfigParam("nochat 10 TTTTG RRBBR +++++;"
         ";;not %1;"
         "not %1 "
         "%2;;;",

@@ -349,6 +349,8 @@ private:
 
     std::string m_tournament_colors;
 
+    std::string m_tournament_votability;
+
     std::vector<std::string> m_tournament_arenas;
 
     std::vector<TrackFilter> m_tournament_track_filters;
@@ -560,6 +562,8 @@ private:
     void changeColors();
     bool canRace(std::shared_ptr<STKPeer>& peer) const;
     bool canRace(STKPeer* peer) const;
+    bool canVote(std::shared_ptr<STKPeer>& peer) const;
+    bool canVote(STKPeer* peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer>& peer) const;
     bool hasHostRights(STKPeer* peer) const;
     std::vector<std::string> getMissingTournamentAssets(std::shared_ptr<STKPeer>& peer) const;
