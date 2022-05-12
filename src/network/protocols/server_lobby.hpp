@@ -667,6 +667,7 @@ public:
     void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
+    void applyAllFilters(std::set<std::string>& maps);
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

@@ -837,9 +837,11 @@ void CommandManager::process_addons(Context& context)
     auto& argv = context.m_argv;
     bool more = (argv[0] == "moreaddons");
     bool more_own = (argv[0] == "getaddons");
+    bool apply_filters = false;
     if (argv.size() == 1)
     {
         argv.push_back("");
+        apply_filters = true;
         switch (m_lobby->m_game_mode.load())
         {
             case 0:
@@ -857,12 +859,16 @@ void CommandManager::process_addons(Context& context)
                 break;
         }
     }
-    const std::set<std::string>& from =
+    // removed const reference so that i can modify `from`
+    // without changing the original container, we copy everything anyway
+    std::set<std::string> from =
         (argv[1] == "kart" ? m_lobby->m_addon_kts.first :
         (argv[1] == "track" ? m_lobby->m_addon_kts.second :
         (argv[1] == "arena" ? m_lobby->m_addon_arenas :
         /*argv[1] == "soccer" ?*/ m_lobby->m_addon_soccers
     )));
+    if (apply_filters)
+        m_lobby->applyAllFilters(from);
     std::vector<std::pair<std::string, std::vector<std::string>>> result;
     for (const std::string& s: from)
         result.push_back({s, {}});
@@ -2696,27 +2702,33 @@ void CommandManager::special(Context& context)
 
 std::string CommandManager::getRandomMap() const
 {
-    if (m_lobby->m_entering_kts.second.empty())
+    std::set<std::string> items;
+    for (const std::string& s: m_lobby->m_entering_kts.second) {
+        items.insert(s);
+    }
+    m_lobby->applyAllFilters(items);
+    if (items.empty())
         return "";
     RandomGenerator rg;
-    std::set<std::string>::iterator it = m_lobby->m_entering_kts.second.begin();
-    std::advance(it, rg.get((int)m_lobby->m_entering_kts.second.size()));
+    std::set<std::string>::iterator it = items.begin();
+    std::advance(it, rg.get((int)items.size()));
     return *it;
 } // getRandomMap
 // ========================================================================
 
 std::string CommandManager::getRandomAddonMap() const
 {
-    std::vector<std::string> items;
+    std::set<std::string> items;
     for (const std::string& s: m_lobby->m_entering_kts.second) {
         Track* t = track_manager->getTrack(s);
         if (t->isAddon())
-            items.push_back(s);
+            items.insert(s);
     }
+    m_lobby->applyAllFilters(items);
     if (items.empty())
         return "";
     RandomGenerator rg;
-    std::vector<std::string>::iterator it = items.begin();
+    std::set<std::string>::iterator it = items.begin();
     std::advance(it, rg.get((int)items.size()));
     return *it;
 } // getRandomAddonMap

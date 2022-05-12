@@ -3031,27 +3031,8 @@ void ServerLobby::startSelection(const Event *event)
     else
         m_ai_count = 0;
 
-    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
-    {
-        auto it = m_available_kts.second.begin();
-        while (it != m_available_kts.second.end())
-        {
-            Track* t = track_manager->getTrack(*it);
-            if (t->getMaxArenaPlayers() < max_player)
-            {
-                it = m_available_kts.second.erase(it);
-            }
-            else
-                it++;
-        }
-    }
-    
-    m_global_filter.apply(max_player, m_available_kts.second);
-    if (ServerConfig::m_soccer_tournament)
-    {
-        m_tournament_track_filters[m_tournament_game].apply(
-            max_player, m_available_kts.second, m_tournament_arenas);
-    }
+    applyAllFilters(m_available_kts.second);
+
    /* auto iter = m_available_kts.second.begin();
     while (iter != m_available_kts.second.end())
     {
@@ -7918,4 +7899,32 @@ void ServerLobby::resetGrandPrix()
     delete server_info;
     updatePlayerList();
 }   // resetGrandPrix
+//-----------------------------------------------------------------------------
+
+void ServerLobby::applyAllFilters(std::set<std::string>& maps)
+{
+    unsigned max_player = 0;
+    STKHost::get()->updatePlayers(&max_player);
+    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
+    {
+        auto it = maps.begin();
+        while (it != maps.end())
+        {
+            Track* t = track_manager->getTrack(*it);
+            if (t->getMaxArenaPlayers() < max_player)
+            {
+                it = maps.erase(it);
+            }
+            else
+                it++;
+        }
+    }
+
+    m_global_filter.apply(max_player, maps);
+    if (ServerConfig::m_soccer_tournament)
+    {
+        m_tournament_track_filters[m_tournament_game].apply(
+                max_player, maps, m_tournament_arenas);
+    }
+}   // applyAllFilters
 //-----------------------------------------------------------------------------
