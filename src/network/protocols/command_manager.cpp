@@ -2406,8 +2406,6 @@ void CommandManager::process_role(Context& context)
     }
     for (const std::string& username: changed_usernames)
     {
-        Log::info("CommandManager", "SoccerMatchLog: Role of %s changed to %s",
-             username.c_str(), role.c_str());
         m_lobby->m_tournament_red_players.erase(username);
         m_lobby->m_tournament_blue_players.erase(username);
         m_lobby->m_tournament_referees.erase(username);
@@ -2515,8 +2513,12 @@ void CommandManager::process_role(Context& context)
         }
         std::string msg;
         if (!fail)
+        {
             msg = StringUtils::insertValues(
                 "Successfully changed role to %s for %s", role, username);
+            Log::info("CommandManager", "SoccerMatchLog: Role of %s changed to %s",
+                username.c_str(), role.c_str());
+        }
         else
         {
             msg = StringUtils::insertValues(
