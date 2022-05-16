@@ -7065,8 +7065,11 @@ bool ServerLobby::canRace(STKPeer* peer) const
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (ServerConfig::m_soccer_tournament)
-        return m_tournament_red_players.count(username) > 0 || 
-            m_tournament_blue_players.count(username) > 0;
+    {
+        if (m_tournament_red_players.count(username) == 0 &&
+            m_tournament_blue_players.count(username) == 0)
+            return false;
+    }
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
         return false;
 
