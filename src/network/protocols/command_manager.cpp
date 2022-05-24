@@ -918,10 +918,10 @@ void CommandManager::process_addons(Context& context)
             result.clear();
             std::string asking_username = StringUtils::wideToUtf8(
                     context.m_peer->getPlayerProfiles()[0]->getName());
-            for (int i = 0; i < result2.size(); ++i)
+            for (unsigned i = 0; i < result2.size(); ++i)
             {
                 bool present = false;
-                for (int j = 0; j < result2[i].second.size(); ++j)
+                for (unsigned j = 0; j < result2[i].second.size(); ++j)
                 {
                     if (result2[i].second[j] == asking_username)
                     {
@@ -1601,7 +1601,7 @@ void CommandManager::process_standings(Context& context)
     bool isGnu = false;
     bool isGPTeams = false;
     bool isGPPlayers = false;
-    for (int i = 1; i < argv.size(); ++i)
+    for (unsigned i = 1; i < argv.size(); ++i)
     {
         if (argv[i] == "gp")
             isGP = true;
