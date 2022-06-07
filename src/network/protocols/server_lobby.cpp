@@ -6477,7 +6477,7 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
 
     for (int i = 0; i < (int)peers.size(); ++i)
     {
-        if (!peers[i]->isValidated() || peers[i]->isCommandSpectator())
+        if (!peers[i]->isValidated())
         {
             swap(peers[i], peers.back());
             peers.pop_back();
@@ -6490,38 +6490,40 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
             const std::shared_ptr<STKPeer>& b)
         { return a->getRejoinTime() < b->getRejoinTime(); });
 
+    unsigned player_count = 0;
     if (m_state.load() >= RACING)
     {
         for (auto &peer : peers)
             if (peer->isSpectator())
                 ingame_players -= (int)peer->getPlayerProfiles().size();
+        player_count = ingame_players;
     }
 
-    unsigned player_count = 0;
     for (unsigned i = 0; i < peers.size(); i++)
     {
         auto& peer = peers[i];
         if (!peer->isValidated())
             continue;
+        bool ignore = false;
         if (m_state.load() < RACING)
         {
             if (peer->alwaysSpectate() || peer->isWaitingForGame())
-                continue;
-            if (!canRace(peer))
+                ignore = true;
+            else if (!canRace(peer))
             {
                 m_spectators_by_limit.insert(peer.get());
-                continue;
+                ignore = true;
             }
-            player_count += (unsigned)peer->getPlayerProfiles().size();
-            if (player_count > player_limit)
-                m_spectators_by_limit.insert(peer.get());
         }
         else
         {
-            // if (peer->isSpectator())
-            //     continue;
+            if (!peer->isWaitingForGame())
+                ignore = true; // we already counted them properly in ingame_players
+        }
+        if (!ignore)
+        {
             player_count += (unsigned)peer->getPlayerProfiles().size();
-            if (/*peer->isWaitingForGame() && */(player_count > player_limit || ingame_players >= player_limit))
+            if (player_count > player_limit)
                 m_spectators_by_limit.insert(peer.get());
         }
     }
