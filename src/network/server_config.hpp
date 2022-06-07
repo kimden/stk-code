@@ -625,12 +625,6 @@ namespace ServerConfig
         "soccer-tournament-rules",
         "A string specifying the match format."));
 
-    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_tournament_enforced_tracks_string
-        SERVER_CFG_DEFAULT(StringServerConfigParam("",
-        "soccer-tournament-enforced-tracks",
-        "List of tracks tournament players should have to enter "
-        "(doesn't apply to spectators)."));
-
     SERVER_CFG_PREFIX StringServerConfigParam m_incompatible_advice
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
         "incompatible-advice",

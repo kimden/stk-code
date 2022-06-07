@@ -7372,23 +7372,21 @@ void ServerLobby::initAvailableTracks()
         ServerConfig::m_must_have_tracks_string, ' ', false);
     m_play_requirement_tracks = StringUtils::split(
             ServerConfig::m_play_requirement_tracks_string, ' ', false);
-    m_tournament_must_have_tracks = StringUtils::split(
-        ServerConfig::m_soccer_tournament_enforced_tracks_string, ' ', false);
 }   // initAvailableTracks
 //-----------------------------------------------------------------------------
-std::vector<std::string> ServerLobby::getMissingTournamentAssets(std::shared_ptr<STKPeer>& peer) const
+std::vector<std::string> ServerLobby::getMissingAssets(std::shared_ptr<STKPeer>& peer) const
 {
-    return getMissingTournamentAssets(peer.get());
-}   // getMissingTournamentAssets
+    return getMissingAssets(peer.get());
+}   // getMissingAssets
 //-----------------------------------------------------------------------------
-std::vector<std::string> ServerLobby::getMissingTournamentAssets(STKPeer* peer) const
+std::vector<std::string> ServerLobby::getMissingAssets(STKPeer* peer) const
 {
     std::vector<std::string> ans;
-    for (const std::string& required_track : m_tournament_must_have_tracks)
+    for (const std::string& required_track : m_play_requirement_tracks)
         if (peer->getClientAssets().second.count(required_track) == 0)
             ans.push_back(required_track);
     return ans;
-}   // getMissingTournamentAssets
+}   // getMissingAssets
 //-----------------------------------------------------------------------------
 void ServerLobby::updateTournamentRole(STKPeer* peer)
 {
@@ -7400,16 +7398,16 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
         peer->getPlayerProfiles()[0]->getName());
     bool erased_from_tournament_roles = false;
     std::vector<std::string> missing_assets;
-    missing_assets = getMissingTournamentAssets(peer);
-    if (!missing_assets.empty())
-    {
-        erased_from_tournament_roles |= m_tournament_red_players.count(utf8_online_name) > 0;
-        erased_from_tournament_roles |= m_tournament_blue_players.count(utf8_online_name) > 0;
-        erased_from_tournament_roles |= m_tournament_referees.count(utf8_online_name) > 0;
-        m_tournament_red_players.erase(utf8_online_name);
-        m_tournament_blue_players.erase(utf8_online_name);
-        m_tournament_referees.erase(utf8_online_name);
-    }
+    missing_assets = getMissingAssets(peer);
+//    if (!missing_assets.empty())
+//    {
+//        erased_from_tournament_roles |= m_tournament_red_players.count(utf8_online_name) > 0;
+//        erased_from_tournament_roles |= m_tournament_blue_players.count(utf8_online_name) > 0;
+//        erased_from_tournament_roles |= m_tournament_referees.count(utf8_online_name) > 0;
+//        m_tournament_red_players.erase(utf8_online_name);
+//        m_tournament_blue_players.erase(utf8_online_name);
+//        m_tournament_referees.erase(utf8_online_name);
+//    }
     for (unsigned i = 0; i < peer->getPlayerProfiles().size(); i++)
     {
         auto player = peer->getPlayerProfiles()[i];
@@ -7431,7 +7429,7 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
     }
     if (erased_from_tournament_roles)
     {
-        std::string msg = "You are now spectator because you lack the following assets:";
+        std::string msg = "You lack the following assets:";
         for (unsigned i = 0; i < missing_assets.size(); i++)
         {
             if (i)

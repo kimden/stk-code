@@ -566,8 +566,8 @@ private:
     bool canVote(STKPeer* peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer>& peer) const;
     bool hasHostRights(STKPeer* peer) const;
-    std::vector<std::string> getMissingTournamentAssets(std::shared_ptr<STKPeer>& peer) const;
-    std::vector<std::string> getMissingTournamentAssets(STKPeer* peer) const;
+    std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer>& peer) const;
+    std::vector<std::string> getMissingAssets(STKPeer* peer) const;
     void loadTracksQueueFromConfig();
     std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
     void loadCustomScoring();

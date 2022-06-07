@@ -2420,7 +2420,7 @@ void CommandManager::process_role(Context& context)
             StringUtils::utf8ToWide(username));
         std::vector<std::string> missing_assets;
         if (player_peer)
-            missing_assets = m_lobby->getMissingTournamentAssets(player_peer);
+            missing_assets = m_lobby->getMissingAssets(player_peer);
         bool fail = false;
         switch (role[0])
         {
@@ -2430,7 +2430,7 @@ void CommandManager::process_role(Context& context)
                 if (!missing_assets.empty())
                 {
                     fail = true;
-                    break;
+//                    break;
                 }
                 if (m_lobby->tournamentColorsSwapped(m_lobby->m_tournament_game))
                 {
@@ -2458,7 +2458,7 @@ void CommandManager::process_role(Context& context)
                 if (!missing_assets.empty())
                 {
                     fail = true;
-                    break;
+//                    break;
                 }
                 if (m_lobby->tournamentColorsSwapped(m_lobby->m_tournament_game))
                 {
@@ -2486,7 +2486,7 @@ void CommandManager::process_role(Context& context)
                 if (!missing_assets.empty())
                 {
                     fail = true;
-                    break;
+//                    break;
                 }
                 m_lobby->m_tournament_referees.insert(username);
                 if (permanent)
@@ -2522,7 +2522,8 @@ void CommandManager::process_role(Context& context)
         else
         {
             msg = StringUtils::insertValues(
-                "Failed to change role to %s for %s - missing assets:", role, username);
+                "Successfully changed role to %s for %s, but there are missing assets:",
+                role, username);
             for (unsigned i = 0; i < missing_assets.size(); i++)
             {
                 if (i)
