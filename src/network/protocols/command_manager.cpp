@@ -2092,6 +2092,7 @@ void CommandManager::process_cat(Context& context)
         if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
             2, m_stf_present_users, 3, false, true))
             return;
+        player = argv[2];
         m_lobby->m_player_categories[category].erase(player);
         m_lobby->m_categories_for_player[player].erase(category);
         m_lobby->updatePlayerList();
