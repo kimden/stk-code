@@ -475,7 +475,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         {
             auto response = it->second.process(m_users);
             int count = response.first;
-            std::string msg = username + " voted \"" + cmd + "\", there are " + std::to_string(count) + " such votes";
+            std::string msg = username + " voted \"/" + cmd + "\", there are " + std::to_string(count) + " such votes";
             m_lobby->sendStringToAllPeers(msg);
             auto res = response.second;
             if (!res.empty())
@@ -485,7 +485,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     std::string new_cmd = p.first + " " + p.second;
                     auto new_argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
                     CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
-                    std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
+                    std::string msg = "Command \"/" + new_cmd + "\" has been successfully voted";
                     m_lobby->sendStringToAllPeers(msg);
                     Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
                     execute(command, new_context);
@@ -553,7 +553,7 @@ void CommandManager::update()
                 std::string new_cmd = p.first + " " + p.second;
                 auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
                 CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
-                std::string msg = "Command \"" + new_cmd + "\" has been successfully voted";
+                std::string msg = "Command \"/" + new_cmd + "\" has been successfully voted";
                 m_lobby->sendStringToAllPeers(msg);
                 auto& command = m_name_to_command[new_argv[0]];
                 // We don't know the event though it is only needed in
@@ -1913,12 +1913,12 @@ void CommandManager::process_allowstart(Context& context)
     if (argv[1] == "0")
     {
         m_lobby->m_allowed_to_start = false;
-        msg = "Now starting a race is forbidden";
+        msg = "Now starting a game is forbidden";
     }
     else
     {
         m_lobby->m_allowed_to_start = true;
-        msg = "Now starting a race is allowed";
+        msg = "Now starting a game is allowed";
     }
     m_lobby->sendStringToPeer(msg, context.m_peer);
 } // process_allowstart
@@ -2692,7 +2692,7 @@ void CommandManager::process_result(Context& context)
     else
         msg = "This command is not yet supported for this game mode";
     m_lobby->sendStringToPeer(msg, peer);
-} // process_time
+} // process_result
 // ========================================================================
 
 void CommandManager::special(Context& context)
