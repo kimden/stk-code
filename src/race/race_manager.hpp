@@ -369,6 +369,10 @@ private:
     bool m_has_ghost_karts;
 
     bool m_watching_replay;
+
+    std::vector<unsigned> m_pending_karts_id;
+    std::vector<float> m_pending_karts_time;
+    std::vector<int> m_pending_karts_pos;
 public:
     // ----------------------------------------------------------------------------------------
     static RaceManager* get();
