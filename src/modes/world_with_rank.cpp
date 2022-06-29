@@ -322,9 +322,13 @@ void WorldWithRank::updateSectorForKarts()
 
 void WorldWithRank::setCustomScoringSystem(std::string& type, std::vector<int>& params)
 {
-    m_custom_scoring = true;
     m_custom_scoring_type = type;
     m_custom_scoring_params = params;
+    if (type == "" || type == "standard") {
+        m_custom_scoring = false;
+        return;
+    }
+    m_custom_scoring = true;
     refreshCustomScores(getNumKarts());
 }   // setCustomScoringSystem
 //-----------------------------------------------------------------------------

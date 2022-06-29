@@ -254,6 +254,7 @@ void CommandManager::initCommands()
     v.emplace_back("troll", &CM::process_troll, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("hitmsg", &CM::process_hitmsg, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("teamhit", &CM::process_teamhit, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("scoring", &CM::process_scoring, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("version", &CM::process_text, UP_EVERYONE);
     v.emplace_back("clear", &CM::process_text, UP_EVERYONE);
     v.emplace_back("register", &CM::process_register, UP_EVERYONE);
@@ -2184,6 +2185,22 @@ void CommandManager::process_teamhit(Context& context)
 } // process_teamhit
 // ========================================================================
 
+void CommandManager::process_scoring(Context& context)
+{
+    std::string msg;
+    auto& argv = context.m_argv;
+    std::string cmd2;
+    CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
+    if (m_lobby->loadCustomScoring(cmd2)) {
+        msg = "Scoring set to \"" + cmd2 + "\"";
+        m_lobby->sendStringToAllPeers(msg);
+    } else {
+        msg = "Scoring could not be parsed from \"" + cmd2 + "\"";
+        m_lobby->sendStringToPeer(msg, context.m_peer);
+    }
+} // process_scoring
+// ========================================================================
+
 void CommandManager::process_register(Context& context)
 {
     auto& argv = context.m_argv;
@@ -2759,15 +2776,17 @@ void CommandManager::deleteUser(std::string& s)
 } // deleteUser
 // ========================================================================
 
-void CommandManager::restoreCmdByArgv(std::string& cmd, std::vector<std::string>& argv, char c, char d, char e, char f)
+void CommandManager::restoreCmdByArgv(std::string& cmd,
+        std::vector<std::string>& argv, char c, char d, char e, char f,
+        int from)
 {
     cmd.clear();
-    for (unsigned i = 0; i < argv.size(); ++i) {
+    for (unsigned i = from; i < argv.size(); ++i) {
         bool quoted = false;
         if (argv[i].find(c) != std::string::npos || argv[i].empty()) {
             quoted = true;
         }
-        if (i > 0) {
+        if (i > from) {
             cmd.push_back(c);
         }
         if (quoted) {

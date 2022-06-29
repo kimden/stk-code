@@ -321,7 +321,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     }
     m_allowed_to_start = true;
     loadTracksQueueFromConfig();
-    loadCustomScoring();
+    std::string scoring = ServerConfig::m_gp_scoring;
+    loadCustomScoring(scoring);
     loadWhiteList();
 #ifdef ENABLE_WEB_SUPPORT
     m_token_generation_tries.store(0);
@@ -7244,28 +7245,35 @@ std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTea
     return response.str();
 }   // getGrandPrixStandings
 //-----------------------------------------------------------------------------
-void ServerLobby::loadCustomScoring()
+bool ServerLobby::loadCustomScoring(std::string& scoring)
 {
+    auto previous_params = m_scoring_int_params;
+    auto previous_type = m_scoring_type;
     m_scoring_int_params.clear();
     m_scoring_type = "";
-    std::string scoring = ServerConfig::m_gp_scoring;
     if (!scoring.empty())
     {
         std::vector<std::string> params = StringUtils::split(scoring, ' ');
         if (params.empty())
-            return;    
+        {
+            m_scoring_type = "";
+            return true;
+        }
         m_scoring_type = params[0];
         for (unsigned i = 1; i < params.size(); i++)
         {
             int param;
             if (!StringUtils::fromString(params[i], param))
             {
-                Log::warn("ServerLobby", "Unable to parse integer from custom scoring data");
-                return;
+                Log::warn("ServerLobby", "Unable to parse integer from custom scoring data, fallback.");
+                m_scoring_int_params = previous_params;
+                m_scoring_type = previous_type;
+                return false;
             }
             m_scoring_int_params.push_back(param);
         }
     }
+    return true;
 }   // loadCustomScoring
 //-----------------------------------------------------------------------------   
 void ServerLobby::updateWorldSettings()

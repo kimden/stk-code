@@ -570,7 +570,7 @@ private:
     std::vector<std::string> getMissingAssets(STKPeer* peer) const;
     void loadTracksQueueFromConfig();
     std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
-    void loadCustomScoring();
+    bool loadCustomScoring(std::string& scoring);
     void updateWorldSettings();
     void loadWhiteList();
     void changeLimitForTournament(bool goal_target);

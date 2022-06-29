@@ -241,6 +241,7 @@ private:
     void process_troll(Context& context);
     void process_hitmsg(Context& context);
     void process_teamhit(Context& context);
+    void process_scoring(Context& context);
     void process_register(Context& context);
 #ifdef ENABLE_WEB_SUPPORT
     void process_token(Context& context);
@@ -282,7 +283,9 @@ public:
 
     void deleteUser(std::string& s);
 
-    static void restoreCmdByArgv(std::string& cmd, std::vector<std::string>& argv, char c, char d, char e, char f);
+    static void restoreCmdByArgv(std::string& cmd,
+            std::vector<std::string>& argv, char c, char d, char e, char f,
+            int from = 0);
 
     bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
