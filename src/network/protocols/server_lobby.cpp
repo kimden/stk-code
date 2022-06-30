@@ -6644,6 +6644,7 @@ void ServerLobby::storeResults()
         double elapsed_time = DISCONNECT_TIME;
         if (!w->getKart(i)->isEliminated())
             elapsed_time = RaceManager::get()->getKartRaceTime(i);
+        std::string kart_name = w->getKart(i)->getIdent();
         std::stringstream elapsed_string;
         elapsed_string << std::setprecision(4) << std::fixed << elapsed_time;
         if (best_cur_player_idx == -1 || elapsed_time < best_cur_time)
@@ -6654,10 +6655,21 @@ void ServerLobby::storeResults()
         }
         std::string query = StringUtils::insertValues(
             "INSERT INTO %s "
-            "(username, venue, reverse, mode, laps, result) "
-            "VALUES (?, '%s', '%s', '%s', %d, '%s');",
+            "(username, venue, reverse, mode, laps, result"
+#ifdef ENABLE_RECORDS_V2
+            ", difficulty, kart, config"
+#endif
+            ") "
+            "VALUES (?, '%s', '%s', '%s', %d, '%s'"
+#ifdef ENABLE_RECORDS_V2
+            ", %d, '%s', '%s'"
+#endif
+            ");",
             m_results_table_name.c_str(), track_name.c_str(),
             reverse_string.c_str(), mode_name.c_str(), laps_number, elapsed_string.str()
+#ifdef ENABLE_RECORDS_V2
+            , getDifficulty(), kart_name.c_str(), ""
+#endif
         );
         bool written = easySQLQuery(query, [username](sqlite3_stmt* stmt)
         {

@@ -35,6 +35,8 @@ option(USE_SYSTEM_WIIUSE "Use system WiiUse instead of the built-in version, whe
 option(USE_SQLITE3 "Use sqlite to manage server stats and ban list." ON)
 
 option(WEB_SUPPORT "Website integration tools" OFF)
+option(USE_RECORDS_V2 "Use records table with additional columns" OFF)
+
 if(APPLE)
     CMAKE_DEPENDENT_OPTION(DLOPEN_MOLTENVK "Use dlopen to load MoltenVK for Apple." ON
         "NOT IOS;NOT SERVER_ONLY" OFF)
@@ -478,6 +480,11 @@ endif()
 # Web support
 if(WEB_SUPPORT)
     add_definitions(-DENABLE_WEB_SUPPORT)
+endif()
+
+# Records table
+if(USE_RECORDS_V2)
+    add_definitions(-DENABLE_RECORDS_V2)
 endif()
 
 # Set some compiler options
