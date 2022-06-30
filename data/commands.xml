@@ -237,6 +237,11 @@
              permissions="hammers"
              description="Toggles whether the teammate hits are punished ingame."
     />
+    <command name="scoring"
+             usage="/scoring [(type) (int parameters)]"
+             permissions="hammers"
+             description="Sets Grand Prix scoring to the specified one. A call without arguments corresponds to built-in scoring, parameters should have the same format as in server config."
+    />
     <command name="version"
              usage="/version"
              permissions="everyone"
