@@ -2055,6 +2055,17 @@ void CommandManager::process_randomteams(Context& context)
 void CommandManager::process_resetgp(Context& context)
 {
     std::string msg = "GP is now reset";
+    auto& argv = context.m_argv;
+    if (argv.size() >= 2) {
+        int number_of_games;
+        if (!StringUtils::parseString(argv[1], &number_of_games)
+            || number_of_games <= 0)
+        {
+            error(context);
+            return;
+        }
+        m_lobby->getGameSetup()->setGrandPrixTrack(number_of_games);
+    }
     m_lobby->resetGrandPrix();
     m_lobby->sendStringToAllPeers(msg);
 } // process_resetgp
