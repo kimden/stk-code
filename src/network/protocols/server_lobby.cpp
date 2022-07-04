@@ -3517,13 +3517,7 @@ void ServerLobby::checkRaceFinished()
 
     if (ServerConfig::m_store_results)
     {
-        bool racing_mode = false;
-        racing_mode |= RaceManager::get()->getMinorMode() ==
-            RaceManager::MINOR_MODE_NORMAL_RACE;
-        racing_mode |= RaceManager::get()->getMinorMode() ==
-            RaceManager::MINOR_MODE_TIME_TRIAL;
-        if (racing_mode)
-            storeResults();
+        storeResults();
     }
 
     if (ServerConfig::m_ranked)
@@ -6596,6 +6590,15 @@ void ServerLobby::updateGnuElimination()
 void ServerLobby::storeResults()
 {
 #ifdef ENABLE_SQLITE3
+    bool racing_mode = false;
+    bool ffa = RaceManager::get()->getMinorMode() ==
+               RaceManager::MINOR_MODE_FREE_FOR_ALL;
+    racing_mode |= RaceManager::get()->getMinorMode() ==
+                   RaceManager::MINOR_MODE_NORMAL_RACE;
+    racing_mode |= RaceManager::get()->getMinorMode() ==
+                   RaceManager::MINOR_MODE_TIME_TRIAL;
+    if (!racing_mode && !ffa)
+        return;
     World* w = World::getWorld();
     assert(w);
     std::string records_table_name = ServerConfig::m_records_table_name;
@@ -6603,15 +6606,16 @@ void ServerLobby::storeResults()
     int player_count = RaceManager::get()->getNumPlayers();
     int laps_number = RaceManager::get()->getNumLaps();
     std::string track_name = RaceManager::get()->getTrackName();
-    std::string reverse_string = 
-        (RaceManager::get()->getReverseTrack() ? "reverse" : "normal");
+    std::string reverse_string = "normal";
+    if (racing_mode && RaceManager::get()->getReverseTrack())
+        reverse_string = "reverse";
 
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
     std::string best_user = "";
 
-    if (!records_table_name.empty())
+    if (racing_mode && !records_table_name.empty())
     {
         std::string get_query = StringUtils::insertValues("SELECT username, "
             "result FROM '%s' WHERE venue = '%s' and reverse = '%s' "
@@ -6633,6 +6637,13 @@ void ServerLobby::storeResults()
     std::string best_cur_player_name = "";
     double best_cur_time = 1e18;
     const double DISCONNECT_TIME = 123454321;
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    if (ffa && ffa_world)
+    {
+        // I don't really know how to call this without using a kart from RaceManager
+        laps_number = round(stk_config->ticks2Time(ffa_world->getTicksSinceStart()));
+    }
+    // start of insertions
     for (int i = 0; i < player_count; i++)
     {
         std::string username = StringUtils::wideToUtf8(
@@ -6641,17 +6652,30 @@ void ServerLobby::storeResults()
         // TODO fix this properly.
         if (profile && profile->getOnlineId() == 0)
             username = "* " + username;
-        double elapsed_time = DISCONNECT_TIME;
-        if (!w->getKart(i)->isEliminated())
-            elapsed_time = RaceManager::get()->getKartRaceTime(i);
+        double score = DISCONNECT_TIME;
         std::string kart_name = w->getKart(i)->getIdent();
         std::stringstream elapsed_string;
-        elapsed_string << std::setprecision(4) << std::fixed << elapsed_time;
-        if (best_cur_player_idx == -1 || elapsed_time < best_cur_time)
+        if (racing_mode)
         {
-            best_cur_player_idx = i;
-            best_cur_time = elapsed_time;
-            best_cur_player_name = username;
+            if (!w->getKart(i)->isEliminated())
+                score = RaceManager::get()->getKartRaceTime(i);
+            elapsed_string << std::setprecision(4) << std::fixed << score;
+            if (best_cur_player_idx == -1 || score < best_cur_time)
+            {
+                best_cur_player_idx = i;
+                best_cur_time = score;
+                best_cur_player_name = username;
+            }
+        }
+        else if (ffa)
+        {
+            if (w->getKart(i)->isEliminated())
+                continue;
+            if (ffa_world)
+            {
+                score = ffa_world->getKartScore(i);
+            }
+            elapsed_string << std::setprecision(0) << std::fixed << score;
         }
         std::string query = StringUtils::insertValues(
             "INSERT INTO %s "
@@ -6681,7 +6705,8 @@ void ServerLobby::storeResults()
             }
         });
     }
-    if (record_fetched && best_cur_player_idx != -1)
+    // end of insertions
+    if (record_fetched && best_cur_player_idx != -1) // implies racing_mode
     {
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
