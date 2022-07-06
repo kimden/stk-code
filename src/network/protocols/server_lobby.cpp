@@ -858,6 +858,7 @@ void ServerLobby::setup()
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
     getCommandManager().onResetServer();
+    m_saved_ffa_points.clear();
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -2370,10 +2371,13 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     live_join_start_time += 3000;
 
     bool spectator = false;
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
     for (const int id : peer->getAvailableKartIDs())
     {
-        World::getWorld()->addReservedKart(id);
         const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
+        std::string name = StringUtils::wideToUtf8(rki.getPlayerName());
+        int points = (ServerConfig::m_preserve_battle_scores ? m_saved_ffa_points[name] : 0);
+        World::getWorld()->addReservedKart(id, points);
         addLiveJoiningKart(id, rki, m_last_live_join_util_ticks);
         Log::info("ServerLobby", "%s succeeded live-joining with kart id %d.",
             peer->getAddress().toString().c_str(), id);
@@ -3934,6 +3938,23 @@ void ServerLobby::clientDisconnected(Event* event)
     auto players_on_peer = event->getPeer()->getPlayerProfiles();
     if (players_on_peer.empty())
         return;
+
+    // section that handles unsaved FFA scores
+    World* w = World::getWorld();
+    if (w) {
+        FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(w);
+        std::shared_ptr<STKPeer> peer = event->getPeerSP();
+        if (ffa_world && worldIsActive() && !peer->isWaitingForGame())
+        {
+            for (const int id : peer->getAvailableKartIDs())
+            {
+                RemoteKartInfo &rki = RaceManager::get()->getKartInfo(id);
+                m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())]
+                        = ffa_world->getKartScore(id);
+            }
+        }
+    }
+    // end of FFA scores section
 
     NetworkString* msg = getNetworkString(2);
     const bool waiting_peer_disconnected =
@@ -6308,6 +6329,11 @@ void ServerLobby::handleKartInfo(Event* event)
         .encodeString(rki.getKartName()).encodeString(rki.getCountryCode());
     peer->sendPacket(ns, true/*reliable*/);
     delete ns;
+
+
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    if (ffa_world)
+        ffa_world->notifyAboutScoreIfNonzero(kart_id);
 }   // handleKartInfo
 
 //-----------------------------------------------------------------------------
@@ -6357,9 +6383,15 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
         return;
     }
 
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
     for (const int id : peer->getAvailableKartIDs())
     {
         RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
+
+        if (ffa_world)
+            m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())]
+                = ffa_world->getKartScore(id);
+
         if (rki.getHostId() == peer->getHostId())
         {
             Log::info("ServerLobby", "%s left the game with kart id %d.",
@@ -6644,10 +6676,17 @@ void ServerLobby::storeResults()
         laps_number = round(stk_config->ticks2Time(ffa_world->getTicksSinceStart()));
     }
     // start of insertions
+    std::vector<std::string> usernames;
+    std::vector<std::string> scores;
+    std::vector<std::string> karts;
+    std::vector<int> lap_counts;
     for (int i = 0; i < player_count; i++)
     {
         std::string username = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(i).getPlayerName());
+        for (std::string& username: usernames) {
+            m_saved_ffa_points.erase(username);
+        }
         auto profile = RaceManager::get()->getKartInfo(i).getNetworkPlayerProfile().lock();
         // TODO fix this properly.
         if (profile && profile->getOnlineId() == 0)
@@ -6655,6 +6694,7 @@ void ServerLobby::storeResults()
         double score = DISCONNECT_TIME;
         std::string kart_name = w->getKart(i)->getIdent();
         std::stringstream elapsed_string;
+
         if (racing_mode)
         {
             if (!w->getKart(i)->isEliminated())
@@ -6677,6 +6717,25 @@ void ServerLobby::storeResults()
             }
             elapsed_string << std::setprecision(0) << std::fixed << score;
         }
+
+        usernames.push_back(username);
+        scores.push_back(elapsed_string.str());
+        karts.push_back(kart_name);
+        lap_counts.push_back(laps_number);
+    }
+    if (ServerConfig::m_preserve_battle_scores)
+    {
+        for (auto &p: m_saved_ffa_points)
+        {
+            usernames.push_back(p.first);
+            lap_counts.push_back(0);
+            scores.push_back(std::to_string(p.second));
+            karts.push_back("unknown");
+        }
+    }
+    m_saved_ffa_points.clear();
+    for (int i = 0; i < usernames.size(); ++i)
+    {
         std::string query = StringUtils::insertValues(
             "INSERT INTO %s "
             "(username, venue, reverse, mode, laps, result"
@@ -6690,18 +6749,19 @@ void ServerLobby::storeResults()
 #endif
             ");",
             m_results_table_name.c_str(), track_name.c_str(),
-            reverse_string.c_str(), mode_name.c_str(), laps_number, elapsed_string.str()
+            reverse_string.c_str(), mode_name.c_str(), lap_counts[i], scores[i].c_str()
 #ifdef ENABLE_RECORDS_V2
-            , getDifficulty(), kart_name.c_str(), ""
+            , getDifficulty(), karts[i].c_str(), ""
 #endif
         );
-        bool written = easySQLQuery(query, [username](sqlite3_stmt* stmt)
+        std::string name = usernames[i];
+        bool written = easySQLQuery(query, [name](sqlite3_stmt* stmt)
         {
-            if (sqlite3_bind_text(stmt, 1, username.c_str(),
+            if (sqlite3_bind_text(stmt, 1, name.c_str(),
                 -1, SQLITE_TRANSIENT) != SQLITE_OK)
             {
                 Log::error("easySQLQuery", "Failed to bind %s.",
-                    username.c_str());
+                    name.c_str());
             }
         });
     }

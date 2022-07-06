@@ -710,6 +710,11 @@ namespace ServerConfig
         "If true, the GP grid is shuffled before each race, not only before "
         "the first one."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_preserve_battle_scores
+            SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "preserve-battle-scores",
+            "If true, when a player leaves and rejoins the battle server, "
+            "the score is preserved (works for distinct names only for now)."));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;

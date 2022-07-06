@@ -395,6 +395,8 @@ private:
 
     std::atomic<unsigned> m_current_max_players_in_game;
 
+    std::map<std::string, int> m_saved_ffa_points;
+
 #ifdef ENABLE_WEB_SUPPORT
     std::set<std::string> m_web_tokens;
 
