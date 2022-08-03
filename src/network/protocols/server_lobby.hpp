@@ -381,6 +381,8 @@ private:
 
     std::set<std::string> m_usernames_white_list;
 
+    std::set<std::string> m_preserve;
+
     bool m_allowed_to_start;
 
     bool m_consent_on_replays;
@@ -575,6 +577,7 @@ private:
     bool loadCustomScoring(std::string& scoring);
     void updateWorldSettings();
     void loadWhiteList();
+    void loadPreservedSettings();
     void changeLimitForTournament(bool goal_target);
     bool tournamentGoalsLimit(int game) const;
     bool tournamentColorsSwapped(int game) const;

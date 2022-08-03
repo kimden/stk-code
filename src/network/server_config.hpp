@@ -715,6 +715,12 @@ namespace ServerConfig
             "If true, when a player leaves and rejoins the battle server, "
             "the score is preserved (works for distinct names only for now)."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_preserve_on_reset
+            SERVER_CFG_DEFAULT(StringServerConfigParam("", "preserve-on-reset",
+            "Whatever specified here wouldn't be reset when all players leave. "
+            "Possible options are mode, elim, laps, queue, replay, to include several "
+            "separate them by spaces, empty to include nothing."));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;

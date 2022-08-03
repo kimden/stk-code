@@ -369,6 +369,11 @@
              permissions="everyone"
              description="Displays the result of an ongoing game."
     />
+    <command name="preserve"
+             usage="/preserve (mode|elim|laps|queue|replay) (0|1) or /preserve show"
+             permissions="hammers"
+             description="Changes whether the specified setting is preserved (if 1; or reset if 0) when all players quit"
+    />
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions="everyone (client command)"

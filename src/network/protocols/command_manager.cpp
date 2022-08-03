@@ -283,6 +283,7 @@ void CommandManager::initCommands()
         v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("time", &CM::process_time, UP_EVERYONE);
     v.emplace_back("result", &CM::process_result, UP_EVERYONE);
+    v.emplace_back("preserve", &CM::process_preserve, UP_HAMMER);
 
     v.emplace_back("addondownloadprogress", &CM::special, UP_EVERYONE);
     v.emplace_back("stopaddondownload", &CM::special, UP_EVERYONE);
@@ -2721,6 +2722,49 @@ void CommandManager::process_result(Context& context)
         msg = "This command is not yet supported for this game mode";
     m_lobby->sendStringToPeer(msg, peer);
 } // process_result
+// ========================================================================
+
+void CommandManager::process_preserve(Context& context)
+{
+    auto& peer = context.m_peer;
+    auto& argv = context.m_argv;
+    std::string msg = "";
+    if (1 >= argv.size())
+    {
+        error(context);
+        return;
+    }
+    if (argv.size() == 2)
+    {
+        if (argv[1] == "show")
+        {
+            msg = "Preserved settings:";
+            for (const std::string& str: m_lobby->m_preserve)
+                msg += " " + str;
+        }
+        else
+        {
+            error(context);
+            return;
+        }
+    }
+    else
+    {
+        if (argv[2] == "0")
+        {
+            msg = StringUtils::insertValues(
+                "'%s' isn't preserved on server reset anymore", argv[1].c_str());
+            m_lobby->m_preserve.erase(argv[1]);
+        }
+        else
+        {
+            msg = StringUtils::insertValues(
+                "'%s' is now preserved on server reset", argv[1].c_str());
+            m_lobby->m_preserve.insert(argv[1]);
+        }
+    }
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_preserve
 // ========================================================================
 
 void CommandManager::special(Context& context)

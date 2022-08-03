@@ -324,6 +324,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     std::string scoring = ServerConfig::m_gp_scoring;
     loadCustomScoring(scoring);
     loadWhiteList();
+    loadPreservedSettings();
 #ifdef ENABLE_WEB_SUPPORT
     m_token_generation_tries.store(0);
     loadAllTokens();
@@ -6824,9 +6825,23 @@ void ServerLobby::initAvailableModes()
 //-----------------------------------------------------------------------------
 void ServerLobby::resetToDefaultSettings()
 {
-    if (ServerConfig::m_server_configurable)
+    if (ServerConfig::m_server_configurable && !m_preserve.count("mode"))
         handleServerConfiguration(NULL);
-    m_kart_elimination.disable();
+
+    if (!m_preserve.count("elim"))
+        m_kart_elimination.disable();
+
+    if (!m_preserve.count("laps"))
+    {
+        m_default_lap_multiplier = -1.0;
+        m_fixed_lap = -1;
+    }
+
+    if (!m_preserve.count("queue"))
+        m_tracks_queue.clear();
+
+    if (!m_preserve.count("replay"))
+        setConsentOnReplays(false);
 }  // resetToDefaultSettings
 //-----------------------------------------------------------------------------
 void ServerLobby::writeOwnReport(STKPeer* reporter, STKPeer* reporting, const std::string& info)
@@ -7401,6 +7416,14 @@ void ServerLobby::loadWhiteList()
         ServerConfig::m_white_list, ' ');
     for (std::string& s: tokens)
         m_usernames_white_list.insert(s);
+}   // loadWhiteList
+//-----------------------------------------------------------------------------
+void ServerLobby::loadPreservedSettings()
+{
+    std::vector<std::string> what_to_preserve =
+            StringUtils::split(std::string(ServerConfig::m_preserve_on_reset), ' ');
+    for (std::string& str: what_to_preserve)
+        m_preserve.insert(str);
 }   // loadWhiteList
 //-----------------------------------------------------------------------------  
 bool ServerLobby::writeOnePlayerReport(STKPeer* reporter,

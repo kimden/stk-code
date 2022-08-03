@@ -468,6 +468,7 @@ void loadServerLobbyFromConfig()
             m_time_limit_ctf.revertToDefaults();
         }
     }
+
     // The extra server info has to be set before the server lobby is started
     if (server_lobby)
         server_lobby->requestStart();
