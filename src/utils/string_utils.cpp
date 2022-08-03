@@ -1353,11 +1353,11 @@ namespace StringUtils
             for (int j = 0; j <= m; ++j) {
                 if (i < n) {
                     distance[i + 1][j] = std::min(distance[i + 1][j],
-                        distance[i][j] + (j < m && b[j] == any_substr ? 0 : 1));
+                        distance[i][j] + (a[i] == any_substr || (j < m && b[j] == any_substr) ? 0 : 1));
                 }
                 if (j < m) {
                     distance[i][j + 1] = std::min(distance[i][j + 1],
-                        distance[i][j] + (i < n && a[i] == any_substr ? 0 : 1));
+                        distance[i][j] + (b[j] == any_substr || (i < n && a[i] == any_substr) ? 0 : 1));
                 }
                 if (i < n && j < m) {
                     int value = distance[i][j] + 1;
