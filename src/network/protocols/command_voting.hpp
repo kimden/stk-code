@@ -33,28 +33,32 @@
 
 class CommandVoting
 {
-	double m_threshold;
-	bool m_need_check = false;
-	std::string m_selected_category = "";
-	std::string m_selected_option = "";
+    double m_threshold;
+    bool m_need_check = false;
+    std::map<std::string, std::string> m_selected_options;
+    // If not -1, all commands voted from this votable will be merged into one,
+    // removing common prefix of length m_merge from all category names but one
+    int m_merge = -1;
 private:
-	std::map<std::string, std::map<std::string, std::set<std::string>>> m_votes_by_poll;
-	std::map<std::string, std::map<std::string, std::string>> m_votes_by_player;
-	std::map<std::string, double> m_custom_thresholds;
+    std::map<std::string, std::map<std::string, std::set<std::string>>> m_votes_by_poll;
+    std::map<std::string, std::map<std::string, std::string>> m_votes_by_player;
+    std::map<std::string, double> m_custom_thresholds;
 public:
     static const double DEFAULT_THRESHOLD;
-	CommandVoting(double threshold = DEFAULT_THRESHOLD);
-	void setCustomThreshold(std::string category, double value)
-	                                 { m_custom_thresholds[category] = value; }
-	void resetCustomThreshold(std::string category)
-	                                   { m_custom_thresholds.erase(category); }
-	bool needsCheck() { return m_need_check; }
-	void castVote(std::string player, std::string category, std::string vote);
-	void uncastVote(std::string player, std::string category);
-	std::pair<int, std::map<std::string, std::string>> process(std::multiset<std::string>& all_users);
-	std::string getAnyBest(std::string category);
-	void reset(std::string category);
+    CommandVoting(double threshold = DEFAULT_THRESHOLD);
+    void setCustomThreshold(std::string category, double value)
+                                     { m_custom_thresholds[category] = value; }
+    void resetCustomThreshold(std::string category)
+                                       { m_custom_thresholds.erase(category); }
+    bool needsCheck() { return m_need_check; }
+    void castVote(std::string player, std::string category, std::string vote);
+    void uncastVote(std::string player, std::string category);
+    std::pair<std::map<std::string, int>, std::map<std::string, std::string>>
+        process(std::multiset<std::string>& all_users);
+    std::string getAnyBest(std::string category);
+    void reset(std::string category);
     void resetAllVotes();
+    int setMerge(int value = -1)                           { m_merge = value; }
 };
 
 #endif // COMMAND_VOTING_HPP

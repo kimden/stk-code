@@ -33,8 +33,7 @@ void CommandVoting::castVote(std::string player, std::string category, std::stri
     m_votes_by_player[player][category] = vote;
     m_votes_by_poll[category][vote].insert(player);
     m_need_check = true;
-    m_selected_category = category;
-    m_selected_option = vote;
+    m_selected_options[category] = vote;
 } // castVote
 // ========================================================================
 
@@ -49,15 +48,18 @@ void CommandVoting::uncastVote(std::string player, std::string category)
         m_votes_by_player[player].erase(it);
     }
     m_need_check = true;
-    m_selected_category = "";
-    m_selected_option = "";
+    // We add category to selected options because:
+    // - we need to see the number of votes even if the player unvoted
+    // - uncast is called inside cast, so we cannot clear the map entirely
+    m_selected_options[category] = "";
 } // uncastVote
 // ========================================================================
 
-std::pair<int, std::map<std::string, std::string>> CommandVoting::process(std::multiset<std::string>& all_users)
+std::pair<std::map<std::string, int>, std::map<std::string, std::string>>
+CommandVoting::process(std::multiset<std::string>& all_users)
 {
     std::map<std::string, std::string> result;
-    int num_votes = 0;
+    std::map<std::string, int> num_votes;
     int required_number;
     for (const auto& p: m_votes_by_poll)
     {
@@ -78,11 +80,12 @@ std::pair<int, std::map<std::string, std::string>> CommandVoting::process(std::m
                 continue;
             ++category_results[it2->second];
         }
+        auto it4 = m_selected_options.find(category);
         for (const auto& q: category_results)
         {
-            if (category == m_selected_category && q.first == m_selected_option)
+            if (it4 != m_selected_options.end() && q.first == it4->second)
             {
-                num_votes = q.second;
+                num_votes[category] = q.second;
             }
             if (q.second >= required_number)
             {
@@ -92,12 +95,29 @@ std::pair<int, std::map<std::string, std::string>> CommandVoting::process(std::m
         }
     }
     m_need_check = false;
-    m_selected_category = "";
-    m_selected_option = "";
+    m_selected_options.clear();
     for (const auto& p: result)
     {
         std::string category = p.first;
         reset(category);
+    }
+    if (m_merge != -1 && !result.empty())
+    {
+        std::string new_category = "";
+        std::string new_command = "";
+        for (auto& p: result) {
+            if (new_command.empty())
+            {
+                new_category = p.first;
+                new_command += p.second;
+            }
+            else
+            {
+                new_command += " " + p.first.substr(m_merge) + " " + p.second;
+            }
+        }
+        result.clear();
+        result[new_category] = new_command;
     }
     return make_pair(num_votes, result);
 } // process

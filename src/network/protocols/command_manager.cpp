@@ -328,6 +328,7 @@ void CommandManager::initCommands()
     m_votables.emplace("gnu", 0.81);
     m_votables.emplace("slots", CommandVoting::DEFAULT_THRESHOLD);
     m_votables["gnu"].setCustomThreshold("gnu kart", 1.1);
+    m_votables["config"].setMerge(7);
 } // initCommands
 // ========================================================================
 
@@ -476,8 +477,21 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         if (it != m_votables.end() && it->second.needsCheck())
         {
             auto response = it->second.process(m_users);
-            int count = response.first;
-            std::string msg = username + " voted \"/" + cmd + "\", there are " + std::to_string(count) + " such votes";
+            std::map<std::string, int> counts = response.first;
+            std::string msg = username + " voted \"/" + cmd + "\", there are";
+            if (counts.size() == 1)
+                msg += " " + std::to_string(counts.begin()->second) + " such votes";
+            else
+            {
+                bool first_time = true;
+                for (auto& p: counts)
+                {
+                    if (!first_time)
+                        msg += ",";
+                    msg += " " + std::to_string(p.second) + " votes for such '" + p.first + "'";
+                    first_time = false;
+                }
+            }
             m_lobby->sendStringToAllPeers(msg);
             auto res = response.second;
             if (!res.empty())
@@ -485,7 +499,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 for (auto& p: res)
                 {
                     std::string new_cmd = p.first + " " + p.second;
-                    auto new_argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
+                    auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
                     CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                     std::string msg = "Command \"/" + new_cmd + "\" has been successfully voted";
                     m_lobby->sendStringToAllPeers(msg);
@@ -698,6 +712,9 @@ void CommandManager::process_config(Context& context)
     int difficulty = m_lobby->getDifficulty();
     int mode = m_lobby->getGameMode();
     bool goal_target = (m_lobby->m_game_setup->hasExtraSeverInfo() ? m_lobby->isSoccerGoalTarget() : false);
+    bool user_chose_difficulty = false;
+    bool user_chose_mode = false;
+    bool user_chose_target = false;
     // bool gp = false;
     std::vector<std::vector<std::string>> mode_aliases = {
         {"m0"},
@@ -730,6 +747,7 @@ void CommandManager::process_config(Context& context)
             for (std::string& alias: mode_aliases[j]) {
                 if (argv[i] == alias) {
                     mode = j;
+                    user_chose_mode = true;
                 }
             }
         }
@@ -737,6 +755,7 @@ void CommandManager::process_config(Context& context)
             for (std::string& alias: difficulty_aliases[j]) {
                 if (argv[i] == alias) {
                     difficulty = j;
+                    user_chose_difficulty = true;
                 }
             }
         }
@@ -744,6 +763,7 @@ void CommandManager::process_config(Context& context)
             for (std::string& alias: goal_aliases[j]) {
                 if (argv[i] == alias) {
                     goal_target = (bool)j;
+                    user_chose_target = true;
                 }
             }
         }
@@ -760,11 +780,14 @@ void CommandManager::process_config(Context& context)
     }
     if (context.m_voting)
     {
-        // Definitely not the best format as there are extra words
+        // Definitely not the best format as there are extra words,
         // but I'll think how to resolve it
-        vote(context, "config mode", mode_aliases[mode][0]);
-        vote(context, "config difficulty", difficulty_aliases[difficulty][0]);
-        vote(context, "config target", goal_aliases[goal_target ? 1 : 0][0]);
+        if (user_chose_mode)
+            vote(context, "config mode", mode_aliases[mode][0]);
+        if (user_chose_difficulty)
+            vote(context, "config difficulty", difficulty_aliases[difficulty][0]);
+        if (user_chose_target)
+            vote(context, "config target", goal_aliases[goal_target ? 1 : 0][0]);
         return;
     }
     m_lobby->handleServerConfiguration(context.m_peer, difficulty, mode, goal_target);
