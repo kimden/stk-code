@@ -1900,7 +1900,11 @@ void ServerLobby::asynchronousUpdate()
             m_game_setup->setRace(winner_vote, m_extra_seconds);
             std::string track_name = winner_vote.m_track_name;
             if (ServerConfig::m_soccer_tournament)
+            {
+                if (m_tournament_game >= m_tournament_arenas.size())
+                    m_tournament_arenas.resize(m_tournament_game + 1, "");
                 m_tournament_arenas[m_tournament_game] = track_name;
+            }
             auto peers = STKHost::get()->getPeers();
             std::map<std::shared_ptr<STKPeer>, AlwaysSpectateMode> bad_spectators;
             for (auto peer : peers)
@@ -7108,7 +7112,6 @@ void ServerLobby::initTournamentPlayers()
     m_tournament_max_games = std::min(general[2].length(), general[3].length());
     m_tournament_max_games = std::min(m_tournament_max_games, (int)tokens.size() - 1);
     m_tournament_votability = general[4];
-    m_tournament_arenas.resize(m_tournament_max_games, "");
     for (int i = 0; i < m_tournament_max_games; i++)
         m_tournament_track_filters.emplace_back(tokens[i + 1]);
 }   // initTournamentPlayers

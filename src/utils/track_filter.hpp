@@ -37,8 +37,8 @@
 
 struct TrackFilter
 {
-    std::vector<std::string> allowed;
-    std::vector<std::string> forbidden;
+    std::set<std::string> allowed;
+    std::set<std::string> forbidden;
     std::vector<int> w_allowed; // wildcards
     std::vector<int> w_forbidden; // wildcards
     std::map<std::string, int> max_players;

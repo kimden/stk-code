@@ -70,7 +70,7 @@ TrackFilter::TrackFilter(std::string input)
         {
             int index;
             std::string cut = tokens[i].substr(1);
-            if (!StringUtils::parseString<int>(cut, &index) || index < 0)
+            if (!StringUtils::parseString<int>(cut, &index))
             {
                 Log::warn("TrackFilter", "Unable to parse wildcard index "
                     "from \"%s\", omitting it", tokens[i].c_str());
@@ -103,9 +103,9 @@ TrackFilter::TrackFilter(std::string input)
             else
             {
                 if (good)
-                    allowed.push_back(tokens[i]);
+                    allowed.insert(tokens[i]);
                 else
-                    forbidden.push_back(tokens[i]);
+                    forbidden.insert(tokens[i]);
             }
         }
     }
@@ -115,6 +115,8 @@ std::string TrackFilter::get(std::vector<std::string>& vec, int index)
 {
     if (index >= 0 && index < vec.size())
         return vec[index];
+    if (index < 0 && index >= -(int)vec.size())
+        return vec[(int)vec.size() + index];
     return "";
 }   // get
 //-----------------------------------------------------------------------------
@@ -132,6 +134,21 @@ void TrackFilter::apply(int num_players, std::set<std::string>& input,
     std::set<std::string> copy = input;
     input.clear();
 
+    std::set<std::string> names_allowed, names_forbidden;
+
+    for (int x: w_allowed)
+    {
+        std::string name = get(wildcards, x);
+        if (!name.empty())
+            names_allowed.insert(name);
+    }
+    for (int x: w_forbidden)
+    {
+        std::string name = get(wildcards, x);
+        if (!name.empty())
+            names_forbidden.insert(name);
+    }
+
     for (const std::string& s: copy)
     {
         bool yes = false;
@@ -139,30 +156,10 @@ void TrackFilter::apply(int num_players, std::set<std::string>& input,
         auto it = max_players.find(s);
         if (it != max_players.end() && it->second < num_players)
             continue;
-        for (int x: w_allowed)
-            if (get(wildcards, x) == s)
-            {
-                yes = true;
-                break;
-            }
-        for (int x: w_forbidden)
-            if (get(wildcards, x) == s)
-            {
-                no = true;
-                break;
-            }
-        for (std::string x: allowed)
-            if (x == s)
-            {
-                yes = true;
-                break;
-            }
-        for (std::string x: forbidden)
-            if (x == s)
-            {
-                no = true;
-                break;
-            }
+        if (names_allowed.count(s) || allowed.count(s))
+            yes = true;
+        if (names_forbidden.count(s) || forbidden.count(s))
+            no = true;
         if (yes && no)
         {
             Log::warn("TrackFilter", "Track requirements contradict for %s, "
