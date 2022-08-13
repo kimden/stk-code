@@ -4741,10 +4741,21 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 #endif
     if (m_kart_elimination.isEnabled())
     {
+        bool hasEliminatedPlayer = false;
+        for (unsigned i = 0; i < peer->getPlayerProfiles().size(); ++i)
+        {
+            std::string name = StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[i]->getName());
+            if (m_kart_elimination.isEliminated(name))
+            {
+                hasEliminatedPlayer = true;
+                break;
+            }
+        }
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
-        std::string warning = m_kart_elimination.getWarningMessage();
+        std::string warning = m_kart_elimination.getWarningMessage(hasEliminatedPlayer);
         chat->encodeString16(StringUtils::utf8ToWide(warning));
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
