@@ -58,7 +58,7 @@ public:
     std::string getAnyBest(std::string category);
     void reset(std::string category);
     void resetAllVotes();
-    int setMerge(int value = -1)                           { m_merge = value; }
+    void setMerge(int value = -1)                           { m_merge = value; }
 };
 
 #endif // COMMAND_VOTING_HPP
