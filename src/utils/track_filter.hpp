@@ -33,10 +33,15 @@
 // A structure to apply requirements to the track set. allowed contains 
 // the only tracks to be allowed, forbidden contains the only tracks to be
 // forbidden. Putting one track into both vectors produces undefined behaviour
-// for now. Works with wildcards (indices are integers: %0, %1, ...).
+// for now. Works with wildcards (indices are integers: ..., %-1, %0, %1, ...).
 
 struct TrackFilter
 {
+    bool m_include_available = true;
+    bool m_include_unavailable = true;
+    bool m_include_official = true;
+    bool m_include_addons = true;
+    bool m_pick_random = false;
     std::set<std::string> allowed;
     std::set<std::string> forbidden;
     std::vector<int> w_allowed; // wildcards
@@ -49,6 +54,7 @@ struct TrackFilter
     void apply(int num_players, std::set<std::string>& input) const;
     void apply(int num_players, std::set<std::string>& input,
         std::vector<std::string>& wildcards) const;
+    bool isPickingRandom() const                      { return m_pick_random; }
 };
 
 #endif
