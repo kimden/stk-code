@@ -6599,6 +6599,8 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
             continue;
         if (!canRace(peer))
             continue;
+        if (peer->alwaysSpectate())
+            continue;
         if (ignore_ai_peer && peer->isAIPeer())
             continue;
         someone_races = true;
