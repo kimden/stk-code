@@ -2031,11 +2031,11 @@ void CommandManager::process_randomteams(Context& context)
 
     int teams_number = -1;
     if (argv.size() < 2 || !StringUtils::parseString(argv[1], &teams_number)
-        || teams_number < 1 || teams_number > 6)
+        || teams_number < 1 || teams_number > 9)
     {
         teams_number = (int)round(sqrt(players_number));
-        if (teams_number > 6)
-            teams_number = 6;
+        if (teams_number > 9)
+            teams_number = 9;
         if (players_number > 1 && teams_number <= 1)
             teams_number = 2;
     }
@@ -2044,7 +2044,7 @@ void CommandManager::process_randomteams(Context& context)
             "Created %d teams for %d players", teams_number, players_number);
     std::vector<int> available_colors;
     std::vector<int> profile_colors;
-    for (int i = 1; i <= 6; ++i)
+    for (int i = 1; i <= 9; ++i)
         available_colors.push_back(i);
 
     std::random_device rd;

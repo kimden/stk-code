@@ -224,10 +224,14 @@ ServerLobby::ServerLobby() : LobbyProtocol()
          {"green", 4}, {"g", 4},
           {"blue", 5}, {"b", 5},
         {"purple", 6}, {"p", 6},
-        {"violet", 6}, {"v", 6}
+        {"violet", 6}, {"v", 6},
+          {"cyan", 7}, {"c", 7},
+       {"magenta", 8}, {"m", 8},
+          {"pink", 8},
+           {"sky", 9}, {"s", 9}
     };
 
-    m_team_default_names = {"none", "red", "orange", "yellow", "green", "blue", "purple"};
+    m_team_default_names = {"none", "red", "orange", "yellow", "green", "blue", "purple", "cyan", "magenta", "sky"};
 
     m_team_index_to_icon = {
         {1, StringUtils::utf32ToUtf8({0x1f7e5})},
@@ -235,7 +239,10 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         {3, StringUtils::utf32ToUtf8({0x1f7e8})},
         {4, StringUtils::utf32ToUtf8({0x1f7e9})},
         {5, StringUtils::utf32ToUtf8({0x1f7e6})},
-        {6, StringUtils::utf32ToUtf8({0x1f7ea})}
+        {6, StringUtils::utf32ToUtf8({0x1f7ea})},
+        {7, StringUtils::utf32ToUtf8({0x1f5fd})},
+        {8, StringUtils::utf32ToUtf8({0x1f338})},
+        {9, StringUtils::utf32ToUtf8({0x2604})}
     };
 
     m_team_name = {"No Team",
@@ -244,7 +251,10 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         StringUtils::utf32ToUtf8({0x1f7e8}) + "Yellow",
         StringUtils::utf32ToUtf8({0x1f7e9}) + "Green",
         StringUtils::utf32ToUtf8({0x1f7e6}) + "Blue",
-        StringUtils::utf32ToUtf8({0x1f7ea}) + "Purple"
+        StringUtils::utf32ToUtf8({0x1f7ea}) + "Purple",
+        StringUtils::utf32ToUtf8({0x1f5fd}) + "Cyan",
+        StringUtils::utf32ToUtf8({0x1f338}) + "Magenta",
+        StringUtils::utf32ToUtf8({ 0x2604}) + "Sky"
     };
 
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
@@ -4879,6 +4889,10 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             prefix.resize((int)prefix.size() - 2);
             prefix = "[" + prefix + "] ";
         }
+        int team = profile->getTemporaryTeam();
+        if (team != -1) {
+            prefix = m_team_index_to_icon[team + 1] + " " + prefix;
+        }
 
         profile_name = StringUtils::utf8ToWide(prefix) + profile_name;
 
@@ -7984,19 +7998,6 @@ void ServerLobby::setTemporaryTeam(const std::string& username, std::string& arg
 {
     auto it = m_team_name_to_index.find(arg);
     int index = (it == m_team_name_to_index.end() ? 0 : it->second);
-    for (const auto& pair: m_team_index_to_icon)
-    {
-        if (pair.first == index)
-        {
-            m_player_categories[pair.second].insert(username);
-            m_categories_for_player[username].insert(pair.second);
-        }
-        else
-        {
-            m_player_categories[pair.second].erase(username);
-            m_categories_for_player[username].erase(pair.second);
-        }
-    }
     m_team_for_player[username] = index;
     irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
