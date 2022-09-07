@@ -294,9 +294,8 @@ void CommandManager::initCommands()
     v.emplace_back("liststkaddon", &CM::special, UP_EVERYONE);
     v.emplace_back("listlocaladdon", &CM::special, UP_EVERYONE);
 
-
-
-    addTextResponse("description", ServerConfig::m_motd);
+    addTextResponse("description", StringUtils::wideToUtf8(m_lobby->getGameSetup()->readOrLoadFromFile
+            ((std::string)ServerConfig::m_motd)));
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
     std::string version = "1.3 k 210fff beta";
 #ifdef GIT_VERSION
