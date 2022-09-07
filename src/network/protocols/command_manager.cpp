@@ -298,7 +298,14 @@ void CommandManager::initCommands()
 
     addTextResponse("description", ServerConfig::m_motd);
     addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
-    addTextResponse("version", "1.3-rc1 k 210fff beta");
+    std::string version = "1.3 k 210fff beta";
+#ifdef GIT_VERSION
+    version = std::string(GIT_VERSION);
+    #ifdef GIT_BRANCH
+        version += ", branch " + std::string(GIT_BRANCH);
+    #endif
+#endif
+    addTextResponse("version", version);
     addTextResponse("clear", std::string(30, '\n'));
 
     for (Command& command: m_commands) {
