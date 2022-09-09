@@ -234,6 +234,7 @@ private:
     void process_shuffle(Context& context);
     void process_timeout(Context& context);
     void process_team(Context& context);
+    void process_swapteams(Context& context);
     void process_resetteams(Context& context);
     void process_randomteams(Context& context);
     void process_resetgp(Context& context);

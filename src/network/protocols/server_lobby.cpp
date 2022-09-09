@@ -8016,21 +8016,46 @@ void ServerLobby::setTemporaryTeam(const std::string& username, std::string& arg
 }   // setTemporaryTeam
 //-----------------------------------------------------------------------------
 
-// This should be moved later to another unit.
+// todo This should be moved later to another unit.
 void ServerLobby::clearTemporaryTeams()
 {
-    for (const auto& pair: m_team_index_to_icon)
-    {
-        for (const std::string& username: m_player_categories[pair.second])
-            m_categories_for_player[username].erase(pair.second);
-        m_player_categories[pair.second].clear();
-    }
     m_team_for_player.clear();
 
     for (auto& peer : STKHost::get()->getPeers())
         for (auto& profile : peer->getPlayerProfiles())
             profile->setTemporaryTeam(-1);
 }   // clearTemporaryTeams
+//-----------------------------------------------------------------------------
+
+// todo This should be moved later to another unit.
+void ServerLobby::shuffleTemporaryTeams(const std::map<int, int>& permutation)
+{
+    for (auto& p: m_team_for_player)
+    {
+        auto it = permutation.find(p.second);
+        if (it != permutation.end())
+            p.second = it->second;
+    }
+    for (auto& peer : STKHost::get()->getPeers())
+    {
+        for (auto &profile: peer->getPlayerProfiles())
+        {
+            auto it = permutation.find(profile->getTemporaryTeam() + 1);
+            if (it != permutation.end())
+                profile->setTemporaryTeam(it->second - 1);
+        }
+    }
+    auto old_scores = m_gp_team_scores;
+    m_gp_team_scores.clear();
+    for (auto& p: old_scores)
+    {
+        auto it = permutation.find(p.first);
+        if (it != permutation.end())
+            m_gp_team_scores[it->second] = p.second;
+        else
+            m_gp_team_scores[p.first] = p.second;
+    }
+}   // shuffleTemporaryTeams
 //-----------------------------------------------------------------------------
 
 void ServerLobby::resetGrandPrix()

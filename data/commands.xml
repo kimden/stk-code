@@ -188,9 +188,14 @@
              description="Sets the timeout in seconds, whatever it may mean."
     />
     <command name="team"
-             usage="/team ([roygbp-] or color name) (username)"
+             usage="/team ([roygbpcms-] or color name) (username)"
              permissions="hammers"
-             description="Move a player to one of six teams denoted by square emojis (r - red, o - orange, y - yellow, g - green, b - blue, p – purple), or removes the player from the teams (“-”)."
+             description="Move a player to one of six teams denoted by emojis (r - red, o - orange, y - yellow, g - green, b - blue, p – purple, c - cyan, m - magenta, s - sky), or removes the player from the teams (“-”)."
+    />
+    <command name="swapteams"
+             usage="/swapteams (a string of color chars)"
+             permissions="hammers"
+             description="Generates a random permutation of given teams and replaces them with each other (if there are two teams given, they always swap)."
     />
     <command name="resetteams"
              usage="/resetteams"

@@ -245,6 +245,7 @@ void CommandManager::initCommands()
     v.emplace_back("shuffle", &CM::process_shuffle, UP_HAMMER);
     v.emplace_back("timeout", &CM::process_timeout, UP_HAMMER);
     v.emplace_back("team", &CM::process_team, UP_HAMMER);
+    v.emplace_back("swapteams", &CM::process_swapteams, UP_HAMMER);
     v.emplace_back("resetteams", &CM::process_resetteams, UP_HAMMER);
     v.emplace_back("randomteams", &CM::process_randomteams, UP_HAMMER);
     v.emplace_back("resetgp", &CM::process_resetgp, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
@@ -2011,6 +2012,60 @@ void CommandManager::process_team(Context& context)
 
     m_lobby->updatePlayerList();
 } // process_team
+// ========================================================================
+
+void CommandManager::process_swapteams(Context& context)
+{
+    auto& argv = context.m_argv;
+    if (argv.size() != 2)
+    {
+        error(context);
+        return;
+    }
+    // todo move list of teams and checking teams to another unit later,
+    // it is awful now
+    std::map<char, char> permutation_map;
+    std::map<int, int> permutation_map_int;
+    for (char c: argv[1])
+    {
+        std::string type(1, c);
+        // todo remove that link to first char, it is awful
+        if (m_lobby->m_team_name_to_index.count(type) == 0)
+            continue;
+        int index = m_lobby->m_team_name_to_index[type];
+        char c1 = m_lobby->m_team_default_names[index][0];
+        if (m_lobby->m_team_name_to_index.count(type)) {
+            permutation_map[c1] = 0;
+        }
+    }
+    std::string permutation;
+    for (auto& p: permutation_map)
+        permutation.push_back(p.first);
+    std::string msg = "Shuffled some teams: " + permutation + " -> ";
+    if (permutation.size() == 2)
+        swap(permutation[0], permutation[1]);
+    else
+    {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(permutation.begin(), permutation.end(), g);
+    }
+    msg += permutation;
+    auto it = permutation_map.begin();
+    for (unsigned i = 0; i < permutation.size(); i++, it++)
+    {
+        it->second = permutation[i];
+    }
+    for (auto& p: permutation_map)
+    {
+        int from = m_lobby->m_team_name_to_index[std::string(1, p.first)];
+        int to = m_lobby->m_team_name_to_index[std::string(1, p.second)];
+        permutation_map_int[from] = to;
+    }
+    m_lobby->shuffleTemporaryTeams(permutation_map_int);
+    m_lobby->sendStringToPeer(msg, context.m_peer); // todo make public?
+    m_lobby->updatePlayerList();
+} // process_swapteams
 // ========================================================================
 
 void CommandManager::process_resetteams(Context& context)

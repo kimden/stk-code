@@ -669,6 +669,7 @@ public:
                                   { return m_available_modes.count(mode) > 0; }
     void setTemporaryTeam(const std::string& username, std::string& arg);
     void clearTemporaryTeams();
+    void shuffleTemporaryTeams(const std::map<int, int>& permutation);
     void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
