@@ -35,12 +35,11 @@ LODNode::LODNode(std::string group_name, scene::ISceneNode* parent,
                  scene::ISceneManager* mgr, s32 id)
     : ISceneNode(parent, mgr, id)
 {
+    m_update_box_every_frame = false;
     assert(mgr != NULL);
     assert(parent != NULL);
 
     m_group_name = group_name;
-
-    m_previous_visibility = FIRST_PASS;
 
     // At this stage refcount is two: one because of the object being
     // created, and once because it is a child of the parent. Drop once,
@@ -49,8 +48,14 @@ LODNode::LODNode(std::string group_name, scene::ISceneNode* parent,
     drop();
 
     m_forced_lod = -1;
-    m_last_tick = 0;
     m_area = 0;
+#ifndef SERVER_ONLY
+    if (!CVS->isGLSL())
+    {
+        m_current_level.reset(new int);
+        *m_current_level = -1;
+    }
+#endif
 }
 
 LODNode::~LODNode()
@@ -121,23 +126,27 @@ void LODNode::OnAnimate(u32 timeMs)
 #endif
         {
             int level = getLevel();
+            *m_current_level = level;
             // Assume all the scene node have the same bouding box
             if(level>=0)
+            {
+                m_nodes[level]->setVisible(true);
                 m_nodes[level]->OnAnimate(timeMs);
+            }
         }
 
-        Box = m_nodes[m_detail.size()-1]->getBoundingBox();
+        if (m_update_box_every_frame)
+            Box = m_nodes[m_detail.size() - 1]->getBoundingBox();
 
         // If this node has children other than the LOD nodes, animate it
-        core::list<ISceneNode*>::Iterator it;
-        for (it = Children.begin(); it != Children.end(); it++)
+        for (unsigned i = 0; i < Children.size(); ++i)
         {
-            if (m_nodes_set.find(*it) == m_nodes_set.end())
+            if (m_nodes_set.find(Children[i]) == m_nodes_set.end())
             {
-                assert(*it != NULL);
-                if ((*it)->isVisible())
+                assert(Children[i] != NULL);
+                if (Children[i]->isVisible())
                 {
-                    (*it)->OnAnimate(timeMs);
+                    Children[i]->OnAnimate(timeMs);
                 }
             }
         }
@@ -150,7 +159,11 @@ void LODNode::updateVisibility(bool* shown)
     if (!isVisible()) return;
     if (m_nodes.size() == 0) return;
 
-    unsigned int level = getLevel();
+    unsigned int level = 0;
+    if (m_current_level)
+        level = *m_current_level;
+    else
+        level = getLevel();
     for (size_t i = 0; i < m_nodes.size(); i++)
     {
         m_nodes[i]->setVisible(i == level);
@@ -171,18 +184,11 @@ void LODNode::OnRegisterSceneNode()
     }
 #endif
 
-    const u32 now = irr_driver->getDevice()->getTimer()->getTime();
-
-    m_previous_visibility = (shown ? WAS_SHOWN : WAS_HIDDEN);
-    m_last_tick = now;
 #ifndef SERVER_ONLY
     if (!CVS->isGLSL())
     {
-        for (core::list<ISceneNode*>::Iterator it = Children.begin();
-            it != Children.end(); it++)
-        {
-            (*it)->updateAbsolutePosition();
-        }
+        for (unsigned i = 0; i < Children.size(); ++i)
+            Children[i]->updateAbsolutePosition();
     }
 #endif
     scene::ISceneNode::OnRegisterSceneNode();
@@ -219,6 +225,14 @@ void LODNode::autoComputeLevel(float scale)
         m_detail[i] = ((step / biais) * (i + 1));
         biais--;
     }
+    const size_t max_level = m_detail.size() - 1;
+
+    // Only animated mesh needs to be updated bounding box every frame,
+    // which only affects culling
+    m_update_box_every_frame =
+        m_nodes[max_level]->getType() == scene::ESNT_ANIMATED_MESH ||
+        m_nodes[max_level]->getType() == scene::ESNT_LOD_NODE;
+    Box = m_nodes[max_level]->getBoundingBox();
 }
 
 void LODNode::add(int level, scene::ISceneNode* node, bool reparent)
@@ -245,12 +259,8 @@ void LODNode::add(int level, scene::ISceneNode* node, bool reparent)
     m_nodes_set.insert(node);
     node->setParent(this);
 
-    if (node->getType() == scene::ESNT_ANIMATED_MESH)
-        ((scene::IAnimatedMeshSceneNode *) node)->setReadOnlyMaterials(true);
-    if (node->getType() == scene::ESNT_MESH)
-        ((scene::IMeshSceneNode *) node)->setReadOnlyMaterials(true);
-
     node->drop();
 
     node->updateAbsolutePosition();
+    node->setNeedsUpdateAbsTrans(true);
 }

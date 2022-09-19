@@ -117,9 +117,10 @@ build_stk()
         return
     fi
     
-    export DEPENDENCIES_DIR="$1"
-    export BUILD_DIR="$2"
-    export STK_CMAKE_FLAGS="$3"
+    export ARCH_OPTION="$1"
+    export STK_CMAKE_FLAGS="$2"
+    export DEPENDENCIES_DIR="$DEPENDENCIES_DIR-$ARCH_OPTION"
+    export BUILD_DIR="$BUILD_DIR-$ARCH_OPTION"
     export INSTALL_DIR="$DEPENDENCIES_DIR/dependencies"
     export INSTALL_LIB_DIR="$INSTALL_DIR/lib"
     export INSTALL_INCLUDE_DIR="$INSTALL_DIR/include"
@@ -129,12 +130,47 @@ build_stk()
     export CPPFLAGS="-I$INSTALL_INCLUDE_DIR"
     export LDFLAGS="-Wl,-rpath,$INSTALL_LIB_DIR -L$INSTALL_LIB_DIR"
     
+    export PATH="$INSTALL_DIR/bin:$PATH"
+    
     if [ "$STATIC_GCC" -gt 0 ]; then
         LDFLAGS="$LDFLAGS -static-libgcc -static-libstdc++"
     fi
     
     cd "$STKCODE_DIR"
     mkdir -p "$DEPENDENCIES_DIR"
+    
+    # CMake
+    if [ ! -f "$DEPENDENCIES_DIR/cmake.stamp" ]; then
+        echo "Compiling CMake"
+        git clone --depth 1 -b v3.24.1 https://github.com/Kitware/CMake.git "$DEPENDENCIES_DIR/cmake"
+    
+        cd "$DEPENDENCIES_DIR/cmake"
+        ./bootstrap --prefix="$INSTALL_DIR" \
+                    --parallel=$THREADS_NUMBER \
+                    -- -DCMAKE_USE_OPENSSL=0 &&
+        make -j$THREADS_NUMBER &&
+        make install
+        check_error
+        touch "$DEPENDENCIES_DIR/cmake.stamp"
+    fi
+    
+    # ISPC
+    if [ ! -f "$DEPENDENCIES_DIR/ispc.stamp" ]; then
+        if [ "$ARCH_OPTION" = "x86_64" ]; then
+            echo "Downloading ISPC"
+            
+            mkdir -p "$DEPENDENCIES_DIR/ispc"
+            cd "$DEPENDENCIES_DIR/ispc"
+            ISPC_VERSION="v1.18.0"
+            wget https://github.com/ispc/ispc/releases/download/$ISPC_VERSION/ispc-$ISPC_VERSION-linux.tar.gz -O ispc.tar.gz
+            check_error
+            tar -xzf "ispc.tar.gz"
+            check_error
+            cp "$DEPENDENCIES_DIR/ispc/ispc-$ISPC_VERSION-linux/bin/ispc" "$INSTALL_DIR/bin/"
+        fi
+        
+        touch "$DEPENDENCIES_DIR/ispc.stamp"
+    fi
     
     # Zlib
     if [ ! -f "$DEPENDENCIES_DIR/zlib.stamp" ]; then
@@ -177,13 +213,11 @@ build_stk()
         cmake .. -DCMAKE_FIND_ROOT_PATH="$INSTALL_DIR" \
                  -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
                  -DBUILD_SHARED_LIBS=1 \
-                 -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=1 \
-                 -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=1 \
-                 -DFT_WITH_HARFBUZZ=0 \
-                 -DFT_WITH_BZIP2=0 \
-                 -DFT_WITH_BROTLI=0 \
-                 -DFT_WITH_ZLIB=1 \
-                 -DFT_WITH_PNG=1 &&
+                 -DFT_DISABLE_HARFBUZZ=1 \
+                 -DFT_DISABLE_BZIP2=1 \
+                 -DFT_DISABLE_BROTLI=1 \
+                 -DFT_REQUIRE_ZLIB=1 \
+                 -DFT_REQUIRE_PNG=1 &&
         make -j$THREADS_NUMBER &&
         make install
         check_error
@@ -199,6 +233,7 @@ build_stk()
         cd "$DEPENDENCIES_DIR/harfbuzz"
         ./autogen.sh
         ./configure --prefix="$INSTALL_DIR" \
+                    --with-freetype=yes \
                     --with-glib=no \
                     --with-gobject=no \
                     --with-cairo=no \
@@ -224,11 +259,11 @@ build_stk()
                  -DBUILD_SHARED_LIBS=1 \
                  -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=1 \
                  -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=1 \
-                 -DFT_WITH_HARFBUZZ=1 \
-                 -DFT_WITH_BZIP2=0 \
-                 -DFT_WITH_BROTLI=0 \
-                 -DFT_WITH_ZLIB=1 \
-                 -DFT_WITH_PNG=1 &&
+                 -DFT_REQUIRE_HARFBUZZ=1 \
+                 -DFT_DISABLE_BZIP2=1 \
+                 -DFT_DISABLE_BROTLI=1 \
+                 -DFT_REQUIRE_ZLIB=1 \
+                 -DFT_REQUIRE_PNG=1 &&
         make -j$THREADS_NUMBER &&
         make install
         check_error
@@ -288,12 +323,12 @@ build_stk()
                 -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
                 -DBUILD_TESTING=0 \
                 -DBUILD_CURL_EXE=0 \
-                -DCMAKE_USE_MBEDTLS=1 \
+                -DCURL_USE_MBEDTLS=1 \
                 -DUSE_ZLIB=1 \
-                -DCMAKE_USE_OPENSSL=0 \
-                -DCMAKE_USE_LIBSSH=0 \
-                -DCMAKE_USE_LIBSSH2=0 \
-                -DCMAKE_USE_GSSAPI=0 \
+                -DCURL_USE_OPENSSL=0 \
+                -DCURL_USE_LIBSSH=0 \
+                -DCURL_USE_LIBSSH2=0 \
+                -DCURL_USE_GSSAPI=0 \
                 -DUSE_NGHTTP2=0 \
                 -DUSE_QUICHE=0 \
                 -DHTTP_ONLY=1 \
@@ -303,6 +338,7 @@ build_stk()
         make -j$THREADS_NUMBER && 
         make install
         check_error
+        rm -rf "$INSTALL_DIR/lib/cmake/CURL"
         touch "$DEPENDENCIES_DIR/curl.stamp"
     fi
     
@@ -352,6 +388,40 @@ build_stk()
         make install
         check_error
         touch "$DEPENDENCIES_DIR/libvorbis.stamp"
+    fi
+    
+    # ASTC-encoder
+    if [ ! -f "$DEPENDENCIES_DIR/astc-encoder.stamp" ]; then
+        echo "Compiling astc-encoder"
+        mkdir -p "$DEPENDENCIES_DIR/astc-encoder"
+        cp -a -f "$DEPENDENCIES_DIR/../lib/astc-encoder/"* "$DEPENDENCIES_DIR/astc-encoder"
+
+        cd "$DEPENDENCIES_DIR/astc-encoder"
+        sed -i '/-Werror/d' Source/cmake_core.cmake
+        sed -i 's|${ASTC_TARGET}-static|astcenc|g' Source/cmake_core.cmake
+        if [ "$ARCH_OPTION" = "armv7" ]; then
+            ASTC_CMAKE_FLAGS=""
+            ASTC_CFLAGS="-mfpu=neon"
+        elif [ "$ARCH_OPTION" = "arm64" ]; then
+            ASTC_CMAKE_FLAGS="-DISA_NEON=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang"
+        elif [ "$ARCH_OPTION" = "x86" ]; then
+            #ASTC_CMAKE_FLAGS="-DISA_SSE2=ON"
+            ASTC_CMAKE_FLAGS=""
+        elif [ "$ARCH_OPTION" = "x86_64" ]; then
+            ASTC_CMAKE_FLAGS="-DISA_SSE41=ON"
+        fi
+    
+        cmake . -DCMAKE_FIND_ROOT_PATH="$INSTALL_DIR" \
+                -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
+                $ASTC_CMAKE_FLAGS \
+                -DCMAKE_C_FLAGS="-fpic -O3 -g $ASTC_CFLAGS" \
+                -DCMAKE_CXX_FLAGS="-fpic -O3 -g $ASTC_CFLAGS" \
+                -DNO_INVARIANCE=ON -DCLI=OFF &&
+        make -j$THREADS_NUMBER &&
+        cp "$DEPENDENCIES_DIR/astc-encoder/Source/libastcenc.a" "$INSTALL_DIR/lib/" &&
+        cp "$DEPENDENCIES_DIR/astc-encoder/Source/astcenc.h" "$INSTALL_DIR/include/"
+        check_error
+        touch "$DEPENDENCIES_DIR/astc-encoder.stamp"
     fi
 
     # Wayland
@@ -459,12 +529,20 @@ build_stk()
     # Supertuxkart
     mkdir -p "$STKCODE_DIR/$BUILD_DIR"
     cd "$STKCODE_DIR/$BUILD_DIR"
+    
+    if [ -f "$INSTALL_DIR/bin/ispc" ]; then
+        HAS_ISPC=1
+    else
+        HAS_ISPC=0
+    fi
+    
     cmake .. -DCMAKE_FIND_ROOT_PATH="$INSTALL_DIR" \
              -DUSE_SYSTEM_ANGELSCRIPT=0 \
              -DUSE_SYSTEM_ENET=0 \
              -DUSE_SYSTEM_WIIUSE=0 \
              -DUSE_CRYPTO_OPENSSL=0 \
              -DENABLE_WAYLAND_DEVICE=0 \
+             -DBC7_ISPC=$HAS_ISPC \
              -DCMAKE_DISABLE_FIND_PACKAGE_Fontconfig=1 \
              $STK_CMAKE_FLAGS &&
     make -j$THREADS_NUMBER
@@ -488,9 +566,10 @@ copy_libraries()
         return
     fi
     
-    export DEPENDENCIES_DIR="$1"
-    export BUILD_DIR="$2"
-    export LIB_INSTALL_DIR="$3"
+    export ARCH_OPTION="$1"
+    export LIB_INSTALL_DIR="$2"
+    export DEPENDENCIES_DIR="$DEPENDENCIES_DIR-$ARCH_OPTION"
+    export BUILD_DIR="$BUILD_DIR-$ARCH_OPTION"
     
     if [ -z "$DEPENDENCIES_DIR" ] || [ -z "$BUILD_DIR" ] || [ -z "$LIB_INSTALL_DIR" ]; then
         return
@@ -566,7 +645,7 @@ create_package()
     
     echo "Building $ARCH version..."
     
-    schroot -c $SCHROOT_NAME -- "$0" build_stk "$DEPENDENCIES_DIR-$ARCH" "$BUILD_DIR-$ARCH" "-DDEBUG_SYMBOLS=1"
+    schroot -c $SCHROOT_NAME -- "$0" build_stk "$ARCH" "-DDEBUG_SYMBOLS=1"
     
     if [ ! -f "$STKCODE_DIR/$BUILD_DIR-$ARCH/bin/supertuxkart" ]; then
         echo "Couldn't build $ARCH version."
@@ -585,7 +664,7 @@ create_package()
     mkdir -p "$STK_PACKAGE_DIR/bin"
     mkdir -p "$STK_PACKAGE_DIR/lib"
     
-    schroot -c $SCHROOT_NAME -- "$0" copy_libraries "$DEPENDENCIES_DIR-$ARCH" "$BUILD_DIR-$ARCH" "$STK_PACKAGE_DIR/lib"
+    schroot -c $SCHROOT_NAME -- "$0" copy_libraries "$ARCH" "$STK_PACKAGE_DIR/lib"
     
     find "$STK_PACKAGE_DIR/lib" -type f -exec strip -s {} \;
     
@@ -646,13 +725,13 @@ fi
 
 # Handle build_stk command (internal only)
 if [ ! -z "$1 " ] && [ "$1" = "build_stk" ]; then
-    build_stk "$2" "$3" "$4"
+    build_stk "$2" "$3"
     exit 0
 fi
 
 # Handle copy_libraries command (internal only)
 if [ ! -z "$1 " ] && [ "$1" = "copy_libraries" ]; then
-    copy_libraries "$2" "$3" "$4"
+    copy_libraries "$2" "$3"
     exit 0
 fi
 
@@ -665,8 +744,8 @@ fi
 
 # Building STK
 
-create_package "$SCHROOT_32BIT_NAME" "32bit" "elf32-i386"
-create_package "$SCHROOT_64BIT_NAME" "64bit" "elf64-x86-64"
+create_package "$SCHROOT_32BIT_NAME" "x86" "elf32-i386"
+create_package "$SCHROOT_64BIT_NAME" "x86_64" "elf64-x86-64"
 create_package "$SCHROOT_ARMV7_NAME" "armv7" "elf32-littlearm"
 create_package "$SCHROOT_ARM64_NAME" "arm64" "elf64-littleaarch64"
 

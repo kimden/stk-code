@@ -74,6 +74,9 @@ void FixedPipelineRenderer::render(float dt, bool is_loading)
             Physics::get()->draw();
     }   // for i<world->getNumKarts()
 
+    // For GEVulkanDriver
+    irr_driver->getSceneManager()->setActiveCamera(NULL);
+
     // Set the viewport back to the full screen for race gui
     irr_driver->getVideoDriver()->setViewPort(core::recti(0, 0,
                                               UserConfigParams::m_width,
@@ -82,6 +85,8 @@ void FixedPipelineRenderer::render(float dt, bool is_loading)
     for(unsigned int i=0; i<Camera::getNumCameras(); i++)
     {
         Camera *camera = Camera::getCamera(i);
+        irr_driver->getSceneManager()->setActiveCamera(
+            camera->getCameraSceneNode());
         std::ostringstream oss;
         oss << "renderPlayerView() for kart " << i;
 

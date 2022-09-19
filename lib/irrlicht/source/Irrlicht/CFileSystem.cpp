@@ -20,6 +20,8 @@
 #include "CLimitReadFile.h"
 #include "irrList.h"
 
+#include "io/file_manager.hpp"
+
 #if defined (_IRR_WINDOWS_API_)
 	#include "utils/string_utils.hpp"
 	#if !defined ( _WIN32_WCE )
@@ -94,12 +96,14 @@ IReadFile* CFileSystem::createAndOpenFile(const io::path& filename)
 	IReadFile* file = 0;
 	u32 i;
 
+	std::unique_lock<std::recursive_mutex> ul(m_file_archives_mutex);
 	for (i=0; i< FileArchives.size(); ++i)
 	{
 		file = FileArchives[i]->createAndOpenFile(filename);
 		if (file)
 			return file;
 	}
+	ul.unlock();
 
 	// Create the file using an absolute path so that it matches
 	// the scheme used by CNullDriver::getTexture().
@@ -178,6 +182,7 @@ bool CFileSystem::moveFileArchive(u32 sourceIndex, s32 relative)
 	bool r = false;
 	const s32 dest = (s32) sourceIndex + relative;
 	const s32 dir = relative < 0 ? -1 : 1;
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	const s32 sourceEnd = ((s32) FileArchives.size() ) - 1;
 	IFileArchive *t;
 
@@ -287,7 +292,9 @@ bool CFileSystem::addFileArchive(const io::path& filename, bool ignoreCase,
 
 	if (archive)
 	{
+		std::unique_lock<std::recursive_mutex> ul(m_file_archives_mutex);
 		FileArchives.push_back(archive);
+		ul.unlock();
 		if (password.size())
 			archive->Password=password;
 		if (retArchive)
@@ -308,6 +315,7 @@ bool CFileSystem::changeArchivePassword(const path& filename,
 		const core::stringc& password,
 		IFileArchive** archive)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	for (s32 idx = 0; idx < (s32)FileArchives.size(); ++idx)
 	{
 		// TODO: This should go into a path normalization method
@@ -393,7 +401,9 @@ bool CFileSystem::addFileArchive(IReadFile* file, bool ignoreCase,
 
 		if (archive)
 		{
+			std::unique_lock<std::recursive_mutex> ul(m_file_archives_mutex);
 			FileArchives.push_back(archive);
+			ul.unlock();
 			if (password.size())
 				archive->Password=password;
 			if (retArchive)
@@ -413,6 +423,7 @@ bool CFileSystem::addFileArchive(IReadFile* file, bool ignoreCase,
 //! Adds an archive to the file system.
 bool CFileSystem::addFileArchive(IFileArchive* archive)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	for (u32 i=0; i < FileArchives.size(); ++i)
 	{
 		if (archive == FileArchives[i])
@@ -428,15 +439,17 @@ bool CFileSystem::addFileArchive(IFileArchive* archive)
 
 void CFileSystem::removeAllFileArchives()
 {
-    for (u32 index = 0; index < FileArchives.size(); index++)
-        FileArchives[index]->drop();
-    FileArchives.clear();
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
+	for (u32 index = 0; index < FileArchives.size(); index++)
+		FileArchives[index]->drop();
+	FileArchives.clear();
 }
 
 
 //! removes an archive from the file system.
 bool CFileSystem::removeFileArchive(u32 index)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	bool ret = false;
 	if (index < FileArchives.size())
 	{
@@ -453,6 +466,7 @@ bool CFileSystem::removeFileArchive(u32 index)
 bool CFileSystem::removeFileArchive(const io::path& filename)
 {
 	const path absPath = getAbsolutePath(filename);
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	for (u32 i=0; i < FileArchives.size(); ++i)
 	{
 		if (absPath == FileArchives[i]->getFileList()->getPath())
@@ -466,6 +480,7 @@ bool CFileSystem::removeFileArchive(const io::path& filename)
 //! Removes an archive from the file system.
 bool CFileSystem::removeFileArchive(const IFileArchive* archive)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	for (u32 i=0; i < FileArchives.size(); ++i)
 	{
 		if (archive == FileArchives[i])
@@ -482,12 +497,14 @@ bool CFileSystem::removeFileArchive(const IFileArchive* archive)
 //! gets an archive
 u32 CFileSystem::getFileArchiveCount() const
 {
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	return FileArchives.size();
 }
 
 
 IFileArchive* CFileSystem::getFileArchive(u32 index)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 	return index < getFileArchiveCount() ? FileArchives[index] : 0;
 }
 
@@ -917,6 +934,7 @@ IFileList* CFileSystem::createFileList(const io::path& directory)
 		r->addItem(Path + _IRR_TEXT(".."), 0, 0, true, 0);
 
 		//! merge archives
+		std::lock_guard<std::recursive_mutex> lock(m_file_archives_mutex);
 		for (u32 i=0; i < FileArchives.size(); ++i)
 		{
 			const IFileList *merge = FileArchives[i]->getFileList();
@@ -942,13 +960,30 @@ IFileList* CFileSystem::createEmptyFileList(const io::path& path, bool ignoreCas
 	return new CFileList(path, ignoreCase, ignorePaths);
 }
 
+//! Determines if a file exists and could be opened (thread-safe, ignore file archives), this function returns false for directory
+bool CFileSystem::existFileOnly(const path& filename) const
+{
+	if (FileManager::isDirectory(filename.c_str()))
+		return false;
+
+	io::IReadFile* file = createReadFile(filename);
+	if (file)
+	{
+		file->drop();
+		return true;
+	}
+	return false;
+}
+
 
 //! determines if a file exists and would be able to be opened.
 bool CFileSystem::existFile(const io::path& filename) const
 {
+	std::unique_lock<std::recursive_mutex> ul(m_file_archives_mutex);
 	for (u32 i=0; i < FileArchives.size(); ++i)
 		if (FileArchives[i]->getFileList()->findFile(filename)!=-1)
 			return true;
+	ul.unlock();
 
 #if defined(_IRR_WINDOWS_CE_PLATFORM_)
 #if defined(_IRR_WCHAR_FILESYSTEM)
@@ -1065,6 +1100,12 @@ IFileSystem* createFileSystem()
 IAttributes* CFileSystem::createEmptyAttributes(video::IVideoDriver* driver)
 {
 	return new CAttributes(driver);
+}
+
+
+std::unique_lock<std::recursive_mutex> CFileSystem::acquireFileArchivesMutex() const
+{
+	return std::unique_lock<std::recursive_mutex>(m_file_archives_mutex);
 }
 
 

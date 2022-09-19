@@ -28,7 +28,7 @@
 #include "graphics/shared_gpu_objects.hpp"
 #include "graphics/shader_based_renderer.hpp"
 #include "graphics/post_processing.hpp"
-#include "graphics/render_info.hpp"
+#include <ge_render_info.hpp>
 #include "graphics/rtts.hpp"
 #include "graphics/shaders.hpp"
 #include "graphics/sp/sp_dynamic_draw_call.hpp"
@@ -56,6 +56,9 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include <ge_main.hpp>
+using namespace GE;
 
 namespace SP
 {
@@ -641,64 +644,6 @@ SPShader* getNormalVisualizer()
     return g_normal_visualizer;
 }   // getNormalVisualizer
 
-// ----------------------------------------------------------------------------
-inline void mathPlaneNormf(float *p)
-{
-    float f = 1.0f / sqrtf(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
-    p[0] *= f;
-    p[1] *= f;
-    p[2] *= f;
-    p[3] *= f;
-}   // mathPlaneNormf
-
-// ----------------------------------------------------------------------------
-inline void mathPlaneFrustumf(float* out, const core::matrix4& pvm)
-{
-    // return 6 planes, 24 floats
-    const float* m = pvm.pointer();
-
-    // near
-    out[0] = m[3] + m[2];
-    out[1] = m[7] + m[6];
-    out[2] = m[11] + m[10];
-    out[3] = m[15] + m[14];
-    mathPlaneNormf(&out[0]);
-
-    // right
-    out[4] = m[3] - m[0];
-    out[4 + 1] = m[7] - m[4];
-    out[4 + 2] = m[11] - m[8];
-    out[4 + 3] = m[15] - m[12];
-    mathPlaneNormf(&out[4]);
-
-    // left
-    out[2 * 4] = m[3] + m[0];
-    out[2 * 4 + 1] = m[7] + m[4];
-    out[2 * 4 + 2] = m[11] + m[8];
-    out[2 * 4 + 3] = m[15] + m[12];
-    mathPlaneNormf(&out[2 * 4]);
-
-    // bottom
-    out[3 * 4] = m[3] + m[1];
-    out[3 * 4 + 1] = m[7] + m[5];
-    out[3 * 4 + 2] = m[11] + m[9];
-    out[3 * 4 + 3] = m[15] + m[13];
-    mathPlaneNormf(&out[3 * 4]);
-
-    // top
-    out[4 * 4] = m[3] - m[1];
-    out[4 * 4 + 1] = m[7] - m[5];
-    out[4 * 4 + 2] = m[11] - m[9];
-    out[4 * 4 + 3] = m[15] - m[13];
-    mathPlaneNormf(&out[4 * 4]);
-
-    // far
-    out[5 * 4] = m[3] - m[2];
-    out[5 * 4 + 1] = m[7] - m[6];
-    out[5 * 4 + 2] = m[11] - m[10];
-    out[5 * 4 + 3] = m[15] - m[14];
-    mathPlaneNormf(&out[5 * 4]);
-}   // mathPlaneFrustumf
 
 // ----------------------------------------------------------------------------
 inline core::vector3df getCorner(const core::aabbox3df& bbox, unsigned n)

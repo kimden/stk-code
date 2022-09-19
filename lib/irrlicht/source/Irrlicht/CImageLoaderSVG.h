@@ -38,9 +38,6 @@ public:
 	//! constructor
 	CImageLoaderSVG();
 
-	// set the screen size, used to determine scaling
-	virtual void setScreenSize(const core::dimension2d<u32> &screen_size);
-
 	//! returns true if the file maybe is able to be loaded by this class
 	//! based on the file extension (e.g. ".tga")
 	virtual bool isALoadableFileExtension(const io::path& filename) const;
@@ -51,9 +48,11 @@ public:
 	//! creates a surface from the file
 	virtual IImage* loadImage(io::IReadFile* file, bool skip_checking = false) const;
 
+	virtual bool getImageSize(io::IReadFile* file, core::dimension2du* dim) const;
 private:
-	core::dimension2d<u32> ScreenSize;
+	struct NSVGimage* getSVGImage(io::IReadFile* file, float* scale) const;
 
+	core::dimension2du getImageSize(struct NSVGimage* img, float scale) const;
 };
 
 

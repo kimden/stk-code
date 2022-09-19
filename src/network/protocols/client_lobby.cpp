@@ -253,6 +253,22 @@ bool ClientLobby::notifyEventAsynchronous(Event* event)
 }   // notifyEventAsynchronous
 
 //-----------------------------------------------------------------------------
+void ClientLobby::getPlayersAddonKartType(const BareNetworkString& data,
+    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const
+{
+    if (NetworkConfig::get()->getServerCapabilities().find(
+        "real_addon_karts") ==
+        NetworkConfig::get()->getServerCapabilities().end() ||
+        data.size() == 0)
+        return;
+    for (unsigned i = 0; i < players.size(); i++)
+    {
+        KartData kart_data(data);
+        players[i]->setKartData(kart_data);
+    }
+}   // getPlayersAddonKartType
+
+//-----------------------------------------------------------------------------
 void ClientLobby::addAllPlayers(Event* event)
 {
     if (World::getWorld())
@@ -316,6 +332,7 @@ void ClientLobby::addAllPlayers(Event* event)
         unsigned flag_deactivated_time = data.getUInt16();
         RaceManager::get()->setFlagDeactivatedTicks(flag_deactivated_time);
     }
+    getPlayersAddonKartType(data, players);
     configRemoteKart(players, isSpectator() ? 1 :
         (int)NetworkConfig::get()->getNetworkPlayers().size());
     loadWorld();
@@ -1074,8 +1091,9 @@ void ClientLobby::startSelection(Event* event)
     }
     // In case of auto-connect or continue a grand prix, use random karts
     // (or previous kart) from server and go to track selection
-    if ((NetworkConfig::get()->isAutoConnect() || skip_kart_screen) &&
-        m_server_enabled_track_voting)
+    if (NetworkConfig::get()->isAutoConnect())
+        skip_kart_screen = true;
+    if (skip_kart_screen)
     {
         input_manager->setMasterPlayerOnly(true);
         for (auto& p : NetworkConfig::get()->getNetworkPlayers())
@@ -1084,23 +1102,24 @@ void ClientLobby::startSelection(Event* event)
                 ->createActivePlayer(std::get<1>(p), std::get<0>(p));
         }
         input_manager->getDeviceManager()->setAssignMode(ASSIGN);
-        if (!GUIEngine::isNoGraphics())
+        NetworkingLobby::getInstance()->setAssignedPlayers(true);
+    }
+    if (!GUIEngine::isNoGraphics())
+    {
+        if (skip_kart_screen && m_server_enabled_track_voting)
         {
             TracksScreen::getInstance()->setQuitServer();
             TracksScreen::getInstance()->setNetworkTracks();
             TracksScreen::getInstance()->push();
         }
-    }
-    else if (!GUIEngine::isNoGraphics())
-    {
-        NetworkKartSelectionScreen::getInstance()->push();
-    }
-
-    if (!GUIEngine::isNoGraphics())
-    {
+        else if (!skip_kart_screen)
+        {
+            NetworkKartSelectionScreen::getInstance()->push();
+        }
         TracksScreen *ts = TracksScreen::getInstance();
         ts->resetVote();
     }
+
     m_state.store(SELECTING_ASSETS);
     Log::info("ClientLobby", "Selection starts now");
 }   // startSelection
@@ -1306,6 +1325,7 @@ void ClientLobby::liveJoinAcknowledged(Event* event)
         // player connection or disconnection
         std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
             decodePlayers(data);
+        getPlayersAddonKartType(data, players);
         w->resetElimination();
         for (unsigned i = 0; i < players.size(); i++)
         {
@@ -1388,6 +1408,12 @@ void ClientLobby::handleKartInfo(Event* event)
     data.decodeString(&kart_name);
     std::string country_code;
     data.decodeString(&country_code);
+    KartData kart_data;
+    if (NetworkConfig::get()->getServerCapabilities().find(
+        "real_addon_karts") !=
+        NetworkConfig::get()->getServerCapabilities().end() &&
+        data.size() > 0)
+        kart_data = KartData(data);
 
     RemoteKartInfo& rki = RaceManager::get()->getKartInfo(kart_id);
     rki.setPlayerName(player_name);
@@ -1398,6 +1424,7 @@ void ClientLobby::handleKartInfo(Event* event)
     rki.setLocalPlayerId(local_id);
     rki.setKartName(kart_name);
     rki.setCountryCode(country_code);
+    rki.setKartData(kart_data);
     addLiveJoiningKart(kart_id, rki, live_join_util_ticks);
 
     core::stringw msg;
@@ -1827,6 +1854,16 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
                     std::string("Local addon: ") + msg));
             }
         }
+    }
+    else if (argv[0] == "opengl")
+    {
+        UserConfigParams::m_render_driver = "gl";
+        user_config->saveConfig();
+    }
+    else if (argv[0] == "vulkan")
+    {
+        UserConfigParams::m_render_driver = "vulkan";
+        user_config->saveConfig();
     }
     else
     {

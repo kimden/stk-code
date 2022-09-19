@@ -25,7 +25,6 @@
  * Contains generic utility classes for file I/O (especially XML handling).
  */
 
-#include <mutex>
 #include <string>
 #include <vector>
 #include <set>
@@ -66,8 +65,6 @@ public:
                     ASSET_COUNT};
 
 private:
-    mutable std::mutex m_file_system_lock;
-
     /** The names of the various subdirectories of the asset types. */
     std::vector< std::string > m_subdir_name;
 
@@ -160,7 +157,7 @@ public:
     const std::string &getAddonsDir() const;
     std::string        getAddonsFile(const std::string &name);
     void checkAndCreateDirForAddons(const std::string &dir);
-    bool isDirectory(const std::string &path) const;
+    static bool isDirectory(const std::string &path);
     bool removeFile(const std::string &name) const;
     bool removeDirectory(const std::string &name) const;
     // ------------------------------------------------------------------------

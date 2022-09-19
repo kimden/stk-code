@@ -135,7 +135,9 @@ void TrackObjectPresentationSceneNode::move(const core::vector3df& xyz,
     }
     m_node->setRotation(hpr);
     m_node->setScale(scale);
+    bool prev_needs_update = m_node->getNeedsUpdateAbsTrans();
     m_node->updateAbsolutePosition();
+    m_node->setNeedsUpdateAbsTrans(prev_needs_update);
 }   // move
 
 // ----------------------------------------------------------------------------
@@ -279,6 +281,7 @@ TrackObjectPresentationLibraryNode::TrackObjectPresentationLibraryNode(
     m_node->setRotation(m_init_hpr);
     m_node->setScale(m_init_scale);
     m_node->updateAbsolutePosition();
+    m_node->setNeedsUpdateAbsTrans(true);
 
     assert(libroot != NULL);
     Track::getCurrentTrack()->loadObjects(libroot, lib_path, model_def_loader,
@@ -352,7 +355,7 @@ void TrackObjectPresentationLibraryNode::move(const core::vector3df& xyz, const 
 TrackObjectPresentationLOD::TrackObjectPresentationLOD(const XMLNode& xml_node,
                                        scene::ISceneNode* parent,
                                        ModelDefinitionLoader& model_def_loader,
-                                       std::shared_ptr<RenderInfo> ri)
+                                       std::shared_ptr<GE::GERenderInfo> ri)
                           : TrackObjectPresentationSceneNode(xml_node)
 {
     m_node = model_def_loader.instanciateAsLOD(&xml_node, parent, ri);
@@ -398,7 +401,7 @@ TrackObjectPresentationMesh::TrackObjectPresentationMesh(
                                                      const XMLNode& xml_node,
                                                      bool enabled,
                                                      scene::ISceneNode* parent,
-                                                     std::shared_ptr<RenderInfo> render_info)
+                                                     std::shared_ptr<GE::GERenderInfo> render_info)
                            : TrackObjectPresentationSceneNode(xml_node)
 {
     m_is_looped  = false;

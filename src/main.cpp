@@ -286,7 +286,7 @@ extern "C" {
 #include "utils/crash_reporting.hpp"
 #include "utils/leak_check.hpp"
 #include "utils/log.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 #include "utils/profiler.hpp"
 #include "utils/stk_process.hpp"
 #include "utils/string_utils.hpp"
@@ -867,13 +867,13 @@ int handleCmdLinePreliminary()
                 UserConfigParams::m_blacklist_res.end(),res) ==
                 UserConfigParams::m_blacklist_res.end())
             {
-                UserConfigParams::m_prev_width =
-                    UserConfigParams::m_width = width;
-                UserConfigParams::m_prev_height =
-                    UserConfigParams::m_height = height;
+                UserConfigParams::m_prev_real_width =
+                    UserConfigParams::m_real_width = width;
+                UserConfigParams::m_prev_real_height =
+                    UserConfigParams::m_real_height = height;
                 Log::verbose("main", "You choose to use %dx%d.",
-                    (int)UserConfigParams::m_width,
-                    (int)UserConfigParams::m_height );
+                    (int)UserConfigParams::m_real_width,
+                    (int)UserConfigParams::m_real_height );
             }
             else
                 Log::warn("main", "Resolution %s has been blacklisted, so "
@@ -1874,6 +1874,7 @@ void initRest()
     // Input manager set first so it recieves SDL joystick event
     GUIEngine::init(device, driver, StateManager::get());
     GUIEngine::renderLoading(true, true, false);
+    GUIEngine::flushRenderLoading(true/*launching*/);
 
 #ifdef ANDROID
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
@@ -2281,6 +2282,8 @@ int main(int argc, char *argv[])
         GUIEngine::addLoadingIcon( irr_driver->getTexture(FileManager::GUI_ICON,
                                                           "options_video.png"));
         kart_properties_manager -> loadAllKarts    ();
+        kart_properties_manager->onDemandLoadKartTextures(
+            { UserConfigParams::m_default_kart }, false/*unload_unused*/);
         OfficialKarts::load();
         handleXmasMode();
         handleEasterEarMode();
@@ -2692,6 +2695,21 @@ static void cleanSuperTuxKart()
     irr_driver->updateConfigIfRelevant();
     AchievementsManager::destroy();
     Referee::cleanup();
+
+    if (SFXManager::get() &&
+        !SFXManager::get()->waitForReadyToDeleted(2.0f))
+    {
+        Log::info("Thread", "SFXManager not stopping, exiting anyway.");
+    }
+    SFXManager::destroy();
+
+    // Music manager can not be deleted before the SFX thread is stopped
+    // (since SFX commands can contain music information, which are
+    // deleted by the music manager).
+    delete music_manager;
+
+    // Race manager needs to be deleted after sfx manager as it checks for
+    // the kart size structure from race manager
     RaceManager::destroy();
     if(grand_prix_manager)      delete grand_prix_manager;
     if(highscore_manager)       delete highscore_manager;
@@ -2748,18 +2766,6 @@ static void cleanSuperTuxKart()
             Log::warn("Thread", "Request Manager not aborting in time, proceeding without cleanup.");
         }
     }
-
-    if (SFXManager::get() &&
-        !SFXManager::get()->waitForReadyToDeleted(2.0f))
-    {
-        Log::info("Thread", "SFXManager not stopping, exiting anyway.");
-    }
-    SFXManager::destroy();
-
-    // Music manager can not be deleted before the SFX thread is stopped
-    // (since SFX commands can contain music information, which are
-    // deleted by the music manager).
-    delete music_manager;
 
     // The add-ons manager might still be called from a currenty running request
     // in the request manager, so it can not be deleted earlier.

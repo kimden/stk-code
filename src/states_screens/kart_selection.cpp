@@ -23,7 +23,7 @@
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
 #include "graphics/irr_driver.hpp"
-#include "graphics/render_info.hpp"
+#include <ge_render_info.hpp>
 #include "guiengine/message_queue.hpp"
 #include "guiengine/widgets/bubble_widget.hpp"
 #include "guiengine/widgets/kart_stats_widget.hpp"
@@ -47,6 +47,11 @@
 
 #include <IGUIEnvironment.h>
 #include <IGUIButton.h>
+
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_vulkan_driver.hpp>
+#endif
 
 using namespace GUIEngine;
 using irr::core::stringw;
@@ -335,6 +340,9 @@ void KartSelectionScreen::beforeAddingWidget()
 
 void KartSelectionScreen::init()
 {
+#ifndef SERVER_ONLY
+    GE::getGEConfig()->m_enable_draw_call_cache = true;
+#endif
     m_instance_ptr = this;
     Screen::init();
     m_must_delete_on_back = false;
@@ -441,6 +449,12 @@ void KartSelectionScreen::init()
 
 void KartSelectionScreen::tearDown()
 {
+#ifndef SERVER_ONLY
+    GE::getGEConfig()->m_enable_draw_call_cache = false;
+    GE::GEVulkanDriver* gevk = GE::getVKDriver();
+    if (gevk)
+        gevk->clearDrawCallsCache();
+#endif
 #ifdef MOBILE_STK
     if (m_multiplayer)
         MessageQueue::discardStatic();
@@ -868,9 +882,11 @@ void KartSelectionScreen::updateKartStats(uint8_t widget_id,
 
     const KartProperties *kp =
                     kart_properties_manager->getKart(selection);
+    NetworkConfig* nc = NetworkConfig::get();
     // Adjust for online addon karts
-    if (kp && kp->isAddon() && NetworkConfig::get()->isNetworking() &&
-        NetworkConfig::get()->useTuxHitboxAddon())
+    if (kp && kp->isAddon() && nc->isNetworking() && nc->useTuxHitboxAddon() &&
+        nc->getServerCapabilities().find(
+        "real_addon_karts") == nc->getServerCapabilities().end())
         kp = kart_properties_manager->getKart("tux");
     if (kp != NULL)
     {

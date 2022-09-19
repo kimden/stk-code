@@ -93,6 +93,27 @@ include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 
+# shaderc
+LOCAL_MODULE       := shaderc
+LOCAL_SRC_FILES    := deps-$(TARGET_ARCH_ABI)/shaderc/libshaderc/libshaderc_combined.a
+include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+
+
+# libsquish
+LOCAL_MODULE       := libsquish
+LOCAL_SRC_FILES    := deps-$(TARGET_ARCH_ABI)/libsquish/libsquish.a
+include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+
+
+# astc-encoder
+LOCAL_MODULE       := libastcenc
+LOCAL_SRC_FILES    := deps-$(TARGET_ARCH_ABI)/astc-encoder/Source/libastcenc.a
+include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+
+
 # ifaddrs
 LOCAL_MODULE    := ifaddrs
 LOCAL_PATH      := .
@@ -153,7 +174,8 @@ LOCAL_MODULE       := graphics_utils
 LOCAL_PATH         := .
 LOCAL_CPP_FEATURES += rtti
 LOCAL_SRC_FILES    := $(wildcard ../lib/graphics_utils/mipmap/*.c)
-LOCAL_CFLAGS       := -I../lib/graphics_utils/mipmap
+LOCAL_CFLAGS       := -I../lib/graphics_utils/mipmap \
+                      -I../lib/simd_wrapper
 ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
 LOCAL_ARM_NEON     := false
 endif
@@ -167,12 +189,19 @@ LOCAL_PATH         := .
 LOCAL_CPP_FEATURES += rtti exceptions
 LOCAL_SRC_FILES    := $(wildcard ../lib/graphics_engine/src/*.c) \
                       $(wildcard ../lib/graphics_engine/src/*.cpp)
-LOCAL_CFLAGS       := -I../lib/graphics_engine/include \
-                      -I../lib/sdl2/include/           \
-                      -I../lib/irrlicht/include/
+LOCAL_CFLAGS       := -DENABLE_LIBASTCENC                 \
+                      -I../lib/graphics_engine/include    \
+                      -I../lib/graphics_utils             \
+                      -I../lib/sdl2/include/              \
+                      -I../lib/bullet/src/                \
+                      -I../lib/irrlicht/include/          \
+                      -I../lib/shaderc/libshaderc/include \
+                      -I../lib/libsquish                  \
+                      -Ideps-$(TARGET_ARCH_ABI)/astc-encoder/Source
 ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
 LOCAL_ARM_NEON     := false
 endif
+LOCAL_STATIC_LIBRARIES := shaderc libsquish libastcenc
 include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 

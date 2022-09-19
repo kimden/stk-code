@@ -30,7 +30,9 @@
 #include "utils/translation.hpp"
 
 #include <IGUIEnvironment.h>
-
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#endif
 
 using namespace GUIEngine;
 using namespace irr;
@@ -167,6 +169,9 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
 
             UserConfigParams::m_texture_compression =
                 getWidget<CheckBoxWidget>("texture_compression")->getState();
+#ifndef SERVER_ONLY
+            GE::getGEConfig()->m_texture_compression = UserConfigParams::m_texture_compression;
+#endif
 
             UserConfigParams::m_particles_effects =
                 getWidget<SpinnerWidget>("particles_effects")->getValue();
@@ -208,6 +213,11 @@ void CustomVideoSettingsDialog::updateActivation()
 {
 #ifndef SERVER_ONLY
     bool light = getWidget<CheckBoxWidget>("dynamiclight")->getState();
+    if (!CVS->isGLSL())
+    {
+        getWidget<CheckBoxWidget>("dynamiclight")->setActive(false);
+        light = false;
+    }
     getWidget<CheckBoxWidget>("motionblur")->setActive(light);
     getWidget<CheckBoxWidget>("dof")->setActive(light);
     getWidget<SpinnerWidget>("shadows")->setActive(light);

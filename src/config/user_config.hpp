@@ -611,21 +611,27 @@ namespace UserConfigParams
     PARAM_PREFIX GroupUserConfigParam        m_video_group
         PARAM_DEFAULT( GroupUserConfigParam("Video", "Video Settings") );
 
+    PARAM_PREFIX IntUserConfigParam         m_real_width
+            PARAM_DEFAULT(  IntUserConfigParam(1024, "real_width", &m_video_group,
+                                            "Screen/window real width in pixels before high dpi is applied") );
+    PARAM_PREFIX IntUserConfigParam         m_real_height
+            PARAM_DEFAULT(  IntUserConfigParam(768, "real_height", &m_video_group,
+                                           "Screen/window real height in pixels before high dpi is applied") );
     PARAM_PREFIX IntUserConfigParam         m_width
             PARAM_DEFAULT(  IntUserConfigParam(1024, "width", &m_video_group,
-                                            "Screen/window width in pixels") );
+                                            "Screen/window width in pixels, this value should not be edited") );
     PARAM_PREFIX IntUserConfigParam         m_height
             PARAM_DEFAULT(  IntUserConfigParam(768, "height", &m_video_group,
-                                           "Screen/window height in pixels") );
+                                           "Screen/window height in pixels, this value should not be edited") );
     PARAM_PREFIX BoolUserConfigParam        m_fullscreen
             PARAM_DEFAULT(  BoolUserConfigParam(false, "fullscreen",
                                                 &m_video_group) );
-    PARAM_PREFIX IntUserConfigParam         m_prev_width
-            PARAM_DEFAULT(  IntUserConfigParam(1024, "prev_width",
-                            &m_video_group, "Previous screen/window width") );
-    PARAM_PREFIX IntUserConfigParam         m_prev_height
-            PARAM_DEFAULT(  IntUserConfigParam(768, "prev_height",
-                            &m_video_group,"Previous screen/window height") );
+    PARAM_PREFIX IntUserConfigParam         m_prev_real_width
+            PARAM_DEFAULT(  IntUserConfigParam(1024, "prev_real_width",
+                            &m_video_group, "Previous real screen/window width") );
+    PARAM_PREFIX IntUserConfigParam         m_prev_real_height
+            PARAM_DEFAULT(  IntUserConfigParam(768, "prev_real_height",
+                            &m_video_group,"Previous real screen/window height") );
     PARAM_PREFIX BoolUserConfigParam        m_prev_fullscreen
             PARAM_DEFAULT(  BoolUserConfigParam(false, "prev_fullscreen",
                             &m_video_group) );
@@ -706,14 +712,24 @@ namespace UserConfigParams
         PARAM_DEFAULT(  FloatUserConfigParam(3, "font_size",
         &m_video_group, "The size of fonts. 0 is the smallest and 6 is the biggest") );
 
-#if defined(_IRR_COMPILE_WITH_DIRECT3D_9_) && defined(_M_ARM64)
+#if defined(_IRR_COMPILE_WITH_DIRECT3D_9_) && defined(_M_ARM)
     PARAM_PREFIX StringUserConfigParam         m_render_driver
         PARAM_DEFAULT(  StringUserConfigParam("directx9", "render_driver",
-        &m_video_group, "Render video driver to use, at the moment gl or directx9 is supported.") );
+        &m_video_group, "Render video driver to use, at the moment gl, vulkan or directx9 is supported.") );
 #else
     PARAM_PREFIX StringUserConfigParam         m_render_driver
         PARAM_DEFAULT(  StringUserConfigParam("gl", "render_driver",
-        &m_video_group, "Render video driver to use, at the moment gl or directx9 is supported.") );
+        &m_video_group, "Render video driver to use, at the moment gl, vulkan or directx9 is supported.") );
+#endif
+
+#if defined(MOBILE_STK)
+    PARAM_PREFIX BoolUserConfigParam        m_vulkan_fullscreen_desktop
+        PARAM_DEFAULT(BoolUserConfigParam(false, "vulkan_fullscreen_desktop",
+        &m_video_group, "Use SDL_WINDOW_FULLSCREEN_DESKTOP for vulkan device"));
+#else
+    PARAM_PREFIX BoolUserConfigParam        m_vulkan_fullscreen_desktop
+        PARAM_DEFAULT(BoolUserConfigParam(true, "vulkan_fullscreen_desktop",
+        &m_video_group, "Use SDL_WINDOW_FULLSCREEN_DESKTOP for vulkan device"));
 #endif
 
     // ---- Recording

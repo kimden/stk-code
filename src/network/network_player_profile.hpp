@@ -22,6 +22,7 @@
 #ifndef HEADER_NETWORK_PLAYER_PROFILE
 #define HEADER_NETWORK_PLAYER_PROFILE
 
+#include "network/kart_data.hpp"
 #include "utils/types.hpp"
 
 #include "irrString.h"
@@ -76,6 +77,7 @@ private:
 
     static float m_team_color[20];
 
+    KartData m_kart_data;
 public:
     // ------------------------------------------------------------------------
     static std::shared_ptr<NetworkPlayerProfile>
@@ -127,7 +129,11 @@ public:
     uint32_t getHostId() const                            { return m_host_id; }
     // ------------------------------------------------------------------------
     /** Sets the kart name for this player. */
-    void setKartName(const std::string &kart_name) { m_kart_name = kart_name; }
+    void setKartName(const std::string &kart_name)
+    {
+        m_kart_name = kart_name;
+        m_kart_data = KartData();
+    }
     // ------------------------------------------------------------------------
     /** Returns the name of the kart this player has selected. */
     const std::string &getKartName() const              { return m_kart_name; }
@@ -179,6 +185,10 @@ public:
     int getTemporaryTeam() const                   { return m_temporary_team; }
     // ------------------------------------------------------------------------
     const std::string& getCountryCode() const        { return m_country_code; }
+    // ------------------------------------------------------------------------
+    void setKartData(const KartData& data)              { m_kart_data = data; }
+    // ------------------------------------------------------------------------
+    const KartData& getKartData() const                 { return m_kart_data; }
 };   // class NetworkPlayerProfile
 
 #endif // HEADER_NETWORK_PLAYER_PROFILE

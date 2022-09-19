@@ -6,13 +6,15 @@
 #ifdef _IRR_COMPILE_WITH_VULKAN_
 
 #include "vulkan_wrapper.h"
+#include "ge_vma.hpp"
 #include "SDL_video.h"
 
 #include "../source/Irrlicht/CNullDriver.h"
 #include "SIrrCreationParameters.h"
 #include "SColor.h"
-#include <map>
+#include <array>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -21,17 +23,30 @@ using namespace video;
 
 namespace GE
 {
+    class GESPM;
+    class GEVulkanDepthTexture;
+    class GEVulkanDrawCall;
+    class GEVulkanFBOTexture;
+    class GEVulkanMeshCache;
+    class GEVulkanTextureDescriptor;
     enum GEVulkanSampler : unsigned
     {
-        GVS_MIN,
-        GVS_NEAREST = GVS_MIN
+        GVS_MIN = 0,
+        GVS_NEAREST = GVS_MIN,
+        GVS_SKYBOX,
+        GVS_3D_MESH_MIPMAP_2,
+        GVS_3D_MESH_MIPMAP_4,
+        GVS_3D_MESH_MIPMAP_16,
+        GVS_2D_RENDER,
+        GVS_COUNT,
     };
     class GEVulkanDriver : public video::CNullDriver
     {
     public:
 
         //! constructor
-        GEVulkanDriver(const SIrrlichtCreationParameters& params, io::IFileSystem* io, SDL_Window* window);
+        GEVulkanDriver(const SIrrlichtCreationParameters& params, io::IFileSystem* io, SDL_Window* window,
+                       IrrlichtDevice* device);
 
         //! destructor
         virtual ~GEVulkanDriver();
@@ -40,10 +55,10 @@ namespace GE
         virtual bool beginScene(bool backBuffer=true, bool zBuffer=true,
                 SColor color=SColor(255,0,0,0),
                 const SExposedVideoData& videoData=SExposedVideoData(),
-                core::rect<s32>* sourceRect=0) { return true; }
+                core::rect<s32>* sourceRect=0);
 
         //! applications must call this method after performing any rendering. returns false if failed.
-        virtual bool endScene() { return true; }
+        virtual bool endScene();
 
         //! queries the features of the driver, returns true if feature is available
         virtual bool queryFeature(E_VIDEO_DRIVER_FEATURE feature) const  { return true; }
@@ -52,12 +67,12 @@ namespace GE
         virtual void setTransform(E_TRANSFORMATION_STATE state, const core::matrix4& mat) {}
 
         //! sets a material
-        virtual void setMaterial(const SMaterial& material) {}
+        virtual void setMaterial(const SMaterial& material) { Material = material; }
 
         //! sets a render target
         virtual bool setRenderTarget(video::ITexture* texture,
             bool clearBackBuffer=true, bool clearZBuffer=true,
-            SColor color=video::SColor(0,0,0,0)) { return true; }
+            SColor color=video::SColor(0,0,0,0));
 
         //! Sets multiple render targets
         virtual bool setRenderTarget(const core::array<video::IRenderTarget>& texture,
@@ -65,14 +80,10 @@ namespace GE
             SColor color=video::SColor(0,0,0,0)) { return true; }
 
         //! sets a viewport
-        virtual void setViewPort(const core::rect<s32>& area) {}
+        virtual void setViewPort(const core::rect<s32>& area);
 
         //! gets the area of the current viewport
-        virtual const core::rect<s32>& getViewPort() const
-        {
-            static core::rect<s32> unused;
-            return unused;
-        }
+        virtual const core::rect<s32>& getViewPort() const { return m_viewport; }
 
         //! updates hardware buffer if needed
         virtual bool updateHardwareBuffer(SHWBufferLink *HWBuffer) { return false; }
@@ -120,17 +131,17 @@ namespace GE
         virtual void draw2DVertexPrimitiveList(const void* vertices, u32 vertexCount,
                 const void* indexList, u32 primitiveCount,
                 E_VERTEX_TYPE vType, scene::E_PRIMITIVE_TYPE pType,
-                E_INDEX_TYPE iType) {}
+                E_INDEX_TYPE iType);
 
         //! draws an 2d image, using a color (if color is other then Color(255,255,255,255)) and the alpha channel of the texture if wanted.
         virtual void draw2DImage(const video::ITexture* texture, const core::position2d<s32>& destPos,
             const core::rect<s32>& sourceRect, const core::rect<s32>* clipRect = 0,
-            SColor color=SColor(255,255,255,255), bool useAlphaChannelOfTexture=false) {}
+            SColor color=SColor(255,255,255,255), bool useAlphaChannelOfTexture=false);
 
         //! Draws a part of the texture into the rectangle.
         virtual void draw2DImage(const video::ITexture* texture, const core::rect<s32>& destRect,
             const core::rect<s32>& sourceRect, const core::rect<s32>* clipRect = 0,
-            const video::SColor* const colors=0, bool useAlphaChannelOfTexture=false) {}
+            const video::SColor* const colors=0, bool useAlphaChannelOfTexture=false);
 
         //! Draws a set of 2d images, using a color and the alpha channel of the texture.
         virtual void draw2DImageBatch(const video::ITexture* texture,
@@ -138,12 +149,16 @@ namespace GE
                 const core::array<core::rect<s32> >& sourceRects,
                 const core::rect<s32>* clipRect=0,
                 SColor color=SColor(255,255,255,255),
-                bool useAlphaChannelOfTexture=false) {}
+                bool useAlphaChannelOfTexture=false);
 
         //!Draws an 2d rectangle with a gradient.
         virtual void draw2DRectangle(const core::rect<s32>& pos,
             SColor colorLeftUp, SColor colorRightUp, SColor colorLeftDown, SColor colorRightDown,
-            const core::rect<s32>* clip) {}
+            const core::rect<s32>* clip)
+        {
+            SColor color[4] = { colorLeftUp, colorLeftDown, colorRightDown, colorRightUp };
+            draw2DImage(m_white_texture, pos, core::recti(0, 0, 2, 2), clip, color, true);
+        }
 
         //! Draws a 2d line.
         virtual void draw2DLine(const core::position2d<s32>& start,
@@ -220,7 +235,7 @@ namespace GE
 
         //! Creates a render target texture.
         virtual ITexture* addRenderTargetTexture(const core::dimension2d<u32>& size,
-                const io::path& name, const ECOLOR_FORMAT format = ECF_UNKNOWN, const bool useStencil = false) { return NULL; }
+                const io::path& name, const ECOLOR_FORMAT format = ECF_UNKNOWN, const bool useStencil = false);
 
         //! Clears the ZBuffer.
         virtual void clearZBuffer() {}
@@ -266,27 +281,90 @@ namespace GE
         //! Returns the maximum texture size supported.
         virtual core::dimension2du getMaxTextureSize() const { return core::dimension2du(16384, 16384); }
 
-        virtual void enableScissorTest(const core::rect<s32>& r) {}
-        virtual void disableScissorTest() {}
+        virtual void enableScissorTest(const core::rect<s32>& r) { m_clip = r; }
+        core::rect<s32> getFullscreenClip() const
+        {
+            return core::rect<s32>(0, 0, ScreenSize.Width, ScreenSize.Height);
+        }
+        virtual void disableScissorTest()      { m_clip = getFullscreenClip(); }
+        virtual const core::dimension2d<u32>& getCurrentRenderTargetSize() const { return ScreenSize; }
         VkSampler getSampler(GEVulkanSampler s) const
         {
-            if (m_vk->samplers.find(s) == m_vk->samplers.end())
+            if (s >= GVS_COUNT)
                 return VK_NULL_HANDLE;
-            return m_vk->samplers.at(s);
+            return m_vk->samplers[s];
         }
         VkDevice getDevice() const { return m_vk->device; }
-        void destroyVulkan()
-        {
-            delete m_vk.get();
-            m_vk.release();
-        }
+        void destroyVulkan();
         bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-                          VkMemoryPropertyFlags properties, VkBuffer& buffer,
-                          VkDeviceMemory& buffer_memory);
+                          VmaAllocationCreateInfo& alloc_create_info,
+                          VkBuffer& buffer, VmaAllocation& buffer_allocation);
         VkPhysicalDevice getPhysicalDevice() const { return m_physical_device; }
-        VkCommandBuffer beginSingleTimeCommands();
-        void endSingleTimeCommands(VkCommandBuffer command_buffer);
+        const VkPhysicalDeviceFeatures& getPhysicalDeviceFeatures() const
+                                                          { return m_features; }
+        const VkPhysicalDeviceProperties& getPhysicalDeviceProperties() const
+                                                        { return m_properties; }
+        VkExtent2D getSwapChainExtent() const    { return m_swap_chain_extent; }
+        size_t getSwapChainImagesCount() const
+                                      { return m_vk->swap_chain_images.size(); }
+        VkRenderPass getRenderPass() const         { return m_vk->render_pass; }
+        void copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
+        VkCommandBuffer getCurrentCommandBuffer()
+                              { return m_vk->command_buffers[m_current_frame]; }
+        std::vector<VkImage>& getSwapChainImages()
+                                             { return m_vk->swap_chain_images; }
+        std::vector<VkFramebuffer>& getSwapChainFramebuffers()
+                                       { return m_vk->swap_chain_framebuffers; }
 
+        unsigned int getCurrentFrame() const         { return m_current_frame; }
+        unsigned int getCurrentImageIndex() const      { return m_image_index; }
+        constexpr static unsigned getMaxFrameInFlight()            { return 2; }
+        video::SColor getClearColor() const            { return m_clear_color; }
+        video::SColor getRTTClearColor() const     { return m_rtt_clear_color; }
+        const core::rect<s32>& getCurrentClip() const         { return m_clip; }
+        video::ITexture* getWhiteTexture() const     { return m_white_texture; }
+        video::ITexture* getTransparentTexture() const
+                                               { return m_transparent_texture; }
+        void getRotatedRect2D(VkRect2D* rect);
+        void getRotatedViewport(VkViewport* vp, bool handle_rtt);
+        const core::matrix4& getPreRotationMatrix()
+                                               { return m_pre_rotation_matrix; }
+        virtual void pauseRendering();
+        virtual void unpauseRendering();
+        void updateSwapInterval(int value)
+        {
+            if (m_params.SwapInterval == value)
+                return;
+            m_params.SwapInterval = value;
+            destroySwapChainRelated(false/*handle_surface*/);
+            createSwapChainRelated(false/*handle_surface*/);
+        }
+        void updateRenderScale(float value);
+        uint32_t getGraphicsFamily() const         { return m_graphics_family; }
+        unsigned getGraphicsQueueCount() const
+                                              { return m_graphics_queue_count; }
+        std::unique_lock<std::mutex> getGraphicsQueue(VkQueue* queue) const;
+        void waitIdle(bool flush_command_loader = false);
+        void setDisableWaitIdle(bool val)         { m_disable_wait_idle = val; }
+        IrrlichtDevice* getIrrlichtDevice() const  { return m_irrlicht_device; }
+        GEVulkanDepthTexture* getDepthTexture() const { return m_depth_texture; }
+        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+                                     VkImageTiling tiling,
+                                     VkFormatFeatureFlags features);
+        VmaAllocator getVmaAllocator() const         { return m_vk->allocator; }
+        GEVulkanMeshCache* getVulkanMeshCache() const;
+        GEVulkanTextureDescriptor* getMeshTextureDescriptor() const
+                                           { return m_mesh_texture_descriptor; }
+        GEVulkanFBOTexture* getRTTTexture() const      { return m_rtt_texture; }
+        GEVulkanFBOTexture* getSeparateRTTTexture() const
+                                              { return m_separate_rtt_texture; }
+        void handleDeletedTextures();
+        void addRTTPolyCount(unsigned count)       { m_rtt_polycount += count; }
+        SDL_Window* getSDLWindow() const                    { return m_window; }
+        void clearDrawCallsCache();
+        void addDrawCallToCache(std::unique_ptr<GEVulkanDrawCall>& dc);
+        std::unique_ptr<GEVulkanDrawCall> getDrawCallFromCache();
+        GESPM* getBillboardQuad() const             { return m_billboard_quad; }
     private:
         struct SwapChainSupportDetails
         {
@@ -320,41 +398,54 @@ namespace GE
             E_GPU_SHADING_LANGUAGE shadingLang = EGSL_DEFAULT) { return 0; }
 
         SIrrlichtCreationParameters m_params;
+        SMaterial Material;
         // RAII to auto cleanup
         struct VK
         {
             VkInstance instance;
+            VkDebugUtilsMessengerEXT debug;
             VkSurfaceKHR surface;
             VkDevice device;
+            VmaAllocator allocator;
             VkSwapchainKHR swap_chain;
             std::vector<VkImage> swap_chain_images;
             std::vector<VkImageView> swap_chain_image_views;
             std::vector<VkSemaphore> image_available_semaphores;
             std::vector<VkSemaphore> render_finished_semaphores;
             std::vector<VkFence> in_flight_fences;
-            VkCommandPool command_pool;
+            std::vector<VkCommandPool> command_pools;
             std::vector<VkCommandBuffer> command_buffers;
-            std::map<GEVulkanSampler, VkSampler> samplers;
+            std::array<VkSampler, GVS_COUNT> samplers;
+            VkRenderPass render_pass;
+            std::vector<VkFramebuffer> swap_chain_framebuffers;
             VK()
             {
                 instance = VK_NULL_HANDLE;
+                debug = VK_NULL_HANDLE;
                 surface = VK_NULL_HANDLE;
                 device = VK_NULL_HANDLE;
+                allocator = VK_NULL_HANDLE;
                 swap_chain = VK_NULL_HANDLE;
-                command_pool = VK_NULL_HANDLE;
+                samplers = {{}};
+                render_pass = VK_NULL_HANDLE;
             }
             ~VK()
             {
-                for (auto& sampler : samplers)
-                    vkDestroySampler(device, sampler.second, NULL);
-                if (!command_buffers.empty())
+                for (unsigned i = 0; i < command_buffers.size(); i++)
                 {
-                    vkFreeCommandBuffers(device, command_pool,
-                        (uint32_t)(command_buffers.size()),
-                        &command_buffers[0]);
+                    vkFreeCommandBuffers(device, command_pools[i], 1,
+                        &command_buffers[i]);
+                    vkDestroyCommandPool(device, command_pools[i], NULL);
                 }
-                if (command_pool != VK_NULL_HANDLE)
-                    vkDestroyCommandPool(device, command_pool, NULL);
+                for (VkFramebuffer& framebuffer : swap_chain_framebuffers)
+                    vkDestroyFramebuffer(device, framebuffer, NULL);
+                if (render_pass != VK_NULL_HANDLE)
+                    vkDestroyRenderPass(device, render_pass, NULL);
+                if (device != VK_NULL_HANDLE)
+                {
+                    for (unsigned i = 0; i < GVS_COUNT; i++)
+                        vkDestroySampler(device, samplers[i], NULL);
+                }
                 for (VkSemaphore& semaphore : image_available_semaphores)
                     vkDestroySemaphore(device, semaphore, NULL);
                 for (VkSemaphore& semaphore : render_finished_semaphores)
@@ -365,10 +456,14 @@ namespace GE
                     vkDestroyImageView(device, image_view, NULL);
                 if (swap_chain != VK_NULL_HANDLE)
                     vkDestroySwapchainKHR(device, swap_chain, NULL);
+                if (allocator != VK_NULL_HANDLE)
+                    vmaDestroyAllocator(allocator);
                 if (device != VK_NULL_HANDLE)
                     vkDestroyDevice(device, NULL);
                 if (surface != VK_NULL_HANDLE)
                     vkDestroySurfaceKHR(instance, surface, NULL);
+                if (vkDestroyDebugUtilsMessengerEXT && debug != VK_NULL_HANDLE)
+                     vkDestroyDebugUtilsMessengerEXT(instance, debug, NULL);
                 if (instance != VK_NULL_HANDLE)
                     vkDestroyInstance(instance, NULL);
             }
@@ -381,18 +476,44 @@ namespace GE
         VkSurfaceCapabilitiesKHR m_surface_capabilities;
         std::vector<VkSurfaceFormatKHR> m_surface_formats;
         std::vector<VkPresentModeKHR> m_present_modes;
-        VkQueue m_graphics_queue;
+        std::vector<VkQueue> m_graphics_queue;
         VkQueue m_present_queue;
+        mutable std::vector<std::mutex*> m_graphics_queue_mutexes;
 
         uint32_t m_graphics_family;
         uint32_t m_present_family;
+        unsigned m_graphics_queue_count;
         VkPhysicalDeviceProperties m_properties;
         VkPhysicalDeviceFeatures m_features;
+
+        unsigned int m_current_frame;
+        uint32_t m_image_index;
+        video::SColor m_clear_color, m_rtt_clear_color;
+        core::rect<s32> m_clip;
+        core::rect<s32> m_viewport;
+        core::matrix4 m_pre_rotation_matrix;
+
+        video::ITexture* m_white_texture;
+        video::ITexture* m_transparent_texture;
+
+        SDL_Window* m_window;
+        bool m_disable_wait_idle;
+
+        IrrlichtDevice* m_irrlicht_device;
+        GEVulkanDepthTexture* m_depth_texture;
+        GEVulkanTextureDescriptor* m_mesh_texture_descriptor;
+        GEVulkanFBOTexture* m_rtt_texture;
+        GEVulkanFBOTexture* m_prev_rtt_texture;
+        GEVulkanFBOTexture* m_separate_rtt_texture;
+        u32 m_rtt_polycount;
+
+        std::vector<std::unique_ptr<GEVulkanDrawCall> > m_draw_calls_cache;
+        GESPM* m_billboard_quad;
 
         void createInstance(SDL_Window* window);
         void findPhysicalDevice();
         bool checkDeviceExtensions(VkPhysicalDevice device);
-        bool findQueueFamilies(VkPhysicalDevice device, uint32_t* graphics_family, uint32_t* present_family);
+        bool findQueueFamilies(VkPhysicalDevice device, uint32_t* graphics_family, unsigned* graphics_queue_count, uint32_t* present_family);
         bool updateSurfaceInformation(VkPhysicalDevice device,
                                       VkSurfaceCapabilitiesKHR* surface_capabilities,
                                       std::vector<VkSurfaceFormatKHR>* surface_formats,
@@ -400,11 +521,18 @@ namespace GE
         void createDevice();
         void createSwapChain();
         void createSyncObjects();
-        void createCommandPool();
         void createCommandBuffers();
         void createSamplers();
+        void createRenderPass();
+        void createFramebuffers();
+        void createUnicolorTextures();
+        void initPreRotationMatrix();
         std::string getVulkanVersionString() const;
         std::string getDriverVersionString() const;
+        void destroySwapChainRelated(bool handle_surface);
+        void createSwapChainRelated(bool handle_surface);
+        void buildCommandBuffers();
+        void createBillboardQuad();
     };
 
 }

@@ -9,6 +9,8 @@
 #include "IXMLReader.h"
 #include "IFileArchive.h"
 
+#include <mutex>
+
 namespace irr
 {
 namespace video
@@ -324,6 +326,11 @@ public:
 	\return True if file exists, and false if it does not exist or an error occured. */
 	virtual bool existFile(const path& filename) const =0;
 
+	//! Determines if a file exists and could be opened (thread-safe, ignore file archives), this function returns false for directory
+	/** \param filename is the string identifying the file which should be tested for existence.
+	\return True if file exists, and false if it does not exist or an error occured. */
+	virtual bool existFileOnly(const path& filename) const =0;
+
 	//! Creates a XML Reader from a file which returns all parsed strings as wide characters (wchar_t*).
 	/** Use createXMLReaderUTF8() if you prefer char* instead of wchar_t*. See IIrrXMLReader for
 	more information on how to use the parser.
@@ -381,6 +388,8 @@ public:
 	If you no longer need the object, you should call IAttributes::drop().
 	See IReferenceCounted::drop() for more information. */
 	virtual IAttributes* createEmptyAttributes(video::IVideoDriver* driver=0) =0;
+
+	virtual std::unique_lock<std::recursive_mutex> acquireFileArchivesMutex() const = 0;
 };
 
 

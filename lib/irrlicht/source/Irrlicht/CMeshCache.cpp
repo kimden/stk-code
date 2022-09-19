@@ -29,6 +29,7 @@ void CMeshCache::addMesh(const io::path& filename, IAnimatedMesh* mesh)
 	e.Mesh = mesh;
 
 	Meshes.push_back(e);
+	meshCacheChanged();
 }
 
 
@@ -43,6 +44,7 @@ void CMeshCache::removeMesh(const IMesh* const mesh)
 		{
 			Meshes[i].Mesh->drop();
 			Meshes.erase(i);
+			meshCacheChanged();
 			return;
 		}
 	}
@@ -156,6 +158,7 @@ void CMeshCache::clear()
 		Meshes[i].Mesh->drop();
 
 	Meshes.clear();
+	meshCacheChanged();
 }
 
 //! Clears all meshes that are held in the mesh cache but not used anywhere else.
@@ -168,6 +171,7 @@ void CMeshCache::clearUnusedMeshes()
 			Meshes[i].Mesh->drop();
 			Meshes.erase(i);
 			--i;
+			meshCacheChanged();
 		}
 	}
 }

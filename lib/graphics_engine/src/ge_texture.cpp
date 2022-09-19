@@ -4,33 +4,73 @@
 #include "ge_vulkan_texture.hpp"
 #include "ge_texture.hpp"
 
+#include <IFileSystem.h>
 #include <IVideoDriver.h>
-#include <IAttributes.h>
 
 namespace GE
 {
 using namespace irr;
 video::IImage* getResizedImage(const std::string& path,
+                               const core::dimension2du& max_size,
                                core::dimension2d<u32>* orig_size)
 {
-    video::IImage* image = getDriver()->createImageFromFile(path.c_str());
+    io::IReadFile* file =
+        getDriver()->getFileSystem()->createAndOpenFile(path.c_str());
+    if (file == NULL)
+        return NULL;
+    video::IImage* image = getResizedImage(file, max_size, orig_size);
+    file->drop();
+    return image;
+}   // getResizedImage
+
+// ----------------------------------------------------------------------------
+core::dimension2du getResizingTarget(const core::dimension2du& orig_size,
+                                     const core::dimension2du& max_size)
+{
+    bool has_npot = !getGEConfig()->m_disable_npot_texture &&
+        getDriver()->queryFeature(video::EVDF_TEXTURE_NPOT);
+
+    core::dimension2du tex_size = orig_size.getOptimalSize(!has_npot);
+    if (tex_size.Width > max_size.Width)
+        tex_size.Width = max_size.Width;
+    if (tex_size.Height > max_size.Height)
+        tex_size.Height = max_size.Height;
+    return tex_size;
+}   // getResizingTarget
+
+// ----------------------------------------------------------------------------
+video::IImage* getResizedImageFullPath(const io::path& fullpath,
+                                       const core::dimension2d<u32>& max_size,
+                                       core::dimension2d<u32>* orig_size,
+                                     const core::dimension2d<u32>* target_size)
+{
+    io::IReadFile* file = io::createReadFile(fullpath);
+    if (file == NULL)
+        return NULL;
+    video::IImage* texture_image = getResizedImage(file, max_size, orig_size,
+        target_size);
+    file->drop();
+    return texture_image;
+}   // getResizedImageFullPath
+
+// ----------------------------------------------------------------------------
+video::IImage* getResizedImage(irr::io::IReadFile* file,
+                               const core::dimension2du& max_size,
+                               core::dimension2d<u32>* orig_size,
+                               const core::dimension2d<u32>* target_size)
+{
+    video::IImage* image = getDriver()->createImageFromFile(file);
     if (image == NULL)
         return NULL;
     if (orig_size)
         *orig_size = image->getDimension();
 
     core::dimension2du img_size = image->getDimension();
-    bool has_npot = !getGEConfig()->m_disable_npot_texture &&
-        getDriver()->queryFeature(video::EVDF_TEXTURE_NPOT);
-
-    core::dimension2du tex_size = img_size.getOptimalSize(!has_npot);
-    const core::dimension2du& max_size = getDriver()->getDriverAttributes().
-        getAttributeAsDimension2d("MAX_TEXTURE_SIZE");
-
-    if (tex_size.Width > max_size.Width)
-        tex_size.Width = max_size.Width;
-    if (tex_size.Height > max_size.Height)
-        tex_size.Height = max_size.Height;
+    core::dimension2du tex_size;
+    if (target_size)
+        tex_size = *target_size;
+    else
+        tex_size = getResizingTarget(img_size, max_size);
 
     if (image->getColorFormat() != video::ECF_A8R8G8B8 ||
         tex_size != img_size)

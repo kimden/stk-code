@@ -2091,6 +2091,8 @@ NetworkString* ServerLobby::getLoadWorldMessage(
             ServerConfig::m_flag_deactivated_time);
         load_world_message->addUInt16(flag_deactivated_time);
     }
+    for (unsigned i = 0; i < players.size(); i++)
+        players[i]->getKartData().encode(load_world_message);
     return load_world_message;
 }   // getLoadWorldMessage
 
@@ -2425,6 +2427,8 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
         std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
             getLivePlayers();
         encodePlayers(ns, players);
+        for (unsigned i = 0; i < players.size(); i++)
+            players[i]->getKartData().encode(ns);
     }
 
     m_peers_ready[peer] = false;
@@ -4388,8 +4392,7 @@ void ServerLobby::connectionRequested(Event* event)
         (player_count != 1 || online_id == 0 || duplicated_ranked_player)) ||
         (peer->isAIPeer() && !peer->getAddress().isLAN() &&!ServerConfig::m_ai_anywhere) ||
         (peer->isAIPeer() &&
-        ServerConfig::m_ai_handling && !m_ai_peer.expired()) ||
-        (peer->isAIPeer() && m_game_setup->isGrandPrix()))
+        ServerConfig::m_ai_handling && !m_ai_peer.expired()))
     {
         NetworkString* message = getNetworkString(2);
         message->setSynchronous(true);
@@ -6326,6 +6329,35 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
             peer->getPlayerProfiles()[i]->setKartName(kart);
         }
     }
+    if (peer->getClientCapabilities().find("real_addon_karts") ==
+        peer->getClientCapabilities().end() || ns.size() == 0)
+        return;
+    for (unsigned i = 0; i < player_count; i++)
+    {
+        KartData kart_data(ns);
+        std::string type = kart_data.m_kart_type;
+        auto& player = peer->getPlayerProfiles()[i];
+        const std::string& kart_id = player->getKartName();
+        if (NetworkConfig::get()->useTuxHitboxAddon() &&
+            StringUtils::startsWith(kart_id, "addon_") &&
+            kart_properties_manager->hasKartTypeCharacteristic(type))
+        {
+            const KartProperties* real_addon =
+                kart_properties_manager->getKart(kart_id);
+            if (ServerConfig::m_real_addon_karts && real_addon)
+            {
+                kart_data = KartData(real_addon);
+            }
+            else
+            {
+                const KartProperties* tux_kp =
+                    kart_properties_manager->getKart("tux");
+                kart_data = KartData(tux_kp);
+                kart_data.m_kart_type = type;
+            }
+            player->setKartData(kart_data);
+        }
+    }
 }   // setPlayerKarts
 
 //-----------------------------------------------------------------------------
@@ -6357,6 +6389,9 @@ void ServerLobby::handleKartInfo(Event* event)
         .addUInt32(rki.getOnlineId()).addUInt8(rki.getHandicap())
         .addUInt8((uint8_t)rki.getLocalPlayerId())
         .encodeString(rki.getKartName()).encodeString(rki.getCountryCode());
+    if (peer->getClientCapabilities().find("real_addon_karts") !=
+        peer->getClientCapabilities().end())
+        rki.getKartData().encode(ns);
     peer->sendPacket(ns, true/*reliable*/);
     delete ns;
 

@@ -102,15 +102,15 @@ STK_APPDATA_FILE_4 = """    <p>
 STK_APPDATA_FILE_5 = """  </description>
   <screenshots>
     <screenshot type=\"default\">
-      <image>https://supertuxkart.net/images/8/83/Supertuxkart-0.9.2-screenshot-3.jpg</image>
+      <image>https://supertuxkart.net/assets/wiki/STK1.3_1.jpg</image>
       <caption>Normal Race</caption>
     </screenshot>
     <screenshot>
-      <image>https://supertuxkart.net/images/1/1f/Supertuxkart-0.9.2-screenshot-1.jpg</image>
+      <image>https://supertuxkart.net/assets/wiki/STK1.3_5.jpg</image>
       <caption>Battle</caption>
     </screenshot>
     <screenshot>
-      <image>https://supertuxkart.net/images/2/2a/Supertuxkart-0.9.2-screenshot-2.jpg</image>
+      <image>https://supertuxkart.net/assets/wiki/STK1.3_6.jpg</image>
       <caption>Soccer</caption>
     </screenshot>
   </screenshots>
@@ -121,6 +121,9 @@ STK_APPDATA_FILE_5 = """  </description>
   <url type=\"donation\">https://supertuxkart.net/Donate</url>
   <url type=\"help\">https://supertuxkart.net/Community</url>
   <url type=\"translate\">https://supertuxkart.net/Translating_STK</url>
+  <url type="faq">https://supertuxkart.net/FAQ</url>
+  <url type="vcs-browser">https://github.com/supertuxkart/stk-code</url>
+  <url type="contribute">https://supertuxkart.net/Community</url>
   <content_rating type=\"oars-1.1\">
     <content_attribute id=\"violence-cartoon\">mild</content_attribute>
     <content_attribute id=\"social-chat\">intense</content_attribute>
@@ -136,6 +139,17 @@ STK_APPDATA_FILE_5 = """  </description>
   <languages>
 """
 STK_APPDATA_FILE_6 = """  </languages>
+  <provides>
+    <binary>supertuxkart</binary>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>gamepad</control>
+  </supports>
+  <requires>
+    <memory>1024</memory>
+  </requires>
 </component>
 """
 

@@ -20,12 +20,13 @@
 #include "graphics/sp/sp_mesh.hpp"
 #include "graphics/sp/sp_mesh_buffer.hpp"
 #include "graphics/central_settings.hpp"
+#include "graphics/irr_driver.hpp"
 #include "graphics/material.hpp"
 #include "graphics/material_manager.hpp"
 #include "graphics/mesh_tools.hpp"
 #include "graphics/stk_tex_manager.hpp"
 #include "utils/constants.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 #include "utils/string_utils.hpp"
 
 #include "../../lib/irrlicht/source/Irrlicht/CSkinnedMesh.h"
@@ -36,7 +37,9 @@ const uint8_t VERSION_NOW = 1;
 #include <IVideoDriver.h>
 #include <IFileSystem.h>
 #ifndef SERVER_ONLY
-#include <ge_texture.hpp>
+#include <ge_main.hpp>
+#include <ge_spm_buffer.hpp>
+#include <ge_spm.hpp>
 #endif
 
 // ----------------------------------------------------------------------------
@@ -66,7 +69,19 @@ scene::IAnimatedMesh* SPMeshLoader::createMesh(io::IReadFile* f)
     m_joint_count = 0;
     m_frame_count = 0;
     m_mesh = NULL;
-    m_mesh = real_spm ? new SP::SPMesh() : m_scene_manager->createSkinnedMesh();
+    bool ge_spm = false;
+#ifndef SERVER_ONLY
+    if (GE::getVKDriver())
+    {
+        ge_spm = true;
+        m_mesh = new GE::GESPM();
+    }
+#endif
+    if (!m_mesh)
+    {
+        m_mesh = real_spm ?
+            new SP::SPMesh() : m_scene_manager->createSkinnedMesh();
+    }
     io::IFileSystem* fs = m_scene_manager->getFileSystem();
     std::string base_path = fs->getFileDir(f->getFileName()).c_str();
     std::string header;
@@ -154,44 +169,14 @@ scene::IAnimatedMesh* SPMeshLoader::createMesh(io::IReadFile* f)
                 }
                 std::function<void(irr::video::IImage*)> image_mani;
 #ifndef SERVER_ONLY
-                std::string mask_full_path;
                 Material* m = material_manager->getMaterial(tex_name_1,
                     /*is_full_path*/false,
                     /*make_permanent*/false,
                     /*complain_if_not_found*/true,
                     /*strip_path*/true, /*install*/true,
                     /*create_if_not_found*/false);
-                if (m && !m->getAlphaMask().empty())
-                {
-                    mask_full_path =
-                        StringUtils::getPath(m->getSamplerPath(0)) +
-                        "/" + m->getAlphaMask();
-                }
-                if (!mask_full_path.empty())
-                {
-                    image_mani = [mask_full_path](video::IImage* img)->void
-                    {
-                        video::IImage* converted_mask = GE::getResizedImage(mask_full_path);
-                        if (converted_mask == NULL)
-                        {
-                            Log::warn("SPMeshLoader", "Applying mask failed for '%s'!",
-                                mask_full_path.c_str());
-                            return;
-                        }
-                        const core::dimension2du& dim = img->getDimension();
-                        for (unsigned int x = 0; x < dim.Width; x++)
-                        {
-                            for (unsigned int y = 0; y < dim.Height; y++)
-                            {
-                                video::SColor col = img->getPixel(x, y);
-                                video::SColor alpha = converted_mask->getPixel(x, y);
-                                col.setAlpha(alpha.getRed());
-                                img->setPixel(x, y, col, false);
-                            }   // for y
-                        }   // for x
-                        converted_mask->drop();
-                    };
-                }
+                if (m)
+                    image_mani = m->getMaskImageMani();
 #endif
                 video::ITexture* tex = STKTexManager::getInstance()
                     ->getTexture(tex_name_1, image_mani);
@@ -253,6 +238,14 @@ scene::IAnimatedMesh* SPMeshLoader::createMesh(io::IReadFile* f)
                     std::get<2>(sp_mat_map[mat_id]), vt,
                     std::get<0>(sp_mat_map[mat_id]));
             }
+            else if (ge_spm)
+            {
+                assert(mat_id < mat_map.size());
+                decompressGESPM(f, vertices_count, indices_count, read_normal,
+                    read_vcolor, read_tangent, std::get<1>(mat_map[mat_id]),
+                    std::get<2>(mat_map[mat_id]), vt,
+                    std::get<0>(mat_map[mat_id]));
+            }
             else
             {
                 assert(mat_id < mat_map.size());
@@ -308,12 +301,32 @@ scene::IAnimatedMesh* SPMeshLoader::createMesh(io::IReadFile* f)
         }
         spm->m_all_armatures = std::move(m_all_armatures);
     }
+#ifndef SERVER_ONLY
+    else if (ge_spm)
+    {
+        GE::GESPM* spm = static_cast<GE::GESPM*>(m_mesh);
+        spm->m_bind_frame = m_bind_frame;
+        spm->m_joint_using = m_joint_count;
+        // Because the last frame in spm is usable
+        if (has_armature)
+        {
+            spm->m_frame_count = m_frame_count + 1;
+        }
+        for (unsigned i = 0; i < m_all_armatures.size(); i++)
+        {
+            // This is diffferent from m_joint_using
+            spm->m_total_joints +=
+                (unsigned)m_all_armatures[i].m_joint_names.size();
+        }
+        spm->m_all_armatures = std::move(m_all_armatures);
+    }
+#endif
     m_mesh->finalize();
-    if (!real_spm && has_armature)
+    scene::CSkinnedMesh* cmesh = dynamic_cast<scene::CSkinnedMesh*>(m_mesh);
+    if (cmesh && !real_spm && has_armature)
     {
         // Because the last frame in spm is usable
-        static_cast<scene::CSkinnedMesh*>(m_mesh)->AnimationFrames =
-            (float)m_frame_count + 1.0f;
+        cmesh->AnimationFrames = (float)m_frame_count + 1.0f;
     }
     m_all_armatures.clear();
     m_to_bind_pose_matrices.clear();
@@ -428,6 +441,116 @@ void SPMeshLoader::decompressSPM(irr::io::IReadFile* spm,
 }   // decompressSPM
 
 // ----------------------------------------------------------------------------
+void SPMeshLoader::decompressGESPM(irr::io::IReadFile* spm,
+                                   unsigned vertices_count,
+                                   unsigned indices_count, bool read_normal,
+                                   bool read_vcolor, bool read_tangent,
+                                   bool uv_one, bool uv_two, SPVertexType vt,
+                                   const video::SMaterial& m)
+{
+#ifndef SERVER_ONLY
+    assert(vertices_count != 0);
+    assert(indices_count != 0);
+
+    GE::GESPMBuffer* mb = new GE::GESPMBuffer();
+    static_cast<GE::GESPM*>(m_mesh)->addMeshBuffer(mb);
+    const unsigned idx_size = vertices_count > 255 ? 2 : 1;
+    for (unsigned i = 0; i < vertices_count; i++)
+    {
+        video::S3DVertexSkinnedMesh vertex = {};
+        // 3 * float position
+        spm->read(&vertex.m_position, 12);
+        if (read_normal)
+        {
+            spm->read(&vertex.m_normal, 4);
+        }
+        else
+        {
+            // 0, 1, 0
+            vertex.m_normal = 0x1FF << 10;
+        }
+        if (read_vcolor)
+        {
+            // Color identifier
+            uint8_t ci;
+            spm->read(&ci, 1);
+            if (ci == 128)
+            {
+                // All white
+                vertex.m_color = video::SColor(255, 255, 255, 255);
+            }
+            else
+            {
+                uint8_t r, g, b;
+                spm->read(&r, 1);
+                spm->read(&g, 1);
+                spm->read(&b, 1);
+                vertex.m_color = video::SColor(255, r, g, b);
+            }
+        }
+        else
+        {
+            vertex.m_color = video::SColor(255, 255, 255, 255);
+        }
+        if (uv_one)
+        {
+            spm->read(&vertex.m_all_uvs[0], 4);
+            if (uv_two)
+            {
+                spm->read(&vertex.m_all_uvs[2], 4);
+            }
+            if (read_tangent)
+            {
+                spm->read(&vertex.m_tangent, 4);
+            }
+            else
+            {
+                vertex.m_tangent = MiniGLM::quickTangent(vertex.m_normal);
+            }
+        }
+        if (vt == SPVT_SKINNED)
+        {
+            spm->read(&vertex.m_joint_idx[0], 16);
+            if (vertex.m_joint_idx[0] == -1 ||
+                vertex.m_weight[0] == 0 ||
+                // -0.0 in half float (16bit)
+                vertex.m_weight[0] == -32768)
+            {
+                // For the skinned mesh shader (reserve 1000 bones for offsets)
+                vertex.m_joint_idx[0] = -31768;
+                // 1.0 in half float (16bit)
+                vertex.m_weight[0] = 15360;
+            }
+            mb->setHasSkinning(true);
+        }
+        mb->getVerticesVector().push_back(vertex);
+    }
+
+    std::vector<uint16_t>& indices = mb->getIndicesVector();
+    indices.resize(indices_count);
+    if (idx_size == 2)
+    {
+        spm->read(indices.data(), indices_count * 2);
+    }
+    else
+    {
+        std::vector<uint8_t> tmp_idx;
+        tmp_idx.resize(indices_count);
+        spm->read(tmp_idx.data(), indices_count);
+        for (unsigned i = 0; i < indices_count; i++)
+        {
+            indices[i] = tmp_idx[i];
+        }
+    }
+    if (m.TextureLayer[0].Texture != NULL)
+    {
+        mb->getMaterial() = m;
+    }
+    mb->recalculateBoundingBox();
+#endif
+}   // decompressGESPM
+
+// ----------------------------------------------------------------------------
 void SPMeshLoader::decompress(irr::io::IReadFile* spm, unsigned vertices_count,
                               unsigned indices_count, bool read_normal,
                               bool read_vcolor, bool read_tangent, bool uv_one,
@@ -436,7 +559,8 @@ void SPMeshLoader::decompress(irr::io::IReadFile* spm, unsigned vertices_count,
 {
     assert(vertices_count != 0);
     assert(indices_count != 0);
-    scene::SSkinMeshBuffer* mb = m_mesh->addMeshBuffer();
+    scene::SSkinMeshBuffer* mb =
+        static_cast<scene::CSkinnedMesh*>(m_mesh)->addMeshBuffer();
     if (uv_two)
     {
         mb->convertTo2TCoords();
@@ -594,22 +718,23 @@ void SPMeshLoader::createAnimationData(irr::io::IReadFile* spm)
     unsigned accumulated_joints = 0;
     for (unsigned i = 0; i < armature_size; i++)
     {
-        m_all_armatures[i].getPose((float)m_bind_frame,
-            &m_to_bind_pose_matrices[accumulated_joints]);
+        m_all_armatures[i].getPose(&m_to_bind_pose_matrices[accumulated_joints],
+            (float)m_bind_frame);
         accumulated_joints += m_all_armatures[i].m_joint_used;
     }
 
+    scene::ISkinnedMesh* smesh = dynamic_cast<scene::ISkinnedMesh*>(m_mesh);
     // Only for legacy device
-    if (m_joints.empty())
+    if (!smesh || m_joints.empty())
     {
         return;
     }
-    assert(m_joints.size() == m_mesh->getMeshBufferCount());
+    assert(m_joints.size() == smesh->getMeshBufferCount());
     for (unsigned i = 0; i < m_to_bind_pose_matrices.size(); i++)
     {
         m_to_bind_pose_matrices[i].makeInverse();
     }
-    for (unsigned i = 0; i < m_mesh->getMeshBufferCount(); i++)
+    for (unsigned i = 0; i < smesh->getMeshBufferCount(); i++)
     {
         for (unsigned j = 0; j < m_joints[i].size(); j++)
         {
@@ -626,15 +751,15 @@ void SPMeshLoader::createAnimationData(irr::io::IReadFile* spm)
                     core::vector3df cur_pos, cur_nor;
                     m_to_bind_pose_matrices[m_joints[i][j].first[k]]
                         .transformVect(cur_pos,
-                        m_mesh->getMeshBuffers()[i]->getVertex(j)->Pos);
+                        smesh->getMeshBuffers()[i]->getVertex(j)->Pos);
                     bind_pos += cur_pos * m_joints[i][j].second[k];
                     m_to_bind_pose_matrices[m_joints[i][j].first[k]]
                         .rotateVect(cur_nor,
-                        m_mesh->getMeshBuffers()[i]->getVertex(j)->Normal);
+                        smesh->getMeshBuffers()[i]->getVertex(j)->Normal);
                     bind_nor += cur_nor * m_joints[i][j].second[k];
                 }
-                m_mesh->getMeshBuffers()[i]->getVertex(j)->Pos = bind_pos;
-                m_mesh->getMeshBuffers()[i]->getVertex(j)->Normal = bind_nor;
+                smesh->getMeshBuffers()[i]->getVertex(j)->Pos = bind_pos;
+                smesh->getMeshBuffers()[i]->getVertex(j)->Normal = bind_nor;
             }
         }
     }
@@ -643,8 +768,9 @@ void SPMeshLoader::createAnimationData(irr::io::IReadFile* spm)
 // ----------------------------------------------------------------------------
 void SPMeshLoader::convertIrrlicht()
 {
+    scene::ISkinnedMesh* smesh = dynamic_cast<scene::ISkinnedMesh*>(m_mesh);
     // Only for legacy device
-    if (m_joints.empty())
+    if (!smesh || m_joints.empty())
     {
         return;
     }
@@ -655,9 +781,9 @@ void SPMeshLoader::convertIrrlicht()
     }
     for (unsigned i = 0; i < total_joints; i++)
     {
-        m_mesh->addJoint(NULL);
+        smesh->addJoint(NULL);
     }
-    core::array<scene::ISkinnedMesh::SJoint*>& joints = m_mesh->getAllJoints();
+    core::array<scene::ISkinnedMesh::SJoint*>& joints = smesh->getAllJoints();
     std::vector<int> used_joints_map;
     used_joints_map.resize(m_joint_count);
     total_joints = 0;
@@ -719,7 +845,7 @@ void SPMeshLoader::convertIrrlicht()
                 {
                     break;
                 }
-                scene::ISkinnedMesh::SWeight* w = m_mesh->addWeight
+                scene::ISkinnedMesh::SWeight* w = smesh->addWeight
                     (joints[used_joints_map[m_joints[i][j].first[k]]]);
                 w->buffer_id = (uint16_t)i;
                 w->vertex_id = j;

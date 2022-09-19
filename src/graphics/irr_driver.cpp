@@ -97,6 +97,8 @@
 
 #ifndef SERVER_ONLY
 #include <ge_main.hpp>
+#include <ge_vulkan_driver.hpp>
+#include <ge_vulkan_texture_descriptor.hpp>
 #endif
 
 #ifdef ENABLE_RECORDER
@@ -388,6 +390,9 @@ void IrrDriver::createListOfVideoModes()
  */
 void IrrDriver::initDevice()
 {
+#if !defined(SERVER_ONLY)
+    GE::setShaderFolder(file_manager->getShadersDir());
+#endif
     SIrrlichtCreationParameters params;
 
     video::E_DRIVER_TYPE driver_created = video::EDT_NULL;
@@ -406,6 +411,14 @@ void IrrDriver::initDevice()
     else if (std::string(UserConfigParams::m_render_driver) == "vulkan")
     {
         driver_created = video::EDT_VULKAN;
+#ifndef SERVER_ONLY
+        GE::getGEConfig()->m_texture_compression =
+            UserConfigParams::m_texture_compression;
+        GE::getGEConfig()->m_render_scale =
+            UserConfigParams::m_scale_rtts_factor;
+        GE::getGEConfig()->m_vulkan_fullscreen_desktop =
+            UserConfigParams::m_vulkan_fullscreen_desktop;
+#endif
     }
     else
     {
@@ -450,13 +463,14 @@ void IrrDriver::initDevice()
         {
             Log::warn("irr_driver", "Unknown desktop resolution.");
         }
-        else if (UserConfigParams::m_width > (int)ssize.Width ||
-                 UserConfigParams::m_height > (int)ssize.Height)
+        else if (!UserConfigParams::m_fullscreen &&
+            (UserConfigParams::m_real_width > (int)ssize.Width ||
+            UserConfigParams::m_real_height > (int)ssize.Height))
         {
             Log::warn("irr_driver", "The window size specified in "
                       "user config is larger than your screen!");
-            UserConfigParams::m_width = (int)ssize.Width;
-            UserConfigParams::m_height = (int)ssize.Height;
+            UserConfigParams::m_real_width = (int)ssize.Width;
+            UserConfigParams::m_real_height = (int)ssize.Height;
         }
 
         if (UserConfigParams::m_fullscreen)
@@ -464,12 +478,12 @@ void IrrDriver::initDevice()
             if (modes->getVideoModeCount() > 0)
             {
                 core::dimension2d<u32> res = core::dimension2du(
-                                                    UserConfigParams::m_width,
-                                                    UserConfigParams::m_height);
+                                                    UserConfigParams::m_real_width,
+                                                    UserConfigParams::m_real_height);
                 res = modes->getVideoModeResolution(res, res);
 
-                UserConfigParams::m_width = res.Width;
-                UserConfigParams::m_height = res.Height;
+                UserConfigParams::m_real_width = res.Width;
+                UserConfigParams::m_real_height = res.Height;
             }
             else
             {
@@ -479,12 +493,12 @@ void IrrDriver::initDevice()
             }
         }
 
-        if (UserConfigParams::m_width < 1 || UserConfigParams::m_height < 1)
+        if (UserConfigParams::m_real_width < 1 || UserConfigParams::m_real_height < 1)
         {
             Log::warn("irr_driver", "Invalid window size. "
                          "Try to use the default one.");
-            UserConfigParams::m_width = MIN_SUPPORTED_WIDTH;
-            UserConfigParams::m_height = MIN_SUPPORTED_HEIGHT;
+            UserConfigParams::m_real_width = MIN_SUPPORTED_WIDTH;
+            UserConfigParams::m_real_height = MIN_SUPPORTED_HEIGHT;
         }
 
         m_device->closeDevice();
@@ -502,6 +516,9 @@ void IrrDriver::initDevice()
         m_device->run();
         m_device->drop();
         m_device  = NULL;
+#if !defined(SERVER_ONLY)
+        GE::setVideoDriver(NULL);
+#endif
 
         params.ForceLegacyDevice = (UserConfigParams::m_force_legacy_device ||
             UserConfigParams::m_gamepad_visualisation);
@@ -522,8 +539,8 @@ void IrrDriver::initDevice()
             params.SwapInterval  = UserConfigParams::m_swap_interval;
             params.FileSystem    = file_manager->getFileSystem();
             params.WindowSize    =
-                core::dimension2du(UserConfigParams::m_width,
-                                   UserConfigParams::m_height);
+                core::dimension2du(UserConfigParams::m_real_width,
+                                   UserConfigParams::m_real_height);
             params.HandleSRGB    = false;
             params.ShadersPath   = (file_manager->getShadersDir() +
                                                            "irrlicht/").c_str();
@@ -569,11 +586,11 @@ void IrrDriver::initDevice()
         // size is the problem
         if(!m_device)
         {
-            UserConfigParams::m_width  = MIN_SUPPORTED_WIDTH;
-            UserConfigParams::m_height = MIN_SUPPORTED_HEIGHT;
+            UserConfigParams::m_real_width  = MIN_SUPPORTED_WIDTH;
+            UserConfigParams::m_real_height = MIN_SUPPORTED_HEIGHT;
             m_device = createDevice(driver_created,
-                        core::dimension2du(UserConfigParams::m_width,
-                                           UserConfigParams::m_height ),
+                        core::dimension2du(UserConfigParams::m_real_width,
+                                           UserConfigParams::m_real_height ),
                                     32, //bits per pixel
                                     UserConfigParams::m_fullscreen,
                                     false,  // stencil buffers
@@ -594,9 +611,38 @@ void IrrDriver::initDevice()
     {
         Log::fatal("irr_driver", "Couldn't initialise irrlicht device. Quitting.\n");
     }
+    m_actual_screen_size = m_device->getVideoDriver()->getCurrentRenderTargetSize();
+    UserConfigParams::m_width = m_actual_screen_size.Width;
+    UserConfigParams::m_height = m_actual_screen_size.Height;
+    UserConfigParams::m_real_width = (unsigned)((float)UserConfigParams::m_width / m_device->getNativeScaleX());
+    UserConfigParams::m_real_height = (unsigned)((float)UserConfigParams::m_height / m_device->getNativeScaleY());
+
 #ifndef SERVER_ONLY 
 
-    GE::init(m_device->getVideoDriver());
+    GE::setVideoDriver(m_device->getVideoDriver());
+
+    GE::GEVulkanDriver* vk = GE::getVKDriver();
+    if (vk)
+    {
+        GE::GEVulkanTextureDescriptor* td = vk->getMeshTextureDescriptor();
+        switch (UserConfigParams::m_anisotropic)
+        {
+        case 16:
+            td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_16);
+            break;
+        case 4:
+            td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_4);
+            break;
+        case 2:
+            td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_2);
+            break;
+        default:
+            Log::warn("irr_driver", "Unsupported anisotropic values, revert");
+            UserConfigParams::m_anisotropic = 16;
+            td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_16);
+            break;
+        }
+    }
     // Assume sp is supported
     CentralVideoSettings::m_supports_sp = true;
     CVS->init();
@@ -627,6 +673,7 @@ void IrrDriver::initDevice()
         m_device->clearSystemMessages();
         m_device->run();
         m_device->drop();
+        GE::setVideoDriver(NULL);
 
         m_device = createDeviceEx(params);
 
@@ -635,7 +682,7 @@ void IrrDriver::initDevice()
             Log::fatal("irr_driver", "Couldn't initialise irrlicht device. Quitting.\n");
         }
 
-        GE::init(m_device->getVideoDriver());
+        GE::setVideoDriver(m_device->getVideoDriver());
         CVS->init();
     }
 #endif
@@ -652,8 +699,6 @@ void IrrDriver::initDevice()
     SPMeshLoader* spml = new SPMeshLoader(m_scene_manager);
     m_scene_manager->addExternalMeshLoader(spml);
     spml->drop();
-
-    m_actual_screen_size = m_video_driver->getCurrentRenderTargetSize();
 
 #ifdef ENABLE_RECORDER
     ogrRegGeneralCallback(OGR_CBT_START_RECORDING,
@@ -952,12 +997,12 @@ void IrrDriver::changeResolution(const int w, const int h,
                                  const bool fullscreen)
 {
     // update user config values
-    UserConfigParams::m_prev_width = UserConfigParams::m_width;
-    UserConfigParams::m_prev_height = UserConfigParams::m_height;
+    UserConfigParams::m_prev_real_width = UserConfigParams::m_real_width;
+    UserConfigParams::m_prev_real_height = UserConfigParams::m_real_height;
     UserConfigParams::m_prev_fullscreen = UserConfigParams::m_fullscreen;
 
-    UserConfigParams::m_width = w;
-    UserConfigParams::m_height = h;
+    UserConfigParams::m_real_width = w;
+    UserConfigParams::m_real_height = h;
     UserConfigParams::m_fullscreen = fullscreen;
 
     // Setting this flag will trigger a call to applyResolutionSetting()
@@ -981,10 +1026,9 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
     if (recreate_device)
     {
         m_video_driver->beginScene(true, true, video::SColor(255,100,101,140));
-        GL32_draw2DRectangle( video::SColor(255, 0, 0, 0),
-                                core::rect<s32>(0, 0,
-                                                UserConfigParams::m_prev_width,
-                                                UserConfigParams::m_prev_height) );
+        GL32_draw2DRectangle( video::SColor(255, 0, 0, 0), core::rect<s32>(0, 0,
+            s32(m_device->getNativeScaleX() * (float)UserConfigParams::m_prev_real_width),
+            s32(m_device->getNativeScaleY() * (float)UserConfigParams::m_prev_real_height)) );
         m_video_driver->endScene();
     }
     track_manager->removeAllCachedData();
@@ -1095,6 +1139,8 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
 
 
     kart_properties_manager->loadAllKarts();
+    kart_properties_manager->onDemandLoadKartTextures(
+        { UserConfigParams::m_default_kart }, false/*unload_unused*/);
 
     attachment_manager->loadModels();
     file_manager->popTextureSearchPath();
@@ -1113,8 +1159,8 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
 
 void IrrDriver::cancelResChange()
 {
-    UserConfigParams::m_width = UserConfigParams::m_prev_width;
-    UserConfigParams::m_height = UserConfigParams::m_prev_height;
+    UserConfigParams::m_real_width = UserConfigParams::m_prev_real_width;
+    UserConfigParams::m_real_height = UserConfigParams::m_prev_real_height;
     UserConfigParams::m_fullscreen = UserConfigParams::m_prev_fullscreen;
 
     // This will trigger calling applyResolutionSettings in update(). This is
@@ -1126,7 +1172,7 @@ void IrrDriver::cancelResChange()
     // is actually called from the gui, i.e. the event loop, i.e. while the
     // old device is active - so we can't delete this device (which we must
     // do in applyResolutionSettings)
-    m_resolution_changing=RES_CHANGE_SAME;
+    m_resolution_changing=RES_CHANGE_CANCEL;
 
 }   // cancelResChange
 
@@ -1322,7 +1368,17 @@ scene::ISceneNode *IrrDriver::addSphere(float radius,
     }
 #endif
 
+#ifndef SERVER_ONLY
+    bool vk = (GE::getVKDriver() != NULL);
+    if (vk)
+        GE::getGEConfig()->m_convert_irrlicht_mesh = true;
+#endif
     scene::IMeshSceneNode *node = m_scene_manager->addMeshSceneNode(mesh);
+#ifndef SERVER_ONLY
+    if (vk)
+        GE::getGEConfig()->m_convert_irrlicht_mesh = false;
+#endif
+
     mesh->drop();
     return node;
 }   // addSphere
@@ -1343,13 +1399,17 @@ scene::IParticleSystemSceneNode *IrrDriver::addParticleNode(bool default_emitter
 scene::ISceneNode *IrrDriver::addMesh(scene::IMesh *mesh,
                                       const std::string& debug_name,
                                       scene::ISceneNode *parent,
-                                      std::shared_ptr<RenderInfo> render_info)
+                                      std::shared_ptr<GE::GERenderInfo> render_info)
 {
 #ifdef SERVER_ONLY
     return m_scene_manager->addMeshSceneNode(mesh, parent);
 #else
     if (!CVS->isGLSL())
-        return m_scene_manager->addMeshSceneNode(mesh, parent);
+    {
+        scene::ISceneNode* node = m_scene_manager->addMeshSceneNode(mesh, parent);
+        node->resetFirstRenderInfo(render_info);
+        return node;
+    }
 
     if (!parent)
       parent = m_scene_manager->getRootSceneNode();
@@ -1560,7 +1620,7 @@ void IrrDriver::removeTexture(video::ITexture *t)
  */
 scene::IAnimatedMeshSceneNode *IrrDriver::addAnimatedMesh(scene::IAnimatedMesh *mesh,
     const std::string& debug_name, scene::ISceneNode* parent,
-    std::shared_ptr<RenderInfo> render_info)
+    std::shared_ptr<GE::GERenderInfo> render_info)
 {
     scene::IAnimatedMeshSceneNode* node;
 #ifndef SERVER_ONLY
@@ -1586,6 +1646,7 @@ scene::IAnimatedMeshSceneNode *IrrDriver::addAnimatedMesh(scene::IAnimatedMesh *
             core::vector3df(0, 0, 0),
             core::vector3df(1, 1, 1),
             /*addIfMeshIsZero*/true);
+        node->resetFirstRenderInfo(render_info);
     }
     return node;
 
@@ -1843,14 +1904,22 @@ void IrrDriver::displayFPS()
     if (low > kilotris) low = kilotris;
     if (high < kilotris) high = kilotris;
 
-    if ((UserConfigParams::m_artist_debug_mode)&&(CVS->isGLSL()))
+    if (UserConfigParams::m_artist_debug_mode)
     {
-        fps_string = StringUtils::insertValues
-                    (L"FPS: %d/%d/%d - PolyCount: %d Solid, %d Shadows - LightDist: %d\n"
-                      "Complexity %d, Total skinning joints: %d, Ping: %dms",
-                    min, fps, max, SP::sp_solid_poly_count,
-                    SP::sp_shadow_poly_count, m_last_light_bucket_distance, irr_driver->getSceneComplexity(),
-                    m_skinning_joint, ping);
+        if (CVS->isGLSL())
+        {
+            fps_string = StringUtils::insertValues
+                        (L"FPS: %d/%d/%d - PolyCount: %d Solid, %d Shadows - LightDist: %d\n"
+                          "Complexity %d, Total skinning joints: %d, Ping: %dms",
+                        min, fps, max, SP::sp_solid_poly_count,
+                        SP::sp_shadow_poly_count, m_last_light_bucket_distance, irr_driver->getSceneComplexity(),
+                        m_skinning_joint, ping);
+        }
+        else
+        {
+            fps_string = StringUtils::insertValues(L"FPS: %d/%d/%d - PolyCount: %d Solid, Ping: %dms", min, fps,
+                max, m_video_driver->getPrimitiveCountDrawn(0), ping);
+        }
     }
     else
     {
@@ -2011,6 +2080,8 @@ void IrrDriver::handleWindowResize()
         m_actual_screen_size = m_video_driver->getCurrentRenderTargetSize();
         UserConfigParams::m_width = m_actual_screen_size.Width;
         UserConfigParams::m_height = m_actual_screen_size.Height;
+        UserConfigParams::m_real_width = (unsigned)((float)m_actual_screen_size.Width / m_device->getNativeScaleX());
+        UserConfigParams::m_real_height = (unsigned)((float)m_actual_screen_size.Height / m_device->getNativeScaleY());
         resizeWindow();
     }
     // In case reset by opening options in game

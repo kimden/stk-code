@@ -68,7 +68,7 @@ class Camera;
 class FrameBuffer;
 class LightNode;
 class PerCameraNode;
-class RenderInfo;
+namespace GE { class GERenderInfo; }
 class RenderTarget;
 
 struct SHCoefficients;
@@ -114,7 +114,7 @@ private:
      *  the confirmation dialog needs an additional warning message.
      *  Same indicates a change of the resolution (back to the original
      *  one), but no confirmation dialog. */
-    enum {RES_CHANGE_NONE, RES_CHANGE_YES,
+    enum {RES_CHANGE_NONE, RES_CHANGE_YES, RES_CHANGE_CANCEL,
           RES_CHANGE_SAME, RES_CHANGE_YES_WARN} m_resolution_changing;
 
 
@@ -235,7 +235,7 @@ public:
     scene::ISceneNode* addMesh(scene::IMesh *mesh,
                                const std::string& debug_name,
                                scene::ISceneNode *parent = NULL,
-                               std::shared_ptr<RenderInfo> render_info = nullptr);
+                               std::shared_ptr<GE::GERenderInfo> render_info = nullptr);
     PerCameraNode        *addPerCameraNode(scene::ISceneNode* node,
                                            scene::ICameraSceneNode* cam,
                                            scene::ISceneNode *parent = NULL);
@@ -254,7 +254,7 @@ public:
         *addAnimatedMesh(scene::IAnimatedMesh *mesh,
                          const std::string& debug_name,
                          scene::ISceneNode* parent = NULL,
-                         std::shared_ptr<RenderInfo> render_info = nullptr);
+                         std::shared_ptr<GE::GERenderInfo> render_info = nullptr);
     scene::ICameraSceneNode
                          *addCameraSceneNode();
     Camera               *addCamera(unsigned int index, AbstractKart *kart);

@@ -31,7 +31,7 @@
 #include "network/protocols/server_lobby.hpp"
 #include "race/race_manager.hpp"
 #include "tracks/track.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 
 #include <cstring>
 

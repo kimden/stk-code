@@ -41,10 +41,20 @@
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_vulkan_driver.hpp>
+#include <ge_vulkan_texture_descriptor.hpp>
+#include <SDL_video.h>
+#include "../../lib/irrlicht/source/Irrlicht/CIrrDeviceSDL.h"
+#endif
+
+#include <functional>
 #include <iostream>
 #include <sstream>
 
 using namespace GUIEngine;
+bool OptionsScreenVideo::m_fullscreen_checkbox_focus = false;
 
 // --------------------------------------------------------------------------------------------
 void OptionsScreenVideo::initPresets()
@@ -151,26 +161,37 @@ int OptionsScreenVideo::getImageQuality()
 // --------------------------------------------------------------------------------------------
 void OptionsScreenVideo::setImageQuality(int quality)
 {
+#ifndef SERVER_ONLY
+    GE::GEVulkanTextureDescriptor* td = NULL;
+    if (GE::getVKDriver())
+        td = GE::getVKDriver()->getMeshTextureDescriptor();
     switch (quality)
     {
         case 0:
             UserConfigParams::m_anisotropic = 2;
             UserConfigParams::m_high_definition_textures = 0x02;
             UserConfigParams::m_hq_mipmap = false;
+            if (td)
+                td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_2);
             break;
         case 1:
             UserConfigParams::m_anisotropic = 4;
             UserConfigParams::m_high_definition_textures = 0x03;
             UserConfigParams::m_hq_mipmap = false;
+            if (td)
+                td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_4);
             break;
         case 2:
             UserConfigParams::m_anisotropic = 16;
             UserConfigParams::m_high_definition_textures = 0x03;
             UserConfigParams::m_hq_mipmap = true;
+            if (td)
+                td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_16);
             break;
         default:
             assert(false);
     }
+#endif
 }   // setImageQuality
 
 // --------------------------------------------------------------------------------------------
@@ -299,6 +320,14 @@ void OptionsScreenVideo::init()
                                    getWidget<LabelWidget>("rememberWinposText");
     assert( rememberWinposText != NULL );
 #endif
+
+    bool is_vulkan_fullscreen_desktop = false;
+#ifndef SERVER_ONLY
+    is_vulkan_fullscreen_desktop =
+        GE::getDriver()->getDriverType() == video::EDT_VULKAN &&
+        GE::getGEConfig()->m_vulkan_fullscreen_desktop;
+#endif
+
     // --- get resolution list from irrlicht the first time
     if (!m_inited)
     {
@@ -326,8 +355,8 @@ void OptionsScreenVideo::init()
             r.fullscreen = true;
             m_resolutions.push_back(r);
 
-            if (r.width  == UserConfigParams::m_width &&
-                r.height == UserConfigParams::m_height)
+            if (r.width  == UserConfigParams::m_real_width &&
+                r.height == UserConfigParams::m_real_height)
             {
                 found_config_res = true;
             }
@@ -342,11 +371,20 @@ void OptionsScreenVideo::init()
             }
         }
 
+        // Vulkan use fullscreen desktop so only show current screen size
+        if (is_vulkan_fullscreen_desktop)
+        {
+            found_config_res = false;
+            m_resolutions.clear();
+            found_1024_768 = true;
+            found_1280_720 = true;
+        }
+
         if (!found_config_res)
         {
-            r.width  = UserConfigParams::m_width;
-            r.height = UserConfigParams::m_height;
-            r.fullscreen = false;
+            r.width  = UserConfigParams::m_real_width;
+            r.height = UserConfigParams::m_real_height;
+            r.fullscreen = is_vulkan_fullscreen_desktop;
             m_resolutions.push_back(r);
 
             if (r.width == 1024 && r.height == 768)
@@ -418,8 +456,8 @@ void OptionsScreenVideo::init()
 
     // ---- select current resolution every time
     char searching_for[32];
-    snprintf(searching_for, 32, "%ix%i", (int)UserConfigParams::m_width,
-                                         (int)UserConfigParams::m_height);
+    snprintf(searching_for, 32, "%ix%i", (int)UserConfigParams::m_real_width,
+                                         (int)UserConfigParams::m_real_height);
 
 
     if (!res->setSelection(searching_for, PLAYER_ID_GAME_MASTER,
@@ -439,14 +477,19 @@ void OptionsScreenVideo::init()
     // disabled)
     bool in_game = StateManager::get()->getGameState() == GUIEngine::INGAME_MENU;
 
-    res->setActive(!in_game);
-    full->setActive(!in_game);
+    res->setActive(!in_game || is_vulkan_fullscreen_desktop);
+    full->setActive(!in_game || is_vulkan_fullscreen_desktop);
     applyBtn->setActive(!in_game);
-    gfx->setActive(!in_game);
-    getWidget<ButtonWidget>("custom")->setActive(!in_game);
+#ifndef SERVER_ONLY
+    gfx->setActive(!in_game && CVS->isGLSL());
+    getWidget<ButtonWidget>("custom")->setActive(!in_game || !CVS->isGLSL());
     if (getWidget<SpinnerWidget>("scale_rtts")->isActivated())
-        getWidget<SpinnerWidget>("scale_rtts")->setActive(!in_game);
-    
+    {
+        getWidget<SpinnerWidget>("scale_rtts")->setActive(!in_game ||
+            GE::getDriver()->getDriverType() == video::EDT_VULKAN);
+    }
+#endif
+
 #if defined(MOBILE_STK) || defined(__SWITCH__)
     applyBtn->setVisible(false);
     full->setVisible(false);
@@ -456,7 +499,12 @@ void OptionsScreenVideo::init()
 #endif
 
     updateResolutionsList();
-    
+
+    if (m_fullscreen_checkbox_focus)
+    {
+        m_fullscreen_checkbox_focus = false;
+        getWidget("fullscreen")->setFocusForPlayer(PLAYER_ID_GAME_MASTER);
+    }
 }   // init
 
 // --------------------------------------------------------------------------------------------
@@ -529,14 +577,17 @@ void OptionsScreenVideo::updateGfxSlider()
         gfx->setCustomText( _("Custom") );
     }
 
+#ifndef SERVER_ONLY
     // Enable the blur slider if the modern renderer is used
     getWidget<GUIEngine::SpinnerWidget>("blur_level")->
-        setActive(UserConfigParams::m_dynamic_lights);
+        setActive(UserConfigParams::m_dynamic_lights && CVS->isGLSL());
     // Same with Render resolution slider
     getWidget<GUIEngine::SpinnerWidget>("scale_rtts")->
-        setActive(UserConfigParams::m_dynamic_lights);
+        setActive((UserConfigParams::m_dynamic_lights && CVS->isGLSL()) ||
+        GE::getDriver()->getDriverType() == video::EDT_VULKAN);
 
     updateTooltip();
+#endif
 } // updateGfxSlider
 
 // --------------------------------------------------------------------------------------------
@@ -693,6 +744,8 @@ void OptionsScreenVideo::updateBlurTooltip()
 
 // --------------------------------------------------------------------------------------------
 extern "C" void update_swap_interval(int swap_interval);
+extern "C" void update_fullscreen_desktop(int val);
+extern "C" void reset_network_body();
 
 void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
                                        const int playerID)
@@ -769,9 +822,11 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
         getWidget<GUIEngine::SpinnerWidget>("blur_level")->setActive(level >= 2);
 
         // Same with Render resolution slider
+#ifndef SERVER_ONLY
         getWidget<GUIEngine::SpinnerWidget>("scale_rtts")->
-            setActive(UserConfigParams::m_dynamic_lights);
-
+            setActive(UserConfigParams::m_dynamic_lights ||
+            GE::getDriver()->getDriverType() == video::EDT_VULKAN);
+#endif
         UserConfigParams::m_animated_characters = m_presets[level].animatedCharacters;
         UserConfigParams::m_particles_effects = m_presets[level].particles;
         setImageQuality(m_presets[level].image_quality);
@@ -822,7 +877,10 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
         assert(level < (int)m_scale_rtts_custom_presets.size());
 
         UserConfigParams::m_scale_rtts_factor = m_scale_rtts_custom_presets[level].value;
-
+#ifndef SERVER_ONLY
+        if (GE::getVKDriver())
+            GE::getVKDriver()->updateRenderScale(UserConfigParams::m_scale_rtts_factor);
+#endif
         updateScaleRTTsSlider();
     }
     else if (name == "rememberWinpos")
@@ -836,8 +894,34 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
         CheckBoxWidget* rememberWinpos = getWidget<CheckBoxWidget>("rememberWinpos");
 
         rememberWinpos->setActive(!fullscreen->getState());
-        
-        updateResolutionsList();
+#ifndef SERVER_ONLY
+        GE::GEVulkanDriver* gevk = GE::getVKDriver();
+        if (gevk && GE::getGEConfig()->m_vulkan_fullscreen_desktop)
+        {
+            UserConfigParams::m_fullscreen = fullscreen->getState();
+            update_fullscreen_desktop(UserConfigParams::m_fullscreen);
+            if (StateManager::get()->getGameState() == GUIEngine::INGAME_MENU)
+            {
+                StateManager::get()->popMenu();
+                std::function<Screen*()> screen_function =
+                    getNewScreenPointer();
+                int new_width = 0;
+                int new_height = 0;
+                SDL_GetWindowSize(gevk->getSDLWindow(), &new_width,
+                    &new_height);
+                static_cast<CIrrDeviceSDL*>(gevk->getIrrlichtDevice())
+                    ->handleNewSize(new_width, new_height);
+                irr_driver->handleWindowResize();
+                Screen* new_screen = screen_function();
+                OptionsScreenVideo::m_fullscreen_checkbox_focus = true;
+                new_screen->push();
+            }
+            else
+                OptionsScreenVideo::m_fullscreen_checkbox_focus = true;
+        }
+        else
+            updateResolutionsList();
+#endif
     }
 }   // eventCallback
 
@@ -845,6 +929,10 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
 
 void OptionsScreenVideo::tearDown()
 {
+    if (getWidget("fullscreen")->isVisible() &&
+        getWidget("fullscreen")->isFocusedForPlayer(PLAYER_ID_GAME_MASTER))
+        OptionsScreenVideo::m_fullscreen_checkbox_focus = true;
+
     GUIEngine::getDevice()->setResizable(false);
 #ifndef SERVER_ONLY
     if (m_prev_adv_pipline != UserConfigParams::m_dynamic_lights &&
@@ -861,6 +949,14 @@ void OptionsScreenVideo::tearDown()
     user_config->saveConfig();
 #endif
 }   // tearDown
+
+// --------------------------------------------------------------------------------------------
+
+bool OptionsScreenVideo::onEscapePressed()
+{
+    GUIEngine::focusNothingForPlayer(PLAYER_ID_GAME_MASTER);
+    return true;
+}
 
 // --------------------------------------------------------------------------------------------
 

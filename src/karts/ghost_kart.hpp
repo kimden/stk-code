@@ -48,12 +48,11 @@ private:
 
     ReplayPlay::ReplayData m_replay_data;
 
-    unsigned int                             m_last_egg_idx = 0;
+    unsigned int                             m_last_egg_idx;
 
     // ----------------------------------------------------------------------------
     /** Compute the time at which the ghost finished the race */
     void          computeFinishTime();
-
 public:
                   GhostKart(const std::string& ident, unsigned int world_kart_id,
                             int position, float color_hue,

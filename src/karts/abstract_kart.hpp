@@ -46,7 +46,7 @@ class KartModel;
 class KartProperties;
 class Material;
 class Powerup;
-class RenderInfo;
+namespace GE { class GERenderInfo; }
 class SFXBuffer;
 class Skidding;
 class SlipStream;
@@ -81,7 +81,8 @@ private:
     // ------------------------------------------------------------------------
     void loadKartProperties(const std::string& new_ident,
                             HandicapLevel handicap,
-                            std::shared_ptr<RenderInfo> ri);
+                            std::shared_ptr<GE::GERenderInfo> ri,
+                            const KartData& kart_data = KartData());
 protected:
     btTransform m_starting_transform;
 
@@ -114,7 +115,7 @@ public:
                                 int world_kart_id,
                                 int position, const btTransform& init_transform,
                                 HandicapLevel handicap,
-                                std::shared_ptr<RenderInfo> ri);
+                                std::shared_ptr<GE::GERenderInfo> ri);
     virtual       ~AbstractKart();
     // ------------------------------------------------------------------------
     /** Returns a name to be displayed for this kart. */
@@ -144,7 +145,8 @@ public:
     /** Change to new kart instancely (used in network live join). */
     virtual void changeKart(const std::string& new_ident,
                             HandicapLevel handicap,
-                            std::shared_ptr<RenderInfo> ri);
+                            std::shared_ptr<GE::GERenderInfo> ri,
+                            const KartData& kart_data = KartData());
     // ========================================================================
     // Access to the handicap.
     // ------------------------------------------------------------------------
