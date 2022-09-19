@@ -360,9 +360,9 @@
         />
     -->
     <command name="slots"
-             usage="/slots (number of slots)"
+             usage="/slots [0..server capacity]"
              permissions="hammers; votable for non-spectators"
-             description="Sets the number of playable slots to a certain value."
+             description="Sets the number of playable slots to a specified value; tells the current number if called without arguments."
     />
     <command name="time"
              usage="/time"

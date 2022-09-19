@@ -2755,12 +2755,20 @@ void CommandManager::process_test(Context& context)
 
 void CommandManager::process_slots(Context& context)
 {
+    // todo allow non-hammers to invoke /slots without parameters
     auto& argv = context.m_argv;
     bool fail = false;
-    unsigned number = 0;
-    if (argv.size() < 2 || !StringUtils::parseString<unsigned>(argv[1], &number))
+    int number = 0;
+    if (argv.size() < 2)
+    {
+        int current = m_lobby->m_current_max_players_in_game.load();
+        std::string msg = "Number of slots is currently " + std::to_string(current);
+        m_lobby->sendStringToPeer(msg, context.m_peer);
+        return;
+    }
+    if (argv.size() < 2 || !StringUtils::parseString<int>(argv[1], &number))
         fail = true;
-    else if (number <= 0 || (int)number > ServerConfig::m_server_max_players)
+    else if (number <= 0 || number > ServerConfig::m_server_max_players)
         fail = true;
     if (fail)
     {
@@ -2772,7 +2780,7 @@ void CommandManager::process_slots(Context& context)
         vote(context, "slots", argv[1]);
         return;
     }
-    m_lobby->m_current_max_players_in_game.store(number);
+    m_lobby->m_current_max_players_in_game.store((unsigned)number);
     m_lobby->updatePlayerList();
     std::string msg = "Number of playable slots is now " + argv[1];
     m_lobby->sendStringToAllPeers(msg);
