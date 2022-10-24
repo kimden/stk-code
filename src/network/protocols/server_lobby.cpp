@@ -4143,12 +4143,16 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
         }
     }
 
-    Log::info("ServerLobby", "Player has the following addons: %d/%d karts,"
-        " %d/%d tracks, %d/%d arenas, %d/%d soccer fields.", addon_karts,
-        (int)ServerConfig::m_addon_karts_join_threshold, addon_tracks,
-        (int)ServerConfig::m_addon_tracks_join_threshold, addon_arenas,
-        (int)ServerConfig::m_addon_arenas_join_threshold, addon_soccers,
-        (int)ServerConfig::m_addon_soccers_join_threshold);
+    Log::info("ServerLobby", "Player has the following addons: %d/%d(%d) karts,"
+        " %d/%d(%d) tracks, %d/%d(%d) arenas, %d/%d(%d) soccer fields.",
+        addon_karts, (int)ServerConfig::m_addon_karts_join_threshold,
+        (int)ServerConfig::m_addon_karts_play_threshold,
+        addon_tracks, (int)ServerConfig::m_addon_tracks_join_threshold,
+        (int)ServerConfig::m_addon_tracks_play_threshold,
+        addon_arenas, (int)ServerConfig::m_addon_arenas_join_threshold,
+        (int)ServerConfig::m_addon_arenas_play_threshold,
+        addon_soccers, (int)ServerConfig::m_addon_soccers_join_threshold,
+        (int)ServerConfig::m_addon_soccers_play_threshold);
 
     peer->addon_karts_count = addon_karts;
     peer->addon_tracks_count = addon_tracks;
