@@ -1952,10 +1952,11 @@ void initRest()
             file_manager->getAddonsFile("tracks/"));
     }
 
-    {
-        XMLNode characteristicsNode(file_manager->getAsset("kart_characteristics.xml"));
-        kart_properties_manager->loadCharacteristics(&characteristicsNode);
-    }
+    std::string char_file;
+    if (!CommandLine::has("--char-file", &char_file))
+        char_file = "kart_characteristics.xml";
+    XMLNode characteristicsNode(file_manager->getAsset(char_file));
+    kart_properties_manager->loadCharacteristics(&characteristicsNode);
 
     track_manager->loadTrackList();
     music_manager->addMusicToTracks();
