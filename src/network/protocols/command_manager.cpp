@@ -2083,13 +2083,19 @@ void CommandManager::process_randomteams(Context& context)
     int players_number = 0;
     for (auto& peer : STKHost::get()->getPeers())
     {
+        if (!m_lobby->canRace(peer))
+            continue;
         if (peer->alwaysSpectate())
             continue;
         players_number += peer->getPlayerProfiles().size();
         for (auto& profile : peer->getPlayerProfiles())
             profile->setTemporaryTeam(-1);
     }
-
+    if (players_number == 0) {
+        std::string msg = "No one can play!";
+        m_lobby->sendStringToPeer(msg, context.m_peer);
+        return;
+    }
     int teams_number = -1;
     if (argv.size() < 2 || !StringUtils::parseString(argv[1], &teams_number)
         || teams_number < 1 || teams_number > 9)
