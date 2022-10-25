@@ -6010,13 +6010,21 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     }
     unsigned total_players = 0;
     STKHost::get()->updatePlayers(NULL, NULL, &total_players);
-    if ((m_available_difficulties.count(difficulty) == 0 || 
-        m_available_modes.count(mode) == 0))
+    bool bad_mode = (m_available_modes.count(mode) == 0);
+    bool bad_difficulty = (m_available_difficulties.count(difficulty) == 0);
+    if (bad_mode || bad_difficulty)
     {
         // It remains just in case, but kimden thinks that
         // this is already covered in command manager (?)
-        Log::error("ServerLobby", "Mode %d and/or difficulty %d are not permitted.");
-        std::string msg = "Mode or difficulty are not permitted on this server";
+        Log::error("ServerLobby", "Mode %d and/or difficulty %d are not permitted.",
+                   difficulty, mode);
+        std::string msg = "";
+        if (bad_mode && bad_difficulty)
+            msg = "Both mode and difficulty are not permitted on this server";
+        else if (bad_mode)
+            msg = "This mode is not permitted on this server";
+        else
+            msg = "This difficulty is not permitted on this server";
         sendStringToPeer(msg, peer);
         return;
     }
