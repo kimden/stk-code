@@ -193,7 +193,7 @@ bool GEVulkanTexture::createTextureImage(uint8_t* texture_data,
     VkBuffer staging_buffer;
     VmaAllocation staging_buffer_allocation;
     VmaAllocationCreateInfo staging_buffer_create_info = {};
-    staging_buffer_create_info.usage = VMA_MEMORY_USAGE_AUTO;
+    staging_buffer_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
     staging_buffer_create_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     staging_buffer_create_info.preferredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
@@ -291,7 +291,7 @@ bool GEVulkanTexture::createImage(VkImageUsageFlags usage)
 
     m_vma_info = {};
     VmaAllocationCreateInfo alloc_info = {};
-    alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+    alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     VkResult result = vmaCreateImage(m_vk->getVmaAllocator(), &image_info,
         &alloc_info, &m_image, &m_vma_allocation, &m_vma_info);
 
@@ -437,7 +437,7 @@ bool GEVulkanTexture::createImageView(VkImageAspectFlags aspect_flags)
     }
 
     auto image_view = std::make_shared<std::atomic<VkImageView> >();
-    VkImageView view_ptr = NULL;
+    VkImageView view_ptr = VK_NULL_HANDLE;
     VkResult result = vkCreateImageView(m_vulkan_device, &view_info, NULL,
         &view_ptr);
     if (result == VK_SUCCESS)
@@ -655,7 +655,7 @@ void GEVulkanTexture::updateTexture(void* data, video::ECOLOR_FORMAT format,
     VkBuffer staging_buffer;
     VmaAllocation staging_buffer_allocation;
     VmaAllocationCreateInfo staging_buffer_create_info = {};
-    staging_buffer_create_info.usage = VMA_MEMORY_USAGE_AUTO;
+    staging_buffer_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
     staging_buffer_create_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     staging_buffer_create_info.preferredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     if (isSingleChannel())

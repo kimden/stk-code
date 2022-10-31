@@ -137,7 +137,7 @@ public:
     // ------------------------------------------------------------------------
     void setFlips()                                         { m_flips = true; }
     // ------------------------------------------------------------------------
-    bool getFlips() const                                   { return m_flips; }
+    virtual bool getFlips() const                           { return m_flips; }
     // ------------------------------------------------------------------------
     unsigned getMaxCount() const                        { return m_max_count; }
     // ------------------------------------------------------------------------
@@ -160,6 +160,8 @@ public:
         assert(m_flips_buffer != 0);
         return m_flips_buffer;
     }
+    // ------------------------------------------------------------------------
+    virtual bool isSkyParticle() const                 { return m_hm != NULL; }
 };
 
 #endif

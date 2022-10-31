@@ -759,6 +759,26 @@ void GEVulkanDriver::createInstance(SDL_Window* window)
         vk_version >= VK_API_VERSION_1_1);
 #endif
 
+    if (vk_version < VK_API_VERSION_1_1)
+    {
+        uint32_t extension_count;
+        vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
+
+        std::vector<VkExtensionProperties> instance_extensions(extension_count);
+        vkEnumerateInstanceExtensionProperties(NULL, &extension_count,
+            &instance_extensions[0]);
+        for (auto& ext : instance_extensions)
+        {
+            if (strcmp(ext.extensionName,
+                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
+            {
+                extensions.push_back(
+                    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+                break;
+            }
+        }
+    }
+
     uint32_t layer_count = 0;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
     std::vector<VkLayerProperties> available_layers(layer_count);
@@ -771,7 +791,7 @@ void GEVulkanDriver::createInstance(SDL_Window* window)
     g_debug_print = true;
     for (VkLayerProperties& prop : available_layers)
     {
-        if (std::string(prop.layerName) == "VK_LAYER_KHRONOS_validation")
+        if (strcmp(prop.layerName, "VK_LAYER_KHRONOS_validation") == 0)
             enabled_validation_layers.push_back("VK_LAYER_KHRONOS_validation");
     }
 
@@ -783,8 +803,7 @@ void GEVulkanDriver::createInstance(SDL_Window* window)
     validation_features.pEnabledValidationFeatures = &enabled_validation_features;
 
     create_info.pNext = &validation_features;
-    const char* debug_ext = "VK_EXT_debug_utils";
-    extensions.push_back(debug_ext);
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
     VkApplicationInfo app_info = {};
@@ -868,6 +887,26 @@ bool GEVulkanDriver::checkDeviceExtensions(VkPhysicalDevice device)
     std::vector<VkExtensionProperties> extensions(extension_count);
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count,
         &extensions[0]);
+
+    VkPhysicalDeviceProperties properties = {};
+    vkGetPhysicalDeviceProperties(device, &properties);
+    for (auto& ext : extensions)
+    {
+        if (properties.apiVersion < VK_API_VERSION_1_2 &&
+            strcmp(ext.extensionName,
+            VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0)
+        {
+            m_device_extensions.push_back(
+                VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+        }
+        else if (properties.apiVersion < VK_API_VERSION_1_1 &&
+            strcmp(ext.extensionName,
+            VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME) == 0)
+        {
+            m_device_extensions.push_back(
+                VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+        }
+    }
 
     std::set<std::string> required_extensions(m_device_extensions.begin(),
         m_device_extensions.end());
@@ -984,14 +1023,20 @@ void GEVulkanDriver::createDevice()
     device_features.drawIndirectFirstInstance =
         GEVulkanFeatures::supportsMultiDrawIndirect();
 
-    VkPhysicalDeviceVulkan12Features vulkan12_features = {};
-    vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    vulkan12_features.descriptorIndexing =
-        GEVulkanFeatures::supportsDescriptorIndexing();
-    vulkan12_features.shaderSampledImageArrayNonUniformIndexing =
+    VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features = {};
+    descriptor_indexing_features.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing =
         GEVulkanFeatures::supportsNonUniformIndexing();
-    vulkan12_features.descriptorBindingPartiallyBound =
+    descriptor_indexing_features.descriptorBindingPartiallyBound =
         GEVulkanFeatures::supportsPartiallyBound();
+
+    VkPhysicalDeviceShaderDrawParametersFeatures shader_draw = {};
+    shader_draw.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+    shader_draw.shaderDrawParameters =
+        GEVulkanFeatures::supportsShaderDrawParameters();
+    descriptor_indexing_features.pNext = &shader_draw;
 
     if (m_features.samplerAnisotropy == VK_TRUE)
         device_features.samplerAnisotropy = VK_TRUE;
@@ -1004,7 +1049,7 @@ void GEVulkanDriver::createDevice()
     create_info.enabledExtensionCount = m_device_extensions.size();
     create_info.ppEnabledExtensionNames = &m_device_extensions[0];
     create_info.enabledLayerCount = 0;
-    create_info.pNext = &vulkan12_features;
+    create_info.pNext = &descriptor_indexing_features;
 
     VkResult result = vkCreateDevice(m_physical_device, &create_info, NULL, &m_vk->device);
 
@@ -1658,8 +1703,8 @@ bool GEVulkanDriver::endScene()
         return false;
     }
 
-    VkFence fence = m_vk->in_flight_fences[m_current_frame];
-    if (vkWaitForFences(m_vk->device, 1, &fence, VK_TRUE, 2000000000) ==
+    if (m_vk->in_flight_fences.empty() || vkWaitForFences(m_vk->device, 1,
+        &m_vk->in_flight_fences[m_current_frame], VK_TRUE, 2000000000) ==
         VK_TIMEOUT)
     {
         // Attempt to restore after out focus in gnome fullscreen
@@ -1667,10 +1712,20 @@ bool GEVulkanDriver::endScene()
         GEVulkan2dRenderer::clear();
         handleDeletedTextures();
         destroySwapChainRelated(false/*handle_surface*/);
-        createSwapChainRelated(false/*handle_surface*/);
+        try
+        {
+            createSwapChainRelated(false/*handle_surface*/);
+        }
+        catch (std::exception& e)
+        {
+            // When minimized in Windows swapchain depth buffer will fail to
+            // create
+            destroySwapChainRelated(false/*handle_surface*/);
+        }
         return true;
     }
 
+    VkFence fence = m_vk->in_flight_fences[m_current_frame];
     vkResetFences(m_vk->device, 1, &fence);
     vkResetCommandPool(m_vk->device, m_vk->command_pools[m_current_frame], 0);
 

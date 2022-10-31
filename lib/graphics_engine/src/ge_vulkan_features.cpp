@@ -28,6 +28,7 @@ uint32_t g_max_sampler_supported = 0;
 bool g_supports_multi_draw_indirect = false;
 bool g_supports_base_vertex_rendering = true;
 bool g_supports_compute_in_main_queue = false;
+bool g_supports_shader_draw_parameters = false;
 bool g_supports_s3tc_bc3 = false;
 bool g_supports_bptc_bc7 = false;
 bool g_supports_astc_4x4 = false;
@@ -98,7 +99,8 @@ void GEVulkanFeatures::init(GEVulkanDriver* vk)
 
     for (VkExtensionProperties& prop : extensions)
     {
-        if (std::string(prop.extensionName) == "VK_EXT_descriptor_indexing")
+        if (strcmp(prop.extensionName,
+            VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0)
             g_supports_descriptor_indexing = true;
     }
 
@@ -126,10 +128,21 @@ void GEVulkanFeatures::init(GEVulkanDriver* vk)
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
     supported_features.pNext = &descriptor_indexing_features;
 
+    VkPhysicalDeviceShaderDrawParametersFeatures shader_draw = {};
+    shader_draw.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+    descriptor_indexing_features.pNext = &shader_draw;
+
+    PFN_vkGetPhysicalDeviceFeatures2 get_features = vkGetPhysicalDeviceFeatures2;
     if (vk->getPhysicalDeviceProperties().apiVersion < VK_API_VERSION_1_1 ||
-        !vkGetPhysicalDeviceFeatures2)
+        !get_features)
+    {
+        get_features = (PFN_vkGetPhysicalDeviceFeatures2)
+            vkGetPhysicalDeviceFeatures2KHR;
+    }
+    if (!get_features)
         return;
-    vkGetPhysicalDeviceFeatures2(vk->getPhysicalDevice(), &supported_features);
+    get_features(vk->getPhysicalDevice(), &supported_features);
     if (supported_features.sType !=
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2)
         return;
@@ -138,6 +151,8 @@ void GEVulkanFeatures::init(GEVulkanDriver* vk)
         .shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
     g_supports_partially_bound = (descriptor_indexing_features
         .descriptorBindingPartiallyBound == VK_TRUE);
+    g_supports_shader_draw_parameters = (shader_draw
+        .shaderDrawParameters == VK_TRUE);
 
 #if defined(__APPLE__)
     bool missing_vkGetPhysicalDeviceProperties2 =
@@ -175,6 +190,9 @@ void GEVulkanFeatures::init(GEVulkanDriver* vk)
     g_supports_base_vertex_rendering = mvk_features.baseVertexInstanceDrawing;
     if (!g_supports_base_vertex_rendering)
         g_supports_multi_draw_indirect = false;
+
+    // https://github.com/KhronosGroup/MoltenVK/issues/1743
+    g_supports_shader_draw_parameters = false;
 #endif
 }   // init
 
@@ -205,6 +223,9 @@ void GEVulkanFeatures::printStats()
     os::Printer::log(
         "Vulkan supports compute in main queue",
         g_supports_compute_in_main_queue ? "true" : "false");
+    os::Printer::log(
+        "Vulkan supports shader draw parameters",
+        g_supports_shader_draw_parameters ? "true" : "false");
     os::Printer::log(
         "Vulkan supports s3 texture compression (bc3, dxt5)",
         g_supports_s3tc_bc3 ? "true" : "false");
@@ -268,7 +289,8 @@ bool GEVulkanFeatures::supportsPartiallyBound()
 // ----------------------------------------------------------------------------
 bool GEVulkanFeatures::supportsBindMeshTexturesAtOnce()
 {
-    if (!g_supports_bind_textures_at_once)
+    if (!g_supports_bind_textures_at_once || !g_supports_multi_draw_indirect ||
+        !g_supports_shader_draw_parameters)
         return false;
     const unsigned sampler_count = GEVulkanShaderManager::getSamplerSize() *
         GEVulkanShaderManager::getMeshTextureLayer();
@@ -292,6 +314,12 @@ bool GEVulkanFeatures::supportsComputeInMainQueue()
 {
     return g_supports_compute_in_main_queue;
 }   // supportsComputeInMainQueue
+
+// ----------------------------------------------------------------------------
+bool GEVulkanFeatures::supportsShaderDrawParameters()
+{
+    return g_supports_shader_draw_parameters;
+}   // supportsShaderDrawParameters
 
 // ----------------------------------------------------------------------------
 bool GEVulkanFeatures::supportsS3TCBC3()

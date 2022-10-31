@@ -12,16 +12,19 @@
 #include "vulkan_wrapper.h"
 
 #include "matrix4.h"
-#include "quaternion.h"
+#include "vector3d.h"
 #include "ESceneNodeTypes.h"
 #include "SColor.h"
 #include "SMaterial.h"
+
+#include "LinearMath/btQuaternion.h"
 
 namespace irr
 {
     namespace scene
     {
         class ISceneNode; class IBillboardSceneNode; struct SParticle;
+        class IMesh;
     }
 }
 
@@ -50,14 +53,16 @@ struct ObjectData
     int m_material_id;
     float m_texture_trans[2];
     // ------------------------------------------------------------------------
-    ObjectData(irr::scene::ISceneNode* node, int material_id,
-               int skinning_offset, int irrlicht_material_id);
+    void init(irr::scene::ISceneNode* node, int material_id,
+              int skinning_offset, int irrlicht_material_id);
     // ------------------------------------------------------------------------
-    ObjectData(irr::scene::IBillboardSceneNode* node, int material_id,
-               const irr::core::quaternion& rotation);
+    void init(irr::scene::IBillboardSceneNode* node, int material_id,
+              const btQuaternion& rotation);
     // ------------------------------------------------------------------------
-    ObjectData(const irr::scene::SParticle& particle, int material_id,
-               const irr::core::quaternion& rotation);
+    void init(const irr::scene::SParticle& particle, int material_id,
+              const btQuaternion& rotation,
+              const irr::core::vector3df& view_position, bool flips,
+              bool sky_particle, bool backface_culling);
 };
 
 struct PipelineSettings
@@ -84,6 +89,7 @@ struct DrawCallData
     std::string m_sorting_key;
     GESPMBuffer* m_mb;
     bool m_transparent;
+    uint32_t m_dynamic_offset;
 };
 
 class GEVulkanDrawCall
@@ -98,11 +104,15 @@ private:
 
     std::map<TexturesList, GESPMBuffer*> m_billboard_buffers;
 
-    irr::core::quaternion m_billboard_rotation;
+    irr::core::vector3df m_view_position;
+
+    btQuaternion m_billboard_rotation;
 
     std::unordered_map<GESPMBuffer*, std::unordered_map<std::string,
         std::vector<std::pair<irr::scene::ISceneNode*, int> > > >
         m_visible_nodes;
+
+    std::unordered_map<GESPMBuffer*, irr::scene::IMesh*> m_mb_map;
 
     GECullingTool* m_culling_tool;
 
@@ -112,11 +122,19 @@ private:
 
     GEVulkanDynamicBuffer* m_dynamic_data;
 
+    GEVulkanDynamicBuffer* m_sbo_data;
+
+    const VkPhysicalDeviceLimits& m_limits;
+
     size_t m_object_data_padded_size;
 
     size_t m_skinning_data_padded_size;
 
-    char* m_data_padding;
+    size_t m_materials_padded_size;
+
+    int m_current_buffer_idx;
+
+    bool m_update_data_descriptor_sets;
 
     VkDescriptorSetLayout m_data_layout;
 
@@ -135,9 +153,8 @@ private:
 
     std::unordered_set<GEVulkanAnimatedMeshSceneNode*> m_skinning_nodes;
 
-    std::vector<std::pair<void*, size_t> > m_data_uploading;
-
-    std::vector<size_t> m_sbo_data_offset;
+    std::unordered_map<std::string, std::pair<uint32_t, std::vector<int> > >
+        m_materials_data;
 
     // ------------------------------------------------------------------------
     void createAllPipelines(GEVulkanDriver* vk);
@@ -169,6 +186,10 @@ private:
             textures[i] = m.TextureLayer[i].Texture;
         return textures;
     }
+    // ------------------------------------------------------------------------
+    size_t getInitialSBOSize() const;
+    // ------------------------------------------------------------------------
+    void updateDataDescriptorSets(GEVulkanDriver* vk);
 public:
     // ------------------------------------------------------------------------
     GEVulkanDrawCall();
@@ -201,12 +222,12 @@ public:
     void reset()
     {
         m_visible_nodes.clear();
+        m_mb_map.clear();
         m_cmds.clear();
         m_visible_objects.clear();
         m_materials.clear();
         m_skinning_nodes.clear();
-        m_data_uploading.clear();
-        m_sbo_data_offset.clear();
+        m_materials_data.clear();
     }
 };   // GEVulkanDrawCall
 

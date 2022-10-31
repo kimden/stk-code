@@ -53,6 +53,7 @@
 #include "graphics/stk_text_billboard.hpp"
 #include "graphics/stk_tex_manager.hpp"
 #include "graphics/sun.hpp"
+#include "guiengine/dialog_queue.hpp"
 #include "guiengine/engine.hpp"
 #include "guiengine/message_queue.hpp"
 #include "guiengine/modaldialog.hpp"
@@ -75,6 +76,7 @@
 #include "physics/physics.hpp"
 #include "scriptengine/property_animator.hpp"
 #include "states_screens/dialogs/confirm_resolution_dialog.hpp"
+#include "states_screens/dialogs/message_dialog.hpp"
 #include "states_screens/state_manager.hpp"
 #include "tracks/track_manager.hpp"
 #include "tracks/track.hpp"
@@ -182,9 +184,7 @@ IrrDriver::IrrDriver()
     p.DriverType    = video::EDT_OPENGL;
     p.Bits          = 24U;
     p.WindowSize    = core::dimension2d<u32>(1280,720);
-#ifdef FORCE_LEGACY
-    p.ForceLegacyDevice = true;
-#endif
+    p.ForceLegacyDevice = UserConfigParams::m_force_legacy_device;
 #else
     p.DriverType    = video::EDT_NULL;
     p.Bits          = 16U;
@@ -394,43 +394,7 @@ void IrrDriver::initDevice()
     GE::setShaderFolder(file_manager->getShadersDir());
 #endif
     SIrrlichtCreationParameters params;
-
-    video::E_DRIVER_TYPE driver_created = video::EDT_NULL;
-    if (std::string(UserConfigParams::m_render_driver) == "gl")
-    {
-#if defined(USE_GLES2)
-        driver_created = video::EDT_OGLES2;
-#else
-        driver_created = video::EDT_OPENGL;
-#endif
-    }
-    else if (std::string(UserConfigParams::m_render_driver) == "directx9")
-    {
-        driver_created = video::EDT_DIRECT3D9;
-    }
-    else if (std::string(UserConfigParams::m_render_driver) == "vulkan")
-    {
-        driver_created = video::EDT_VULKAN;
-#ifndef SERVER_ONLY
-        GE::getGEConfig()->m_texture_compression =
-            UserConfigParams::m_texture_compression;
-        GE::getGEConfig()->m_render_scale =
-            UserConfigParams::m_scale_rtts_factor;
-        GE::getGEConfig()->m_vulkan_fullscreen_desktop =
-            UserConfigParams::m_vulkan_fullscreen_desktop;
-#endif
-    }
-    else
-    {
-        Log::warn("IrrDriver", "Unknown driver %s, revert to gl",
-            UserConfigParams::m_render_driver.c_str());
-        UserConfigParams::m_render_driver.revertToDefaults();
-#if defined(USE_GLES2)
-        driver_created = video::EDT_OGLES2;
-#else
-        driver_created = video::EDT_OPENGL;
-#endif
-    }
+    core::stringw display_msg;
 
     m_logger_level = irr::ELL_INFORMATION;
 #ifndef __SWITCH__
@@ -516,12 +480,51 @@ void IrrDriver::initDevice()
         m_device->run();
         m_device->drop();
         m_device  = NULL;
+
+        params.ForceLegacyDevice = (UserConfigParams::m_force_legacy_device ||
+            UserConfigParams::m_gamepad_visualisation);
+
+begin:
 #if !defined(SERVER_ONLY)
         GE::setVideoDriver(NULL);
 #endif
 
-        params.ForceLegacyDevice = (UserConfigParams::m_force_legacy_device ||
-            UserConfigParams::m_gamepad_visualisation);
+        video::E_DRIVER_TYPE driver_created = video::EDT_NULL;
+        if (std::string(UserConfigParams::m_render_driver) == "gl")
+        {
+#if defined(USE_GLES2)
+            driver_created = video::EDT_OGLES2;
+#else
+            driver_created = video::EDT_OPENGL;
+#endif
+        }
+        else if (std::string(UserConfigParams::m_render_driver) == "directx9")
+        {
+            driver_created = video::EDT_DIRECT3D9;
+        }
+        else if (std::string(UserConfigParams::m_render_driver) == "vulkan")
+        {
+            driver_created = video::EDT_VULKAN;
+#ifndef SERVER_ONLY
+            GE::getGEConfig()->m_texture_compression =
+                UserConfigParams::m_texture_compression;
+            GE::getGEConfig()->m_render_scale =
+                UserConfigParams::m_scale_rtts_factor;
+            GE::getGEConfig()->m_vulkan_fullscreen_desktop =
+                UserConfigParams::m_vulkan_fullscreen_desktop;
+#endif
+        }
+        else
+        {
+            Log::warn("IrrDriver", "Unknown driver %s, revert to gl",
+                UserConfigParams::m_render_driver.c_str());
+            UserConfigParams::m_render_driver.revertToDefaults();
+#if defined(USE_GLES2)
+            driver_created = video::EDT_OGLES2;
+#else
+            driver_created = video::EDT_OPENGL;
+#endif
+        }
 
         // Try 32 and, upon failure, 24 then 16 bit per pixels
         for (int bits=32; bits>15; bits -=8)
@@ -576,6 +579,12 @@ void IrrDriver::initDevice()
             }
             */
             m_device = createDeviceEx(params);
+            if (!m_device && driver_created == video::EDT_VULKAN)
+            {
+                display_msg = L"Vulkan unsupported";
+                UserConfigParams::m_render_driver.revertToDefaults();
+                goto begin;
+            }
 
             if(m_device)
                 break;
@@ -853,6 +862,13 @@ void IrrDriver::initDevice()
 #endif
     if (GUIEngine::isNoGraphics())
         return;
+
+    if (!display_msg.empty())
+    {
+        MessageDialog *dialog =
+        new MessageDialog(display_msg, /*from queue*/ true);
+        GUIEngine::DialogQueue::get()->pushDialog(dialog);
+    }
 }   // initDevice
 
 // ----------------------------------------------------------------------------
@@ -2068,16 +2084,17 @@ void IrrDriver::handleWindowResize()
     new_orientation = (int)SDL_GetDisplayOrientation(0);
     screen_orientation_changed = m_screen_orientation != new_orientation;
 #endif
-    if (m_actual_screen_size != m_video_driver->getCurrentRenderTargetSize() ||
-        current_screen_size != m_video_driver->getCurrentRenderTargetSize() ||
+    const core::dimension2du& new_size = m_video_driver->getCurrentRenderTargetSize();
+    if (m_actual_screen_size != new_size ||
+        current_screen_size != new_size ||
         screen_orientation_changed)
     {
-        // Don't update when dialog is opened
-        if (dialog_exists)
+        // Don't update when dialog is opened or minimized
+        if (dialog_exists || new_size.getArea() == 0)
             return;
 
         m_screen_orientation = new_orientation;
-        m_actual_screen_size = m_video_driver->getCurrentRenderTargetSize();
+        m_actual_screen_size = new_size;
         UserConfigParams::m_width = m_actual_screen_size.Width;
         UserConfigParams::m_height = m_actual_screen_size.Height;
         UserConfigParams::m_real_width = (unsigned)((float)m_actual_screen_size.Width / m_device->getNativeScaleX());
@@ -2428,9 +2445,9 @@ void IrrDriver::resizeWindow()
 {
 #ifndef SERVER_ONLY
     // Reload fonts
+    font_manager->getFont<RegularFace>()->init();
     font_manager->getFont<BoldFace>()->init();
     font_manager->getFont<DigitFace>()->init();
-    font_manager->getFont<RegularFace>()->init();
     // Reload GUIEngine
     GUIEngine::reloadForNewSize();
     if (World::getWorld())
