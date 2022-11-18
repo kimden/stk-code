@@ -2127,6 +2127,8 @@ void CommandManager::process_randomteams(Context& context)
     m_lobby->clearTemporaryTeams();
     for (auto& peer : STKHost::get()->getPeers())
     {
+        if (!m_lobby->canRace(peer))
+            continue;
         if (peer->alwaysSpectate())
             continue;
         for (auto& profile : peer->getPlayerProfiles()) {
