@@ -406,8 +406,10 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     permissions = m_lobby->getPermissions(peer);
     voting = false;
     std::string action = "invoke";
-    std::string username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string username = "";
+    if (peer->hasPlayerProfiles())
+        username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
 
     if (argv[0] == "vote")
     {
@@ -552,6 +554,8 @@ void CommandManager::vote(Context& context, std::string category, std::string va
 {
     auto& peer = context.m_peer;
     auto& argv = context.m_argv;
+    if (!peer->hasPlayerProfiles())
+        return;
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     auto& votable = m_votables[argv[0]];
@@ -914,6 +918,8 @@ void CommandManager::process_addons(Context& context)
         if ((!more_own || peer != context.m_peer) && (peer->isWaitingForGame()
             || !m_lobby->canRace(peer) || peer->isCommandSpectator()))
             continue;
+        if (!peer->hasPlayerProfiles())
+            continue;
         ++num_players;
         std::string username = StringUtils::wideToUtf8(
                 peer->getPlayerProfiles()[0]->getName());
@@ -948,7 +954,9 @@ void CommandManager::process_addons(Context& context)
         {
             auto result2 = result;
             result.clear();
-            std::string asking_username = StringUtils::wideToUtf8(
+            std::string asking_username = "";
+            if (context.m_peer->hasPlayerProfiles())
+                asking_username = StringUtils::wideToUtf8(
                     context.m_peer->getPlayerProfiles()[0]->getName());
             for (unsigned i = 0; i < result2.size(); ++i)
             {
@@ -1042,7 +1050,8 @@ void CommandManager::process_checkaddon(Context& context)
     for (auto peer : peers)
     {
         if (!peer || !peer->isValidated() || peer->isWaitingForGame()
-            || !m_lobby->canRace(peer) || peer->isCommandSpectator())
+            || !m_lobby->canRace(peer) || peer->isCommandSpectator()
+            || !peer->hasPlayerProfiles())
             continue;
         std::string username = StringUtils::wideToUtf8(
                 peer->getPlayerProfiles()[0]->getName());
@@ -2309,6 +2318,8 @@ void CommandManager::process_register(Context& context)
 {
     auto& argv = context.m_argv;
     auto& peer = context.m_peer;
+    if (!peer->hasPlayerProfiles())
+        return;
     int online_id = peer->getPlayerProfiles()[0]->getOnlineId();
     if (online_id <= 0)
     {
@@ -2337,6 +2348,8 @@ void CommandManager::process_register(Context& context)
 void CommandManager::process_token(Context& context)
 {
     auto& peer = context.m_peer;
+    if (!peer->hasPlayerProfiles())
+        return;
     int online_id = peer->getPlayerProfiles()[0]->getOnlineId();
     if (online_id <= 0)
     {
@@ -2375,6 +2388,8 @@ void CommandManager::process_muteall(Context& context)
 {
     auto& argv = context.m_argv;
     auto& peer = context.m_peer;
+    if (!peer->hasPlayerProfiles())
+        return;
     std::string peer_username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (argv.size() >= 2 && argv[1] == "0")
@@ -2405,6 +2420,8 @@ void CommandManager::process_game(Context& context)
 {
     auto& argv = context.m_argv;
     auto& peer = context.m_peer;
+    if (!peer->hasPlayerProfiles())
+        return;
     std::string peer_username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     int old_game = m_lobby->m_tournament_game;
@@ -2481,6 +2498,8 @@ void CommandManager::process_role(Context& context)
 {
     auto& argv = context.m_argv;
     auto& peer = context.m_peer;
+    if (!peer->hasPlayerProfiles())
+        return;
     std::string peer_username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (argv.size() < 3)
@@ -2569,7 +2588,8 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "red player");
-                    player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_RED);
+                    if (player_peer->hasPlayerProfiles())
+                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_RED);
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -2597,7 +2617,8 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "blue player");
-                    player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_BLUE);
+                    if (player_peer->hasPlayerProfiles())
+                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_BLUE);
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -2616,7 +2637,8 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "referee");
-                    player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
+                    if (player_peer->hasPlayerProfiles())
+                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -2627,7 +2649,8 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "spectator");
-                    player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
+                    if (player_peer->hasPlayerProfiles())
+                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -2701,6 +2724,8 @@ void CommandManager::process_init(Context& context)
 {
     auto& argv = context.m_argv;
     auto& peer = context.m_peer;
+    if (!peer->hasPlayerProfiles())
+        return;
     std::string peer_username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     int red, blue;
@@ -2751,7 +2776,7 @@ void CommandManager::process_test(Context& context)
         return;
     }
     std::string username = "Vote";
-    if (peer.get())
+    if (peer.get() && peer->hasPlayerProfiles())
     {
         username = StringUtils::wideToUtf8(
             peer->getPlayerProfiles()[0]->getName());
@@ -2966,8 +2991,10 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
 {
     if (!peer.get()) // voted
         return false;
-    std::string username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string username = "";
+    if (peer->hasPlayerProfiles())
+        username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
     if (idx < m_user_correct_arguments[username])
         return false;
     auto closest_commands = stf.getClosest(argv[idx], top, case_sensitive);
