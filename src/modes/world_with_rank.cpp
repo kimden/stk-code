@@ -340,11 +340,11 @@ void WorldWithRank::refreshCustomScores(int num_karts)
         m_score_for_position.clear();
         for (unsigned i = 2; i < m_custom_scoring_params.size(); i++)
             m_score_for_position.push_back(m_custom_scoring_params[i]);
+        m_score_for_position.resize(num_karts, 0);
         std::sort(m_score_for_position.begin(), m_score_for_position.end());
         for (unsigned i = 1; i < m_score_for_position.size(); i++)
             m_score_for_position[i] += m_score_for_position[i - 1];
         std::reverse(m_score_for_position.begin(), m_score_for_position.end());
-        m_score_for_position.resize(num_karts, 0);
     }
     else if (m_custom_scoring_type == "fixed")
     {
