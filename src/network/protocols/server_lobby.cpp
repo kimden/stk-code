@@ -5172,6 +5172,8 @@ bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
     {
         if (peer->isAIPeer())
             continue;
+        if (!canVote(peer))
+            continue;
         if (peer->hasPlayerProfiles() && !peer->isWaitingForGame())
             cur_players += 1.0f;
     }
