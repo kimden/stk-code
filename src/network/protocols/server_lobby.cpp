@@ -68,7 +68,7 @@
 #include <sstream>
 #include <iterator>
 
-
+int ServerLobby::m_default_fixed_laps = -1;
 // ========================================================================
 class SubmitRankingRequest : public Online::XMLRequest
 {
@@ -264,6 +264,11 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_consent_on_replays = false;
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
+    // Server config has better priority than --laps
+    // as it is more flexible and was introduced earlier
+    if (m_default_fixed_laps != -1) {
+        m_fixed_lap = m_default_fixed_laps;
+    }
     m_extra_seconds = 0.0f;
     m_default_lap_multiplier = ServerConfig::m_auto_game_time_ratio;
 
@@ -3087,6 +3092,14 @@ void ServerLobby::startSelection(const Event *event)
             Track* t = track_manager->getTrack(*it);
             assert(t);
             m_default_vote->m_num_laps = t->getDefaultNumberOfLaps();
+            if (ServerConfig::m_auto_game_time_ratio > 0.0f)
+            {
+                m_default_vote->m_num_laps =
+                    (uint8_t)(fmaxf(1.0f, (float)t->getDefaultNumberOfLaps() *
+                    ServerConfig::m_auto_game_time_ratio));
+            }
+            else if (m_fixed_lap >= 0)
+                m_default_vote->m_num_laps = m_fixed_lap;
             m_default_vote->m_reverse = rg.get(2) == 0;
             break;
         }

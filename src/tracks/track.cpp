@@ -84,11 +84,13 @@
 #include "utils/translation.hpp"
 
 #include <IBillboardTextSceneNode.h>
+#include <IFileSystem.h>
 #include <ILightSceneNode.h>
 #include <IMeshCache.h>
 #include <IMeshManipulator.h>
 #include <IMeshSceneNode.h>
 #include <ISceneManager.h>
+#include <IVideoDriver.h>
 #include <SMeshBuffer.h>
 
 #include <algorithm>

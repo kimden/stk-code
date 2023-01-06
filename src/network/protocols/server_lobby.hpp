@@ -626,6 +626,7 @@ public:
     void storeResults();
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
+<<<<<<< HEAD
     void initAvailableTracks();
     void initAvailableModes();
     void resetToDefaultSettings();
@@ -674,6 +675,8 @@ public:
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
     void applyAllFilters(std::set<std::string>& maps);
+
+    static int m_default_fixed_laps;
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

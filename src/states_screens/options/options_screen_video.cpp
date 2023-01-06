@@ -49,8 +49,11 @@
 #include "../../lib/irrlicht/source/Irrlicht/CIrrDeviceSDL.h"
 #endif
 
+#include <IrrlichtDevice.h>
+
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <sstream>
 
 using namespace GUIEngine;
@@ -252,31 +255,30 @@ void OptionsScreenVideo::init()
     assert( vsync != NULL );
 
     vsync->clearLabels();
-#ifdef IOS_STK
-    //I18N: In the video options, maximum frame per second
-    getWidget("vsync_label")->setText(_("Maximum FPS"));
-    vsync->addLabel("30");
-    vsync->addLabel("60");
-    vsync->addLabel("120");
-    vsync->setValue(UserConfigParams::m_swap_interval);
-#else
-    vsync->addLabel(_("Disabled"));
-    //I18N: In the video options, full vertical sync (usually 60fps)
-    vsync->addLabel(_("Full"));
+    //I18N: In the video options
+    vsync->addLabel(_("Vertical Sync"));
+    std::set<int> fps = { 30, 60, 120, 180, 250, 500, 1000 };
+    fps.insert(UserConfigParams::m_max_fps);
+    for (auto& i : fps)
+        vsync->addLabel(core::stringw(i));
     if (UserConfigParams::m_swap_interval > 1)
         UserConfigParams::m_swap_interval = 1;
-    vsync->setValue(UserConfigParams::m_swap_interval);
 
+    if (UserConfigParams::m_swap_interval == 1)
+        vsync->setValue(0);
+    else
+    {
+        auto it = fps.find(UserConfigParams::m_max_fps);
+        assert(it != fps.end());
+        vsync->setValue(1 + std::distance(fps.begin(), it));
+    }
     //I18N: in graphical options. The \n is a newline character, place it where appropriate, two can be used if required.
     core::stringw vsync_tooltip = _("Vsync forces the graphics card to supply a new frame\nonly when the monitor is ready to display it.");
 
     //I18N: in graphical options.
-    vsync_tooltip = vsync_tooltip + L"\n" + _("Full: one frame per monitor refresh");
-    //I18N: in graphical options.
     vsync_tooltip = vsync_tooltip + L"\n" + _("Vsync will not work if your drivers don't support it.");
 
     vsync->setTooltip(vsync_tooltip);
-#endif
 
     // Setup Render Resolution (scale_rtts) spinner
     GUIEngine::SpinnerWidget* scale_rtts = getWidget<GUIEngine::SpinnerWidget>("scale_rtts");
@@ -321,11 +323,14 @@ void OptionsScreenVideo::init()
     assert( rememberWinposText != NULL );
 #endif
 
+    bool is_fullscreen_desktop = false;
     bool is_vulkan_fullscreen_desktop = false;
 #ifndef SERVER_ONLY
+    is_fullscreen_desktop =
+        GE::getGEConfig()->m_fullscreen_desktop;
     is_vulkan_fullscreen_desktop =
         GE::getDriver()->getDriverType() == video::EDT_VULKAN &&
-        GE::getGEConfig()->m_vulkan_fullscreen_desktop;
+        is_fullscreen_desktop;
 #endif
 
     // --- get resolution list from irrlicht the first time
@@ -371,8 +376,8 @@ void OptionsScreenVideo::init()
             }
         }
 
-        // Vulkan use fullscreen desktop so only show current screen size
-        if (is_vulkan_fullscreen_desktop)
+        // Use fullscreen desktop so only show current screen size
+        if (is_fullscreen_desktop)
         {
             found_config_res = false;
             m_resolutions.clear();
@@ -384,7 +389,7 @@ void OptionsScreenVideo::init()
         {
             r.width  = UserConfigParams::m_real_width;
             r.height = UserConfigParams::m_real_height;
-            r.fullscreen = is_vulkan_fullscreen_desktop;
+            r.fullscreen = is_fullscreen_desktop;
             m_resolutions.push_back(r);
 
             if (r.width == 1024 && r.height == 768)
@@ -862,7 +867,21 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
     {
         GUIEngine::SpinnerWidget* vsync = getWidget<GUIEngine::SpinnerWidget>("vsync");
         assert( vsync != NULL );
-        UserConfigParams::m_swap_interval = vsync->getValue();
+        int swap = vsync->getValue();
+        if (swap == 0)
+        {
+            UserConfigParams::m_swap_interval = 1;
+            UserConfigParams::m_max_fps.revertToDefaults();
+        }
+        else
+        {
+            UserConfigParams::m_swap_interval = 0;
+            std::string fps = StringUtils::wideToUtf8(vsync->getStringValue());
+            UserConfigParams::m_max_fps.revertToDefaults();
+            int max_fps = UserConfigParams::m_max_fps;
+            StringUtils::fromString(fps, max_fps);
+            UserConfigParams::m_max_fps = max_fps;
+        }
 #if !defined(SERVER_ONLY) && defined(_IRR_COMPILE_WITH_SDL_DEVICE_)
         update_swap_interval(UserConfigParams::m_swap_interval);
 #endif
@@ -896,7 +915,7 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
         rememberWinpos->setActive(!fullscreen->getState());
 #ifndef SERVER_ONLY
         GE::GEVulkanDriver* gevk = GE::getVKDriver();
-        if (gevk && GE::getGEConfig()->m_vulkan_fullscreen_desktop)
+        if (gevk && GE::getGEConfig()->m_fullscreen_desktop)
         {
             UserConfigParams::m_fullscreen = fullscreen->getState();
             update_fullscreen_desktop(UserConfigParams::m_fullscreen);

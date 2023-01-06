@@ -27,6 +27,10 @@
 #include <algorithm>
 
 #ifndef SERVER_ONLY
+#include <ICameraSceneNode.h>
+#include <ISceneManager.h>
+#include <ITexture.h>
+
 #include "graphics/texture_shader.hpp"
 
 // ============================================================================

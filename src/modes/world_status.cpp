@@ -35,7 +35,7 @@
 #include "tracks/track.hpp"
 #include "utils/stk_process.hpp"
 
-#include <irrlicht.h>
+#include <IrrlichtDevice.h>
 
 //-----------------------------------------------------------------------------
 WorldStatus::WorldStatus() : m_process_type(STKProcess::getType()), m_started_at(StkTime::getMonoTimeMs())

@@ -41,8 +41,10 @@
 #include "utils/log.hpp"
 #include "utils/vs.hpp"
 
+#include <IFileSystem.h>
 #include <IMaterialRendererServices.h>
 #include <ISceneNode.h>
+#include <IVideoDriver.h>
 #include <mini_glm.hpp>
 
 #ifndef SERVER_ONLY

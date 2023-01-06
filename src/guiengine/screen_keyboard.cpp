@@ -31,6 +31,8 @@
 
 #include <algorithm>
 #include <string>
+#include <IrrlichtDevice.h>
+#include <IGUIEnvironment.h>
 
 using namespace GUIEngine;
 // ============================================================================

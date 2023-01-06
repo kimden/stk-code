@@ -11,6 +11,7 @@
 #include "ge_vulkan_command_loader.hpp"
 #include "ge_vulkan_depth_texture.hpp"
 #include "ge_vulkan_draw_call.hpp"
+#include "ge_vulkan_dynamic_spm_buffer.hpp"
 #include "ge_vulkan_fbo_texture.hpp"
 #include "ge_vulkan_features.hpp"
 #include "ge_vulkan_mesh_cache.hpp"
@@ -504,7 +505,7 @@ GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
                 m_depth_texture(NULL), m_mesh_texture_descriptor(NULL),
                 m_rtt_texture(NULL), m_prev_rtt_texture(NULL),
                 m_separate_rtt_texture(NULL), m_rtt_polycount(0),
-                m_billboard_quad(NULL)
+                m_billboard_quad(NULL), m_current_buffer_idx(0)
 {
     m_vk.reset(new VK());
     m_physical_device = VK_NULL_HANDLE;
@@ -533,7 +534,7 @@ GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
     size_t cfg_size = sizeof(MVKConfiguration);
     vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, &cfg, &cfg_size);
     // Enable to allow binding all textures at once
-    cfg.useMetalArgumentBuffers = VK_TRUE;
+    cfg.useMetalArgumentBuffers = MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_ALWAYS;
     vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, &cfg, &cfg_size);
 #endif
 
@@ -1680,6 +1681,9 @@ bool GEVulkanDriver::beginScene(bool backBuffer, bool zBuffer, SColor color,
         sourceRect))
         return false;
 
+    for (GEVulkanDynamicSPMBuffer* buffer : m_dynamic_spm_buffers)
+        buffer->updateVertexIndexBuffer(m_current_buffer_idx);
+
     m_clear_color = color;
     PrimitivesDrawn = m_rtt_polycount;
     m_rtt_polycount = 0;
@@ -1785,6 +1789,8 @@ bool GEVulkanDriver::endScene()
     present_info.pImageIndices = &m_image_index;
 
     m_current_frame = (m_current_frame + 1) % getMaxFrameInFlight();
+    m_current_buffer_idx =
+        (m_current_buffer_idx + 1) % (getMaxFrameInFlight() + 1);
 
     if (m_present_queue)
         result = vkQueuePresentKHR(m_present_queue, &present_info);
@@ -2270,6 +2276,10 @@ void GEVulkanDriver::unpauseRendering()
 
     createSwapChainRelated(true/*handle_surface*/);
     g_paused_rendering.store(false);
+
+    // Remove any previous scheduled pause to fix sometimes android black
+    // screen after resuming
+    g_schedule_pausing_rendering.store(false);
 }   // unpauseRendering
 
 // ----------------------------------------------------------------------------
@@ -2416,6 +2426,8 @@ void GEVulkanDriver::buildCommandBuffers()
     if (m_rtt_texture)
     {
         vkCmdEndRenderPass(getCurrentCommandBuffer());
+        // No depth buffer in main framebuffer if RTT is used
+        render_pass_info.clearValueCount = 1;
         render_pass_info.renderPass = getRenderPass();
         render_pass_info.framebuffer =
             getSwapChainFramebuffers()[getCurrentImageIndex()];

@@ -391,7 +391,9 @@ void IrrDriver::createListOfVideoModes()
 void IrrDriver::initDevice()
 {
 #if !defined(SERVER_ONLY)
-    GE::setShaderFolder(file_manager->getShadersDir());
+    std::string abs_shader_dir = file_manager->getFileSystem()
+        ->getAbsolutePath(file_manager->getShadersDir().c_str()).c_str();
+    GE::setShaderFolder(abs_shader_dir);
 #endif
     SIrrlichtCreationParameters params;
     core::stringw display_msg;
@@ -510,8 +512,6 @@ begin:
                 UserConfigParams::m_texture_compression;
             GE::getGEConfig()->m_render_scale =
                 UserConfigParams::m_scale_rtts_factor;
-            GE::getGEConfig()->m_vulkan_fullscreen_desktop =
-                UserConfigParams::m_vulkan_fullscreen_desktop;
 #endif
         }
         else
@@ -525,6 +525,15 @@ begin:
             driver_created = video::EDT_OPENGL;
 #endif
         }
+
+#ifndef SERVER_ONLY
+        GE::getGEConfig()->m_fullscreen_desktop =
+            (driver_created == video::EDT_VULKAN &&
+            UserConfigParams::m_vulkan_fullscreen_desktop) ||
+            UserConfigParams::m_non_ge_fullscreen_desktop;
+#endif
+        if (UserConfigParams::m_swap_interval > 1)
+            UserConfigParams::m_swap_interval = 1;
 
         // Try 32 and, upon failure, 24 then 16 bit per pixels
         for (int bits=32; bits>15; bits -=8)
@@ -2486,4 +2495,22 @@ void IrrDriver::resizeWindow()
     }
 #endif
 #endif
+}
+
+// ----------------------------------------------------------------------------
+const core::dimension2d<u32>& IrrDriver::getFrameSize() const
+{
+    return m_video_driver->getCurrentRenderTargetSize();
+}
+
+// ----------------------------------------------------------------------------
+unsigned int IrrDriver::getRealTime()
+{
+    return m_device->getTimer()->getRealTime();
+}
+
+// ----------------------------------------------------------------------------
+u32 IrrDriver::getDefaultFramebuffer() const
+{
+    return m_video_driver->getDefaultFramebuffer();
 }

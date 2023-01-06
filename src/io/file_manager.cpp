@@ -43,14 +43,14 @@
 #include <FindDirectory.h>
 #endif
 
-#include <irrlicht.h>
-
 #include <stdio.h>
 #include <stdexcept>
 #include <sstream>
 #include <sys/stat.h>
 #include <iostream>
 #include <string>
+
+#include <IFileSystem.h>
 
 namespace irr {
     namespace io

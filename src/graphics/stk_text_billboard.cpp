@@ -26,6 +26,13 @@
 #include <ge_spm.hpp>
 #include <ge_spm_buffer.hpp>
 #include <sstream>
+#include <ICameraSceneNode.h>
+#include <IMeshCache.h>
+#include <IMeshSceneNode.h>
+#include <ISceneManager.h>
+#include <ITexture.h>
+#include <IVideoDriver.h>
+#include <SMeshBuffer.h>
 
 // ----------------------------------------------------------------------------
 STKTextBillboard::STKTextBillboard(const video::SColor& color_top,
@@ -88,13 +95,7 @@ void STKTextBillboard::updateAbsolutePosition()
     core::matrix4 m;
     m.setScale(RelativeScale);
     AbsoluteTransformation *= m;
-    if (m_ge_node)
-    {
-        m_ge_node->setPosition(AbsoluteTransformation.getTranslation());
-        m_ge_node->setRotation(AbsoluteTransformation.getRotationDegrees());
-        m_ge_node->setScale(AbsoluteTransformation.getScale());
-    }
-    else if (CVS->isGLSL())
+    if (CVS->isGLSL())
     {
         m_instanced_data =
             SP::SPInstancedData(AbsoluteTransformation, 0, 0, 0, 0);
@@ -418,7 +419,7 @@ void STKTextBillboard::initLegacy(const core::stringw& text, FontWithFace* face)
         oss << (uint64_t)spm;
         SceneManager->getMeshCache()->addMesh(oss.str().c_str(), spm);
         spm->drop();
-        m_ge_node = SceneManager->addMeshSceneNode(spm);
+        m_ge_node = SceneManager->addMeshSceneNode(spm, this);
     }
     else
     {
@@ -536,6 +537,27 @@ void STKTextBillboard::removeGENode()
         m_ge_node = NULL;
     }
 }   // removeGENode
+
+// ----------------------------------------------------------------------------
+void STKTextBillboard::clearBuffer()
+{
+    if (m_instanced_array != 0)
+    {
+        glDeleteBuffers(1, &m_instanced_array);
+    }
+    for (auto& p : m_vao_vbos)
+    {
+        glDeleteVertexArrays(1, &p.second.first);
+        glDeleteBuffers(1, &p.second.second);
+    }
+    m_vao_vbos.clear();
+    for (auto& p : m_gl_mb)
+    {
+        p.second->drop();
+    }
+    m_gl_mb.clear();
+    m_gl_tbs.clear();
+}   // clearBuffer
 
 #endif   // !SERVER_ONLY
 

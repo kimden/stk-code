@@ -38,9 +38,13 @@
 #include "mini_glm.hpp"
 #include "utils/string_utils.hpp"
 
+#include <IAnimatedMeshSceneNode.h>
+#include <IFileSystem.h>
 #include <ISceneManager.h>
+#include <IMeshManipulator.h>
 #include <IMeshSceneNode.h>
 #include <ITexture.h>
+#include <IVideoDriver.h>
 using namespace irr;
 
 #include <algorithm>
@@ -637,10 +641,12 @@ void PhysicalObject::updateGraphics(float dt)
 
     Vec3 hpr;
     hpr.setHPR(SmoothNetworkBody::getSmoothedTrans().getRotation());
+    // Fix missing rotation when lto is used, see #4811
+    hpr *= RAD_TO_DEGREE;
 
     // This will only update the visual position, so it can be
     // called in updateGraphics()
-    m_object->move(xyz.toIrrVector(), hpr.toIrrVector()*RAD_TO_DEGREE,
+    m_object->move(xyz.toIrrVector(), hpr.toIrrVector(),
                    m_init_scale, /*updateRigidBody*/false, 
                    /* isAbsoluteCoord */true);
 }   // updateGraphics

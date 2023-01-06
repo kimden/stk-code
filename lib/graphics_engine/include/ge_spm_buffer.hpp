@@ -16,10 +16,10 @@ class GESPMBuffer : public irr::scene::IMeshBuffer
 protected:
     irr::video::SMaterial m_material;
 
-private:
     std::vector<irr::video::S3DVertexSkinnedMesh> m_vertices;
 
     std::vector<irr::u16> m_indices;
+private:
 
     irr::core::aabbox3d<irr::f32> m_bounding_box;
 
@@ -107,6 +107,8 @@ public:
         return unused;
     }
     // ------------------------------------------------------------------------
+    virtual void setNormal(irr::u32 i, const irr::core::vector3df& normal);
+    // ------------------------------------------------------------------------
     virtual const irr::core::vector2df& getTCoords(irr::u32 i) const
     {
         static irr::core::vector2df unused;
@@ -118,6 +120,8 @@ public:
         static irr::core::vector2df unused;
         return unused;
     }
+    // ------------------------------------------------------------------------
+    virtual void setTCoords(irr::u32 i, const irr::core::vector2df& tcoords);
     // ------------------------------------------------------------------------
     virtual irr::scene::E_PRIMITIVE_TYPE getPrimitiveType() const
                                           { return irr::scene::EPT_TRIANGLES; }
@@ -174,7 +178,7 @@ public:
     // ------------------------------------------------------------------------
     void setHasSkinning(bool val)                     { m_has_skinning = val; }
     // ------------------------------------------------------------------------
-    void bindVertexIndexBuffer(VkCommandBuffer cmd)
+    virtual void bindVertexIndexBuffer(VkCommandBuffer cmd)
     {
         VkBuffer buffer = getVkBuffer();
         std::array<VkBuffer, 2> vertex_buffer =
@@ -193,9 +197,9 @@ public:
             VK_INDEX_TYPE_UINT16);
     }
     // ------------------------------------------------------------------------
-    void createVertexIndexBuffer();
+    virtual void createVertexIndexBuffer();
     // ------------------------------------------------------------------------
-    void destroyVertexIndexBuffer();
+    virtual void destroyVertexIndexBuffer();
     // ------------------------------------------------------------------------
     std::vector<irr::video::S3DVertexSkinnedMesh>& getVerticesVector()
                                                          { return m_vertices; }

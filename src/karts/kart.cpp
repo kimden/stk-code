@@ -91,6 +91,7 @@
 #include "utils/vs.hpp"
 
 #include <ICameraSceneNode.h>
+#include <IDummyTransformationSceneNode.h>
 #include <ISceneManager.h>
 
 #include <algorithm> // for min and max
@@ -3006,13 +3007,13 @@ void Kart::loadData(RaceManager::KartType type, bool is_animated_model)
     m_skidmarks = nullptr;
     m_shadow = nullptr;
     if (!GUIEngine::isNoGraphics() &&
-        m_kart_properties->getSkidEnabled() && CVS->isGLSL())
+        m_kart_properties->getSkidEnabled())
     {
         m_skidmarks.reset(new SkidMarks(*this));
     }
 
     if (!GUIEngine::isNoGraphics() &&
-        CVS->isGLSL() && !CVS->isShadowEnabled() && m_kart_properties
+        (!CVS->isGLSL() || !CVS->isShadowEnabled()) && m_kart_properties
         ->getShadowMaterial()->getSamplerPath(0) != "unicolor_white")
     {
         m_shadow.reset(new Shadow(m_kart_properties->getShadowMaterial(),
