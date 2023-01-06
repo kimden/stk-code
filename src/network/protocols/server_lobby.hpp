@@ -626,7 +626,6 @@ public:
     void storeResults();
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
-<<<<<<< HEAD
     void initAvailableTracks();
     void initAvailableModes();
     void resetToDefaultSettings();
