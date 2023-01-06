@@ -7256,6 +7256,8 @@ bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer) const
 //-----------------------------------------------------------------------------
 bool ServerLobby::canRace(STKPeer* peer) const
 {
+    if (!peer || peer->getPlayerProfiles().empty())
+        return false;
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (ServerConfig::m_soccer_tournament)
@@ -7292,6 +7294,8 @@ bool ServerLobby::canVote(std::shared_ptr<STKPeer>& peer) const
 //-----------------------------------------------------------------------------
 bool ServerLobby::canVote(STKPeer* peer) const
 {
+    if (!peer || peer->getPlayerProfiles().empty())
+        return false;
     std::string username = StringUtils::wideToUtf8(
             peer->getPlayerProfiles()[0]->getName());
     if (ServerConfig::m_soccer_tournament) {
@@ -7314,6 +7318,8 @@ bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer>& peer) const
 //-----------------------------------------------------------------------------
 bool ServerLobby::hasHostRights(STKPeer* peer) const
 {
+    if (!peer || peer->getPlayerProfiles().empty())
+        return false;
     if (peer == m_server_owner.lock().get())
         return true;
     if (peer->isAngryHost())
