@@ -985,8 +985,12 @@ void ServerLobby::handleChat(Event* event)
             message = StringUtils::utf32ToWide({0x1f7e5, 0x20}) + message;
         bool tournament_limit = false;
         std::set<std::string> important_players;
+        std::set<std::string> sees_teamchats;
         if (ServerConfig::m_soccer_tournament)
         {
+            for (const std::string& s: m_tournament_referees) {
+                sees_teamchats.insert(s);
+            }
             tournament_limit = true;
             for (auto& profile: sender->getPlayerProfiles())
             {
@@ -1020,7 +1024,7 @@ void ServerLobby::handleChat(Event* event)
         STKHost::get()->sendPacketToAllPeersWith(
             [game_started, sender_in_game, target_team, can_receive,
                 sender, team_speak, teams, tournament_limit,
-                important_players, sender_name, this](STKPeer* p)
+                important_players, sender_name, sees_teamchats, this](STKPeer* p)
             {
                 if (sender == p)
                     return true;
@@ -1055,6 +1059,10 @@ void ServerLobby::handleChat(Event* event)
                         {
                             if (player->getTeam() == target_team)
                                 someone_good = true;
+                            std::string name = StringUtils::wideToUtf8(
+                                player->getName());
+                            if (sees_teamchats.count(name))
+                                someone_good = true;
                         }
                         if (!someone_good)
                             return false;
@@ -1073,8 +1081,14 @@ void ServerLobby::handleChat(Event* event)
                 {
                     bool someone_good = false;
                     for (auto& profile: p->getPlayerProfiles())
+                    {
                         if (teams.count(profile->getTeam()) > 0)
                             someone_good = true;
+                        std::string name = StringUtils::wideToUtf8(
+                            profile->getName());
+                        if (sees_teamchats.count(name))
+                            someone_good = true;
+                    }
                     if (!someone_good)
                         return false;
                 }
