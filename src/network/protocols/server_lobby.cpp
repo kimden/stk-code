@@ -946,11 +946,13 @@ void ServerLobby::handleChat(Event* event)
 
     if (message.size() > 0)
     {
+        bool add_red_emoji = false;
+        bool add_blue_emoji = false;
         // Red or blue square emoji
         if (target_team == KART_TEAM_RED)
-            message = StringUtils::utf32ToWide({0x1f7e5, 0x20}) + message;
+            add_red_emoji = true;
         else if (target_team == KART_TEAM_BLUE)
-            message = StringUtils::utf32ToWide({0x1f7e6, 0x20}) + message;
+            add_blue_emoji = true;
 
         NetworkString* chat = getNetworkString();
         chat->setSynchronous(true);
@@ -967,6 +969,20 @@ void ServerLobby::handleChat(Event* event)
         std::set<KartTeam> teams;
         for (auto& profile: sender->getPlayerProfiles())
             teams.insert(profile->getTeam());
+        if (team_speak)
+        {
+            for (auto &team: teams)
+            {
+                if (team == KART_TEAM_RED)
+                    add_red_emoji = true;
+                else if (team == KART_TEAM_BLUE)
+                    add_blue_emoji = true;
+            }
+        }
+        if (add_blue_emoji)
+            message = StringUtils::utf32ToWide({0x1f7e6, 0x20}) + message;
+        if (add_red_emoji)
+            message = StringUtils::utf32ToWide({0x1f7e5, 0x20}) + message;
         bool tournament_limit = false;
         std::set<std::string> important_players;
         if (ServerConfig::m_soccer_tournament)
