@@ -371,6 +371,8 @@ private:
 
     int m_fixed_lap;
 
+    int m_fixed_direction;
+
     float m_extra_seconds;
 
     double m_default_lap_multiplier;

@@ -300,6 +300,10 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "fixed-lap-count",
         "Use fixed lap count, negative or zero to disable."));
 
+    SERVER_CFG_PREFIX IntServerConfigParam m_fixed_direction
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "fixed-direction",
+        "Use fixed direction (0 for forward or 1 for reverse), -1 to disable."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_official_tracks_needed
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "official-tracks-needed",
         "If this value is set to true, players and the server must have "

@@ -240,6 +240,7 @@ void CommandManager::initCommands()
     v.emplace_back("record", &CM::process_record, UP_EVERYONE);
     v.emplace_back("power", &CM::process_power, UP_EVERYONE);
     v.emplace_back("length", &CM::process_length, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
+    v.emplace_back("direction", &CM::process_direction, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("queue", &CM::process_queue, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
     v.emplace_back("allowstart", &CM::process_allowstart, UP_HAMMER);
     v.emplace_back("shuffle", &CM::process_shuffle, UP_HAMMER);
@@ -1843,6 +1844,40 @@ void CommandManager::process_length(Context& context)
 
     error(context);
 } // process_length
+// =======================================================
+
+void CommandManager::process_direction(Context& context)
+{
+    auto& argv = context.m_argv;
+    std::string msg;
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    int temp_int = -1;
+    if (!StringUtils::parseString<int>(argv[1], &temp_int))
+    {
+        error(context);
+        return;
+    }
+    if (temp_int < -1 || temp_int > 1)
+    {
+        error(context);
+        return;
+    }
+    m_lobby->m_fixed_direction = temp_int;
+    msg = "Direction is now ";
+    if (temp_int == -1)
+    {
+        msg += "chosen ingame";
+    } else
+    {
+        msg += "set to ";
+        msg += (temp_int == 0 ? "forward" : "reverse");
+    }
+    m_lobby->sendStringToAllPeers(msg);
+} // process_direction
 // ========================================================================
 
 void CommandManager::process_queue(Context& context)

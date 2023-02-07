@@ -269,6 +269,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     if (m_default_fixed_laps != -1) {
         m_fixed_lap = m_default_fixed_laps;
     }
+    m_fixed_direction = ServerConfig::m_fixed_direction;
     m_extra_seconds = 0.0f;
     m_default_lap_multiplier = ServerConfig::m_auto_game_time_ratio;
 
@@ -1939,6 +1940,11 @@ void ServerLobby::asynchronousUpdate()
                 winner_vote.m_num_laps = m_fixed_lap;
                 Log::info("ServerLobby", "Enforcing %d lap race", (int)m_fixed_lap);
             }
+            if (m_fixed_direction >= 0)
+            {
+                winner_vote.m_reverse = (m_fixed_direction == 1);
+                Log::info("ServerLobby", "Enforcing direction %d", (int)m_fixed_direction);
+            }
             *m_default_vote = winner_vote;
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
@@ -3131,6 +3137,8 @@ void ServerLobby::startSelection(const Event *event)
             else if (m_fixed_lap >= 0)
                 m_default_vote->m_num_laps = m_fixed_lap;
             m_default_vote->m_reverse = rg.get(2) == 0;
+            if (m_fixed_direction >= 0)
+                m_default_vote->m_reverse = (m_fixed_direction == 1);
             break;
         }
         case RaceManager::MINOR_MODE_FREE_FOR_ALL:
@@ -5154,6 +5162,8 @@ void ServerLobby::handlePlayerVote(Event* event)
     {
         vote.m_num_laps = m_fixed_lap;
     }
+    if (m_fixed_direction >= 0)
+        vote.m_reverse = (m_fixed_direction == 1);
 
     // Store vote:
     vote.m_player_name = event->getPeer()->getPlayerProfiles()[0]->getName();
@@ -6959,6 +6969,9 @@ void ServerLobby::resetToDefaultSettings()
         m_default_lap_multiplier = -1.0;
         m_fixed_lap = -1;
     }
+
+    if (!m_preserve.count("direction"))
+        m_fixed_direction = ServerConfig::m_fixed_direction;
 
     if (!m_preserve.count("queue"))
         m_tracks_queue.clear();

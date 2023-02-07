@@ -167,6 +167,11 @@
              permissions="hammers, singleplayers"
              description="Manipulates the length of the games, “= n” fixes the number of laps to n, “x k” sets it to k times default number of laps, “check” displays the setting, “clear” allows players to choose it freely."
     />
+    <command name="direction"
+             usage="/direction (-1 | 0 | 1)"
+             permissions="hammers, singleplayers"
+             description="Manipulates the direction of the games, -1 allows to choose it ingame, 0 (forward) and 1 (reverse) sets to a specific direction."
+    />
     <command name="queue"
              usage="/queue (show | push[_front] (track) | pop[_back])"
              permissions="hammers, singleplayers"
@@ -375,7 +380,7 @@
              description="Displays the result of an ongoing game."
     />
     <command name="preserve"
-             usage="/preserve (mode|elim|laps|queue|replay) (0|1) or /preserve show"
+             usage="/preserve (mode|elim|laps|queue|replay|direction) (0|1) or /preserve show"
              permissions="hammers"
              description="Changes whether the specified setting is preserved (if 1; or reset if 0) when all players quit"
     />

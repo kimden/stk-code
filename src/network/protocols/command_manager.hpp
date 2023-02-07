@@ -229,6 +229,7 @@ private:
     void process_record(Context& context);
     void process_power(Context& context);
     void process_length(Context& context);
+    void process_direction(Context& context);
     void process_queue(Context& context);
     void process_allowstart(Context& context);
     void process_shuffle(Context& context);
