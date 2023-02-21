@@ -283,6 +283,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     initAvailableModes();
 
+    m_current_ai_count.store(0);
     std::vector<int> all_k =
         kart_properties_manager->getKartsInGroup("standard");
     std::vector<int> all_t =
@@ -3452,6 +3453,7 @@ void ServerLobby::checkIncomingConnectionRequests()
     request->addParameter("address", addr.getIP()  );
     request->addParameter("port",    addr.getPort());
     request->addParameter("current-players", getLobbyPlayers());
+    request->addParameter("current-ai", m_current_ai_count.load());
     request->addParameter("game-started",
         m_state.load() == WAITING_FOR_START_GAME ? 0 : 1);
     std::string current_track = getPlayingTrackIdent();
@@ -4690,8 +4692,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 #else
             core::stringw name = _("Bot");
 #endif
-            if (i > 0)
-                name += core::stringw(" ") + StringUtils::toWString(i);
+            name += core::stringw(" ") + StringUtils::toWString(i + 1);
+            
             m_ai_profiles.push_back(std::make_shared<NetworkPlayerProfile>
                 (peer, name, peer->getHostId(), 0.0f, 0, HANDICAP_NONE,
                 player_count + i, KART_TEAM_NONE, ""));
@@ -4895,13 +4897,18 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             }
             all_profiles.insert(all_profiles.end(), ai_profiles.begin(),
                 ai_profiles.end());
+            m_current_ai_count.store((int)ai_profiles.size());
         }
         else if (!m_ai_profiles.empty())
         {
             all_profiles.insert(all_profiles.end(), m_ai_profiles.begin(),
                 m_ai_profiles.end());
+            m_current_ai_count.store((int)m_ai_profiles.size());
         }
     }
+    else
+        m_current_ai_count.store(0);
+
     m_lobby_players.store((int)all_profiles.size());
 
     // No need to update player list (for started grand prix currently)
