@@ -1139,7 +1139,7 @@ void LinearWorld::serverCheckForWrongDirection(unsigned int i, float dt)
     if ((angle_diff > DEGREE_TO_RAD * 120.0f ||
         angle_diff < -DEGREE_TO_RAD * 120.0f) &&
         kart->getVelocityLC().getY() > 0.0f &&
-        kart->getVelocityLC().getY() > -ServerConfig::m_troll_max_stop_speed &&
+        std::fabs(kart->getSpeed()) > -ServerConfig::m_troll_max_stop_speed &&
         !kart->hasFinishedRace())
     {
         ki.m_wrong_way_timer += dt;

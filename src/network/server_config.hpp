@@ -332,7 +332,7 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_troll_max_stop_speed
         SERVER_CFG_DEFAULT(FloatServerConfigParam(5.0f, "troll-max-stop-speed",
-        "A player going slower than this is considered stopping."));
+        "A player going slower than this is considered stopping. Negative speed allows to move with it in any direction."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_show_teammate_hits
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "show-teammate-hits",
