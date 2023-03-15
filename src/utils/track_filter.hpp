@@ -37,6 +37,7 @@
 
 struct TrackFilter
 {
+    std::string initial_string;
     bool m_include_available = true;
     bool m_include_unavailable = true;
     bool m_include_official = true;
@@ -50,11 +51,12 @@ struct TrackFilter
     bool others; // whether not specified tracks are allowed
     TrackFilter();
     TrackFilter(std::string input);
-    static std::string get(std::vector<std::string>& vec, int index);
+    static std::string get(const std::vector<std::string>& vec, int index);
     void apply(int num_players, std::set<std::string>& input) const;
     void apply(int num_players, std::set<std::string>& input,
-        std::vector<std::string>& wildcards) const;
+        const std::vector<std::string>& wildcards) const;
     bool isPickingRandom() const                      { return m_pick_random; }
+    std::string toString() const;
 };
 
 #endif

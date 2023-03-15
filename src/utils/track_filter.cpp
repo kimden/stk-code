@@ -40,11 +40,11 @@ TrackFilter::TrackFilter()
 
 TrackFilter::TrackFilter(std::string input)
 {
+    initial_string = input;
     auto tokens = StringUtils::split(input, ' ');
     bool good = true;
     others = false;
-    if (tokens.size() == 0)
-        others = true;
+    bool unknown_others = true;
     for (unsigned i = 0; i < tokens.size(); i++)
     {
         if (tokens[i] == "" || tokens[i] == " ")
@@ -71,10 +71,12 @@ TrackFilter::TrackFilter(std::string input)
         }
         else if (tokens[i] == "other:yes")
         {
+            unknown_others = false;
             others = true;
         }
         else if (tokens[i] == "other:no")
         {
+            unknown_others = false;
             others = false;
         }
         else if (tokens[i][0] == '%')
@@ -120,9 +122,14 @@ TrackFilter::TrackFilter(std::string input)
             }
         }
     }
+    if (unknown_others)
+        if (!allowed.empty() && !w_allowed.empty())
+            others = false;
+        else
+            others = true;
 }   // TrackFilter
 //-----------------------------------------------------------------------------
-std::string TrackFilter::get(std::vector<std::string>& vec, int index)
+std::string TrackFilter::get(const std::vector<std::string>& vec, int index)
 {
     if (index >= 0 && index < vec.size())
         return vec[index];
@@ -140,7 +147,7 @@ void TrackFilter::apply(int num_players, std::set<std::string>& input) const
 //-----------------------------------------------------------------------------
 
 void TrackFilter::apply(int num_players, std::set<std::string>& input,
-    std::vector<std::string>& wildcards) const
+    const std::vector<std::string>& wildcards) const
 {
     std::set<std::string> copy = input;
     input.clear();
@@ -162,7 +169,7 @@ void TrackFilter::apply(int num_players, std::set<std::string>& input,
 
     for (const std::string& s: copy)
     {
-        bool addon = (s.length() >= 6 && s.substr(6) == "addon_");
+        bool addon = (s.length() >= 6 && s.substr(0, 6) == "addon_");
         bool yes = false;
         bool no = false;
         auto it = max_players.find(s);
@@ -203,5 +210,9 @@ void TrackFilter::apply(int num_players, std::set<std::string>& input,
     }
 }   // apply (2)
 //-----------------------------------------------------------------------------
-
+std::string TrackFilter::toString() const
+{
+    return "{ " + initial_string + " }"; // todo make it shorter
+}   // toString
+//-----------------------------------------------------------------------------
 /* EOF */

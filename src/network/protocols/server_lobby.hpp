@@ -361,7 +361,9 @@ private:
 
     std::set<std::string> m_temp_banned;
 
-    std::deque<std::string> m_tracks_queue;
+    std::deque<TrackFilter> m_tracks_queue;
+
+    std::vector<std::string> m_map_history;
 
     std::map<std::string, GPScore> m_gp_scores;
 
@@ -677,7 +679,7 @@ public:
     void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
-    void applyAllFilters(std::set<std::string>& maps);
+    void applyAllFilters(std::set<std::string>& maps, bool use_history);
 
     static int m_default_fixed_laps;
 };   // class ServerLobby

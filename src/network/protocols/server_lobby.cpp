@@ -3065,12 +3065,11 @@ void ServerLobby::startSelection(const Event *event)
     {
         m_available_kts.second.erase(track_erase);
     }
-    if (!m_tracks_queue.empty())
-    {
-        m_available_kts.second.clear();
-        m_available_kts.second.insert(m_tracks_queue.front());
-    }
-
+//    if (!m_tracks_queue.empty())
+//    {
+//        m_available_kts.second.clear();
+//        m_available_kts.second.insert(m_tracks_queue.front());
+//    }
 
     max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
@@ -3097,7 +3096,7 @@ void ServerLobby::startSelection(const Event *event)
     else
         m_ai_count = 0;
 
-    applyAllFilters(m_available_kts.second);
+    applyAllFilters(m_available_kts.second, true);
 
    /* auto iter = m_available_kts.second.begin();
     while (iter != m_available_kts.second.end())
@@ -3614,6 +3613,7 @@ void ServerLobby::checkRaceFinished()
 
     if (!m_tracks_queue.empty())
     {
+        m_map_history.push_back(RaceManager::get()->getTrackName());
         m_tracks_queue.pop_front();
         // Reload GP tracks if GP ends
         if (m_tracks_queue.empty() && m_game_setup->isGrandPrix())
@@ -7333,8 +7333,12 @@ bool ServerLobby::canRace(STKPeer* peer) const
         return false;
 
     if (!m_tracks_queue.empty())
-        if (peer->getClientAssets().second.count(m_tracks_queue.front()) == 0)
+    {
+        std::set<std::string> st = peer->getClientAssets().second;
+        m_tracks_queue.front().apply(0, st, m_map_history);
+        if (st.empty())
             return false;
+    }
     if (!m_play_requirement_tracks.empty())
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
@@ -7443,7 +7447,7 @@ void ServerLobby::loadTracksQueueFromConfig()
         ServerConfig::m_tracks_order, ' ');
     m_tracks_queue.clear();
     for (std::string& s: tokens)
-        m_tracks_queue.push_back(s);
+        m_tracks_queue.push_back(TrackFilter(s));
 }   // loadTracksQueueFromConfig
 //-----------------------------------------------------------------------------
 std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTeam) const
@@ -8192,7 +8196,7 @@ void ServerLobby::resetGrandPrix()
 }   // resetGrandPrix
 //-----------------------------------------------------------------------------
 
-void ServerLobby::applyAllFilters(std::set<std::string>& maps)
+void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history)
 {
     unsigned max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
@@ -8212,10 +8216,15 @@ void ServerLobby::applyAllFilters(std::set<std::string>& maps)
     }
 
     m_global_filter.apply(max_player, maps);
-    if (ServerConfig::m_soccer_tournament)
+    if (use_history)
     {
-        m_tournament_track_filters[m_tournament_game].apply(
-                max_player, maps, m_tournament_arenas);
+        if (ServerConfig::m_soccer_tournament)
+        {
+            m_tournament_track_filters[m_tournament_game].apply(
+                    max_player, maps, m_tournament_arenas);
+        }
+        if (!m_tracks_queue.empty())
+            m_tracks_queue.front().apply(max_player, maps, m_map_history);
     }
 }   // applyAllFilters
 //-----------------------------------------------------------------------------
