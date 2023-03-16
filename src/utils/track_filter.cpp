@@ -123,7 +123,7 @@ TrackFilter::TrackFilter(std::string input)
         }
     }
     if (unknown_others)
-        if (!allowed.empty() && !w_allowed.empty())
+        if (!allowed.empty() || !w_allowed.empty())
             others = false;
         else
             others = true;
