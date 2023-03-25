@@ -61,6 +61,18 @@ class CommandManager
         std::string get();
     };
 
+    struct AuthResource
+    {
+        std::string m_secret;
+        std::string m_server;
+        std::string m_link_format;
+
+        AuthResource(std::string secret = "", std::string server = "",
+            std::string link_format = "");
+
+        std::string get(std::string username);
+    };
+
     enum ModeScope: int
     {
         MS_DEFAULT = 1,
@@ -160,6 +172,8 @@ private:
 
     std::map<std::string, FileResource> m_file_resources;
 
+    std::map<std::string, AuthResource> m_auth_resources;
+
     std::map<std::string, CommandVoting> m_votables;
 
     std::queue<std::string> m_triggered_votables;
@@ -203,6 +217,7 @@ private:
     void process_help(Context& context);
     void process_text(Context& context);
     void process_file(Context& context);
+    void process_auth(Context& context);
     void process_commands(Context& context);
     void process_replay(Context& context);
     void process_start(Context& context);
@@ -281,6 +296,9 @@ public:
 
     void addFileResource(std::string key, std::string file, uint64_t interval)
                       { m_file_resources[key] = FileResource(file, interval); }
+
+    void addAuthResource(std::string key, std::string secret, std::string server, std::string link_format)
+         { m_auth_resources[key] = AuthResource(secret, server, link_format); }
 
     void addUser(std::string& s);
 

@@ -1372,6 +1372,16 @@ namespace StringUtils
         }
         return distance[n][m];
     }   // getEditDistance
+    // ------------------------------------------------------------------------
+
+    std::vector<uint8_t> toUInt8Vector(const std::string& s)
+    {
+        std::vector<uint8_t> result;
+        for (const char& c: s)
+            result.push_back((uint8_t)c);
+        return result;
+    }   // toUInt8Vector
+    // ------------------------------------------------------------------------
 } // namespace StringUtils
 
 /* EOF */

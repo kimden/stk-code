@@ -118,6 +118,36 @@ std::string CommandManager::FileResource::get()
 } // FileResource::get
 // ========================================================================
 
+CommandManager::AuthResource::AuthResource(std::string secret, std::string server,
+    std::string link_format):
+    m_secret(secret), m_server(server), m_link_format(link_format)
+{
+
+} // AuthResource::AuthResource
+// ========================================================================
+
+std::string CommandManager::AuthResource::get(std::string username)
+{
+#ifdef ENABLE_CRYPTO_OPENSSL
+    std::string header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+    uint64_t timestamp = StkTime::getTimeSinceEpoch();
+    uint64_t period = 3600;
+    std::string payload = "{\"name\":\"" + username + "\",";
+    payload += "\"iat\":\"" + std::to_string(timestamp) + "\",";
+    payload += "\"exp\":\"" + std::to_string(timestamp + period) + "\",";
+    payload += "\"serv\":\"" + m_server + "\"}";
+    header = Crypto::base64url(StringUtils::toUInt8Vector(header));
+    payload = Crypto::base64url(StringUtils::toUInt8Vector(payload));
+    std::string message = header + "." + payload;
+    std::string signature = Crypto::base64url(Crypto::hmac_sha256_array(m_secret, message));
+    std::string token = message + "." + signature;
+    std::string response = StringUtils::insertValues(m_link_format, token.c_str());
+    return response;
+#else
+    return "This command is currently only supported for OpenSSL";
+#endif
+} // AuthResource::get
+// ========================================================================
 
 void CommandManager::initCommandsInfo()
 {
@@ -141,6 +171,9 @@ void CommandManager::initCommandsInfo()
         std::string permissions = "";
         std::string description = "";
         std::string aliases = "";
+        std::string secret = ""; // for auth-command
+        std::string link_format = ""; // for auth-command
+        std::string server = ""; // for auth-command
         // If enabled is not empty, command is added iff the server name is in enabled
         // Otherwise it is added iff the server name is not in disabled
         std::string enabled = "";
@@ -193,6 +226,15 @@ void CommandManager::initCommandsInfo()
             node->get("interval", &interval);
             m_commands.emplace_back(name, &CommandManager::process_file, UP_EVERYONE, MS_DEFAULT);
             addFileResource(name, file, interval);
+            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
+        }
+        else if (node_name == "auth-command")
+        {
+            node->get("secret", &secret);
+            node->get("server", &server);
+            node->get("link-format", &link_format);
+            m_commands.emplace_back(name, &CommandManager::process_auth, UP_EVERYONE, MS_DEFAULT);
+            addAuthResource(name, secret, server, link_format);
             m_config_descriptions[name] = CommandDescription(usage, permissions, description);
         }
     }
@@ -659,6 +701,28 @@ void CommandManager::process_file(Context& context)
             + context.m_argv[0];
     else
         response = it->second.get();
+    m_lobby->sendStringToPeer(response, context.m_peer);
+} // process_text
+// ========================================================================
+
+void CommandManager::process_auth(Context& context)
+{
+    std::string response;
+    auto it = m_auth_resources.find(context.m_argv[0]);
+    if (it == m_auth_resources.end())
+        response = "Error: auth method not found for a command "
+                   + context.m_argv[0];
+    else
+    {
+        auto profile = context.m_peer->getPlayerProfiles()[0];
+        std::string username = StringUtils::wideToUtf8(profile->getName());
+        int online_id = profile->getOnlineId();
+        if (online_id == 0)
+            response = "Error: you need to join with an "
+                       "online account to use auth methods";
+        else
+            response = it->second.get(username);
+    }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_text
 // ========================================================================

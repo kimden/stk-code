@@ -338,6 +338,9 @@ namespace StringUtils
     bool isEqual(char a, char b, char any_char, bool case_sensitive = true);
     int getEditDistance(const std::string& a, const std::string& b,
         bool case_sensitive = true, char any_substr = 0, char any_char = 0);
+    // ------------------------------------------------------------------------
+    std::vector<uint8_t> toUInt8Vector(const std::string& s);
+    // ------------------------------------------------------------------------
 
 } // namespace StringUtils
 
