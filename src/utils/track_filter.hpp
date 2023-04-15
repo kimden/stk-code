@@ -43,6 +43,7 @@ struct TrackFilter
     bool m_include_official = true;
     bool m_include_addons = true;
     bool m_pick_random = false;
+    int m_random_count = 0;
     std::set<std::string> allowed;
     std::set<std::string> forbidden;
     std::vector<int> w_allowed; // wildcards
