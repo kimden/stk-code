@@ -259,6 +259,7 @@ void CommandManager::initCommands()
     v.emplace_back("moreaddons", &CM::process_addons, UP_EVERYONE);
     v.emplace_back("getaddons", &CM::process_addons, UP_EVERYONE);
     v.emplace_back("checkaddon", &CM::process_checkaddon, UP_EVERYONE);
+    v.emplace_back("id", &CM::process_id, UP_EVERYONE);
     v.emplace_back("listserveraddon", &CM::process_lsa, UP_EVERYONE);
     v.emplace_back("playerhasaddon", &CM::process_pha, UP_EVERYONE);
     v.emplace_back("kick", &CM::process_kick, kick_permissions);
@@ -1196,6 +1197,23 @@ void CommandManager::process_checkaddon(Context& context)
     }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_checkaddon
+// ========================================================================
+
+void CommandManager::process_id(Context& context)
+{
+    auto& argv = context.m_argv;
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+                1, m_stf_all_maps, 3, false, true))
+        return;
+    std::string id = argv[1];
+    std::string response = "Server knows this map, copy it below:\n" + id;
+    m_lobby->sendStringToPeer(response, context.m_peer);
+} // process_id
 // ========================================================================
 
 void CommandManager::process_lsa(Context& context)

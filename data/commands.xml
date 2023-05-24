@@ -47,6 +47,11 @@
              permissions="everyone"
              description="Displays numbers of players who have the corresponding addon, and whether server has it. Displays up to 5 random players from each category."
     />
+    <command name="id"
+             usage="/id (expression)"
+             permissions="everyone"
+             description="Shows the id of a map (official or addon) that corresponds to a given expression, convenient for copying."
+    />
     <command name="listserveraddon"
              usage="/listserveraddon [-type] (substring)"
              permissions="everyone"
