@@ -1871,8 +1871,7 @@ void CommandManager::process_length(Context& context)
     std::string msg;
     if (argv.size() < 2)
     {
-        error(context);
-        return;
+        argv.push_back("check");
     }
     if (argv[1] == "check")
     {
@@ -1969,12 +1968,11 @@ void CommandManager::process_queue(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() < 2)
     {
-        error(context);
-        return;
+        argv.push_back("show");
     }
     if (argv[1] == "show")
     {
-        msg = "Queue:";
+        msg = StringUtils::insertValues("Queue (size = %d):", (int)m_lobby->m_tracks_queue.size());
         for (const TrackFilter& s: m_lobby->m_tracks_queue) {
             msg += " " + s.toString();
         }
@@ -2049,6 +2047,25 @@ void CommandManager::process_queue(Context& context)
             msg += " current queue size: "
                 + std::to_string(m_lobby->m_tracks_queue.size());
         }
+        m_lobby->sendStringToAllPeers(msg);
+        m_lobby->updatePlayerList();
+    }
+    else if (argv[1] == "clear")
+    {
+        msg = StringUtils::insertValues(
+                "Queue is now empty (previous size: %d)",
+                (int)m_lobby->m_tracks_queue.size());
+        m_lobby->m_tracks_queue.clear();
+        m_lobby->sendStringToAllPeers(msg);
+        m_lobby->updatePlayerList();
+    }
+    else if (argv[1] == "shuffle")
+    {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        auto& queue = m_lobby->m_tracks_queue;
+        std::shuffle(queue.begin(), queue.end(), g);
+        msg = "Queue is now shuffled";
         m_lobby->sendStringToAllPeers(msg);
         m_lobby->updatePlayerList();
     }
@@ -2417,10 +2434,21 @@ void CommandManager::process_scoring(Context& context)
     auto& argv = context.m_argv;
     std::string cmd2;
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
-    if (m_lobby->loadCustomScoring(cmd2)) {
+    if (cmd2 == "")
+    {
+        msg = "Current scoring is \"" + m_lobby->m_scoring_type;
+        for (int param: m_lobby->m_scoring_int_params)
+            msg += StringUtils::insertValues(" %d", param);
+        msg += "\"";
+        m_lobby->sendStringToPeer(msg, context.m_peer);
+    }
+    else if (m_lobby->loadCustomScoring(cmd2))
+    {
         msg = "Scoring set to \"" + cmd2 + "\"";
         m_lobby->sendStringToAllPeers(msg);
-    } else {
+    }
+    else
+    {
         msg = "Scoring could not be parsed from \"" + cmd2 + "\"";
         m_lobby->sendStringToPeer(msg, context.m_peer);
     }

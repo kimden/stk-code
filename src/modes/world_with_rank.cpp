@@ -324,7 +324,7 @@ void WorldWithRank::setCustomScoringSystem(std::string& type, std::vector<int>& 
 {
     m_custom_scoring_type = type;
     m_custom_scoring_params = params;
-    if (type == "" || type == "standard") {
+    if (type == "" || type == "standard" || type == "default") {
         m_custom_scoring = false;
         return;
     }

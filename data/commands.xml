@@ -168,9 +168,9 @@
              description="Enters the hammer mode if the password is correct."
     />
     <command name="length"
-             usage="/length (x (float) | = (int) | check | clear)"
+             usage="/length [x (float) | = (int) | check | clear]"
              permissions="hammers, singleplayers"
-             description="Manipulates the length of the games, “= n” fixes the number of laps to n, “x k” sets it to k times default number of laps, “check” displays the setting, “clear” allows players to choose it freely."
+             description="Manipulates the length of the games, “= n” fixes the number of laps to n, “x k” sets it to k times default number of laps, “check” displays the setting, “clear” allows players to choose it freely. Without arguments, shows the current setting."
     />
     <command name="direction"
              usage="/direction (-1 | 0 | 1)"
@@ -178,9 +178,9 @@
              description="Manipulates the direction of the games, -1 allows to choose it ingame, 0 (forward) and 1 (reverse) sets to a specific direction."
     />
     <command name="queue"
-             usage="/queue (show | push[_front] (track) | pop[_back])"
+             usage="/queue [show | push[_front] (track) | pop[_back] | clear | shuffle]"
              permissions="hammers, singleplayers"
-             description="Manipulates the track queue aka the next played tracks. “show” displays it, “push” adds the track to the end of the queue, “pop” removes a track at the front. You can use “_back” and “_front” to specify on which end of the queue to add or remove the tracks."
+             description="Manipulates the track queue aka the next played tracks. “show” (or no arguments) displays it, “push” adds the track to the end of the queue, “pop” removes a track at the front. You can use “_back” and “_front” to specify on which end of the queue to add or remove the tracks."
     />
     <command name="allowstart"
              usage="/allowstart [0 | 1]"
@@ -253,9 +253,9 @@
              description="Toggles whether the teammate hits are punished ingame."
     />
     <command name="scoring"
-             usage="/scoring [(type) (int parameters)]"
+             usage="/scoring [standard | (type) (int parameters)]"
              permissions="hammers"
-             description="Sets Grand Prix scoring to the specified one. A call without arguments corresponds to built-in scoring, parameters should have the same format as in server config."
+             description="Sets Grand Prix scoring to the specified one. A call without arguments shows the scoring."
     />
     <command name="version"
              usage="/version"

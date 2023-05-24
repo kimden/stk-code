@@ -7511,6 +7511,9 @@ std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTea
 //-----------------------------------------------------------------------------
 bool ServerLobby::loadCustomScoring(std::string& scoring)
 {
+    std::set<std::string> available_scoring_types = {
+            "standard", "default", "", "inc", "fixed", "linear-gap", "exp-gap"
+    };
     auto previous_params = m_scoring_int_params;
     auto previous_type = m_scoring_type;
     m_scoring_int_params.clear();
@@ -7524,6 +7527,13 @@ bool ServerLobby::loadCustomScoring(std::string& scoring)
             return true;
         }
         m_scoring_type = params[0];
+        if (available_scoring_types.count(m_scoring_type) == 0)
+        {
+            Log::warn("ServerLobby", "Unknown scoring type %s, fallback.", m_scoring_type.c_str());
+            m_scoring_int_params = previous_params;
+            m_scoring_type = previous_type;
+            return false;
+        }
         for (unsigned i = 1; i < params.size(); i++)
         {
             int param;
