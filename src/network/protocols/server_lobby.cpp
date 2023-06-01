@@ -6855,7 +6855,7 @@ void ServerLobby::storeResults()
             score = RaceManager::get()->getKartRaceTime(i);
             has_quit.push_back(w->getKart(i)->isEliminated() ? 1 : 0);
             elapsed_string << std::setprecision(4) << std::fixed << score;
-            if (best_cur_player_idx == -1 || score < best_cur_time)
+            if (!w->getKart(i)->isEliminated() && (best_cur_player_idx == -1 || score < best_cur_time))
             {
                 best_cur_player_idx = i;
                 best_cur_time = score;
