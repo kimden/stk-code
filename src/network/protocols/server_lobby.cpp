@@ -6763,6 +6763,14 @@ void ServerLobby::updateGnuElimination()
 void ServerLobby::storeResults()
 {
 #ifdef ENABLE_SQLITE3
+    std::string powerup_string = powerup_manager->getFileName();
+    std::string kc_string = kart_properties_manager->getFileName();
+    // TODO: don't use file names as constants
+    if (powerup_string == "powerup.xml")
+        powerup_string = "";
+    if (kc_string == "kart_characteristics.xml")
+        kc_string = "";
+
     bool racing_mode = false;
     bool ffa = RaceManager::get()->getMinorMode() ==
                RaceManager::MINOR_MODE_FREE_FOR_ALL;
@@ -6792,9 +6800,11 @@ void ServerLobby::storeResults()
     {
         std::string get_query = StringUtils::insertValues("SELECT username, "
             "result FROM '%s' WHERE venue = '%s' and reverse = '%s' "
-            "and mode = '%s' and laps = %d order by result asc, time asc limit 1;",
+            "and mode = '%s' and laps = %d and config = '%s' "
+            "and items = '%s' and is_quit = 0 "
+            "order by result asc, time asc limit 1;",
             records_table_name.c_str(), track_name.c_str(), reverse_string.c_str(), mode_name.c_str(),
-            laps_number);
+            laps_number, kc_string.c_str(), powerup_string.c_str());
         auto ret = vectorSQLQuery(get_query, 2);
         record_fetched = ret.first;
         if (record_fetched && ret.second[0].size() > 0)
@@ -6821,8 +6831,11 @@ void ServerLobby::storeResults()
     std::vector<std::string> scores;
     std::vector<std::string> karts;
     std::vector<int> lap_counts;
+    std::vector<float> colors;
+    std::vector<int> has_quit;
     for (int i = 0; i < player_count; i++)
     {
+        // TODO why I cannot use get()->getPlayerName?
         std::string username = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(i).getPlayerName());
         for (std::string& username: usernames) {
@@ -6835,11 +6848,12 @@ void ServerLobby::storeResults()
         double score = DISCONNECT_TIME;
         std::string kart_name = w->getKart(i)->getIdent();
         std::stringstream elapsed_string;
+        float kart_color = RaceManager::get()->getKartColor(i);
 
         if (racing_mode)
         {
-            if (!w->getKart(i)->isEliminated())
-                score = RaceManager::get()->getKartRaceTime(i);
+            score = RaceManager::get()->getKartRaceTime(i);
+            has_quit.push_back(w->getKart(i)->isEliminated() ? 1 : 0);
             elapsed_string << std::setprecision(4) << std::fixed << score;
             if (best_cur_player_idx == -1 || score < best_cur_time)
             {
@@ -6852,6 +6866,7 @@ void ServerLobby::storeResults()
         {
             if (w->getKart(i)->isEliminated())
                 continue;
+            has_quit.push_back(0);
             if (ffa_world)
             {
                 score = ffa_world->getKartScore(i);
@@ -6863,6 +6878,7 @@ void ServerLobby::storeResults()
         scores.push_back(elapsed_string.str());
         karts.push_back(kart_name);
         lap_counts.push_back(laps_number);
+        colors.push_back(kart_color);
     }
     if (ServerConfig::m_preserve_battle_scores)
     {
@@ -6872,6 +6888,8 @@ void ServerLobby::storeResults()
             lap_counts.push_back(0);
             scores.push_back(std::to_string(p.second));
             karts.push_back("unknown");
+            colors.push_back(-1);
+            has_quit.push_back(1);
         }
     }
     m_saved_ffa_points.clear();
@@ -6881,18 +6899,19 @@ void ServerLobby::storeResults()
             "INSERT INTO %s "
             "(username, venue, reverse, mode, laps, result"
 #ifdef ENABLE_RECORDS_V2
-            ", difficulty, kart, config"
+            ", difficulty, kart, config, items, kart_color, is_quit"
 #endif
             ") "
             "VALUES (?, '%s', '%s', '%s', %d, '%s'"
 #ifdef ENABLE_RECORDS_V2
-            ", %d, '%s', '%s'"
+            ", %d, '%s', '%s', '%s', %f, %d"
 #endif
             ");",
             m_results_table_name.c_str(), track_name.c_str(),
             reverse_string.c_str(), mode_name.c_str(), lap_counts[i], scores[i].c_str()
 #ifdef ENABLE_RECORDS_V2
-            , getDifficulty(), karts[i].c_str(), ""
+            , getDifficulty(), karts[i].c_str(), kc_string.c_str(),
+            powerup_string.c_str(), colors[i], has_quit[i]
 #endif
         );
         std::string name = usernames[i];

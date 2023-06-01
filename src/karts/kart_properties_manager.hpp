@@ -70,6 +70,8 @@ private:
     std::map<std::string, std::unique_ptr<AbstractCharacteristic> > m_kart_type_characteristics;
     std::map<std::string, std::unique_ptr<AbstractCharacteristic> > m_player_characteristics;
 
+    std::string              m_file_name;
+
 protected:
 
     typedef PtrVector<KartProperties> KartPropertiesVector;
@@ -149,6 +151,11 @@ public:
     // ------------------------------------------------------------------------
     void onDemandLoadKartTextures(const std::set<std::string>& kart_list,
                                   bool unload_unused = true);
+    // ------------------------------------------------------------------------
+    void setFileName(const std::string file_name) { m_file_name = file_name; }
+    // ------------------------------------------------------------------------
+    std::string getFileName() { return m_file_name; }
+
 };
 
 extern KartPropertiesManager *kart_properties_manager;

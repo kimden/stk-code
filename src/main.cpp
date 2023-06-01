@@ -1960,6 +1960,7 @@ void initRest()
     std::string char_file;
     if (!CommandLine::has("--char-file", &char_file))
         char_file = "kart_characteristics.xml";
+    kart_properties_manager->setFileName(char_file);
     XMLNode characteristicsNode(file_manager->getAsset(char_file));
     kart_properties_manager->loadCharacteristics(&characteristicsNode);
 
