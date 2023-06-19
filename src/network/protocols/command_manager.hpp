@@ -39,6 +39,8 @@
 #endif
 
 #include "network/protocols/command_voting.hpp"
+#include "network/protocols/command_permissions.hpp"
+#include "utils/enum_extended_reader.hpp"
 #include "utils/set_typo_fixer.hpp"
 
 class ServerLobby;
@@ -70,8 +72,12 @@ class CommandManager
         AuthResource(std::string secret = "", std::string server = "",
             std::string link_format = "");
 
-        std::string get(std::string username);
+        std::string get(const std::string& username) const;
     };
+
+    static EnumExtendedReader permission_reader;
+    static EnumExtendedReader mode_scope_reader;
+    static EnumExtendedReader state_scope_reader;
 
     enum ModeScope: int
     {
@@ -87,6 +93,8 @@ class CommandManager
         SS_ALWAYS = SS_LOBBY | SS_INGAME
     };
 
+    struct Command;
+
     struct Context
     {
         Event* m_event;
@@ -96,6 +104,8 @@ class CommandManager
         std::vector<std::string> m_argv;
 
         std::string m_cmd;
+
+        std::shared_ptr<Command> m_command;
 
         int m_user_permissions;
 
@@ -121,9 +131,9 @@ class CommandManager
             std::string description = ""): m_usage(usage),
             m_permissions(permissions), m_description(description) {}
 
-        std::string getUsage() { return "Usage: " + m_usage; }
+        std::string getUsage() const { return "Usage: " + m_usage; }
 
-        std::string getHelp()
+        std::string getHelp() const
         {
             return "Usage: " + m_usage
                 + "\nAvailable to: " + m_permissions
@@ -135,6 +145,8 @@ class CommandManager
     {
         std::string m_name;
 
+        std::string m_prefix_name;
+
         int m_permissions;
 
         void (CommandManager::*m_action)(Context& context);
@@ -143,28 +155,45 @@ class CommandManager
 
         int m_state_scope;
 
+        bool m_omit_name;
+
         CommandDescription m_description;
+
+        std::weak_ptr<Command> m_parent;
+
+        std::map<std::string, std::weak_ptr<Command>> m_name_to_subcommand;
+
+        std::vector<std::shared_ptr<Command>> m_subcommands;
+
+        SetTypoFixer m_stf_subcommand_names;
 
         Command() {}
 
         Command(std::string name,
-                void (CommandManager::*f)(Context& context), int permissions,
-                int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS):
-                m_name(name), m_permissions(permissions), m_action(f),
-                m_mode_scope(mode_scope), m_state_scope(state_scope) {}
+                void (CommandManager::*f)(Context& context),
+                int permissions = UP_EVERYONE,
+                int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
 
-        std::string getUsage() { return m_description.getUsage(); }
+        void changeFunction(void (CommandManager::*f)(Context& context))
+                                                              { m_action = f; }
+        void changePermissions(int permissions = UP_EVERYONE,
+                                int mode_scope = MS_DEFAULT,
+                                int state_scope = SS_ALWAYS);
 
-        std::string getHelp() { return m_description.getHelp(); }
+        std::string getUsage() const       { return m_description.getUsage(); }
+        std::string getHelp() const         { return m_description.getHelp(); }
+        std::string getFullName() const               { return m_prefix_name; }
     };
 
 private:
 
     ServerLobby* m_lobby;
 
-    std::vector<Command> m_commands;
+    std::vector<std::weak_ptr<Command>> m_all_commands;
 
-    std::map<std::string, Command> m_name_to_command;
+    std::map<std::string, std::weak_ptr<Command>> m_full_name_to_command;
+
+    std::shared_ptr<Command> m_root_command;
 
     std::multiset<std::string> m_users;
 
@@ -188,8 +217,6 @@ private:
 
     std::map<std::string, std::vector<std::string>> m_aliases;
 
-    SetTypoFixer m_stf_command_names;
-
     SetTypoFixer m_stf_present_users;
 
     SetTypoFixer m_stf_all_maps;
@@ -197,6 +224,15 @@ private:
     SetTypoFixer m_stf_addon_maps;
 
     std::vector<std::string> m_current_argv;
+
+    // Auxiliary things, should be moved somewhere because they just help
+    // in commands but have nothing to do with CM itself
+
+    std::vector<std::vector<std::string>> m_aux_mode_aliases;
+    std::vector<std::vector<std::string>> m_aux_difficulty_aliases;
+    std::vector<std::vector<std::string>> m_aux_goal_aliases;
+
+    // End of auxiliary things
 
     void initCommandsInfo();
     void initCommands();
@@ -206,13 +242,13 @@ private:
     int getCurrentModeScope();
     int getCurrentStateScope();
 
-    bool isAvailable(const Command& c);
+    bool isAvailable(std::shared_ptr<Command> c);
 
     void vote(Context& context, std::string category, std::string value);
     void update();
     void error(Context& context);
 
-    void execute(const Command& command, Context& context);
+    void execute(std::shared_ptr<Command> command, Context& context);
 
     void process_help(Context& context);
     void process_text(Context& context);
@@ -222,6 +258,7 @@ private:
     void process_replay(Context& context);
     void process_start(Context& context);
     void process_config(Context& context);
+    void process_config_assign(Context& context);
     void process_spectate(Context& context);
     void process_addons(Context& context);
     void process_checkaddon(Context& context);
@@ -245,10 +282,21 @@ private:
     void process_record(Context& context);
     void process_power(Context& context);
     void process_length(Context& context);
+    void process_length_multi(Context& context);
+    void process_length_fixed(Context& context);
+    void process_length_clear(Context& context);
     void process_direction(Context& context);
+    void process_direction_assign(Context& context);
     void process_queue(Context& context);
+    void process_queue_push(Context& context);
+    void process_queue_pf(Context& context);
+    void process_queue_pop(Context& context);
+    void process_queue_clear(Context& context);
+    void process_queue_shuffle(Context& context);
     void process_allowstart(Context& context);
+    void process_allowstart_assign(Context& context);
     void process_shuffle(Context& context);
+    void process_shuffle_assign(Context& context);
     void process_timeout(Context& context);
     void process_team(Context& context);
     void process_swapteams(Context& context);
@@ -257,9 +305,13 @@ private:
     void process_resetgp(Context& context);
     void process_cat(Context& context);
     void process_troll(Context& context);
+    void process_troll_assign(Context& context);
     void process_hitmsg(Context& context);
+    void process_hitmsg_assign(Context& context);
     void process_teamhit(Context& context);
+    void process_teamhit_assign(Context& context);
     void process_scoring(Context& context);
+    void process_scoring_assign(Context& context);
     void process_register(Context& context);
 #ifdef ENABLE_WEB_SUPPORT
     void process_token(Context& context);
@@ -275,9 +327,11 @@ private:
     void process_mimiz(Context& context);
     void process_test(Context& context);
     void process_slots(Context& context);
+    void process_slots_assign(Context& context);
     void process_time(Context& context);
     void process_result(Context& context);
     void process_preserve(Context& context);
+    void process_preserve_assign(Context& context);
     void special(Context& context);
 
     std::string getRandomMap() const;
@@ -311,13 +365,18 @@ public:
 
     bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
-        SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is);
+        SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
+        bool dont_replace = false);
 
     void onResetServer();
 
     void onStartSelection();
 
     std::vector<std::string> getCurrentArgv()         { return m_current_argv; }
+
+    std::shared_ptr<Command> addChildCommand(std::shared_ptr<Command> target, std::string name,
+             void (CommandManager::*f)(Context& context), int permissions = UP_EVERYONE,
+             int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
 };
 
 #endif // COMMAND_MANAGER_HPP

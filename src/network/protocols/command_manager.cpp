@@ -71,13 +71,42 @@
 #include <iomanip>
 #include <sstream>
 #include <iterator>
+#include <utility>
 
+// ========================================================================
+EnumExtendedReader CommandManager::mode_scope_reader({
+    {"MS_DEFAULT", MS_DEFAULT},
+    {"MS_SOCCER_TOURNAMENT", MS_SOCCER_TOURNAMENT}
+});
+EnumExtendedReader CommandManager::state_scope_reader({
+    {"SS_LOBBY", SS_LOBBY},
+    {"SS_INGAME", SS_INGAME},
+    {"SS_ALWAYS", SS_ALWAYS}
+});
+EnumExtendedReader CommandManager::permission_reader({
+    {"PE_NONE", PE_NONE},
+    {"PE_SPECTATOR", PE_SPECTATOR},
+    {"PE_USUAL", PE_USUAL},
+    {"PE_CROWNED", PE_CROWNED},
+    {"PE_SINGLE", PE_SINGLE},
+    {"PE_HAMMER", PE_HAMMER},
+    {"PE_CONSOLE", PE_CONSOLE},
+    {"PE_VOTED_SPECTATOR", PE_VOTED_SPECTATOR},
+    {"PE_VOTED_NORMAL", PE_VOTED_NORMAL},
+    {"PE_VOTED", PE_VOTED},
+    {"UP_CONSOLE", UP_CONSOLE},
+    {"UP_HAMMER", UP_HAMMER},
+    {"UP_SINGLE", UP_SINGLE},
+    {"UP_CROWNED", UP_CROWNED},
+    {"UP_NORMAL", UP_NORMAL},
+    {"UP_EVERYONE", UP_EVERYONE}
+});
 // ========================================================================
 
 
 CommandManager::FileResource::FileResource(std::string file_name, uint64_t interval)
 {
-    m_file_name = file_name;
+    m_file_name = std::move(file_name);
     m_interval = interval;
     m_contents = "";
     m_last_invoked = 0;
@@ -92,7 +121,7 @@ void CommandManager::FileResource::read()
     // idk what to do with absolute or relative paths
     const std::string& path = /*ServerConfig::getConfigDirectory() + "/" + */m_file_name;
     std::ifstream message(FileUtils::getPortableReadingPath(path));
-    std::string answer = "";
+    std::string answer;
     if (message.is_open())
     {
         for (std::string line; std::getline(message, line); )
@@ -126,7 +155,7 @@ CommandManager::AuthResource::AuthResource(std::string secret, std::string serve
 } // AuthResource::AuthResource
 // ========================================================================
 
-std::string CommandManager::AuthResource::get(std::string username)
+std::string CommandManager::AuthResource::get(const std::string& username) const
 {
 #ifdef ENABLE_CRYPTO_OPENSSL
     std::string header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
@@ -149,6 +178,17 @@ std::string CommandManager::AuthResource::get(std::string username)
 } // AuthResource::get
 // ========================================================================
 
+CommandManager::Command::Command(std::string name,
+                                 void (CommandManager::*f)(Context& context),
+                                 int permissions,
+                                 int mode_scope,
+                                 int state_scope):
+        m_name(name), m_action(f), m_permissions(permissions),
+        m_mode_scope(mode_scope), m_state_scope(state_scope)
+{
+} // Command::Command(5)
+// ========================================================================
+
 void CommandManager::initCommandsInfo()
 {
     const std::string file_name = file_manager->getAsset("commands.xml");
@@ -158,186 +198,257 @@ void CommandManager::initCommandsInfo()
     root->get("version", &version);
     if (version != 1)
         Log::warn("CommandManager", "command.xml has version %d which is not supported", version);
-    for (unsigned int i = 0; i < num_nodes; i++)
-    {
-        const XMLNode *node = root->getNode(i);
-        std::string node_name = node->getName();
-        // here the commands go
-        std::string name = "";
-        std::string text = ""; // for text-command
-        std::string file = ""; // for file-command
-        uint64_t interval = 0; // for file-command
-        std::string usage = "";
-        std::string permissions = "";
-        std::string description = "";
-        std::string aliases = "";
-        std::string secret = ""; // for auth-command
-        std::string link_format = ""; // for auth-command
-        std::string server = ""; // for auth-command
-        // If enabled is not empty, command is added iff the server name is in enabled
-        // Otherwise it is added iff the server name is not in disabled
-        std::string enabled = "";
-        std::string disabled = "";
-        node->get("enabled", &enabled);
-        node->get("disabled", &disabled);
-        std::vector<std::string> enabled_split = StringUtils::split(enabled, ' ');
-        std::vector<std::string> disabled_split = StringUtils::split(disabled, ' ');
-        bool ok;
-        if (!enabled.empty())
-        {
-            ok = false;
-            for (const std::string& s: enabled_split)
-                if (s == ServerConfig::m_server_uid)
-                    ok = true;
-        }
-        else
-        {
-            ok = true;
-            for (const std::string& s: disabled_split)
-                if (s == ServerConfig::m_server_uid)
-                    ok = false;
-        }
-        if (!ok)
-            continue;
 
-        node->get("name", &name);
-        node->get("usage", &usage);
-        node->get("permissions", &permissions);
-        node->get("description", &description);
-        node->get("aliases", &aliases);
-        std::vector<std::string> aliases_split = StringUtils::split(aliases, ' ');
-        for (const std::string& alias_name: aliases_split)
-            m_aliases[name].push_back(alias_name);
+    std::function<void(const XMLNode* current, std::shared_ptr<Command> command)> dfs =
+            [&](const XMLNode* current, const std::shared_ptr<Command>& command) {
+        for (unsigned int i = 0; i < current->getNumNodes(); i++)
+        {
+            const XMLNode *node = current->getNode(i);
+            std::string node_name = node->getName();
+            // here the commands go
+            std::string name = "";
+            std::string text = ""; // for text-command
+            std::string file = ""; // for file-command
+            uint64_t interval = 0; // for file-command
+            std::string usage = "";
+            std::string permissions_s = "UP_EVERYONE";
+            std::string mode_scope_s = "MS_DEFAULT";
+            std::string state_scope_s = "SS_ALWAYS";
+            bool omit_name = false;
+            int permissions;
+            int mode_scope;
+            int state_scope;
+            std::string permissions_str = "";
+            std::string description = "";
+            std::string aliases = "";
+            std::string secret = ""; // for auth-command
+            std::string link_format = ""; // for auth-command
+            std::string server = ""; // for auth-command
+            // If enabled is not empty, command is added iff the server name is in enabled
+            // Otherwise it is added iff the server name is not in disabled
+            std::string enabled = "";
+            std::string disabled = "";
+            node->get("enabled", &enabled);
+            node->get("disabled", &disabled);
+            std::vector<std::string> enabled_split = StringUtils::split(enabled, ' ');
+            std::vector<std::string> disabled_split = StringUtils::split(disabled, ' ');
+            bool ok;
+            if (!enabled.empty())
+            {
+                ok = false;
+                for (const std::string& s: enabled_split)
+                    if (s == ServerConfig::m_server_uid)
+                        ok = true;
+            }
+            else
+            {
+                ok = true;
+                for (const std::string& s: disabled_split)
+                    if (s == ServerConfig::m_server_uid)
+                        ok = false;
+            }
+            if (!ok)
+                continue;
 
-        if (node_name == "command")
-        {
-            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
+            node->get("name", &name);
+            node->get("usage", &usage);
+            node->get("permissions", &permissions_s);
+            permissions = CommandManager::permission_reader.parse(permissions_s);
+            node->get("mode-scope", &mode_scope_s);
+            mode_scope = CommandManager::mode_scope_reader.parse(mode_scope_s);
+            node->get("state-scope", &state_scope_s);
+            state_scope = CommandManager::state_scope_reader.parse(state_scope_s);
+            node->get("permissions-verbose", &permissions_str);
+            node->get("description", &description);
+            node->get("omit-name", &omit_name);
+            node->get("aliases", &aliases);
+            std::vector<std::string> aliases_split = StringUtils::split(aliases, ' ');
+
+            std::shared_ptr<Command> c;
+            if (node_name == "command")
+            {
+                c = addChildCommand(command, name, &CommandManager::special, permissions, mode_scope, state_scope);
+            }
+            else if (node_name == "text-command")
+            {
+                c = addChildCommand(command, name, &CommandManager::process_text, permissions, mode_scope, state_scope);
+                node->get("text", &text);
+                addTextResponse(c->getFullName(), text);
+            }
+            else if (node_name == "file-command")
+            {
+                c = addChildCommand(command, name, &CommandManager::process_file, permissions, mode_scope, state_scope);
+                node->get("file", &file);
+                node->get("interval", &interval);
+                addFileResource(c->getFullName(), file, interval);
+            }
+            else if (node_name == "auth-command")
+            {
+                c = addChildCommand(command, name, &CommandManager::process_auth, permissions, mode_scope, state_scope);
+                node->get("secret", &secret);
+                node->get("server", &server);
+                node->get("link-format", &link_format);
+                addAuthResource(name, secret, server, link_format);
+            }
+            c->m_description = CommandDescription(usage, permissions_str, description);
+            m_all_commands.emplace_back(c);
+            m_full_name_to_command[c->getFullName()] = std::weak_ptr<Command>(c);
+            c->m_omit_name = omit_name;
+            command->m_stf_subcommand_names.add(name);
+            for (const std::string& alias_name: aliases_split)
+            {
+                command->m_stf_subcommand_names.add(alias_name, name);
+                command->m_name_to_subcommand[alias_name] = command->m_name_to_subcommand[name];
+            }
+            dfs(node, c);
         }
-        else if (node_name == "text-command")
-        {
-            node->get("text", &text);
-            m_commands.emplace_back(name, &CommandManager::process_text, UP_EVERYONE, MS_DEFAULT);
-            addTextResponse(name, text);
-            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
-        }
-        else if (node_name == "file-command")
-        {
-            node->get("file", &file);
-            node->get("interval", &interval);
-            m_commands.emplace_back(name, &CommandManager::process_file, UP_EVERYONE, MS_DEFAULT);
-            addFileResource(name, file, interval);
-            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
-        }
-        else if (node_name == "auth-command")
-        {
-            node->get("secret", &secret);
-            node->get("server", &server);
-            node->get("link-format", &link_format);
-            m_commands.emplace_back(name, &CommandManager::process_auth, UP_EVERYONE, MS_DEFAULT);
-            addAuthResource(name, secret, server, link_format);
-            m_config_descriptions[name] = CommandDescription(usage, permissions, description);
-        }
-    }
+    };
+    dfs(root, m_root_command);
     delete root;
 } // initCommandsInfo
 // ========================================================================
 
 void CommandManager::initCommands()
 {
-    initCommandsInfo();
     using CM = CommandManager;
-    auto kick_permissions = ((ServerConfig::m_kicks_allowed ? UP_CROWNED : UP_HAMMER) | PE_VOTED_NORMAL);
-    auto& v = m_commands;
+    auto& mp = m_full_name_to_command;
+    m_root_command = std::make_shared<Command>("", &CM::special);
 
-    v.emplace_back("commands", &CM::process_commands, UP_EVERYONE);
-    v.emplace_back("replay", &CM::process_replay, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("start", &CM::process_start, UP_NORMAL | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
-    if (ServerConfig::m_server_configurable)
-        v.emplace_back("config", &CM::process_config, UP_CROWNED | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("spectate", &CM::process_spectate, UP_EVERYONE);
-    v.emplace_back("addons", &CM::process_addons, UP_EVERYONE);
-    v.emplace_back("moreaddons", &CM::process_addons, UP_EVERYONE);
-    v.emplace_back("getaddons", &CM::process_addons, UP_EVERYONE);
-    v.emplace_back("checkaddon", &CM::process_checkaddon, UP_EVERYONE);
-    v.emplace_back("id", &CM::process_id, UP_EVERYONE);
-    v.emplace_back("listserveraddon", &CM::process_lsa, UP_EVERYONE);
-    v.emplace_back("playerhasaddon", &CM::process_pha, UP_EVERYONE);
-    v.emplace_back("kick", &CM::process_kick, kick_permissions);
-    v.emplace_back("kickban", &CM::process_kick, UP_HAMMER | PE_VOTED_NORMAL);
-    v.emplace_back("unban", &CM::process_unban, UP_HAMMER);
-    v.emplace_back("ban", &CM::process_ban, UP_HAMMER);
-    v.emplace_back("playeraddonscore", &CM::process_pas, UP_EVERYONE);
-    v.emplace_back("serverhasaddon", &CM::process_sha, UP_EVERYONE);
-    v.emplace_back("mute", &CM::process_mute, UP_EVERYONE);
-    v.emplace_back("unmute", &CM::process_unmute, UP_EVERYONE);
-    v.emplace_back("listmute", &CM::process_listmute, UP_EVERYONE);
-    v.emplace_back("description", &CM::process_text, UP_EVERYONE);
-    v.emplace_back("moreinfo", &CM::process_text, UP_EVERYONE);
-    v.emplace_back("gnu", &CM::process_gnu, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("nognu", &CM::process_gnu, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("tell", &CM::process_tell, UP_EVERYONE);
-    v.emplace_back("standings", &CM::process_standings, UP_EVERYONE);
-    v.emplace_back("teamchat", &CM::process_teamchat, UP_EVERYONE);
-    v.emplace_back("to", &CM::process_to, UP_EVERYONE);
-    v.emplace_back("public", &CM::process_public, UP_EVERYONE);
-    v.emplace_back("record", &CM::process_record, UP_EVERYONE);
-    v.emplace_back("power", &CM::process_power, UP_EVERYONE);
-    v.emplace_back("length", &CM::process_length, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("direction", &CM::process_direction, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("queue", &CM::process_queue, UP_SINGLE, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("allowstart", &CM::process_allowstart, UP_HAMMER);
-    v.emplace_back("shuffle", &CM::process_shuffle, UP_HAMMER);
-    v.emplace_back("timeout", &CM::process_timeout, UP_HAMMER);
-    v.emplace_back("team", &CM::process_team, UP_HAMMER);
-    v.emplace_back("swapteams", &CM::process_swapteams, UP_HAMMER);
-    v.emplace_back("resetteams", &CM::process_resetteams, UP_HAMMER);
-    v.emplace_back("randomteams", &CM::process_randomteams, UP_HAMMER);
-    v.emplace_back("resetgp", &CM::process_resetgp, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("cat+", &CM::process_cat, UP_HAMMER);
-    v.emplace_back("cat-", &CM::process_cat, UP_HAMMER);
-    v.emplace_back("catshow", &CM::process_cat, UP_HAMMER);
-    v.emplace_back("troll", &CM::process_troll, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("hitmsg", &CM::process_hitmsg, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("teamhit", &CM::process_teamhit, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("scoring", &CM::process_scoring, UP_HAMMER, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("version", &CM::process_text, UP_EVERYONE);
-    v.emplace_back("clear", &CM::process_text, UP_EVERYONE);
-    v.emplace_back("register", &CM::process_register, UP_EVERYONE);
+    initCommandsInfo();
+
+    auto applyFunctionIfPossible = [&](std::string&& name, void (CommandManager::*f)(Context& context)) {
+        if (mp.count(name) == 0)
+            return;
+        std::shared_ptr<Command> command = mp[name].lock();
+        if (!command) {
+            return;
+        }
+        command->changeFunction(f);
+    };
+    // special permissions according to ServerConfig options
+    std::shared_ptr<Command> kick_command = mp["kick"].lock();
+    if (kick_command) {
+        if (ServerConfig::m_kicks_allowed)
+            kick_command->m_permissions |= PE_CROWNED;
+        else
+            kick_command->m_permissions &= ~PE_CROWNED;
+    }
+
+    applyFunctionIfPossible("commands", &CM::process_commands);
+    applyFunctionIfPossible("replay", &CM::process_replay);
+    applyFunctionIfPossible("start", &CM::process_start);
+    applyFunctionIfPossible("config", &CM::process_config);
+    applyFunctionIfPossible("config =", &CM::process_config_assign);
+    applyFunctionIfPossible("spectate", &CM::process_spectate);
+    applyFunctionIfPossible("addons", &CM::process_addons);
+    applyFunctionIfPossible("moreaddons", &CM::process_addons);
+    applyFunctionIfPossible("getaddons", &CM::process_addons);
+    applyFunctionIfPossible("checkaddon", &CM::process_checkaddon);
+    applyFunctionIfPossible("id", &CM::process_id);
+    applyFunctionIfPossible("listserveraddon", &CM::process_lsa);
+    applyFunctionIfPossible("playerhasaddon", &CM::process_pha);
+    applyFunctionIfPossible("kick", &CM::process_kick); // todo Actual permissions are (kick_permissions)
+    applyFunctionIfPossible("kickban", &CM::process_kick);
+    applyFunctionIfPossible("unban", &CM::process_unban);
+    applyFunctionIfPossible("ban", &CM::process_ban);
+    applyFunctionIfPossible("playeraddonscore", &CM::process_pas);
+    applyFunctionIfPossible("serverhasaddon", &CM::process_sha);
+    applyFunctionIfPossible("mute", &CM::process_mute);
+    applyFunctionIfPossible("unmute", &CM::process_unmute);
+    applyFunctionIfPossible("listmute", &CM::process_listmute);
+    applyFunctionIfPossible("description", &CM::process_text);
+    applyFunctionIfPossible("moreinfo", &CM::process_text);
+    applyFunctionIfPossible("gnu", &CM::process_gnu);
+    applyFunctionIfPossible("nognu", &CM::process_gnu);
+    applyFunctionIfPossible("tell", &CM::process_tell);
+    applyFunctionIfPossible("standings", &CM::process_standings);
+    applyFunctionIfPossible("teamchat", &CM::process_teamchat);
+    applyFunctionIfPossible("to", &CM::process_to);
+    applyFunctionIfPossible("public", &CM::process_public);
+    applyFunctionIfPossible("record", &CM::process_record);
+    applyFunctionIfPossible("power", &CM::process_power);
+    applyFunctionIfPossible("length", &CM::process_length);
+    applyFunctionIfPossible("length clear", &CM::process_length_clear);
+    applyFunctionIfPossible("length =", &CM::process_length_fixed);
+    applyFunctionIfPossible("length x", &CM::process_length_multi);
+    applyFunctionIfPossible("direction", &CM::process_direction);
+    applyFunctionIfPossible("direction =", &CM::process_direction_assign);
+    applyFunctionIfPossible("queue", &CM::process_queue);
+    applyFunctionIfPossible("queue push", &CM::process_queue_push);
+    applyFunctionIfPossible("queue push_back", &CM::process_queue_push);
+    applyFunctionIfPossible("queue push_front", &CM::process_queue_push);
+    // Temporary pf commands
+    applyFunctionIfPossible("queue pf", &CM::process_queue_pf);
+    applyFunctionIfPossible("queue pf_back", &CM::process_queue_pf);
+    applyFunctionIfPossible("queue pf_front", &CM::process_queue_pf);
+    // End of pf commands
+    applyFunctionIfPossible("queue pop", &CM::process_queue_pop);
+    applyFunctionIfPossible("queue pop_back", &CM::process_queue_pop);
+    applyFunctionIfPossible("queue pop_front", &CM::process_queue_pop);
+    applyFunctionIfPossible("queue clear", &CM::process_queue_clear);
+    applyFunctionIfPossible("queue shuffle", &CM::process_queue_shuffle);
+    applyFunctionIfPossible("allowstart", &CM::process_allowstart);
+    applyFunctionIfPossible("allowstart =", &CM::process_allowstart_assign);
+    applyFunctionIfPossible("shuffle", &CM::process_shuffle);
+    applyFunctionIfPossible("shuffle =", &CM::process_shuffle_assign);
+    applyFunctionIfPossible("timeout", &CM::process_timeout);
+    applyFunctionIfPossible("team", &CM::process_team);
+    applyFunctionIfPossible("swapteams", &CM::process_swapteams);
+    applyFunctionIfPossible("resetteams", &CM::process_resetteams);
+    applyFunctionIfPossible("randomteams", &CM::process_randomteams);
+    applyFunctionIfPossible("resetgp", &CM::process_resetgp);
+    applyFunctionIfPossible("cat+", &CM::process_cat);
+    applyFunctionIfPossible("cat-", &CM::process_cat);
+    applyFunctionIfPossible("catshow", &CM::process_cat);
+    applyFunctionIfPossible("troll", &CM::process_troll);
+    applyFunctionIfPossible("troll =", &CM::process_troll_assign);
+    applyFunctionIfPossible("hitmsg", &CM::process_hitmsg);
+    applyFunctionIfPossible("hitmsg =", &CM::process_hitmsg_assign);
+    applyFunctionIfPossible("teamhit", &CM::process_teamhit);
+    applyFunctionIfPossible("teamhit =", &CM::process_teamhit_assign);
+    applyFunctionIfPossible("scoring", &CM::process_scoring);
+    applyFunctionIfPossible("scoring =", &CM::process_scoring_assign);
+    applyFunctionIfPossible("version", &CM::process_text);
+    applyFunctionIfPossible("clear", &CM::process_text);
+    applyFunctionIfPossible("register", &CM::process_register);
 #ifdef ENABLE_WEB_SUPPORT
-    v.emplace_back("token", &CM::process_token, UP_EVERYONE);
+    applyFunctionIfPossible("token", &CM::process_token);
 #endif
-    v.emplace_back("muteall", &CM::process_muteall, UP_EVERYONE, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("game", &CM::process_game, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_LOBBY);
-    v.emplace_back("role", &CM::process_role, UP_HAMMER, MS_SOCCER_TOURNAMENT);
-    v.emplace_back("stop", &CM::process_stop, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
-    v.emplace_back("go", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
-    v.emplace_back("play", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
-    v.emplace_back("resume", &CM::process_go, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
-    v.emplace_back("lobby", &CM::process_lobby, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
-    v.emplace_back("init", &CM::process_init, UP_HAMMER, MS_SOCCER_TOURNAMENT, SS_INGAME);
-    v.emplace_back("vote", &CM::special, UP_EVERYONE);
-    v.emplace_back("mimiz", &CM::process_mimiz, UP_EVERYONE);
-    v.emplace_back("test", &CM::process_test, UP_EVERYONE | PE_VOTED);
-    v.emplace_back("help", &CM::process_help, UP_EVERYONE);
-// v.emplace_back("1", &CM::special, UP_EVERYONE, MS_DEFAULT);
-// v.emplace_back("2", &CM::special, UP_EVERYONE, MS_DEFAULT);
-// v.emplace_back("3", &CM::special, UP_EVERYONE, MS_DEFAULT);
-// v.emplace_back("4", &CM::special, UP_EVERYONE, MS_DEFAULT);
-// v.emplace_back("5", &CM::special, UP_EVERYONE, MS_DEFAULT);
-    if (!ServerConfig::m_only_host_riding)
-        v.emplace_back("slots", &CM::process_slots, UP_HAMMER | PE_VOTED_NORMAL, MS_DEFAULT, SS_LOBBY);
-    v.emplace_back("time", &CM::process_time, UP_EVERYONE);
-    v.emplace_back("result", &CM::process_result, UP_EVERYONE);
-    v.emplace_back("preserve", &CM::process_preserve, UP_HAMMER);
+    applyFunctionIfPossible("muteall", &CM::process_muteall);
+    applyFunctionIfPossible("game", &CM::process_game);
+    applyFunctionIfPossible("role", &CM::process_role);
+    applyFunctionIfPossible("stop", &CM::process_stop);
+    applyFunctionIfPossible("go", &CM::process_go);
+    applyFunctionIfPossible("play", &CM::process_go);
+    applyFunctionIfPossible("resume", &CM::process_go);
+    applyFunctionIfPossible("lobby", &CM::process_lobby);
+    applyFunctionIfPossible("init", &CM::process_init);
+    applyFunctionIfPossible("vote", &CM::special);
+    applyFunctionIfPossible("mimiz", &CM::process_mimiz);
+    applyFunctionIfPossible("test", &CM::process_test);
+    applyFunctionIfPossible("test test2", &CM::process_test);
+    applyFunctionIfPossible("test test3", &CM::process_test);
+    applyFunctionIfPossible("help", &CM::process_help);
+// applyFunctionIfPossible("1", &CM::special);
+// applyFunctionIfPossible("2", &CM::special);
+// applyFunctionIfPossible("3", &CM::special);
+// applyFunctionIfPossible("4", &CM::special);
+// applyFunctionIfPossible("5", &CM::special);
+    applyFunctionIfPossible("slots", &CM::process_slots);
+    applyFunctionIfPossible("slots =", &CM::process_slots_assign);
+    applyFunctionIfPossible("time", &CM::process_time);
+    applyFunctionIfPossible("result", &CM::process_result);
+    applyFunctionIfPossible("preserve", &CM::process_preserve);
+    applyFunctionIfPossible("preserve =", &CM::process_preserve_assign);
 
-    v.emplace_back("addondownloadprogress", &CM::special, UP_EVERYONE);
-    v.emplace_back("stopaddondownload", &CM::special, UP_EVERYONE);
-    v.emplace_back("installaddon", &CM::special, UP_EVERYONE);
-    v.emplace_back("uninstalladdon", &CM::special, UP_EVERYONE);
-    v.emplace_back("music", &CM::special, UP_EVERYONE);
-    v.emplace_back("addonrevision", &CM::special, UP_EVERYONE);
-    v.emplace_back("liststkaddon", &CM::special, UP_EVERYONE);
-    v.emplace_back("listlocaladdon", &CM::special, UP_EVERYONE);
+    applyFunctionIfPossible("addondownloadprogress", &CM::special);
+    applyFunctionIfPossible("stopaddondownload", &CM::special);
+    applyFunctionIfPossible("installaddon", &CM::special);
+    applyFunctionIfPossible("uninstalladdon", &CM::special);
+    applyFunctionIfPossible("music", &CM::special);
+    applyFunctionIfPossible("addonrevision", &CM::special);
+    applyFunctionIfPossible("liststkaddon", &CM::special);
+    applyFunctionIfPossible("listlocaladdon", &CM::special);
 
     addTextResponse("description", StringUtils::wideToUtf8(m_lobby->getGameSetup()->readOrLoadFromFile
             ((std::string)ServerConfig::m_motd)));
@@ -351,25 +462,6 @@ void CommandManager::initCommands()
 #endif
     addTextResponse("version", version);
     addTextResponse("clear", std::string(30, '\n'));
-
-    for (Command& command: m_commands) {
-        m_stf_command_names.add(command.m_name);
-        command.m_description = m_config_descriptions[command.m_name];
-    }
-
-    std::sort(m_commands.begin(), m_commands.end(), [](const Command& a, const Command& b) -> bool {
-        return a.m_name < b.m_name;
-    });
-    for (auto& command: m_commands)
-        m_name_to_command[command.m_name] = command;
-    for (auto& p: m_aliases)
-    {
-        for (const std::string& alias_name: p.second)
-        {
-            m_stf_command_names.add(alias_name, p.first);
-            m_name_to_command[alias_name] = m_name_to_command[p.first];
-        }
-    }
 
     // m_votables.emplace("replay", 1.0);
     m_votables.emplace("start", 0.81);
@@ -426,6 +518,28 @@ CommandManager::CommandManager(ServerLobby* lobby):
         return;
     initCommands();
     initAssets();
+
+    m_aux_mode_aliases = {
+            {"m0"},
+            {"m1"},
+            {"m2"},
+            {"m3", "normal", "normal-race", "race"},
+            {"m4", "tt", "time-trial", "trial"},
+            {"m5"},
+            {"m6", "soccer", "football"},
+            {"m7", "ffa", "free-for-all", "free", "for", "all"},
+            {"m8", "ctf", "capture-the-flag", "capture", "the", "flag"}
+    };
+    m_aux_difficulty_aliases = {
+            {"d0", "novice", "easy"},
+            {"d1", "intermediate", "medium"},
+            {"d2", "expert", "hard"},
+            {"d3", "supertux", "super", "best"}
+    };
+    m_aux_goal_aliases = {
+            {"tl", "time-limit", "time", "minutes"},
+            {"gl", "goal-limit", "goal", "goals"}
+    };
 } // CommandManager
 // ========================================================================
 
@@ -443,7 +557,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
 
     data.decodeString(&cmd);
     argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
-    if (argv.size() == 0)
+    if (argv.empty())
         return;
     CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 
@@ -477,16 +591,20 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     !m_user_command_replacements[username][i].empty()) {
                 cmd = m_user_command_replacements[username][i];
                 argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
-                if (argv.size() == 0)
+                if (argv.empty())
                     return;
                 CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
                 voting = m_user_saved_voting[username];
                 restored = true;
                 break;
             } else {
-                std::string msg = "Pick one of " +
-                    std::to_string(-1 + (int)m_user_command_replacements[username].size())
-                    + " options using /1, etc., or use /0, or type a different command";
+                std::string msg;
+                if (m_user_command_replacements[username].empty())
+                    msg = "This command is for fixing typos. Try typing a different command";
+                else
+                    msg = "Pick one of " +
+                        std::to_string(-1 + (int)m_user_command_replacements[username].size())
+                        + " options using /1, etc., or use /0, or type a different command";
                 m_lobby->sendStringToPeer(msg, peer);
                 return;
             }
@@ -496,31 +614,59 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     if (!restored)
         m_user_correct_arguments.erase(username);
 
-    if (hasTypo(peer, voting, argv, cmd, 0, m_stf_command_names, 3, false, false))
-        return;
-
-    auto command_iterator = m_name_to_command.find(argv[0]);
-
-    const auto& command = command_iterator->second;
-
-    if (!isAvailable(command))
+    std::shared_ptr<Command> current_command = m_root_command;
+    std::shared_ptr<Command> executed_command;
+    for (int idx = 0; ; idx++)
     {
-        std::string msg = "You don't have permissions to " + action + " this command";
-        m_lobby->sendStringToPeer(msg, peer);
-        return;
-    }
-    int mask = (permissions & command.m_permissions);
-    if (mask == 0)
-    {
-        std::string msg = "You don't have permissions to " + action + " this command";
-        m_lobby->sendStringToPeer(msg, peer);
-        return;
-    }
-    int mask_without_voting = (mask & ~PE_VOTED);
-    if (mask != PE_NONE && mask_without_voting == PE_NONE)
-        voting = true;
+        bool one_omittable_subcommand = (current_command->m_subcommands.size() == 1
+                && current_command->m_subcommands[0]->m_omit_name == true);
 
-    execute(command, context);
+        std::shared_ptr<Command> command;
+        if (one_omittable_subcommand)
+        {
+            command = current_command->m_subcommands[0];
+        }
+        else
+        {
+            if (hasTypo(peer, voting, argv, cmd, idx, current_command->m_stf_subcommand_names, 3, false, idx == 0))
+                return;
+            auto command_iterator = current_command->m_name_to_subcommand.find(argv[idx]);
+            command = command_iterator->second.lock();
+        }
+
+        if (!command)
+        {
+            // todo change message
+            std::string msg = "There is no such command but there should be. Very strange. Please report it.";
+            m_lobby->sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (!isAvailable(command))
+        {
+            std::string msg = "You don't have permissions to " + action + " this command";
+            m_lobby->sendStringToPeer(msg, peer);
+            return;
+        }
+        int mask = (permissions & command->m_permissions);
+        if (mask == 0)
+        {
+            std::string msg = "You don't have permissions to " + action + " this command";
+            m_lobby->sendStringToPeer(msg, peer);
+            return;
+        }
+        int mask_without_voting = (mask & ~PE_VOTED);
+        if (mask != PE_NONE && mask_without_voting == PE_NONE)
+            voting = true;
+
+        if (one_omittable_subcommand)
+            --idx;
+        current_command = command;
+        if (idx + 1 == argv.size() || command->m_subcommands.empty()) {
+            executed_command = command;
+            execute(command, context);
+            break;
+        }
+    }
 
     while (!m_triggered_votables.empty())
     {
@@ -554,10 +700,10 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     std::string new_cmd = p.first + " " + p.second;
                     auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
                     CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
-                    std::string msg = "Command \"/" + new_cmd + "\" has been successfully voted";
-                    m_lobby->sendStringToAllPeers(msg);
+                    std::string msg2 = "Command \"/" + new_cmd + "\" has been successfully voted";
+                    m_lobby->sendStringToAllPeers(msg2);
                     Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
-                    execute(command, new_context);
+                    execute(executed_command, new_context);
                 }
             }
         }
@@ -587,10 +733,10 @@ int CommandManager::getCurrentStateScope()
 } // getCurrentStateScope
 // ========================================================================
 
-bool CommandManager::isAvailable(const Command& c)
+bool CommandManager::isAvailable(std::shared_ptr<Command> c)
 {
-    return (getCurrentModeScope() & c.m_mode_scope) != 0
-        && (getCurrentStateScope() & c.m_state_scope) != 0;
+    return (getCurrentModeScope() & c->m_mode_scope) != 0
+        && (getCurrentStateScope() & c->m_state_scope) != 0;
 } // getCurrentModeScope
 // ========================================================================
 
@@ -602,11 +748,11 @@ void CommandManager::vote(Context& context, std::string category, std::string va
         return;
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
-    auto& votable = m_votables[argv[0]];
+    auto& votable = m_votables[context.m_command->m_prefix_name];
     bool neededCheck = votable.needsCheck();
     votable.castVote(username, category, value);
     if (votable.needsCheck() && !neededCheck)
-        m_triggered_votables.push(argv[0]);
+        m_triggered_votables.push(context.m_command->m_prefix_name);
 } // vote
 // ========================================================================
 
@@ -626,7 +772,13 @@ void CommandManager::update()
                 CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                 std::string msg = "Command \"/" + new_cmd + "\" has been successfully voted";
                 m_lobby->sendStringToAllPeers(msg);
-                auto& command = m_name_to_command[new_argv[0]];
+                // Happily the name of the votable coincides with the command full name
+                std::shared_ptr<Command> command = m_full_name_to_command[votable_pairs.first].lock();
+                if (!command)
+                {
+                    Log::error("CommandManager", "For some reason command \"%s\" was not found??", votable_pairs.first.c_str());
+                    continue;
+                }
                 // We don't know the event though it is only needed in
                 // ServerLobby::startSelection where it is nullptr when they vote
                 Context new_context(nullptr, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
@@ -639,20 +791,18 @@ void CommandManager::update()
 
 void CommandManager::error(Context& context)
 {
-    std::string command = context.m_argv[0];
-    // Here we assume that the command argv[0] exists,
-    // as we intend to invoke error() from process_* functions
-    std::string msg = m_name_to_command[command].getUsage();
+    std::string msg = context.m_command->getUsage();
     if (msg.empty())
-        msg = "An error occurred while invoking command \"" + context.m_argv[0] + "\".";
+        msg = "An error occurred while invoking command \"" + context.m_command->getFullName() + "\".";
     m_lobby->sendStringToPeer(msg, context.m_peer);
 } // error
 // ========================================================================
 
-void CommandManager::execute(const Command& command, Context& context)
+void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
 {
     m_current_argv = context.m_argv;
-    (this->*command.m_action)(context);
+    context.m_command = command;
+    (this->*(command->m_action))(context);
     m_current_argv = {};
 } // execute
 // ========================================================================
@@ -660,32 +810,34 @@ void CommandManager::execute(const Command& command, Context& context)
 void CommandManager::process_help(Context& context)
 {
     auto& argv = context.m_argv;
-    if (argv.size() < 2)
+    std::shared_ptr<Command> command = m_root_command;
+    for (int i = 1; i < argv.size(); ++i) {
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
+            return;
+        auto ptr = command->m_name_to_subcommand[argv[i]].lock();
+        if (ptr)
+            command = ptr;
+        else
+            break;
+        if (command->m_subcommands.empty())
+            break;
+    }
+    if (command == m_root_command)
     {
         error(context);
         return;
     }
-
-    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd, 1, m_stf_command_names, 3, false, false))
-        return;
-
-    std::string msg;
-    auto it = m_name_to_command.find(argv[1]);
-    if (it == m_name_to_command.end())
-        msg = "Unknown command \"" + argv[1] + "\"";
-    else
-        msg = it->second.getHelp();
-
+    std::string msg = command->getHelp();
     m_lobby->sendStringToPeer(msg, context.m_peer);
-} // process_commands
+} // process_help
 // ========================================================================
 
 void CommandManager::process_text(Context& context)
 {
     std::string response;
-    auto it = m_text_response.find(context.m_argv[0]);
+    auto it = m_text_response.find(context.m_command->getFullName());
     if (it == m_text_response.end())
-        response = "Error: a text command " + context.m_argv[0]
+        response = "Error: a text command " + context.m_command->getFullName()
             + " is defined without text";
     else
         response = it->second;
@@ -696,10 +848,10 @@ void CommandManager::process_text(Context& context)
 void CommandManager::process_file(Context& context)
 {
     std::string response;
-    auto it = m_file_resources.find(context.m_argv[0]);
+    auto it = m_file_resources.find(context.m_command->getFullName());
     if (it == m_file_resources.end())
         response = "Error: file not found for a file command "
-            + context.m_argv[0];
+            + context.m_command->getFullName();
     else
         response = it->second.get();
     m_lobby->sendStringToPeer(response, context.m_peer);
@@ -709,10 +861,10 @@ void CommandManager::process_file(Context& context)
 void CommandManager::process_auth(Context& context)
 {
     std::string response;
-    auto it = m_auth_resources.find(context.m_argv[0]);
+    auto it = m_auth_resources.find(context.m_command->getFullName());
     if (it == m_auth_resources.end())
         response = "Error: auth method not found for a command "
-                   + context.m_argv[0];
+                   + context.m_command->getFullName();
     else
     {
         auto profile = context.m_peer->getPlayerProfiles()[0];
@@ -730,14 +882,63 @@ void CommandManager::process_auth(Context& context)
 
 void CommandManager::process_commands(Context& context)
 {
-    std::string result = "Available commands:";
-    for (const Command& c: m_commands)
-    {
-        if ((context.m_user_permissions & c.m_permissions) != 0
-            && isAvailable(c))
-            result += " " + c.m_name;
+    std::string result;
+    auto& argv = context.m_argv;
+    std::shared_ptr<Command> command = m_root_command;
+    bool valid_prefix = true;
+    for (int i = 1; i < argv.size(); ++i) {
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
+            return;
+        auto ptr = command->m_name_to_subcommand[argv[i]].lock();
+        if (!ptr)
+            break;
+        if ((context.m_user_permissions & ptr->m_permissions) != 0
+                && isAvailable(ptr))
+            command = ptr;
+        else
+        {
+            valid_prefix = false;
+            break;
+        }
+        if (command->m_subcommands.empty())
+            break;
     }
-
+    if (!valid_prefix)
+    {
+        result = "There are no available commands with such prefix";
+        m_lobby->sendStringToPeer(result, context.m_peer);
+        return;
+    }
+    result = (command == m_root_command ? "Available commands"
+            : "Available subcommands for /" + command->getFullName());
+    result += ":";
+    bool had_any_subcommands = false;
+    std::map<std::string, int> res;
+    for (std::shared_ptr<Command>& subcommand: command->m_subcommands)
+    {
+        if ((context.m_user_permissions & subcommand->m_permissions) != 0
+                && isAvailable(subcommand))
+        {
+            bool subcommands_available = false;
+            for (auto& c: subcommand->m_subcommands)
+            {
+                if ((context.m_user_permissions & c->m_permissions) != 0
+                        && isAvailable(c))
+                    subcommands_available = true;
+            }
+            res[subcommand->m_name] = subcommands_available;
+            if (subcommands_available)
+                had_any_subcommands = true;
+        }
+    }
+    for (const auto& p: res)
+    {
+        result += " " + p.first;
+        if (p.second)
+            result += "*";
+    }
+    if (had_any_subcommands)
+        result += "\n* has subcommands";
     m_lobby->sendStringToPeer(result, context.m_peer);
 } // process_commands
 // ========================================================================
@@ -785,6 +986,36 @@ void CommandManager::process_start(Context& context)
 
 void CommandManager::process_config(Context& context)
 {
+    int difficulty = m_lobby->getDifficulty();
+    int mode = m_lobby->getGameMode();
+    bool goal_target = (m_lobby->m_game_setup->hasExtraSeverInfo() ? m_lobby->isSoccerGoalTarget() : false);
+//    m_aux_goal_aliases[goal_target ? 1 : 0][0]
+    std::string msg = "Current config: ";
+    auto get_first_if_exists = [&](std::vector<std::string>& v) -> std::string {
+        if (v.size() < 2)
+            return v[0];
+        return v[1];
+    };
+    msg += " ";
+    msg += get_first_if_exists(m_aux_mode_aliases[mode]);
+    msg += " ";
+    msg += get_first_if_exists(m_aux_difficulty_aliases[difficulty]);
+    msg += " ";
+    msg += get_first_if_exists(m_aux_goal_aliases[goal_target ? 1 : 0]);
+    if (!ServerConfig::m_server_configurable)
+        msg += " (not configurable)";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_config
+// ========================================================================
+
+void CommandManager::process_config_assign(Context& context)
+{
+    if (!ServerConfig::m_server_configurable)
+    {
+        std::string msg = "Server is not configurable, this command cannot be invoked.";
+        m_lobby->sendStringToPeer(msg, context.m_peer);
+        return;
+    }
     const auto& argv = context.m_argv;
     int difficulty = m_lobby->getDifficulty();
     int mode = m_lobby->getGameMode();
@@ -793,51 +1024,30 @@ void CommandManager::process_config(Context& context)
     bool user_chose_mode = false;
     bool user_chose_target = false;
     // bool gp = false;
-    std::vector<std::vector<std::string>> mode_aliases = {
-        {"m0"},
-        {"m1"},
-        {"m2"},
-        {"m3", "normal", "normal-race", "race"},
-        {"m4", "tt", "time-trial", "trial"},
-        {"m5"},
-        {"m6", "soccer", "football"},
-        {"m7", "ffa", "free-for-all", "free", "for", "all"},
-        {"m8", "ctf", "capture-the-flag", "capture", "the", "flag"}
-    };
-    std::vector<std::vector<std::string>> difficulty_aliases = {
-        {"d0", "novice", "easy"},
-        {"d1", "intermediate", "medium"},
-        {"d2", "expert", "hard"},
-        {"d3", "supertux", "super", "best"}
-    };
-    std::vector<std::vector<std::string>> goal_aliases = {
-        {"tl", "time-limit", "time", "minutes"},
-        {"gl", "goal-limit", "goal", "goals"}
-    };
     for (unsigned i = 1; i < argv.size(); i++)
     {
-        for (unsigned j = 0; j < mode_aliases.size(); ++j) {
+        for (unsigned j = 0; j < m_aux_mode_aliases.size(); ++j) {
             if (j <= 2 || j == 5) {
                 // Switching to GP or modes 2, 5 is not supported yet
                 continue;
             }
-            for (std::string& alias: mode_aliases[j]) {
+            for (std::string& alias: m_aux_mode_aliases[j]) {
                 if (argv[i] == alias) {
                     mode = j;
                     user_chose_mode = true;
                 }
             }
         }
-        for (unsigned j = 0; j < difficulty_aliases.size(); ++j) {
-            for (std::string& alias: difficulty_aliases[j]) {
+        for (unsigned j = 0; j < m_aux_difficulty_aliases.size(); ++j) {
+            for (std::string& alias: m_aux_difficulty_aliases[j]) {
                 if (argv[i] == alias) {
                     difficulty = j;
                     user_chose_difficulty = true;
                 }
             }
         }
-        for (unsigned j = 0; j < goal_aliases.size(); ++j) {
-            for (std::string& alias: goal_aliases[j]) {
+        for (unsigned j = 0; j < m_aux_goal_aliases.size(); ++j) {
+            for (std::string& alias: m_aux_goal_aliases[j]) {
                 if (argv[i] == alias) {
                     goal_target = (bool)j;
                     user_chose_target = true;
@@ -860,15 +1070,15 @@ void CommandManager::process_config(Context& context)
         // Definitely not the best format as there are extra words,
         // but I'll think how to resolve it
         if (user_chose_mode)
-            vote(context, "config mode", mode_aliases[mode][0]);
+            vote(context, "config mode", m_aux_mode_aliases[mode][0]);
         if (user_chose_difficulty)
-            vote(context, "config difficulty", difficulty_aliases[difficulty][0]);
+            vote(context, "config difficulty", m_aux_difficulty_aliases[difficulty][0]);
         if (user_chose_target)
-            vote(context, "config target", goal_aliases[goal_target ? 1 : 0][0]);
+            vote(context, "config target", m_aux_goal_aliases[goal_target ? 1 : 0][0]);
         return;
     }
     m_lobby->handleServerConfiguration(context.m_peer, difficulty, mode, goal_target);
-} // process_config
+} // process_config_assign
 // ========================================================================
 
 void CommandManager::process_spectate(Context& context)
@@ -1864,70 +2074,85 @@ void CommandManager::process_power(Context& context)
     m_lobby->updatePlayerList();
 } // process_power
 // ========================================================================
-
 void CommandManager::process_length(Context& context)
 {
-    auto& argv = context.m_argv;
     std::string msg;
-    if (argv.size() < 2)
-    {
-        argv.push_back("check");
-    }
-    if (argv[1] == "check")
-    {
-        if (m_lobby->m_default_lap_multiplier < 0 && m_lobby->m_fixed_lap < 0)
-            msg = "Game length is currently chosen by players";
-        else if (m_lobby->m_default_lap_multiplier > 0)
-            msg = StringUtils::insertValues(
+    if (m_lobby->m_default_lap_multiplier < 0 && m_lobby->m_fixed_lap < 0)
+        msg = "Game length is currently chosen by players";
+    else if (m_lobby->m_default_lap_multiplier > 0)
+        msg = StringUtils::insertValues(
                 "Game length is %f x default",
                 m_lobby->m_default_lap_multiplier);
-        else if (m_lobby->m_fixed_lap > 0)
-            msg = StringUtils::insertValues(
+    else if (m_lobby->m_fixed_lap > 0)
+        msg = StringUtils::insertValues(
                 "Game length is %d", m_lobby->m_fixed_lap);
-        else
-            msg = StringUtils::insertValues(
+    else
+        msg = StringUtils::insertValues(
                 "An error: game length is both %f x default and %d",
                 m_lobby->m_default_lap_multiplier, m_lobby->m_fixed_lap);
-        m_lobby->sendStringToPeer(msg, context.m_peer);
-        return;
-    }
-    if (argv[1] == "clear")
-    {
-        m_lobby->m_default_lap_multiplier = -1.0;
-        m_lobby->m_fixed_lap = -1;
-        msg = "Game length will be chosen by players";
-        m_lobby->sendStringToAllPeers(msg);
-        return;
-    }
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_length
+// ========================================================================
+void CommandManager::process_length_multi(Context& context)
+{
+    auto& argv = context.m_argv;
     double temp_double = -1.0;
-    int temp_int = -1;
-    if (argv[1] == "x" && argv.size() >= 3 &&
-        StringUtils::parseString<double>(argv[2], &temp_double))
+    if (argv.size() < 3 ||
+        !StringUtils::parseString<double>(argv[2], &temp_double))
     {
-        m_lobby->m_default_lap_multiplier = std::max<double>(0.0, temp_double);
-        m_lobby->m_fixed_lap = -1;
-        msg = StringUtils::insertValues(
+        error(context);
+        return;
+    }
+    m_lobby->m_default_lap_multiplier = std::max<double>(0.0, temp_double);
+    m_lobby->m_fixed_lap = -1;
+    std::string msg = StringUtils::insertValues(
             "Game length is now %f x default",
             m_lobby->m_default_lap_multiplier);
-        m_lobby->sendStringToAllPeers(msg);
-        return;
-    }
-    if (argv[1] == "=" && argv.size() >= 3 &&
-        StringUtils::parseString<int>(argv[2], &temp_int))
+    m_lobby->sendStringToAllPeers(msg);
+} // process_length_multi
+// ========================================================================
+void CommandManager::process_length_fixed(Context& context)
+{
+    auto& argv = context.m_argv;
+    int temp_int = -1;
+    if (argv.size() < 3 ||
+        !StringUtils::parseString<int>(argv[2], &temp_int))
     {
-        m_lobby->m_fixed_lap = std::max<int>(0, temp_int);
-        m_lobby->m_default_lap_multiplier = -1.0;
-        msg = StringUtils::insertValues(
-                "Game length is now %d", m_lobby->m_fixed_lap);
-        m_lobby->sendStringToAllPeers(msg);
+        error(context);
         return;
     }
-
-    error(context);
-} // process_length
-// =======================================================
+    m_lobby->m_fixed_lap = std::max<int>(0, temp_int);
+    m_lobby->m_default_lap_multiplier = -1.0;
+    std::string msg = StringUtils::insertValues(
+            "Game length is now %d", m_lobby->m_fixed_lap);
+    m_lobby->sendStringToAllPeers(msg);
+} // process_length_fixed
+// ========================================================================
+void CommandManager::process_length_clear(Context& context)
+{
+    m_lobby->m_default_lap_multiplier = -1.0;
+    m_lobby->m_fixed_lap = -1;
+    std::string msg = "Game length will be chosen by players";
+    m_lobby->sendStringToAllPeers(msg);
+} // process_length_clear
+// ========================================================================
 
 void CommandManager::process_direction(Context& context)
+{
+    std::string msg = "Direction is ";
+    if (m_lobby->m_fixed_direction == -1)
+    {
+        msg += "chosen ingame";
+    } else
+    {
+        msg += "set to ";
+        msg += (m_lobby->m_fixed_direction == 0 ? "forward" : "reverse");
+    }
+    m_lobby->sendStringToAllPeers(msg);
+} // process_direction
+// ========================================================================
+
+void CommandManager::process_direction_assign(Context& context)
 {
     auto& argv = context.m_argv;
     std::string msg;
@@ -1958,121 +2183,138 @@ void CommandManager::process_direction(Context& context)
         msg += (temp_int == 0 ? "forward" : "reverse");
     }
     m_lobby->sendStringToAllPeers(msg);
-} // process_direction
+} // process_direction_assign
 // ========================================================================
 
 void CommandManager::process_queue(Context& context)
 {
-    // todo update help when everything is changed
-    std::string msg;
-    auto& argv = context.m_argv;
-    if (argv.size() < 2)
-    {
-        argv.push_back("show");
+    std::string msg = StringUtils::insertValues("Queue (size = %d):",
+        (int)m_lobby->m_tracks_queue.size());
+    for (const TrackFilter& s: m_lobby->m_tracks_queue) {
+        msg += " " + s.toString();
     }
-    if (argv[1] == "show")
-    {
-        msg = StringUtils::insertValues("Queue (size = %d):", (int)m_lobby->m_tracks_queue.size());
-        for (const TrackFilter& s: m_lobby->m_tracks_queue) {
-            msg += " " + s.toString();
-        }
-        m_lobby->sendStringToPeer(msg, context.m_peer);
-        return;
-    }
-    if (argv[1] == "push" || argv[1] == "push_back" || argv[1] == "push_front")
-    {
-        if (argv.size() < 3)
-        {
-            error(context);
-            return;
-        }
-        bool to_front = (argv[1] == "push_front");
-        if (argv[2] == "-")
-            argv[2] = getRandomMap();
-        else if (argv[2] == "-addon")
-            argv[2] = getRandomAddonMap();
-        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
-            2, m_stf_all_maps, 3, false, false))
-            return;
-        if (to_front)
-            m_lobby->m_tracks_queue.emplace_front(argv[2]);
-        else
-            m_lobby->m_tracks_queue.emplace_back(argv[2]);
-        std::string msg = "Pushed " + argv[2]
-            + " to the " + (to_front ? "front" : "back")
-            + " of queue, current queue size: "
-            + std::to_string(m_lobby->m_tracks_queue.size());
-        m_lobby->sendStringToAllPeers(msg);
-        m_lobby->updatePlayerList();
-    }
-    else if (argv[1] == "pf" || argv[1] == "pf_back" || argv[1] == "pf_front")
-    {
-        if (argv.size() < 3)
-        {
-            error(context);
-            return;
-        }
-        bool to_front = (argv[1] == "pf_front");
-        std::string filter_text = argv[2];
-        if (argv.size() > 3) {
-            CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
-        }
-        if (to_front)
-            m_lobby->m_tracks_queue.emplace_front(filter_text);
-        else
-            m_lobby->m_tracks_queue.emplace_back(filter_text);
-        std::string msg = "Pushed { " + filter_text + " }"
-                          + " to the " + (to_front ? "front" : "back")
-                          + " of queue, current queue size: "
-                          + std::to_string(m_lobby->m_tracks_queue.size());
-        m_lobby->sendStringToAllPeers(msg);
-        m_lobby->updatePlayerList();
-    }
-    else if (argv[1] == "pop" || argv[1] == "pop_front" || argv[1] == "pop_back")
-    {
-        msg = "";
-        bool from_back = (argv[1] == "pop_back");
-        if (m_lobby->m_tracks_queue.empty()) {
-            msg = "Queue was empty before.";
-        }
-        else
-        {
-            auto object = (from_back ? m_lobby->m_tracks_queue.back() : m_lobby->m_tracks_queue.front());
-            msg = "Popped " + object.toString()
-                + " from the " + (from_back ? "back" : "front") + " of the queue,";
-            if (from_back)
-                m_lobby->m_tracks_queue.pop_back();
-            else
-                m_lobby->m_tracks_queue.pop_front();
-            msg += " current queue size: "
-                + std::to_string(m_lobby->m_tracks_queue.size());
-        }
-        m_lobby->sendStringToAllPeers(msg);
-        m_lobby->updatePlayerList();
-    }
-    else if (argv[1] == "clear")
-    {
-        msg = StringUtils::insertValues(
-                "Queue is now empty (previous size: %d)",
-                (int)m_lobby->m_tracks_queue.size());
-        m_lobby->m_tracks_queue.clear();
-        m_lobby->sendStringToAllPeers(msg);
-        m_lobby->updatePlayerList();
-    }
-    else if (argv[1] == "shuffle")
-    {
-        std::random_device rd;
-        std::mt19937 g(rd());
-        auto& queue = m_lobby->m_tracks_queue;
-        std::shuffle(queue.begin(), queue.end(), g);
-        msg = "Queue is now shuffled";
-        m_lobby->sendStringToAllPeers(msg);
-        m_lobby->updatePlayerList();
-    }
+    m_lobby->sendStringToPeer(msg, context.m_peer);
 } // process_queue
 // ========================================================================
 
+void CommandManager::process_queue_push(Context& context)
+{
+    auto& argv = context.m_argv;
+
+    if (argv.size() < 3)
+    {
+        error(context);
+        return;
+    }
+    bool to_front = (argv[1] == "push_front");
+    if (argv[2] == "-")
+        argv[2] = getRandomMap();
+    else if (argv[2] == "-addon")
+        argv[2] = getRandomAddonMap();
+    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+                2, m_stf_all_maps, 3, false, false))
+        return;
+    if (to_front)
+        m_lobby->m_tracks_queue.emplace_front(argv[2]);
+    else
+        m_lobby->m_tracks_queue.emplace_back(argv[2]);
+    std::string msg = "Pushed " + argv[2]
+                      + " to the " + (to_front ? "front" : "back")
+                      + " of queue, current queue size: "
+                      + std::to_string(m_lobby->m_tracks_queue.size());
+    m_lobby->sendStringToAllPeers(msg);
+    m_lobby->updatePlayerList();
+} // process_queue_push
+// ========================================================================
+
+void CommandManager::process_queue_pf(Context& context)
+{
+    auto& argv = context.m_argv;
+
+    if (argv.size() < 3)
+    {
+        error(context);
+        return;
+    }
+    bool to_front = (argv[1] == "pf_front");
+    std::string filter_text = argv[2];
+    if (argv.size() > 3) {
+        CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
+    }
+    if (to_front)
+        m_lobby->m_tracks_queue.emplace_front(filter_text);
+    else
+        m_lobby->m_tracks_queue.emplace_back(filter_text);
+    std::string msg = "Pushed { " + filter_text + " }"
+                      + " to the " + (to_front ? "front" : "back")
+                      + " of queue, current queue size: "
+                      + std::to_string(m_lobby->m_tracks_queue.size());
+    m_lobby->sendStringToAllPeers(msg);
+    m_lobby->updatePlayerList();
+} // process_queue_pf
+// ========================================================================
+
+void CommandManager::process_queue_pop(Context& context)
+{
+    std::string msg;
+    auto& argv = context.m_argv;
+
+    bool from_back = (argv[1] == "pop_back");
+    if (m_lobby->m_tracks_queue.empty()) {
+        msg = "Queue was empty before.";
+    }
+    else
+    {
+        auto object = (from_back ? m_lobby->m_tracks_queue.back() : m_lobby->m_tracks_queue.front());
+        msg = "Popped " + object.toString()
+              + " from the " + (from_back ? "back" : "front") + " of the queue,";
+        if (from_back)
+            m_lobby->m_tracks_queue.pop_back();
+        else
+            m_lobby->m_tracks_queue.pop_front();
+        msg += " current queue size: "
+               + std::to_string(m_lobby->m_tracks_queue.size());
+    }
+    m_lobby->sendStringToAllPeers(msg);
+    m_lobby->updatePlayerList();
+} // process_queue_pop
+// ========================================================================
+
+void CommandManager::process_queue_clear(Context& context)
+{
+    std::string msg = StringUtils::insertValues(
+        "Queue is now empty (previous size: %d)",
+        (int)m_lobby->m_tracks_queue.size());
+    m_lobby->m_tracks_queue.clear();
+    m_lobby->sendStringToAllPeers(msg);
+    m_lobby->updatePlayerList();
+} // process_queue_clear
+// ========================================================================
+
+void CommandManager::process_queue_shuffle(Context& context)
+{
+    std::random_device rd;
+    std::mt19937 g(rd());
+    auto& queue = m_lobby->m_tracks_queue;
+    std::shuffle(queue.begin(), queue.end(), g);
+    std::string msg = "Queue is now shuffled";
+    m_lobby->sendStringToAllPeers(msg);
+    m_lobby->updatePlayerList();
+} // process_queue_shuffle
+// ========================================================================
+
 void CommandManager::process_allowstart(Context& context)
+{
+    std::string msg;
+    if (m_lobby->m_allowed_to_start)
+        msg = "Starting the game is allowed";
+    else
+        msg = "Starting the game is forbidden";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_allowstart
+// ========================================================================
+
+void CommandManager::process_allowstart_assign(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
@@ -2091,11 +2333,22 @@ void CommandManager::process_allowstart(Context& context)
         m_lobby->m_allowed_to_start = true;
         msg = "Now starting a game is allowed";
     }
-    m_lobby->sendStringToPeer(msg, context.m_peer);
-} // process_allowstart
+    m_lobby->sendStringToAllPeers(msg);
+} // process_allowstart_assign
 // ========================================================================
 
 void CommandManager::process_shuffle(Context& context)
+{
+    std::string msg;
+    if (m_lobby->m_shuffle_gp)
+        msg = "The GP grid is sorted by score";
+    else
+        msg = "The GP grid is shuffled";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_shuffle
+// ========================================================================
+
+void CommandManager::process_shuffle_assign(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
@@ -2112,8 +2365,8 @@ void CommandManager::process_shuffle(Context& context)
         m_lobby->m_shuffle_gp = true;
         msg = "Now the GP grid is shuffled";
     }
-    m_lobby->sendStringToPeer(msg, context.m_peer);
-} // process_shuffle
+    m_lobby->sendStringToAllPeers(msg);
+} // process_shuffle_assign
 // ========================================================================
 
 void CommandManager::process_timeout(Context& context)
@@ -2366,6 +2619,17 @@ void CommandManager::process_cat(Context& context)
 void CommandManager::process_troll(Context& context)
 {
     std::string msg;
+    if (m_lobby->m_troll_active)
+        msg = "Trolls will be kicked";
+    else
+        msg = "Trolls can stay";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_troll
+// ========================================================================
+
+void CommandManager::process_troll_assign(Context& context)
+{
+    std::string msg;
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
@@ -2380,11 +2644,22 @@ void CommandManager::process_troll(Context& context)
         m_lobby->m_troll_active = true;
         msg = "Trolls will be kicked";
     }
-    m_lobby->sendStringToPeer(msg, context.m_peer);
-} // process_troll
+    m_lobby->sendStringToAllPeers(msg);
+} // process_troll_assign
 // ========================================================================
 
 void CommandManager::process_hitmsg(Context& context)
+{
+    std::string msg;
+    if (m_lobby->m_show_teammate_hits)
+        msg = "Teammate hits are sent to all players";
+    else
+        msg = "Teammate hits are not sent";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_hitmsg
+// ========================================================================
+
+void CommandManager::process_hitmsg_assign(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
@@ -2402,10 +2677,21 @@ void CommandManager::process_hitmsg(Context& context)
         msg = "Teammate hits will be sent to all players";
     }
     m_lobby->sendStringToAllPeers(msg);
-} // process_hitmsg
+} // process_hitmsg_assign
 // ========================================================================
 
 void CommandManager::process_teamhit(Context& context)
+{
+    std::string msg;
+    if (m_lobby->m_teammate_hit_mode)
+        msg = "Teammate hits are punished";
+    else
+        msg = "Teammate hits are not punished";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_teamhit
+// ========================================================================
+
+void CommandManager::process_teamhit_assign(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
@@ -2425,24 +2711,26 @@ void CommandManager::process_teamhit(Context& context)
         msg = "Teammate hits are punished now";
     }
     m_lobby->sendStringToAllPeers(msg);
-} // process_teamhit
+} // process_teamhit_assign
 // ========================================================================
 
 void CommandManager::process_scoring(Context& context)
+{
+    std::string msg = "Current scoring is \"" + m_lobby->m_scoring_type;
+    for (int param: m_lobby->m_scoring_int_params)
+        msg += StringUtils::insertValues(" %d", param);
+    msg += "\"";
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_scoring
+// ========================================================================
+
+void CommandManager::process_scoring_assign(Context& context)
 {
     std::string msg;
     auto& argv = context.m_argv;
     std::string cmd2;
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
-    if (cmd2 == "")
-    {
-        msg = "Current scoring is \"" + m_lobby->m_scoring_type;
-        for (int param: m_lobby->m_scoring_int_params)
-            msg += StringUtils::insertValues(" %d", param);
-        msg += "\"";
-        m_lobby->sendStringToPeer(msg, context.m_peer);
-    }
-    else if (m_lobby->loadCustomScoring(cmd2))
+    if (m_lobby->loadCustomScoring(cmd2))
     {
         msg = "Scoring set to \"" + cmd2 + "\"";
         m_lobby->sendStringToAllPeers(msg);
@@ -2452,7 +2740,7 @@ void CommandManager::process_scoring(Context& context)
         msg = "Scoring could not be parsed from \"" + cmd2 + "\"";
         m_lobby->sendStringToPeer(msg, context.m_peer);
     }
-} // process_scoring
+} // process_scoring_assign
 // ========================================================================
 
 void CommandManager::process_register(Context& context)
@@ -2909,11 +3197,22 @@ void CommandManager::process_mimiz(Context& context)
 void CommandManager::process_test(Context& context)
 {
     auto& argv = context.m_argv;
-    argv.resize(3, "");
+    if (argv.size() == 1)
+    {
+        std::string msg = "/test is now deprecated. Use /test *2 [something] [something]";
+        m_lobby->sendStringToPeer(msg, context.m_peer);
+        return;
+    }
+    argv.resize(4, "");
     auto& peer = context.m_peer;
+    if (argv[2] == "no" && argv[3] == "u")
+    {
+        error(context);
+        return;
+    }
     if (context.m_voting)
     {
-        vote(context, "test " + argv[1], argv[2]);
+        vote(context, "test " + argv[1] + " " + argv[2], argv[3]);
         return;
     }
     std::string username = "Vote";
@@ -2922,24 +3221,31 @@ void CommandManager::process_test(Context& context)
         username = StringUtils::wideToUtf8(
             peer->getPlayerProfiles()[0]->getName());
     }
-    std::string msg = username + ", " + argv[1] + ", " + argv[2];
+    username = "{" + argv[1].substr(4) + "} " + username;
+    std::string msg = username + ", " + argv[2] + ", " + argv[3];
     m_lobby->sendStringToAllPeers(msg);
 } // process_test
 // ========================================================================
 
 void CommandManager::process_slots(Context& context)
 {
-    // todo allow non-hammers to invoke /slots without parameters
-    auto& argv = context.m_argv;
-    bool fail = false;
-    int number = 0;
-    if (argv.size() < 2)
+    int current = m_lobby->m_current_max_players_in_game.load();
+    std::string msg = "Number of slots is currently " + std::to_string(current);
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_slots
+// ========================================================================
+
+void CommandManager::process_slots_assign(Context& context)
+{
+    if (ServerConfig::m_only_host_riding)
     {
-        int current = m_lobby->m_current_max_players_in_game.load();
-        std::string msg = "Number of slots is currently " + std::to_string(current);
+        std::string msg = "Changing slots is not possible in the singleplayer mode";
         m_lobby->sendStringToPeer(msg, context.m_peer);
         return;
     }
+    auto& argv = context.m_argv;
+    bool fail = false;
+    int number = 0;
     if (argv.size() < 2 || !StringUtils::parseString<int>(argv[1], &number))
         fail = true;
     else if (number <= 0 || number > ServerConfig::m_server_max_players)
@@ -2958,7 +3264,7 @@ void CommandManager::process_slots(Context& context)
     m_lobby->updatePlayerList();
     std::string msg = "Number of playable slots is now " + argv[1];
     m_lobby->sendStringToAllPeers(msg);
-} // process_slots
+} // process_slots_assign
 // ========================================================================
 
 void CommandManager::process_time(Context& context)
@@ -2992,45 +3298,37 @@ void CommandManager::process_result(Context& context)
 
 void CommandManager::process_preserve(Context& context)
 {
+    std::string msg = "Preserved settings:";
+    for (const std::string& str: m_lobby->m_preserve)
+        msg += " " + str;
+    m_lobby->sendStringToPeer(msg, context.m_peer);
+} // process_preserve
+// ========================================================================
+
+void CommandManager::process_preserve_assign(Context& context)
+{
     auto& peer = context.m_peer;
     auto& argv = context.m_argv;
     std::string msg = "";
-    if (1 >= argv.size())
+    if (argv.size() != 3)
     {
         error(context);
         return;
     }
-    if (argv.size() == 2)
+    if (argv[2] == "0")
     {
-        if (argv[1] == "show")
-        {
-            msg = "Preserved settings:";
-            for (const std::string& str: m_lobby->m_preserve)
-                msg += " " + str;
-        }
-        else
-        {
-            error(context);
-            return;
-        }
+        msg = StringUtils::insertValues(
+            "'%s' isn't preserved on server reset anymore", argv[1].c_str());
+        m_lobby->m_preserve.erase(argv[1]);
     }
     else
     {
-        if (argv[2] == "0")
-        {
-            msg = StringUtils::insertValues(
-                "'%s' isn't preserved on server reset anymore", argv[1].c_str());
-            m_lobby->m_preserve.erase(argv[1]);
-        }
-        else
-        {
-            msg = StringUtils::insertValues(
-                "'%s' is now preserved on server reset", argv[1].c_str());
-            m_lobby->m_preserve.insert(argv[1]);
-        }
+        msg = StringUtils::insertValues(
+            "'%s' is now preserved on server reset", argv[1].c_str());
+        m_lobby->m_preserve.insert(argv[1]);
     }
-    m_lobby->sendStringToPeer(msg, peer);
-} // process_preserve
+    m_lobby->sendStringToAllPeers(msg);
+} // process_preserve_assign
 // ========================================================================
 
 void CommandManager::special(Context& context)
@@ -3039,6 +3337,14 @@ void CommandManager::special(Context& context)
     // other future special functions that are never executed "as usual"
     // but need to be displayed in /commands output. So, in fact, this
     // function is only a placeholder and should be never executed.
+    Log::warn("CommandManager", "Command %s was invoked "
+        "but not implemented or unavailable for this server",
+        context.m_command->getFullName().c_str());
+    std::string msg = "This command (%s) is not implemented, or "
+        "not available for this server. "
+        "If you believe that is a bug, please report it.";
+    msg = StringUtils::insertValues(msg, context.m_command->getFullName());
+    m_lobby->sendStringToPeer(msg, context.m_peer);
 } // special
 // ========================================================================
 
@@ -3075,6 +3381,7 @@ std::string CommandManager::getRandomAddonMap() const
     return *it;
 } // getRandomAddonMap
 // ========================================================================
+
 void CommandManager::addUser(std::string& s)
 {
     m_users.insert(s);
@@ -3128,7 +3435,8 @@ void CommandManager::restoreCmdByArgv(std::string& cmd,
 
 bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     std::vector<std::string>& argv, std::string& cmd, int idx,
-    SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is)
+    SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
+    bool dont_replace)
 {
     if (!peer.get()) // voted
         return false;
@@ -3145,8 +3453,10 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         m_lobby->sendStringToPeer(msg, peer);
         return true;
     }
-    if (closest_commands[0].second != 0 || (closest_commands[0].second == 0
-        && closest_commands.size() > 1 && closest_commands[1].second == 0))
+    bool no_zeros = closest_commands[0].second != 0;
+    bool at_least_two_zeros = closest_commands.size() > 1 && closest_commands[1].second == 0;
+    bool there_is_only_one = closest_commands.size() == 1;
+    if ((no_zeros || at_least_two_zeros) && !(there_is_only_one && !allow_as_is))
     {
         m_user_command_replacements[username].clear();
         m_user_correct_arguments[username] = idx + 1;
@@ -3181,10 +3491,12 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         return true;
     }
 
-    argv[idx] = closest_commands[0].first; // converts case or regex
-    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    if (!dont_replace)
+    {
+        argv[idx] = closest_commands[0].first; // converts case or regex
+        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    }
     return false;
-
 } // hasTypo
 // ========================================================================
 
@@ -3202,4 +3514,29 @@ void CommandManager::onStartSelection()
     m_votables["slots"].resetAllVotes();
     update();
 } // onStartSelection
+// ========================================================================
+std::shared_ptr<CommandManager::Command> CommandManager::addChildCommand(std::shared_ptr<Command> target,
+        std::string name, void (CommandManager::*f)(Context& context),
+        int permissions, int mode_scope, int state_scope)
+{
+    std::shared_ptr<Command> child = std::make_shared<Command>(name, f,
+                                   permissions, mode_scope, state_scope);
+    target->m_subcommands.push_back(child);
+    child->m_parent = std::weak_ptr<Command>(target);
+    if (target->m_prefix_name.empty())
+        child->m_prefix_name = name;
+    else
+        child->m_prefix_name = target->m_prefix_name + " " + name;
+    target->m_name_to_subcommand[name] = std::weak_ptr<Command>(child);
+    return child;
+} // addChildCommand
+// ========================================================================
+
+void CommandManager::Command::changePermissions(int permissions,
+        int mode_scope, int state_scope)
+{
+    m_permissions = permissions;
+    m_mode_scope = mode_scope;
+    m_state_scope = state_scope;
+} // changePermissions
 // ========================================================================
