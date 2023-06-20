@@ -269,6 +269,7 @@ private:
     void process_unban(Context& context);
     void process_ban(Context& context);
     void process_pas(Context& context);
+    void process_everypas(Context& context);
     void process_sha(Context& context);
     void process_mute(Context& context);
     void process_unmute(Context& context);

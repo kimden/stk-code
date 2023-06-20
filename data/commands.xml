@@ -106,10 +106,15 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions="UP_HAMMER"
     />
     <command name="playeraddonscore"
-             usage="/playeraddonscore (username)"
+             usage="/playeraddonscore [username]"
              permissions-verbose="everyone"
-             description="Returns the number (not the percentage!) of addons of different types installed by a player."
+             description="Returns the number (not the percentage!) of addons of different types installed by a player. Without argument, invokes for the invoking player."
              aliases="pas"
+    />
+    <command name="everypas"
+             usage="/everypas"
+             permissions-verbose="everyone"
+             description="Returns the number (not the percentage!) of addons of different types installed by all present players."
     />
     <command name="serverhasaddon"
              usage="/serverhasaddon (addon)"

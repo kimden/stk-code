@@ -352,6 +352,7 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("unban", &CM::process_unban);
     applyFunctionIfPossible("ban", &CM::process_ban);
     applyFunctionIfPossible("playeraddonscore", &CM::process_pas);
+    applyFunctionIfPossible("everypas", &CM::process_everypas);
     applyFunctionIfPossible("serverhasaddon", &CM::process_sha);
     applyFunctionIfPossible("mute", &CM::process_mute);
     applyFunctionIfPossible("unmute", &CM::process_unmute);
@@ -1664,17 +1665,25 @@ void CommandManager::process_pas(Context& context)
     std::string response;
     std::string player_name;
     auto& argv = context.m_argv;
+
     if (argv.size() < 2)
     {
-        error(context);
-        return;
+        if (context.m_peer->getPlayerProfiles().empty())
+        {
+            Log::warn("CommandManager", "pas: no existing player profiles??");
+            error(context);
+            return;
+        }
+        player_name = StringUtils::wideToUtf8(
+                context.m_peer->getPlayerProfiles()[0]->getName());
     }
-
-    if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
-        1, m_stf_present_users, 3, false, false))
-        return;
-
-    player_name = argv[1];
+    else
+    {
+        if (hasTypo(context.m_peer, context.m_voting, context.m_argv, context.m_cmd,
+                1, m_stf_present_users, 3, false, false))
+            return;
+        player_name = argv[1];
+    }
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer)
@@ -1691,7 +1700,7 @@ void CommandManager::process_pas(Context& context)
     else
     {
         std::string msg = player_name;
-        msg += " addons:";
+        msg += "'s addon score:";
         if (scores[AS_KART] != -1)
             msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
         if (scores[AS_TRACK] != -1)
@@ -1705,6 +1714,41 @@ void CommandManager::process_pas(Context& context)
     }
     m_lobby->sendStringToPeer(response, context.m_peer);
 } // process_pas
+// ========================================================================
+
+void CommandManager::process_everypas(Context& context)
+{
+    std::string response = "Addon scores:";
+    for (const auto& peer: STKHost::get()->getPeers())
+    {
+        if (peer->isAIPeer())
+            continue;
+        if (!peer->hasPlayerProfiles())
+            continue;
+        std::string player_name = StringUtils::wideToUtf8(
+                peer->getPlayerProfiles()[0]->getName());
+        auto& scores = peer->getAddonsScores();
+        if (scores[AS_KART] == -1 && scores[AS_TRACK] == -1 &&
+            scores[AS_ARENA] == -1 && scores[AS_SOCCER] == -1)
+            response += player_name + " has no addons\n";
+        else
+        {
+            std::string msg = "\n" + player_name;
+            msg += "'s addon score:";
+            if (scores[AS_KART] != -1)
+                msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
+            if (scores[AS_TRACK] != -1)
+                msg += " tracks: " + StringUtils::toString(scores[AS_TRACK]) + ",";
+            if (scores[AS_ARENA] != -1)
+                msg += " arenas: " + StringUtils::toString(scores[AS_ARENA]) + ",";
+            if (scores[AS_SOCCER] != -1)
+                msg += " fields: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
+            msg.pop_back();
+            response += msg;
+        }
+    }
+    m_lobby->sendStringToPeer(response, context.m_peer);
+} // process_everypas
 // ========================================================================
 
 void CommandManager::process_sha(Context& context)
