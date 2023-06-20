@@ -25,7 +25,6 @@ irr::io::IFileSystem* g_file_system = NULL;
 
 std::string g_predefines = "";
 
-// More when PBR is used later
 uint32_t g_mesh_texture_layer = 2;
 
 uint32_t g_sampler_size = 512;
@@ -55,6 +54,13 @@ void GEVulkanShaderManager::init(GEVulkanDriver* vk)
 
     std::ostringstream oss;
     oss << "#version 450\n";
+    if (getGEConfig()->m_pbr)
+    {
+        oss << "#define PBR_ENABLED 1\n";
+        g_mesh_texture_layer = 8;
+    }
+    else
+        g_mesh_texture_layer = 2;
     oss << "#define SAMPLER_SIZE " << g_sampler_size << "\n";
     oss << "#define TOTAL_MESH_TEXTURE_LAYER " << g_mesh_texture_layer << "\n";
     if (GEVulkanFeatures::supportsBindTexturesAtOnce())
@@ -120,7 +126,14 @@ void GEVulkanShaderManager::loadAllShaders()
         GEVulkanCommandLoader::addMultiThreadingCommand(
             [pair, kind, filename]()
             {
-                pair->second = loadShader(kind, filename);
+                try
+                {
+                    pair->second = loadShader(kind, filename);
+                }
+                catch (std::exception& e)
+                {
+                    printf("%s", e.what());
+                }
                 pair->first.unlock();
             });
     }
@@ -266,6 +279,8 @@ VkShaderModule GEVulkanShaderManager::getShader(const std::string& filename)
     auto it = g_shaders.at(filename);
     it->first.lock();
     it->first.unlock();
+    if (it->second == VK_NULL_HANDLE)
+        throw std::runtime_error(std::string("Missing shader ") + filename);
     return it->second;
 }   // getShader
 

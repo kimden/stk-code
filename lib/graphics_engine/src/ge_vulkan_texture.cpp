@@ -48,9 +48,11 @@ GEVulkanTexture::GEVulkanTexture(const std::string& path,
     }
 
     auto& paths = getGEConfig()->m_ondemand_load_texture_paths;
-    m_ondemand_load = (paths.find(m_full_path.c_str()) != paths.end());
+    auto path_itr = paths.find(m_full_path.c_str());
+    m_ondemand_load = (path_itr != paths.end());
     if (m_ondemand_load)
     {
+        paths.erase(path_itr);
         video::IImageLoader* loader = NULL;
         io::IReadFile* file = io::createReadFile(m_full_path);
         getDriver()->createImageFromFile(file, &loader);
@@ -289,6 +291,8 @@ bool GEVulkanTexture::createImage(VkImageUsageFlags usage)
     if (m_image_view_type == VK_IMAGE_VIEW_TYPE_CUBE ||
         m_image_view_type == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
         image_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    if (m_internal_format != getSRGBformat(m_internal_format))
+        image_info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
     m_vma_info = {};
     VmaAllocationCreateInfo alloc_info = {};
@@ -445,6 +449,19 @@ bool GEVulkanTexture::createImageView(VkImageAspectFlags aspect_flags)
     {
         image_view.get()->store(view_ptr);
         m_image_view = image_view;
+        VkFormat srgb_format = getSRGBformat(m_internal_format);
+        if (m_internal_format != srgb_format)
+        {
+            image_view = std::make_shared<std::atomic<VkImageView> >();
+            view_info.format = srgb_format;
+            view_ptr = VK_NULL_HANDLE;
+            if (vkCreateImageView(m_vulkan_device, &view_info,
+                NULL, &view_ptr) == VK_SUCCESS)
+            {
+                image_view.get()->store(view_ptr);
+                m_image_view_srgb = image_view;
+            }
+        }
 
         if (m_placeholder_view)
             m_placeholder_view.get()->store(VK_NULL_HANDLE);
@@ -466,6 +483,13 @@ void GEVulkanTexture::clearVulkanData()
         vkDestroyImageView(m_vulkan_device, m_image_view.get()->load(), NULL);
         m_image_view.get()->store(VK_NULL_HANDLE);
         m_image_view.reset();
+        if (m_image_view_srgb)
+        {
+            vkDestroyImageView(m_vulkan_device,
+                m_image_view_srgb.get()->load(), NULL);
+            m_image_view_srgb.get()->store(VK_NULL_HANDLE);
+            m_image_view_srgb.reset();
+        }
     }
     if (m_image != VK_NULL_HANDLE)
     {
@@ -870,13 +894,19 @@ void GEVulkanTexture::setPlaceHolderView()
 }   // setPlaceHolderView
 
 //-----------------------------------------------------------------------------
-std::shared_ptr<std::atomic<VkImageView> > GEVulkanTexture::getImageViewLive() const
+std::shared_ptr<std::atomic<VkImageView> > GEVulkanTexture::getImageViewLive(
+                                                               bool srgb) const
 {
     assert(m_ondemand_load && m_placeholder_view);
     if (m_ondemand_loading.load() == false)
     {
         if (m_image_view)
-            return m_image_view;
+        {
+            if (srgb && m_image_view_srgb)
+                return m_image_view_srgb;
+            else
+                return m_image_view;
+        }
         else
         {
             GEVulkanTexture* tex = const_cast<GEVulkanTexture*>(this);

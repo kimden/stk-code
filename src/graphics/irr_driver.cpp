@@ -512,6 +512,8 @@ begin:
                 UserConfigParams::m_texture_compression;
             GE::getGEConfig()->m_render_scale =
                 UserConfigParams::m_scale_rtts_factor;
+            GE::getGEConfig()->m_pbr =
+                UserConfigParams::m_dynamic_lights;
 #endif
         }
         else
@@ -1173,6 +1175,7 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
     GUIEngine::addLoadingIcon(irr_driver->getTexture(banana) );
     // No need to reload cached track data (track_manager->cleanAllCachedData
     // above) - this happens dynamically when the tracks are loaded.
+    track_manager->updateScreenshotCache();
     GUIEngine::reshowCurrentScreen();
     MessageQueue::updatePosition();
     // Preload the explosion effects (explode.png)

@@ -39,6 +39,8 @@ protected:
 
     std::shared_ptr<std::atomic<VkImageView> > m_image_view;
 
+    std::shared_ptr<std::atomic<VkImageView> > m_image_view_srgb;
+
     std::shared_ptr<std::atomic<VkImageView> > m_placeholder_view;
 
     unsigned m_layer_count;
@@ -65,6 +67,19 @@ protected:
 
     GEVulkanDriver* m_vk;
 
+    // ------------------------------------------------------------------------
+    VkFormat getSRGBformat(VkFormat format)
+    {
+        if (format == VK_FORMAT_R8G8B8A8_UNORM)
+            return VK_FORMAT_R8G8B8A8_SRGB;
+        else if (format == VK_FORMAT_ASTC_4x4_UNORM_BLOCK)
+            return VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+        else if (format == VK_FORMAT_BC7_UNORM_BLOCK)
+            return VK_FORMAT_BC7_SRGB_BLOCK;
+        else if (format == VK_FORMAT_BC3_UNORM_BLOCK)
+            return VK_FORMAT_BC3_SRGB_BLOCK;
+        return format;
+    }
     // ------------------------------------------------------------------------
     bool createTextureImage(uint8_t* texture_data, bool generate_hq_mipmap);
     // ------------------------------------------------------------------------
@@ -102,7 +117,8 @@ protected:
     // ------------------------------------------------------------------------
     void setPlaceHolderView();
     // ------------------------------------------------------------------------
-    std::shared_ptr<std::atomic<VkImageView> > getImageViewLive() const;
+    std::shared_ptr<std::atomic<VkImageView> > getImageViewLive(
+                                                      bool srgb = false) const;
     // ------------------------------------------------------------------------
     bool waitImageView() const
     {
@@ -206,16 +222,20 @@ public:
     virtual void updateTexture(void* data, irr::video::ECOLOR_FORMAT format,
                                u32 w, u32 h, u32 x, u32 y);
     // ------------------------------------------------------------------------
-    virtual std::shared_ptr<std::atomic<VkImageView> > getImageView() const
+    virtual std::shared_ptr<std::atomic<VkImageView> > getImageView(
+                                                       bool srgb = false) const
     {
         if (!m_ondemand_load)
         {
             m_image_view_lock.lock();
             m_image_view_lock.unlock();
-            return m_image_view;
+            if (srgb && m_image_view_srgb)
+                return m_image_view_srgb;
+            else
+                return m_image_view;
         }
         else
-            return getImageViewLive();
+            return getImageViewLive(srgb);
     }
     // ------------------------------------------------------------------------
     virtual bool useOnDemandLoad() const            { return m_ondemand_load; }
