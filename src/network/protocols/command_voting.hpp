@@ -30,6 +30,7 @@
 #include <set>
 #include <deque>
 #include <vector>
+#include <string>
 
 class CommandVoting
 {

@@ -99,13 +99,13 @@ class CommandManager
     {
         Event* m_event;
 
-        std::shared_ptr<STKPeer> m_peer;
+        std::weak_ptr<STKPeer> m_peer;
 
         std::vector<std::string> m_argv;
 
         std::string m_cmd;
 
-        std::shared_ptr<Command> m_command;
+        std::weak_ptr<Command> m_command;
 
         int m_user_permissions;
 
@@ -246,7 +246,7 @@ private:
 
     void vote(Context& context, std::string category, std::string value);
     void update();
-    void error(Context& context);
+    void error(Context& context, bool is_error = false);
 
     void execute(std::shared_ptr<Command> command, Context& context);
 
