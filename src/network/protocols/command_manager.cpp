@@ -630,7 +630,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         }
         else
         {
-            if (hasTypo(peer, voting, argv, cmd, idx, current_command->m_stf_subcommand_names, 3, false, idx == 0))
+            if (hasTypo(peer, voting, argv, cmd, idx, current_command->m_stf_subcommand_names, 3, false, false))
                 return;
             auto command_iterator = current_command->m_name_to_subcommand.find(argv[idx]);
             command = command_iterator->second.lock();
