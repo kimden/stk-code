@@ -3096,6 +3096,7 @@ void ServerLobby::startSelection(const Event *event)
     else
         m_ai_count = 0;
 
+    std::set<std::string> available_tracks_fallback = m_available_kts.second;
     applyAllFilters(m_available_kts.second, true);
 
    /* auto iter = m_available_kts.second.begin();
@@ -3112,6 +3113,7 @@ void ServerLobby::startSelection(const Event *event)
     if (m_available_kts.second.empty())
     {
         Log::error("ServerLobby", "No tracks for playing!");
+        m_available_kts.second = available_tracks_fallback;
         return;
     }
 
