@@ -3738,6 +3738,7 @@ void CommandManager::special(Context& context)
 {
     auto peer = context.m_peer.lock();
     auto command = context.m_command.lock();
+    auto cmd = context.m_cmd;
     if (!peer || !command)
     {
         error(context, true);
@@ -3752,8 +3753,9 @@ void CommandManager::special(Context& context)
         command->getFullName().c_str());
     std::string msg = "This command (%s) is not implemented, or "
         "not available for this server. "
-        "If you believe that is a bug, please report it.";
-    msg = StringUtils::insertValues(msg, command->getFullName());
+        "If you believe that is a bug, please report it. Full input:\n"
+        "/%s";
+    msg = StringUtils::insertValues(msg, command->getFullName(), cmd);
     m_lobby->sendStringToPeer(msg, peer);
 } // special
 // ========================================================================
