@@ -112,9 +112,9 @@ here later. For now, please refer to the code for the strings being used. -->
              aliases="pas"
     />
     <command name="everypas"
-             usage="/everypas"
+             usage="/everypas [kart|track|arena|soccer [desc|asc]]"
              permissions-verbose="everyone"
-             description="Returns the number (not the percentage!) of addons of different types installed by all present players."
+             description="Returns the number (not the percentage!) of addons of different types installed by all present players. Can be sorted if additional arguments provided, default sorting direction is descending."
     />
     <command name="serverhasaddon"
              usage="/serverhasaddon (addon)"

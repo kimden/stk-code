@@ -378,6 +378,10 @@ public:
     std::shared_ptr<Command> addChildCommand(std::shared_ptr<Command> target, std::string name,
              void (CommandManager::*f)(Context& context), int permissions = UP_EVERYONE,
              int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
+
+    // Helper functions, unrelated to CommandManager inner structure
+    std::string getAddonPreferredType() const;
+
 };
 
 #endif // COMMAND_MANAGER_HPP

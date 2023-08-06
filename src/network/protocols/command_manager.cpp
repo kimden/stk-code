@@ -1234,22 +1234,7 @@ void CommandManager::process_addons(Context& context)
     {
         argv.push_back("");
         apply_filters = true;
-        switch (m_lobby->m_game_mode.load())
-        {
-            case 0:
-            case 1:
-            case 3:
-            case 4:
-                argv[1] = "track";
-                break;
-            case 6:
-                argv[1] = "soccer";
-                break;
-            case 7:
-            case 8:
-                argv[1] = "arena";
-                break;
-        }
+        argv[1] = getAddonPreferredType();
     }
     // removed const reference so that I can modify `from`
     // without changing the original container, we copy everything anyway
@@ -1839,12 +1824,21 @@ void CommandManager::process_pas(Context& context)
 void CommandManager::process_everypas(Context& context)
 {
     auto peer = context.m_peer.lock();
+    auto argv = context.m_argv;
     if (!peer)
     {
         error(context, true);
         return;
     }
+    std::string sorting_type = getAddonPreferredType();
+    std::string sorting_direction = "desc";
+    if (argv.size() > 1)
+        sorting_type = argv[1];
+    if (argv.size() > 2)
+        sorting_direction = argv[2];
     std::string response = "Addon scores:";
+    using Pair = std::pair<std::string, std::vector<int>>;
+    std::vector<Pair> result;
     for (const auto& p: STKHost::get()->getPeers())
     {
         if (p->isAIPeer())
@@ -1853,22 +1847,53 @@ void CommandManager::process_everypas(Context& context)
             continue;
         std::string player_name = StringUtils::wideToUtf8(
                 p->getPlayerProfiles()[0]->getName());
-        auto& scores = p->getAddonsScores();
-        if (scores[AS_KART] == -1 && scores[AS_TRACK] == -1 &&
-            scores[AS_ARENA] == -1 && scores[AS_SOCCER] == -1)
-            response += player_name + " has no addons\n";
+        auto &scores = p->getAddonsScores();
+        std::vector<int> overall;
+        for (int item = 0; item < AS_TOTAL; item++)
+            overall.push_back(scores[item]);
+        result.emplace_back(player_name, overall);
+    }
+    int sorting_idx = -1;
+    if (sorting_type == "kart" || sorting_type == "karts")
+        sorting_idx = 0;
+    if (sorting_type == "track" || sorting_type == "tracks")
+        sorting_idx = 1;
+    if (sorting_type == "arena" || sorting_type == "arenas")
+        sorting_idx = 2;
+    if (sorting_type == "soccer" || sorting_type == "soccers")
+        sorting_idx = 3;
+    if (sorting_idx != -1)
+    {
+        if (sorting_direction == "asc")
+            std::sort(result.begin(), result.end(), [sorting_idx]
+                    (const Pair& lhs, const Pair& rhs) -> bool {
+                int diff = lhs.second[sorting_idx] - rhs.second[sorting_idx];
+                return (diff < 0 || (diff == 0 && lhs.first < rhs.first));
+            });
+        else
+            std::sort(result.begin(), result.end(), [sorting_idx]
+                    (const Pair& lhs, const Pair& rhs) -> bool {
+                int diff = lhs.second[sorting_idx] - rhs.second[sorting_idx];
+                return (diff > 0 || (diff == 0 && lhs.first < rhs.first));
+            });
+    }
+    // I don't really know if it should be soccer or field, both are used
+    // in different situations
+    std::vector<std::string> desc = { "karts", "tracks", "arenas", "fields" };
+    for (auto& row: result)
+    {
+        response += "\n" + row.first;
+        bool negative = true;
+        for (int item = 0; item < AS_TOTAL; item++)
+            negative &= row.second[item] == -1;
+        if (negative)
+            response += " has no addons";
         else
         {
-            std::string msg = "\n" + player_name;
-            msg += "'s addon score:";
-            if (scores[AS_KART] != -1)
-                msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
-            if (scores[AS_TRACK] != -1)
-                msg += " tracks: " + StringUtils::toString(scores[AS_TRACK]) + ",";
-            if (scores[AS_ARENA] != -1)
-                msg += " arenas: " + StringUtils::toString(scores[AS_ARENA]) + ",";
-            if (scores[AS_SOCCER] != -1)
-                msg += " fields: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
+            std::string msg = "'s addon score:";
+            for (int i = 0; i < AS_TOTAL; i++)
+                if (row.second[i] != -1)
+                    msg += " " + desc[i] + ": " + StringUtils::toString(row.second[i]) + ",";
             msg.pop_back();
             response += msg;
         }
@@ -3951,4 +3976,17 @@ void CommandManager::Command::changePermissions(int permissions,
     m_mode_scope = mode_scope;
     m_state_scope = state_scope;
 } // changePermissions
+// ========================================================================
+
+std::string CommandManager::getAddonPreferredType() const
+{
+    int mode = m_lobby->m_game_mode.load();
+    if (0 <= mode && mode <= 4)
+        return "track";
+    if (mode == 6)
+        return "soccer";
+    if (7 <= mode && mode <= 8)
+        return "arena";
+    return "track"; // default choice
+} // getAddonPreferredType
 // ========================================================================
