@@ -7772,11 +7772,20 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     std::string records_table_name = ServerConfig::m_records_table_name;
     if (!records_table_name.empty())
     {
+        std::string powerup_string = powerup_manager->getFileName();
+        std::string kc_string = kart_properties_manager->getFileName();
+        // TODO [2]: don't use file names as constants
+        if (powerup_string == "powerup.xml")
+            powerup_string = "";
+        if (kc_string == "kart_characteristics.xml")
+            kc_string = "";
         std::string get_query = StringUtils::insertValues("SELECT username, "
             "result FROM '%s' WHERE venue = ? and reverse = '%s' "
-            "and mode = '%s' and laps = %d order by result asc, time asc limit 1;",
+            "and mode = '%s' and laps = %d and is_quit = 0 "
+            "and config = '%s' and items = '%s' "
+            "order by result asc, time asc limit 1;",
             records_table_name.c_str(), direction.c_str(), mode.c_str(),
-            laps);
+            laps, kc_string.c_str(), powerup_string.c_str());
         auto ret = vectorSQLQuery(get_query, 2,
         [track](sqlite3_stmt* stmt)
         {
