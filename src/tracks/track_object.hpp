@@ -31,6 +31,8 @@
 
 #include <memory>
 
+#define IGNORE_GHOSTS
+
 class ModelDefinitionLoader;
 namespace GE { class GERenderInfo; }
 class ThreeDAnimation;

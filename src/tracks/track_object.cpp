@@ -122,6 +122,12 @@ void TrackObject::init(const XMLNode &xml_node, scene::ISceneNode* parent,
 
     m_interaction = "static";
     xml_node.get("interaction", &m_interaction);
+#ifdef IGNORE_GHOSTS
+#ifdef SERVER_ONLY
+    if (m_interaction == "ghost")
+        return;
+#endif // SERVER_ONLY
+#endif // IGNORE_GHOSTS
     xml_node.get("lod_group", &m_lod_group);
 
     m_is_driveable = false;
@@ -359,6 +365,12 @@ void TrackObject::init(const XMLNode &xml_node, scene::ISceneNode* parent,
         }
     }
 
+#ifdef IGNORE_GHOSTS
+#ifdef SERVER_ONLY
+    if (!m_physical_object)
+        return;
+#endif // SERVER_ONLY
+#endif // IGNORE_GHOSTS
 
     if (type == "animation" || xml_node.hasChildNamed("curve"))
     {

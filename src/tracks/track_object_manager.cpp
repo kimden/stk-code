@@ -52,6 +52,15 @@ void TrackObjectManager::add(const XMLNode &xml_node, scene::ISceneNode* parent,
     try
     {
         TrackObject *obj = new TrackObject(xml_node, parent, model_def_loader, parent_library);
+#ifdef IGNORE_GHOSTS
+#ifdef SERVER_ONLY
+        if (obj->getInteraction() == "ghost" || !obj->getPhysicalObject())
+            return;
+#endif // SERVER_ONLY
+        Log::debug("TrackObjectManager", "Ignoring ghost objects");
+#else
+        Log::debug("TrackObjectManager", "Not ignoring ghost objects");
+#endif // IGNORE_GHOSTS
         m_all_objects.push_back(obj);
         if(obj->isDriveable())
             m_driveable_objects.push_back(obj);
