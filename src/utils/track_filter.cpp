@@ -216,8 +216,8 @@ void TrackFilter::apply(int num_players, std::set<std::string>& input,
         std::vector<int> take(m_random_count, 1);
         take.resize(input.size(), 0);
         // Shuffling the vector like it's not having the form 11..1100..00
-        for (unsigned i = 1; i < input.size(); i++)
-            std::swap(take[rg.get(i)], take[i]);
+        for (unsigned i = 0; i < input.size(); i++)
+            std::swap(take[rg.get(i + 1)], take[i]);
         std::set<std::string> result;
         for (std::set<std::string>::iterator it = input.begin(); it != input.end(); it++)
         {
