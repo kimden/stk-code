@@ -333,6 +333,8 @@ private:
     void process_result(Context& context);
     void process_preserve(Context& context);
     void process_preserve_assign(Context& context);
+    void process_history(Context& context);
+    void process_history_assign(Context& context);
     void special(Context& context);
 
     std::string getRandomMap() const;

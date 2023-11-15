@@ -664,6 +664,22 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="history"
+             usage="/history"
+             permissions-verbose="hammers"
+             description="Shows the map history for tournament mode, which might be different from the list of all played arenas due to stops, restarts, etc."
+             permissions="UP_HAMMER"
+             mode-scope="MS_SOCCER_TOURNAMENT"
+             state-scope="SS_LOBBY"
+    >
+        <command name="="
+                 usage="/history (index >= 0) (arena id)"
+                 omit-name="true"
+                 permissions-verbose="hammers"
+                 description="Changes the map history for tournament mode, which can affect which maps are available during the selection."
+                 permissions="UP_HAMMER"
+        />
+    </command>
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions-verbose="everyone (client command)"

@@ -442,6 +442,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("result", &CM::process_result);
     applyFunctionIfPossible("preserve", &CM::process_preserve);
     applyFunctionIfPossible("preserve =", &CM::process_preserve_assign);
+    applyFunctionIfPossible("history", &CM::process_history);
+    applyFunctionIfPossible("history =", &CM::process_history_assign);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
     applyFunctionIfPossible("stopaddondownload", &CM::special);
@@ -3757,6 +3759,55 @@ void CommandManager::process_preserve_assign(Context& context)
     }
     m_lobby->sendStringToAllPeers(msg);
 } // process_preserve_assign
+// ========================================================================
+
+void CommandManager::process_history(Context& context)
+{
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    std::string msg = "Map history:";
+    for (unsigned i = 0; i < m_lobby->m_tournament_arenas.size(); i++)
+        msg += StringUtils::insertValues(" [%d]: ", i) + m_lobby->m_tournament_arenas[i];
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_history
+// ========================================================================
+
+void CommandManager::process_history_assign(Context& context)
+{
+    auto& argv = context.m_argv;
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    std::string msg = "";
+    if (argv.size() != 3)
+    {
+        error(context);
+        return;
+    }
+    int index;
+    if (!StringUtils::fromString(argv[1], index) || index < 0)
+    {
+        error(context);
+        return;
+    }
+    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
+        2, m_stf_all_maps, 3, false, false))
+        return;
+    std::string id = argv[2];
+    if (index >= m_lobby->m_tournament_arenas.size())
+        m_lobby->m_tournament_arenas.resize(index + 1, "");
+    m_lobby->m_tournament_arenas[index] = id;
+
+    msg = StringUtils::insertValues("Assigned [%d] to %s in the map history", index, id.c_str());
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_history_assign
 // ========================================================================
 
 void CommandManager::special(Context& context)
