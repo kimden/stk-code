@@ -164,6 +164,16 @@ public:
         PLUNGER_BAND_FADE_OUT_TIME,
         PLUNGER_IN_FACE_TIME,
 
+        // Nitrohack
+        NITROHACK_DURATION,
+        NITROHACK_FACTOR,
+
+        // Electro-shield
+        ELECTRO_DURATION,
+        ELECTRO_ENGINE_MULT,
+        ELECTRO_MAX_SPEED_INCREASE,
+        ELECTRO_FADE_OUT_TIME,
+
         // Startup
         STARTUP_TIME,
         STARTUP_BOOST,
@@ -186,6 +196,7 @@ public:
         NITRO_SMALL_CONTAINER,
         NITRO_BIG_CONTAINER,
         NITRO_MAX_SPEED_INCREASE,
+        NITRO_MIN_BURST,
         NITRO_FADE_OUT_TIME,
         NITRO_MAX,
 
@@ -335,6 +346,14 @@ public:
     float getPlungerBandFadeOutTime() const;
     float getPlungerInFaceTime() const;
 
+    float getNitrohackDuration() const;
+    float getNitrohackFactor() const;
+
+    float getElectroDuration() const;
+    float getElectroEngineMult() const;
+    float getElectroMaxSpeedIncrease() const;
+    float getElectroFadeOutTime() const;
+
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;
 
@@ -353,6 +372,7 @@ public:
     float getNitroSmallContainer() const;
     float getNitroBigContainer() const;
     float getNitroMaxSpeedIncrease() const;
+    float getNitroMinBurst() const;
     float getNitroFadeOutTime() const;
     float getNitroMax() const;
 

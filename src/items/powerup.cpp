@@ -170,6 +170,14 @@ void Powerup::set(PowerupManager::PowerupType type, int n)
         case PowerupManager::POWERUP_ZIPPER:
             break ;
 
+        case PowerupManager::POWERUP_SUDO:
+            m_sound_use = SFXManager::get()->createSoundSource("sudo_bad");
+            break ;
+
+        // TODO : add sound effects
+        case PowerupManager::POWERUP_ELECTRO:
+            break ;
+
         case PowerupManager::POWERUP_BOWLING:
             m_sound_use = SFXManager::get()->createSoundSource("bowling_shoot");
             break ;
@@ -295,31 +303,110 @@ void Powerup::use()
         {
             im->switchItems();
             if (!has_played_sound)
-            {
-                m_sound_use->setPosition(m_kart->getXYZ());
                 m_sound_use->play();
-            }
             break;
         }
     case PowerupManager::POWERUP_CAKE:
     case PowerupManager::POWERUP_RUBBERBALL:
     case PowerupManager::POWERUP_BOWLING:
     case PowerupManager::POWERUP_PLUNGER:
-        if(stk_config->m_shield_restrict_weapons)
-            m_kart->setShieldTime(0.0f); // make weapon usage destroy the shield
+        // make weapon usage destroy gum shields
+        if(stk_config->m_shield_restrict_weapons &&
+            m_kart->isGumShielded())
+            m_kart->decreaseShieldTime();
         if (!has_played_sound)
         {
             Powerup::adjustSound();
             m_sound_use->play();
         }
         ProjectileManager::get()->newProjectile(m_kart, m_type);
-        break ;
+        break;
 
     case PowerupManager::POWERUP_SWATTER:
         m_kart->getAttachment()
                 ->set(Attachment::ATTACH_SWATTER,
                       stk_config->time2Ticks(kp->getSwatterDuration()));
         break;
+
+    case PowerupManager::POWERUP_SUDO:
+        {
+            AbstractKart* player_kart = NULL;
+            unsigned int steal_targets = powerup_manager->getNitroHackMaxTargets();
+            float base_bonus = powerup_manager->getNitroHackBaseBonus();
+
+            float stolen_energy = 0.0f;
+            unsigned int steal_counter = 0;
+
+            // Steal some nitro from up to steal_targets karts ahead.
+            // This can set their nitro count to a negative number
+            for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
+            {
+                AbstractKart *kart=world->getKart(i);
+                // Standard invulnerability (the "stars") is not useful here
+                if( kart->isEliminated()   || kart== m_kart || kart->hasFinishedRace())
+                    continue;
+
+                int position_diff = m_kart->getPosition() - kart->getPosition();
+                if(position_diff > 0)
+                {
+                    float amount_to_steal = powerup_manager->getNitroHackStolenDiff(position_diff);
+                    if (amount_to_steal > 0.0f)
+                    {
+                        // Remove nitro from a target kart and add to the recipient
+                        kart->addEnergy(-amount_to_steal, /* allow negatives */ true);
+                        stolen_energy += amount_to_steal;
+                        steal_counter++;
+
+                        // This is used for display in the race GUI
+                        kart->setStolenNitro(amount_to_steal, /* duration */ 1.75f);
+
+                        // Remember if the target kart is player controlled
+                        // for a negative sound effect
+                        if(kart->getController()->isLocalPlayerController())
+                            player_kart = kart;
+                    }
+                }
+            }
+
+            // Gift some free nitro if there is not enough targets in front
+            if (steal_counter < steal_targets)
+                stolen_energy += (steal_targets - steal_counter) * base_bonus;
+
+            // Give the stolen nitro and activate the "nitro boost" mode
+            // TODO make the gift of nitro depend on kart class/ nitro efficiency ??
+            m_kart->addEnergy(stolen_energy, /* allow negatives */ false);
+            m_kart->activateNitroHack();
+
+            // Play a good sound for the kart that benefits from the "nitro-hack",
+            // if it's a local player
+            if (!has_played_sound && m_kart->getController()->isLocalPlayerController())
+            {
+                //Extraordinary. Usually sounds are set in Powerup::set()
+                m_sound_use = SFXManager::get()->createSoundSource("sudo_good");
+                //In this case this is a workaround, since the sudo item has two different sounds
+
+                m_sound_use->play();
+            }
+            // Play a bad sound if the affected kart (but not the user) is a local player
+            else if (!has_played_sound && player_kart != NULL)
+            {
+                m_sound_use->play();
+            }
+
+            break;
+        }   // end of PowerupManager::POWERUP_SUDO
+
+    case PowerupManager::POWERUP_ELECTRO:
+        {
+            // This takes care of the speed boost
+            m_kart->setElectroShield();
+
+            // We set the attachment
+            m_kart->getAttachment()->set(Attachment::ATTACH_ELECTRO_SHIELD,
+                stk_config->time2Ticks(kp->getElectroDuration()));
+
+            break;
+        }   // end of PowerupManager::POWERUP_ELECTRO
 
     case PowerupManager::POWERUP_BUBBLEGUM:
         // use the bubble gum the traditional way, if the kart is looking back
@@ -337,41 +424,29 @@ void Powerup::use()
         }
         else // if the kart is looking forward, use the bubblegum as a shield
         {
+            Attachment::AttachmentType type;
 
-            if(!m_kart->isShielded()) //if the previous shield had been used up.
+            if (m_kart->getIdent() == "nolok")
+                type = Attachment::ATTACH_NOLOK_BUBBLEGUM_SHIELD;
+            else
+                type = Attachment::ATTACH_BUBBLEGUM_SHIELD;
+
+            if(!m_kart->isGumShielded()) //if the previous shield had been used up.
             {
-                if (m_kart->getIdent() == "nolok")
-                {
-                    m_kart->getAttachment()
-                          ->set(Attachment::ATTACH_NOLOK_BUBBLEGUM_SHIELD,
-                                stk_config->
-                                  time2Ticks(kp->getBubblegumShieldDuration()));
-                }
-                else
-                {
-                    m_kart->getAttachment()
-                          ->set(Attachment::ATTACH_BUBBLEGUM_SHIELD,
-                                stk_config->
-                                  time2Ticks(kp->getBubblegumShieldDuration()));
-                }
+                    m_kart->getAttachment()->set(type,
+                                     stk_config->
+                                     time2Ticks(kp->getBubblegumShieldDuration()));
             }
-            else // using a bubble gum while still having a shield
+            // using a bubble gum while still having a gum shield
+            // In this case, half of the remaining time of the active
+            // shield is added. The maximum duration of a shield is
+            // never above twice the standard duration.
+            else 
             {
-                if (m_kart->getIdent() == "nolok")
-                {
-                    m_kart->getAttachment()
-                          ->set(Attachment::ATTACH_NOLOK_BUBBLEGUM_SHIELD,
-                                stk_config->
-                                 time2Ticks(kp->getBubblegumShieldDuration()));
-                }
-                else
-                {
-                    m_kart->getAttachment()
-                          ->set(Attachment::ATTACH_BUBBLEGUM_SHIELD,
+                m_kart->getAttachment()->set(type,
                                 stk_config->
                                 time2Ticks(kp->getBubblegumShieldDuration()
-                                           + m_kart->getShieldTime()       ) );
-                }
+                                           + (m_kart->getShieldTime() / 2.0f)) );
             }
 
             if (!has_played_sound)
@@ -507,7 +582,7 @@ void Powerup::use()
 }   // use
 
 //-----------------------------------------------------------------------------
-/** This function is called when a bnous box is it. This function can be
+/** This function is called when a bonus box is it. This function can be
  *  called on a server (in which case item and add_info are not used),
  *  or on a client, in which case the item and additional info is used
  *  to make sure server and clients are synched correctly.
@@ -562,11 +637,11 @@ void Powerup::hitBonusBox(const ItemState &item_state)
     // is divided by 10, meaning even if there is one frame difference,
     // the client will still have a 90% chance to correctly predict the
     // item. We multiply the item with a 'large' (more or less random)
-    // number to spread the random values across the (typically 200)
+    // number to spread the random values across the (typically 1000)
     // weights used in the PowerupManager - same for the position.
     uint64_t random_number = item_state.getItemId() * 31 +
-        world->getTicksSinceStart() / 10 + position * 23 +
-        powerup_manager->getRandomSeed();
+        world->getTicksSinceStart() / stk_config->time2Ticks(0.083334f) +
+        position * 23 + powerup_manager->getRandomSeed();
 
     // Use this random number as a seed of a PRNG (based on the one in 
     // bullet's btSequentialImpulseConstraintSolver) to avoid getting

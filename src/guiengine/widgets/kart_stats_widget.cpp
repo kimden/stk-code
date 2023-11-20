@@ -103,10 +103,10 @@ void KartStatsWidget::setValues(const KartProperties* props, HandicapLevel h)
                    kp_computed.getCombinedCharacteristic()->getMass()/3.89f,
                    "mass.png", "mass", _("Mass"));
     
-    // The base speed is of 25
+    // The base speed is of 27.5
     // Here we are not fully proportional, because small differences matter more
     setSkillValues(SKILL_SPEED,
-                   (kp_computed.getCombinedCharacteristic()->getEngineMaxSpeed() - 20.0f) * 15.0f,
+                   (kp_computed.getCombinedCharacteristic()->getEngineMaxSpeed() - 22.25f) * 15.0f,
                    "speed.png", "speed", _("Maximum speed"));
     
     // The acceleration depend on power and mass, and it changes depending on speed
@@ -117,9 +117,11 @@ void KartStatsWidget::setValues(const KartProperties* props, HandicapLevel h)
                    "power.png", "acceleration", _("Acceleration"));
 
     // The base nitro consumption is 1, higher for heavier karts.
-    // Nitro efficiency is hence 90/nitro_consumption
+    // The base max speed increase is 5, higher for lighter karts
+    // Nitro efficiency is hence computed as 18 * max_speed_increase / nitro_consumption
     setSkillValues(SKILL_NITRO_EFFICIENCY,
-                    90.0f/kp_computed.getCombinedCharacteristic()->getNitroConsumption(),
+                    18.0f * kp_computed.getCombinedCharacteristic()->getNitroMaxSpeedIncrease()
+                          / kp_computed.getCombinedCharacteristic()->getNitroConsumption(),
                    "nitro.png", "nitro", _("Nitro efficiency"));
     
     RaceManager::get()->setDifficulty(previous_difficulty);

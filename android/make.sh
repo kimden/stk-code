@@ -217,7 +217,7 @@ fi
 
 if [ -z "$PROJECT_VERSION" ]; then
     if [ $IS_DEBUG_BUILD -ne 0 ]; then
-        export PROJECT_VERSION="git"
+        export PROJECT_VERSION="2.0-git"
     else
         echo "Error: Variable PROJECT_VERSION is not set. It must have unique" \
              "value for release build."
@@ -431,11 +431,6 @@ convert -scale 162x162 "$APP_ICON_ADAPTIVE_FG" "$DIRNAME/res/drawable-hdpi/icon_
 convert -scale 216x216 "$APP_ICON_ADAPTIVE_FG" "$DIRNAME/res/drawable-xhdpi/icon_fg.png"
 convert -scale 324x324 "$APP_ICON_ADAPTIVE_FG" "$DIRNAME/res/drawable-xxhdpi/icon_fg.png"
 convert -scale 432x432 "$APP_ICON_ADAPTIVE_FG" "$DIRNAME/res/drawable-xxxhdpi/icon_fg.png"
-
-if [ -f "/usr/lib/jvm/java-8-openjdk-amd64/bin/java" ]; then
-    export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
-    export PATH=$JAVA_HOME/bin:$PATH
-fi
 
 export ANDROID_HOME="$SDK_PATH"
 ./gradlew -Pcompile_sdk_version="$COMPILE_SDK_VERSION"   \

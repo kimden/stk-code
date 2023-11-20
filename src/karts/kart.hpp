@@ -210,7 +210,7 @@ protected:
     float        m_current_lean;
 
     /** To prevent using nitro in too short bursts */
-    int8_t        m_min_nitro_ticks;
+    int16_t        m_min_nitro_ticks;
 
     /** True if fire button was pushed and not released */
     bool         m_fire_clicked;
@@ -229,6 +229,17 @@ protected:
     float         m_consumption_per_tick;
 
     float         m_energy_to_min_ratio;
+
+    /** If > 0 then nitro-hack effect is on. */
+    int16_t       m_nitro_hack_ticks;
+
+    /** The bonus factor for nitro use **/
+    float         m_nitro_hack_factor;
+
+    /** Used to display stolen nitro in the UI **/
+    int16_t       m_stolen_nitro_ticks;
+
+    float         m_stolen_nitro_amount;
 
     float           m_startup_boost;
 
@@ -308,6 +319,11 @@ public:
 
     virtual void   startEngineSFX   () OVERRIDE;
     virtual void  collectedItem(ItemState *item) OVERRIDE;
+    virtual void  activateNitroHack() OVERRIDE;
+    virtual bool  isNitroHackActive() const OVERRIDE { return m_nitro_hack_ticks > 0; }
+    virtual void  setStolenNitro(float amount, float duration) OVERRIDE;
+    virtual bool  hasStolenNitro() const OVERRIDE { return m_stolen_nitro_ticks > 0; }
+    virtual float getStolenNitro() const OVERRIDE { return m_stolen_nitro_amount; }
     virtual float getStartupBoostFromStartTicks(int ticks) const OVERRIDE;
     virtual float getStartupBoost() const OVERRIDE  { return m_startup_boost; }
     virtual void setStartupBoost(float val) OVERRIDE { m_startup_boost = val; }
@@ -322,6 +338,9 @@ public:
     virtual bool   setSquash        (float time, float slowdown) OVERRIDE;
             void   setSquashGraphics();
     virtual void   unsetSquash      () OVERRIDE;
+
+    virtual void   setElectroShield() OVERRIDE;
+    virtual void   unsetElectroShield() OVERRIDE;
 
     virtual void   crashed          (AbstractKart *k, bool update_attachments) OVERRIDE;
     virtual void   crashed          (const Material *m, const Vec3 &normal) OVERRIDE;
@@ -398,6 +417,9 @@ public:
     /** Returns the remaining collected energy. */
     virtual float getEnergy() const OVERRIDE { return m_collected_energy; }
     // ----------------------------------------------------------------------------------------
+    /** Allows to add nitro while enforcing max nitro storage. */
+    virtual void addEnergy(float val, bool allow_negative);
+    // ----------------------------------------------------------------------------------------
     /** Sets the energy the kart has collected. */
     virtual void setEnergy(float val) OVERRIDE { m_collected_energy = val; }
     // ----------------------------------------------------------------------------------------
@@ -458,6 +480,9 @@ public:
     // ----------------------------------------------------------------------------------------
     /** Returns if the kart is protected by a shield. */
     virtual bool isShielded() const OVERRIDE;
+    // ----------------------------------------------------------------------------------------
+    /** Returns if the kart is protected by a gum shield. */
+    virtual bool isGumShielded() const OVERRIDE;
     // ----------------------------------------------------------------------------------------
     /** Returns the remaining time the kart is protected by a shield. */
     virtual float getShieldTime() const OVERRIDE;

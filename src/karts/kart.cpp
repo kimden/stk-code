@@ -132,6 +132,10 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_saved_controller     = NULL;
     m_consumption_per_tick = stk_config->ticks2Time(1) *
                              m_kart_properties->getNitroConsumption();
+    m_nitro_hack_ticks     = 0;
+    m_nitro_hack_factor    = 1.0f;
+    m_stolen_nitro_ticks   = 0;
+    m_stolen_nitro_amount  = 0.0f;
     m_fire_clicked         = 0;
     m_default_suspension_force = 0.0f;
     m_boosted_ai           = false;
@@ -330,6 +334,10 @@ void Kart::reset()
     m_energy_to_min_ratio = 0;
     m_consumption_per_tick = stk_config->ticks2Time(1) *
                              m_kart_properties->getNitroConsumption();
+    m_nitro_hack_ticks = 0;
+    m_nitro_hack_factor = 1.0f;
+    m_stolen_nitro_ticks   = 0;
+    m_stolen_nitro_amount  = 0.0f;
 
     // Reset star effect in case that it is currently being shown.
     if (m_stars_effect)
@@ -913,6 +921,10 @@ float Kart::getMaxSteerAngle(float speed) const
         turn_angle_at_speed.setY(i, sinf( 1.0f / turn_angle_at_speed.getY(i))
                                     * m_kart_properties->getWheelBase());
 
+    // Make reverse mode turn the same way as forward
+    if (speed < 0.0f)
+        speed = -speed;
+
     return turn_angle_at_speed.get(speed);
 }   // getMaxSteerAngle
 
@@ -1008,21 +1020,26 @@ void Kart::finishedRace(float time, bool from_server)
         RaceGUIBase* m = World::getWorld()->getRaceGUI();
         if (m)
         {
-            bool won_the_race = false, too_slow = false;
+            bool won_the_race = false, too_slow = false, one_kart = false;
             unsigned int win_position = 1;
 
             if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FOLLOW_LEADER)
                 win_position = 2;
 
+            // There is no win if there is no possibility of losing
+            if (RaceManager::get()->getNumberOfKarts() == 1)
+                one_kart = true;
+
             if ((getPosition() == (int)win_position &&
-                World::getWorld()->getNumKarts() > win_position) || RaceManager::get()->getNumberOfKarts() == 1)
+                World::getWorld()->getNumKarts() > win_position))
                 won_the_race = true;
 
             if (RaceManager::get()->hasTimeTarget() && m_finish_time > RaceManager::get()->getTimeTarget())
                 too_slow = true;
 
-            m->addMessage((too_slow     ? _("You were too slow!") :
-                           won_the_race ? _("You won the race!")  :
+            m->addMessage((too_slow     ? _("You were too slow!")     :
+                           one_kart     ? _("You finished the race!") :
+                           won_the_race ? _("You won the race!")      :
                                           _("You finished the race in rank %d!", getPosition())),
             this, 2.0f, video::SColor(255, 255, 255, 255), true, true, true);
         }
@@ -1171,6 +1188,8 @@ void Kart::collectedItem(ItemState *item_state)
 
     if ( m_collected_energy > m_kart_properties->getNitroMax())
         m_collected_energy = m_kart_properties->getNitroMax();
+
+    // Play sound effects if the kart is controlled by a local player
     m_controller->collectedItem(*item_state, old_energy);
 
 }   // collectedItem
@@ -1246,7 +1265,8 @@ bool Kart::isNearGround() const
 }   // isNearGround
 
 // ------------------------------------------------------------------------
-/** Enables a kart shield protection for a certain amount of time.
+/** Sets the duration of an active shield protection.
+ * This does not increase the boost time for the electro-shield.
  */
 void Kart::setShieldTime(float t)
 {
@@ -1266,13 +1286,32 @@ bool Kart::isShielded() const
     {
         Attachment::AttachmentType type = getAttachment()->getType();
         return type == Attachment::ATTACH_BUBBLEGUM_SHIELD ||
-               type == Attachment::ATTACH_NOLOK_BUBBLEGUM_SHIELD;
+               type == Attachment::ATTACH_NOLOK_BUBBLEGUM_SHIELD ||
+               type == Attachment::ATTACH_ELECTRO_SHIELD;
     }
     else
     {
         return false;
     }
 }   // isShielded
+
+// ------------------------------------------------------------------------
+/**
+ * Returns true if the kart is protected by a gum shield.
+ */
+bool Kart::isGumShielded() const
+{
+    if(getAttachment() != NULL)
+    {
+        Attachment::AttachmentType type = getAttachment()->getType();
+        return type == Attachment::ATTACH_BUBBLEGUM_SHIELD ||
+               type == Attachment::ATTACH_NOLOK_BUBBLEGUM_SHIELD;
+    }
+    else
+    {
+        return false;
+    }
+}   // isGumShielded
 
 // ------------------------------------------------------------------------
 /**
@@ -1288,14 +1327,15 @@ float Kart::getShieldTime() const
 
 // ------------------------------------------------------------------------
 /**
- * Decreases the kart's shield time.
- * \param t The time subtracted from the shield timer. If t == 0.0f, the
-             default amout of time is subtracted.
- */
+ * Decreases the kart's shield time to zero. */
 void Kart::decreaseShieldTime()
 {
     if (isShielded())
     {
+        // If the shield is an electro-shield, also disable the speed boost
+        if(getAttachment()->getType() == Attachment::ATTACH_ELECTRO_SHIELD)
+            unsetElectroShield();
+
         getAttachment()->setTicksLeft(0);
     }
 }   // decreaseShieldTime
@@ -1707,8 +1747,14 @@ void Kart::update(int ticks)
         }
         else
         {
+            // If a zipper boost (from the zipper item, texture or a startup boost)
+            // is active, reduce the texture penalty by half
+            float terrain_speed_fraction = material->getMaxSpeedFraction();;
+            if (m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)
+                terrain_speed_fraction += (1.0f - terrain_speed_fraction)*0.5f;
+            
             m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_TERRAIN,
-                                     material->getMaxSpeedFraction(),
+                                     terrain_speed_fraction,
                                      material->getSlowDownTicks()    );
 #ifdef DEBUG
             if(UserConfigParams::m_material_debug)
@@ -1837,6 +1883,32 @@ void Kart::showZipperFire()
 {
     m_kart_gfx->setCreationRateAbsolute(KartGFX::KGFX_ZIPPER, 800.0f);
 }
+
+//-----------------------------------------------------------------------------
+/** This activates the kart's electro-shield. */
+void Kart::setElectroShield()
+{
+    float max_speed_increase = m_kart_properties->getElectroMaxSpeedIncrease();
+    float duration           = m_kart_properties->getElectroDuration();
+    float fade_out_time      = m_kart_properties->getElectroFadeOutTime();
+
+    // The engine multiplier is automatically enabled when
+    // a speed increase from MS_INCREASE_ELECTRO is detected.
+
+    m_max_speed->increaseMaxSpeed(MaxSpeed::MS_INCREASE_ELECTRO,
+                                     max_speed_increase,
+                                     /* engine force */ 0,
+                                     stk_config->time2Ticks(duration),
+                                     stk_config->time2Ticks(fade_out_time));
+}   // setElectroShield
+
+//-----------------------------------------------------------------------------
+/** This disables the kart's electro-shield. */
+void Kart::unsetElectroShield()
+{
+    // Ends the speed increase without disabling fade out time
+    m_max_speed->endSpeedIncrease(MaxSpeed::MS_INCREASE_ELECTRO);
+}   // unsetElectroShield
 
 //-----------------------------------------------------------------------------
 /** Squashes this kart: it will scale the kart in up direction, and causes
@@ -2223,18 +2295,78 @@ void Kart::handleZipper(const Material *material, bool play_sound)
 
 }   // handleZipper
 
+/** Allows to add nitro while enforcing max nitro storage. */
+void Kart::addEnergy(float val, bool allow_negative = false)
+{
+    // Negative nitro is allowed in general, but this specific
+    // change to the nitro level is not allowed to make it negative
+    // or more negative
+    if (!allow_negative && val < 0 && m_collected_energy > 0)
+    {
+        if (-val > m_collected_energy)
+            m_collected_energy = 0;
+        else
+            m_collected_energy += val;
+    }
+    else
+    {
+        m_collected_energy += val;
+    }
+
+    // Max nitro is always enforced no matter what
+    if (m_collected_energy > m_kart_properties->getNitroMax())
+        m_collected_energy = m_kart_properties->getNitroMax();
+}
+
+//-----------------------------------------------------------------------------
+/** Called when the NitroHack powerup is used by the kart. **/
+void Kart::activateNitroHack()
+{
+    m_nitro_hack_ticks = stk_config->time2Ticks(m_kart_properties->getNitrohackDuration());
+    m_nitro_hack_factor = m_kart_properties->getNitrohackFactor();
+}   // activateNitroHack
+
+//-----------------------------------------------------------------------------
+/** Called when the NitroHack powerup targets this kart. **/
+void Kart::setStolenNitro(float amount, float duration)
+{
+    // If a second steal happens while the first one is displayed,
+    // display both until the expiration of the second one.
+    m_stolen_nitro_amount += amount;
+    m_stolen_nitro_ticks = stk_config->time2Ticks(duration);
+}   // setStolenNitro
+
 // -----------------------------------------------------------------------------
 /** Updates the current nitro status.
  *  \param ticks Number of physics time steps - should be 1.
  */
 void Kart::updateNitro(int ticks)
 {
-    if (m_collected_energy == 0)
+    if (m_stolen_nitro_ticks > 0)
+        m_stolen_nitro_ticks -= ticks;
+    if (m_nitro_hack_ticks > 0)
+        m_nitro_hack_ticks -= ticks;
+
+    // Reset the stolen nitro amount when the display duration expires
+    if (m_stolen_nitro_ticks <= 0)
+    {
+        m_stolen_nitro_ticks = 0;
+        m_stolen_nitro_amount = 0.0f;
+    }
+
+    // Reset the nitro multiplier when the nitro-hack expires
+    if (m_nitro_hack_ticks <= 0)
+    {
+        m_nitro_hack_ticks = 0;
+        m_nitro_hack_factor = 1.0f;
+    }
+
+    if (m_collected_energy <= 0)
         m_min_nitro_ticks = 0;
 
     if (m_controls.getNitro() && m_min_nitro_ticks <= 0 && m_collected_energy > 0)
     {
-        m_min_nitro_ticks = m_kart_properties->getNitroMinConsumptionTicks();
+        m_min_nitro_ticks = stk_config->time2Ticks(m_kart_properties->getNitroMinBurst());
         float min_consumption = m_min_nitro_ticks * m_consumption_per_tick;
         m_energy_to_min_ratio = std::min<float>(1, m_collected_energy/min_consumption);
     }
@@ -2259,13 +2391,17 @@ void Kart::updateNitro(int ticks)
         return;
     }
 
-
+    float previous_energy = m_collected_energy;
     m_collected_energy -= m_consumption_per_tick*ticks;
-    if (m_collected_energy < 0)
+
+    // We don't allow nitro to go into the negative
+    // as a result of normal nitro usage.
+    // It can happen as a result of the Nitro-Hack powerup, however.
+    if (previous_energy >= 0 && m_collected_energy < 0)
     {
+        m_collected_energy = 0;
         if(m_nitro_sound->getStatus() == SFXBase::SFX_PLAYING && !rewinding)
             m_nitro_sound->stop();
-        m_collected_energy = 0;
         return;
     }
 
@@ -2275,8 +2411,8 @@ void Kart::updateNitro(int ticks)
             m_nitro_sound->play();
 
         m_max_speed->increaseMaxSpeed(MaxSpeed::MS_INCREASE_NITRO,
-            m_kart_properties->getNitroMaxSpeedIncrease(),
-            m_kart_properties->getNitroEngineForce(),
+            m_kart_properties->getNitroMaxSpeedIncrease()*m_nitro_hack_factor,
+            m_kart_properties->getNitroEngineForce()*m_nitro_hack_factor,
             stk_config->time2Ticks(m_kart_properties->getNitroDuration()*m_energy_to_min_ratio),
             stk_config->time2Ticks(m_kart_properties->getNitroFadeOutTime()));
     }
@@ -2495,7 +2631,7 @@ void Kart::playCrashSFX(const Material* m, AbstractKart *k)
             
             // In case that the sfx is longer than 0.5 seconds, only play it if
             // it's not already playing.
-            if (isShielded() || (k != NULL && k->isShielded()))
+            if (isGumShielded() || (k != NULL && k->isGumShielded()))
             {
                 crash_sound_emitter->play(getSmoothedXYZ(), m_boing_sound);
             }
@@ -2605,8 +2741,8 @@ void Kart::updatePhysics(int ticks)
             m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_ZIPPER,
                 0.9f * m_startup_boost, m_startup_boost,
                 /*engine_force*/200.0f,
-                /*duration*/stk_config->time2Ticks(5.0f),
-                /*fade_out_time*/stk_config->time2Ticks(5.0f));
+                /*duration*/stk_config->time2Ticks(4.0f),
+                /*fade_out_time*/stk_config->time2Ticks(2.0f));
         }
     }
     if (m_bounce_back_ticks > 0)
@@ -2764,6 +2900,12 @@ void Kart::updateEnginePowerAndBrakes(int ticks)
     if(getSpeedIncreaseTicksLeft(MaxSpeed::MS_INCREASE_NITRO) > 0)
     {
         engine_power*= m_kart_properties->getNitroEngineMult();
+    }
+
+    // apply electro-shield engine boost if relevant
+    if(getSpeedIncreaseTicksLeft(MaxSpeed::MS_INCREASE_ELECTRO) > 0)
+    {
+        engine_power*= m_kart_properties->getElectroEngineMult();
     }
 
     // apply bubblegum physics if relevant
@@ -3291,7 +3433,7 @@ void Kart::updateGraphics(float dt)
         // the normal maximum speed of the kart.
         if(nitro_frac>1.0f) nitro_frac = 1.0f;
     }
-    m_kart_gfx->updateNitroGraphics(nitro_frac);
+    m_kart_gfx->updateNitroGraphics(nitro_frac, m_nitro_hack_ticks > 0);
 
     // Handle leaning of karts
     // -----------------------

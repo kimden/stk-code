@@ -503,6 +503,26 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[PLUNGER_IN_FACE_TIME]);
     }
 
+    if (const XMLNode *sub_node = node->getNode("nitro-hack"))
+    {
+        sub_node->get("duration",
+            &m_values[NITROHACK_DURATION]);
+        sub_node->get("factor",
+            &m_values[NITROHACK_FACTOR]);
+    }
+
+    if (const XMLNode *sub_node = node->getNode("electro"))
+    {
+        sub_node->get("duration",
+            &m_values[ELECTRO_DURATION]);
+        sub_node->get("engine-mult",
+            &m_values[ELECTRO_ENGINE_MULT]);
+        sub_node->get("max-speed-increase",
+            &m_values[ELECTRO_MAX_SPEED_INCREASE]);
+        sub_node->get("fade-out-time",
+            &m_values[ELECTRO_FADE_OUT_TIME]);
+    }
+
     if (const XMLNode *sub_node = node->getNode("startup"))
     {
         sub_node->get("time",
@@ -547,6 +567,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[NITRO_BIG_CONTAINER]);
         sub_node->get("max-speed-increase",
             &m_values[NITRO_MAX_SPEED_INCREASE]);
+        sub_node->get("min-burst",
+            &m_values[NITRO_MIN_BURST]);
         sub_node->get("fade-out-time",
             &m_values[NITRO_FADE_OUT_TIME]);
         sub_node->get("max",

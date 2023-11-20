@@ -126,16 +126,15 @@ private:
     std::map<std::string, std::vector<WeightsData*> > m_all_weights;
 
 public:
-    // The anvil and parachute must be at the end of the enum, and the
-    // zipper just before them (see Powerup::hitBonusBox).
     enum PowerupType {POWERUP_NOTHING,
                       POWERUP_FIRST,
                       POWERUP_BUBBLEGUM = POWERUP_FIRST,
                       POWERUP_CAKE,
                       POWERUP_BOWLING, POWERUP_ZIPPER, POWERUP_PLUNGER,
-                      POWERUP_SWITCH, POWERUP_SWATTER, POWERUP_RUBBERBALL,
-                      POWERUP_PARACHUTE,
-                      POWERUP_ANVIL,      //powerup.cpp assumes these two come last
+                      POWERUP_SWITCH, POWERUP_SWATTER,
+                      POWERUP_RUBBERBALL, POWERUP_PARACHUTE,
+                      POWERUP_SUDO, POWERUP_ELECTRO,
+                      POWERUP_ANVIL,
                       POWERUP_LAST=POWERUP_ANVIL,
                       POWERUP_MAX
     };
@@ -160,6 +159,11 @@ private:
 
     std::string m_config_file;
 
+    /** Parameters for the nitro-hack powerup */
+    unsigned int m_nh_max_targets;
+    float m_nh_base_bonus;
+    float m_nh_stolen_amount[20];
+
 public:
     static void unitTesting();
 
@@ -172,6 +176,7 @@ public:
     void          unloadPowerups  ();
     void          computeWeightsForRace(int num_karts);
     void          loadPowerup     (PowerupType type, const XMLNode &node);
+    void          loadNitroHack   (const XMLNode &node);
     PowerupManager::PowerupType
         getRandomPowerup(unsigned int pos, unsigned int *n,
                          uint64_t random_number);
@@ -186,6 +191,11 @@ public:
     uint64_t getRandomSeed() const { return m_random_seed.load(); }
     // ------------------------------------------------------------------------
     void setRandomSeed(uint64_t seed) { m_random_seed.store(seed); }
+    // ------------------------------------------------------------------------
+    /** Functions for the NitroHack powerup */
+    unsigned int getNitroHackMaxTargets() const { return m_nh_max_targets; }
+    float getNitroHackBaseBonus() const { return m_nh_base_bonus; }
+    float getNitroHackStolenDiff(unsigned int diff) const;
 
 };   // class PowerupManager
 

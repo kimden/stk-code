@@ -297,6 +297,12 @@ public:
     /** Makes the kart unsquashed again. */
     virtual void unsetSquash() = 0;
     // ------------------------------------------------------------------------
+    /** This activates the kart's electro-shield. */
+    virtual void setElectroShield() = 0;
+    // ------------------------------------------------------------------------
+    /** This disables the kart's electro-shield */
+    virtual void unsetElectroShield() = 0;
+    // ------------------------------------------------------------------------
     /** Returns the speed of the kart in meters/second. This is not declared
      *  pure abstract, since this function is not needed for certain classes,
      *  like Ghost. */
@@ -367,10 +373,23 @@ public:
      *  \param item The item that was hit. */
     virtual void  collectedItem(ItemState *item_state) = 0;
     // ------------------------------------------------------------------------
+    /** Called when the NitroHack powerup is used. **/
+    virtual void  activateNitroHack() = 0;
+    // ------------------------------------------------------------------------
+    /** Returns the nitro hack status of this kart. */
+    virtual bool  isNitroHackActive() const = 0;
+    // ------------------------------------------------------------------------
+    /** Sets the stolen nitro info of this kart. */
+    virtual void  setStolenNitro(float amount, float duration) = 0;
+    // ------------------------------------------------------------------------
+    virtual bool  hasStolenNitro() const = 0;
+    // ------------------------------------------------------------------------
+    virtual float getStolenNitro() const = 0;
+    // ------------------------------------------------------------------------
     /** Returns the current position of this kart in the race. */
     virtual int getPosition() const = 0;
     // ------------------------------------------------------------------------
-    /** Returns the current position of this kart in the race. */
+    /** Sets the position of this kart in the race. */
     virtual void setPosition(int p) = 0;
     // ------------------------------------------------------------------------
     /** Returns the initial position of this kart. */
@@ -409,6 +428,8 @@ public:
     // ------------------------------------------------------------------------
     /** Returns true if this kart has finished the race. */
     virtual bool hasFinishedRace() const = 0;
+    // ------------------------------------------------------------------------
+    virtual void addEnergy(float val, bool allow_negative = false) { };
     // ------------------------------------------------------------------------
     virtual void setEnergy(float val) = 0;
     // ------------------------------------------------------------------------
@@ -469,6 +490,9 @@ public:
     // ------------------------------------------------------------------------
     /** Returns if the kart is protected by a shield. */
     virtual bool isShielded() const = 0;
+    // ------------------------------------------------------------------------
+    /** Returns if the kart is protected by a gum shield. */
+    virtual bool isGumShielded() const = 0;
     // ------------------------------------------------------------------------
     virtual void setShieldTime(float t) = 0;
     // ------------------------------------------------------------------------
