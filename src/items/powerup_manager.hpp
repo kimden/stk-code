@@ -19,6 +19,15 @@
 #ifndef HEADER_POWERUPMANAGER_HPP
 #define HEADER_POWERUPMANAGER_HPP
 
+#undef ITEM_DISTRIBUTION_DEBUG
+#define REPEAT_WEIGHTS 3
+#define BUCKETS_PER_WEIGHT_LIST 9
+/** The maximum supported number of buckets is 32,
+ * additional buckets will not be set in the bitmask */
+#define BUCKET_COUNT (REPEAT_WEIGHTS * BUCKETS_PER_WEIGHT_LIST)
+/** A kart will remember at most the last MAX_BUCKETS */
+#define MAX_BUCKETS 15
+
 #include "utils/leak_check.hpp"
 #include "utils/no_copy.hpp"
 #include "utils/types.hpp"
@@ -90,6 +99,10 @@ private:
         /** The number of karts for which this entry is to be used. */
         unsigned int m_num_karts;
 
+        /** Stores the order in which powerups are stored
+         * (single and multi are distinct for these purposes) */
+        std::vector <int> m_powerup_order;
+
         /** Stores for each of the sections the weights from the XML file. */
         std::vector < std::vector<int> > m_weights_for_section;
 
@@ -106,10 +119,11 @@ private:
         void reset();
         void readData(int num_karts, const XMLNode *node);
         void interpolate(WeightsData *prev, WeightsData *next, int num_karts);
+        void sortWeights();
         void convertRankToSection(int rank, int *prev, int *next,
                                  float *weight);
         void precomputeWeights();
-        int getRandomItem(int rank, uint64_t random_number);
+        int getRandomItem(int rank, int random_number);
         // --------------------------------------------------------------------
         /** Sets the number of karts. */
         void setNumKarts(int num_karts) { m_num_karts = num_karts; }
@@ -121,7 +135,7 @@ private:
 
     /** The first key is the race type: race, battle, soccer etc.
      *  The key then contains a mapping from the kart numbers to the
-     *  WeightsData object that stores all data for the give kart number.
+     *  WeightsData object that stores all data for the given kart number.
      */
     std::map<std::string, std::vector<WeightsData*> > m_all_weights;
 
@@ -173,6 +187,7 @@ public:
     std::string   getFileName()                        { return m_config_file; }
     void          loadPowerupsModels ();
     void          loadWeights(const XMLNode *node, const std::string &category);
+    void          sortRaceWeights(const XMLNode *powerup_node, const std::string &node_name);
     void          unloadPowerups  ();
     void          computeWeightsForRace(int num_karts);
     void          loadPowerup     (PowerupType type, const XMLNode &node);
