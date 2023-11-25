@@ -498,11 +498,18 @@ void ServerLobby::initServerStatsTable()
         "CREATE TABLE IF NOT EXISTS %s (\n"
         "    time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Timestamp of the result\n"
         "    username TEXT NOT NULL, -- User who set the result\n"
-        "    venue TEXT NOT NULL, -- Track for a race\n"
+        "    venue TEXT NOT NULL, -- Map used in the game\n"
         "    reverse TEXT NOT NULL, -- Direction\n"
-        "    mode TEXT NOT NULL, -- Racing mode\n"
-        "    laps INTEGER NOT NULL, -- Number of laps\n"
-        "    result REAL NOT NULL -- Elapsed time for a race, possibly with autofinish\n"
+        "    mode TEXT NOT NULL, -- Game mode\n"
+        "    laps INTEGER NOT NULL, -- Length (number of laps or duration)\n"
+        "    result REAL NOT NULL, -- Elapsed time for a race, possibly with autofinish\n"
+        "    difficulty INTEGER, -- Di\n"
+        "    kart TEXT,\n"
+        "    config TEXT,\n"
+        "    visible INTEGER DEFAULT 1,\n"
+        "    items TEXT,\n"
+        "    kart_color REAL DEFAULT 0,\n"
+        "    is_quit INTEGER DEFAULT 0"
         ");", m_results_table_name.c_str());
     easySQLQuery(query);
 
