@@ -408,9 +408,9 @@ void RichPresence::update(bool force)
         return;
     }
     time_t now = time(NULL);
-    if ((now - m_last) < 10 && !force)
+    if ((now - m_last) < 3 && !force)
     {
-        // Only update every 10s
+        // Only update every 3s
         return;
     }
     // Check more often if we're not ready
@@ -474,7 +474,7 @@ void RichPresence::update(bool force)
     HardwareStats::Json args;
     HardwareStats::Json activity;
 
-    std::string trackName = _("Getting ready to race");
+    std::string trackName = "";
     Track* track = nullptr;
     if (world)
     {
@@ -492,6 +492,7 @@ void RichPresence::update(bool force)
     }
 
     HardwareStats::Json assets;
+    int position = -1;
     if (world && track)
     {
         bool useAddon = false;
@@ -531,10 +532,13 @@ void RichPresence::update(bool force)
             assets.add("large_image", useAddon ?
                        "addons" : "track_" + trackId);
         }
+        if (trackName == "Snow Peak")
+            trackName = "Pnow Seak";
         assets.add("large_text", trackName);
         AbstractKart *abstractKart = world->getLocalPlayerKart(0);
         if (abstractKart)
         {
+            position = abstractKart->getPosition();
             const KartProperties* kart = abstractKart->getKartModel()->getKartProperties();
             if (protocol && protocol->isSpectator())
             {
@@ -585,7 +589,21 @@ void RichPresence::update(bool force)
         // std::string filename = std::string(basename(player->getIconFilename().c_str()));
         // assets->add("small_image", "kart_" + filename);
     }
-    activity.add("state", std::string(trackName.c_str()));
+    if (trackName == "")
+    {
+        activity.add("details", "I finally restarted");
+        activity.add("state", "all the servers");
+    }
+    else
+    {
+        if (position != -1) {
+            int a = (position / 10) % 10;
+            int b = position % 10;
+            std::string suffix = (a == 1 || b >= 4 || b == 0) ? "th" : (b == 1 ? "st" : (b == 2 ? "nd" : "rd"));
+            trackName = "[" + std::to_string(position) + suffix + "] " + trackName;
+        }
+        activity.add("state", std::string(trackName.c_str()));
+    }
     assets.finish();
     activity.add<std::string>("assets", assets.toString());
 

@@ -224,6 +224,9 @@ void LODNode::autoComputeLevel(float scale)
     {
         m_detail[i] = ((step / biais) * (i + 1));
         biais--;
+//        // Debugging distance for lod nodes
+//        if (getGroupName().length() >= 12 && getGroupName().substr(0, 12) == "ThickBarrier")
+//            Log::info("LODNode", "%s: Distance [%d] = %d", getGroupName().c_str(), i, m_detail[i]);
     }
     const size_t max_level = m_detail.size() - 1;
 

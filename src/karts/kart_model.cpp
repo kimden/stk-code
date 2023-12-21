@@ -69,7 +69,7 @@ SpeedWeightedObject::Properties::Properties()
 // ----------------------------------------------------------------------------
 SpeedWeightedObject::Properties::~Properties()
 {
-    delete m_moving_texture;
+    if (m_moving_texture != NULL) delete m_moving_texture;
 }   // SpeedWeightedObject::Properties::~Properties
 
 // ----------------------------------------------------------------------------

@@ -116,14 +116,14 @@ void RaceGUI::initSize()
     // Determine maximum length of the rank/lap text, in order to
     // align those texts properly on the right side of the viewport.
     gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-    core::dimension2du area = font->getDimension(L"99:99.999");
+    core::dimension2du area = font->getDimension(L"99:99:99.999");
     m_timer_width = area.Width;
     m_font_height = area.Height;
 
     area = font->getDimension(L"99.999");
     m_small_precise_timer_width = area.Width;
 
-    area = font->getDimension(L"99:99.999");
+    area = font->getDimension(L"99:99:99.999");
     m_big_precise_timer_width = area.Width;
 
     area = font->getDimension(L"-");
@@ -132,7 +132,7 @@ void RaceGUI::initSize()
     if (RaceManager::get()->getMinorMode()==RaceManager::MINOR_MODE_FOLLOW_LEADER ||
         RaceManager::get()->isBattleMode()     ||
         RaceManager::get()->getNumLaps() > 9)
-        m_lap_width = font->getDimension(L"99/99").Width;
+        m_lap_width = font->getDimension(L"999/999").Width;
     else
         m_lap_width = font->getDimension(L"9/9").Width;
 }   // initSize
@@ -1354,7 +1354,9 @@ void RaceGUI::drawLap(const AbstractKart* kart,
     if (lap + 1> RaceManager::get()->getNumLaps())
         lap--;
     // don't display 'lap 0/..' at the start of a race
-    if (lap < 0 ) return;
+    if (lap == -1 ) return;
+    if (lap < 0) lap += 256;
+
 
     // Display lap flag
 

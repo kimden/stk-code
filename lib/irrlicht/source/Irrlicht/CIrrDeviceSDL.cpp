@@ -448,7 +448,7 @@ bool CIrrDeviceSDL::createWindow()
 			CreationParams.Fullscreen = false;
 		}
 		else
-			flags |= SDL_WINDOW_FULLSCREEN;
+			flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
 
 	if (CreationParams.DriverType == video::EDT_OPENGL ||

@@ -1,0 +1,1022 @@
+<?xml version="1.0"?>
+<!-- Format
+    It is possible to give relative values (factors and more) for each property.
+
+    The format as a regex is: ([+-*/](%d+|x))*
+    An empty value means no change, a value without sign or with a '-' replaces
+    the previous value. If an operator prefixes the string, e.g. *1.5 (- doesn't
+    work because it's a sign). x will get replaced by the previous value which
+    means *1.5 is equal to x*1.5. It's also possible to combine operations:
+    +1.5*20 means "add 1.5 to the previous value and then multiply by 20".
+    Note that it's computed sequentially from left to right and there is no
+    operator precedence. Also whitespaces aren't allowed because they are used
+    to split arrays.
+    If you want to return the square of something use x*x or only *x.
+
+    ATTENTION: '-' is a special case if it is the first character of a number-
+    string. It means that the number is negative and NOT that the following
+    float will be subtracted from the base value. So if x = 10 and the string
+    "-5" is processed, the result will be -5 and not the same as "x-5", which
+    would result in 10 - 5 = 5.
+-->
+<characteristics>
+    <!-- The default values that can be modified by the difficulty, karts, etc.
+        The values here should also be the values of the maximum difficulty. -->
+    <characteristic name="base">
+        <!-- ********** Physics ********** -->
+
+        <!-- Suspension
+            stiffness: kart's suspension stiffness.
+            rest: Length of suspension when at rest.
+            travel-cm: maximum movement of suspension - in cm!!
+            exp-string-response: dampen the suspension spring reaction
+                exponentially. See
+                http://bulletphysics.org/Bullet/phpBB3/viewtopic.php?f=9&t=7369\&p=25236&hilit=vehicle#p25236
+                for details.
+            max-force: Maximum suspension force -->
+        <suspension stiffness="280" rest="0.3" travel="0.29"
+            exp-spring-response="false" max-force="32000" />
+
+        <!-- Values related to stability of the chassis: damping, and reduced
+                impact of roll.
+            downward-impulse-factor: A speed proportional impulse applied each
+                frame that pushes the vehicle onto the ground.
+            track-connection-accel: An artificial force that pulls a wheel to
+                the ground if its off ground. Reduces the affect if a kart loses
+                contact with the ground (i.e. it then can't steer or accelerate
+                anymore).
+            angular-factor: Factor to change angular impulses. X and Z rotations
+                are damped to avoid that karts in a collision are too easily pushed
+                into a roll or pitch, which makes them topple over
+            smooth-flying-impulse: apply a torque impulse to flying kart to keep
+                them parallel to the ground. -->
+        <stability roll-influence="0.3"
+                   chassis-linear-damping="0.2"
+                   chassis-angular-damping="0"
+                   downward-impulse-factor="5"
+                   track-connection-accel="2"
+                   angular-factor="0.25 1.0 0.5"
+                   smooth-flying-impulse="250" />
+
+        <!-- Turning
+            radius: The turn radius of the kart at
+                a given speed. The actual steering angle is dependent on the
+                wheel base of the kart: radius = wheel_base/sin(steering_angle).
+                The values below define that at speed 0 the turn radius is 2, at
+                speed 10 the radius is 7.5 etc.
+                The actual turn radius is piece-wise linearly interpolated. This
+                allows for tighter turning at lower speeds, and also avoids that
+                the kart becomes too hard to control at high speed (speeds
+                higher than 25 can only be reached with powerups).
+            time-full-steer: This is the amount of change in steering depending
+                on current steering. So if the steering is between 0 and 0.5,
+                the time-for-steering-change is 0.15. If the current steering is
+                between 0.5 and 1.0, the time-for-steering-change is 0.25.
+                The speed is used as dt/time-for-steering-change.
+                In short: steering at less than halfway is somewhat faster,
+                which should avoid oversteering (by pressing the key for too long),
+                but slower when you want to steer more. Overwall with the current
+                settings the expected time-to-full-steer is:
+                0.5 * 0.25 + 0.5 * 0.15 = 0.2 ... which is overall the same
+                time we had previously. -->
+        <turn radius="0:2.0 10:7.5 25:15 45:30"
+              time-full-steer="0:0.17 0.5:0.17 0.5:0.28 1.0:0.28"
+              time-reset-steer="0.1" />
+
+        <!-- Speed and acceleration
+            power: The power of the kart (the engine power needed to accelerate
+                   at a given pace is proportional to mass)
+            max-speed: The base maximum speed of the kart in m/s
+            generic-max-speed: Must have the same value as max-speed. This
+                       is the max speed independently of kart type and
+                       of handicap, which is used by basket balls.
+            brake-factor: Value used when braking.
+            brake-time-increase: The brake force is multiplied by
+                (1 + brake_time) * brake_time_increase - i.e. the longer the
+                brake was pressed, the harder the kart will brake.
+            max-speed-reverse-ratio is the percentage of max speed for reverse
+                gear.
+          -->
+        <engine power="950" max-speed="25" generic-max-speed="25" brake-factor="15"
+                brake-time-increase="6" max-speed-reverse-ratio="0.65" />
+
+        <!-- Simulated gears
+            switch-ratio defines at what ratio of the maximum
+                speed what gear is selected, e.g. 0.25 means that if the speed is
+                inferior or equal to 0.25 * maxSpeed then use gear 1, 0.5 means if
+                the speed is inferior or equal to 0.5 x maxSpeed then gear 2.
+                gear-power-increase contains the increase in max power (to simulate
+                different gears), e.g. 2.5 as first entry means: 2.5 * maxPower in gear 1
+                | first  | second |  third | . -->
+        <gear switch-ratio="0.2 0.45 0.7 1 1.25"
+              power-increase="2.5 2.1 1.7 1.4 1.2" />
+
+        <!-- Mass of a kart -->
+        <mass value="350" />
+
+        <!-- Wheels
+            damping-relaxation/compression: for bullet
+            damping parameters
+            Radius and width of wheel
+            front-right, front-left, rear-right and rear-left give the
+                position of the physics raycast wheels relative to the center of
+                gravity. Default is to use the corners of the chassis to attach
+                the wheels to. -->
+        <wheels damping-relaxation="35"  damping-compression="15">
+            <front-right position="0.38 0 0.6"   />
+            <front-left  position="-0.38 0 0.6"  />
+            <rear-right  position="0.38 0 -0.6"  />
+            <rear-left   position="-0.38 0 -0.6" />
+        </wheels>
+
+        <!-- Friction of a kart when e.g. sliding along a wall. -->
+        <friction kart-friction="0.0" />
+
+        <!-- ********** Visuals ********** -->
+
+        <!-- Skidding
+            increase: multiplicative increase of skidding factor in each frame.
+            decrease: multiplicative decrease of skidding factor in each frame.
+            max: maximum skidding factor = maximum increase of steering angle.
+            time-till-max: Time till maximum skidding is reached.
+            visual: Additional graphical rotation of kart. The graphical rotation
+                of the kart also determines the direction the kart is driving to
+                when skidding is stopped.
+            visual-time: How long it takes for the visual skid to reach maximum.
+            revert-visual-time: how long it takes when stopping a skid to revert
+                the visual skid and bring visuals and physics in sync again.
+            angular-velocity: Angular velocity to be used for the kart when skidding.
+            min-speed: Minimum speed a kart must have before it can skid. Must be
+                >0, otherwise the kart can skid at the start of the race.
+            time-till-bonus: How long a kart needs to skid in order to get a bonus.
+            bonus-force: A speedup applied to the kart whick skidded for a while.
+            bonus-time: How long the bonus-force is applied.
+            bonus-force: Additional engine force (this is used to offset the fact
+                that turning after skidding (e.g. to correct direction) often uses
+                up the skid bonus).
+            post-skid-rotate-factor: a factor to be used to determine how much
+                the chassis of a kart should rotate to match the graphical view.
+                A factor of 1 is identical, a smaller factor will rotate the kart
+                less (which might  feel better).
+            physical-jump-time: Time for a physical jump at the beginning of a skid.
+                graphical-jump-time: Time for a graphics-only jump at the beginning
+                of a skid.
+            reduce-turn-min/max: The steering done by the controller (which is in
+                [-1,1]) is mapped to [reduce-turn-min, reduce-turn-max] when skidding
+                is active (for left turn, right turn will use [-max, -min]). The
+                effect is that while you skid (say left) you can adjust the direction
+                of the turn the kart is doing somewhat by steering to the left and right,
+                but you will always keep on doing a left turn, just more or less. -->
+        <skid increase="1.05" decrease="0.95" max="2.5" time-till-max="0.5"
+              visual="1.25" visual-time="0.7" revert-visual-time="0.7"
+              min-speed="10"  time-till-bonus="1.0 3.0"
+              bonus-speed="4.5 6.5" bonus-time="3.0 4.0"
+              bonus-force="250 350"
+              physical-jump-time="0" graphical-jump-time="0.4"
+              post-skid-rotate-factor="1"
+              reduce-turn-min="0.2" reduce-turn-max="0.8" enabled="true" />
+
+        <!-- Camera
+            Distance between kart and camera.
+            forward-up-angle: Angle between camera and plane of kart (pitch)
+                when the camera is pointing forward
+            forward-smoothing: if true, use smoothing (forward-up-angle become relative to speed) when pointing forward
+            backward-up-angle: Angle between camera and plane of kart (pitch)
+                when the camera is pointing backwards. This is usually
+                larger than the forward-up-angle, since the kart itself
+                otherwise obstricts too much of the view. -->
+        <camera distance="1.0"
+                forward-up-angle="0" forward-smoothing="true"
+                backward-up-angle="5" />
+
+        <!-- Jump animation
+            animation-time: only if the estimated time for a jump is larger
+                than this value will the jump animation being
+                shown. -->
+       <jump animation-time="0.5" />
+
+        <!-- Leaning related parameters, i.e. slightly leaning the karts when
+             driving a fast curve.
+            max: maximum leaning (i.e. when steering as much as possible at highest
+                speed), in degrees.
+            speed: Speed with which the leaning changes (in degree/second). -->
+        <lean max="12.0" speed="12.0" />
+
+
+        <!-- ********** Items ********** -->
+
+        <!-- Anvil
+            weight: The additional weight an anvil adds to a kart.
+            speed-factor: The additional slowdown caused by the anvil.
+            duration: The time an anvil is active. -->
+        <anvil duration="2.0" weight="150"  speed-factor="0.2" />
+
+        <!-- Parachute
+            friction: The friction factor when a parachute is attached.
+            duration: The time an attached parachute is active
+            duration-other: Used when the parachute results from item use
+            duration-rank-mult: The multiplier applied to the duration of the
+            parachute on the 1st kart when affected by the item. Scale for
+            intermediary ranks to 1.0 for the last affected.
+            duration-speed-mult: Applied in all cases, multitplier to duration
+            of the parachute at max-speed. Scale to 1.0 at 0 speed.
+            lbound-fraction: The lower bound fraction of speed when lost will
+                detach parachute. E.g. at nearly 0 speed, only 20% of speed
+                need to be lost.
+            ubound-fraction: The upper bound fraction of speed when lost will
+                detach parachute. E.g. at max-speed 50% of speed must be lost.
+            max-speed: A factor that decides the impact of rate of speed
+                (distance between bounds) -->
+        <parachute friction="5.0" duration="3" duration-other="2.5"
+                   duration-rank-mult="1.5" duration-speed-mult="1.35"
+                   lbound-fraction="0.5" ubound-fraction="0.3" max-speed="30" />
+        <!-- Bubblegum
+            duration: How long the bubblegum lasts.
+            speed-fraction: To what fraction of top-speed the speed is reduced.
+            torque: To rotate the kart somewhat.
+            fade-in-time: How quick the slowdown takes effect.
+            shield-duration: How long the bubblegum shield lasts -->
+        <bubblegum duration="1" speed-fraction="0.3" torque="500" fade-in-time="0.01"
+                   shield-duration="10.0" />
+
+        <!-- Zipper
+            duration: Time a zipper is active.
+            force: Additional zipper force.
+            speed-gain: One time additional speed.
+            max-speed-increase: Additional speed allowed on top of the
+                kart-specific maximum kart speed.
+            fade-out-time: determines how long it takes for a zipper
+                to fade out (after 'time'). -->
+        <zipper duration="3.5" force="250.0" speed-gain="4.5" max-speed-increase="15"
+                fade-out-time="1.0" />
+
+        <!-- Swatter
+            duration: How long can the swatter be active.
+            distance: How close a kart or an item must be before it can be hit.
+                      This is the square of the real distance to accelerate the
+                      compution.
+            squash-duration: How long a kart will remain squashed.
+            squash-slowdown: Percentage of max speed that a kart is
+                restricted to. -->
+        <swatter duration="10" distance="9" squash-duration="5"
+                 squash-slowdown="0.5" />
+
+        <!-- Plunger and rubber band handling
+            band-max-length: The maximum length of rubber band before it snaps.
+            band-force: The force a plunger/rubber band applies to the kart(s).
+            band-duration: The duration a rubber band acts.
+            in-face-time determines how long it takes before a plunger
+                in your face is removed. -->
+        <plunger band-max-length="50" band-force="1500" band-duration="1"
+                 band-speed-increase="7" band-fade-out-time="3"
+                 in-face-time="4.5" />
+
+
+        <!-- ********** Miscellaneous ********** -->
+
+        <!-- Startup
+            If a kart starts within the specified time after 'go',
+            it receives the corresponding bonus from 'boost'. Those
+            fields must have the same size, and must be sorted by
+            increasing times. -->
+        <startup time="0.3 0.5"
+                 boost="8 4" />
+
+        <!-- Rescue
+            duration: How long it takes the kart to be raised.
+            height: how height the kart will be raised before it is
+                dropped back onto the track.
+            vert rescue offset: used to raise karts a bit higher before
+                releasing them on the ground after a rescue. Used to avoid
+                resetting karts into the track. Not sure if this is still
+                necessary. -->
+        <rescue vert-offset="0.0" duration="1.2" height="2" />
+
+        <!-- Explosion
+            duration: how long it takes before the kart can drive again (this
+                determines how height the kart is being thrown).
+            invulnerability-time: how long a kart will be invulnerable
+                after being hit by an explosion.
+            radius: Kart closer to this value will be affected by
+                an explosion as well.  -->
+        <explosion duration="1.5" radius="6"
+                   invulnerability-time="7" />
+
+        <!-- Nitro
+            engine-force: additional engine power
+            engine-mult: multiply the total engine power by this
+            consumption: nitro consumption - heavier characters can be set
+                to need more nitro than lighter character.
+            small-container: how much energy a small container gives.
+            big-container: how much energy a big container gives.
+            max-speed-increase: How much the speed of a kart might exceed
+                its maximum speed (in m/s).
+            duration: How long the increased speed will be valid after
+                the kart stops using nitro (and the fade-out-time starts).
+            fade-out-time: Duration during which the increased maximum
+                speed due to nitro fades out.
+            max: How much nitro a kart can store. -->
+        <nitro engine-force="300" engine-mult="1.2" consumption="1"
+               small-container="1" big-container="3"
+               max-speed-increase="5" duration="1" fade-out-time="2.4" max="20" />
+
+        <!-- Slipstream
+            base-speed: the speed for which length and width are valid.
+                They are upscaled when faster and downscaled when slower.
+            length: How far behind a kart slipstream works
+                (note : this helps OTHER karts)
+            width: how wide slipstream works furthest away from the kart.
+            inner-factor: The proportion of the slipstreaming area with
+                twice faster slipstream "credits" collection.
+            min-collect-time: How many seconds of sstream are needed to get a bonus
+                it can be accumulated faster if in the inner quad)
+            max-collect-time: How many seconds of sstream bonus can be accumulated at most
+            add-power: Additional power due to sstreaming.
+            min-speed: Minimum speed necessary for slipstream to take effect.
+            max-speed-increase: How much the speed of the kart might exceed
+                its normal maximum speed.
+            duration-factor: A multiplicator to how long the higher speed lasts
+                1 means it last as long the total time collected
+            fade-out-time: How long the slip stream speed increase will
+                gradually be reduced.  -->
+        <slipstream base-speed="20" length="8" width="4" inner-factor="0.5"
+                    min-collect-time="2.5" max-collect-time="8" add-power="300" min-speed="8"
+                    max-speed-increase="3" duration-factor="1" fade-out-time="2" />
+    </characteristic>
+
+    <!-- The different difficulties (like easy, medium, hard) -->
+    <difficulties>
+        <characteristic name="easy">
+            <engine power="*0.7" max-speed="*0.6" generic-max-speed="*0.6" />
+            <plunger in-face-time="3" />
+        </characteristic>
+        <characteristic name="medium">
+            <engine power="*0.83" max-speed="*0.8" generic-max-speed="*0.8" />
+            <plunger in-face-time="4" />
+        </characteristic>
+        <characteristic name="hard">
+            <engine power="*0.92" max-speed="*0.92" generic-max-speed="*0.92" />
+        </characteristic>
+        <!-- This doesn't need to be changed because the most fast/heavy/extreme
+            values should also be the default ones. -->
+        <characteristic name="best" />
+    </difficulties>
+
+    <!-- The different kart types, that can be specified in the kart.xml file -->
+    <kart-types>
+        <characteristic name="light">
+            <turn radius="0:2.0 10:7.5 25:15 45:30" />
+            <engine power="*0.8" max-speed="*0.95" brake-factor="*1"
+                 max-speed-reverse-ratio="*0.8" />
+            <gear switch-ratio="0.1 0.25 0.45 0.7 1.0 4.0"
+                  power-increase="2.8 2.3 1.9 1.5 1.25 1.0" />
+            <mass value="*0.6" />
+            <startup boost="*1 *1" />
+            <explosion time="*1" radius="*1" />
+            <nitro engine-force="*0.6" max-speed-increase="*0.9" duration="*1" />
+            <slipstream length="*0.9" collect-time="*0.9"
+                        duration-factor="*1" fade-out-time="*1" />
+        </characteristic>
+        <characteristic name="medium">
+            <turn radius="0:2.3 10:8.625 25:17.25 45:34.5" />
+            <engine power="*0.875" max-speed="*1" brake-factor="*0.8"
+                    max-speed-reverse-ratio="*0.75" />
+            <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.4 2 1.7 1.4 1.2 1" />
+            <mass value="*0.75" />
+            <startup boost="*0.8 *0.8" />
+            <explosion time="*0.8" radius="*0.8" />
+            <nitro engine-force="*0.75" consumption="*1.25" />
+            <slipstream duration-factor="*0.8" fade-out-time="*1" />
+        </characteristic>
+        <characteristic name="heavy">
+            <turn radius="0:2.6 10:9.75 25:19.5 45:39" />
+            <engine power="*1" max-speed="*1.05" brake-factor="*0.6"
+                    max-speed-reverse-ratio="*0.7" />
+            <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2 1.7 1.5 1.3 1.15 1" />
+            <mass value="*1" />
+            <startup boost="*0.6 *0.6" />
+            <explosion time="*0.6" radius="*0.6" />
+            <nitro engine-force="*1" consumption="*1.67" max-speed-increase="*1.1" />
+            <slipstream length="*1.1" collect-time="*1.1"
+                   duration-factor="*0.6" fade-out-time="*1" />
+        </characteristic>
+    <characteristic name="full">
+        <turn radius="0:2.4 10:9 25:18 45:35" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="950" max-speed="25" brake-factor="15"
+             max-speed-reverse-ratio="0.8" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.4 2 1.7 1.4 1.2 1" />  <!-- accelerazione -->
+        <mass value="350" />
+        <skid min-speed="10"  time-till-bonus="1.0 3.0"
+              bonus-speed="4.5 6.5" bonus-time="3.0 4.0"
+              bonus-force="250 350" />
+        <startup time="0.3 0.5"
+                 boost="8 4" />
+        <rescue duration="1.2" height="2" />
+        <explosion duration="1.5" radius="6" invulnerability-time="7" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="300" engine-mult="1.2" consumption="1"
+               max-speed-increase="5" duration="1" fade-out-time="2.4" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="2.5" max-collect-time="8" add-power="300" 
+                    min-speed="8" max-speed-increase="3" duration-factor="1" 
+                    fade-out-time="2" />   
+                <!-- mincollect è il tempo per bonus, max è quando si può ottenere
+                add e max van moltiplicati uguali, come per nitro
+                duration = 1 significa che se stai 2 secondi ottieni 2*1 secondi-->
+    </characteristic>
+    <characteristic name="op1">
+        <turn radius="0:1.2 10:4.75 25:9.5 45:19" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1" max-speed="*1.05" brake-factor="*1.2"
+             max-speed-reverse-ratio="*0.9" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="3.4 2.7 2.3 1.9 1.4 1" />  <!-- accelerazione -->
+        <mass value="*0.72" />
+        <skid min-speed="5"  time-till-bonus="0.4 2.6"
+              bonus-speed="*1 *1" bonus-time="6.0 8.0"
+              bonus-force="*1 *1" />
+        <startup time="*2.5 *2.5"
+                 boost="*2.5 *2.5" />
+        <rescue duration="0.4" height="5" />
+        <explosion duration="1.9" radius="8" invulnerability-time="6" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.8" engine-mult="1.2" consumption="*0.8"
+               max-speed-increase="*0.9" duration="2" fade-out-time="5" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="3" max-collect-time="16" add-power="*2" 
+                    min-speed="4" max-speed-increase="*2" duration-factor="2" 
+                    fade-out-time="0.5" />   
+    </characteristic>
+    <characteristic name="op2">
+        <stability chassis-linear-damping="*0.5"
+                   downward-impulse-factor="*0.5"
+                   track-connection-accel="*0.5" />
+        <turn radius="0:1.4 10:5.25 25:10.5 45:21" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1.05" max-speed="*1.08" brake-factor="*1.2"
+             max-speed-reverse-ratio="*0.9" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="3.1 2.4 2.1 1.7 1.3 1" />  <!-- accelerazione -->
+        <mass value="*0.8" />
+        <skid min-speed="5"  time-till-bonus="0.6 2.3"
+              bonus-speed="*1.15 *1.15" bonus-time="5.4 7.2"
+              bonus-force="*1.15 *1.15" />
+        <startup time="*2 *2"
+                 boost="*2 *2" />
+        <rescue duration="0.8" height="5" />
+        <explosion duration="1.5" radius="6" invulnerability-time="8" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*1" engine-mult="1.2" consumption="*1"
+               max-speed-increase="*1.1" duration="2.5" fade-out-time="4" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="2.5" max-collect-time="14" add-power="*1.7" 
+                    min-speed="4" max-speed-increase="*1.7" duration-factor="1.7" 
+                    fade-out-time="1" />   
+    </characteristic>
+    <characteristic name="op3">
+        <turn radius="0:1.6 10:6 25:12 45:24" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1.13" max-speed="*1.11" brake-factor="*1.2"
+             max-speed-reverse-ratio="*0.9" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.8 2.2 1.9 1.5 1.2 1" />  <!-- accelerazione -->
+        <mass value="*0.88" />
+        <skid min-speed="5"  time-till-bonus="0.8 2"
+              bonus-speed="*1.3 *1.3" bonus-time="4.9 6.5"
+              bonus-force="*1.3 *1.3" />
+        <startup time="*1.5 *1.5"
+                 boost="*1.5 *1.5" />
+        <rescue duration="1.2" height="5" />
+        <explosion duration="1.1" radius="4" invulnerability-time="10" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*1.2" engine-mult="1.2" consumption="*1.2"
+               max-speed-increase="*1.32" duration="3" fade-out-time="3" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="2" max-collect-time="12" add-power="*1.4" 
+                    min-speed="4" max-speed-increase="*1.4" duration-factor="1.4" 
+                    fade-out-time="1.5" />   
+    </characteristic>
+    <characteristic name="op4">
+        <turn radius="0:1.8 10:7 25:14 45:28" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1.2" max-speed="*1.15" brake-factor="*1.2"
+             max-speed-reverse-ratio="*0.9" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.5 2 1.7 1.3 1.1 1" />  <!-- accelerazione -->
+        <mass value="*0.95" />
+        <skid min-speed="5"  time-till-bonus="1 1.7"
+              bonus-speed="*1.5 *1.5" bonus-time="4.4 5.8"
+              bonus-force="*1.5 *1.5" />
+        <startup time="*1 *1"
+                 boost="*1 *1" />
+        <rescue duration="1.6" height="5" />
+        <explosion duration="0.7" radius="2" invulnerability-time="12" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*1.5" engine-mult="1.2" consumption="*1.5"
+               max-speed-increase="*1.65" duration="3.5" fade-out-time="2" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="1" max-collect-time="10" add-power="*1.1" 
+                    min-speed="4" max-speed-increase="*1.1" duration-factor="1.1" 
+                    fade-out-time="2" />   
+    </characteristic>
+<characteristic name="max">
+            <turn radius="0:1.1 10:3.5 25:11 45:20" />
+            <engine power="*1.35" max-speed="*1.24" brake-factor="*1.1"
+                    max-speed-reverse-ratio="*1.1" />
+ 	    <skid time-till-bonus="*0.35 *0.35" bonus-speed="*1.6 *1.7" bonus-force="*1.6 *1.8" />
+            <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="3.5 2.7 2.2 1.8 1.4 1" />
+            <mass value="*1.5" />
+            <startup boost="*1.65 *1.65" />
+	    <rescue duration="*0.65" />
+            <explosion time="*0.35" radius="*0.35" />
+            <nitro engine-force="*1.55" consumption="*0.6" max-speed-increase="*1.5" />
+            <slipstream length="*1.4" collect-time="*1.7" add-power="*1.5"
+                   duration-factor="*1.9" fade-out-time="*1" />
+        </characteristic>
+    <characteristic name="awanol">
+        <turn radius="0:1 10:3.725 25:7.45 45:14.9" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.85" max-speed="*0.96" brake-factor="*0.425"
+             max-speed-reverse-ratio="*0.85" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="1.9 1.65 1.4 1.25 1.1 1" />  <!-- accelerazione -->
+        <mass value="*0.716" />
+        <skid min-speed="11"  time-till-bonus="0.6 1.4"
+              bonus-speed="*0.85 *0.9" bonus-time="*1.34 *2.29"
+              bonus-force="*0.94 *0.99" />
+        <startup time="*2.29 *2.29"
+                 boost="*5 *5" />
+        <rescue duration="*1.99" height="11" />
+        <explosion duration="*1.67" radius="*1.67" invulnerability-time="*2.29" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.79" engine-mult="1.2" consumption="*1.41"
+               max-speed-increase="*0.87" duration="*2.29" fade-out-time="*2.29" max="20" />
+        <slipstream min-collect-time="3" max-collect-time="*2.29" add-power="*1.48" 
+                    min-speed="11" max-speed-increase="*1.63" duration-factor="*2.29" 
+                    fade-out-time="*2.29" />   
+    </characteristic>
+    <characteristic name="fish">
+        <turn radius="0:2.35 10:9.125 25:18.25 45:36.5" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.975" max-speed="*1.042" brake-factor="*0.6"
+             max-speed-reverse-ratio="*0.75" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.1 1.8 1.6 1.35 1.15 1" />  <!-- accelerazione -->
+        <mass value="*0.85" />
+        <skid min-speed="5"  time-till-bonus="1.2 3"
+              bonus-speed="4 10.5" bonus-time="2.7 3.2"
+              bonus-force="225 600" />
+        <startup time="3 5"
+                 boost="*1.25 *1.25" />
+        <rescue duration="1" height="3" />
+        <explosion duration="1.8" radius="11.3" invulnerability-time="5" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.855" engine-mult="1.2" consumption="1.3"
+               max-speed-increase="*0.941" duration="5" fade-out-time="1.2" max="25" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="2" max-collect-time="18" add-power="*1.371" 
+                    min-speed="1" max-speed-increase="*1.408" duration-factor="0.35" 
+                    fade-out-time="4.5" />   
+                <!-- mincollect è il tempo per bonus, max è quando si può ottenere
+                add e max van moltiplicati uguali, come per nitro
+                duration = 1 significa che se stai 2 secondi ottieni 2*1 secondi-->
+    </characteristic>
+    <characteristic name="wah">
+        <turn radius="0:2.48 10:9.3 25:18.6 45:37.2" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1.03" max-speed="*1.032" />
+        <gear power-increase="2.7 2.3 1.95 1.6 1.3 1" />  <!-- accelerazione -->
+        <mass value="*0.92" />
+        <skid min-speed="12"  time-till-bonus="*1.6 *1.6"
+              bonus-speed="*1.21 *1.27" bonus-time="*0.6 *0.6"
+              bonus-force="*1.33 *1.4" />
+        <startup time="*0.6 *0.6"
+                 boost="*2.38 *2.38" />
+        <rescue duration="*1.93" height="*1.93" />
+        <explosion duration="*0.66" radius="*0.66" invulnerability-time="*0.6" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.99" consumption="*1.112"
+               max-speed-increase="*1.09" duration="*0.6" fade-out-time="*0.6" />
+        <slipstream min-collect-time="4" max-collect-time="8" add-power="*0.9" 
+                    min-speed="12" max-speed-increase="*0.98" duration-factor="*0.6" 
+                    fade-out-time="*0.6" />   
+    </characteristic>
+    <characteristic name="ice">
+        <stability chassis-linear-damping="*0.5"
+                   downward-impulse-factor="*0.5"
+                   track-connection-accel="*0.5" />
+        <turn radius="0:1.86 10:6.975 25:13.95 45:27.9" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.855" max-speed="*0.962" brake-factor="*0.4"
+             max-speed-reverse-ratio="*0.82" />
+        <gear switch-ratio="0.1 0.2 0.4 0.6 1 2.25"
+                  power-increase="3.5 2.9 2.5 2.1 1.3 1" />  <!-- accelerazione -->
+        <mass value="*0.608" />
+        <skid min-speed="5"  time-till-bonus="1.2 2.8"
+              bonus-speed="*1.3 *1.36" bonus-time="*1.32 *2.2"
+              bonus-force="*1.43 *1.5" />
+        <startup time="*2.2 *2.2"
+                 boost="*1.85 *1.85" />
+        <rescue duration="*1.12" height="12" />
+        <explosion duration="*1.04" radius="*1.04" invulnerability-time="*2.2" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.86" engine-mult="1.2" consumption="*1.304"
+               max-speed-increase="*0.95" duration="*2.2" fade-out-time="*2.2" max="20" />
+        <slipstream min-collect-time="4" max-collect-time="*2.2" add-power="*0.92" 
+                    min-speed="5" max-speed-increase="*1" duration-factor="*2.2" 
+                    fade-out-time="*2.2" />   
+    </characteristic>
+        <characteristic name="evil">
+        <turn radius="0:3 10:11.5 25:23 45:42.3" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.977" max-speed="*1.022" brake-factor="*0.4"
+             max-speed-reverse-ratio="*0.6" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1.0 4.0"
+                  power-increase="2.55 2.1 1.75 1.45 1.2 1" />  <!-- accelerazione -->
+        <mass value="*0.79" />
+        <skid min-speed="13"  time-till-bonus="1.1 1.8"
+              bonus-speed="*0.8 *1.2" bonus-time="3 4"
+              bonus-force="*0.8 *1.2" />
+        <startup time="*1.8 *1.8"
+                 boost="14 7" />
+        <rescue duration="1.3" height="6" />
+        <explosion duration="0.9" radius="*0.9" invulnerability-time="4.8" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.96" engine-mult="1.2" consumption="*1.38"
+               max-speed-increase="*1.06" duration="3.3" fade-out-time="*0.5" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="*0.75" max-collect-time="*1.25" add-power="*1.25" 
+                    min-speed="13" max-speed-increase="*1.38" duration-factor="1.6" 
+                    fade-out-time="1" />   
+        </characteristic>
+    <characteristic name="green">
+    <turn radius="0:2.78 10:11.425 20:15.85 30:22.7" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+    <engine power="*1.09" max-speed="*1.056" brake-factor="*0.3"
+            max-speed-reverse-ratio="0.3" />
+    <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                power-increase="2.5 2.25 2.15 2 1.25 1" />  <!-- accelerazione -->
+    <mass value="*0.938" />
+    <skid min-speed="14"  time-till-bonus="1.2 3.0"
+            bonus-speed="*1.38 *1.45" bonus-time="*0.93 *1.3"
+            bonus-force="*1.52 *1.6" />
+    <startup time="*1.3 *1.3"
+                boost="*1.28 *1.27" />
+    <rescue duration="*1.65" height="4" />
+    <explosion duration="*1.32" radius="*1.32" invulnerability-time="*1.3" /> <!-- il raggio dell'esplosione affianco a te-->
+    <nitro engine-force="*1.06" engine-mult="1.2" consumption="*1.004"
+            max-speed-increase="*1.17" duration="*1.3" fade-out-time="*1.3" max="15" />
+            <!-- fod viene dopo duration-->
+    <slipstream min-collect-time="*0.8" max-collect-time="*1.3" add-power="*1.44" 
+                min-speed="14" max-speed-increase="*1.58" duration-factor="*1.3" 
+                fade-out-time="*1.3" />   
+</characteristic>
+    <characteristic name="blink">
+        <stability roll-influence="0.3"
+                   chassis-linear-damping="0"
+                   chassis-angular-damping="0"
+                   downward-impulse-factor="0.1"
+                   track-connection-accel="0.1"
+                   angular-factor="0.25 1.0 0.5"
+                   smooth-flying-impulse="250" />
+        <turn radius="0:2.8 10:10.5 20:17 30:23" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1.2" max-speed="*1.1" brake-factor="7"
+             max-speed-reverse-ratio="0.6" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.9 2.4 1.95 1.55 1.25 1" />  <!-- accelerazione -->
+        <mass value="*1.022" />
+        <skid min-speed="16"  time-till-bonus="2.5 5.0"
+              bonus-speed="*0.78 *0.81" bonus-time="*1.39 *1.39"
+              bonus-force="*0.86 *0.89" />
+        <startup time="*1.39 *1.39"
+                 boost="*2.95 *2.95" />
+        <rescue duration="*0.29" height="13" />
+        <explosion duration="*0.18" radius="5" invulnerability-time="*1.39" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*1.8" engine-mult="1.4" consumption="*1.15"
+               max-speed-increase="*1.98" duration="*1.39" fade-out-time="*1.39" max="14" />
+        <slipstream min-collect-time="*0.74" max-collect-time="*1.39" add-power="*2.5" 
+                    min-speed="16" max-speed-increase="*2.75" duration-factor="*1.39" 
+                    fade-out-time="*1.39" />
+        <zipper duration="*1.25" force="*1.25" speed-gain="*1.25" max-speed-increase="*1.25"
+                fade-out-time="*1.25" />
+    </characteristic>
+    <characteristic name="pig">
+        <turn radius="0:2.64 6:7.9 18:15.8 35:31.6" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.9" max-speed="*0.98" brake-factor="15"
+             max-speed-reverse-ratio="0.4" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.9 2.4 2.1 1.8 1.35 1" />  <!-- accelerazione -->
+        <mass value="*0.902" />
+        <skid min-speed="6"  time-till-bonus="0.84 2.5"
+              bonus-speed="*1.87 *1.92" bonus-time="*0.9 *0.9"
+              bonus-force="*2.06 *2.11" />
+        <startup time="*0.9 *0.9"
+                 boost="*2.18 *2.17" />
+        <rescue duration="*1.86" height="6" />
+        <explosion duration="*0.86" radius="*0.86" invulnerability-time="*0.9" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.7" engine-mult="1.2" consumption="*1.544"
+               max-speed-increase="*0.77" duration="*0.9" fade-out-time="*0.9" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="3" max-collect-time="*0.9" add-power="*0.85" 
+                    min-speed="6" max-speed-increase="*0.93" duration-factor="*0.9" 
+                    fade-out-time="*0.9" />   
+                <!-- mincollect è il tempo per bonus, max è quando si può ottenere
+                add e max van moltiplicati uguali, come per nitro
+                duration = 1 significa che se stai 2 secondi ottieni 2*1 secondi-->
+    </characteristic>
+    <characteristic name="ant">
+        <turn radius="0:1.5 10:5.625 25:11.25 45:22.5" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1.015" max-speed="*1.052" brake-factor="15"
+             max-speed-reverse-ratio="0.5" />
+        <gear switch-ratio="0.1 0.2 0.4 0.6 1 2.25"
+                  power-increase="2.15 1.65 1.5 1.35 1.1 1" />  <!-- accelerazione -->
+        <mass value="*0.644" />
+        <skid min-speed="18"  time-till-bonus="1.35 5"
+              bonus-speed="*0.77 *0.81" bonus-time="*1.17 *1.93"
+              bonus-force="*0.85 *0.89" />
+        <startup time="*1.17 *1.17"
+                 boost="*1.1 *1.1" />
+        <rescue duration="*1.56" height="5" />
+        <explosion duration="*0.68" radius="*0.68" invulnerability-time="*0.93" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.94" engine-mult="1.2" consumption="*0.836" big-container="2"
+               max-speed-increase="*1.04" duration="*1.93" fade-out-time="*1.93" max="20" />
+        <slipstream min-collect-time="2.5" max-collect-time="*1.93" add-power="*1.4" 
+                    min-speed="18" max-speed-increase="*1.54" duration-factor="*0.93" 
+                    fade-out-time="*1.93" />   
+        <bubblegum duration="2.7" speed-fraction="0.3" torque="500" fade-in-time="0.01"
+                   shield-duration="5.4" />
+        <swatter duration="5" distance="5" squash-duration="5"
+                 squash-slowdown="0.5" />
+    </characteristic>
+    <characteristic name="sushi">
+        <turn radius="0:2.3 10:8.625 25:17.25 45:34.5" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.9" max-speed="*0.98" brake-factor="*0.95"
+             max-speed-reverse-ratio="*0.95" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 0.95 2"
+                  power-increase="2.7 2.2 1.8 1.45 1.2 1" />  <!-- accelerazione -->
+        <mass value="*0.86" />
+        <skid min-speed="15"  time-till-bonus="*1.3 *1.3"
+              bonus-speed="*0.95 *0.95" bonus-time="*0.8 *0.8"
+              bonus-force="*0.95 *0.95" />
+        <startup time="*0.8 *0.8"
+                 boost="*2 *2" />
+        <rescue duration="*1.12" height="*1.12" />
+        <explosion duration="*0.86" radius="*0.86" invulnerability-time="*0.8" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.72" engine-mult="*0.95" consumption="*1.52"
+               max-speed-increase="*0.8" duration="*0.8" fade-out-time="*0.8" max="*0.95" />
+        <slipstream min-collect-time="*0.95" max-collect-time="*0.8" add-power="*0.95" 
+                    min-speed="15" max-speed-increase="*1.05" duration-factor="*0.8" 
+                    fade-out-time="*0.8" />   
+        <plunger band-max-length="*3" band-force="*3" band-duration="*3"
+                band-speed-increase="*3" band-fade-out-time="*3"/>
+        <swatter duration="7" distance="35" squash-duration="19"
+            squash-slowdown="0.25" />
+        <zipper duration="*3" force="*3" speed-gain="*3" max-speed-increase="*3"
+                fade-out-time="*3" />
+        <bubblegum duration="0.5" torque="450" shield-duration="35.0" />
+    </characteristic>
+    <characteristic name="suse">
+        <turn radius="0:3 7:7 18:11.7 35:17.5" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.99" max-speed="*1.039" brake-factor="28"
+             max-speed-reverse-ratio="0.8" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.875 2.45 1.85 1.5 1.25 1" />  <!-- accelerazione -->
+        <mass value="*0.84" />
+        <skid min-speed="4"  time-till-bonus="1.2 2.5"
+              bonus-speed="*1.25 *0.975" bonus-time="3 6"
+              bonus-force="*1.28 *1.025" />
+        <startup time="*1.5 *1.5"
+                 boost="*1.5 *1.5" />
+        <rescue duration="1" height="20" />
+        <explosion duration="5" radius="5" invulnerability-time="10" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.975" engine-mult="1.2" consumption="1"
+               max-speed-increase="*1.05" duration="1.5" fade-out-time="2.5" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="1.5" max-collect-time="9" add-power="*1.05" 
+                    min-speed="3" max-speed-increase="*1.1" duration-factor="1.15" 
+                    fade-out-time="2.75" />   
+                <!-- mincollect è il tempo per bonus, max è quando si può ottenere
+                add e max van moltiplicati uguali, come per nitro
+                duration = 1 significa che se stai 2 secondi ottieni 2*1 secondi-->
+    </characteristic>
+    <characteristic name="snake">
+        <turn radius="0:1.7 10:6.9 25:13 45:24" /> <!-- più è alta più gira largo, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.91" max-speed="*1.01" brake-factor="21"
+             max-speed-reverse-ratio="0.1" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.1 1.9 1.6 1.4 1.1 1" />  <!-- accelerazione -->
+        <mass value="*0.71" />
+        <skid min-speed="11"  time-till-bonus="0.4 4.9"
+              bonus-speed="9.9 11.1" bonus-time="0.5 5.1"
+              bonus-force="510 590" />
+        <startup time="0.1 0.9"
+                 boost="11 1" />
+        <rescue duration="1.9" height="1.1" />
+        <explosion duration="1.6" radius="9" invulnerability-time="0.4" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.84" engine-mult="1.2" consumption="*2"
+               max-speed-increase="*0.92" duration="1.1" fade-out-time="2.9" max="20" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="4" max-collect-time="7" add-power="*1" 
+                    min-speed="12" max-speed-increase="*1.1" duration-factor="1.7" 
+                    fade-out-time="0.8" />   
+                <!-- mincollect è il tempo per bonus, max è quando si può ottenere
+                add e max van moltiplicati uguali, come per nitro
+                duration = 1 significa che se stai 2 secondi ottieni 2*1 secondi-->
+    </characteristic>
+    <characteristic name="penny">
+        <turn radius="0:3.2 10:12 25:24 45:48" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.905" max-speed="*0.982" brake-factor="11"
+             max-speed-reverse-ratio="0.95" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1.0 4.0"
+                  power-increase="2.15 1.9 1.6 1.4 1.2 1" />  <!-- accelerazione -->
+        <mass value="*0.625" />
+        <skid min-speed="1"  time-till-bonus="1.8 2.2"
+              bonus-speed="*2 *2.1" bonus-time="*1.12 *1.84"
+              bonus-force="*2.2 *2.31" />
+        <startup time="*1.84 *1.84"
+                 boost="*1.5 *1.5" />
+        <rescue duration="*0.41" height="3" />
+        <explosion duration="*0.37" radius="*0.37" invulnerability-time="*1.84" />
+        <nitro engine-force="*0.6" engine-mult="1.2" consumption="*1.7"
+               max-speed-increase="*0.66" duration="*1.84" fade-out-time="*1.84" max="16.5" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="*0.44" max-collect-time="*1.84" add-power="*1.81" 
+                    min-speed="1" max-speed-increase="*1.99" duration-factor="*1.84" 
+                    fade-out-time="*1.84" />   
+        <bubblegum duration="*2" speed-fraction="0.5" torque="*2" fade-in-time="0.01"
+                   shield-duration="*0.5" />
+    </characteristic>
+    <characteristic name="dino">
+        <turn radius="0:1.88 10:7.05 25:14.1 45:28.2" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*1.11" max-speed="*1.11" brake-factor="6"
+             max-speed-reverse-ratio="0.4" />
+        <gear switch-ratio="0.1 0.2 0.4 0.6 1 2.25"
+                  power-increase="1.85 1.5 1.4 1.3 1.1 1" />  <!-- accelerazione -->
+        <mass value="*1.004" />
+        <skid min-speed="20"  time-till-bonus="1.3 5"
+              bonus-speed="*0.67 *0.7" bonus-time="*1.05 *1.74"
+              bonus-force="*0.74 *0.77" />
+        <startup time="*1.74 *1.74"
+                 boost="*2.34 *2.33" />
+        <rescue duration="*1.95" height="1.5" />
+        <explosion duration="*0.46" radius="*0.46" invulnerability-time="*1.74" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.67" engine-mult="1.2" consumption="*1.624"
+               max-speed-increase="*0.74" duration="*1.74" fade-out-time="*1.74" max="25" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="2" max-collect-time="*1.74" add-power="*1.79" 
+                    min-speed="20" max-speed-increase="*1.97" duration-factor="*0.88" 
+                    fade-out-time="*1.74" />   
+    </characteristic>
+    <characteristic name="fox">
+        <turn radius="0:2.3 10:8.625 25:17.25 45:34.5" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.75" max-speed="*0.925" brake-factor="11"
+             max-speed-reverse-ratio="0.65" />
+        <gear switch-ratio="0.1 0.2 0.4 0.6 1 2"
+                  power-increase="2 1.7 1.45 1.3 1.15 1" />  <!-- accelerazione -->
+        <mass value="*0.5" />
+        <skid min-speed="1"  time-till-bonus="1.0 2.0"
+              bonus-speed="*1.44 *1.22" bonus-time="2.0 4.0"
+              bonus-force="*1.44 *1.22" />
+        <startup time="1.1 1.4"
+                 boost="18 11" />
+        <rescue duration="0.6" height="2.4" />
+        <explosion duration="0.8" radius="4" invulnerability-time="6" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.8" engine-mult="1.2" consumption="*1"
+               max-speed-increase="*0.96" duration="0.8" fade-out-time="0.8" max="5" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="1.4" max-collect-time="18" add-power="*1.8" 
+                    min-speed="*0.72" max-speed-increase="*1.98" duration-factor="*0.88" 
+                    fade-out-time="2.6" />   
+                <!-- mincollect è il tempo per bonus, max è quando si può ottenere
+                add e max van moltiplicati uguali, come per nitro
+                duration = 1 significa che se stai 2 secondi ottieni 2*1 secondi-->
+    </characteristic>
+    <characteristic name="php">
+        <turn radius="0:2.4 10:9 25:18 45:35" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.98" max-speed="*1.041" brake-factor="*1.3"
+             max-speed-reverse-ratio="*0.65" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.6 2.2 1.7 1.3 1.1 1" />  <!-- accelerazione -->
+        <mass value="*0.9" />
+        <skid min-speed="25"  time-till-bonus="0.8 2.4"
+              bonus-speed="*1.2 *1.8" bonus-time="*1.4 *1.6"
+              bonus-force="*1.2 *1.8" />
+        <startup time="0.3 0.5"
+                 boost="*0.83 *0.84" />
+        <swatter duration="7" distance="11" squash-duration="4"
+                 squash-slowdown="0.35" />
+        <rescue duration="1.6" height="1.3" />
+        <explosion duration="1.1" radius="12" invulnerability-time="11" />
+        <nitro engine-force="*0.98" engine-mult="1.45" consumption="*1.33"
+               max-speed-increase="*0.98" duration="1.4" fade-out-time="2.3" max="35" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="2.5" max-collect-time="7" add-power="*1.075" 
+                    min-speed="9" max-speed-increase="*1.075" duration-factor="0.88" 
+                    fade-out-time="0.7" />   
+                <!-- mincollect è il tempo per bonus, max è quando si può ottenere
+                add e max van moltiplicati uguali, come per nitro
+                duration = 1 significa che se stai 2 secondi ottieni 2*1 secondi-->
+    </characteristic>
+    <characteristic name="yeet">
+        <turn radius="0:2.2 10:8 25:17 45:34" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.995" max-speed="*1.049" brake-factor="*0.5"
+             max-speed-reverse-ratio="0.85" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="2.6 1.9 1.65 1.4 1.15 1" />  <!-- accelerazione -->
+        <mass value="*0.98" />
+        <skid min-speed="4"  time-till-bonus="1.4 2.4"
+              bonus-speed="*3.75 *3.5" bonus-time="0.5 0.9"
+              bonus-force="*4 *3.75" />
+        <startup time="0.3 0.5"
+                 boost="30 15" />
+        <rescue duration="1.4" height="8" />
+        <explosion duration="1" radius="7" invulnerability-time="7" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*3.5" engine-mult="*3.5" consumption="*1.75"
+               max-speed-increase="*3.85" duration="0.4" fade-out-time="0.6" max="18" />
+               <!-- fot viene dopo duration-->
+        <slipstream min-collect-time="2.5" max-collect-time="20" add-power="*3.3" 
+                    min-speed="2" max-speed-increase="*3.63" duration-factor="*0.25" 
+                    fade-out-time="0.8" />   
+        <zipper duration="1.25" force="*2.25" speed-gain="*2.25" max-speed-increase="*2.25"
+                fade-out-time="0.5" />
+    </characteristic>
+    <characteristic name="pump">
+        <turn radius="0:1.6 10:5.1 25:12.3 45:21.6" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.725" max-speed="*0.9" brake-factor="*1.8"
+             max-speed-reverse-ratio="0.2" />
+        <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
+                  power-increase="4.5 3.6 2.8 2.1 1.5 1" />  <!-- accelerazione -->
+        <mass value="*0.87" />
+        <skid min-speed="7"  time-till-bonus="0.7 3.0"
+              bonus-speed="4.6 9.5" bonus-time="2.1 11.0"
+              bonus-force="275 650" />
+        <startup time="0.27 0.35"
+                 boost="11 3.5" />
+        <rescue duration="2.4" height="5" />
+        <explosion duration="0.2" radius="2.4" invulnerability-time="25" /> <!-- il raggio dell'esplosione affianco a te-->
+        <bubblegum duration="0.2" speed-fraction="0.3" torque="500" fade-in-time="0.01"
+                   shield-duration="15.9" />
+        <nitro engine-force="*1.2" engine-mult="*1.2" consumption="1.1"
+               max-speed-increase="*1.2" duration="0.8" fade-out-time="2.9" max="40" />
+               <!-- fod viene dopo duration-->
+        <slipstream min-collect-time="2.3" max-collect-time="8.8" add-power="330" 
+                    min-speed="4" max-speed-increase="3.3" duration-factor="1.1" 
+                    fade-out-time="2.2" />  
+    </characteristic>
+    <characteristic name="random1"> <!--78 29 17 19 15 21 76 64 21 14 97 90-->
+        <turn radius="0:1.9 10:7.125 25:14.25 45:28.5" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.845" max-speed="*0.958" />
+        <gear power-increase="1.85 1.6 1.4 1.25 1.1 1" />  <!-- accelerazione -->
+        <mass value="*0.614" />
+        <skid min-speed="21"  time-till-bonus="*0.67 *0.67"
+              bonus-speed="*0.61 *0.62" bonus-time="*1.92 *1.92"
+              bonus-force="*0.67 *0.68" />
+        <startup time="*1.92 *1.92"
+                 boost="*2.1 *2.1" />
+        <rescue duration="*2.02" height="*2.02" />
+        <explosion duration="*1.73" radius="*1.73" invulnerability-time="*1.92" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*1.18" consumption="*0.836"
+               max-speed-increase="*1.3" duration="*1.92" fade-out-time="*1.92" />
+        <slipstream min-collect-time="*0.67" max-collect-time="*1.92" add-power="*1.3" 
+                    min-speed="21" max-speed-increase="*1.43" duration-factor="*1.92" 
+                    fade-out-time="*1.92" />   
+    </characteristic>
+    <characteristic name="random2"> <!--1 7 34 21 86 42 63 55 45 13 16 11-->
+        <turn radius="0:3.5 10:13.125 25:26.25 45:52.5" /> <!-- più è alta peggio è, il primo numero è la velocità (25 non è superabile normalmente)-->
+        <engine power="*0.735" max-speed="*0.914" />
+        <gear power-increase="2.2 1.9 1.65 1.45 1.2 1" />  <!-- accelerazione -->
+        <mass value="*0.626" />
+        <skid min-speed="4"  time-till-bonus="*0.99 *0.99"
+              bonus-speed="*0.98 *0.99" bonus-time="*1.61 *1.61"
+              bonus-force="*1.08 *1.09" />
+        <startup time="*1.61 *1.61"
+                 boost="*1.875 *1.875" />
+        <rescue duration="*1.47" height="*1.47" />
+        <explosion duration="*1.75" radius="*1.75" invulnerability-time="*1.61" /> <!-- il raggio dell'esplosione affianco a te-->
+        <nitro engine-force="*0.53" consumption="*1.808"
+               max-speed-increase="*0.58" duration="*1.61" fade-out-time="*1.61" />
+        <slipstream min-collect-time="*0.99" max-collect-time="*1.61" add-power="*0.44" 
+                    min-speed="4" max-speed-increase="*0.48" duration-factor="*1.61" 
+                    fade-out-time="*1.61" />   
+    </characteristic>
+    <characteristic name="stat">
+        <turn radius="0:3.5 10:13.125 25:26.25 45:52.5" />
+        <engine power="*0.7" max-speed="*0.9" />
+        <gear power-increase="1.5 1.4 1.3 1.2 1.1 1" />
+        <mass value="*0.5" />
+        <skid min-speed="25"  time-till-bonus="*2.5 *2.5"
+              bonus-speed="*0.25 *0.26" bonus-time="*0.1 *0.1"
+              bonus-force="*0.28 *0.29" />
+        <startup time="*0.1 *0.1" boost="*0.5 *0.5" />
+        <rescue duration="*2.5" height="*2.5" />
+        <explosion duration="*2" radius="*2" invulnerability-time="*0.1" />
+        <nitro engine-force="*0.4" consumption="*2"
+               max-speed-increase="*0.44" duration="*0.1" fade-out-time="*0.1" />
+        <slipstream min-collect-time="*2.5" max-collect-time="*0.1" add-power="*0.25" 
+                    min-speed="25" max-speed-increase="*0.28" duration-factor="*0.1" 
+                    fade-out-time="*0.1" />   
+    </characteristic>
+    </kart-types>
+
+    <!-- Per-player settings/handicaps (or boosts) -->
+    <player-characteristics>
+        <characteristic name="normal" />
+        <characteristic name="handicap">
+            <engine power="*0.9" max-speed="*0.9" brake-factor="*0.8" brake-time-increase="*0.85" max-speed-reverse-ratio="*0.8" />
+            <skid time-till-bonus="*1.2 *1.0" bonus-speed="*0.9 *0.8" bonus-force="*0.9 *0.9" />
+            <bubblegum duration="*1.5" torque="*1.5" />
+            <zipper force="*0.8" speed-gain="*0.8" max-speed-increase="*0.8" />
+            <swatter duration="*0.8" squash-duration="*1.3" />
+            <plunger band-max-length="*0.8" band-speed-increase="*0.8" in-face-time="*1.3" />
+            <startup time="*0.8 *0.8" boost="*0.8 *0.8" />
+            <rescue duration="*1.5" />
+            <nitro engine-force="*0.8" max-speed-increase="*0.9" max="*0.8" />
+            <slipstream min-collect-time="*1.2" add-power="*0.9"
+                        max-speed-increase="*0.9" duration-factor="*0.9" />
+        </characteristic>
+    </player-characteristics>
+</characteristics>

@@ -471,7 +471,7 @@ namespace Online
                                      "%d friends are now online.",
                                      (int)to_notify.size());
                     }
-                    MessageQueue::add(MessageQueue::MT_FRIEND, message);
+//                    MessageQueue::add(MessageQueue::MT_FRIEND, message);
                 }
                 else if (went_offline)
                 {
@@ -518,7 +518,7 @@ namespace Online
                 // I18N: Tell your friend if he is on any server in game
                 core::stringw message = _("%s is now on server \"%s\".",
                     p.first, p.second);
-                MessageQueue::add(MessageQueue::MT_FRIEND, message);
+  //              MessageQueue::add(MessageQueue::MT_FRIEND, message);
             }
             std::swap(cur_friend_server_map, friend_server_map);
         }

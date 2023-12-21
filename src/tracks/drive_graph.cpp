@@ -555,7 +555,7 @@ void DriveGraph::updateDistancesForAllSuccessors(unsigned int indx, float delta,
     if(recursive_count>getNumNodes())
     {
         Log::error("DriveGraph",
-                   "DriveGraph contains a loop (without start node).");
+                   "DriveGraph contains a loop (without start node). Node %d", indx);
         Log::fatal("DriveGraph",
                    "Fix graph, check for directions of all shortcuts etc.");
     }

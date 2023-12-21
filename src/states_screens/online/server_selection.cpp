@@ -285,15 +285,19 @@ void ServerSelection::loadList()
         current_players -= current_ai;
         if (current_players < 0)
             current_players = 0;
+
         num_players.append(StringUtils::toWString(current_players));
-        if (current_ai > 0)
-        {
-            num_players.append("(");
-            num_players.append(StringUtils::toWString(current_ai));
-            num_players.append(")");
-        }
         num_players.append("/");
         num_players.append(StringUtils::toWString(server->getMaxPlayers()));
+        if (current_ai > 0)
+        {
+            num_players.append("\n");
+            num_players.append(StringUtils::toWString(current_ai));
+            num_players.append(" bot");
+            if (current_ai > 1)
+                num_players.append("s");
+        }
+
         std::vector<GUIEngine::ListWidget::ListCell> row;
         row.push_back(GUIEngine::ListWidget::ListCell(server->getName(), icon,
             7));

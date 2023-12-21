@@ -61,7 +61,9 @@ void CheckGoal::update(float dt)
             if (UserConfigParams::m_check_debug)
             {
                 Log::info("CheckGoal", "Goal check structure"
-                          "%d triggered for ball.", m_index);
+                          "%d triggered for ball at %f", m_index, World::getWorld()->getTime());
+                // Log::info("CheckGoal", "prev ball: %f, %f, %f", m_previous_ball_position.getX(), m_previous_ball_position.getY(), m_previous_ball_position.getZ());
+                // Log::info("CheckGoal", "curr ball: %f, %f, %f", world->getBallPosition().getX(), world->getBallPosition().getY(), world->getBallPosition().getZ());
             }
             trigger(0);
         }
