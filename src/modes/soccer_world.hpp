@@ -21,11 +21,11 @@
 
 #include "modes/world_with_rank.hpp"
 #include "states_screens/race_gui_base.hpp"
-#include "karts/abstract_kart.hpp"
+#include "karts/kart.hpp"
 
 #include <string>
 
-class AbstractKart;
+class Kart;
 class BallGoalData;
 class Controller;
 class NetworkString;
@@ -168,7 +168,7 @@ public:
     // overriding World methods
     virtual void reset(bool restart=false) OVERRIDE;
 
-    virtual unsigned int getRescuePositionIndex(AbstractKart *kart) OVERRIDE;
+    virtual unsigned int getRescuePositionIndex(Kart *kart) OVERRIDE;
     virtual btTransform getRescueTransform(unsigned int rescue_pos) const
         OVERRIDE;
     virtual bool useFastMusicNearEnd() const OVERRIDE { return false; }
@@ -274,7 +274,7 @@ public:
         return diff > 0 && diff < stk_config->time2Ticks(3.0f);
     }
     // ------------------------------------------------------------------------
-    AbstractKart* getKartAtDrawingPosition(unsigned int p) const OVERRIDE
+    Kart* getKartAtDrawingPosition(unsigned int p) const OVERRIDE
                                 { return getKart(m_team_icon_draw_id[p - 1]); }
     // ------------------------------------------------------------------------
     void setGoalScoringPolicy(int value)

@@ -26,7 +26,7 @@
 #include "items/item_manager.hpp"
 #include "items/projectile_manager.hpp"
 #include "items/rubber_ball.hpp"
-#include "karts/abstract_kart.hpp"
+#include "karts/kart.hpp"
 #include "karts/controller/controller.hpp"
 #include "karts/kart_properties.hpp"
 #include "modes/world.hpp"
@@ -44,7 +44,7 @@
 /** Constructor, stores the kart to which this powerup belongs.
  *  \param kart The kart to which this powerup belongs.
  */
-Powerup::Powerup(AbstractKart* kart)
+Powerup::Powerup(Kart* kart)
 {
     m_kart      = kart;
     m_sound_use = NULL;
@@ -229,34 +229,38 @@ void Powerup::setNum(int n)
 /** Returns the icon for the currently collected powerup. Used in the
  *  race_gui to display the collected item.
  */
-Material *Powerup::getIcon() const
+Material *Powerup::getIcon(bool wide) const
 {
     // The mini powerup has multiple states,
     // and each state has its own icon.
     if (m_type == PowerupManager::POWERUP_MINI)
     {
+        int wide_offset = wide ? 6 : 0;
+
         if (m_mini_state == PowerupManager::MINI_ZIPPER)
-            return powerup_manager->getMiniIcon(3);
+            return powerup_manager->getMiniIcon(3+wide_offset);
         else if (m_mini_state == PowerupManager::MINI_CAKE)
-            return powerup_manager->getMiniIcon(4);
+            return powerup_manager->getMiniIcon(4+wide_offset);
         else if (m_mini_state == PowerupManager::MINI_GUM)
-            return powerup_manager->getMiniIcon(5);
+            return powerup_manager->getMiniIcon(5+wide_offset);
 
         // FIXME
         // This duplicates the logic to determine which powerup would be
         // selected by the current cycle
-        if (m_mini_state == PowerupManager::MINI_SELECT)
-        {
-            int cycle_ticks = stk_config->time2Ticks(0.5f);
-            int cycle_value = World::getWorld()->getTicksSinceStart() % (3 * cycle_ticks);
-            if (cycle_value < cycle_ticks)
-                return powerup_manager->getMiniIcon(0);
-            else if (cycle_value < 2*cycle_ticks)
-                return powerup_manager->getMiniIcon(1);
-            else
-                return powerup_manager->getMiniIcon(2);
-        }
+
+        // If not in one of the mini-powerup-specific states,
+        // We assume that the mini_state is MINI_SELECT for correct display
+        // This may not always be true in networking mode right after item collection.
+        int cycle_ticks = stk_config->time2Ticks(0.65f);
+        int cycle_value = World::getWorld()->getTicksSinceStart() % (3 * cycle_ticks);
+        if (cycle_value < cycle_ticks)
+            return powerup_manager->getMiniIcon(0+wide_offset);
+        else if (cycle_value < 2*cycle_ticks)
+            return powerup_manager->getMiniIcon(1+wide_offset);
+        else
+            return powerup_manager->getMiniIcon(2+wide_offset);
     }
+
     // Check if it's one of the types which have a separate
     // data file which includes the icon:
     return powerup_manager->getIcon(m_type);
@@ -361,7 +365,7 @@ void Powerup::use()
 
     case PowerupManager::POWERUP_SUDO:
         {
-            AbstractKart* player_kart = NULL;
+            Kart* player_kart = NULL;
             unsigned int steal_targets = powerup_manager->getNitroHackMaxTargets();
             float base_bonus = powerup_manager->getNitroHackBaseBonus();
 
@@ -372,7 +376,7 @@ void Powerup::use()
             // This can set their nitro count to a negative number
             for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
             {
-                AbstractKart *kart=world->getKart(i);
+                Kart *kart=world->getKart(i);
                 // Standard invulnerability (the "stars") is not useful here
                 if( kart->isEliminated()   || kart== m_kart || kart->hasFinishedRace())
                     continue;
@@ -450,7 +454,7 @@ void Powerup::use()
                 {
                     m_number++; // Avoid the powerup being removed when validating the mini-choice
                     
-                    int cycle_ticks = stk_config->time2Ticks(0.5f);
+                    int cycle_ticks = stk_config->time2Ticks(0.65f);
                     int cycle_value = World::getWorld()->getTicksSinceStart() % (3 * cycle_ticks);
                     if (cycle_value < cycle_ticks)
                         m_mini_state = PowerupManager::MINI_ZIPPER;
@@ -464,6 +468,9 @@ void Powerup::use()
             // Mini-cake case
             case PowerupManager::MINI_CAKE:
                 {
+                    // This allows to use multiple mini-wishes in different ways
+                    m_mini_state = PowerupManager::MINI_SELECT;
+
                     // make weapon usage destroy gum shields
                     if(stk_config->m_shield_restrict_weapons &&
                     m_kart->isGumShielded())
@@ -474,13 +481,15 @@ void Powerup::use()
                         m_sound_use = SFXManager::get()->createSoundSource("shoot");
                         m_sound_use->play();
                     }
-                    ProjectileManager::get()->newProjectile(m_kart, PowerupManager::POWERUP_CAKE);
+                    ProjectileManager::get()->newProjectile(m_kart, PowerupManager::POWERUP_MINI);
                     break;
                 } // mini-cake case
 
             // Mini-zipper case
             case PowerupManager::MINI_ZIPPER:
                 {
+                    // This allows to use multiple mini-wishes in different ways
+                    m_mini_state = PowerupManager::MINI_SELECT;
                     m_kart->handleZipper(NULL, /* play sound*/ true, /* mini zipper */ true);
                     break;
                 } // mini-zipper case
@@ -489,6 +498,8 @@ void Powerup::use()
             // Mini-gum case
             case PowerupManager::MINI_GUM:
                 {
+                    // This allows to use multiple mini-wishes in different ways
+                    m_mini_state = PowerupManager::MINI_SELECT;
                     useBubblegum(has_played_sound, /* mini */ true);
                     break;
                 } // mini-gum case
@@ -507,7 +518,7 @@ void Powerup::use()
         //by the bananas) to the kart in the 1st position.
         for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
         {
-            AbstractKart *kart=world->getKart(i);
+            Kart *kart=world->getKart(i);
             if(kart->isEliminated() || kart->isInvulnerable()) continue;
             if(kart == m_kart) continue;
             if(kart->getPosition() == 1)
@@ -543,13 +554,13 @@ void Powerup::use()
 
     case PowerupManager::POWERUP_PARACHUTE:
         {
-            AbstractKart* player_kart = NULL;
+            Kart* player_kart = NULL;
             //Attach a parachute(that last 1,3 time as long as the
             //one from the bananas and is affected by the rank multiplier)
             //to all the karts that are in front of this one.
             for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
             {
-                AbstractKart *kart=world->getKart(i);
+                Kart *kart=world->getKart(i);
                 if(kart->isEliminated() || kart== m_kart || kart->isInvulnerable()) continue;
                 if(m_kart->getPosition() > kart->getPosition())
                 {

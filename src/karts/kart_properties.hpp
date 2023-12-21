@@ -472,6 +472,9 @@ public:
 
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;
+    std::vector<float> getStartupEngineForce() const;
+    float getStartupDuration() const;
+    float getStartupFadeOutTime() const;
 
     float getRescueDuration() const;
     float getRescueVertOffset() const;
@@ -515,6 +518,7 @@ public:
     std::vector<float> getSkidTimeTillBonus() const;
     std::vector<float> getSkidBonusSpeed() const;
     std::vector<float> getSkidBonusTime() const;
+    std::vector<float> getSkidFadeOutTime() const;
     std::vector<float> getSkidBonusForce() const;
     float getSkidPhysicalJumpTime() const;
     float getSkidGraphicalJumpTime() const;

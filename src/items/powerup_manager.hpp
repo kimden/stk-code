@@ -167,7 +167,7 @@ private:
     Material*     m_all_icons [POWERUP_MAX];
 
     /** The special icons for the mini-wish powerup. */
-    Material*     m_mini_icons [6];
+    Material*     m_mini_icons [12];
 
     /** The mesh for each model (if the powerup has a model), e.g. a switch
         has none. */
@@ -189,6 +189,8 @@ private:
     float m_nh_base_bonus;
     float m_nh_stolen_amount[20];
 
+    void          loadMiniIconsHalf   (const XMLNode &node, bool wide);
+
 public:
     static void unitTesting();
 
@@ -209,7 +211,7 @@ public:
                          uint64_t random_number);
     // ------------------------------------------------------------------------
     /** Returns the icon(material) for a powerup. */
-    Material* getIcon(int type) const {return m_all_icons [type];}
+    Material* getIcon(int type) const { return m_all_icons [type];}
     // ------------------------------------------------------------------------
     /** Returns the icon(material) for a mini status. */
     Material* getMiniIcon(int index) const {return m_mini_icons [index];}

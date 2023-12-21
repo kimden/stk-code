@@ -66,7 +66,7 @@ namespace irr
 using namespace irr;
 
 enum TypeRTT : unsigned int;
-class AbstractKart;
+class Kart;
 class AbstractRenderer;
 class Camera;
 class FrameBuffer;
@@ -148,8 +148,6 @@ private:
     int                   m_screen_orientation;
     std::vector<VideoMode> m_modes;
 
-    void                  setupViewports();
-
     /** Whether the mouse cursor is currently shown */
     bool                  m_pointer_shown;
 
@@ -209,7 +207,6 @@ public:
     void getOpenGLData(std::string *vendor, std::string *renderer,
                        std::string *version);
 
-    void increaseObjectCount();
     core::array<video::IRenderTarget> &getMainSetup();
     void updateConfigIfRelevant();
     core::recti getSplitscreenWindow(int WindowNum);
@@ -261,7 +258,7 @@ public:
                          std::shared_ptr<GE::GERenderInfo> render_info = nullptr);
     scene::ICameraSceneNode
                          *addCameraSceneNode();
-    Camera               *addCamera(unsigned int index, AbstractKart *kart);
+    Camera               *addCamera(unsigned int index, Kart *kart);
     void                  removeCameraSceneNode(scene::ICameraSceneNode *camera);
     void                  removeCamera(Camera *camera);
     void                  update(float dt, bool loading=false);
@@ -517,9 +514,6 @@ public:
 #endif
     void onLoadWorld();
     void onUnloadWorld();
-
-    void updateSplitAndLightcoordRangeFromComputeShaders(size_t width,
-                                                         size_t height);
 
     void uploadLightingData();
     void sameRestart()             { m_resolution_changing = RES_CHANGE_SAME; }

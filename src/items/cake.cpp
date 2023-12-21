@@ -22,18 +22,19 @@
 #include "items/cake.hpp"
 
 #include "io/xml_node.hpp"
-#include "karts/abstract_kart.hpp"
+#include "karts/kart.hpp"
 #include "utils/constants.hpp"
 #include "utils/random_generator.hpp"
 
 #include "network/protocols/server_lobby.hpp"
 
-#include "utils/log.hpp" //TODO: remove after debugging is done
+#include "utils/log.hpp"
+#include <ISceneNode.h>
 
 float Cake::m_st_max_distance_squared;
 float Cake::m_gravity;
 
-Cake::Cake (AbstractKart *kart) : Flyable(kart, PowerupManager::POWERUP_CAKE)
+Cake::Cake (Kart *kart) : Flyable(kart, PowerupManager::POWERUP_CAKE)
 {
     m_target = NULL;
 }   // Cake
@@ -61,7 +62,7 @@ void Cake::init(const XMLNode &node, scene::IMesh *cake_model)
  *  \returns True if there was actually a hit (i.e. not owner, and target is
  *           not immune), false otherwise.
  */
-bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
+bool Cake::hit(Kart* kart, PhysicalObject* obj)
 {
     auto sl = LobbyProtocol::get<ServerLobby>();
     if (sl)
@@ -80,7 +81,10 @@ bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
             }
             return false; //Not sure if a shield hit is a real hit.
         }
-        explode(kart, obj);
+        if (!m_mini)
+            explode(kart, obj);
+        else
+            explode(kart, obj, /* secondary hits */ false, /* indirect damage */ true);
     }
 
     if (sl)
@@ -89,7 +93,7 @@ bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
 }   // hit
 
 // ----------------------------------------------------------------------------
-void Cake::onFireFlyable()
+void Cake::onFireFlyable(bool mini)
 {
     Flyable::onFireFlyable();
     setDoTerrainInfo(false);
@@ -99,6 +103,15 @@ void Cake::onFireFlyable()
     gravity_vector = Vec3(0, -1, 0).rotate(q.getAxis(), q.getAngle());
     gravity_vector = gravity_vector.normalize() * m_gravity;
     const bool  backwards = m_owner->getControls().getLookBack();
+    m_mini = mini;
+
+    if (m_node != NULL) // It can be null when rewinding
+    {
+        if (m_mini)
+            m_node->setScale(core::vector3df(0.6f,0.6f,0.6f));
+        else
+            m_node->setScale(core::vector3df(1.2f,1.2f,1.2f));
+    }
 
     // A bit of a hack: the mass of this kinematic object is still 1.0
     // (see flyable), which enables collisions. I tried setting
@@ -107,6 +120,10 @@ void Cake::onFireFlyable()
     // (if bullet is compiled with _DEBUG, a warning will be printed the first
     // time a homing-track collision happens).
     float forward_offset=m_owner->getKartLength()/2.0f + m_extend.getZ()/2.0f;
+
+    // Mini cakes are slightly slower than normal cakes
+    if(m_mini)
+        m_speed = 0.9f * m_speed;
 
     float up_velocity = m_speed/6.3f;
 
@@ -120,7 +137,7 @@ void Cake::onFireFlyable()
     float pitch = m_owner->getTerrainPitch(heading);
 
     // Find closest kart in front of the current one
-    const AbstractKart *closest_kart=NULL;
+    const Kart *closest_kart=NULL;
     Vec3        direction;
     float       kart_dist_squared;
     getClosestKart(&closest_kart, &kart_dist_squared, &direction,
@@ -135,7 +152,7 @@ void Cake::onFireFlyable()
 
     if(closest_kart != NULL && kart_dist_squared < m_st_max_distance_squared)
     {
-        m_target = (AbstractKart*)closest_kart;
+        m_target = (Kart*)closest_kart;
 
         float fire_angle     = 0.0f;
         getLinearKartItemIntersection (m_owner->getXYZ(), closest_kart,

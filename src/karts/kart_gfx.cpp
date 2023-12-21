@@ -26,7 +26,7 @@
 #include "graphics/particle_kind.hpp"
 #include "graphics/particle_kind_manager.hpp"
 #include "guiengine/engine.hpp"
-#include "karts/abstract_kart.hpp"
+#include "karts/kart.hpp"
 #include "karts/controller/controller.hpp"
 #include "karts/kart.hpp"
 #include "karts/kart_model.hpp"
@@ -38,7 +38,7 @@
 
 #include <iostream>
 
-KartGFX::KartGFX(const AbstractKart *kart, bool is_day)
+KartGFX::KartGFX(const Kart *kart, bool is_day)
 {
     m_nitro_light = NULL;
     m_nitro_hack_light = NULL;
@@ -454,7 +454,7 @@ void KartGFX::updateTerrain(const ParticleKind *pk)
     bool on_ground       = m_kart->isOnGround() &&
                            !m_kart->getSkidding()->isJumping();
     if (skidding > 1.0f && on_ground)
-        rate = fabsf(m_kart->getControls().getSteer()) > 0.8 ? skidding - 1 : 0;
+        rate = fabsf(m_kart->getEffectiveSteer()) > 0.8 ? skidding - 1 : 0;
     else if (speed >= 0.5f && on_ground)
         rate = speed/m_kart->getKartProperties()->getEngineMaxSpeed();
     else

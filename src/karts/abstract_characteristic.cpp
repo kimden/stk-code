@@ -193,6 +193,12 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case STARTUP_BOOST:
         return TYPE_FLOAT_VECTOR;
+    case STARTUP_ENGINE_FORCE:
+        return TYPE_FLOAT_VECTOR;
+    case STARTUP_DURATION:
+        return TYPE_FLOAT;
+    case STARTUP_FADE_OUT_TIME:
+        return TYPE_FLOAT;
     case RESCUE_DURATION:
         return TYPE_FLOAT;
     case RESCUE_VERT_OFFSET:
@@ -268,6 +274,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
     case SKID_BONUS_SPEED:
         return TYPE_FLOAT_VECTOR;
     case SKID_BONUS_TIME:
+        return TYPE_FLOAT_VECTOR;
+    case SKID_FADE_OUT_TIME:
         return TYPE_FLOAT_VECTOR;
     case SKID_BONUS_FORCE:
         return TYPE_FLOAT_VECTOR;
@@ -441,6 +449,12 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "STARTUP_TIME";
     case STARTUP_BOOST:
         return "STARTUP_BOOST";
+    case STARTUP_ENGINE_FORCE:
+        return "STARTUP_ENGINE_FORCE";
+    case STARTUP_DURATION:
+        return "STARTUP_DURATION";
+    case STARTUP_FADE_OUT_TIME:
+        return "STARTUP_FADE_OUT_TIME";
     case RESCUE_DURATION:
         return "RESCUE_DURATION";
     case RESCUE_VERT_OFFSET:
@@ -517,6 +531,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "SKID_BONUS_SPEED";
     case SKID_BONUS_TIME:
         return "SKID_BONUS_TIME";
+    case SKID_FADE_OUT_TIME:
+        return "SKID_FADE_OUT_TIME";
     case SKID_BONUS_FORCE:
         return "SKID_BONUS_FORCE";
     case SKID_PHYSICAL_JUMP_TIME:
@@ -1372,6 +1388,42 @@ std::vector<float> AbstractCharacteristic::getStartupBoost() const
 }  // getStartupBoost
 
 // ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getStartupEngineForce() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(STARTUP_ENGINE_FORCE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(STARTUP_ENGINE_FORCE).c_str());
+    return result;
+}  // getStartupEngineForce
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getStartupDuration() const
+{
+    float result;
+    bool is_set = false;
+    process(STARTUP_DURATION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(STARTUP_DURATION).c_str());
+    return result;
+}  // getStartupDuration
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getStartupFadeOutTime() const
+{
+    float result;
+    bool is_set = false;
+    process(STARTUP_FADE_OUT_TIME, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(STARTUP_FADE_OUT_TIME).c_str());
+    return result;
+}  // getStartupFadeOutTime
+
+// ----------------------------------------------------------------------------
 float AbstractCharacteristic::getRescueDuration() const
 {
     float result;
@@ -1826,6 +1878,18 @@ std::vector<float> AbstractCharacteristic::getSkidBonusTime() const
                     getName(SKID_BONUS_TIME).c_str());
     return result;
 }  // getSkidBonusTime
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getSkidFadeOutTime() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(SKID_FADE_OUT_TIME, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_FADE_OUT_TIME).c_str());
+    return result;
+}  // getSkidFadeOutTime
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getSkidBonusForce() const

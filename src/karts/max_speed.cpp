@@ -19,7 +19,7 @@
 #include "karts/max_speed.hpp"
 
 #include "config/stk_config.hpp"
-#include "karts/abstract_kart.hpp"
+#include "karts/kart.hpp"
 #include "karts/kart_properties.hpp"
 #include "network/network_string.hpp"
 #include "physics/btKart.hpp"
@@ -48,7 +48,7 @@
  *  At the end the maximum is capped by a value specified in stk_config
  *  (to avoid issues with physics etc).
 */
-MaxSpeed::MaxSpeed(AbstractKart *kart)
+MaxSpeed::MaxSpeed(Kart *kart)
 {
     m_kart = kart;
     // Initialise m_add_engine_force since it might be queried before
@@ -56,6 +56,7 @@ MaxSpeed::MaxSpeed(AbstractKart *kart)
     m_add_engine_force  = 0;
     // This can be used if command line option -N is used
     m_current_max_speed = 0;
+    m_last_triggered_skid_level = 0;
 }   // MaxSpeed
 
 // ----------------------------------------------------------------------------
@@ -67,6 +68,7 @@ void MaxSpeed::reset()
 {
     m_current_max_speed = m_kart->getKartProperties()->getEngineMaxSpeed();
     m_min_speed         = -1.0f;
+    m_last_triggered_skid_level = 0;
 
     for(unsigned int i=MS_DECREASE_MIN; i<MS_DECREASE_MAX; i++)
     {
@@ -105,6 +107,13 @@ void MaxSpeed::increaseMaxSpeed(unsigned int category, float add_speed,
             add_speed, engine_force);
         return;
     }
+
+    if (category == MS_INCREASE_SKIDDING)
+        m_last_triggered_skid_level = 1;
+    else if (category == MS_INCREASE_RED_SKIDDING)
+        m_last_triggered_skid_level = 2;
+    else if (category == MS_INCREASE_PURPLE_SKIDDING)
+        m_last_triggered_skid_level = 3;
 
     int add_speed_i = (int)(add_speed * 1000.0f);
     if (add_speed_i > 65535)

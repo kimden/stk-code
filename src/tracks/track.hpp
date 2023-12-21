@@ -57,7 +57,7 @@ using namespace irr;
 #include "utils/vec3.hpp"
 #include "utils/stk_process.hpp"
 
-class AbstractKart;
+class Kart;
 class AnimationManager;
 class BezierCurve;
 class CheckManager;
@@ -476,15 +476,12 @@ public:
     core::stringw      getSortName() const;
     bool               isInGroup(const std::string &group_name);
     const core::vector3df& getSunRotation();
-    /** Sets the current ambient color for a kart with index k. */
-    void               setAmbientColor(const video::SColor &color,
-                                       unsigned int k);
     void               handleExplosion(const Vec3 &pos,
                                        const PhysicalObject *mp,
                                        bool secondary_hits=true) const;
     void               loadTrackModel  (bool reverse_track = false,
                                         unsigned int mode_id=0);
-    bool findGround(AbstractKart *kart);
+    bool findGround(Kart *kart);
 
     std::vector< std::vector<float> > buildHeightMap();
     void               drawMiniMap(const core::rect<s32>& dest_rect) const;

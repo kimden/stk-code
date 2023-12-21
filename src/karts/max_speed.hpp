@@ -24,7 +24,7 @@
 
 /** \defgroup karts */
 
-class AbstractKart;
+class Kart;
 class BareNetworkString;
 
 class MaxSpeed
@@ -56,7 +56,7 @@ public:
 
 private:
     /** A pointer to the kart to which this speed handling object belongs. */
-    AbstractKart *m_kart;
+    Kart *m_kart;
 
     /** The current maximum speed. */
     float m_current_max_speed;
@@ -66,6 +66,10 @@ private:
 
     /** If >0 then the minimum speed a kart should have (used for zippers). */
     float m_min_speed;
+
+    /** Used for display of skid particles after triggering a skid bonus.
+    *  0 is no bonus, 1 is first-stage bonus, etc. */
+    uint8_t m_last_triggered_skid_level;
 
     // ------------------------------------------------------------------------
     /** An internal class to store and handle speed increase related data. */
@@ -189,7 +193,7 @@ private:
 
 
 public:
-          MaxSpeed(AbstractKart *kart);
+          MaxSpeed(Kart *kart);
 
     void  increaseMaxSpeed(unsigned int category, float add_speed,
                            float engine_force, int duration,
@@ -217,6 +221,8 @@ public:
     // ------------------------------------------------------------------------
     /** Returns the current maximum speed for this kart. */
     float getCurrentMaxSpeed() const { return m_current_max_speed; }
+    // --------------------------------------------------------------------
+    unsigned int getLatestSkidLevel() const { return m_last_triggered_skid_level; }
     // ------------------------------------------------------------------------
     /** Returns the additional engine force. */
     float getCurrentAdditionalEngineForce() const { return m_add_engine_force;}

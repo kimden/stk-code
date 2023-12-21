@@ -957,16 +957,10 @@ int SoccerWorld::getBallNode() const
 bool SoccerWorld::isCorrectGoal(unsigned int kart_id, bool first_goal) const
 {
     KartTeam team = getKartTeam(kart_id);
-    if (first_goal)
-    {
-        if (team == KART_TEAM_RED)
-            return true;
-    }
-    else if (!first_goal)
-    {
-        if (team == KART_TEAM_BLUE)
-            return true;
-    }
+    if (( first_goal && team == KART_TEAM_RED ) ||
+        (!first_goal && team == KART_TEAM_BLUE))
+        return true;
+
     return false;
 }   // isCorrectGoal
 
@@ -1035,7 +1029,7 @@ int SoccerWorld::getAttacker(KartTeam team) const
 }   // getAttacker
 
 //-----------------------------------------------------------------------------
-unsigned int SoccerWorld::getRescuePositionIndex(AbstractKart *kart)
+unsigned int SoccerWorld::getRescuePositionIndex(Kart *kart)
 {
     if (!Track::getCurrentTrack()->hasNavMesh())
         return m_kart_position_map.at(kart->getWorldKartId());

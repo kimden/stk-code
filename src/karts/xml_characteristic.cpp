@@ -353,8 +353,6 @@ void XmlCharacteristic::load(const XMLNode *node)
     {
         sub_node->get("radius",
             &m_values[TURN_RADIUS]);
-        sub_node->get("time-reset-steer",
-            &m_values[TURN_TIME_RESET_STEER]);
         sub_node->get("time-full-steer",
             &m_values[TURN_TIME_FULL_STEER]);
     }
@@ -529,6 +527,12 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[STARTUP_TIME]);
         sub_node->get("boost",
             &m_values[STARTUP_BOOST]);
+        sub_node->get("engine-force",
+            &m_values[STARTUP_ENGINE_FORCE]);
+        sub_node->get("duration",
+            &m_values[STARTUP_DURATION]);
+        sub_node->get("fade-out-time",
+            &m_values[STARTUP_FADE_OUT_TIME]);
     }
 
     if (const XMLNode *sub_node = node->getNode("rescue"))
@@ -625,6 +629,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[SKID_BONUS_SPEED]);
         sub_node->get("bonus-time",
             &m_values[SKID_BONUS_TIME]);
+        sub_node->get("fade-out-time",
+            &m_values[SKID_FADE_OUT_TIME]);
         sub_node->get("bonus-force",
             &m_values[SKID_BONUS_FORCE]);
         sub_node->get("physical-jump-time",

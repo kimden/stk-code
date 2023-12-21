@@ -433,7 +433,7 @@ private:
     std::vector<unsigned int> m_teammate_karts_hit;
     std::vector<unsigned int> m_teammate_karts_exploded;
     // store karts to punish for swattering a teammate
-    std::vector<AbstractKart*> m_teammate_swatter_punish;
+    std::vector<Kart*> m_teammate_swatter_punish;
 
     // after a certain time a bowl can be avoided and doesn't
     // trigger teammate hits anymore
@@ -524,7 +524,6 @@ private:
     double getModeFactor();
     double getModeSpread();
     double getTimeSpread(double time);
-    double getUncertaintySpread(uint32_t online_id);
     double scalingValueForTime(double time);
     double computeH2HResult(double player1_time, double player2_time);
     double computeDataAccuracy(double player1_rd, double player2_rd,
@@ -616,7 +615,7 @@ public:
     virtual bool isRacing() const OVERRIDE { return m_state.load() == RACING; }
     bool allowJoinedPlayersWaiting() const;
     void setSaveServerConfig(bool val)          { m_save_server_config = val; }
-    float getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
+    uint8_t getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
     int getDifficulty() const                   { return m_difficulty.load(); }
     int getGameMode() const                      { return m_game_mode.load(); }
     int getLobbyPlayers() const              { return m_lobby_players.load(); }

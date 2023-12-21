@@ -75,11 +75,13 @@
                 The speed is used as dt/time-for-steering-change.
                 In short: steering at less than halfway is somewhat faster,
                 but slower when you want to steer more, which should avoid
-                oversteering (by pressing the key for too long),
+                oversteering (by pressing the key for too long)
+                If the kart is currently in the direction opposite to the
+                required steering ("negative steering"), the time-full-steer
+                at 0 is used.
                  -->
         <turn radius="0:2.5 5:4 12:8 20:14 30:22 50:38.5"
-              time-full-steer="0:0.17 0.5:0.17 0.5:0.28 1.0:0.28"
-              time-reset-steer="0.1" />
+              time-full-steer="0:0.16 0.5:0.16 0.5:0.24 1.0:0.24" />
 
         <!-- Speed and acceleration
             power: The power of the kart (the engine power needed to accelerate
@@ -94,7 +96,7 @@
             max-speed-reverse-ratio is the percentage of max speed for reverse
                 gear.
           -->
-        <engine power="975" max-speed="27.5" generic-max-speed="27.5" brake-factor="34"
+        <engine power="975" max-speed="27.75" generic-max-speed="27.75" brake-factor="36"
                 time-full-brake="0.35" max-speed-reverse-ratio="0.55" />
 
         <!-- Simulated gears
@@ -147,6 +149,8 @@
             time-till-bonus: How long a kart needs to skid in order to get a bonus.
             bonus-speed: A speedup applied to the kart whick skidded for a while.
             bonus-time: How long the bonus-force is applied.
+            fade-out-time: How long will the max-speed bonus take to fade out.
+                The additional engine force is not active during fade-out.
             bonus-force: Additional engine force (this is used to offset the fact
                 that turning after skidding (e.g. to correct direction) often uses
                 up the skid bonus).
@@ -166,11 +170,11 @@
         <skid increase="1.05" decrease="0.95" max="2.5" time-till-max="0.5"
               visual="1.25" visual-time="0.7" revert-visual-time="0.7"
               min-speed="10"  time-till-bonus="1.0 2.7 4.0"
-              bonus-speed="4.0 6.0 8.0" bonus-time="3.0 4.3 5.7"
-              bonus-force="300 400 600"
+              bonus-speed="4.0 6.0 8.0" bonus-time="3.2 4.2 5.6"
+              fade-out-time="0.9 1.1 1.3" bonus-force="300 420 600"
               physical-jump-time="0" graphical-jump-time="0.4"
               post-skid-rotate-factor="1"
-              reduce-turn-min="0.2" reduce-turn-max="0.8" enabled="true" />
+              reduce-turn-min="0.2" reduce-turn-max="0.895" enabled="true" />
 
         <!-- Camera
             Distance between kart and camera.
@@ -196,7 +200,7 @@
             max: maximum leaning (i.e. when steering as much as possible at highest
                 speed), in degrees.
             speed: Speed with which the leaning changes (in degree/second). -->
-        <lean max="12.0" speed="12.0" />
+        <lean max="11.0" speed="14.0" />
 
 
         <!-- ********** Items ********** -->
@@ -223,7 +227,7 @@
                 detach parachute. E.g. at max-speed 50% of speed must be lost.
             max-speed: A factor that decides the impact of rate of speed
                 (distance between bounds) -->
-        <parachute friction="5.0" duration="2.7" duration-other="2.2"
+        <parachute friction="5.0" duration="2.7" duration-other="2.1"
                    duration-rank-mult="1.6" duration-speed-mult="1.48"
                    lbound-fraction="0.55" ubound-fraction="0.35" max-speed="40" />
 
@@ -244,8 +248,8 @@
                 kart-specific maximum kart speed.
             fade-out-time: determines how long it takes for a zipper
                 to fade out (after 'time'). -->
-        <zipper duration="3.5" force="300.0" speed-gain="4.0" max-speed-increase="12"
-                fade-out-time="1.0" />
+        <zipper duration="3.2" force="350.0" speed-gain="4.0" max-speed-increase="12"
+                fade-out-time="1.2" />
 
         <!-- Swatter
             duration: How long can the swatter be active.
@@ -292,7 +296,9 @@
             increasing times.
             The startup boost uses the same boost category as zippers. -->
         <startup time="0.3 0.5"
-                 boost="8 4" />
+                 boost="6.5 3.5"
+                 engine-force="160.0 120.0"
+                 duration="4.0" fade-out-time ="2.0" />
 
         <!-- Rescue
             duration: How long it takes the kart to be raised.
@@ -330,10 +336,10 @@
             fade-out-time: Duration during which the increased maximum
                 speed due to nitro fades out.
             max: How much nitro a kart can store. -->
-        <nitro engine-force="300" engine-mult="1.2" consumption="1"
+        <nitro engine-force="350" engine-mult="1.2" consumption="1"
                small-container="1" big-container="2.5"
-               max-speed-increase="5" min-burst="0.5" duration="0.8"
-               fade-out-time="1.6" max="20" />
+               max-speed-increase="5" min-burst="0.5" duration="0.9"
+               fade-out-time="1.45" max="20" />
 
         <!-- Slipstream
             base-speed: the speed for which length and width are valid.
@@ -368,7 +374,7 @@
             <rescue duration="*1.2" />
             <nitro engine-force="*0.8" max-speed-increase="*0.7" />
             <skid bonus-speed="*0.5 *0.5 *0.5" bonus-force="*0.5 *0.5 *0.5" />
-            <turn time-full-steer="0:0.25 0.5:0.25 0.5:0.42 1.0:0.42" />
+            <turn time-full-steer="0:0.24 0.5:0.24 0.5:0.42 1.0:0.42" />
             <plunger in-face-time="3" />
         </characteristic>
         <characteristic name="casual">
@@ -378,7 +384,7 @@
             <rescue duration="*1.2" />
             <nitro engine-force="*0.83" max-speed-increase="*0.78" />
             <skid bonus-speed="*0.7 *0.7 *0.7" bonus-force="*0.7 *0.7 *0.7" />
-            <turn time-full-steer="0:0.21 0.5:0.21 0.5:0.35 1.0:0.35" />
+            <turn time-full-steer="0:0.20 0.5:0.20 0.5:0.33 1.0:0.33" />
             <plunger in-face-time="3.5" />
         </characteristic>
         <characteristic name="medium">
@@ -404,53 +410,53 @@
     <kart-types>
         <characteristic name="light">
             <turn radius="0:2.5 5:4 12:8 20:14 30:22 50:38.5" />
-            <engine power="*0.8" max-speed="*0.9" />
+            <engine power="*0.8" max-speed="*0.896" />
             <gear switch-ratio="0.1 0.25 0.45 0.7 1.0 4.0"
                   power-increase="2.95 2.42 1.99 1.56 1.28 1.0" />
             <mass value="*0.6" />
-            <skid reduce-turn-min="0.2" reduce-turn-max="0.9" bonus-force="*0.8 *0.8 *0.8" />
+            <skid reduce-turn-min="0.2" reduce-turn-max="0.895" bonus-force="*0.8 *0.8 *0.8" />
             <startup boost="*1 *1" />
             <explosion duration="*1" radius="*1" />
-            <nitro engine-force="*0.6" consumption="*1.2" max-speed-increase="*1.2" />
+            <nitro engine-force="*0.72" consumption="*1.2" max-speed-increase="*1.2" />
             <slipstream length="*0.9" collect-time="*0.9"
                         duration-factor="*1" fade-out-time="*1" />
             <parachute lbound-fraction="0.35" ubound-fraction="0.2" />
         </characteristic>
         <characteristic name="medium-h">
-            <turn radius="0:3 5:4.6 12:9 20:15.4 30:23.8 50:41.2" />
-            <engine power="*0.875" max-speed="*0.93" />
+            <turn radius="0:2.975 5:4.6 12:9 20:15.4 30:23.8 50:41.2" />
+            <engine power="*0.875" max-speed="*0.927" />
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.5 2.08 1.76 1.44 1.22 1" />
             <mass value="*0.75" />
-            <skid reduce-turn-min="0.2" reduce-turn-max="0.9" bonus-force="*0.875 *0.875 *0.875" 
+            <skid reduce-turn-min="0.2" reduce-turn-max="0.895" bonus-force="*0.875 *0.875 *0.875" 
                   time-till-bonus="*0.9 *0.9 *0.9" />
-            <startup boost="*0.8 *0.8" />
+            <startup boost="*0.875 *0.875" />
             <explosion duration="*0.8" radius="*0.8" />
-            <nitro engine-force="*0.75" consumption="*1.375" max-speed-increase="*1.1" />
+            <nitro engine-force="*0.825" consumption="*1.375" max-speed-increase="*1.1" />
             <slipstream duration-factor="*0.8" fade-out-time="*1" />
             <parachute lbound-fraction="0.45" ubound-fraction="0.275" />
         </characteristic>
         <characteristic name="medium">
-            <turn radius="0:3 5:4.8 12:9.6 20:16.8 30:26.4 50:46.2" />
-            <engine power="*0.875" max-speed="*0.95" />
+            <turn radius="0:2.975 5:4.76 12:9.52 20:16.66 30:26.18 50:45.815" />
+            <engine power="*0.875" max-speed="*0.948" />
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.5 2.08 1.76 1.44 1.22 1" />
             <mass value="*0.75" />
-            <skid reduce-turn-min="0.25" reduce-turn-max="0.9" bonus-force="*0.875 *0.875 *0.875" />
-            <startup boost="*0.8 *0.8" />
+            <skid reduce-turn-min="0.2475" reduce-turn-max="0.895" bonus-force="*0.875 *0.875 *0.875" />
+            <startup boost="*0.875 *0.875" />
             <explosion duration="*0.8" radius="*0.8" />
-            <nitro engine-force="*0.75" consumption="*1.375" max-speed-increase="*1.1" />
+            <nitro engine-force="*0.825" consumption="*1.375" max-speed-increase="*1.1" />
             <slipstream duration-factor="*0.8" fade-out-time="*1" />
             <parachute lbound-fraction="0.45" ubound-fraction="0.275" />
         </characteristic>
         <characteristic name="heavy">
-            <turn radius="0:3.4 5:5.44 12:10.88 20:19.04 30:29.92 50:52.36" />
+            <turn radius="0:3.35 5:5.36 12:10.72 20:18.76 30:29.48 50:51.59" />
             <engine power="*1" max-speed="*1" />
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.05 1.74 1.53 1.32 1.16 1" />
             <mass value="*1" />
-            <skid reduce-turn-min="0.3" reduce-turn-max="0.9" bonus-force="*1.0 *1.0 *1.0" />
-            <startup boost="*0.6 *0.6" />
+            <skid reduce-turn-min="0.285" reduce-turn-max="0.895" bonus-force="*1.0 *1.0 *1.0" />
+            <startup boost="*0.8 *0.8" />
             <explosion duration="*0.6" radius="*0.6" />
             <nitro engine-force="*1" consumption="*1.67" max-speed-increase="*1.0" />
             <slipstream length="*1.1" collect-time="*1.1"
