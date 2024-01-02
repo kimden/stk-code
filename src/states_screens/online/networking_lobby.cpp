@@ -63,6 +63,84 @@
 using namespace Online;
 using namespace GUIEngine;
 
+bool textLink(CGUISTKListBox* list, int row, int col, 
+            irr::SEvent::SMouseInput input, bool is_icon)
+{
+    if (is_icon)
+    {
+        return false;
+    }
+    if (input.Event == EMIE_LMOUSE_PRESSED_DOWN)
+    {
+        std::shared_ptr<std::u32string> s;
+        int glyph_idx = -1;
+        int cluster = list->getClusterAt(row, col, input.X, input.Y, &s, &glyph_idx);
+        if (cluster == -1 || (unsigned)cluster > s->size())
+            return false;
+        const std::vector<gui::GlyphLayout>& gls = list->getItem(row).m_contents[col].m_glyph_layouts;
+        int start_cluster = -1;
+        const std::u32string ia = U"/installaddon ";
+        std::u32string url = gui::extractURLFromGlyphLayouts(gls,
+            glyph_idx, &start_cluster);
+        if (url.empty())
+            goto handle_player_message_copy;
+        if ((unsigned)start_cluster >= ia.size() &&
+            s->substr(start_cluster - (int)ia.size(), ia.size()) == ia)
+        {
+            AddonsPack::install(StringUtils::utf32ToUtf8(url));
+        }
+        else
+        {
+            Online::LinkHelper::openURL(StringUtils::utf32ToUtf8(url));
+        }
+        return true;
+handle_player_message_copy:
+        size_t start = s->substr(0, cluster).rfind(U'\n');
+        size_t end = s->substr(cluster, s->size()).find(U'\n');
+        if (start == std::string::npos)
+            start = 0;
+        else
+            start += 1; // Skip newline character
+        if (end == std::string::npos)
+            end = s->size();
+        else
+            end += cluster - start;
+
+        std::u32string substr = s->substr(start, end);
+        int local_pos = cluster - (int)start;
+        if ((size_t)local_pos > substr.size())
+            return false;
+        for (auto& p : NetworkingLobby::getInstance()->m_player_names)
+        {
+            size_t colon = substr.substr(0, local_pos).rfind(U": ");
+            if (colon == std::string::npos)
+                continue;
+            std::u32string player_name = substr.substr(0, colon);
+            if (player_name.empty())
+                continue;
+            int padding = 2;
+            // RTL handling
+            if (player_name[0] == 0x200F || player_name[0] == 0x200E)
+            {
+                player_name = player_name.substr(1, player_name.size() - 1);
+                padding++;
+            }
+            if (StringUtils::wideToUtf32(p.second.m_user_name)
+                .find(player_name) != std::string::npos)
+            {
+                GUIEngine::getGUIEnv()->getOSOperator()->copyToClipboard(
+                    StringUtils::utf32ToUtf8(
+                    substr.substr(player_name.size() + padding)).c_str());
+                return true;
+            }
+        }
+        GUIEngine::getGUIEnv()->getOSOperator()->copyToClipboard(
+            StringUtils::utf32ToUtf8(substr).c_str());
+        return true;
+    }
+    return false;
+}
+
 /** This is the lobby screen that is shown on all clients, but not on the
  *  server. It shows currently connected clients, and allows the 'master'
  *  client (i.e. the stk instance that created the server) to control the
@@ -114,7 +192,7 @@ void NetworkingLobby::loadedFromFile()
     m_config_button = getWidget<IconButtonWidget>("config");
     assert(m_config_button!= NULL);
 
-    m_text_bubble = getWidget<LabelWidget>("text");
+    m_text_bubble = getWidget<ListWidget>("text");
     assert(m_text_bubble != NULL);
 
     m_timeout_message = getWidget<LabelWidget>("timeout-message");
@@ -261,89 +339,21 @@ void NetworkingLobby::init()
         }
     }
 #ifndef SERVER_ONLY
-    gui::IGUIStaticText* st =
-        m_text_bubble->getIrrlichtElement<gui::IGUIStaticText>();
-    st->setMouseCallback([](gui::IGUIStaticText* text, SEvent::SMouseInput mouse)->bool
-    {
-        if (mouse.Event == EMIE_LMOUSE_PRESSED_DOWN)
-        {
-            std::shared_ptr<std::u32string> s;
-            int glyph_idx = -1;
-            int cluster = text->getCluster(mouse.X, mouse.Y, &s, &glyph_idx);
-            if (cluster == -1 || (unsigned)cluster > s->size())
-                return false;
-            const std::vector<gui::GlyphLayout>& gls = text->getGlyphLayouts();
-            int start_cluster = -1;
-            const std::u32string ia = U"/installaddon ";
-            std::u32string url = gui::extractURLFromGlyphLayouts(gls,
-                glyph_idx, &start_cluster);
-            if (url.empty())
-                goto handle_player_message_copy;
-            if ((unsigned)start_cluster >= ia.size() &&
-                s->substr(start_cluster - (int)ia.size(), ia.size()) == ia)
-            {
-                AddonsPack::install(StringUtils::utf32ToUtf8(url));
-            }
-            else
-            {
-                Online::LinkHelper::openURL(StringUtils::utf32ToUtf8(url));
-            }
-            return true;
-handle_player_message_copy:
-            size_t start = s->substr(0, cluster).rfind(U'\n');
-            size_t end = s->substr(cluster, s->size()).find(U'\n');
-            if (start == std::string::npos)
-                start = 0;
-            else
-                start += 1; // Skip newline character
-            if (end == std::string::npos)
-                end = s->size();
-            else
-                end += cluster - start;
-
-            std::u32string substr = s->substr(start, end);
-            int local_pos = cluster - (int)start;
-            if ((size_t)local_pos > substr.size())
-                return false;
-            for (auto& p : NetworkingLobby::getInstance()->m_player_names)
-            {
-                size_t colon = substr.substr(0, local_pos).rfind(U": ");
-                if (colon == std::string::npos)
-                    continue;
-                std::u32string player_name = substr.substr(0, colon);
-                if (player_name.empty())
-                    continue;
-                int padding = 2;
-                // RTL handling
-                if (player_name[0] == 0x200F || player_name[0] == 0x200E)
-                {
-                    player_name = player_name.substr(1, player_name.size() - 1);
-                    padding++;
-                }
-                if (StringUtils::wideToUtf32(p.second.m_user_name)
-                    .find(player_name) != std::string::npos)
-                {
-                    GUIEngine::getGUIEnv()->getOSOperator()->copyToClipboard(
-                        StringUtils::utf32ToUtf8(
-                        substr.substr(player_name.size() + padding)).c_str());
-                    return true;
-                }
-            }
-            GUIEngine::getGUIEnv()->getOSOperator()->copyToClipboard(
-                StringUtils::utf32ToUtf8(substr).c_str());
-            return true;
-        }
-        return false;
-    });
+    
 #endif
+    m_text_bubble->setIcons(m_icon_bank);
 }   // init
 
 // ----------------------------------------------------------------------------
 void NetworkingLobby::addMoreServerInfo(core::stringw info)
 {
+    if (m_list_waiting_text)
+    {
+        m_text_bubble->clear();
+        m_list_waiting_text = false;
+    }
 #ifndef SERVER_ONLY
     const unsigned box_width = m_text_bubble->getDimension().Width;
-    const float box_height = m_text_bubble->getDimension().Height;
     std::vector<GlyphLayout> cur_info;
     font_manager->initGlyphLayouts(info, cur_info, gui::SF_DISABLE_CACHE |
         gui::SF_ENABLE_CLUSTER_TEST);
@@ -405,19 +415,19 @@ void NetworkingLobby::addMoreServerInfo(core::stringw info)
 
 break_glyph_layouts:
     gui::IGUIFont* font = GUIEngine::getFont();
-    gui::breakGlyphLayouts(cur_info, box_width,
+    gui::breakGlyphLayouts(cur_info, box_width - 30, // Scrollbar size
         font->getInverseShaping(), font->getScale());
-    m_server_info.insert(m_server_info.end(), cur_info.begin(),
-        cur_info.end());
-    gui::eraseTopLargerThan(m_server_info, font->getHeightPerLine(),
-        box_height);
+    m_text_bubble->addItem("", cur_info, -1, false, 1.0f, true, textLink, true);
+    m_server_info.push_back(cur_info);
+    // gui::eraseTopLargerThan(m_server_info, font->getHeightPerLine(),
+    //     box_height);
 
-    // Don't take the newly added newline marker int layouts for linebreaking
-    // height calculation
-    gui::GlyphLayout new_line = { 0 };
-    new_line.flags = gui::GLF_NEWLINE;
-    m_server_info.push_back(new_line);
-    updateServerInfos();
+    // // Don't take the newly added newline marker int layouts for linebreaking
+    // // height calculation
+    // gui::GlyphLayout new_line = { 0 };
+    // new_line.flags = gui::GLF_NEWLINE;
+    // m_server_info.push_back(new_line);
+    // updateServerInfos();
 #endif
 }   // addMoreServerInfo
 
@@ -428,10 +438,11 @@ void NetworkingLobby::updateServerInfos()
     if (GUIEngine::getCurrentScreen() != this)
         return;
 
-    gui::IGUIStaticText* st =
-        m_text_bubble->getIrrlichtElement<gui::IGUIStaticText>();
-    st->setUseGlyphLayoutsOnly(true);
-    st->setGlyphLayouts(m_server_info);
+    m_text_bubble->clear();
+    for (auto i : m_server_info)
+    {
+        m_text_bubble->addItem("", i, -1, false, 1.0f, true, textLink, true);
+    }
 #endif
 }   // updateServerInfos
 
@@ -673,10 +684,10 @@ void NetworkingLobby::onUpdate(float delta)
 
     if (m_state == LS_ADD_PLAYERS)
     {
-        m_text_bubble->getIrrlichtElement<gui::IGUIStaticText>()
-            ->setUseGlyphLayoutsOnly(false);
-        m_text_bubble->setText(_("Everyone:\nPress the 'Select' button to "
-                                          "join the game"), false);
+        m_list_waiting_text = true;
+        m_text_bubble->clear();
+        m_text_bubble->addItem("", _("Everyone:\nPress the 'Select' button to "
+                                          "join the game"), -1, false, 1.0f, true);
         m_start_button->setVisible(false);
         if (!GUIEngine::ModalDialog::isADialogActive())
         {
@@ -689,8 +700,8 @@ void NetworkingLobby::onUpdate(float delta)
     m_start_button->setVisible(false);
     if (!cl || !cl->isLobbyReady())
     {
-        m_text_bubble->getIrrlichtElement<gui::IGUIStaticText>()
-            ->setUseGlyphLayoutsOnly(false);
+        m_list_waiting_text = true;
+        m_text_bubble->clear();
         core::stringw connect_msg;
         if (m_joined_server)
         {
@@ -702,7 +713,7 @@ void NetworkingLobby::onUpdate(float delta)
             connect_msg =
                 StringUtils::loadingDots(_("Finding a quick play server"));
         }
-        m_text_bubble->setText(connect_msg, false);
+        m_text_bubble->addItem("", connect_msg, -1, false, 1.0f, true);
         m_start_button->setVisible(false);
     }
 

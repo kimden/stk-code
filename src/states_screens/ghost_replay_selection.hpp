@@ -64,6 +64,7 @@ private:
     uint64_t                   m_replay_to_compare_uid;
 
     irr::gui::STKModifiedSpriteBank *m_icon_bank;
+    std::vector<irr::core::stringw> m_icon_tooltips;
 
     /** Icon for unknown karts */
     int                        m_icon_unknown_kart;
@@ -100,6 +101,8 @@ public:
 
     /** \brief implement callback from parent class GUIEngine::Screen */
     virtual void beforeAddingWidget() OVERRIDE;
+
+    virtual void onUpdate(float delta) OVERRIDE;
 
     virtual void onColumnClicked(int column_id, bool sort_desc, bool sort_default) OVERRIDE;
 

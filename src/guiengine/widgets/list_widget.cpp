@@ -93,7 +93,6 @@ void ListWidget::setIcons(STKModifiedSpriteBank* icons, int size)
 
 }
 
-
 // -----------------------------------------------------------------------------
 void ListWidget::add()
 {
@@ -241,29 +240,63 @@ void ListWidget::clearColumns()
 } //clearColumns
 
 // -----------------------------------------------------------------------------
-//FIXME : remove the code duplication of the two addItem functions
+//FIXME : remove the code duplication of the three addItem functions
 void ListWidget::addItem(   const std::string& internal_name,
                             const irr::core::stringw &name,
                             const int icon,
-                            bool center)
+                            bool center,
+                            float line_height_scale,
+                            bool auto_height,
+                            ListCellCallback callback,
+                            bool scroll_down)
 {
     // May only be called AFTER this widget has been add()ed
     assert(m_element != NULL);
 
-    ListCell cell(name, icon, 1, center);
+    ListCell cell(name, icon, 1, center, callback);
     ListItem newItem;
     newItem.m_internal_name = internal_name;
+    newItem.m_auto_height = auto_height;
     newItem.m_contents.push_back(cell);
     newItem.m_word_wrap = (m_properties[PROP_WORD_WRAP] == "true");
-    newItem.m_line_height_scale = m_properties[PROP_LINE_HEIGHT] == "small"  ? 0.75f :
-                                  m_properties[PROP_LINE_HEIGHT] == "normal" ? 1.0f  :
-                                  m_properties[PROP_LINE_HEIGHT] == "big"    ? 1.25f : 1.0f;
-
+    newItem.m_line_height_scale = line_height_scale;
 
     CGUISTKListBox* list = getIrrlichtElement<CGUISTKListBox>();
     assert(list != NULL);
 
-    u32 itemID = list->addItem( newItem );
+    u32 itemID = list->addItem( newItem, scroll_down );
+    if (m_use_icons)
+    {
+        list->setItemOverrideColor( itemID, gui::EGUI_LBC_ICON, video::SColor(255,255,255,255) );
+        list->setItemOverrideColor( itemID, gui::EGUI_LBC_ICON_HIGHLIGHT, video::SColor(255,255,255,255) );
+    }
+    newItem.m_current_id = itemID;
+}
+
+void ListWidget::addItem(   const std::string& internal_name,
+                            std::vector<GlyphLayout> &name,
+                            const int icon,
+                            bool center,
+                            float line_height_scale,
+                            bool auto_height,
+                            ListCellCallback callback,
+                            bool scroll_down)
+{
+    // May only be called AFTER this widget has been add()ed
+    assert(m_element != NULL);
+
+    ListCell cell(name, icon, 1, center, callback);
+    ListItem newItem;
+    newItem.m_internal_name = internal_name;
+    newItem.m_auto_height = auto_height;
+    newItem.m_contents.push_back(cell);
+    newItem.m_word_wrap = (m_properties[PROP_WORD_WRAP] == "true");
+    newItem.m_line_height_scale = line_height_scale;
+
+    CGUISTKListBox* list = getIrrlichtElement<CGUISTKListBox>();
+    assert(list != NULL);
+
+    u32 itemID = list->addItem( newItem, scroll_down );
     if (m_use_icons)
     {
         list->setItemOverrideColor( itemID, gui::EGUI_LBC_ICON, video::SColor(255,255,255,255) );
@@ -275,26 +308,26 @@ void ListWidget::addItem(   const std::string& internal_name,
 // -----------------------------------------------------------------------------
 
 void ListWidget::addItem(const std::string& internal_name,
-                         const std::vector<ListCell>& contents)
+                         const std::vector<ListCell>& contents,
+                         bool auto_height,
+                         bool scroll_down)
 {
     // May only be called AFTER this widget has been add()ed
     assert(m_element != NULL);
 
     ListItem newItem;
     newItem.m_internal_name = internal_name;
+    newItem.m_auto_height = auto_height;
     for (unsigned int i = 0; i < contents.size(); i++)
     {
         newItem.m_contents.push_back(contents[i]);
     }
     newItem.m_word_wrap = (m_properties[PROP_WORD_WRAP] == "true");
-    newItem.m_line_height_scale = m_properties[PROP_LINE_HEIGHT] == "small"  ? 0.75f :
-                                  m_properties[PROP_LINE_HEIGHT] == "normal" ? 1.0f  :
-                                  m_properties[PROP_LINE_HEIGHT] == "big"    ? 1.25f : 1.0f;
 
     CGUISTKListBox* list = getIrrlichtElement<CGUISTKListBox>();
     assert(list != NULL);
 
-    u32 itemID = list->addItem( newItem );
+    u32 itemID = list->addItem( newItem, scroll_down );
     if (m_use_icons)
     {
         list->setItemOverrideColor( itemID, gui::EGUI_LBC_ICON, video::SColor(255,255,255,255) );

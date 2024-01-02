@@ -94,7 +94,6 @@ namespace GUIEngine
         PROP_CHILD_HEIGHT,
         PROP_WORD_WRAP,
         PROP_ALTERNATE_BG,
-        PROP_LINE_HEIGHT,
         //PROP_GROW_WITH_TEXT, // yet unused
         PROP_X,
         PROP_Y,
@@ -710,6 +709,7 @@ namespace GUIEngine
         irr::core::stringw getTooltipText() const { return m_tooltip_text; }
 
         void setTooltip(irr::core::stringw s) { m_tooltip_text = s; m_has_tooltip = true; }
+        void unsetTooltip()                   { m_tooltip_text = L""; m_has_tooltip = false; }
 
         /**
          * \}

@@ -20,6 +20,7 @@
 
 #include "guiengine/screen.hpp"
 #include "guiengine/widgets/text_box_widget.hpp"
+#include "guiengine/widgets/CGUISTKListBox.hpp"
 #include "GlyphLayout.h"
 #include <map>
 #include <memory>
@@ -71,7 +72,7 @@ private:
     std::map<std::string, LobbyPlayer> m_player_names;
     std::shared_ptr<Server> m_joined_server;
 
-    std::vector<gui::GlyphLayout> m_server_info;
+    std::vector<std::vector<gui::GlyphLayout>> m_server_info;
     int m_server_info_height, m_header_text_width;
 
     core::stringw m_start_text, m_ready_text, m_live_join_text,
@@ -82,7 +83,7 @@ private:
     int64_t m_cur_starting_timer;
     unsigned m_min_start_game_players;
 
-    bool m_has_auto_start_in_server,
+    bool m_has_auto_start_in_server, m_list_waiting_text,
         m_server_configurable, m_client_live_joinable,
         m_reload_server_info, m_assigned_players;
 
@@ -93,7 +94,7 @@ private:
 
     GUIEngine::IconButtonWidget* m_back_widget;
     GUIEngine::LabelWidget* m_header;
-    GUIEngine::LabelWidget* m_text_bubble;
+    GUIEngine::ListWidget* m_text_bubble;
     GUIEngine::LabelWidget* m_timeout_message;
     GUIEngine::IconButtonWidget* m_start_button;
     GUIEngine::IconButtonWidget* m_config_button;
@@ -112,6 +113,9 @@ private:
     void updatePlayerPings();
 
 public:
+
+    friend bool textLink(irr::gui::CGUISTKListBox* list, int row, int col, 
+                        irr::SEvent::SMouseInput input, bool is_icon);
 
     virtual void onUpdate(float delta) OVERRIDE;
 
