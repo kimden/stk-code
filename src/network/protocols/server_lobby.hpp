@@ -21,9 +21,10 @@
 
 #include "network/protocols/lobby_protocol.hpp"
 #include "utils/cpp2011.hpp"
+#include "utils/kart_elimination.hpp"
+#include "utils/team_utils.hpp"
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
-#include "utils/kart_elimination.hpp"
 #include "karts/controller/player_controller.hpp"
 #include "network/protocols/command_manager.hpp"
 
@@ -369,8 +370,6 @@ private:
 
     std::map<int, GPScore> m_gp_team_scores;
 
-    std::vector<std::string> m_team_name;
-
     int m_tournament_game;
 
     int m_fixed_lap;
@@ -392,12 +391,6 @@ private:
     bool m_allowed_to_start;
 
     bool m_consent_on_replays;
-    
-    std::map<std::string, int> m_team_name_to_index;
-
-    std::vector<std::string> m_team_default_names;
-
-    std::map<int, std::string> m_team_index_to_icon;
 
     bool m_shuffle_gp;
 

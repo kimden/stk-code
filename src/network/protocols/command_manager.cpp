@@ -2739,15 +2739,15 @@ void CommandManager::process_swapteams(Context& context)
     std::map<int, int> permutation_map_int;
     for (char c: argv[1])
     {
-        std::string type(1, c);
         // todo remove that link to first char, it is awful
-        if (m_lobby->m_team_name_to_index.count(type) == 0)
+        // on the other hand, I'd better have roygbpcms than r,o,y,g,b,words
+        // so let it stay like that for now
+        std::string type(1, c);
+        int index = TeamUtils::getIndexByCode(type);
+        if (index == 0)
             continue;
-        int index = m_lobby->m_team_name_to_index[type];
-        char c1 = m_lobby->m_team_default_names[index][0];
-        if (m_lobby->m_team_name_to_index.count(type)) {
-            permutation_map[c1] = 0;
-        }
+        char c1 = TeamUtils::getTeamByIndex(index).getPrimaryCode()[0];
+        permutation_map[c1] = 0;
     }
     std::string permutation;
     for (auto& p: permutation_map)
@@ -2769,8 +2769,8 @@ void CommandManager::process_swapteams(Context& context)
     }
     for (auto& p: permutation_map)
     {
-        int from = m_lobby->m_team_name_to_index[std::string(1, p.first)];
-        int to = m_lobby->m_team_name_to_index[std::string(1, p.second)];
+        int from = TeamUtils::getIndexByCode(std::string(1, p.first));
+        int to = TeamUtils::getIndexByCode(std::string(1, p.second));
         permutation_map_int[from] = to;
     }
     m_lobby->shuffleTemporaryTeams(permutation_map_int);
@@ -2812,7 +2812,7 @@ void CommandManager::process_randomteams(Context& context)
             continue;
         players_number += p->getPlayerProfiles().size();
         for (auto& profile : p->getPlayerProfiles())
-            profile->setTemporaryTeam(-1);
+            profile->setTemporaryTeam(0);
     }
     if (players_number == 0) {
         std::string msg = "No one can play!";
@@ -2820,12 +2820,13 @@ void CommandManager::process_randomteams(Context& context)
         return;
     }
     int teams_number = -1;
+    int max_number_of_teams = TeamUtils::getNumberOfTeams();
     if (argv.size() < 2 || !StringUtils::parseString(argv[1], &teams_number)
-        || teams_number < 1 || teams_number > 9)
+        || teams_number < 1 || teams_number > max_number_of_teams)
     {
         teams_number = (int)round(sqrt(players_number));
-        if (teams_number > 9)
-            teams_number = 9;
+        if (teams_number > max_number_of_teams)
+            teams_number = max_number_of_teams;
         if (players_number > 1 && teams_number <= 1)
             teams_number = 2;
     }
@@ -2834,7 +2835,7 @@ void CommandManager::process_randomteams(Context& context)
             "Created %d teams for %d players", teams_number, players_number);
     std::vector<int> available_colors;
     std::vector<int> profile_colors;
-    for (int i = 1; i <= 9; ++i)
+    for (int i = 1; i <= max_number_of_teams; ++i)
         available_colors.push_back(i);
 
     std::random_device rd;
@@ -2856,7 +2857,7 @@ void CommandManager::process_randomteams(Context& context)
             continue;
         for (auto& profile : p->getPlayerProfiles()) {
             std::string name = StringUtils::wideToUtf8(profile->getName());
-            std::string color = m_lobby->m_team_default_names[profile_colors.back()];
+            std::string color = TeamUtils::getTeamByIndex(profile_colors.back()).getPrimaryCode();
             m_lobby->setTemporaryTeam(name, color);
             if (profile_colors.size() > 1) // prevent crash just in case
                 profile_colors.pop_back();

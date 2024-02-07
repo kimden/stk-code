@@ -216,51 +216,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         ((std::string) ServerConfig::m_help);
 
     m_command_manager = CommandManager(nullptr);
-
-    m_team_name_to_index = {
-           {"red", 1}, {"r", 1},
-        {"orange", 2}, {"o", 2},
-        {"yellow", 3}, {"y", 3},
-         {"green", 4}, {"g", 4},
-          {"blue", 5}, {"b", 5},
-        {"purple", 6}, {"p", 6},
-        {"violet", 6}, {"v", 6},
-          {"cyan", 7}, {"c", 7},
-       {"magenta", 8}, {"m", 8},
-          {"pink", 8},
-           {"sky", 9}, {"s", 9}
-    };
-
-    m_team_default_names = {"none", "red", "orange", "yellow", "green", "blue", "purple", "cyan", "magenta", "sky"};
-
-    m_team_index_to_icon = {
-        {1, StringUtils::utf32ToUtf8({0x1f7e5})},
-        {2, StringUtils::utf32ToUtf8({0x1f7e7})},
-        {3, StringUtils::utf32ToUtf8({0x1f7e8})},
-        {4, StringUtils::utf32ToUtf8({0x1f7e9})},
-        {5, StringUtils::utf32ToUtf8({0x1f7e6})},
-        {6, StringUtils::utf32ToUtf8({0x1f7ea})},
-        {7, StringUtils::utf32ToUtf8({0x1f5fd})},
-        {8, StringUtils::utf32ToUtf8({0x1f338})},
-        {9, StringUtils::utf32ToUtf8({0x2604})}
-    };
-
-    m_team_name = {"No Team",
-        StringUtils::utf32ToUtf8({0x1f7e5}) + "Red",
-        StringUtils::utf32ToUtf8({0x1f7e7}) + "Orange",
-        StringUtils::utf32ToUtf8({0x1f7e8}) + "Yellow",
-        StringUtils::utf32ToUtf8({0x1f7e9}) + "Green",
-        StringUtils::utf32ToUtf8({0x1f7e6}) + "Blue",
-        StringUtils::utf32ToUtf8({0x1f7ea}) + "Purple",
-        StringUtils::utf32ToUtf8({0x1f5fd}) + "Cyan",
-        StringUtils::utf32ToUtf8({0x1f338}) + "Magenta",
-        StringUtils::utf32ToUtf8({ 0x2604}) + "Sky"
-    };
-
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
-
     m_current_max_players_in_game.store(ServerConfig::m_max_players_in_game);
-
     m_consent_on_replays = false;
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
@@ -4644,7 +4601,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         auto it2 = m_team_for_player.find(username);
         if (it2 != m_team_for_player.end())
         {
-            player->setTemporaryTeam(it2->second - 1);
+            player->setTemporaryTeam(it2->second);
         }
         peer->addPlayer(player);
     }
@@ -4964,8 +4921,8 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             prefix = "[" + prefix + "] ";
         }
         int team = profile->getTemporaryTeam();
-        if (team != -1) {
-            prefix = m_team_index_to_icon[team + 1] + " " + prefix;
+        if (team != 0) {
+            prefix = TeamUtils::getTeamByIndex(team).getEmoji() + " " + prefix;
         }
 
         profile_name = StringUtils::utf8ToWide(prefix) + profile_name;
@@ -7146,36 +7103,6 @@ void ServerLobby::initCategories()
             }
         }
     }
-    /*
-    Temporary team indexing:
-    network_player_profile.hpp: -1 for none, [0..5] for teams
-    server config: (-1 for none,) [0..5] for teams
-    server lobby command: 0 for none, [1..6] for teams
-    m_team_for_player: 0 for none, [1..6] for teams
-    Sorry for the confusion.
-    */
-    // change categories according to the teams
-    for (const auto& who: m_team_for_player)
-    {
-        int idx = who.second;
-        std::string player = who.first;
-        for (const auto& pair: m_team_name_to_index)
-        {
-            if (pair.second < 0)
-            {
-                if (pair.second == -idx)
-                {
-                    m_player_categories[pair.first].insert(player);
-                    m_categories_for_player[player].insert(pair.first);
-                }
-                else
-                {
-                    m_player_categories[pair.first].erase(player);
-                    m_categories_for_player[player].erase(pair.first);
-                }
-            }
-        }
-    }
 }   // initCategories
 //-----------------------------------------------------------------------------
 void ServerLobby::initTournamentPlayers()
@@ -7527,7 +7454,7 @@ std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTea
             for (unsigned i = 0; i < results2.size(); i++)
             {
                 response << (i + 1) << ". ";
-                response << "  " << m_team_name[results2[i].second];
+                response << "  " << TeamUtils::getTeamByIndex(results2[i].second).getNameWithEmoji();
                 response << "  " << results2[i].first.score;
                 response << "  " << "(" << StringUtils::timeToString(results2[i].first.time) << ")";
                 response << "\n";
@@ -8165,8 +8092,7 @@ bool ServerLobby::isSoccerGoalTarget() const
 // This should be moved later to another unit.
 void ServerLobby::setTemporaryTeam(const std::string& username, std::string& arg)
 {
-    auto it = m_team_name_to_index.find(arg);
-    int index = (it == m_team_name_to_index.end() ? 0 : it->second);
+    int index = TeamUtils::getIndexByCode(arg);
     m_team_for_player[username] = index;
     irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
@@ -8177,7 +8103,7 @@ void ServerLobby::setTemporaryTeam(const std::string& username, std::string& arg
         {
             if (profile->getName() == wide_player_name)
             {
-                profile->setTemporaryTeam(index - 1);
+                profile->setTemporaryTeam(index);
                 break;
             }
         }
@@ -8192,7 +8118,7 @@ void ServerLobby::clearTemporaryTeams()
 
     for (auto& peer : STKHost::get()->getPeers())
         for (auto& profile : peer->getPlayerProfiles())
-            profile->setTemporaryTeam(-1);
+            profile->setTemporaryTeam(0);
 }   // clearTemporaryTeams
 //-----------------------------------------------------------------------------
 
@@ -8209,9 +8135,9 @@ void ServerLobby::shuffleTemporaryTeams(const std::map<int, int>& permutation)
     {
         for (auto &profile: peer->getPlayerProfiles())
         {
-            auto it = permutation.find(profile->getTemporaryTeam() + 1);
+            auto it = permutation.find(profile->getTemporaryTeam());
             if (it != permutation.end())
-                profile->setTemporaryTeam(it->second - 1);
+                profile->setTemporaryTeam(it->second);
         }
     }
     auto old_scores = m_gp_team_scores;

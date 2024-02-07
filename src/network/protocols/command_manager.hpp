@@ -42,6 +42,7 @@
 #include "network/protocols/command_permissions.hpp"
 #include "utils/enum_extended_reader.hpp"
 #include "utils/set_typo_fixer.hpp"
+#include "utils/team_utils.hpp"
 
 class ServerLobby;
 class Event;
