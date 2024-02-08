@@ -424,6 +424,9 @@ void MaxSpeed::update(int ticks)
     float max_skid_speed = 0.0f;
     float max_skid_engine_force = 0.0f;
 
+    float max_zipper_speed = 0.0f;
+    float max_zipper_engine_force = 0.0f;
+
     for(unsigned int i=MS_DECREASE_MIN; i<MS_DECREASE_MAX; i++)
     {
         SpeedDecrease &slowdown = m_speed_decrease[i];
@@ -444,6 +447,23 @@ void MaxSpeed::update(int ticks)
         m_current_max_speed += speedup.getSpeedIncrease();
         m_add_engine_force  += speedup.getEngineForce();
     }
+
+    // Pick the highest applicable speed boost and the highest applicable engine boost, 
+    // which may come from different effects. This approach fixes all possible "fade-out"
+    // issues.
+    for(unsigned int i=MS_INCREASE_ZIPPER; i<=MS_INCREASE_GROUND_ZIPPER; i++)
+    {
+        SpeedIncrease &speedup = m_speed_increase[i];
+        if (speedup.getSpeedIncrease() > max_zipper_speed)
+            max_zipper_speed = speedup.getSpeedIncrease();
+        if (speedup.getEngineForce() > max_zipper_engine_force)
+            max_zipper_engine_force = speedup.getEngineForce();
+
+        m_current_max_speed -= speedup.getSpeedIncrease();
+        m_add_engine_force  -= speedup.getEngineForce();
+    }
+    m_current_max_speed += max_zipper_speed;
+    m_add_engine_force  += max_zipper_engine_force;
 
     // Prevent the different kinds of skidding speed increases from cumulating
     // We select the highest active max-speed bonus and engine-force bonus,
@@ -517,13 +537,13 @@ void MaxSpeed::saveState(BareNetworkString *buffer) const
     // Now save the speedup state
     // --------------------------
     // Get the bit pattern of all active speedups
-    uint8_t active_speedups = 0;
+    uint16_t active_speedups = 0;
     for(unsigned int i=MS_INCREASE_MIN, b=1; i<MS_INCREASE_MAX; i++, b <<= 1)
     {
         if(m_speed_increase[i].isActive())
             active_speedups |= b;
     }
-    buffer->addUInt8(active_speedups);
+    buffer->addUInt16(active_speedups);
     for(unsigned int i=MS_INCREASE_MIN, b=1; i<MS_INCREASE_MAX; i++, b <<= 1)
     {
         if(active_speedups & b)
@@ -557,7 +577,7 @@ void MaxSpeed::rewindTo(BareNetworkString *buffer)
     // Restore the speedup state
     // --------------------------
     // Get the bit pattern of all active speedups
-    uint8_t active_speedups = buffer->getUInt8();
+    uint16_t active_speedups = buffer->getUInt16();
     for(unsigned int i=MS_INCREASE_MIN, b=1; i<MS_INCREASE_MAX; i++, b <<= 1)
     {
         m_speed_increase[i].rewindTo(buffer, (active_speedups & b) == b);
