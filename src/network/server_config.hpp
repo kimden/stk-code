@@ -476,6 +476,15 @@ namespace ServerConfig
         "Negative value to disable, and this option will always be disabled "
         "for LAN server."));
 
+    SERVER_CFG_PREFIX IntServerConfigParam m_kick_idle_lobby_player_seconds
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1,
+        "kick-idle-lobby-player-seconds",
+        "Kick idle player which has no network activity to server for more "
+        "than some seconds, while in the lobby. Duration also includes the "
+        "period after the player finishes and waits for others to finish. "
+        "Be careful using it. Negative value to disable, and this option "
+        "will always be disabled for LAN server."));
+
     SERVER_CFG_PREFIX IntServerConfigParam m_state_frequency
         SERVER_CFG_DEFAULT(IntServerConfigParam(10,
         "state-frequency",

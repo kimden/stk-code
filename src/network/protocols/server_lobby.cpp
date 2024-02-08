@@ -2497,7 +2497,7 @@ void ServerLobby::update(int ticks)
                 if (m_process_type == PT_CHILD &&
                     peer->getHostId() == m_client_server_host_id.load())
                     continue;
-                Log::info("ServerLobby", "%s %s has been idle for more than"
+                Log::info("ServerLobby", "%s %s has been idle ingame for more than"
                     " %d seconds, kick.",
                     peer->getAddress().toString().c_str(),
                     StringUtils::wideToUtf8(rki.getPlayerName()).c_str(), sec);
@@ -2542,6 +2542,30 @@ void ServerLobby::update(int ticks)
                     kart->adjustSpeed(kart->getKartProperties()->getAnvilSpeedFactor());
                 }
                 m_teammate_swatter_punish.clear();
+            }
+        }
+    }
+    if (m_state.load() == WAITING_FOR_START_GAME) {
+        sec = ServerConfig::m_kick_idle_lobby_player_seconds;
+        auto peers = STKHost::get()->getPeers();
+        for (auto peer: peers)
+        {
+            if (!peer->isAIPeer() &&
+                sec > 0 && peer->idleForSeconds() > sec &&
+                !peer->isDisconnected() && NetworkConfig::get()->isWAN())
+            {
+                // Don't kick in game GUI server host so he can idle in the lobby
+                if (m_process_type == PT_CHILD &&
+                    peer->getHostId() == m_client_server_host_id.load())
+                    continue;
+                std::string peer_name = "";
+                if (peer->hasPlayerProfiles())
+                    peer_name = StringUtils::wideToUtf8(
+                            peer->getPlayerProfiles()[0]->getName()).c_str();
+                Log::info("ServerLobby", "%s %s has been idle on the server for "
+                        "more than %d seconds, kick.",
+                        peer->getAddress().toString().c_str(), peer_name, sec);
+                peer->kick();
             }
         }
     }

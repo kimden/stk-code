@@ -192,6 +192,9 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- Kick idle player which has no network activity to server for more than some seconds during game, unless he has finished the race. Negative value to disable, and this option will always be disabled for LAN server. -->
     <kick-idle-player-seconds value="60" />
 
+    <!-- Kick idle player which has no network activity to server for more than some seconds, while in the lobby.. Duration also includes the period after the player finishes and waits for others to finish. Be careful using it. Negative value to disable, and this option will always be disabled for LAN server. -->
+    <kick-idle-lobby-player-seconds value="-1" />
+
     <!-- Set how many states the server will send per second, the higher this value, the more bandwidth requires, also each client will trigger more rewind, which clients with slow device may have problem playing this server, use the default value is recommended. -->
     <state-frequency value="10" />
 
