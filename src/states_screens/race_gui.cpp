@@ -120,7 +120,7 @@ void RaceGUI::initSize()
     m_timer_width = area.Width;
     m_font_height = area.Height;
 
-    area = font->getDimension(L"99.999");
+    area = font->getDimension(L"99:99:99.999");
     m_small_precise_timer_width = area.Width;
 
     area = font->getDimension(L"99:99:99.999");

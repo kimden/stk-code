@@ -291,7 +291,7 @@ void CreateServerScreen::createServer()
     RibbonWidget* difficulty_widget = getWidget<RibbonWidget>("difficulty");
     RibbonWidget* gamemode_widget = getWidget<RibbonWidget>("gamemode");
 
-    if (name.size() < 4 || name.size() > 30)
+    if (name.size() < 4 || name.size() > 1000)
     {
         //I18N: In the create server screen
         m_info_widget->setText(
