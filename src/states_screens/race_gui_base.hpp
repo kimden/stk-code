@@ -34,6 +34,7 @@ namespace irr
 using namespace irr;
 
 #include "utils/vec3.hpp"
+#include "utils/ranking.hpp"
 
 class AbstractKart;
 class Camera;
@@ -260,6 +261,7 @@ public:
     virtual void clearAllMessages() { m_messages.clear(); }
 
     void drawGlobalPlayerIcons(int bottom_margin);
+    void drawLiveRankingChanges();
     void drawPlayerIcon(AbstractKart *kart, int x, int y, int w,
                         bool is_local);
     

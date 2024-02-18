@@ -334,6 +334,8 @@ void RaceGUI::renderGlobal(float dt)
             drawGlobalMusicDescription();
         }
     }
+    if (!m_is_tutorial)
+        drawLiveRankingChanges();
 
     if (!m_is_tutorial)
     {

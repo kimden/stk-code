@@ -1025,7 +1025,139 @@ void RaceGUIBase::drawGlobalPlayerIcons(int bottom_margin)
     } //next position
 #endif
 }   // drawGlobalPlayerIcons
+//-----------------------------------------------------------------------------
 
+void RaceGUIBase::drawLiveRankingChanges()
+{
+#ifndef SERVER_ONLY
+    const RaceManager::MinorRaceModeType minor_mode = RaceManager::get()->getMinorMode();
+    if (minor_mode==RaceManager::MINOR_MODE_3_STRIKES ||
+        minor_mode==RaceManager::MINOR_MODE_FREE_FOR_ALL ||
+        minor_mode==RaceManager::MINOR_MODE_CAPTURE_THE_FLAG ||
+        minor_mode==RaceManager::MINOR_MODE_EASTER_EGG ||
+        minor_mode==RaceManager::MINOR_MODE_SOCCER)
+    {
+        return;
+    }
+
+    LinearWorld *linear_world = (LinearWorld*)(World::getWorld());
+    if (!linear_world)
+        return;
+
+    // LinearWorld::estimateFinishTimeForKart(AbstractKart* kart)
+
+    unsigned int sta = RaceManager::get()->getNumSpareTireKarts();
+    const unsigned int kart_amount = linear_world->getNumKarts() - sta;
+
+
+    unsigned player_count = kart_amount;
+    bool is_time_trial = RaceManager::get()->isTimeTrialMode();
+    std::vector<bool> is_eliminated;
+    std::vector<bool> is_handicapped;
+    std::vector<int> ids;
+    std::vector<double> prev_raw_scores;
+    std::vector<double> prev_shown_scores;
+    std::vector<double> prev_max_scores;
+    std::vector<unsigned> prev_num_games;
+    std::vector<double> prev_deviations;
+    std::vector<double> race_times;
+    std::vector<uint64_t> prev_masks;
+
+    for (int position = 1; position <= (int)kart_amount; position++)
+    {
+        AbstractKart *kart = linear_world->getKartAtDrawingPosition(position);
+        if (!kart->isVisible())
+            continue;
+
+        unsigned int kart_id = kart->getWorldKartId();
+
+        is_eliminated.push_back(kart->isEliminated());
+        Log::info("kimden", "pos = %d, kart_id = %d, online id = %d", position, kart_id, RaceManager::get()->getKartInfo(kart_id).getOnlineId());
+        uint32_t id = position;//RaceManager::get()->getKartInfo(kart_id).getOnlineId();
+        ids.push_back(id);
+
+        prev_raw_scores.push_back(4000.0);
+        prev_shown_scores.push_back(1300.0);
+        prev_deviations.push_back(1000.0);
+        prev_masks.push_back(0);
+        is_handicapped.push_back(kart->getHandicap());
+
+        float finish_time = linear_world->estimateFinishTimeForKart(kart);
+        if (kart->hasFinishedRace())
+            finish_time = RaceManager::get()->getKartRaceTime(kart_id);
+
+        race_times.push_back(finish_time);
+        prev_max_scores.push_back(1300.0);
+        prev_num_games.push_back(0);
+
+        // For actual ranking stuff
+        // prev_raw_scores.push_back(m_raw_scores.at(id));
+        // prev_shown_scores.push_back(m_scores.at(id));
+        // prev_deviations.push_back(m_rating_deviations.at(id));
+        // prev_masks.push_back(m_num_ranked_disconnects.at(id));
+        // is_handicapped.push_back(w->getKart(i)->getHandicap());
+        // race_times.push_back(RaceManager::get()->getKartRaceTime(i));
+        // prev_max_scores.push_back(m_max_scores.at(id));
+        // prev_num_games.push_back(m_num_ranked_races.at(id));
+    }
+
+    RankingPartialState old_state(player_count, ids, prev_raw_scores,
+            prev_shown_scores, prev_deviations, prev_masks, prev_num_games, prev_max_scores);
+    RaceResult result(is_time_trial, player_count, ids, is_eliminated, is_handicapped, race_times);
+    RankingPartialState new_state = old_state;
+
+    for (int i = 0; i < 100; i++)
+        updateRankingState(new_state, result);
+
+    int current_position = Camera::getActiveCamera()->getKart()->getPosition();
+
+    for (int position = 1; position <= (int)kart_amount ; position++)
+    {
+        AbstractKart *kart = linear_world->getKartAtDrawingPosition(position);
+        if (!kart->isVisible())
+            continue;
+        unsigned int kart_id = kart->getWorldKartId();
+        float finish_time = linear_world->estimateFinishTimeForKart(kart);
+        if (kart->hasFinishedRace())
+            finish_time = RaceManager::get()->getKartRaceTime(kart_id);
+        double value = round(new_state.shown_scores[position - 1] * 1) * 1;
+        std::string text = StringUtils::insertValues("%d. %f", position, value);
+
+        core::rect<s32> pos(irr_driver->getActualScreenSize().Width * 78 / 100,
+                            irr_driver->getActualScreenSize().Height * (20 + position * 4) / 100,
+                            irr_driver->getActualScreenSize().Width,
+                            irr_driver->getActualScreenSize().Height * (24 + position * 4) / 100);
+
+        gui::ScalableFont* font = GUIEngine::getFont();
+        font->setScale(1.0f);
+        font->setBlackBorder(true);
+        auto color = video::SColor(255, 255, 255, 255);
+        if (position == current_position)
+            color = video::SColor(255, 255, 255, 0);
+        font->draw(text.c_str(), pos, color, false, false, NULL,
+                true /* ignore RTL */);
+        font->setBlackBorder(false);
+        font->setScale(1.0f);
+
+        if (position == current_position)
+        {
+            core::rect<s32> pos(irr_driver->getActualScreenSize().Width * 78 / 100,
+                            irr_driver->getActualScreenSize().Height * 15 / 100,
+                            irr_driver->getActualScreenSize().Width,
+                            irr_driver->getActualScreenSize().Height * 10 / 100);
+
+            gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+            font->setScale(2.0f);
+            font->setBlackBorder(true);
+            text = StringUtils::insertValues("%f", value);
+            font->draw(text.c_str(), pos, color, false, false, NULL,
+                    true /* ignore RTL */);
+            font->setBlackBorder(false);
+            font->setScale(1.0f);
+        }
+    }
+#endif
+}   // drawLiveRankingChanges
 //-----------------------------------------------------------------------------
 /** Draw one player icon
  *  Takes care of icon looking different due to plumber, squashing, ...

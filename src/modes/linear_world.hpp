@@ -133,9 +133,10 @@ protected:
     std::vector<KartInfo> m_kart_info;
 
     virtual void  checkForWrongDirection(unsigned int i, float dt);
-    virtual float estimateFinishTimeForKart(AbstractKart* kart) OVERRIDE;
 
 public:
+
+    virtual float estimateFinishTimeForKart(AbstractKart* kart) OVERRIDE;
                   LinearWorld();
    /** call just after instanciating. can't be moved to the contructor as child
        classes must be instanciated, otherwise polymorphism will fail and the
