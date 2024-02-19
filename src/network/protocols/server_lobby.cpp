@@ -3053,11 +3053,6 @@ void ServerLobby::startSelection(const Event *event)
     {
         m_available_kts.second.erase(track_erase);
     }
-//    if (!m_tracks_queue.empty())
-//    {
-//        m_available_kts.second.clear();
-//        m_available_kts.second.insert(m_tracks_queue.front());
-//    }
 
     max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
@@ -3601,13 +3596,18 @@ void ServerLobby::checkRaceFinished()
     }
     m_state.store(WAIT_FOR_RACE_STOPPED);
 
-    if (!m_tracks_queue.empty())
+    m_map_history.push_back(RaceManager::get()->getTrackName());
+
+    if (!m_onetime_tracks_queue.empty())
     {
-        m_map_history.push_back(RaceManager::get()->getTrackName());
-        m_tracks_queue.pop_front();
-        // Reload GP tracks if GP ends
-        if (m_tracks_queue.empty() && m_game_setup->isGrandPrix())
-            loadTracksQueueFromConfig();
+        m_onetime_tracks_queue.pop_front();
+    }
+    if (!m_cyclic_tracks_queue.empty())
+    {
+        auto item = m_cyclic_tracks_queue.front();
+        m_cyclic_tracks_queue.pop_front();
+        if (!item.isPlaceholder())
+            m_cyclic_tracks_queue.push_back(item);
     }
 }   // checkRaceFinished
 
@@ -6728,6 +6728,8 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
 void ServerLobby::handleServerCommand(Event* event,
                                       std::shared_ptr<STKPeer> peer)
 {
+    if (peer.get())
+        peer->updateLastActivity();
     getCommandManager().handleCommand(event, peer);
 }   // handleServerCommand
 //-----------------------------------------------------------------------------
@@ -6990,7 +6992,10 @@ void ServerLobby::resetToDefaultSettings()
         m_fixed_direction = ServerConfig::m_fixed_direction;
 
     if (!m_preserve.count("queue"))
-        m_tracks_queue.clear();
+        m_onetime_tracks_queue.clear();
+
+    if (!m_preserve.count("qcyclic"))
+        m_cyclic_tracks_queue.clear();
 
     if (!m_preserve.count("replay"))
         setConsentOnReplays(false);
@@ -7311,10 +7316,17 @@ bool ServerLobby::canRace(STKPeer* peer) const
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
         return false;
 
-    if (!m_tracks_queue.empty())
+    if (!m_onetime_tracks_queue.empty())
     {
         std::set<std::string> st = peer->getClientAssets().second;
-        m_tracks_queue.front().apply(0, st, m_map_history);
+        m_onetime_tracks_queue.front().apply(0, st, m_map_history);
+        if (st.empty())
+            return false;
+    }
+    else if (!m_cyclic_tracks_queue.empty())
+    {
+        std::set<std::string> st = peer->getClientAssets().second;
+        m_cyclic_tracks_queue.front().apply(0, st, m_map_history);
         if (st.empty())
             return false;
     }
@@ -7422,11 +7434,20 @@ int ServerLobby::getPermissions(STKPeer* peer) const
 //-----------------------------------------------------------------------------
 void ServerLobby::loadTracksQueueFromConfig()
 {
-    std::vector<std::string> tokens = StringUtils::split(
-        ServerConfig::m_tracks_order, ' ');
-    m_tracks_queue.clear();
+    std::vector<std::string> tokens;
+    m_onetime_tracks_queue.clear();
+    m_cyclic_tracks_queue.clear();
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_tracks_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
-        m_tracks_queue.push_back(TrackFilter(s));
+    {
+        m_onetime_tracks_queue.push_back(TrackFilter(s));
+        m_cyclic_tracks_queue.push_back(TrackFilter(TrackFilter::PLACEHOLDER_STRING));
+    }
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_cyclic_tracks_order, ' ', '{', '}', '\\');
+    for (std::string& s: tokens)
+        m_cyclic_tracks_queue.push_back(TrackFilter(s));
 }   // loadTracksQueueFromConfig
 //-----------------------------------------------------------------------------
 std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTeam) const
@@ -8220,8 +8241,10 @@ void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history)
             m_tournament_track_filters[m_tournament_game].apply(
                     max_player, maps, m_tournament_arenas);
         }
-        if (!m_tracks_queue.empty())
-            m_tracks_queue.front().apply(max_player, maps, m_map_history);
+        if (!m_onetime_tracks_queue.empty())
+            m_onetime_tracks_queue.front().apply(max_player, maps, m_map_history);
+        if (!m_cyclic_tracks_queue.empty())
+            m_cyclic_tracks_queue.front().apply(max_player, maps, m_map_history);
     }
 }   // applyAllFilters
 //-----------------------------------------------------------------------------

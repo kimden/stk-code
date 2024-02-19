@@ -362,7 +362,9 @@ private:
 
     std::set<std::string> m_temp_banned;
 
-    std::deque<TrackFilter> m_tracks_queue;
+    std::deque<TrackFilter> m_onetime_tracks_queue;
+
+    std::deque<TrackFilter> m_cyclic_tracks_queue;
 
     std::vector<std::string> m_map_history;
 

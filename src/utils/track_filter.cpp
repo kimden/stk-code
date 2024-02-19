@@ -32,6 +32,8 @@
 #include <string>
 #include <exception>
 
+std::string TrackFilter::PLACEHOLDER_STRING = ":placeholder";
+
 TrackFilter::TrackFilter()
 {
 
@@ -40,7 +42,13 @@ TrackFilter::TrackFilter()
 
 TrackFilter::TrackFilter(std::string input)
 {
+    // Make sure to update prepareMapNames too!
     initial_string = input;
+    if (input == PLACEHOLDER_STRING)
+    {
+        m_placeholder = true;
+        return;
+    }
     auto tokens = StringUtils::split(input, ' ');
     bool good = true;
     others = false;
@@ -140,6 +148,62 @@ TrackFilter::TrackFilter(std::string input)
             others = true;
 }   // TrackFilter
 //-----------------------------------------------------------------------------
+
+std::vector<TrackFilter::SplitArgument> TrackFilter::prepareMapNames(std::string& input)
+{
+    // Basically does the same as the constructor but splits the string
+    // into some kind of tokens such that some of them have to be checked for
+    // being maps and some of them don't have to
+
+    auto tokens = StringUtils::split(input, ' ');
+    std::vector<SplitArgument> res;
+    if (input == PLACEHOLDER_STRING)
+        return {SplitArgument(input, -1, false)};
+
+    std::set<std::string> keywords = {
+        "", " ", "random", "available", "unavailable", "official", "addon", "not", "no", "yes", "ok", "other:yes", "other:no"
+    };
+    for (unsigned i = 0; i < tokens.size(); i++)
+    {
+        if (i)
+            res.emplace_back(" ", -1, false);
+
+        if (keywords.find(tokens[i]) != keywords.end() || tokens[i][0] == '%')
+        {
+            res.emplace_back(tokens[i], i, false);
+            if (tokens[i] == "random" && i + 1 < tokens.size())
+            {
+                res.emplace_back(" ", -1, false);
+                res.emplace_back(tokens[i + 1], i + 1, false);
+                i++;
+            }
+        }
+        else
+        {
+            int separator = tokens[i].find(':');
+            if (separator != std::string::npos)
+            {
+                std::string track = tokens[i].substr(0, separator);
+                std::string rest = tokens[i].substr(separator);
+                res.emplace_back(track, i, true);
+                res.emplace_back(rest, i, false);
+            }
+            else
+            {
+                res.emplace_back(tokens[i], i, true);
+            }
+        }
+    }
+    // Log::info("prepareMapNames", "================================== %s", input.c_str());
+    // for (auto& p: res)
+    // {
+    //     Log::info("prepareMapNames", "\"%s\", %d, %d", p.value.c_str(), p.index, (p.is_map ? 1 : 0));
+    // }
+    // Log::info("prepareMapNames", "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+    return res;
+}   // prepareMapNames
+//-----------------------------------------------------------------------------
+
 std::string TrackFilter::get(const std::vector<std::string>& vec, int index)
 {
     if (index >= 0 && index < vec.size())
@@ -160,6 +224,8 @@ void TrackFilter::apply(int num_players, std::set<std::string>& input) const
 void TrackFilter::apply(int num_players, std::set<std::string>& input,
     const std::vector<std::string>& wildcards) const
 {
+    if (isPlaceholder())
+        return;
     std::set<std::string> copy = input;
     input.clear();
 

@@ -666,8 +666,14 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX StringServerConfigParam m_tracks_order
         SERVER_CFG_DEFAULT(StringServerConfigParam("", "tracks-queue",
-        "If non-empty, these tracks are played in the order until "
-        "the list ends. Can be useful for grands prix."));
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order until the list ends."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cyclic_tracks_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "cyclic-tracks-queue",
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order cyclically, "
+        "except if something is in the regular tracks queue."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_gp_scoring
         SERVER_CFG_DEFAULT(StringServerConfigParam(

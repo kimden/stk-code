@@ -38,6 +38,7 @@
 struct TrackFilter
 {
     std::string initial_string;
+    bool m_placeholder = false;
     bool m_include_available = true;
     bool m_include_unavailable = true;
     bool m_include_official = true;
@@ -58,6 +59,19 @@ struct TrackFilter
         const std::vector<std::string>& wildcards) const;
     bool isPickingRandom() const                      { return m_pick_random; }
     std::string toString() const;
+    bool isPlaceholder() const                        { return m_placeholder; }
+
+    struct SplitArgument {
+        std::string value;
+        int index;
+        bool is_map;
+
+        SplitArgument(const std::string& value, int index, bool is_map):
+            value(value), index(index), is_map(is_map) {}
+    };
+
+    static std::vector<SplitArgument> prepareMapNames(std::string& input);
+    static std::string PLACEHOLDER_STRING;
 };
 
 #endif

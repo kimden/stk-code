@@ -73,6 +73,8 @@
 #include <iterator>
 #include <utility>
 
+std::vector<std::string> CommandManager::QUEUE_NAMES = {"", "queue", "qcyclic", "qboth"};
+
 // ========================================================================
 EnumExtendedReader CommandManager::mode_scope_reader({
     {"MS_DEFAULT", MS_DEFAULT},
@@ -375,20 +377,20 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("length x", &CM::process_length_multi);
     applyFunctionIfPossible("direction", &CM::process_direction);
     applyFunctionIfPossible("direction =", &CM::process_direction_assign);
-    applyFunctionIfPossible("queue", &CM::process_queue);
-    applyFunctionIfPossible("queue push", &CM::process_queue_push);
-    applyFunctionIfPossible("queue push_back", &CM::process_queue_push);
-    applyFunctionIfPossible("queue push_front", &CM::process_queue_push);
-    // Temporary pf commands
-    applyFunctionIfPossible("queue pf", &CM::process_queue_pf);
-    applyFunctionIfPossible("queue pf_back", &CM::process_queue_pf);
-    applyFunctionIfPossible("queue pf_front", &CM::process_queue_pf);
-    // End of pf commands
-    applyFunctionIfPossible("queue pop", &CM::process_queue_pop);
-    applyFunctionIfPossible("queue pop_back", &CM::process_queue_pop);
-    applyFunctionIfPossible("queue pop_front", &CM::process_queue_pop);
-    applyFunctionIfPossible("queue clear", &CM::process_queue_clear);
-    applyFunctionIfPossible("queue shuffle", &CM::process_queue_shuffle);
+    for (const std::string& name: QUEUE_NAMES)
+    {
+        if (name.empty())
+            continue;
+        applyFunctionIfPossible(name + "", &CM::process_queue);
+        applyFunctionIfPossible(name + " push", &CM::process_queue_push);
+        applyFunctionIfPossible(name + " push_back", &CM::process_queue_push);
+        applyFunctionIfPossible(name + " push_front", &CM::process_queue_push);
+        applyFunctionIfPossible(name + " pop", &CM::process_queue_pop);
+        applyFunctionIfPossible(name + " pop_back", &CM::process_queue_pop);
+        applyFunctionIfPossible(name + " pop_front", &CM::process_queue_pop);
+        applyFunctionIfPossible(name + " clear", &CM::process_queue_clear);
+        applyFunctionIfPossible(name + " shuffle", &CM::process_queue_shuffle);
+    }
     applyFunctionIfPossible("allowstart", &CM::process_allowstart);
     applyFunctionIfPossible("allowstart =", &CM::process_allowstart_assign);
     applyFunctionIfPossible("shuffle", &CM::process_shuffle);
@@ -616,7 +618,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     }
     m_user_command_replacements.erase(username);
     if (!restored)
-        m_user_correct_arguments.erase(username);
+        m_user_last_correct_argument.erase(username);
 
     std::shared_ptr<Command> current_command = m_root_command;
     std::shared_ptr<Command> executed_command;
@@ -2459,11 +2461,21 @@ void CommandManager::process_queue(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = StringUtils::insertValues("Queue (size = %d):",
-        (int)m_lobby->m_tracks_queue.size());
-    for (const TrackFilter& s: m_lobby->m_tracks_queue) {
-        msg += " " + s.toString();
+    std::string msg = "";
+    int mask = get_queue_mask(context.m_argv[0]);
+    for (int x = QM_START; x < QM_END; x <<= 1)
+    {
+        if (mask & x)
+        {
+            auto& queue = get_queue(x);
+            msg += StringUtils::insertValues("%s (size = %d):",
+                get_queue_name(x), (int)queue.size());
+            for (const TrackFilter& s: queue)
+                msg += " " + s.toString();
+            msg += "\n";
+        }
     }
+    msg.pop_back();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_queue
 // ========================================================================
@@ -2483,63 +2495,87 @@ void CommandManager::process_queue_push(Context& context)
         error(context);
         return;
     }
+    int mask = get_queue_mask(argv[0]);
     bool to_front = (argv[1] == "push_front");
-    if (argv[2] == "-")
+
+    if (argv.size() == 3 && argv[2] == "-") // kept until there's filter-type replacement
         argv[2] = getRandomMap();
-    else if (argv[2] == "-addon")
+    else if (argv.size() == 3 && argv[2] == "-addon") // kept until there's filter-type replacement
         argv[2] = getRandomAddonMap();
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-                2, m_stf_all_maps, 3, false, false))
-        return;
-    if (to_front)
-        m_lobby->m_tracks_queue.emplace_front(argv[2]);
-    else
-        m_lobby->m_tracks_queue.emplace_back(argv[2]);
-    std::string msg = "Pushed " + argv[2]
-                      + " to the " + (to_front ? "front" : "back")
-                      + " of queue, current queue size: "
-                      + std::to_string(m_lobby->m_tracks_queue.size());
+
+    std::string filter_text = "";
+    CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
+    std::vector<TrackFilter::SplitArgument> items = TrackFilter::prepareMapNames(filter_text);
+
+    int last_index = -1;
+    int prefix_length = 0;
+    int suffix_length = 0;
+    int subidx = 0;
+    for (TrackFilter::SplitArgument& p: items)
+    {
+        if (!p.is_map)
+            continue;
+        if (p.index != -1 && last_index != p.index)
+        {
+            last_index = p.index;
+            prefix_length = 0;
+            subidx = 0;
+        }
+        auto& cell = context.m_argv[2 + p.index];
+        suffix_length = cell.length() - p.value.length() - prefix_length;
+        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
+                    2 + p.index, m_stf_all_maps, 3, false, false, false, subidx,
+                    prefix_length, cell.length() - suffix_length))
+            return;
+        p.value = cell.substr(prefix_length, cell.length() - suffix_length - prefix_length);
+        prefix_length += cell.length() - suffix_length;
+    }
+    filter_text = "";
+    for (auto& p: items)
+        filter_text += p.value;
+
+    std::string msg = "";
+
+    for (int x = QM_START; x < QM_END; x <<= 1)
+    {
+        if (mask & x)
+        {
+            int another = another_cyclic_queue(x);
+            if (to_front)
+            {
+                get_queue(x).emplace_front(filter_text);
+                if (another >= QM_START && !(mask & another))
+                {
+                    get_queue(another).emplace_front(TrackFilter::PLACEHOLDER_STRING);
+                }
+            }
+            else
+            {
+                get_queue(x).emplace_back(filter_text);
+                // here you have to push to FRONT and not back because onetime
+                // queue should be invoked strictly before
+                if (another >= QM_START && !(mask & another))
+                {
+                    get_queue(another).emplace_front(TrackFilter::PLACEHOLDER_STRING);
+                }
+            }
+
+            msg += "Pushed { " + filter_text + " }"
+                            + " to the " + (to_front ? "front" : "back")
+                            + " of " + get_queue_name(x) + ", current queue size: "
+                            + std::to_string(get_queue(x).size()) + "\n";
+        }
+    }
+
+    msg.pop_back();
     m_lobby->sendStringToAllPeers(msg);
     m_lobby->updatePlayerList();
 } // process_queue_push
 // ========================================================================
 
-void CommandManager::process_queue_pf(Context& context)
-{
-    auto& argv = context.m_argv;
-    auto peer = context.m_peer.lock();
-    if (!peer)
-    {
-        error(context, true);
-        return;
-    }
-
-    if (argv.size() < 3)
-    {
-        error(context);
-        return;
-    }
-    bool to_front = (argv[1] == "pf_front");
-    std::string filter_text = argv[2];
-    if (argv.size() > 3) {
-        CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
-    }
-    if (to_front)
-        m_lobby->m_tracks_queue.emplace_front(filter_text);
-    else
-        m_lobby->m_tracks_queue.emplace_back(filter_text);
-    std::string msg = "Pushed { " + filter_text + " }"
-                      + " to the " + (to_front ? "front" : "back")
-                      + " of queue, current queue size: "
-                      + std::to_string(m_lobby->m_tracks_queue.size());
-    m_lobby->sendStringToAllPeers(msg);
-    m_lobby->updatePlayerList();
-} // process_queue_pf
-// ========================================================================
-
 void CommandManager::process_queue_pop(Context& context)
 {
-    std::string msg;
+    std::string msg = "";
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
     if (!peer)
@@ -2547,23 +2583,46 @@ void CommandManager::process_queue_pop(Context& context)
         error(context, true);
         return;
     }
-
+    int mask = get_queue_mask(argv[0]);
     bool from_back = (argv[1] == "pop_back");
-    if (m_lobby->m_tracks_queue.empty()) {
-        msg = "Queue was empty before.";
-    }
-    else
+
+    for (int x = QM_START; x < QM_END; x <<= 1)
     {
-        auto object = (from_back ? m_lobby->m_tracks_queue.back() : m_lobby->m_tracks_queue.front());
-        msg = "Popped " + object.toString()
-              + " from the " + (from_back ? "back" : "front") + " of the queue,";
-        if (from_back)
-            m_lobby->m_tracks_queue.pop_back();
-        else
-            m_lobby->m_tracks_queue.pop_front();
-        msg += " current queue size: "
-               + std::to_string(m_lobby->m_tracks_queue.size());
+        if (mask & x)
+        {
+            int another = another_cyclic_queue(x);
+            if (get_queue(x).empty()) {
+                msg = "The " + get_queue_name(x) + " was empty before.";
+            }
+            else
+            {
+                auto object = (from_back ? get_queue(x).back() : get_queue(x).front());
+                msg += "Popped " + object.toString()
+                    + " from the " + (from_back ? "back" : "front") + " of the "
+                    + get_queue_name(x) + ",";
+                if (from_back)
+                {
+                    get_queue(x).pop_back();
+                }
+                else
+                {
+                    get_queue(x).pop_front();
+                }
+                if (another >= QM_START && !(mask & another))
+                {
+                    // here you have to pop from FRONT and not back because it
+                    // was pushed to the front - see process_queue_push
+                    auto& q = get_queue(another);
+                    if (!q.empty() && q.front().isPlaceholder())
+                        q.pop_front();
+                }
+                msg += " current queue size: "
+                    + std::to_string(get_queue(x).size());
+                msg += "\n";
+            }
+        }
     }
+    msg.pop_back();
     m_lobby->sendStringToAllPeers(msg);
     m_lobby->updatePlayerList();
 } // process_queue_pop
@@ -2571,10 +2630,27 @@ void CommandManager::process_queue_pop(Context& context)
 
 void CommandManager::process_queue_clear(Context& context)
 {
-    std::string msg = StringUtils::insertValues(
-        "Queue is now empty (previous size: %d)",
-        (int)m_lobby->m_tracks_queue.size());
-    m_lobby->m_tracks_queue.clear();
+    int mask = get_queue_mask(context.m_argv[0]);
+    std::string msg = "";
+    for (int x = QM_START; x < QM_END; x <<= 1)
+    {
+        if (mask & x)
+        {
+            int another = another_cyclic_queue(x);
+            msg += StringUtils::insertValues(
+                "The " + get_queue_name(x) + " is now empty (previous size: %d)",
+                (int)get_queue(x).size()) + "\n";
+            get_queue(x).clear();
+
+            if (another >= QM_START && !(mask & another))
+            {
+                auto& q = get_queue(another);
+                while (!q.empty() && q.front().isPlaceholder())
+                    q.pop_front();
+            }
+        }
+    }
+    msg.pop_back();
     m_lobby->sendStringToAllPeers(msg);
     m_lobby->updatePlayerList();
 } // process_queue_clear
@@ -2584,9 +2660,37 @@ void CommandManager::process_queue_shuffle(Context& context)
 {
     std::random_device rd;
     std::mt19937 g(rd());
-    auto& queue = m_lobby->m_tracks_queue;
-    std::shuffle(queue.begin(), queue.end(), g);
-    std::string msg = "Queue is now shuffled";
+
+    int mask = get_queue_mask(context.m_argv[0]);
+    std::string msg = "";
+
+    // Note that as the size of this queue is not changed,
+    // we don't have to do anything with placeholders for the corresponding
+    // cyclic queue, BUT we have to not shuffle the placeholders in the
+    // current queue itself
+    for (int x = QM_START; x < QM_END; x <<= 1)
+    {
+        if (mask & x)
+        {
+            auto& queue = get_queue(x);
+            // As the placeholders can be only at the start of a queue,
+            // let's just do a binary search - in case there are many placeholders
+            int L = -1;
+            int R = queue.size();
+            int mid;
+            while (R - L > 1)
+            {
+                mid = (L + R) / 2;
+                if (queue[mid].isPlaceholder())
+                    L = mid;
+                else
+                    R = mid;
+            }
+            std::shuffle(queue.begin() + R, queue.end(), g);
+            msg += "The " + get_queue_name(x) + " is now shuffled\n";
+        }
+    }
+    msg.pop_back();
     m_lobby->sendStringToAllPeers(msg);
     m_lobby->updatePlayerList();
 } // process_queue_shuffle
@@ -3925,7 +4029,7 @@ void CommandManager::restoreCmdByArgv(std::string& cmd,
 bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     std::vector<std::string>& argv, std::string& cmd, int idx,
     SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
-    bool dont_replace)
+    bool dont_replace, int subidx, int substr_l, int substr_r)
 {
     if (!peer.get()) // voted
         return false;
@@ -3933,9 +4037,18 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     if (peer->hasPlayerProfiles())
         username = StringUtils::wideToUtf8(
             peer->getPlayerProfiles()[0]->getName());
-    if (idx < m_user_correct_arguments[username])
+    if (std::make_pair(idx, subidx) < m_user_last_correct_argument[username])
         return false;
-    auto closest_commands = stf.getClosest(argv[idx], top, case_sensitive);
+    std::string text = argv[idx];
+    std::string prefix = "";
+    std::string suffix = "";
+    if (substr_r != -1)
+    {
+        prefix = text.substr(0, substr_l);
+        suffix = text.substr(substr_r);
+        text = text.substr(substr_l, substr_r - substr_l);
+    }
+    auto closest_commands = stf.getClosest(text, top, case_sensitive);
     if (closest_commands.empty())
     {
         std::string msg = "Command " + cmd + " not found";
@@ -3948,13 +4061,13 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     if ((no_zeros || at_least_two_zeros) && !(there_is_only_one && !allow_as_is))
     {
         m_user_command_replacements[username].clear();
-        m_user_correct_arguments[username] = idx + 1;
+        m_user_last_correct_argument[username] = {idx, subidx};
         std::string initial_argument = argv[idx];
         std::string response = "";
         if (idx == 0)
-            response += "There is no command \"" + argv[idx] + "\"";
+            response += "There is no command \"" + text + "\"";
         else
-            response += "Argument \"" + argv[idx] + "\" may be invalid";
+            response += "Argument \"" + text + "\" may be invalid";
 
         m_user_saved_voting[username] = voting;
 
@@ -3969,10 +4082,10 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
             m_user_command_replacements[username].push_back("");
         }
         for (unsigned i = 0; i < closest_commands.size(); ++i) {
-            argv[idx] = closest_commands[i].first;
+            argv[idx] = prefix + closest_commands[i].first + suffix;
             CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
             m_user_command_replacements[username].push_back(cmd);
-            response += "\ntype /" + std::to_string(i + 1) + " to choose \"" + argv[idx] + "\"";
+            response += "\ntype /" + std::to_string(i + 1) + " to choose \"" + closest_commands[i].first + "\"";
         }
         argv[idx] = initial_argument;
         CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
@@ -3982,7 +4095,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
 
     if (!dont_replace)
     {
-        argv[idx] = closest_commands[0].first; // converts case or regex
+        argv[idx] = prefix + closest_commands[0].first + suffix; // converts case or regex
         CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
     }
     return false;
@@ -4041,4 +4154,55 @@ std::string CommandManager::getAddonPreferredType() const
         return "arena";
     return "track"; // default choice
 } // getAddonPreferredType
+// ========================================================================
+
+int CommandManager::get_queue_mask(std::string a)
+{
+    for (int i = 0; i < QUEUE_NAMES.size(); i++)
+        if (a == QUEUE_NAMES[i])
+            return i;
+    return QM_NONE;
+} // getAddonPreferredType
+// ========================================================================
+
+std::deque<TrackFilter>& CommandManager::get_queue(int x) const
+{
+    if (x == QM_MAP_ONETIME)
+        return m_lobby->m_onetime_tracks_queue;
+    if (x == QM_MAP_CYCLIC)
+        return m_lobby->m_cyclic_tracks_queue;
+    // if (x == QM_KART_ONETIME)
+    //     return m_lobby->m_onetime_karts_queue;
+    // if (x == QM_KART_CYCLIC)
+    //     return m_lobby->m_cyclic_karts_queue;
+    Log::error("CommandManager",
+               "Unknown queue mask %d, revert to map onetime", x);
+    return m_lobby->m_onetime_tracks_queue;
+
+} // get_queue
+// ========================================================================
+
+std::string CommandManager::get_queue_name(int x)
+{
+    if (x == QM_MAP_ONETIME)
+        return "regular map queue";
+    if (x == QM_MAP_CYCLIC)
+        return "cyclic map queue";
+    // if (x == QM_KART_ONETIME)
+    //    return "regular kart queue";
+    // if (x == QM_KART_CYCLIC)
+    //    return "cyclic kart queue";
+    return StringUtils::insertValues(
+        "[Error QN%d: please report with /tell about it] queue", x);
+} // get_queue_name
+// ========================================================================
+
+int CommandManager::another_cyclic_queue(int x)
+{
+    if (x == QM_MAP_ONETIME)
+        return QM_MAP_CYCLIC;
+    // if (x == QM_KART_ONETIME)
+    //    return QM_KART_CYCLIC;
+    return QM_NONE;
+} // get_queue_name
 // ========================================================================

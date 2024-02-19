@@ -261,8 +261,11 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- If true and no track is selected, then an addon track can be picked. -->
     <random-selects-addons value="false" />
 
-    <!-- If non-empty, these tracks are played in the order until the list ends. Can be useful for grands prix. -->
+    <!-- If non-empty, these tracks (or track filters if enclosed in curly braces) are played in the order until the list ends. -->
     <tracks-queue value="" />
+
+    <!-- If non-empty, these tracks (or track filters if enclosed in curly braces) are played in the order cyclically,  except if something is in the regular tracks queue. -->
+    <cyclic-tracks-queue value="" />
 
     <!-- A custom Grand Prix scoring system to be used, empty for default. -->
     <grand-prix-scoring value="" />
