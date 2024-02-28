@@ -4228,7 +4228,7 @@ void CommandManager::add_to_queue(int x, int mask, bool to_front, std::string& s
     }
     else
     {
-        get_queue(x).push_back(std::make_shared<KartFilter>(s));
+        get_queue(x).push_back(std::make_shared<T>(s));
         // here you have to push to FRONT and not back because onetime
         // queue should be invoked strictly before
         if (another >= QM_START && !(mask & another))

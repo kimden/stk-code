@@ -312,6 +312,8 @@ private:
 
     std::set<STKPeer*> m_team_speakers;
 
+    std::map<STKPeer*, bool> m_peers_ability_to_play;
+
     KartElimination m_kart_elimination;
 
     std::set<int> m_available_difficulties;
@@ -465,7 +467,7 @@ private:
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
     void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer) const;
+    bool checkPeersReady(bool ignore_ai_peer);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
@@ -571,8 +573,8 @@ private:
     void initCategories();
     void initTournamentPlayers();
     void changeColors();
-    bool canRace(std::shared_ptr<STKPeer>& peer) const;
-    bool canRace(STKPeer* peer) const;
+    bool canRace(std::shared_ptr<STKPeer>& peer);
+    bool canRace(STKPeer* peer);
     bool canVote(std::shared_ptr<STKPeer>& peer) const;
     bool canVote(STKPeer* peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer>& peer) const;
@@ -683,7 +685,7 @@ public:
     void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
     void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
     bool areKartFiltersIgnoringKarts() const;
-    std::string getKartForBadKartChoice(const std::string& username, const std::string& check_choice) const;
+    std::string getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const;
 
     static int m_default_fixed_laps;
 };   // class ServerLobby

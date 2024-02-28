@@ -420,6 +420,10 @@ void KartFilter::apply(FilterContext& context) const
     //     return;
     // }
 
+
+    if (!m_ignore_players_input && !context.applied_at_selection_start)
+        return;
+
     // Ignoring means that the random of allowed and randoms will be picked afterwards
     // Not ignoring means that the player chooses from allowed
     // and one instance of each random
@@ -492,19 +496,16 @@ void KartFilter::apply(FilterContext& context) const
             for (const std::string& kart: array)
             {
                 if (m_forbidden_karts.count(kart) > 0)
+                {
                     continue;
-                // if (m_allowed_karts.count(kart) == 0 && !m_allow_unspecified_karts)
-                //     continue;
+                }
                 if (context.elements.count(kart) == 0)
+                {
                     continue;
+                }
                 result.insert(kart);
             }
         }
-    }
-    else
-    {
-        Log::warn("TrackFilter", "Not ignoring player's input but was invoked for the second time");
-        // should not happen
     }
     std::swap(result, context.elements);
 }   // KartFilter::apply

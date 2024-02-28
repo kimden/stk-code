@@ -1985,7 +1985,7 @@ void ServerLobby::asynchronousUpdate()
                 if (areKartFiltersIgnoringKarts())
                     current_kart = "";
                 std::string name = StringUtils::wideToUtf8(players[i]->getName());
-                players[i]->setKartName(getKartForBadKartChoice(name, current_kart));
+                players[i]->setKartName(getKartForBadKartChoice(players[i]->getPeer().get(), name, current_kart));
             }
 
             NetworkString* load_world_message = getLoadWorldMessage(players,
@@ -3192,7 +3192,7 @@ void ServerLobby::startSelection(const Event *event)
            .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
 
 
-        std::set<std::string> all_k = m_available_kts.first;
+        std::set<std::string> all_k = peer->getClientAssets().first;
         std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
         // std::string username = StringUtils::wideToUtf8(profile->getName());
         applyAllKartFilters(username, all_k);
@@ -6345,7 +6345,7 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
         if (areKartFiltersIgnoringKarts())
             current_kart = "";
         std::string name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName());
-        peer->getPlayerProfiles()[i]->setKartName(getKartForBadKartChoice(name, current_kart));
+        peer->getPlayerProfiles()[i]->setKartName(getKartForBadKartChoice(peer, name, current_kart));
     }
     if (peer->getClientCapabilities().find("real_addon_karts") ==
         peer->getClientCapabilities().end() || ns.size() == 0)
@@ -6564,6 +6564,7 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
     if (!update)
         return m_spectators_by_limit;
 
+    m_peers_ability_to_play.clear();
     m_spectators_by_limit.clear();
 
     auto peers = STKHost::get()->getPeers();
@@ -6655,7 +6656,7 @@ bool ServerLobby::supportsAI()
 }   // supportsAI
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
+bool ServerLobby::checkPeersReady(bool ignore_ai_peer)
 {
     bool all_ready = true;
     bool someone_races = false;
@@ -7256,25 +7257,29 @@ void ServerLobby::sendStringToAllPeers(std::string& s)
     delete chat;
 }   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
-bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer) const
+bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer)
 {
     return canRace(peer.get());
 }   // canRace
 //-----------------------------------------------------------------------------
-bool ServerLobby::canRace(STKPeer* peer) const
+bool ServerLobby::canRace(STKPeer* peer)
 {
+    auto it = m_peers_ability_to_play.find(peer);
+    if (it != m_peers_ability_to_play.end())
+        return it->second;
+
     if (!peer || peer->getPlayerProfiles().empty())
-        return false;
+        return m_peers_ability_to_play[peer] = false;
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (ServerConfig::m_soccer_tournament)
     {
         if (m_tournament_red_players.count(username) == 0 &&
             m_tournament_blue_players.count(username) == 0)
-            return false;
+            return m_peers_ability_to_play[peer] = false;
     }
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
-        return false;
+        return m_peers_ability_to_play[peer] = false;
 
     std::set<std::string> maps = peer->getClientAssets().second;
     std::set<std::string> karts = peer->getClientAssets().first;
@@ -7282,19 +7287,22 @@ bool ServerLobby::canRace(STKPeer* peer) const
     applyAllFilters(maps, true);
     applyAllKartFilters(username, karts, false);
 
+    if (maps.empty() || karts.empty())
+        return m_peers_ability_to_play[peer] = false;
+
     if (!m_play_requirement_tracks.empty())
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
-                return false;
+                return m_peers_ability_to_play[peer] = false;
     if (peer->addon_karts_count < ServerConfig::m_addon_karts_play_threshold)
-        return false;
+        return m_peers_ability_to_play[peer] = false;
     if (peer->addon_tracks_count < ServerConfig::m_addon_tracks_play_threshold)
-        return false;
+        return m_peers_ability_to_play[peer] = false;
     if (peer->addon_arenas_count < ServerConfig::m_addon_arenas_play_threshold)
-        return false;
+        return m_peers_ability_to_play[peer] = false;
     if (peer->addon_soccers_count < ServerConfig::m_addon_soccers_play_threshold)
-        return false;
-    return true;
+        return m_peers_ability_to_play[peer] = false;
+    return m_peers_ability_to_play[peer] = true;
 }   // canRace
 //-----------------------------------------------------------------------------
 bool ServerLobby::canVote(std::shared_ptr<STKPeer>& peer) const
@@ -8218,9 +8226,13 @@ void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history)
         }
         track_context.wildcards = m_map_history;
         if (!m_onetime_tracks_queue.empty())
+        {
             m_onetime_tracks_queue.front()->apply(track_context);
+        }
         if (!m_cyclic_tracks_queue.empty())
+        {
             m_cyclic_tracks_queue.front()->apply(track_context);
+        }
     }
     swap(maps, track_context.elements);
 }   // applyAllFilters
@@ -8257,9 +8269,9 @@ bool ServerLobby::areKartFiltersIgnoringKarts() const
     return false;
 }   // applyAllKartFilters
 //-----------------------------------------------------------------------------
-std::string ServerLobby::getKartForBadKartChoice(const std::string& username, const std::string& check_choice) const
+std::string ServerLobby::getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const
 {
-    std::set<std::string> karts = m_available_kts.first;
+    std::set<std::string> karts = peer->getClientAssets().first;
     applyAllKartFilters(username, karts, true);
     if (m_kart_elimination.isEliminated(username)
         && karts.count(m_kart_elimination.getKart()))
