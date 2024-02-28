@@ -123,6 +123,9 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- Tracks needed to enter the server, leave empty for no restriction. -->
     <must-have-tracks value="hacienda xr591 addon_animtrack_1 minigolf" />
 
+    <!-- List of karts that can be played on a server, leave empty for no restriction or put 'not' before the list to name tracks that cannot be played. It is not guaranteed to work with addons. -->
+    <only-played-karts value="" />
+
     <!-- List of tracks that can be played on a server, leave empty for no restriction or put 'not' before the list to name tracks that cannot be played. -->
     <only-played-tracks value="not abyss snowtuxpeak addon_minigolf" />
 
@@ -266,6 +269,12 @@ The current server configuration xml looks like this (this is only an example, j
 
     <!-- If non-empty, these tracks (or track filters if enclosed in curly braces) are played in the order cyclically,  except if something is in the regular tracks queue. -->
     <cyclic-tracks-queue value="" />
+
+    <!-- If non-empty, these karts (or kart filters if enclosed in curly braces) are played in the order until the list ends. -->
+    <karts-queue value="" />
+
+    <!-- If non-empty, these karts (or kart filters if enclosed in curly braces) are played in the order cyclically,  except if something is in the regular karts queue. -->
+    <cyclic-karts-queue value="" />
 
     <!-- A custom Grand Prix scoring system to be used, empty for default. -->
     <grand-prix-scoring value="" />

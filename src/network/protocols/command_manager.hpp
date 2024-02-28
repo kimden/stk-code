@@ -86,18 +86,22 @@ class CommandManager
         QM_NONE = -1,
         QM_MAP_ONETIME = 1,
         QM_MAP_CYCLIC = 2,
-       // QM_KART_ONETIME = 4,
-       // QM_KART_CYCLIC = 8,
+        QM_KART_ONETIME = 4,
+        QM_KART_CYCLIC = 8,
+        QM_ALL_MAP_QUEUES = QM_MAP_ONETIME | QM_MAP_CYCLIC,
+        QM_ALL_KART_QUEUES = QM_KART_ONETIME | QM_KART_CYCLIC,
         QM_START = 1,
-        QM_END = 4
-       // QM_END = 16
+        QM_END = 16
     };
 
     static std::vector<std::string> QUEUE_NAMES;
     static int get_queue_mask(std::string a);
-    std::deque<TrackFilter>& get_queue(int x) const;
+    std::deque<std::shared_ptr<Filter>>& get_queue(int x) const;
     static std::string get_queue_name(int x);
     static int another_cyclic_queue(int x);
+
+    template<typename T>
+    void add_to_queue(int x, int mask, bool to_front, std::string& s) const;
 
     enum ModeScope: int
     {

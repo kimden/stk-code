@@ -73,7 +73,12 @@
 #include <iterator>
 #include <utility>
 
-std::vector<std::string> CommandManager::QUEUE_NAMES = {"", "queue", "qcyclic", "qboth"};
+std::vector<std::string> CommandManager::QUEUE_NAMES = {
+    "", "mqueue", "mcyclic", "mboth",
+    "kqueue", "qregular", "", "",
+    "kcyclic", "", "qcyclic", "",
+    "kboth", "", "", "qboth"
+};
 
 // ========================================================================
 EnumExtendedReader CommandManager::mode_scope_reader({
@@ -377,19 +382,23 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("length x", &CM::process_length_multi);
     applyFunctionIfPossible("direction", &CM::process_direction);
     applyFunctionIfPossible("direction =", &CM::process_direction_assign);
-    for (const std::string& name: QUEUE_NAMES)
+    for (int i = 0; i < QUEUE_NAMES.size(); i++)
     {
+        const std::string& name = QUEUE_NAMES[i];
         if (name.empty())
             continue;
         applyFunctionIfPossible(name + "", &CM::process_queue);
-        applyFunctionIfPossible(name + " push", &CM::process_queue_push);
-        applyFunctionIfPossible(name + " push_back", &CM::process_queue_push);
-        applyFunctionIfPossible(name + " push_front", &CM::process_queue_push);
-        applyFunctionIfPossible(name + " pop", &CM::process_queue_pop);
-        applyFunctionIfPossible(name + " pop_back", &CM::process_queue_pop);
         applyFunctionIfPossible(name + " pop_front", &CM::process_queue_pop);
         applyFunctionIfPossible(name + " clear", &CM::process_queue_clear);
         applyFunctionIfPossible(name + " shuffle", &CM::process_queue_shuffle);
+        applyFunctionIfPossible(name + " pop", &CM::process_queue_pop);
+        applyFunctionIfPossible(name + " pop_back", &CM::process_queue_pop);
+        // No pushing into kart and track queues at the same time
+        if (((i & QM_ALL_KART_QUEUES) > 0) && ((i & QM_ALL_MAP_QUEUES) > 0))
+            continue;
+        applyFunctionIfPossible(name + " push", &CM::process_queue_push);
+        applyFunctionIfPossible(name + " push_back", &CM::process_queue_push);
+        applyFunctionIfPossible(name + " push_front", &CM::process_queue_push);
     }
     applyFunctionIfPossible("allowstart", &CM::process_allowstart);
     applyFunctionIfPossible("allowstart =", &CM::process_allowstart_assign);
@@ -1249,7 +1258,7 @@ void CommandManager::process_addons(Context& context)
         /*argv[1] == "soccer" ?*/ m_lobby->m_addon_soccers
     )));
     if (apply_filters)
-        m_lobby->applyAllFilters(from, false);
+        m_lobby->applyAllFilters(from, false); // happily the type is never karts in this line
     std::vector<std::pair<std::string, std::vector<std::string>>> result;
     for (const std::string& s: from)
         result.push_back({s, {}});
@@ -2470,8 +2479,8 @@ void CommandManager::process_queue(Context& context)
             auto& queue = get_queue(x);
             msg += StringUtils::insertValues("%s (size = %d):",
                 get_queue_name(x), (int)queue.size());
-            for (const TrackFilter& s: queue)
-                msg += " " + s.toString();
+            for (std::shared_ptr<Filter>& s: queue)
+                msg += " " + s->toString();
             msg += "\n";
         }
     }
@@ -2505,34 +2514,41 @@ void CommandManager::process_queue_push(Context& context)
 
     std::string filter_text = "";
     CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
-    std::vector<TrackFilter::SplitArgument> items = TrackFilter::prepareMapNames(filter_text);
 
-    int last_index = -1;
-    int prefix_length = 0;
-    int suffix_length = 0;
-    int subidx = 0;
-    for (TrackFilter::SplitArgument& p: items)
+    // Fix typos only if track queues are used (majority of cases anyway)
+    // TODO: I don't know how to fix typos for both karts and tracks
+    // (there's no m_stf_all_karts anyway yet) but maybe it should be done
+    if ((mask & QM_ALL_KART_QUEUES) == 0)
     {
-        if (!p.is_map)
-            continue;
-        if (p.index != -1 && last_index != p.index)
+        std::vector<SplitArgument> items = prepareAssetNames<TrackFilter>(filter_text);
+
+        int last_index = -1;
+        int prefix_length = 0;
+        int suffix_length = 0;
+        int subidx = 0;
+        for (SplitArgument& p: items)
         {
-            last_index = p.index;
-            prefix_length = 0;
-            subidx = 0;
+            if (!p.is_map)
+                continue;
+            if (p.index != -1 && last_index != p.index)
+            {
+                last_index = p.index;
+                prefix_length = 0;
+                subidx = 0;
+            }
+            auto& cell = context.m_argv[2 + p.index];
+            suffix_length = cell.length() - p.value.length() - prefix_length;
+            if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
+                        2 + p.index, m_stf_all_maps, 3, false, false, false, subidx,
+                        prefix_length, cell.length() - suffix_length))
+                return;
+            p.value = cell.substr(prefix_length, cell.length() - suffix_length - prefix_length);
+            prefix_length += cell.length() - suffix_length;
         }
-        auto& cell = context.m_argv[2 + p.index];
-        suffix_length = cell.length() - p.value.length() - prefix_length;
-        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-                    2 + p.index, m_stf_all_maps, 3, false, false, false, subidx,
-                    prefix_length, cell.length() - suffix_length))
-            return;
-        p.value = cell.substr(prefix_length, cell.length() - suffix_length - prefix_length);
-        prefix_length += cell.length() - suffix_length;
+        filter_text = "";
+        for (auto& p: items)
+            filter_text += p.value;
     }
-    filter_text = "";
-    for (auto& p: items)
-        filter_text += p.value;
 
     std::string msg = "";
 
@@ -2540,24 +2556,15 @@ void CommandManager::process_queue_push(Context& context)
     {
         if (mask & x)
         {
-            int another = another_cyclic_queue(x);
-            if (to_front)
+            if (mask & QM_ALL_KART_QUEUES)
             {
-                get_queue(x).emplace_front(filter_text);
-                if (another >= QM_START && !(mask & another))
-                {
-                    get_queue(another).emplace_front(TrackFilter::PLACEHOLDER_STRING);
-                }
+                // TODO Make sure to update the next branch too; unite them somehow?
+                add_to_queue<KartFilter>(x, mask, to_front, filter_text);
             }
             else
             {
-                get_queue(x).emplace_back(filter_text);
-                // here you have to push to FRONT and not back because onetime
-                // queue should be invoked strictly before
-                if (another >= QM_START && !(mask & another))
-                {
-                    get_queue(another).emplace_front(TrackFilter::PLACEHOLDER_STRING);
-                }
+                // TODO Make sure to update the previous branch too; unite them somehow?
+                add_to_queue<TrackFilter>(x, mask, to_front, filter_text);
             }
 
             msg += "Pushed { " + filter_text + " }"
@@ -2597,7 +2604,7 @@ void CommandManager::process_queue_pop(Context& context)
             else
             {
                 auto object = (from_back ? get_queue(x).back() : get_queue(x).front());
-                msg += "Popped " + object.toString()
+                msg += "Popped " + object->toString()
                     + " from the " + (from_back ? "back" : "front") + " of the "
                     + get_queue_name(x) + ",";
                 if (from_back)
@@ -2613,7 +2620,7 @@ void CommandManager::process_queue_pop(Context& context)
                     // here you have to pop from FRONT and not back because it
                     // was pushed to the front - see process_queue_push
                     auto& q = get_queue(another);
-                    if (!q.empty() && q.front().isPlaceholder())
+                    if (!q.empty() && q.front()->isPlaceholder())
                         q.pop_front();
                 }
                 msg += " current queue size: "
@@ -2645,7 +2652,7 @@ void CommandManager::process_queue_clear(Context& context)
             if (another >= QM_START && !(mask & another))
             {
                 auto& q = get_queue(another);
-                while (!q.empty() && q.front().isPlaceholder())
+                while (!q.empty() && q.front()->isPlaceholder())
                     q.pop_front();
             }
         }
@@ -2681,7 +2688,7 @@ void CommandManager::process_queue_shuffle(Context& context)
             while (R - L > 1)
             {
                 mid = (L + R) / 2;
-                if (queue[mid].isPlaceholder())
+                if (queue[mid]->isPlaceholder())
                     L = mid;
                 else
                     R = mid;
@@ -4165,16 +4172,16 @@ int CommandManager::get_queue_mask(std::string a)
 } // getAddonPreferredType
 // ========================================================================
 
-std::deque<TrackFilter>& CommandManager::get_queue(int x) const
+std::deque<std::shared_ptr<Filter>>& CommandManager::get_queue(int x) const
 {
     if (x == QM_MAP_ONETIME)
         return m_lobby->m_onetime_tracks_queue;
     if (x == QM_MAP_CYCLIC)
         return m_lobby->m_cyclic_tracks_queue;
-    // if (x == QM_KART_ONETIME)
-    //     return m_lobby->m_onetime_karts_queue;
-    // if (x == QM_KART_CYCLIC)
-    //     return m_lobby->m_cyclic_karts_queue;
+    if (x == QM_KART_ONETIME)
+        return m_lobby->m_onetime_karts_queue;
+    if (x == QM_KART_CYCLIC)
+        return m_lobby->m_cyclic_karts_queue;
     Log::error("CommandManager",
                "Unknown queue mask %d, revert to map onetime", x);
     return m_lobby->m_onetime_tracks_queue;
@@ -4188,10 +4195,10 @@ std::string CommandManager::get_queue_name(int x)
         return "regular map queue";
     if (x == QM_MAP_CYCLIC)
         return "cyclic map queue";
-    // if (x == QM_KART_ONETIME)
-    //    return "regular kart queue";
-    // if (x == QM_KART_CYCLIC)
-    //    return "cyclic kart queue";
+    if (x == QM_KART_ONETIME)
+       return "regular kart queue";
+    if (x == QM_KART_CYCLIC)
+       return "cyclic kart queue";
     return StringUtils::insertValues(
         "[Error QN%d: please report with /tell about it] queue", x);
 } // get_queue_name
@@ -4205,4 +4212,29 @@ int CommandManager::another_cyclic_queue(int x)
     //    return QM_KART_CYCLIC;
     return QM_NONE;
 } // get_queue_name
+// ========================================================================
+
+template<typename T>
+void CommandManager::add_to_queue(int x, int mask, bool to_front, std::string& s) const
+{
+    int another = another_cyclic_queue(x);
+    if (to_front)
+    {
+        get_queue(x).push_front(std::make_shared<T>(s));
+        if (another >= QM_START && !(mask & another))
+        {
+            get_queue(another).push_front(std::make_shared<T>(T::PLACEHOLDER_STRING));
+        }
+    }
+    else
+    {
+        get_queue(x).push_back(std::make_shared<KartFilter>(s));
+        // here you have to push to FRONT and not back because onetime
+        // queue should be invoked strictly before
+        if (another >= QM_START && !(mask & another))
+        {
+            get_queue(another).push_front(std::make_shared<T>(T::PLACEHOLDER_STRING));
+        }
+    }
+} // add_to_queue
 // ========================================================================

@@ -1981,23 +1981,11 @@ void ServerLobby::asynchronousUpdate()
             // If player chose random / hasn't chose any kart
             for (unsigned i = 0; i < players.size(); i++)
             {
-                if (players[i]->getKartName().empty())
-                {
-                    if (m_kart_elimination.isEliminated(
-                        StringUtils::wideToUtf8(players[i]->getName())))
-                    {
-                        players[i]->setKartName(m_kart_elimination.getKart());
-                    }
-                    else
-                    {
-                        RandomGenerator rg;
-                        std::set<std::string>::iterator it =
-                            m_available_kts.first.begin();
-                        std::advance(it,
-                            rg.get((int)m_available_kts.first.size()));
-                        players[i]->setKartName(*it);
-                    }
-                }
+                std::string current_kart = players[i]->getKartName();
+                if (areKartFiltersIgnoringKarts())
+                    current_kart = "";
+                std::string name = StringUtils::wideToUtf8(players[i]->getName());
+                players[i]->setKartName(getKartForBadKartChoice(name, current_kart));
             }
 
             NetworkString* load_world_message = getLoadWorldMessage(players,
@@ -3181,99 +3169,56 @@ void ServerLobby::startSelection(const Event *event)
     }
 
     startVotingPeriod(ServerConfig::m_voting_timeout);
-    NetworkString *ns = getNetworkString(1);
-    // Start selection - must be synchronous since the receiver pushes
-    // a new screen, which must be done from the main thread.
-    ns->setSynchronous(true);
-    ns->addUInt8(LE_START_SELECTION)
-       .addFloat(ServerConfig::m_voting_timeout)
-       .addUInt8(/*m_game_setup->isGrandPrixStarted() ? 1 : */0)
-       .addUInt8((m_fixed_lap >= 0
-            || m_default_lap_multiplier > 0.0f) ? 1 : 0)
-       .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
 
-    const auto& all_k = m_available_kts.first;
-    const auto& all_t = m_available_kts.second;
-    ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
-    for (const std::string& kart : all_k)
-    {
-        ns->encodeString(kart);
-    }
-    for (const std::string& track : all_t)
-    {
-        ns->encodeString(track);
-    }
+    std::string ignored_choice_string = "The server will ignore your kart choice";
 
-    auto remaining = m_kart_elimination.getRemainingParticipants();
-    if (!remaining.empty())
+    peers = STKHost::get()->getPeers();
+    for (auto& peer: peers)
     {
-        // Seems like I assumed the kart elimination cannot have
-        // preselected tracks. Not sure I really wanted this.
-        STKHost::get()->sendPacketToAllPeersWith(
-            [remaining](STKPeer* p)
-            {
-                for (auto& profile : p->getPlayerProfiles())
-                {
-                    if (remaining.count(
-                        StringUtils::wideToUtf8(profile->getName())) != 0
-                        && !p->isWaitingForGame())
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }, ns, /*reliable*/true);
-        delete ns;
-        bool has_gnu = false;
-        for (auto it = all_k.begin(); it != all_k.end(); it++)
-        {
-            has_gnu |= (*it == m_kart_elimination.getKart());
-        }
+        if (peer->isDisconnected() && !peer->isValidated())
+            continue;
+        if (!canRace(peer) || peer->isWaitingForGame())
+            continue; // they are handled below
 
-        // The same NetworkString but without any non-elimination karts
         NetworkString *ns = getNetworkString(1);
+        // Start selection - must be synchronous since the receiver pushes
+        // a new screen, which must be done from the main thread.
         ns->setSynchronous(true);
         ns->addUInt8(LE_START_SELECTION)
            .addFloat(ServerConfig::m_voting_timeout)
            .addUInt8(/*m_game_setup->isGrandPrixStarted() ? 1 : */0)
            .addUInt8((m_fixed_lap >= 0
-            || m_default_lap_multiplier > 0.0f) ? 1 : 0)
+                || m_default_lap_multiplier > 0.0f) ? 1 : 0)
            .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
 
-        ns->addUInt16((uint16_t)(has_gnu ? 1 : 0)).addUInt16(
-            (uint16_t)all_t.size());
-        if (has_gnu)
+
+        std::set<std::string> all_k = m_available_kts.first;
+        std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+        // std::string username = StringUtils::wideToUtf8(profile->getName());
+        applyAllKartFilters(username, all_k);
+
+        if (!m_kart_elimination.getRemainingParticipants().empty() && m_kart_elimination.getRemainingParticipants().count(username) == 0)
         {
-            ns->encodeString(std::string(m_kart_elimination.getKart()));
-        }
-        for (const std::string& track : all_t)
-        {
-            ns->encodeString(track);
+            if (all_k.count(m_kart_elimination.getKart()))
+                all_k = {m_kart_elimination.getKart()};
+            else
+                all_k = {};
         }
 
-        STKHost::get()->sendPacketToAllPeersWith(
-            [remaining](STKPeer* p)
-            {
-                for (auto& profile : p->getPlayerProfiles())
-                {
-                    if (remaining.count(
-                        StringUtils::wideToUtf8(profile->getName())) != 0
-                        && !p->isWaitingForGame())
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }, ns, /*reliable*/true);
-    }
-    else
-    {
-        STKHost::get()->sendPacketToAllPeersWith(
-            [this](STKPeer* p) -> bool
-            {
-                return canRace(p) && !p->isWaitingForGame();
-            }, ns, /*reliable*/true);
+
+        const auto& all_t = m_available_kts.second;
+
+        ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
+        for (const std::string& kart : all_k)
+            ns->encodeString(kart);
+        for (const std::string& track : all_t)
+            ns->encodeString(track);
+
+        peer->sendPacket(ns, /*reliable*/true);
         delete ns;
+
+        if (areKartFiltersIgnoringKarts())
+            sendStringToPeer(ignored_choice_string, peer);
     }
 
     m_state = SELECTING;
@@ -3604,10 +3549,23 @@ void ServerLobby::checkRaceFinished()
     }
     if (!m_cyclic_tracks_queue.empty())
     {
-        auto item = m_cyclic_tracks_queue.front();
+        auto item = m_cyclic_tracks_queue.front().get()->getInitialString();
+        bool is_placeholder = m_cyclic_tracks_queue.front()->isPlaceholder();
         m_cyclic_tracks_queue.pop_front();
-        if (!item.isPlaceholder())
-            m_cyclic_tracks_queue.push_back(item);
+        if (!is_placeholder)
+            m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(item));
+    }
+    if (!m_onetime_karts_queue.empty())
+    {
+        m_onetime_karts_queue.pop_front();
+    }
+    if (!m_cyclic_karts_queue.empty())
+    {
+        auto item = m_cyclic_karts_queue.front().get()->getInitialString();
+        bool is_placeholder = m_cyclic_karts_queue.front()->isPlaceholder();
+        m_cyclic_karts_queue.pop_front();
+        if (!is_placeholder)
+            m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(item));
     }
 }   // checkRaceFinished
 
@@ -6377,21 +6335,17 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
             peer->getPlayerProfiles()[i]->setKartName(m_kart_elimination.getKart());
             continue;
         }
+        std::string current_kart = kart;
         if (kart.find("randomkart") != std::string::npos ||
-            (kart.find("addon_") == std::string::npos &&
-            m_available_kts.first.find(kart) == m_available_kts.first.end()))
+                (kart.find("addon_") == std::string::npos &&
+                m_available_kts.first.find(kart) == m_available_kts.first.end()))
         {
-            RandomGenerator rg;
-            std::set<std::string>::iterator it =
-                m_available_kts.first.begin();
-            std::advance(it,
-                rg.get((int)m_available_kts.first.size()));
-            peer->getPlayerProfiles()[i]->setKartName(*it);
+            current_kart = "";
         }
-        else
-        {
-            peer->getPlayerProfiles()[i]->setKartName(kart);
-        }
+        if (areKartFiltersIgnoringKarts())
+            current_kart = "";
+        std::string name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName());
+        peer->getPlayerProfiles()[i]->setKartName(getKartForBadKartChoice(name, current_kart));
     }
     if (peer->getClientCapabilities().find("real_addon_karts") ==
         peer->getClientCapabilities().end() || ns.size() == 0)
@@ -6997,6 +6951,12 @@ void ServerLobby::resetToDefaultSettings()
     if (!m_preserve.count("qcyclic"))
         m_cyclic_tracks_queue.clear();
 
+    if (!m_preserve.count("kqueue"))
+        m_onetime_karts_queue.clear();
+
+    if (!m_preserve.count("kcyclic"))
+        m_cyclic_karts_queue.clear();
+
     if (!m_preserve.count("replay"))
         setConsentOnReplays(false);
 }  // resetToDefaultSettings
@@ -7316,20 +7276,12 @@ bool ServerLobby::canRace(STKPeer* peer) const
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
         return false;
 
-    if (!m_onetime_tracks_queue.empty())
-    {
-        std::set<std::string> st = peer->getClientAssets().second;
-        m_onetime_tracks_queue.front().apply(0, st, m_map_history);
-        if (st.empty())
-            return false;
-    }
-    else if (!m_cyclic_tracks_queue.empty())
-    {
-        std::set<std::string> st = peer->getClientAssets().second;
-        m_cyclic_tracks_queue.front().apply(0, st, m_map_history);
-        if (st.empty())
-            return false;
-    }
+    std::set<std::string> maps = peer->getClientAssets().second;
+    std::set<std::string> karts = peer->getClientAssets().first;
+
+    applyAllFilters(maps, true);
+    applyAllKartFilters(username, karts, false);
+
     if (!m_play_requirement_tracks.empty())
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
@@ -7437,17 +7389,31 @@ void ServerLobby::loadTracksQueueFromConfig()
     std::vector<std::string> tokens;
     m_onetime_tracks_queue.clear();
     m_cyclic_tracks_queue.clear();
+    m_onetime_karts_queue.clear();
+    m_cyclic_karts_queue.clear();
 
     tokens = StringUtils::splitQuoted(ServerConfig::m_tracks_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
     {
-        m_onetime_tracks_queue.push_back(TrackFilter(s));
-        m_cyclic_tracks_queue.push_back(TrackFilter(TrackFilter::PLACEHOLDER_STRING));
+        m_onetime_tracks_queue.push_back(std::make_shared<TrackFilter>(s));
+        m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(TrackFilter::PLACEHOLDER_STRING));
     }
 
     tokens = StringUtils::splitQuoted(ServerConfig::m_cyclic_tracks_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
-        m_cyclic_tracks_queue.push_back(TrackFilter(s));
+        m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(s));
+
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_karts_order, ' ', '{', '}', '\\');
+    for (std::string& s: tokens)
+    {
+        m_onetime_karts_queue.push_back(std::make_shared<KartFilter>(s));
+        m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(KartFilter::PLACEHOLDER_STRING));
+    }
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_cyclic_karts_order, ' ', '{', '}', '\\');
+    for (std::string& s: tokens)
+        m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(s));
 }   // loadTracksQueueFromConfig
 //-----------------------------------------------------------------------------
 std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTeam) const
@@ -7660,6 +7626,7 @@ bool ServerLobby::tournamentColorsSwapped(int game) const
 void ServerLobby::initAvailableTracks()
 {
     m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
+    m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
     m_must_have_tracks = StringUtils::split(
         ServerConfig::m_must_have_tracks_string, ' ', false);
     m_play_requirement_tracks = StringUtils::split(
@@ -8214,7 +8181,7 @@ void ServerLobby::resetGrandPrix()
 }   // resetGrandPrix
 //-----------------------------------------------------------------------------
 
-void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history)
+void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history) const
 {
     unsigned max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
@@ -8233,18 +8200,78 @@ void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history)
         }
     }
 
-    m_global_filter.apply(max_player, maps);
+    // Please note that use_history refers to using queue filters too -
+    // calls with false only get map sets, etc
+    FilterContext track_context;
+    track_context.username = ""; // unused
+    track_context.num_players = max_player;
+    track_context.wildcards = m_map_history;
+    track_context.applied_at_selection_start = true;
+    track_context.elements = maps;
+    m_global_filter.apply(track_context);
     if (use_history)
     {
+        track_context.wildcards = m_tournament_arenas;
         if (ServerConfig::m_soccer_tournament)
         {
-            m_tournament_track_filters[m_tournament_game].apply(
-                    max_player, maps, m_tournament_arenas);
+            m_tournament_track_filters[m_tournament_game].apply(track_context);
         }
+        track_context.wildcards = m_map_history;
         if (!m_onetime_tracks_queue.empty())
-            m_onetime_tracks_queue.front().apply(max_player, maps, m_map_history);
+            m_onetime_tracks_queue.front()->apply(track_context);
         if (!m_cyclic_tracks_queue.empty())
-            m_cyclic_tracks_queue.front().apply(max_player, maps, m_map_history);
+            m_cyclic_tracks_queue.front()->apply(track_context);
     }
+    swap(maps, track_context.elements);
 }   // applyAllFilters
+//-----------------------------------------------------------------------------
+
+void ServerLobby::applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection) const
+{
+
+    FilterContext kart_context;
+    kart_context.username = username;
+    kart_context.num_players = 0; // unused
+    kart_context.wildcards = {}; // unused
+    kart_context.applied_at_selection_start = !afterSelection;
+    kart_context.elements = karts;
+
+    m_global_karts_filter.apply(kart_context);
+    if (!m_onetime_karts_queue.empty())
+    {
+        m_onetime_karts_queue.front()->apply(kart_context);
+    }
+    if (!m_cyclic_karts_queue.empty())
+    {
+        m_cyclic_karts_queue.front()->apply(kart_context);
+    }
+    swap(karts, kart_context.elements);
+}   // applyAllKartFilters
+//-----------------------------------------------------------------------------
+bool ServerLobby::areKartFiltersIgnoringKarts() const
+{
+    if (!m_onetime_karts_queue.empty() && m_onetime_karts_queue.front()->ignoresPlayersInput())
+        return true;
+    if (!m_cyclic_karts_queue.empty() && m_cyclic_karts_queue.front()->ignoresPlayersInput())
+        return true;
+    return false;
+}   // applyAllKartFilters
+//-----------------------------------------------------------------------------
+std::string ServerLobby::getKartForBadKartChoice(const std::string& username, const std::string& check_choice) const
+{
+    std::set<std::string> karts = m_available_kts.first;
+    applyAllKartFilters(username, karts, true);
+    if (m_kart_elimination.isEliminated(username)
+        && karts.count(m_kart_elimination.getKart()))
+    {
+        return m_kart_elimination.getKart();
+    }
+    if (!check_choice.empty() && karts.count(check_choice)) // valid choice
+        return check_choice;
+    // choice is invalid, roll the random
+    RandomGenerator rg;
+    std::set<std::string>::iterator it = karts.begin();
+    std::advance(it, rg.get((int)karts.size()));
+    return *it;
+}   // getKartForRandomKartChoice
 //-----------------------------------------------------------------------------

@@ -360,11 +360,17 @@ private:
 
     TrackFilter m_global_filter;
 
+    KartFilter m_global_karts_filter;
+
     std::set<std::string> m_temp_banned;
 
-    std::deque<TrackFilter> m_onetime_tracks_queue;
+    std::deque<std::shared_ptr<Filter>> m_onetime_tracks_queue;
 
-    std::deque<TrackFilter> m_cyclic_tracks_queue;
+    std::deque<std::shared_ptr<Filter>> m_cyclic_tracks_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_onetime_karts_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_cyclic_karts_queue;
 
     std::vector<std::string> m_map_history;
 
@@ -674,7 +680,10 @@ public:
     void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
-    void applyAllFilters(std::set<std::string>& maps, bool use_history);
+    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
+    void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
+    bool areKartFiltersIgnoringKarts() const;
+    std::string getKartForBadKartChoice(const std::string& username, const std::string& check_choice) const;
 
     static int m_default_fixed_laps;
 };   // class ServerLobby
