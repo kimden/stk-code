@@ -8271,7 +8271,7 @@ bool ServerLobby::areKartFiltersIgnoringKarts() const
 //-----------------------------------------------------------------------------
 std::string ServerLobby::getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const
 {
-    std::set<std::string> karts = peer->getClientAssets().first;
+    std::set<std::string> karts = (peer->isAIPeer() ? m_available_kts.first : peer->getClientAssets().first);
     applyAllKartFilters(username, karts, true);
     if (m_kart_elimination.isEliminated(username)
         && karts.count(m_kart_elimination.getKart()))

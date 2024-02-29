@@ -420,10 +420,6 @@ void KartFilter::apply(FilterContext& context) const
     //     return;
     // }
 
-
-    if (!m_ignore_players_input && !context.applied_at_selection_start)
-        return;
-
     // Ignoring means that the random of allowed and randoms will be picked afterwards
     // Not ignoring means that the player chooses from allowed
     // and one instance of each random
@@ -489,7 +485,8 @@ void KartFilter::apply(FilterContext& context) const
             result.insert(s);
         }
     }
-    else if (m_ignore_players_input && context.applied_at_selection_start)
+    else if ((m_ignore_players_input && context.applied_at_selection_start)
+        || (!m_ignore_players_input && !context.applied_at_selection_start))
     {
         for (const auto& array: m_random_stuff)
         {
