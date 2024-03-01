@@ -8201,7 +8201,7 @@ void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history)
         while (it != maps.end())
         {
             Track* t = track_manager->getTrack(*it);
-            if (t->getMaxArenaPlayers() < max_player)
+            if (t && t->getMaxArenaPlayers() < max_player)
             {
                 it = maps.erase(it);
             }
