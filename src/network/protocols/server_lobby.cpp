@@ -1982,6 +1982,8 @@ void ServerLobby::asynchronousUpdate()
             for (unsigned i = 0; i < players.size(); i++)
             {
                 std::string current_kart = players[i]->getKartName();
+                if (!players[i]->getPeer().get())
+                    continue;
                 if (areKartFiltersIgnoringKarts())
                     current_kart = "";
                 std::string name = StringUtils::wideToUtf8(players[i]->getName());
