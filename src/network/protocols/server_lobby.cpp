@@ -1987,7 +1987,23 @@ void ServerLobby::asynchronousUpdate()
                 if (areKartFiltersIgnoringKarts())
                     current_kart = "";
                 std::string name = StringUtils::wideToUtf8(players[i]->getName());
-                players[i]->setKartName(getKartForBadKartChoice(players[i]->getPeer().get(), name, current_kart));
+                // Note 1: setKartName also resets KartData, and should be called
+                // only if current kart name is not suitable.
+                // Note 2: filters only support standard karts for now, so GKFBKC
+                // cannot return an addon; when addons are supported, this part of
+                // code will also have to provide kart data (or setKartName has to
+                // set the correct hitbox itself).
+                std::string new_kart = getKartForBadKartChoice(
+                        players[i]->getPeer().get(), name, current_kart);
+                if (new_kart != current_kart)
+                {
+                    // Filters only support standard karts for now, but when they
+                    // start supporting addons, probably type should not be empty
+                    players[i]->setKartName(new_kart);
+                    KartData kart_data;
+                    setKartDataProperly(kart_data, new_kart, players[i], "");
+                    players[i]->setKartData(kart_data);
+                }
             }
 
             NetworkString* load_world_message = getLoadWorldMessage(players,
@@ -6358,25 +6374,7 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
         std::string type = kart_data.m_kart_type;
         auto& player = peer->getPlayerProfiles()[i];
         const std::string& kart_id = player->getKartName();
-        if (NetworkConfig::get()->useTuxHitboxAddon() &&
-            StringUtils::startsWith(kart_id, "addon_") &&
-            kart_properties_manager->hasKartTypeCharacteristic(type))
-        {
-            const KartProperties* real_addon =
-                kart_properties_manager->getKart(kart_id);
-            if (ServerConfig::m_real_addon_karts && real_addon)
-            {
-                kart_data = KartData(real_addon);
-            }
-            else
-            {
-                const KartProperties* tux_kp =
-                    kart_properties_manager->getKart("tux");
-                kart_data = KartData(tux_kp);
-                kart_data.m_kart_type = type;
-            }
-            player->setKartData(kart_data);
-        }
+        setKartDataProperly(kart_data, kart_id, player, type);
     }
 }   // setPlayerKarts
 
@@ -8288,4 +8286,38 @@ std::string ServerLobby::getKartForBadKartChoice(STKPeer* peer, const std::strin
     std::advance(it, rg.get((int)karts.size()));
     return *it;
 }   // getKartForRandomKartChoice
+//-----------------------------------------------------------------------------
+void ServerLobby::setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+         std::shared_ptr<NetworkPlayerProfile> player,
+         const std::string& type) const
+{
+    // This should set kart data for kart name at least in the following cases:
+    // 1. useTuxHitboxAddon() is true
+    // 2. kart_name is installed on the server
+    // (for addons; standard karts are not processed here it seems)
+    // 3. kart type is fine
+    // Maybe I'm mistaken and then it should be fixed.
+    // I extracted this into a separate function because if kart_name is set
+    // by the server (for random addon kart, or due to a filter), kart data
+    // has to be set in another place than default one.
+    if (NetworkConfig::get()->useTuxHitboxAddon() &&
+        StringUtils::startsWith(kart_name, "addon_") &&
+        kart_properties_manager->hasKartTypeCharacteristic(type))
+    {
+        const KartProperties* real_addon =
+            kart_properties_manager->getKart(kart_name);
+        if (ServerConfig::m_real_addon_karts && real_addon)
+        {
+            kart_data = KartData(real_addon);
+        }
+        else
+        {
+            const KartProperties* tux_kp =
+                kart_properties_manager->getKart("tux");
+            kart_data = KartData(tux_kp);
+            kart_data.m_kart_type = type;
+        }
+        player->setKartData(kart_data);
+    }
+}   // setKartDataProperly
 //-----------------------------------------------------------------------------

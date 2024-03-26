@@ -686,6 +686,9 @@ public:
     void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
     bool areKartFiltersIgnoringKarts() const;
     std::string getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const;
+    void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+                             std::shared_ptr<NetworkPlayerProfile> player,
+                             const std::string& type) const;
 
     static int m_default_fixed_laps;
 };   // class ServerLobby
