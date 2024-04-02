@@ -166,7 +166,8 @@ namespace StringUtils
 
         try
         {
-            result.emplace_back();
+            if (!s.empty())
+                result.emplace_back();
             bool quoted = false;
             bool escaped = false;
             bool previous_space = true;

@@ -290,6 +290,12 @@ namespace ServerConfig
        "play-requirement-tracks", "Tracks needed to be able to play, "
        "leave empty for no restriction."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_only_played_karts_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "only-played-karts", "List of karts that can be played on a server, "
+        "leave empty for no restriction or put 'not' before the list "
+        "to name tracks that cannot be played. It is not guaranteed to work with addons."));
+
     SERVER_CFG_PREFIX StringServerConfigParam m_only_played_tracks_string
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
         "only-played-tracks", "List of tracks that can be played on a server, "
@@ -476,6 +482,15 @@ namespace ServerConfig
         "Negative value to disable, and this option will always be disabled "
         "for LAN server."));
 
+    SERVER_CFG_PREFIX IntServerConfigParam m_kick_idle_lobby_player_seconds
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1,
+        "kick-idle-lobby-player-seconds",
+        "Kick idle player which has no network activity to server for more "
+        "than some seconds, while in the lobby. Duration also includes the "
+        "period after the player finishes and waits for others to finish. "
+        "Be careful using it. Negative value to disable, and this option "
+        "will always be disabled for LAN server."));
+
     SERVER_CFG_PREFIX IntServerConfigParam m_state_frequency
         SERVER_CFG_DEFAULT(IntServerConfigParam(10,
         "state-frequency",
@@ -657,8 +672,25 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX StringServerConfigParam m_tracks_order
         SERVER_CFG_DEFAULT(StringServerConfigParam("", "tracks-queue",
-        "If non-empty, these tracks are played in the order until "
-        "the list ends. Can be useful for grands prix."));
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order until the list ends."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cyclic_tracks_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "cyclic-tracks-queue",
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order cyclically, "
+        "except if something is in the regular tracks queue."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_karts_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "karts-queue",
+        "If non-empty, these karts (or kart filters if enclosed in curly braces) "
+        "are played in the order until the list ends."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cyclic_karts_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "cyclic-karts-queue",
+        "If non-empty, these karts (or kart filters if enclosed in curly braces) "
+        "are played in the order cyclically, "
+        "except if something is in the regular karts queue."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_gp_scoring
         SERVER_CFG_DEFAULT(StringServerConfigParam(

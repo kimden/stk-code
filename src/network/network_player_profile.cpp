@@ -20,8 +20,6 @@
 #include "network/network_config.hpp"
 #include "network/stk_host.hpp"
 
-float NetworkPlayerProfile::m_team_color[20] = {1.00, 0.05, 0.16, 0.33, 0.66, 0.78, 0.46, 0.94, 0.58, 0.00};
-
 // ----------------------------------------------------------------------------
 /** Returns true if this player is local, i.e. running on this computer. This
  *  is done by comparing the host id of this player with the host id of this

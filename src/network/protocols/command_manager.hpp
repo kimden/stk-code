@@ -42,6 +42,9 @@
 #include "network/protocols/command_permissions.hpp"
 #include "utils/enum_extended_reader.hpp"
 #include "utils/set_typo_fixer.hpp"
+#include "utils/team_utils.hpp"
+#include "utils/track_filter.hpp"
+#include "utils/types.hpp"
 
 class ServerLobby;
 class Event;
@@ -78,6 +81,27 @@ class CommandManager
     static EnumExtendedReader permission_reader;
     static EnumExtendedReader mode_scope_reader;
     static EnumExtendedReader state_scope_reader;
+
+    enum QueueMask: int {
+        QM_NONE = -1,
+        QM_MAP_ONETIME = 1,
+        QM_MAP_CYCLIC = 2,
+        QM_KART_ONETIME = 4,
+        QM_KART_CYCLIC = 8,
+        QM_ALL_MAP_QUEUES = QM_MAP_ONETIME | QM_MAP_CYCLIC,
+        QM_ALL_KART_QUEUES = QM_KART_ONETIME | QM_KART_CYCLIC,
+        QM_START = 1,
+        QM_END = 16
+    };
+
+    static std::vector<std::string> QUEUE_NAMES;
+    static int get_queue_mask(std::string a);
+    std::deque<std::shared_ptr<Filter>>& get_queue(int x) const;
+    static std::string get_queue_name(int x);
+    static int another_cyclic_queue(int x);
+
+    template<typename T>
+    void add_to_queue(int x, int mask, bool to_front, std::string& s) const;
 
     enum ModeScope: int
     {
@@ -211,7 +235,7 @@ private:
 
     std::map<std::string, bool> m_user_saved_voting;
 
-    std::map<std::string, int> m_user_correct_arguments;
+    std::map<std::string, std::pair<int, int>> m_user_last_correct_argument;
 
     std::map<std::string, CommandDescription> m_config_descriptions;
 
@@ -290,7 +314,6 @@ private:
     void process_direction_assign(Context& context);
     void process_queue(Context& context);
     void process_queue_push(Context& context);
-    void process_queue_pf(Context& context);
     void process_queue_pop(Context& context);
     void process_queue_clear(Context& context);
     void process_queue_shuffle(Context& context);
@@ -369,7 +392,7 @@ public:
     bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
         SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
-        bool dont_replace = false);
+        bool dont_replace = false, int subidx = 0, int substr_l = -1, int substr_r = -1);
 
     void onResetServer();
 

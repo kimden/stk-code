@@ -21,9 +21,10 @@
 
 #include "network/protocols/lobby_protocol.hpp"
 #include "utils/cpp2011.hpp"
+#include "utils/kart_elimination.hpp"
+#include "utils/team_utils.hpp"
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
-#include "utils/kart_elimination.hpp"
 #include "karts/controller/player_controller.hpp"
 #include "network/protocols/command_manager.hpp"
 
@@ -311,6 +312,8 @@ private:
 
     std::set<STKPeer*> m_team_speakers;
 
+    std::map<STKPeer*, bool> m_peers_ability_to_play;
+
     KartElimination m_kart_elimination;
 
     std::set<int> m_available_difficulties;
@@ -359,17 +362,23 @@ private:
 
     TrackFilter m_global_filter;
 
+    KartFilter m_global_karts_filter;
+
     std::set<std::string> m_temp_banned;
 
-    std::deque<TrackFilter> m_tracks_queue;
+    std::deque<std::shared_ptr<Filter>> m_onetime_tracks_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_cyclic_tracks_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_onetime_karts_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_cyclic_karts_queue;
 
     std::vector<std::string> m_map_history;
 
     std::map<std::string, GPScore> m_gp_scores;
 
     std::map<int, GPScore> m_gp_team_scores;
-
-    std::vector<std::string> m_team_name;
 
     int m_tournament_game;
 
@@ -392,12 +401,6 @@ private:
     bool m_allowed_to_start;
 
     bool m_consent_on_replays;
-    
-    std::map<std::string, int> m_team_name_to_index;
-
-    std::vector<std::string> m_team_default_names;
-
-    std::map<int, std::string> m_team_index_to_icon;
 
     bool m_shuffle_gp;
 
@@ -464,7 +467,7 @@ private:
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
     void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer) const;
+    bool checkPeersReady(bool ignore_ai_peer);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
@@ -517,6 +520,9 @@ private:
                                   const irr::core::stringw& online_name,
                                   const std::string& country_code);
     bool handleAllVotes(PeerVote* winner, uint32_t* winner_peer_id);
+    template<typename T>
+    void findMajorityValue(const std::map<T, unsigned>& choices, unsigned cur_players,
+                           T* best_choice, float* rate);
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
     void computeNewRankings();
@@ -569,8 +575,8 @@ private:
     void initCategories();
     void initTournamentPlayers();
     void changeColors();
-    bool canRace(std::shared_ptr<STKPeer>& peer) const;
-    bool canRace(STKPeer* peer) const;
+    bool canRace(std::shared_ptr<STKPeer>& peer);
+    bool canRace(STKPeer* peer);
     bool canVote(std::shared_ptr<STKPeer>& peer) const;
     bool canVote(STKPeer* peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer>& peer) const;
@@ -678,7 +684,13 @@ public:
     void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
-    void applyAllFilters(std::set<std::string>& maps, bool use_history);
+    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
+    void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
+    bool areKartFiltersIgnoringKarts() const;
+    std::string getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const;
+    void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+                             std::shared_ptr<NetworkPlayerProfile> player,
+                             const std::string& type) const;
 
     static int m_default_fixed_laps;
 };   // class ServerLobby
