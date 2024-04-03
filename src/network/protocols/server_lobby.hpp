@@ -467,7 +467,7 @@ private:
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
     void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer);
+    bool checkPeersReady(bool ignore_ai_peer, bool before_start = false);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)

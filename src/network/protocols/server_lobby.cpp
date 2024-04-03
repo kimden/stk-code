@@ -1825,7 +1825,7 @@ void ServerLobby::asynchronousUpdate()
             }
             if ((!ServerConfig::m_soccer_tournament &&
                 m_timeout.load() < (int64_t)StkTime::getMonoTimeMs()) ||
-                (checkPeersReady(true/*ignore_ai_peer*/) &&
+                (checkPeersReady(true/*ignore_ai_peer*/, true/*before_start*/) &&
                 (int)players >= ServerConfig::m_min_start_game_players))
             {
                 resetPeersReady();
@@ -6646,7 +6646,7 @@ bool ServerLobby::supportsAI()
 }   // supportsAI
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::checkPeersReady(bool ignore_ai_peer)
+bool ServerLobby::checkPeersReady(bool ignore_ai_peer, bool before_start)
 {
     bool all_ready = true;
     bool someone_races = false;
@@ -6655,11 +6655,11 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer)
         auto peer = p.first.lock();
         if (!peer)
             continue;
-        if (!canRace(peer))
-            continue;
         if (peer->alwaysSpectate())
             continue;
         if (ignore_ai_peer && peer->isAIPeer())
+            continue;
+        if (before_start && !canRace(peer))
             continue;
         someone_races = true;
         all_ready = all_ready && p.second;
