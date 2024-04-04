@@ -1826,7 +1826,7 @@ void ServerLobby::asynchronousUpdate()
             }
             if ((!ServerConfig::m_soccer_tournament &&
                 m_timeout.load() < (int64_t)StkTime::getMonoTimeMs()) ||
-                (checkPeersReady(true/*ignore_ai_peer*/) &&
+                (checkPeersReady(true/*ignore_ai_peer*/, true/*before_start*/) &&
                 (int)players >= ServerConfig::m_min_start_game_players))
             {
                 resetPeersReady();
@@ -1918,7 +1918,7 @@ void ServerLobby::asynchronousUpdate()
             std::string track_name = winner_vote.m_track_name;
             if (ServerConfig::m_soccer_tournament)
             {
-                if (m_tournament_game >= m_tournament_arenas.size())
+                if (m_tournament_game >= (int)m_tournament_arenas.size())
                     m_tournament_arenas.resize(m_tournament_game + 1, "");
                 m_tournament_arenas[m_tournament_game] = track_name;
             }
@@ -2139,7 +2139,8 @@ bool ServerLobby::canLiveJoinNow() const
         float total_distance =
             Track::getCurrentTrack()->getTrackLength() *
             (float)RaceManager::get()->getNumLaps();
-        float progress = leader_distance / total_distance;
+        // standard version uses (leader_distance / total_distance > 0.9f)
+        // TODO: allow switching
         if (total_distance - leader_distance < 250.0)
             return false;
     }
@@ -2401,7 +2402,6 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     live_join_start_time += 3000;
 
     bool spectator = false;
-    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
     for (const int id : peer->getAvailableKartIDs())
     {
         const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
@@ -2571,7 +2571,7 @@ void ServerLobby::update(int ticks)
                             peer->getPlayerProfiles()[0]->getName()).c_str();
                 Log::info("ServerLobby", "%s %s has been idle on the server for "
                         "more than %d seconds, kick.",
-                        peer->getAddress().toString().c_str(), peer_name, sec);
+                        peer->getAddress().toString().c_str(), peer_name.c_str(), sec);
                 peer->kick();
             }
         }
@@ -6651,7 +6651,7 @@ bool ServerLobby::supportsAI()
 }   // supportsAI
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::checkPeersReady(bool ignore_ai_peer)
+bool ServerLobby::checkPeersReady(bool ignore_ai_peer, bool before_start)
 {
     bool all_ready = true;
     bool someone_races = false;
@@ -6660,11 +6660,11 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer)
         auto peer = p.first.lock();
         if (!peer)
             continue;
-        if (!canRace(peer))
-            continue;
         if (peer->alwaysSpectate())
             continue;
         if (ignore_ai_peer && peer->isAIPeer())
+            continue;
+        if (before_start && !canRace(peer))
             continue;
         someone_races = true;
         all_ready = all_ready && p.second;
@@ -6835,7 +6835,7 @@ void ServerLobby::storeResults()
         }
     }
     m_saved_ffa_points.clear();
-    for (int i = 0; i < usernames.size(); ++i)
+    for (int i = 0; i < (int)usernames.size(); ++i)
     {
         std::string query = StringUtils::insertValues(
             "INSERT INTO %s "
@@ -6857,7 +6857,8 @@ void ServerLobby::storeResults()
 #endif
         );
         std::string name = usernames[i];
-        bool written = easySQLQuery(query, [name](sqlite3_stmt* stmt)
+        //bool written =
+        easySQLQuery(query, [name](sqlite3_stmt* stmt)
         {
             if (sqlite3_bind_text(stmt, 1, name.c_str(),
                 -1, SQLITE_TRANSIENT) != SQLITE_OK)
