@@ -1,76 +1,94 @@
-# This fork's changes compared to main STK
+This page lists the major changes of this repository compared to standard STK code, as of April 2024. Most changes (sadly, not all of them) here are implemented as options, that is, you can disable them and return to standard behaviour.
 
-I could forget something.
+You can find more information such as explanations and minor details in [wiki](https://github.com/kimden/stk-code/wiki/). It will be probably filled with even more data in the future.
 
-## Major features
+## Improved Grand Prix mode
 
-* Possibility to have a proper Grand Prix server: doesn't become private after the start, players can use different karts in different races, players can join or leave, added custom scoring, in-game (short) and in-lobby (longer) standings.
-* Possibility to play a Gnu Elimination.
-* Soccer tournament mode: the first mode to have players colored in 3 colors, enforces rules of soccer tournament provided in config file. The number of matches, their duration, team colors, allowed arenas, tournament teams, special labels can be changed. Referees have multiple commands to control the game flow.
-* Possibility to have a table of records for racing servers and notify a player if he has beaten a record.
-* Possibility to record ghost replays on a server if the player agrees.
-* Angry owner mode: with password available only to owner, the owner can become invulnerable to kicks and kick (or temporarily ban) annoying players even being not a crowned player. There are also some other functions like forbidding to start the game.
-* Possibility to force players to have certain number of certain addons (karts, tracks, battle arenas and/or soccer fields) to enter the server.
-* Possibility to send messages only to certain players.
-* /teamchat: a command that makes messages to be received only by teammates in team-based gamemodes. Unlike built-in button (that appeared much later), works also in the lobby.
-* Auto spectating mode (/spectate) slightly differs from the main STK and is actively used in servers on which not all players are intended to play.
-* Possibility to make a server where only the crowned player can play.
+* Server doesn't become private
+* Players can pick karts, join or leave
+* Custom scoring systems
+* Custom teams (up to 9)
+* Standings ingame (short) and in the lobby (longer)
+* Anti-troll and team hit punishment systems, by Heuchi1
+* Allows to shuffle the starting grid every race
 
-## Minor features
+## Records, replays and stats
 
-* Possibility to provide information to players using /help command without making server description long.
-* Possibility to force players to have certain tracks/arenas to enter the server.
-* Possibility to enable (or disable) only a fixed subset of tracks/arenas on the server.
-* Possibility to have a server with fixed lap count (up to 255) and/or fixed number of goals/duration of soccer game.
-* Possibility to forbid certain difficulties and/or modes on a configurable server.
-* Possibility to create chat-only server.
-* Possibility to disable kicks on a server with crowned player.
-* Possibility for players to send a message to the server owner (works like a report in the database), and for the server owner to send one-time messages to certain players.
-* Possibility to store the facts of one player kicking another in a database with reports.
-* Possibility to have "unfair teams" in team-based gamemodes (like 1 vs 7).
-* Possibility to predefine the first several tracks played on the server.
-* Possibility to allow a predefined list of players to enter anything as a password for a private server.
-* Possibility to not show mobile icons near players' names.
-* Possibility to get rid of own goals and replace most of them with normal goals using the principle "the scorer is the one who touched last from the scoring team".
-* max-moveable-objects is changed to 30 to allow tracks like bowling to work.
-* Servers try to reset to initial mode and difficulty when all players are gone (doesn't work if players quit mid-race for now).
+* Game results for racing and battle modes can be saved to the database, together with game settings and kart statistics
+* Public or private record tables can be created using that information
+* Ghost replays can be recorded on servers if players agree
+* Players who beat server records can be notified (includes separation of times set with different config files)
+* Maximum replay size is increased
 
-## Commands
+## Chat
 
-Standard STK server commands work in the same way, with the exception of `/spectate`, which toggles your autospectate state on and off, and the game does *not* start if all players want to spectate.
+* Private chat with an arbitrary set of players
+* Teamchat during CTF and soccer which works both ingame and in the lobby
+* Messages are never logged, even by the bots (though they pass through the server code)
 
-* `/standings [gp|gnu]` - a command to show the standings of an ongoing Grand Prix or Gnu elimination. One can specify which standings to show in the (rare) case when there are both.
-* `/gnu [kart_id]` - starts a Gnu elimination with Gnu kart (or another kart if specified).
-* `/nognu` - stops a Gnu elimination.
-* `/record (track_id) (time-trial|normal) (normal|reverse) (laps)` - finds the best time in the database corresponding to the specified race settings.
-* `/replay (0|1)` - tells the server to record or to not record a ghost replay.
-* `/to [player] [...] [player]` - forces the server to send your messages only to specified players. A lock emoji is displayed in case the message is not sent to everyone.
-* `/public` - erases `/to` limitations.
-* `/teamchat` - forces the server to send your messages only to your teammates in soccer and CTF modes. Note that there is an official GUI alternative, but it works only in-game. `/teamchat` also works in lobby, but doesn't work with splitscreen multiplayer. You can use any combination of two teamchats at any moment.
-* `/start` - has the same effect as pressing the green ready button.
-* `/config (parameters)` - set the server difficulty and/or mode to a specified value. It is equivalent to choosing from a GUI menu.
-* `/commands` - lists some of available commands.
-* `/tell (info)` - sends a report to a server.
-* `/version` - displays the version. It is set manually in the code for now, and server owners can change it at their own decision. If you change the version, we recommend to make sure the version is informative enough to compare different servers.
-* `/register (info)` - allows to register for an event, the information is stored as a report in a specified table in a database.
+## Game configuration, available maps and karts, playing restrictions
 
+* Game length can be set to a fixed value, or to a certain multiple of default lap number, or to be chosen ingame
+* Game direction can be set to forward or reverse, or to be chosen ingame
+* For karts and maps, the next game can be customized so that the set of karts/maps available for choice is fixed, or defined by a certain algorithm (including "you have to play this track", "select from $N$ random maps from this set", "you can choose either Adiumy, or whatever is given to you by random of Suzanne and Konqi")
+* The same is true for any number of next games, and the server can be set to repeat the customization every number of games
 
-## Soccer tournament referee commands
-* `/role (player) (role_id)`, `/role (player) (role_id)` - sets a role to a player, where `role_id` is one of characters in `RrBbJjSs`.
-* `/game [number [duration]]` - starts the next (or specified) game with the default (or specified) duration (in minutes or goals, depending on the tournament format).
-* `/stop` - stops the goal count during the game.
-* `/go | /resume | /continue` - resumes the goal count of game.
-* `/lobby` - stops the game fully, forcing all players to move to the lobby.
-* `/init (red_goals) (blue_goals)` - sets the initial goal count of the game to a specific value (during the game). Players will see it at the bottom of the screen.
+All of the above settings can be changed arbitrarily when the server already runs, or in the config before the server starts.
 
-Referees can also use all server admin commands and crowned player commands (`/kick`, etc.).
+* Servers can be started with other powerup.xml or kart_characteristics.xml files being specified
+* It's possible for a server to force certain maps for players to join the server or to join the game, or vice versa, disable certain maps (or all but a certain set of maps). There are various commands to find out which addons you (or other players) have or don't have, to make it easy to deal with the above
+* The default setting of number of playable slots (playable places on the server) can be changed with a command
+* If the player is unable to play due to imposed restrictions (lacking maps, being out of playable slots), that player doesn't affect the set of available maps, and is given the hourglass icon.
 
-## Server admin commands
+## Command manager
 
-* `/power (password)` - switches the admin to invulnerable mode, in which no one can kick the admin, but the admin can kick anyone regardless of who is the crowned player (if any), and invoke additional commands.
-* `/admin (command)` - can only be invoked in invulnerable mode.
-* `/admin start (0|1)` - allows or forbids to start the game. Can be useful for scheduled events, or to prevent players from starting too fast.
-* `/kickban [player]`, `/ban [player]` - temporarily bans a player (it is reset upon server restart). The first version also kicks the player from the server, and thus can be used only when that player is on the server.
-* `/unban [player]` - removes temporary ban from a player. Note that database-stored bans are not affected by `/ban`, `/kickban`, and `/unban` commands.
+Command manager is an entity made to manipulate all existing server commands easier. It supports:
 
-Invulnerable mode also allows invoking server owner commands.
+* commands with voting
+* text commands / commands reading external files
+* auth commands
+* setting permissions for commands without recompiling the code and/or depending on server
+* subcommands and different permissions for them
+* fixing errors in arguments (usernames, map names)
+* showing available commands depending on permissions
+* documentation for all commands via `/help`
+* huge number of new commands
+
+All the commands and their descriptions are available in `data/commands.xml`. This file is also used to generate output for `/commands` and `/help`.
+
+## Moderation and permissions
+
+* It's possible to disable kicks attempted by the crowned player
+* If a player kicks another player, the fact of the kick can be stored in the database table with reports
+* Inactive players can be kicked automatically from the lobby too, not only from the game
+* A hammer mode is added: players having a password can get a hammer, then they can change server settings and kick players
+* There are commands to ban (or unban) a player temporary from a single server by username, as opposed to standard bans which are applied to all servers using the same database, and are usually banning by online id or IP address
+* Players are allowed to report something to server owner without reporting other people
+* Starting the game can be allowed or forbidden using a command
+
+## Game modes and their improvements
+
+These are not implemented as separate modes, but are rather additions to functionality of existing modes:
+
+* **Soccer tournament** mode: for hosting matches of several soccer games. The rules, the number of games and their duration, allowed arenas, tournament teams can be loaded from a config file. Referees have multiple commands to control the game flow
+* **Gnu Elimination** mode: every race, the last (or quitting) non-eliminated player gets eliminated, and eliminated players use the same kart chosen in advance. The last standing player wins
+
+Separate changes for modes:
+
+* Soccer games produce a log of all goals / actions that happened (originally made for tournament mode, but can be used without it too), if the score is edited using tournament commands, the game shows it as a message after each goal and at the end
+* FFA and CTF scores are preserved per username during the game, so that leaving the game is not punished
+
+## Other features
+
+* You can allow only the crowned player to play (speedrun server), or no one at all (chat server)
+* Minor `/spectate` changes (you can invoke it ingame, game doesn't start with everyone spectating)
+* For a configurable server, you can specify which exact difficulties and modes are allowed
+* Players can send a message to the server owner (without reporting anyone else), and the server owner can send one-time messages to specific players
+* For private servers, players can be whitelisted so that they can enter any password to join
+* Different strategies to determine who scored a goal (allowing or forbidding own goals)
+* `max-moveable-objects` is changed to 30 to allow tracks like `addon_bowling` to work
+* Server can be customized to reset or preserve many settings like game mode, game length, ..., when everyone leaves it
+* Server git version and whether it's modified is shown in `/version`
+* Server console allows sending arbitrary messages to players
+* Supported player categories aka sets of players (for now only displaying their names, and some minor usage)
+* Minor additions in StringUtils used in typo fixing and string parsing
