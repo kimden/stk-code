@@ -108,6 +108,12 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- Clients below this value will be rejected from joining this server. It's determined by number of official tracks in client / number of official tracks in server, setting this value too high will prevent android players from joining this server, because STK android apk has some official tracks removed. -->
     <official-tracks-threshold value="0.7" />
 
+    <!-- Clients below this value will be rejected from playing on this server. It's determined by number of official karts in client / number of official karts in server. -->
+    <official-karts-play-threshold value="0" />
+
+    <!-- Clients below this value will be rejected from playing on this server. It's determined by number of official tracks in client / number of official tracks in server, setting this value too high will prevent android players from playing on this server, because STK android apk has some official tracks removed. -->
+    <official-tracks-play-threshold value="0" />
+
     <!-- Clients below this value will be rejected from joining this server. It's determined by number of addon karts in client -->
     <addon_karts_threshold value="0" />
 

@@ -7285,6 +7285,7 @@ bool ServerLobby::canRace(STKPeer* peer)
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
                 return m_peers_ability_to_play[peer] = false;
+
     if (peer->addon_karts_count < ServerConfig::m_addon_karts_play_threshold)
         return m_peers_ability_to_play[peer] = false;
     if (peer->addon_tracks_count < ServerConfig::m_addon_tracks_play_threshold)
@@ -7292,6 +7293,28 @@ bool ServerLobby::canRace(STKPeer* peer)
     if (peer->addon_arenas_count < ServerConfig::m_addon_arenas_play_threshold)
         return m_peers_ability_to_play[peer] = false;
     if (peer->addon_soccers_count < ServerConfig::m_addon_soccers_play_threshold)
+        return m_peers_ability_to_play[peer] = false;
+
+    float karts_fraction = 0.0f;
+    float maps_fraction = 0.0f;
+    for (auto& kart : karts)
+    {
+        if (m_official_kts.first.find(kart) !=
+            m_official_kts.first.end())
+            karts_fraction += 1.0f;
+    }
+    for (auto& map : maps)
+    {
+        if (m_official_kts.second.find(map) !=
+            m_official_kts.second.end())
+            maps_fraction += 1.0f;
+    }
+    karts_fraction /= (float)m_official_kts.first.size();
+    maps_fraction /= (float)m_official_kts.second.size();
+
+    if (karts_fraction < ServerConfig::m_official_karts_play_threshold)
+        return m_peers_ability_to_play[peer] = false;
+    if (maps_fraction < ServerConfig::m_official_tracks_play_threshold)
         return m_peers_ability_to_play[peer] = false;
     return m_peers_ability_to_play[peer] = true;
 }   // canRace
