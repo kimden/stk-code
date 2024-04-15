@@ -229,7 +229,23 @@ namespace ServerConfig
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of official tracks in client / number of "
         "official tracks in server, setting this value too high will prevent "
-        "android players from joining this server, because STK android apk "
+        "android players from playing on this server, because STK android apk "
+        "has some official tracks removed."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_official_karts_play_threshold
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(1.0f,
+        "official-karts-play-threshold",
+        "Clients below this value will be rejected from playing on this server. "
+        "It's determined by number of official karts in client / number of "
+        "official karts in server."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_official_tracks_play_threshold
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(0.7f,
+        "official-tracks-play-threshold",
+        "Clients below this value will be rejected from playing on this server. "
+        "It's determined by number of official tracks in client / number of "
+        "official tracks in server, setting this value too high will prevent "
+        "android players from playing on this server, because STK android apk "
         "has some official tracks removed."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_join_threshold
