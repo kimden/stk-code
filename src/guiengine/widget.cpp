@@ -303,6 +303,15 @@ bool Widget::isFocusedForPlayer(const int playerID)
 
 // -----------------------------------------------------------------------------
 
+void Widget::resize()
+{
+    assert(m_magic_number == 0xCAFEC001);
+
+    moveIrrlichtElement();
+}
+
+// -----------------------------------------------------------------------------
+
 void Widget::move(const int x, const int y, const int w, const int h)
 {
     assert(m_magic_number == 0xCAFEC001);
@@ -311,9 +320,7 @@ void Widget::move(const int x, const int y, const int w, const int h)
     m_y = y;
     m_w = w;
     m_h = h;
-
-    if (m_element != NULL)
-        m_element->setRelativePosition( core::rect < s32 > (x, y, x+w, y+h) );
+    resize();
 }
 
 // -----------------------------------------------------------------------------

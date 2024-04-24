@@ -511,7 +511,10 @@ bool handleContextMenuAction(s32 cmd_id)
         break;
     }
     case DEBUG_PROFILER:
-        profiler.toggleStatus();
+        if (UserConfigParams::m_profiler_enabled)
+            profiler.desactivate();
+        else
+            profiler.activate();
         break;
     case DEBUG_PROFILER_WRITE_REPORT:
         profiler.writeToFile();
