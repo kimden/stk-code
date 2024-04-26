@@ -455,6 +455,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("preserve =", &CM::process_preserve_assign);
     applyFunctionIfPossible("history", &CM::process_history);
     applyFunctionIfPossible("history =", &CM::process_history_assign);
+    applyFunctionIfPossible("voting", &CM::process_voting);
+    applyFunctionIfPossible("voting =", &CM::process_voting_assign);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
     applyFunctionIfPossible("stopaddondownload", &CM::special);
@@ -3918,6 +3920,47 @@ void CommandManager::process_history_assign(Context& context)
     m_lobby->m_tournament_arenas[index] = id;
 
     msg = StringUtils::insertValues("Assigned [%d] to %s in the map history", index, id.c_str());
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_history_assign
+// ========================================================================
+
+void CommandManager::process_voting(Context& context)
+{
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    std::string msg = StringUtils::insertValues("Voting method: %d",
+            m_lobby->m_map_vote_handler.getAlgorithm());
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_history
+// ========================================================================
+
+void CommandManager::process_voting_assign(Context& context)
+{
+    auto& argv = context.m_argv;
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    std::string msg = "";
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    int value;
+    if (!StringUtils::fromString(argv[1], value) || value < 0 || value > 1)
+    {
+        error(context);
+        return;
+    }
+    m_lobby->m_map_vote_handler.setAlgorithm(value);
+    msg = StringUtils::insertValues("Set voting method to %s", value);
     m_lobby->sendStringToPeer(msg, peer);
 } // process_history_assign
 // ========================================================================

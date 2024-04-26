@@ -1107,6 +1107,21 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="voting"
+             usage="/voting"
+             permissions-verbose="everyone"
+             description="Shows the voting method currently applied during the map selection. 0 means the winning vote is determined as in base STK, 1 means it's taken at random from all votes."
+             permissions="UP_EVERYONE"
+             state-scope="SS_LOBBY"
+    >
+        <command name="="
+                 usage="/voting (0 or 1)"
+                 omit-name="true"
+                 permissions-verbose="hammers"
+                 description="Changes the voting method during map selection to a specified value (0 for default, 1 for random of all votes)."
+                 permissions="UP_HAMMER"
+        />
+    </command>
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions-verbose="everyone (client command)"

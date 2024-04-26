@@ -25,6 +25,7 @@
 #include "utils/team_utils.hpp"
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
+#include "utils/map_vote_handler.hpp"
 #include "karts/controller/player_controller.hpp"
 #include "network/protocols/command_manager.hpp"
 
@@ -316,6 +317,8 @@ private:
 
     KartElimination m_kart_elimination;
 
+    MapVoteHandler m_map_vote_handler;
+
     std::set<int> m_available_difficulties;
 
     std::set<int> m_available_modes;
@@ -520,9 +523,6 @@ private:
                                   const irr::core::stringw& online_name,
                                   const std::string& country_code);
     bool handleAllVotes(PeerVote* winner, uint32_t* winner_peer_id);
-    template<typename T>
-    void findMajorityValue(const std::map<T, unsigned>& choices, unsigned cur_players,
-                           T* best_choice, float* rate);
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
     void computeNewRankings();
