@@ -59,6 +59,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/file_utils.hpp"
+#include "utils/hourglass_reason.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
@@ -457,6 +458,7 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("history =", &CM::process_history_assign);
     applyFunctionIfPossible("voting", &CM::process_voting);
     applyFunctionIfPossible("voting =", &CM::process_voting_assign);
+    applyFunctionIfPossible("whyhourglass", &CM::process_why_hourglass);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
     applyFunctionIfPossible("stopaddondownload", &CM::special);
@@ -3963,6 +3965,100 @@ void CommandManager::process_voting_assign(Context& context)
     msg = StringUtils::insertValues("Set voting method to %s", value);
     m_lobby->sendStringToPeer(msg, peer);
 } // process_history_assign
+// ========================================================================
+
+void CommandManager::process_why_hourglass(Context& context)
+{
+    std::string response;
+    std::string player_name;
+    auto& argv = context.m_argv;
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    if (argv.size() < 2)
+    {
+        if (peer->getPlayerProfiles().empty())
+        {
+            Log::warn("CommandManager", "whyhourglass: no existing player profiles??");
+            error(context);
+            return;
+        }
+        player_name = StringUtils::wideToUtf8(
+                peer->getPlayerProfiles()[0]->getName());
+    }
+    else
+    {
+        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
+                1, m_stf_present_users, 3, false, false))
+            return;
+        player_name = argv[1];
+    }
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
+        StringUtils::utf8ToWide(player_name));
+    if (player_name.empty() || !player_peer)
+    {
+        error(context);
+        return;
+    }
+    auto it = m_lobby->m_why_peer_cannot_play.find(player_peer.get());
+    if (it == m_lobby->m_why_peer_cannot_play.end())
+    {
+        response = "For some reason, server doesn't know about the hourglass status of this player.";
+    }
+    else
+    {
+        switch (it->second)
+        {
+            case HR_NONE:
+                response = "%s can play (but if hourglass is present, there are not enough slots on the server).";
+                break;
+            case HR_ABSENT_PEER:
+                response = "Player %s is not present on the server.";
+                break;
+            case HR_NOT_A_TOURNAMENT_PLAYER:
+                response = "%s is not a tournament player for this game.";
+                break;
+            case HR_SPECTATOR_BY_LIMIT:
+                response = "Not enough slots to fit %s.";
+                break;
+            case HR_NO_KARTS_AFTER_FILTER:
+                response = "After applying all kart filters, %s doesn't have karts to play.";
+                break;
+            case HR_NO_MAPS_AFTER_FILTER:
+                response = "After applying all map filters, %s doesn't have maps to play.";
+                break;
+            case HR_LACKING_REQUIRED_MAPS:
+                response = "%s lacks required maps.";
+                break;
+            case HR_ADDON_KARTS_PLAY_THRESHOLD:
+                response = "Player %s doesn't have enough addon karts.";
+                break;
+            case HR_ADDON_TRACKS_PLAY_THRESHOLD:
+                response = "Player %s doesn't have enough addon tracks.";
+                break;
+            case HR_ADDON_ARENAS_PLAY_THRESHOLD:
+                response = "Player %s doesn't have enough addon arenas.";
+                break;
+            case HR_ADDON_FIELDS_PLAY_THRESHOLD:
+                response = "Player %s doesn't have enough addon fields.";
+                break;
+            case HR_OFFICIAL_KARTS_PLAY_THRESHOLD:
+                response = "The number of official karts for %s is lower than the threshold.";
+                break;
+            case HR_OFFICIAL_TRACKS_PLAY_THRESHOLD:
+                response = "The number of official tracks for %s is lower than the threshold.";
+                break;
+            default:
+                response = "";
+                break;
+        }
+        response = StringUtils::insertValues(response, player_name.c_str());
+    }
+    m_lobby->sendStringToPeer(response, peer);
+} // process_why_hourglass
 // ========================================================================
 
 void CommandManager::special(Context& context)

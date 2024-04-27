@@ -1122,6 +1122,13 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="whyhourglass"
+             usage="/whyhourglass (username)"
+             permissions-verbose="everyone"
+             description="Shows one of possile reasons why the specified player has the hourglass."
+             permissions="UP_EVERYONE"
+             state-scope="SS_LOBBY"
+    />
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions-verbose="everyone (client command)"

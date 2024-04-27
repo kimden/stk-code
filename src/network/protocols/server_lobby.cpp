@@ -6428,7 +6428,7 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
     if (!update)
         return m_spectators_by_limit;
 
-    m_peers_ability_to_play.clear();
+    m_why_peer_cannot_play.clear();
     m_spectators_by_limit.clear();
 
     auto peers = STKHost::get()->getPeers();
@@ -7129,22 +7129,31 @@ bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer)
 //-----------------------------------------------------------------------------
 bool ServerLobby::canRace(STKPeer* peer)
 {
-    auto it = m_peers_ability_to_play.find(peer);
-    if (it != m_peers_ability_to_play.end())
-        return it->second;
+    auto it = m_why_peer_cannot_play.find(peer);
+    if (it != m_why_peer_cannot_play.end())
+        return it->second == 0;
 
     if (!peer || peer->getPlayerProfiles().empty())
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ABSENT_PEER;
+        return false;
+    }
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (ServerConfig::m_soccer_tournament)
     {
         if (m_tournament_red_players.count(username) == 0 &&
             m_tournament_blue_players.count(username) == 0)
-            return m_peers_ability_to_play[peer] = false;
+        {
+            m_why_peer_cannot_play[peer] = HR_NOT_A_TOURNAMENT_PLAYER;
+            return false;
+        }
     }
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_SPECTATOR_BY_LIMIT;
+        return false;
+    }
 
     std::set<std::string> maps = peer->getClientAssets().second;
     std::set<std::string> karts = peer->getClientAssets().first;
@@ -7152,22 +7161,45 @@ bool ServerLobby::canRace(STKPeer* peer)
     applyAllFilters(maps, true);
     applyAllKartFilters(username, karts, false);
 
-    if (maps.empty() || karts.empty())
-        return m_peers_ability_to_play[peer] = false;
+    if (karts.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_KARTS_AFTER_FILTER;
+        return false;
+    }
+    if (maps.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_MAPS_AFTER_FILTER;
+        return false;
+    }
 
     if (!m_play_requirement_tracks.empty())
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
-                return m_peers_ability_to_play[peer] = false;
+            {
+                m_why_peer_cannot_play[peer] = HR_LACKING_REQUIRED_MAPS;
+                return false;
+            }
 
     if (peer->addon_karts_count < ServerConfig::m_addon_karts_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_KARTS_PLAY_THRESHOLD;
+        return false;
+    }
     if (peer->addon_tracks_count < ServerConfig::m_addon_tracks_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_TRACKS_PLAY_THRESHOLD;
+        return false;
+    }
     if (peer->addon_arenas_count < ServerConfig::m_addon_arenas_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_ARENAS_PLAY_THRESHOLD;
+        return false;
+    }
     if (peer->addon_soccers_count < ServerConfig::m_addon_soccers_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_FIELDS_PLAY_THRESHOLD;
+        return false;
+    }
 
     float karts_fraction = 0.0f;
     float maps_fraction = 0.0f;
@@ -7187,10 +7219,17 @@ bool ServerLobby::canRace(STKPeer* peer)
     maps_fraction /= (float)m_official_kts.second.size();
 
     if (karts_fraction < ServerConfig::m_official_karts_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_OFFICIAL_KARTS_PLAY_THRESHOLD;
+        return false;
+    }
     if (maps_fraction < ServerConfig::m_official_tracks_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
-    return m_peers_ability_to_play[peer] = true;
+    {
+        m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
+        return false;
+    }
+    m_why_peer_cannot_play[peer] = 0;
+    return true;
 }   // canRace
 //-----------------------------------------------------------------------------
 bool ServerLobby::canVote(std::shared_ptr<STKPeer>& peer) const

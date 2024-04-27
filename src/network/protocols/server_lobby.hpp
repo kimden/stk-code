@@ -26,6 +26,7 @@
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
 #include "utils/map_vote_handler.hpp"
+#include "utils/hourglass_reason.hpp"
 #include "karts/controller/player_controller.hpp"
 #include "network/protocols/command_manager.hpp"
 
@@ -313,7 +314,7 @@ private:
 
     std::set<STKPeer*> m_team_speakers;
 
-    std::map<STKPeer*, bool> m_peers_ability_to_play;
+    std::map<STKPeer*, int> m_why_peer_cannot_play;
 
     KartElimination m_kart_elimination;
 
