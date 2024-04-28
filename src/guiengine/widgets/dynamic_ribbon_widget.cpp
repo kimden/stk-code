@@ -197,9 +197,11 @@ void DynamicRibbonWidget::resize()
     for (unsigned i = 0; i < MAX_PLAYER_COUNT; i++)
         selected[i] = getSelectionIDString(i);
     Widget::resize();
+    GUIEngine::getGUIEnv()->setChildEnd(m_left_widget->m_element);
     updateForResizing();
     buildInternalStructure();
     updateItemDisplay();
+    GUIEngine::getGUIEnv()->setChildEnd(NULL);
     for (unsigned i = 0; i < MAX_PLAYER_COUNT; i++)
     {
         if (!selected[i].empty())
@@ -871,6 +873,8 @@ void DynamicRibbonWidget::scroll(int x_delta, bool evenIfDeactivated)
     {
         for (unsigned int n=0; n<MAX_PLAYER_COUNT; n++)
         {
+            if (m_selected_item[n] == -1)
+                continue;
             RibbonWidget* ribbon = m_rows.get(0); // there is a single row when we can select items
             int id = m_selected_item[n] - m_scroll_offset;
             if (id < 0) id += (int) m_items.size();
