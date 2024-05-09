@@ -423,6 +423,34 @@ break_glyph_layouts:
 }   // addMoreServerInfo
 
 // ----------------------------------------------------------------------------
+void NetworkingLobby::onResize()
+{
+    Screen::onResize();
+    const unsigned box_width = m_text_bubble->getDimension().Width;
+    const float box_height = m_text_bubble->getDimension().Height;
+    gui::IGUIFont* font = GUIEngine::getFont();
+    gui::breakGlyphLayouts(m_server_info, box_width,
+        font->getInverseShaping(), font->getScale());
+    gui::eraseTopLargerThan(m_server_info, font->getHeightPerLine(),
+        box_height);
+    updateServerInfos();
+
+    int header_text_width =
+        GUIEngine::getTitleFont()->getDimension(m_header_text.c_str()).Width;
+    if ((m_header->m_w < header_text_width && m_header->getScrollSpeed() == 0.0f) ||
+        (m_header->m_w >= header_text_width && m_header->getScrollSpeed() != 0.0f))
+    {
+        m_header->getIrrlichtElement()->remove();
+        GUIEngine::getGUIEnv()->getRootGUIElement()->setChildEnd(m_back_widget->getIrrlichtElement());
+        m_header->setScrollSpeed(m_header->m_w < header_text_width ? 0.5f: 0.0f);
+        m_header->add();
+        m_header->setText(m_header_text, true);
+        GUIEngine::getGUIEnv()->getRootGUIElement()->setChildEnd(NULL);
+    }
+    m_header_text_width = header_text_width;
+}   // onResize
+
+// ----------------------------------------------------------------------------
 void NetworkingLobby::updateServerInfos()
 {
 #ifndef SERVER_ONLY
@@ -450,7 +478,7 @@ void NetworkingLobby::onUpdate(float delta)
         m_header->getIrrlichtElement()->remove();
         if (m_header_text_width > m_header->m_w)
         {
-            m_header->setScrollSpeed(GUIEngine::getTitleFontHeight() / 2);
+            m_header->setScrollSpeed(0.5f);
             m_header->add();
             m_header->setText(m_header_text, true);
         }

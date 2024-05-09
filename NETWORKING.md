@@ -300,6 +300,9 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- If true, the server owner can kick players, either via the UI button or using /kick command. -->
     <kicks-allowed value="true" />
 
+    <!-- Specifies how the server should decide which map vote wins in map selection. 0 corresponds to standard system, 1 - to randomly selecting one of votes. -->
+    <map-vote-handling value="0" />
+
 </server-config>
 
 ```

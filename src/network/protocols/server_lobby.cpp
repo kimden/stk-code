@@ -239,6 +239,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_teammate_swatter_punish.clear();
     m_collecting_teammate_hit_info = false;
 
+    m_map_vote_handler.setAlgorithm(ServerConfig::m_map_vote_handling);
+
     initAvailableModes();
 
     m_current_ai_count.store(0);
@@ -5162,13 +5164,6 @@ void ServerLobby::handlePlayerVote(Event* event)
 bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
                                  uint32_t* winner_peer_id)
 {
-    // Determine majority agreement when 35% of voting time remains,
-    // reserve some time for kart selection so it's not 50%
-    if (getRemainingVotingTime() / getMaxVotingTime() > 0.35f)
-    {
-        return false;
-    }
-
     // First remove all votes from disconnected hosts
     auto it = m_peers_votes.begin();
     while (it != m_peers_votes.end())
@@ -5182,18 +5177,8 @@ bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
             it++;
     }
 
-    if (m_peers_votes.empty())
-    {
-        if (isVotingOver())
-        {
-            *winner_vote = *m_default_vote;
-            return true;
-        }
-        return false;
-    }
-
-    // Count number of players 
-    float cur_players = 0.0f;
+    // Count number of players
+    unsigned cur_players = 0;
     auto peers = STKHost::get()->getPeers();
     for (auto peer : peers)
     {
@@ -5202,130 +5187,19 @@ bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
         if (!canVote(peer))
             continue;
         if (peer->hasPlayerProfiles() && !peer->isWaitingForGame())
-            cur_players += 1.0f;
+            cur_players++;
     }
 
-    std::string top_track = m_default_vote->m_track_name;
-    unsigned top_laps = m_default_vote->m_num_laps;
-    bool top_reverse = m_default_vote->m_reverse;
-
-    std::map<std::string, unsigned> tracks;
-    std::map<unsigned, unsigned> laps;
-    std::map<bool, unsigned> reverses;
-
-    // Ratio to determine majority agreement
-    float tracks_rate = 0.0f;
-    float laps_rate = 0.0f;
-    float reverses_rate = 0.0f;
-
-    for (auto& p : m_peers_votes)
-    {
-        auto track_vote = tracks.find(p.second.m_track_name);
-        if (track_vote == tracks.end())
-            tracks[p.second.m_track_name] = 1;
-        else
-            track_vote->second++;
-        auto lap_vote = laps.find(p.second.m_num_laps);
-        if (lap_vote == laps.end())
-            laps[p.second.m_num_laps] = 1;
-        else
-            lap_vote->second++;
-        auto reverse_vote = reverses.find(p.second.m_reverse);
-        if (reverse_vote == reverses.end())
-            reverses[p.second.m_reverse] = 1;
-        else
-            reverse_vote->second++;
-    }
-
-    findMajorityValue<std::string>(tracks, cur_players, &top_track, &tracks_rate);
-    findMajorityValue<unsigned>(laps, cur_players, &top_laps, &laps_rate);
-    findMajorityValue<bool>(reverses, cur_players, &top_reverse, &reverses_rate);
-
-    // End early if there is majority agreement which is all entries rate > 0.5
-    it = m_peers_votes.begin();
-    if (tracks_rate > 0.5f && laps_rate > 0.5f && reverses_rate > 0.5f)
-    {
-        while (it != m_peers_votes.end())
-        {
-            if (it->second.m_track_name == top_track &&
-                it->second.m_num_laps == top_laps &&
-                it->second.m_reverse == top_reverse)
-                break;
-            else
-                it++;
-        }
-        if (it == m_peers_votes.end())
-        {
-            // Don't end if no vote matches all majority choices
-            Log::warn("ServerLobby",
-                "Missing track %s from majority.", top_track.c_str());
-            it = m_peers_votes.begin();
-            if (!isVotingOver())
-                return false;
-        }
-        *winner_peer_id = it->first;
-        *winner_vote = it->second;
-        return true;
-    }
-    if (isVotingOver())
-    {
-        // Pick the best lap (or soccer goal / time) from only the top track
-        // if no majority agreement from all
-        int diff = std::numeric_limits<int>::max();
-        auto closest_lap = m_peers_votes.begin();
-        while (it != m_peers_votes.end())
-        {
-            if (it->second.m_track_name == top_track &&
-                std::abs((int)it->second.m_num_laps - (int)top_laps) < diff)
-            {
-                closest_lap = it;
-                diff = std::abs((int)it->second.m_num_laps - (int)top_laps);
-            }
-            else
-                it++;
-        }
-        *winner_peer_id = closest_lap->first;
-        *winner_vote = closest_lap->second;
-        return true;
-    }
-    return false;
+    return m_map_vote_handler.handleAllVotes(
+        m_peers_votes,
+        getRemainingVotingTime(),
+        getMaxVotingTime(),
+        isVotingOver(),
+        cur_players,
+        m_default_vote,
+        winner_vote, winner_peer_id
+    );
 }   // handleAllVotes
-
-// ----------------------------------------------------------------------------
-template<typename T>
-void ServerLobby::findMajorityValue(const std::map<T, unsigned>& choices, unsigned cur_players,
-                       T* best_choice, float* rate)
-{
-    RandomGenerator rg;
-    unsigned max_votes = 0;
-    auto best_iter = choices.begin();
-    unsigned best_iters_count = 1;
-    // Among choices with max votes, we need to pick one uniformly,
-    // thus we have to keep track of their number
-    for (auto iter = choices.begin(); iter != choices.end(); iter++)
-    {
-        if (iter->second > max_votes)
-        {
-            max_votes = iter->second;
-            best_iter = iter;
-            best_iters_count = 1;
-        }
-        else if (iter->second == max_votes)
-        {
-            best_iters_count++;
-            if (rg.get(best_iters_count) == 0)
-            {
-                max_votes = iter->second;
-                best_iter = iter;
-            }
-        }
-    }
-    if (best_iter != choices.end())
-    {
-        *best_choice = best_iter->first;
-        *rate = float(best_iter->second) / cur_players;
-    }
-}   // findMajorityValue
 
 // ----------------------------------------------------------------------------
 void ServerLobby::getHitCaptureLimit()
@@ -6559,7 +6433,7 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
     if (!update)
         return m_spectators_by_limit;
 
-    m_peers_ability_to_play.clear();
+    m_why_peer_cannot_play.clear();
     m_spectators_by_limit.clear();
 
     auto peers = STKHost::get()->getPeers();
@@ -7260,22 +7134,31 @@ bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer)
 //-----------------------------------------------------------------------------
 bool ServerLobby::canRace(STKPeer* peer)
 {
-    auto it = m_peers_ability_to_play.find(peer);
-    if (it != m_peers_ability_to_play.end())
-        return it->second;
+    auto it = m_why_peer_cannot_play.find(peer);
+    if (it != m_why_peer_cannot_play.end())
+        return it->second == 0;
 
     if (!peer || peer->getPlayerProfiles().empty())
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ABSENT_PEER;
+        return false;
+    }
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (ServerConfig::m_soccer_tournament)
     {
         if (m_tournament_red_players.count(username) == 0 &&
             m_tournament_blue_players.count(username) == 0)
-            return m_peers_ability_to_play[peer] = false;
+        {
+            m_why_peer_cannot_play[peer] = HR_NOT_A_TOURNAMENT_PLAYER;
+            return false;
+        }
     }
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_SPECTATOR_BY_LIMIT;
+        return false;
+    }
 
     std::set<std::string> maps = peer->getClientAssets().second;
     std::set<std::string> karts = peer->getClientAssets().first;
@@ -7283,22 +7166,45 @@ bool ServerLobby::canRace(STKPeer* peer)
     applyAllFilters(maps, true);
     applyAllKartFilters(username, karts, false);
 
-    if (maps.empty() || karts.empty())
-        return m_peers_ability_to_play[peer] = false;
+    if (karts.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_KARTS_AFTER_FILTER;
+        return false;
+    }
+    if (maps.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_MAPS_AFTER_FILTER;
+        return false;
+    }
 
     if (!m_play_requirement_tracks.empty())
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
-                return m_peers_ability_to_play[peer] = false;
+            {
+                m_why_peer_cannot_play[peer] = HR_LACKING_REQUIRED_MAPS;
+                return false;
+            }
 
     if (peer->addon_karts_count < ServerConfig::m_addon_karts_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_KARTS_PLAY_THRESHOLD;
+        return false;
+    }
     if (peer->addon_tracks_count < ServerConfig::m_addon_tracks_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_TRACKS_PLAY_THRESHOLD;
+        return false;
+    }
     if (peer->addon_arenas_count < ServerConfig::m_addon_arenas_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_ARENAS_PLAY_THRESHOLD;
+        return false;
+    }
     if (peer->addon_soccers_count < ServerConfig::m_addon_soccers_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_FIELDS_PLAY_THRESHOLD;
+        return false;
+    }
 
     float karts_fraction = 0.0f;
     float maps_fraction = 0.0f;
@@ -7318,10 +7224,17 @@ bool ServerLobby::canRace(STKPeer* peer)
     maps_fraction /= (float)m_official_kts.second.size();
 
     if (karts_fraction < ServerConfig::m_official_karts_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
+    {
+        m_why_peer_cannot_play[peer] = HR_OFFICIAL_KARTS_PLAY_THRESHOLD;
+        return false;
+    }
     if (maps_fraction < ServerConfig::m_official_tracks_play_threshold)
-        return m_peers_ability_to_play[peer] = false;
-    return m_peers_ability_to_play[peer] = true;
+    {
+        m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
+        return false;
+    }
+    m_why_peer_cannot_play[peer] = 0;
+    return true;
 }   // canRace
 //-----------------------------------------------------------------------------
 bool ServerLobby::canVote(std::shared_ptr<STKPeer>& peer) const

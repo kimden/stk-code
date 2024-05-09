@@ -146,6 +146,7 @@ RaceManager::RaceManager()
     setRaceGhostKarts(false);
     setWatchingReplay(false);
     setBenchmarking(false);
+    m_scheduled_benchmark = false;
     setTrack("jungle");
     m_default_ai_list.clear();
     setNumPlayers(0);
@@ -1368,6 +1369,7 @@ core::stringw RaceManager::getDifficultyName(Difficulty diff) const
 void RaceManager::setBenchmarking(bool benchmark)
 {
     m_benchmarking = benchmark;
+    m_scheduled_benchmark = false;
 
     // If the benchmark mode is turned off and the profiler is still activated,
     // turn the profiler off and reset the drawing mode to default.
@@ -1377,3 +1379,11 @@ void RaceManager::setBenchmarking(bool benchmark)
         profiler.setDrawing(true);
     }
 }   // setBenchmarking
+
+//---------------------------------------------------------------------------------------------
+/** Schedule a benchmark. This function is used because the video options screen
+* might need to be reloaded when switching between old and modern renderer.*/
+void RaceManager::scheduleBenchmark()
+{
+    m_scheduled_benchmark = true;
+}   // scheduleBenchmark

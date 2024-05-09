@@ -358,6 +358,9 @@ private:
     void process_preserve_assign(Context& context);
     void process_history(Context& context);
     void process_history_assign(Context& context);
+    void process_voting(Context& context);
+    void process_voting_assign(Context& context);
+    void process_why_hourglass(Context& context);
     void special(Context& context);
 
     std::string getRandomMap() const;

@@ -51,6 +51,7 @@ LODNode::LODNode(std::string group_name, scene::ISceneNode* parent,
     m_area = 0;
     m_current_level = -1;
     m_current_level_dirty = true;
+    m_lod_distances_updated = false;
 }
 
 LODNode::~LODNode()
@@ -83,12 +84,22 @@ int LODNode::getLevel()
         return (int)m_detail.size() - 1;
     const Vec3 &pos = camera->getCameraSceneNode()->getAbsolutePosition();
 
-    const int dist =
+    const int squared_dist =
         (int)((m_nodes[0]->getAbsolutePosition()).getDistanceFromSQ(pos.toIrrVector() ));
 
+    if (!m_lod_distances_updated)
+    {
+        for (unsigned int n=0; n<m_detail.size(); n++)
+        {
+            m_detail[n] = (int)((float)m_detail[n] * irr_driver->getLODMultiplier());
+        }
+        m_lod_distances_updated = true;
+    }
+
+    // The LoD levels are ordered from highest quality to lowest
     for (unsigned int n=0; n<m_detail.size(); n++)
     {
-        if (dist < m_detail[n])
+        if (squared_dist < m_detail[n])
         {
             m_current_level = n;
             return n;
@@ -136,8 +147,7 @@ void LODNode::OnAnimate(u32 timeMs)
                 }
             }
         }
-
-    }
+    } // if isVisible() && m_nodes.size() > 0
 }
 
 void LODNode::updateVisibility()
@@ -173,12 +183,12 @@ void LODNode::OnRegisterSceneNode()
         {
             m_nodes[level]->OnRegisterSceneNode();
         }
-        for (int i = 0; i < Children.size(); i++)
+        for (unsigned i = 0; i < Children.size(); i++)
         {
             if (m_nodes_set.find(Children[i]) == m_nodes_set.end())
                 Children[i]->OnRegisterSceneNode();
         }
-    }
+    } // if isVisible() && m_nodes.size() > 0
 }
 
 /* Each model with LoD has specific distances beyond which it is rendered at a lower 
@@ -189,37 +199,68 @@ void LODNode::autoComputeLevel(float scale)
 {
     m_area *= scale;
 
-    // Amount of details based on user's input
-    float agressivity = 1.0;
-    if(     UserConfigParams::m_geometry_level == 0) agressivity = 1.25;
-    else if(UserConfigParams::m_geometry_level == 1) agressivity = 1.0;
-    else if(UserConfigParams::m_geometry_level == 2) agressivity = 0.75;
-    else if(UserConfigParams::m_geometry_level == 3) agressivity = 1.6;
-    else if(UserConfigParams::m_geometry_level == 4) agressivity = 2.0;
-    else if(UserConfigParams::m_geometry_level == 5) agressivity = 3.0;
+    // We want to determine two things:
+    // 1.) beyond which distance the object should disappear entirely
+    // 2.) at which distances we should switch between a lower-quality model and a higher quality model,
+    //     if these distances are too low we stick to a lower-quality model
 
-    // First we try to estimate how far away we need to draw
-    // This first formula is equivalent to the one used up to STK 1.4
+    // Step 1 - We try to estimate how far away we need to draw
+    //          This first formula is equivalent to the one used up to STK 1.4
     float max_draw = 10*(sqrtf(m_area + 20) - 1);
-    // If the draw distance is too big we artificially reduce it
-    // The formulas are still experimental and improvable.
+
+    // Step 2 - At really short distances, popping is more annoying even if
+    //          the object is small, so we limit how small the distance can be
+    if (max_draw < 100)
+        max_draw = 40 + (max_draw * 0.6);
+
+    // Step 3 - If the draw distance is too big we artificially reduce it
+    //          The formulas are still experimental and improvable.
     if(max_draw > 250)
         max_draw = 230 + (max_draw * 0.08);
     // This effecte is cumulative
     if (max_draw > 500)
         max_draw = 200 + (max_draw * 0.6);
 
-    max_draw *= agressivity;
+    float max_quality_switch_dist = 90;
 
-    int step = (int) (max_draw * max_draw) / m_detail.size();
+    // Step 4 - Distance multiplier based on the user's input
+    float aggressivity = 1.0;
+    if(     UserConfigParams::m_geometry_level == 2) aggressivity = 0.8; // 2 in the params is the lowest setting
+    else if(UserConfigParams::m_geometry_level == 1) aggressivity = 1.1;
+    else if(UserConfigParams::m_geometry_level == 0) aggressivity = 1.5;
+    else if(UserConfigParams::m_geometry_level == 3) aggressivity = 2.0;
+    else if(UserConfigParams::m_geometry_level == 4) aggressivity = 2.7;
+    else if(UserConfigParams::m_geometry_level == 5) aggressivity = 3.6;
 
-    // Then we recompute the level of detail culling distance
+    max_draw *= aggressivity;
+
+    // Step 5 - As it is faster to compute the squared distance than distance, at runtime
+    //          we compare the distance saved in the LoD node with the square of the distance
+    //          between the camera and the object. Therefore, we apply squaring here.
+    max_draw *= max_draw;
+    max_quality_switch_dist *= max_quality_switch_dist;
+
+    int step = (int) (max_draw) / m_detail.size();
     int biais = m_detail.size();
+
     for(unsigned i = 0; i < m_detail.size(); i++)
     {
+        // Step 6 - Then we recompute the level of detail culling distance
+        //          If there are N levels of detail, the transition distance
+        //          between each level is currently each SQRT(1/N)th of the max
+        //          display distance
+        // TODO - investigate a better division scheme
         m_detail[i] = ((step / biais) * (i + 1));
         biais--;
+
+        // Step 7 - If a high-level of detail would only be triggered from too close,
+        //          and there are lower levels available, skip it completely.
+        //          It's better to display a low level than to have the high-level pop
+        //          suddenly when already quite close.
+        if(m_detail[i] < max_quality_switch_dist && (i + 1) < m_detail.size())
+            m_detail[i] = -1.0f;
     }
+
     const size_t max_level = m_detail.size() - 1;
 
     // Only animated mesh needs to be updated bounding box every frame,

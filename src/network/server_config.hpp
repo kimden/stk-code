@@ -780,6 +780,13 @@ namespace ServerConfig
             "Possible options are mode, elim, laps, queue, replay, to include several "
             "separate them by spaces, empty to include nothing."));
 
+    SERVER_CFG_PREFIX IntServerConfigParam m_map_vote_handling
+            SERVER_CFG_DEFAULT(IntServerConfigParam(0, "map-vote-handling",
+            "Specifies how the server should decide which map vote wins in map "
+            "selection. 0 corresponds to standard system, 1 - to randomly selecting "
+            "one of votes."
+            ));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;
