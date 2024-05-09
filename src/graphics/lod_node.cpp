@@ -262,7 +262,6 @@ void LODNode::autoComputeLevel(float scale)
         //          suddenly when already quite close.
         if(m_detail[i] < max_quality_switch_dist && (i + 1) < m_detail.size())
             m_detail[i] = -1.0f;
->>>>>>> 8e49634e771100e1116c534475d3851c715e5a08
     }
 
     const size_t max_level = m_detail.size() - 1;
