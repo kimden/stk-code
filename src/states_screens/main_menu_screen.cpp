@@ -78,7 +78,6 @@ using namespace Online;
 
 MainMenuScreen::MainMenuScreen() : Screen("main_menu.stkgui")
 {
-    m_resizable = true;
 }   // MainMenuScreen
 
 // ----------------------------------------------------------------------------
@@ -86,7 +85,7 @@ MainMenuScreen::MainMenuScreen() : Screen("main_menu.stkgui")
 void MainMenuScreen::loadedFromFile()
 {
     LabelWidget* w = getWidget<LabelWidget>("info_addons");
-    w->setScrollSpeed(GUIEngine::getFontHeight() / 2);
+    w->setScrollSpeed(0.5f);
     
     RibbonWidget* rw_top = getWidget<RibbonWidget>("menu_toprow");
     assert(rw_top != NULL);
@@ -125,7 +124,6 @@ void MainMenuScreen::beforeAddingWidget()
 //
 void MainMenuScreen::init()
 {
-    GUIEngine::getDevice()->setResizable(true);
     Screen::init();
 
     m_user_id = getWidget<ButtonWidget>("user-id");
@@ -612,7 +610,6 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
 
 void MainMenuScreen::tearDown()
 {
-    GUIEngine::getDevice()->setResizable(false);
 }   // tearDown
 
 // ----------------------------------------------------------------------------

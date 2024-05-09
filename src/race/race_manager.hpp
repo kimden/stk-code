@@ -34,6 +34,7 @@
 #include "network/remote_kart_info.hpp"
 #include "race/grand_prix_data.hpp"
 #include "utils/vec3.hpp"
+#include "utils/types.hpp"
 
 class AbstractKart;
 class NetworkString;
@@ -316,7 +317,8 @@ private:
     std::vector<int>                 m_num_laps;
 
     /** Whether a track should be reversed */
-    std::vector<bool>                m_reverse_track;
+    // This is uint8_t instead of bool because of GitHub issue #5053
+    std::vector<uint8_t>                m_reverse_track;
 
     /** The list of default AI karts to use. This is from the command line. */
     std::vector<std::string>         m_default_ai_list;
@@ -372,6 +374,7 @@ private:
     std::vector<float> m_pending_karts_time;
     std::vector<int> m_pending_karts_pos;
     bool m_benchmarking;
+    bool m_scheduled_benchmark;
 
 public:
     // ----------------------------------------------------------------------------------------
@@ -442,6 +445,7 @@ public:
     void setDefaultAIKartList(const std::vector<std::string> &ai_list);
     void computeRandomKartList();
     void setBenchmarking(bool benchmark);
+    void scheduleBenchmark();
 
     // ----------------------------------------------------------------------------------------
     bool hasTimeTarget() const { return m_time_target > 0.0f; }
@@ -883,6 +887,11 @@ public:
     {
         return m_benchmarking;
     }   // isBenchmarking
+    // ----------------------------------------------------------------------------------------
+    bool isBenchmarkScheduled() const
+    {
+        return m_scheduled_benchmark;
+    }   // isBenchmarkSchedule
     // ----------------------------------------------------------------------------------------
     void addSpareTireKart(const std::string& name)
     {

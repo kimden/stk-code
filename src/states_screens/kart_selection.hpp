@@ -62,7 +62,7 @@ protected:
     friend class GUIEngine::ScreenSingleton<KartSelectionScreen>;
     friend class GUIEngine::PlayerKartWidget;
 
-    static bool m_multiplayer;
+    bool m_multiplayer;
 
     /** Whether this screen is being visited from overworld or not */
     bool m_from_overworld;
@@ -179,6 +179,8 @@ public:
     /** \brief implement optional callback from parent
      *  class GUIEngine::Screen */
     virtual bool onEscapePressed() OVERRIDE;
+
+    virtual void onResize() OVERRIDE;
 
 };   // KartSelectionScreen
 
