@@ -118,7 +118,7 @@ private:
 public:
           Attachment(Kart* kart);
          ~Attachment();
-    void  clear();
+    void  clear(AttachmentType type = ATTACH_NOTHING);
     void  hitBanana(ItemState *item);
     void  updateGraphics(float dt);
 
@@ -150,6 +150,9 @@ public:
     // ------------------------------------------------------------------------
     /** Returns additional weight for the kart. */
     float weightAdjust() const;
+    // ------------------------------------------------------------------------
+    /** Performs all actions necessary for a gum shield to leave a ground gum behind. */
+    void popGumShield();
     // ------------------------------------------------------------------------
     /** Return the currently associated scene node (used by e.g the swatter) */
     scene::IAnimatedMeshSceneNode* getNode() {return m_node;}

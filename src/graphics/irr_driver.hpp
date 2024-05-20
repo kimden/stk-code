@@ -119,7 +119,7 @@ private:
      *  Same indicates a change of the resolution (back to the original
      *  one), but no confirmation dialog. */
     enum {RES_CHANGE_NONE, RES_CHANGE_YES, RES_CHANGE_CANCEL,
-          RES_CHANGE_SAME, RES_CHANGE_YES_WARN} m_resolution_changing;
+          RES_CHANGE_SAME, RES_CHANGE_YES_WARN, RES_CHANGE_SAME_FULL} m_resolution_changing;
 
 
 public:
@@ -211,7 +211,7 @@ public:
 
     core::array<video::IRenderTarget> &getMainSetup();
     void updateConfigIfRelevant();
-    core::recti getSplitscreenWindow(int WindowNum);
+    core::recti getSplitscreenWindow(int window_num);
     void setAllMaterialFlags(scene::IMesh *mesh) const;
     scene::IAnimatedMesh *getAnimatedMesh(const std::string &name);
     scene::IMesh         *getMesh(const std::string &name);
@@ -525,6 +525,9 @@ public:
 
     void uploadLightingData();
     void sameRestart()             { m_resolution_changing = RES_CHANGE_SAME; }
+    /** Used when we don't want a changed resolution prompt but need to reinit things
+     * that sameRestart doesn't affect */
+    void fullRestart()             { m_resolution_changing = RES_CHANGE_SAME_FULL; }
     // ------------------------------------------------------------------------
     u32 getDefaultFramebuffer() const;
     // ------------------------------------------------------------------------

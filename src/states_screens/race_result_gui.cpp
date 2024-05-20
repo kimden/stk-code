@@ -1661,7 +1661,7 @@ void RaceResultGUI::drawTeamScorers(KartTeam team, int x, int y, int height)
         const bool own_goal = !(scorers.at(i).m_correct_goal);
 
         scorer_text = scorers.at(i).m_player;
-        if (scorers.at(i).m_handicap_level == HANDICAP_MEDIUM)
+        if (scorers.at(i).m_handicap_level != HANDICAP_NONE)
             scorer_text = _("%s (handicapped)", scorer_text);
 
         if (own_goal)
