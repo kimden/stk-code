@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.6.0)
 
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
@@ -20,10 +20,6 @@ project(SuperTuxKart)
 set(PROJECT_VERSION "2.0-git")
 
 add_definitions( -DSUPERTUXKART_VERSION="${PROJECT_VERSION}" )
-
-if(NOT (CMAKE_MAJOR_VERSION VERSION_LESS 3))
-  cmake_policy(SET CMP0043 OLD)
-endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
@@ -550,6 +546,7 @@ endif()
 if(MSVC)
     # VS will automatically add NDEBUG for release mode, but only _DEBUG in debug mode.
     # Since STK uses DEBUG, this is added for debug compilation only:
+    cmake_policy(SET CMP0043 OLD)
     set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS_DEBUG DEBUG)
 else()
     # All non VS generators used create only a single compile mode, so
