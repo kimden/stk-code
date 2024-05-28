@@ -163,16 +163,14 @@ CommandManager::AuthResource::AuthResource(std::string secret, std::string serve
 } // AuthResource::AuthResource
 // ========================================================================
 
-std::string CommandManager::AuthResource::get(const std::string& username) const
+std::string CommandManager::AuthResource::get(const std::string& username, int online_id) const
 {
 #ifdef ENABLE_CRYPTO_OPENSSL
     std::string header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
     uint64_t timestamp = StkTime::getTimeSinceEpoch();
-    uint64_t period = 3600;
-    std::string payload = "{\"name\":\"" + username + "\",";
+    std::string payload = "{\"sub\":\"" + username + "/" + std::to_string(online_id) + "\",";
     payload += "\"iat\":\"" + std::to_string(timestamp) + "\",";
-    payload += "\"exp\":\"" + std::to_string(timestamp + period) + "\",";
-    payload += "\"serv\":\"" + m_server + "\"}";
+    payload += "\"iss\":\"" + m_server + "\"}";
     header = Crypto::base64url(StringUtils::toUInt8Vector(header));
     payload = Crypto::base64url(StringUtils::toUInt8Vector(payload));
     std::string message = header + "." + payload;
@@ -941,7 +939,7 @@ void CommandManager::process_auth(Context& context)
             response = "Error: you need to join with an "
                        "online account to use auth methods";
         else
-            response = it->second.get(username);
+            response = it->second.get(username, online_id);
     }
     m_lobby->sendStringToPeer(response, peer);
 } // process_text
