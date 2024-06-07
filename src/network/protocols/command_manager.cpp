@@ -4181,7 +4181,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     if (peer->hasPlayerProfiles())
         username = StringUtils::wideToUtf8(
             peer->getPlayerProfiles()[0]->getName());
-    if (std::make_pair(idx, subidx) < m_user_last_correct_argument[username])
+    if (std::make_pair(idx, subidx) <= m_user_last_correct_argument[username])
         return false;
     std::string text = argv[idx];
     std::string prefix = "";
