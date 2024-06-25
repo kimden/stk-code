@@ -48,17 +48,8 @@
 Powerup::Powerup(Kart* kart)
 {
     m_kart      = kart;
-    m_sound_use = NULL;
     reset();
 }   // Powerup
-
-//-----------------------------------------------------------------------------
-/** Frees the memory for the sound effects.
- */
-Powerup::~Powerup()
-{
-    if(m_sound_use) m_sound_use->deleteSFX();
-}   // ~Powerup
 
 //-----------------------------------------------------------------------------
 /** Resets the powerup, called at begin of a race.
@@ -116,24 +107,12 @@ void Powerup::rewindTo(BareNetworkString *buffer)
 //-----------------------------------------------------------------------------
 void Powerup::update(int ticks)
 {
-    // Remove any sound ticks that should have played
-    const int remove_ticks = World::getWorld()->getTicksSinceStart() - 1000;
-    for (auto it = m_played_sound_ticks.begin();
-         it != m_played_sound_ticks.end();)
-    {
-        if (*it < remove_ticks)
-        {
-            it = m_played_sound_ticks.erase(it);
-            continue;
-        }
-        break;
-    }
+    PowerupAudio::getInstance()->update(m_kart, ticks);
 }   // update
 
 //-----------------------------------------------------------------------------
 /** Sets the collected items. The number of items is increased if the same
- *  item is currently collected, otherwise replaces the existing item. It also
- *  sets item specific sounds.
+ *  item is currently collected, otherwise replaces the existing item.
  *  \param type Thew new type.
  *  \param n Number of items of the given type.
  */
@@ -142,72 +121,18 @@ void Powerup::set(PowerupManager::PowerupType type, int n)
     if (m_type==type)
     {
         m_number+=n;
-        // Limit to 255 (save space in network state saving)
-        if(m_number>255) m_number = 255;
-        return;
     }
-    m_type=type;
+    else
+    {
+        m_type=type;
+        m_number=n;
+
+        if (m_type == PowerupManager::POWERUP_MINI)
+            m_mini_state = PowerupManager::MINI_SELECT;
+    }
 
     // Limit to 255 (save space in network state saving)
     if(n>255) n = 255;
-
-    m_number=n;
-
-    // Don't re-create sound sound during rewinding
-    if (RewindManager::get()->isRewinding())
-        return;
-
-    resetSoundSource();
-
-    switch (m_type)
-    {
-        // No sound effect when arming the glove
-        case PowerupManager::POWERUP_SWATTER:
-            break;
-
-        case PowerupManager::POWERUP_ZIPPER:
-            break ;
-
-        // Special sound effect management
-        case PowerupManager::POWERUP_SUDO:
-            break ;
-
-        // TODO : add sound effects
-        case PowerupManager::POWERUP_ELECTRO:
-            break ;
-
-        case PowerupManager::POWERUP_MINI:
-            m_mini_state = PowerupManager::MINI_SELECT;
-            break ;
-
-        case PowerupManager::POWERUP_BOWLING:
-            m_sound_use = SFXManager::get()->createSoundSource("bowling_shoot");
-            break ;
-
-        case PowerupManager::POWERUP_ANVIL:
-            m_sound_use = SFXManager::get()->createSoundSource("anvil");
-            break;
-
-        case PowerupManager::POWERUP_PARACHUTE:
-            m_sound_use = SFXManager::get()->createSoundSource("parachute");
-            break;
-
-        case PowerupManager::POWERUP_BUBBLEGUM:
-            // handled in the useBubblegum function
-            break ;
-
-        case PowerupManager::POWERUP_SWITCH:
-            m_sound_use = SFXManager::get()->createSoundSource("swap");
-            break;
-
-        case PowerupManager::POWERUP_NOTHING:
-        case PowerupManager::POWERUP_CAKE:
-        case PowerupManager::POWERUP_PLUNGER:
-        default :
-            m_sound_use = SFXManager::get()->createSoundSource("shoot");
-            break ;
-    }
-
 }  // set
 
 //-----------------------------------------------------------------------------
@@ -264,45 +189,10 @@ Material *Powerup::getIcon(bool wide) const
 }   // getIcon
 
 //-----------------------------------------------------------------------------
-/** Does the sound configuration.
- */
-void Powerup::adjustSound()
-{
-    if (m_sound_use == NULL)
-        return;
-
-    m_sound_use->setPosition(m_kart->getXYZ());
-    // in multiplayer mode, sounds are NOT positional (because we have multiple listeners)
-    // so the sounds of all AIs are constantly heard. So reduce volume of sounds.
-    if (RaceManager::get()->getNumLocalPlayers() > 1)
-    {
-        // player karts played at full volume; AI karts much dimmer
-
-        if (m_kart->getController()->isLocalPlayerController())
-        {
-            m_sound_use->setVolume( 1.0f );
-        }
-        else
-        {
-            m_sound_use->setVolume( 
-                     std::min(0.5f, 1.0f / RaceManager::get()->getNumberOfKarts()) );
-        }
-    }
-}   // adjustSound
-
-//-----------------------------------------------------------------------------
 /** Use (fire) this powerup.
  */
 void Powerup::use()
 {
-    const int ticks = World::getWorld()->getTicksSinceStart();
-    bool has_played_sound = false;
-    auto it = m_played_sound_ticks.find(ticks);
-    if (it != m_played_sound_ticks.end())
-        has_played_sound = true;
-    else
-        m_played_sound_ticks.insert(ticks);
-
     const KartProperties *kp = m_kart->getKartProperties();
 
     // The player gets an achievement point for using a powerup
@@ -314,43 +204,38 @@ void Powerup::use()
             PlayerManager::increaseAchievement(AchievementsStatus::POWERUP_USED_1RACE, 1);
     }
 
-    // Play custom kart sound when collectible is used //TODO: what about the bubble gum?
-    if (m_type != PowerupManager::POWERUP_NOTHING &&
-        m_type != PowerupManager::POWERUP_SWATTER &&
-        m_type != PowerupManager::POWERUP_ZIPPER)
-        m_kart->playCustomSFX(SFXManager::CUSTOM_SHOOT);
-
     m_number--;
     World *world = World::getWorld();
     ItemManager* im = Track::getCurrentTrack()->getItemManager();
+
+    // Some powerups can play different sounds depending on the situation
+    int sound_type = 1;
+    PowerupManager::MiniState audio_mini_state = m_mini_state;
+
     switch (m_type)
     {
     case PowerupManager::POWERUP_ZIPPER:
-        m_kart->handleZipper(NULL, true);
-        break ;
+        {
+            m_kart->handleZipper(NULL, true);
+            break ;
+        }
     case PowerupManager::POWERUP_SWITCH:
         {
             im->switchItems();
-            if (!has_played_sound)
-                m_sound_use->play();
             break;
         }
     case PowerupManager::POWERUP_CAKE:
     case PowerupManager::POWERUP_RUBBERBALL:
     case PowerupManager::POWERUP_BOWLING:
     case PowerupManager::POWERUP_PLUNGER:
-        // make weapon usage destroy gum shields
-        if(stk_config->m_shield_restrict_weapons &&
-            m_kart->isGumShielded())
-            m_kart->decreaseShieldTime();
-        if (!has_played_sound)
         {
-            Powerup::adjustSound();
-            m_sound_use->play();
+            // make weapon usage destroy gum shields
+            if(stk_config->m_shield_restrict_weapons &&
+                m_kart->isGumShielded())
+                m_kart->decreaseShieldTime();
+            ProjectileManager::get()->newProjectile(m_kart, m_type);
+            break;
         }
-        ProjectileManager::get()->newProjectile(m_kart, m_type);
-        break;
-
     case PowerupManager::POWERUP_SWATTER:
         {
             // Instead of having the swatter attachment just replace the gum shield,
@@ -360,73 +245,14 @@ void Powerup::use()
             if(m_kart->isGumShielded())
                 m_kart->getAttachment()->popGumShield();
             m_kart->getAttachment()->set(Attachment::ATTACH_SWATTER,
-                  stk_config->time2Ticks(kp->getSwatterDuration()));
+                stk_config->time2Ticks(kp->getSwatterDuration()));
             break;
         }
     case PowerupManager::POWERUP_SUDO:
         {
-            Kart* player_kart = NULL;
-            unsigned int steal_targets = powerup_manager->getNitroHackMaxTargets();
-            float base_bonus = powerup_manager->getNitroHackBaseBonus();
-            float negative_multiply = powerup_manager->getNitroHackNegativeMultiply();
-
-            float stolen_energy = 0.0f;
-            unsigned int steal_counter = 0;
-
-            // Steal some nitro from up to steal_targets karts ahead.
-            // This can set their nitro count to a negative number
-            for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
-            {
-                Kart *kart=world->getKart(i);
-                // Standard invulnerability (the "stars") is not useful here
-                if( kart->isEliminated()   || kart== m_kart || kart->hasFinishedRace())
-                    continue;
-
-                int position_diff = m_kart->getPosition() - kart->getPosition();
-                if(position_diff > 0)
-                {
-                    float amount_to_steal = powerup_manager->getNitroHackStolenDiff(position_diff);
-                    if (amount_to_steal > 0.0f)
-                    {
-                        // Remove nitro from a target kart and add to the recipient
-                        kart->addEnergy(-amount_to_steal, /* allow negatives */ true);
-                        stolen_energy += amount_to_steal;
-                        steal_counter++;
-
-                        // This is used for display in the race GUI
-                        kart->setStolenNitro(amount_to_steal, /* duration */ 1.75f);
-
-                        // Remember if the target kart is player controlled
-                        // for a negative sound effect
-                        if(kart->getController()->isLocalPlayerController())
-                            player_kart = kart;
-                    }
-                }
-            }
-            // Multiply current nitro by a given factor if it is currently negative
-            if(m_kart->getEnergy() < 0)
-                m_kart->setEnergy(m_kart->getEnergy()*negative_multiply);
-
-            // Gift some free nitro if there is not enough targets in front
-            if (steal_counter < steal_targets)
-                stolen_energy += (steal_targets - steal_counter) * base_bonus;
-
-            // Give the stolen nitro and activate the "nitro boost" mode
-            // TODO make the gift of nitro depend on kart class/ nitro efficiency ??
-            m_kart->addEnergy(stolen_energy, /* allow negatives */ false);
-            m_kart->activateNitroHack();
-
-            // Play a good sound for the kart that benefits from the "nitro-hack",
-            // if it's a local player
-            if (m_kart->getController()->isLocalPlayerController())
-                PowerupAudio::getInstance()->playSudoGoodSFX();
-            // Play a bad sound if there is an affected local player
-            if (player_kart != NULL)
-                PowerupAudio::getInstance()->playSudoBadSFX();
-
+            sound_type = useNitroHack();
             break;
-        }   // end of PowerupManager::POWERUP_SUDO
-
+        } // end of PowerupManager::POWERUP_SUDO
     case PowerupManager::POWERUP_ELECTRO:
         {
             // This takes care of the speed boost
@@ -437,118 +263,77 @@ void Powerup::use()
                 stk_config->time2Ticks(kp->getElectroDuration()));
 
             break;
-        }   // end of PowerupManager::POWERUP_ELECTRO*
-
-
+        } // end of PowerupManager::POWERUP_ELECTRO
     case PowerupManager::POWERUP_MINI:
         {
-            switch (m_mini_state)
-            {
-            case PowerupManager::NOT_MINI: // Keeps the compiler happy
             // Lock the selected mini-powerup
-            case PowerupManager::MINI_SELECT:
-                {
-                    m_number++; // Avoid the powerup being removed when validating the mini-choice
+            if (m_mini_state == PowerupManager::MINI_SELECT)
+            {
+                m_number++; // Avoid the powerup being removed when validating the mini-choice
                     
-                    int cycle_ticks = stk_config->time2Ticks(0.65f);
-                    int cycle_value = World::getWorld()->getTicksSinceStart() % (3 * cycle_ticks);
-                    if (cycle_value < cycle_ticks)
-                        m_mini_state = PowerupManager::MINI_ZIPPER;
-                    else if (cycle_value < 2*cycle_ticks)
-                        m_mini_state = PowerupManager::MINI_CAKE;
-                    else
-                        m_mini_state = PowerupManager::MINI_GUM;
-
-                    break;
-                }
-            // Mini-cake case
-            case PowerupManager::MINI_CAKE:
+                int cycle_ticks = stk_config->time2Ticks(0.65f);
+                int cycle_value = World::getWorld()->getTicksSinceStart() % (3 * cycle_ticks);
+                if (cycle_value < cycle_ticks)
+                    m_mini_state = PowerupManager::MINI_ZIPPER;
+                else if (cycle_value < 2*cycle_ticks)
+                    m_mini_state = PowerupManager::MINI_CAKE;
+                else
+                    m_mini_state = PowerupManager::MINI_GUM;
+            }
+            // Use the selected mini-powerup
+            else
+            {
+                if (m_mini_state == PowerupManager::MINI_CAKE)
                 {
-                    // This allows to use multiple mini-wishes in different ways
-                    m_mini_state = PowerupManager::MINI_SELECT;
-
                     // make weapon usage destroy gum shields
-                    if(stk_config->m_shield_restrict_weapons &&
-                    m_kart->isGumShielded())
+                    if(stk_config->m_shield_restrict_weapons && m_kart->isGumShielded())
                         m_kart->decreaseShieldTime();
-                    if (!has_played_sound)
-                    {
-                        resetSoundSource();
-                        m_sound_use = SFXManager::get()->createSoundSource("shoot");
-                        Powerup::adjustSound();
-                        m_sound_use->play();
-                    }
                     ProjectileManager::get()->newProjectile(m_kart, PowerupManager::POWERUP_MINI);
-                    break;
                 } // mini-cake case
-
-            // Mini-zipper case
-            case PowerupManager::MINI_ZIPPER:
+                else if (m_mini_state == PowerupManager::MINI_ZIPPER)
                 {
-                    // This allows to use multiple mini-wishes in different ways
-                    m_mini_state = PowerupManager::MINI_SELECT;
                     m_kart->handleZipper(NULL, /* play sound*/ true, /* mini zipper */ true);
-                    break;
                 } // mini-zipper case
-
-
-            // Mini-gum case
-            case PowerupManager::MINI_GUM:
+                else if (m_mini_state == PowerupManager::MINI_GUM)
                 {
-                    // This allows to use multiple mini-wishes in different ways
-                    m_mini_state = PowerupManager::MINI_SELECT;
-                    useBubblegum(has_played_sound, /* mini */ true);
-                    break;
+                    sound_type = useBubblegum(/* mini */ true);
                 } // mini-gum case
-            } // Switch mini-state
-        }   // end of PowerupManager::POWERUP_MINI
-        break;
 
+                // This allows to use multiple mini-wishes in different ways
+                m_mini_state = PowerupManager::MINI_SELECT;
+            }
+            break;
+        } // end of PowerupManager::POWERUP_MINI
     case PowerupManager::POWERUP_BUBBLEGUM:
         {
-            useBubblegum(has_played_sound);
+            sound_type = useBubblegum();
+            break; 
         }
-        break;
-
     case PowerupManager::POWERUP_ANVIL:
-        //Attach an anvil(twice as good as the one given
-        //by the bananas) to the kart in the 1st position.
-        for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
         {
-            Kart *kart=world->getKart(i);
-            if(kart->isEliminated() || kart->isInvulnerable()) continue;
-            if(kart == m_kart) continue;
-            if(kart->getPosition() == 1)
+            //Attach an anvil(twice as good as the one given
+            //by the bananas) to the kart in the 1st position.
+            for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
             {
-                // check if we are in team gp and hit a teammate and should punish the attacker
-                auto sl = LobbyProtocol::get<ServerLobby>();
-                if(sl && !kart->hasFinishedRace())
-                    sl->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
-
-                kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
-                                           stk_config->
-                                           time2Ticks(kp->getAnvilDuration()) );
-                kart->adjustSpeed(kp->getAnvilSpeedFactor() * 0.5f);
-
-                // should we position the sound at the kart that is hit,
-                // or the kart "throwing" the anvil? Ideally it should be both.
-                // Meanwhile, don't play it near AI karts since they obviously
-                // don't hear anything
-                if (!has_played_sound)
+                Kart *kart=world->getKart(i);
+                if(kart->isEliminated() || kart->isInvulnerable()) continue;
+                if(kart == m_kart) continue;
+                if(kart->getPosition() == 1)
                 {
-                    if(kart->getController()->isLocalPlayerController())
-                        m_sound_use->setPosition(kart->getXYZ());
-                    else
-                        m_sound_use->setPosition(m_kart->getXYZ());
+                    // check if we are in team gp and hit a teammate and should punish the attacker
+                    auto sl = LobbyProtocol::get<ServerLobby>();
+                    if(sl && !kart->hasFinishedRace())
+                        sl->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
 
-                    m_sound_use->play();
+                    kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                                               stk_config->
+                                               time2Ticks(kp->getAnvilDuration()) );
+                    kart->adjustSpeed(kp->getAnvilSpeedFactor() * 0.5f);
+                    break;
                 }
-                break;
             }
+            break;
         }
-
-        break;
-
     case PowerupManager::POWERUP_PARACHUTE:
         {
             Kart* player_kart = NULL;
@@ -576,7 +361,7 @@ void Powerup::use()
                     {
                         float rank_factor;
 
-                        rank_factor = (float)(kart->getPosition()   - 1) 
+                       rank_factor = (float)(kart->getPosition()   - 1) 
                                     / (float)(m_kart->getPosition() - 2);
                         position_factor = 1.0f - rank_factor;
                     }
@@ -592,30 +377,13 @@ void Powerup::use()
                         player_kart = kart;
                 }
             }
-
-            // should we position the sound at the kart that is hit,
-            // or the kart "throwing" the anvil? Ideally it should be both.
-            // Meanwhile, don't play it near AI karts since they obviously
-            // don't hear anything
-            if (!has_played_sound)
-            {
-                if(m_kart->getController()->isLocalPlayerController())
-                    m_sound_use->setPosition(m_kart->getXYZ());
-                else if(player_kart)
-                    m_sound_use->setPosition(player_kart->getXYZ());
-                m_sound_use->play();
-            }
+            break;
         }
-        break;
-
     case PowerupManager::POWERUP_NOTHING:
-        {
-            if(!m_kart->getKartAnimation())
-                m_kart->beep();
-        }
-        break;
     default : break;
     }
+
+    PowerupAudio::getInstance()->onUseAudio(m_kart, m_type, sound_type, audio_mini_state);
 
     if ( m_number <= 0 )
     {
@@ -624,9 +392,13 @@ void Powerup::use()
     }
 }   // use
 
-void Powerup::useBubblegum(bool has_played_sound, bool mini)
+//-----------------------------------------------------------------------------
+/** This function handles the bubblegum logic, in backward use (dropping a ground
+ * gum) and forward use (creating a gum shield).
+ * Its return value indicates the sound to play: none (0), ground gum (1), shield (2) */
+int Powerup::useBubblegum(bool mini)
 {
-    resetSoundSource();
+    int sound_type = 0;
     ItemManager* im = Track::getCurrentTrack()->getItemManager();
     const KartProperties *kp = m_kart->getKartProperties();
 
@@ -635,15 +407,9 @@ void Powerup::useBubblegum(bool has_played_sound, bool mini)
     {
         Item *new_item = im->dropNewItem(mini ? Item::ITEM_BUBBLEGUM_SMALL :
                                                 Item::ITEM_BUBBLEGUM, m_kart);
-
-        // E.g. ground not found in raycast.
-        if(!new_item) return;
-        if (!has_played_sound)
-        {
-            m_sound_use = SFXManager::get()->createSoundSource("goo");
-            Powerup::adjustSound();
-            m_sound_use->play();
-        }
+        // There may not be a new item if e.g. ground is not found in raycast.
+        if(new_item)
+            sound_type = 1;
     }
     else // if the kart is looking forward, use the bubblegum as a shield
     {
@@ -652,7 +418,7 @@ void Powerup::useBubblegum(bool has_played_sound, bool mini)
         float mini_factor = (mini) ? 0.5f : 1.0f;
 
         // If the kart has a normal gum shield, don't change the shield type 
-        if (mini && !(m_kart->isGumShielded() && !m_kart->isWeakShielded()))
+        if (mini && (!m_kart->isGumShielded() || m_kart->isWeakShielded() ))
         {
             if (m_kart->getIdent() == "nolok")
                 type = Attachment::ATTACH_NOLOK_BUBBLEGUM_SHIELD_SMALL;
@@ -670,13 +436,11 @@ void Powerup::useBubblegum(bool has_played_sound, bool mini)
         if(!m_kart->isGumShielded()) //if the previous shield had been used up.
         {
                 m_kart->getAttachment()->set(type,
-                                 stk_config->
-                                 time2Ticks(kp->getBubblegumShieldDuration() * mini_factor));
+                    stk_config->time2Ticks(kp->getBubblegumShieldDuration() * mini_factor));
         }
-        // using a bubble gum while still having a gum shield
-        // In this case, half of the remaining time of the active
-        // shield is added. The maximum duration of a shield is
-        // never above twice the standard duration.
+        // Using a bubble gum while still having a gum shield. In this case,
+        // half of the remaining time of the active shield is added. The maximum
+        // duration of a shield is never above twice the standard duration.
         // The code above guarantees that, if there is a mix and match
         // of small and normal gum shield between the active shield and
         // the used shield, the new shield will be normal.
@@ -685,32 +449,75 @@ void Powerup::useBubblegum(bool has_played_sound, bool mini)
         else
         {
             m_kart->getAttachment()->set(type,
-                            stk_config->
-                            time2Ticks(kp->getBubblegumShieldDuration() * mini_factor
+                stk_config-> time2Ticks(kp->getBubblegumShieldDuration() * mini_factor
                                        + (m_kart->getShieldTime() / 2.0f)) );
         }
-
-        if (!has_played_sound)
-        {
-            //Extraordinary. Usually sounds are set in Powerup::set()
-            //In this case this is a workaround, since the bubblegum item has two different sounds.
-            m_sound_use = SFXManager::get()->createSoundSource("inflate");
-            Powerup::adjustSound();
-            m_sound_use->play();
-        }
+        sound_type = 2;
     }
+    return sound_type;
 }   // useBubblegum
 
 //-----------------------------------------------------------------------------
-/** This function ensure we don't leak sound sources */
-void Powerup::resetSoundSource()
+/** This function handles the nitro-hack logic.
+ * Its return value indicates the sound to play: good sound (1), bad sound (2)
+ * or both (3) */
+int Powerup::useNitroHack()
 {
-    if (m_sound_use != NULL)
+    unsigned int steal_targets = powerup_manager->getNitroHackMaxTargets();
+    float base_bonus = powerup_manager->getNitroHackBaseBonus();
+    float negative_multiply = powerup_manager->getNitroHackNegativeMultiply();
+
+    float stolen_energy = 0.0f;
+    unsigned int steal_counter = 0;
+    int sound_type = (m_kart->getController()->isLocalPlayerController()) ? 1 : 0;
+    World *world = World::getWorld();
+
+    // Steal some nitro from up to steal_targets karts ahead.
+    // This can set their nitro count to a negative number
+    for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
     {
-        m_sound_use->deleteSFX();
-        m_sound_use = NULL;
+        Kart *kart = world->getKart(i);
+        // Standard invulnerability (the "stars") is not useful here
+        if( kart->isEliminated() || kart == m_kart || kart->hasFinishedRace())
+            continue;
+
+        int position_diff = m_kart->getPosition() - kart->getPosition();
+        if(position_diff > 0)
+        {
+            float amount_to_steal = powerup_manager->getNitroHackStolenDiff(position_diff);
+            if (amount_to_steal > 0.0f)
+            {
+                // Remove nitro from a target kart and add to the recipient
+                kart->addEnergy(-amount_to_steal, /* allow negatives */ true);
+                stolen_energy += amount_to_steal;
+                steal_counter++;
+
+                // This is used for display in the race GUI
+                kart->setStolenNitro(amount_to_steal, /* duration */ 1.75f);
+
+                // If a local player is affected, we will play a negative sound effect
+                if(kart->getController()->isLocalPlayerController() && sound_type <= 1)
+                    sound_type += 2;
+            }
+        }
     }
-} // resetSoundSource
+
+    // Multiply current nitro by a given factor, if it is currently negative
+    // With default values, this does nothing.
+    if(m_kart->getEnergy() < 0)
+        m_kart->setEnergy(m_kart->getEnergy()*negative_multiply);
+
+    // Gift some free nitro if there is not enough targets in front
+    if (steal_counter < steal_targets)
+        stolen_energy += (steal_targets - steal_counter) * base_bonus;
+
+    // Give the stolen nitro and activate the "nitro boost" mode
+    // TODO make the gift of nitro depend on kart class/ nitro efficiency ??
+    m_kart->addEnergy(stolen_energy, /* allow negatives */ false);
+    m_kart->activateNitroHack();
+
+    return sound_type;
+} // useNitroHack
 
 //-----------------------------------------------------------------------------
 /** This function is called when a bonus box is it. This function can be
