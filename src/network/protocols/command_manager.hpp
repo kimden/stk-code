@@ -75,7 +75,7 @@ class CommandManager
         AuthResource(std::string secret = "", std::string server = "",
             std::string link_format = "");
 
-        std::string get(const std::string& username) const;
+        std::string get(const std::string& username, int online_id) const;
     };
 
     static EnumExtendedReader permission_reader;
