@@ -47,6 +47,8 @@
 #include "utils/log.hpp"
 #include "utils/vs.hpp"
 
+#include <line2d.h>
+
 #ifdef AI_DEBUG
 #  include "irrlicht.h"
    using namespace irr;
@@ -2138,7 +2140,7 @@ void SkiddingAI::handleRaceStart()
         // smaller depending on the difficulty.
         m_start_delay = stk_config->time2Ticks(
                         m_ai_properties->m_min_start_delay
-                      + (float) rand() / RAND_MAX
+                      + (float) rand() / (float) RAND_MAX
                       * (m_ai_properties->m_max_start_delay -
                          m_ai_properties->m_min_start_delay)   );
 
@@ -2147,7 +2149,7 @@ void SkiddingAI::handleRaceStart()
                ? 0.0f  : m_ai_properties->m_false_start_probability;
 
         // Now check for a false start. If so, add 1 second penalty time.
-        if (rand() < RAND_MAX * false_start_probability)
+        if (rand() < (float) RAND_MAX * false_start_probability)
         {
             m_start_delay+=stk_config->m_penalty_ticks;
             return;

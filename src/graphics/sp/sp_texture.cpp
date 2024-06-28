@@ -29,14 +29,19 @@
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
 
-#if !(defined(SERVER_ONLY) || defined(MOBILE_STK))
+#include <IImageLoader.h>
+#include <IReadFile.h>
+#include <IVideoDriver.h>
+#include <IWriteFile.h>
+
+#if !defined(SERVER_ONLY)
 #include <squish.h>
 static_assert(squish::kColourClusterFit == (1 << 5), "Wrong header");
 static_assert(squish::kColourRangeFit == (1 << 6), "Wrong header");
 static_assert(squish::kColourIterativeClusterFit == (1 << 8), "Wrong header");
 #endif
 
-#if !(defined(SERVER_ONLY) || defined(MOBILE_STK))
+#if !defined(SERVER_ONLY)
 extern "C"
 {
     #include <mipmap/img.h>
@@ -46,9 +51,7 @@ extern "C"
 
 #include <numeric>
 
-#if !defined(MOBILE_STK)
 static const uint8_t CACHE_VERSION = 2;
-#endif
 
 namespace SP
 {
@@ -233,7 +236,7 @@ bool SPTexture::compressedTexImage2d(std::shared_ptr<video::IImage> texture,
                                      <core::dimension2du, unsigned> >&
                                      mipmap_sizes)
 {
-#if !defined(SERVER_ONLY) && !defined(MOBILE_STK)
+#if !defined(SERVER_ONLY)
     unsigned format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
     if (m_undo_srgb && CVS->isEXTTextureCompressionS3TCSRGBUsable())
     {
@@ -331,7 +334,7 @@ bool SPTexture::saveCompressedTexture(std::shared_ptr<video::IImage> texture,
                                       <core::dimension2du, unsigned> >& sizes,
                                       const std::string& cache_location)
 {
-#if !defined(SERVER_ONLY) && !defined(MOBILE_STK)
+#if !defined(SERVER_ONLY)
     const unsigned total_size = std::accumulate(sizes.begin(), sizes.end(), 0,
         [] (const unsigned int previous, const std::pair
         <core::dimension2du, unsigned>& cur_sizes)
@@ -396,7 +399,7 @@ std::shared_ptr<video::IImage> SPTexture::getTextureCache(const std::string& p,
     std::vector<std::pair<core::dimension2du, unsigned> >* sizes)
 {
     std::shared_ptr<video::IImage> cache;
-#if !(defined(SERVER_ONLY) || defined(MOBILE_STK))
+#if !defined(SERVER_ONLY)
     io::IReadFile* file = irr::io::createReadFile(p.c_str());
     if (file == NULL)
     {
@@ -486,7 +489,6 @@ bool SPTexture::threadedLoad()
     }
     else
     {
-#ifndef MOBILE_STK
         if (UserConfigParams::m_hq_mipmap && image->getDimension().Width > 1 &&
             image->getDimension().Height > 1)
         {
@@ -512,7 +514,6 @@ bool SPTexture::threadedLoad()
             generateHQMipmap(image->lock(), mipmap_sizes,
                 (uint8_t*)mipmaps->lock());
         }
-#endif
         SPTextureManager::get()->increaseGLCommandFunctionCount(1);
         SPTextureManager::get()->addGLCommandFunction(
             [this, image, mipmaps]()->bool
@@ -684,7 +685,7 @@ void SPTexture::generateHQMipmap(void* in,
                                  <core::dimension2du, unsigned> >& mms,
                                  uint8_t* out)
 {
-#if !(defined(SERVER_ONLY) || defined(MOBILE_STK))
+#if !defined(SERVER_ONLY)
     imMipmapCascade cascade;
     imReduceOptions options;
     imReduceSetOptions(&options,
@@ -712,61 +713,16 @@ void SPTexture::generateHQMipmap(void* in,
 #endif
 }   // generateHQMipmap
 
-// ----------------------------------------------------------------------------
-void SPTexture::squishCompressImage(uint8_t* rgba, int width, int height,
-                                    int pitch, void* blocks, unsigned flags)
-{
-#if !(defined(SERVER_ONLY) || defined(MOBILE_STK))
-    // This function is copied from CompressImage in libsquish to avoid omp
-    // if enabled by shared libsquish, because we are already using
-    // multiple thread
-    for (int y = 0; y < height; y += 4)
-    {
-        // initialise the block output
-        uint8_t* target_block = reinterpret_cast<uint8_t*>(blocks);
-        target_block += ((y >> 2) * ((width + 3) >> 2)) * 16;
-        for (int x = 0; x < width; x += 4)
-        {
-            // build the 4x4 block of pixels
-            uint8_t source_rgba[16 * 4];
-            uint8_t* target_pixel = source_rgba;
-            int mask = 0;
-            for (int py = 0; py < 4; py++)
-            {
-                for (int px = 0; px < 4; px++)
-                {
-                    // get the source pixel in the image
-                    int sx = x + px;
-                    int sy = y + py;
-                    // enable if we're in the image
-                    if (sx < width && sy < height)
-                    {
-                        // copy the rgba value
-                        uint8_t* source_pixel = rgba + pitch * sy + 4 * sx;
-                        memcpy(target_pixel, source_pixel, 4);
-                        // enable this pixel
-                        mask |= (1 << (4 * py + px));
-                    }
-                    // advance to the next pixel
-                    target_pixel += 4;
-                }
-            }
-            // compress it into the output
-            squish::CompressMasked(source_rgba, mask, target_block, flags);
-            // advance
-            target_block += 16;
-        }
-    }
-#endif
-}   // squishCompressImage
-
+// ============================================================================
+extern "C" void squishCompressImage(uint8_t* rgba, int width, int height,
+                                    int pitch, void* blocks, unsigned flags);
 // ----------------------------------------------------------------------------
 std::vector<std::pair<core::dimension2du, unsigned> >
                SPTexture::compressTexture(std::shared_ptr<video::IImage>& image)
 {
     std::vector<std::pair<core::dimension2du, unsigned> > mipmap_sizes;
 
-#if !(defined(SERVER_ONLY) || defined(MOBILE_STK))
+#if !defined(SERVER_ONLY)
     unsigned width = image->getDimension().Width;
     unsigned height = image->getDimension().Height;
     mipmap_sizes.emplace_back(core::dimension2du(width, height), 0);

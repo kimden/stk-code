@@ -106,13 +106,14 @@ std::string KartElimination::getStartingMessage() const
             "after each race for results.", m_kart.c_str());
 }   // getStartingMessage
 //-----------------------------------------------------------------------------
-std::string KartElimination::getWarningMessage() const
+std::string KartElimination::getWarningMessage(bool isEliminated) const
 {
-    return StringUtils::insertValues(
-        "Gnu Elimination is played right now on this server, "
-        "you will be forced to use kart %s until it ends. "
-        "Use /standings to see the results.",
-        m_kart.c_str());
+    std::string what = "Gnu Elimination is played right now on this server";
+    what += (isEliminated ?
+        ", you will be forced to use kart %s until it ends." :
+        " with kart %s. You are not eliminated yet.");
+    what += " Use /standings to see the results.";
+    return StringUtils::insertValues(what, m_kart.c_str());
 }   // getWarningMessage
 //-----------------------------------------------------------------------------
 

@@ -19,7 +19,7 @@
 
 #include "audio/sfx_manager.hpp"
 #include "config/user_config.hpp"
-#include "graphics/render_info.hpp"
+#include <ge_render_info.hpp>
 #include "guiengine/widgets/bubble_widget.hpp"
 #include "guiengine/widgets/button_widget.hpp"
 #include "guiengine/widgets/spinner_widget.hpp"
@@ -36,6 +36,8 @@
 #include "states_screens/state_manager.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
+
+#include <IrrlichtDevice.h>
 
 using namespace GUIEngine;
 

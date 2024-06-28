@@ -36,6 +36,7 @@
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
 
+#include <IBillboardSceneNode.h>
 #include <IMeshSceneNode.h>
 #include <ISceneManager.h>
 
@@ -236,18 +237,19 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
         scene::ISceneNode* meshnode =
             irr_driver->addMesh(mesh, StringUtils::insertValues("item_%i", (int)type));
 
+        lodnode->add(1, meshnode, true);
         if (lowres_mesh != NULL)
         {
-            lodnode->add(35, meshnode, true);
             scene::ISceneNode* meshnode =
                 irr_driver->addMesh(lowres_mesh,
                 StringUtils::insertValues("item_lo_%i", (int)type));
-            lodnode->add(100, meshnode, true);
+            lodnode->add(2, meshnode, true);
         }
-        else
-        {
-            lodnode->add(100, meshnode, true);
-        }
+
+        // Auto-compute the rendering distance, but use a high scaling factor
+        // to ensure that even at low settings, on-track items only become invisible
+        // when already quite far.
+        lodnode->autoComputeLevel(24); // The distance grows with the square root of the scaling factor
         m_node = lodnode;
     }
     setType(type);
@@ -279,17 +281,6 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
         billboard->setVisible(true);
 
         m_spark_nodes.push_back(billboard);
-    }
-
-    if (!icon.empty())
-    {
-        m_icon_node = irr_driver->addBillboard(core::dimension2df(1.0f, 1.0f),
-                                        icon, m_node);
-
-        m_icon_node->setPosition(core::vector3df(0.0f, 0.5f, 0.0f));
-        m_icon_node->setVisible(false);
-        ((scene::IBillboardSceneNode*)m_icon_node)
-            ->setColor(ItemManager::getGlowColor(type).toSColor());
     }
 }   // Item(type, xyz, normal, mesh, lowres_mesh)
 
@@ -420,8 +411,9 @@ void Item::handleNewMesh(ItemType type)
 
     if (m_icon_node)
         m_node->removeChild(m_icon_node);
+    m_icon_node = NULL;
     auto icon = ItemManager::getIcon(type);
-    
+
     if (!icon.empty())
     {
         m_icon_node = irr_driver->addBillboard(core::dimension2df(1.0f, 1.0f),

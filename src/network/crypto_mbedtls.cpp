@@ -42,6 +42,27 @@ std::string Crypto::base64(const std::vector<uint8_t>& input)
 }   // base64
 
 // ============================================================================
+std::string Crypto::base64url(const std::vector<uint8_t>& input)
+{
+    std::string result = base64(input);
+    while (!result.empty() && result.back() == '=')
+        result.pop_back();
+    std::string answer = "";
+    for (char& c: result)
+    {
+        if (c == '+')
+            answer.push_back('-');
+        else if (c == '/')
+            answer.push_back('_');
+        else if (c == '\n')
+            continue;
+        else
+            answer.push_back(c);
+    }
+    return answer;
+}   // base64url
+
+// ============================================================================
 std::vector<uint8_t> Crypto::decode64(std::string input)
 {
     size_t required_size = 0;

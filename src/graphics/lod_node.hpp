@@ -32,6 +32,7 @@ namespace irr
 using namespace irr;
 
 #include <set>
+#include <memory>
 
 namespace irr
 {
@@ -62,20 +63,17 @@ private:
      *  m_forced_lod is >=0, only this level is be used. */
     int m_forced_lod;
 
+    int m_current_level;
+    bool m_current_level_dirty;
+
+    // Distance below which switching between two levels of detail is avoided
+    int m_min_switch_distance;
+
     // Area of the bounding box (for autoLOD computation)
     float m_area;
 
-    enum PreviousVisibility
-    {
-        FIRST_PASS,
-        WAS_SHOWN,
-        WAS_HIDDEN
-    };
-
-    PreviousVisibility m_previous_visibility;
-
-    u32 m_last_tick;
-
+    bool m_update_box_every_frame;
+    bool m_lod_distances_updated;
 public:
 
     LODNode(std::string group_name, scene::ISceneNode* parent, scene::ISceneManager* mgr, s32 id=-1);
@@ -86,7 +84,7 @@ public:
 
     int getLevel();
 
-    void updateVisibility(bool* shown = NULL);
+    void updateVisibility();
 
     /*
     //! Returns a reference to the current relative transformation matrix.
@@ -122,6 +120,7 @@ public:
     }
 
     std::vector<scene::ISceneNode*>& getAllNodes() { return m_nodes; }
+    std::set<scene::ISceneNode*>& getNodesSet() { return m_nodes_set; }
 
     //! OnAnimate() is called just before rendering the whole scene.
     /** This method will be called once per frame, independent

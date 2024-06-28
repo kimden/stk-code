@@ -28,7 +28,7 @@ using namespace irr;
 #include "challenges/unlock_manager.hpp"
 #include "config/user_config.hpp"
 #include "font/font_drawer.hpp"
-#include "graphics/camera.hpp"
+#include "graphics/camera/camera.hpp"
 #include "graphics/central_settings.hpp"
 #include "graphics/2dutils.hpp"
 #ifndef SERVER_ONLY
@@ -63,6 +63,8 @@ using namespace irr;
 #include "utils/translation.hpp"
 
 #include <algorithm>
+
+#include <IrrlichtDevice.h>
 
 /** The constructor is called before anything is attached to the scene node.
  *  So rendering to a texture can be done here. But world is not yet fully
@@ -376,10 +378,11 @@ void RaceGUI::renderPlayerView(const Camera *camera, float dt)
 
     if (!isSpectatorCam) drawPlungerInFace(camera, dt);
 
-    if (viewport.getWidth() != (int)irr_driver->getActualScreenSize().Width &&
+    if (viewport.getWidth() != (int)irr_driver->getActualScreenSize().Width ||
         viewport.getHeight() != (int)irr_driver->getActualScreenSize().Height)
     {
-        scaling *= float(viewport.getWidth()) / float(irr_driver->getActualScreenSize().Width); // scale race GUI along screen size
+        scaling.X *= float(viewport.getWidth()) / float(irr_driver->getActualScreenSize().Width); // scale race GUI along screen size
+        scaling.Y *= float(viewport.getHeight()) / float(irr_driver->getActualScreenSize().Height); // scale race GUI along screen size
     }
     else
     {
@@ -436,6 +439,7 @@ void RaceGUI::drawGlobalTimer()
 
     sw = core::stringw (StringUtils::timeToString(elapsed_time).c_str() );
 
+    // Use colors to draw player attention to countdowns in challenges and FTL
     if (RaceManager::get()->hasTimeTarget())
     {
         // This assumes only challenges have a time target
@@ -451,6 +455,13 @@ void RaceGUI::drawGlobalTimer()
         else if (elapsed_time <= 5)
             time_color = video::SColor(255,255,160,0);
         else if (elapsed_time <= 15)
+            time_color = video::SColor(255,255,255,0);
+    }
+    else if(RaceManager::get()->isFollowMode())
+    {
+        if (elapsed_time <= 3)
+            time_color = video::SColor(255,255,160,0);
+        else if (elapsed_time <= 8)
             time_color = video::SColor(255,255,255,0);
     }
 
@@ -577,6 +588,8 @@ void RaceGUI::drawGlobalMiniMap()
     if (ctf_world)
     {
         Vec3 draw_at;
+        video::SColor translucence((unsigned)-1);
+        translucence.setAlpha(128);
         if (!ctf_world->isRedFlagInBase())
         {
             track->mapPoint2MiniMap(Track::getCurrentTrack()->getRedFlag().getOrigin(),
@@ -586,7 +599,7 @@ void RaceGUI::drawGlobalMiniMap()
                 lower_y   -(int)(draw_at.getY()+(m_minimap_player_size/2.2f)),
                 m_map_left+(int)(draw_at.getX()+(m_minimap_player_size/1.4f)),
                 lower_y   -(int)(draw_at.getY()-(m_minimap_player_size/2.2f)));
-            draw2DImage(m_red_flag, rp, rs, NULL, NULL, true, true);
+            draw2DImage(m_red_flag, rp, rs, NULL, translucence, true);
         }
         Vec3 pos = ctf_world->getRedHolder() == -1 ? ctf_world->getRedFlag() :
             ctf_world->getKart(ctf_world->getRedHolder())->getSmoothedTrans().getOrigin();
@@ -608,7 +621,7 @@ void RaceGUI::drawGlobalMiniMap()
                 lower_y   -(int)(draw_at.getY()+(m_minimap_player_size/2.2f)),
                 m_map_left+(int)(draw_at.getX()+(m_minimap_player_size/1.4f)),
                 lower_y   -(int)(draw_at.getY()-(m_minimap_player_size/2.2f)));
-            draw2DImage(m_blue_flag, rp, rs, NULL, NULL, true, true);
+            draw2DImage(m_blue_flag, rp, rs, NULL, translucence, true);
         }
 
         pos = ctf_world->getBlueHolder() == -1 ? ctf_world->getBlueFlag() :
@@ -715,7 +728,7 @@ void RaceGUI::drawGlobalMiniMap()
                     rotation = rotation + M_PI;
                 }
                 rotation = -1.0f * rotation + 0.25f * M_PI; // icons-frame_arrow.png was rotated by 45 degrees
-                draw2DImage(m_icons_frame, position, rect, NULL, colors, true, false, rotation);
+                draw2DImageRotationColor(m_icons_frame, position, rect, NULL, rotation, color);
             }
             else
             {
@@ -1381,4 +1394,3 @@ void RaceGUI::drawLap(const AbstractKart* kart,
     font->setScale(1.0f);
 #endif
 } // drawLap
-

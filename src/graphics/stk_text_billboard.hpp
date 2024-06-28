@@ -31,6 +31,15 @@
 using namespace irr;
 using namespace scene;
 
+namespace irr
+{
+    namespace scene
+    {
+        class IMeshSceneNode;
+        class IMeshBuffer;
+    }
+}
+
 class STKTextBillboard : public ISceneNode, public NoCopy,
                          FontWithFace::FontCharCollector
 {
@@ -79,7 +88,7 @@ private:
     std::unordered_map<video::ITexture*, std::pair<GLuint, GLuint> >
         m_vao_vbos;
 
-    std::unordered_map<video::ITexture*, IMeshBuffer*> m_gl_mb;
+    std::unordered_map<video::ITexture*, scene::IMeshBuffer*> m_gl_mb;
 
     core::aabbox3df m_bbox;
 
@@ -87,8 +96,12 @@ private:
 
     core::stringw m_text;
 
+    IMeshSceneNode* m_ge_node;
+
     // ------------------------------------------------------------------------
     float getDefaultScale(FontWithFace* face);
+    // ------------------------------------------------------------------------
+    void removeGENode();
 public:
     // ------------------------------------------------------------------------
     STKTextBillboard(const video::SColor& color_top,
@@ -99,30 +112,11 @@ public:
     // ------------------------------------------------------------------------
     ~STKTextBillboard()
     {
+        removeGENode();
         clearBuffer();
     }
     // ------------------------------------------------------------------------
-    void clearBuffer()
-    {
-#ifndef SERVER_ONLY
-        if (m_instanced_array != 0)
-        {
-            glDeleteBuffers(1, &m_instanced_array);
-        }
-        for (auto& p : m_vao_vbos)
-        {
-            glDeleteVertexArrays(1, &p.second.first);
-            glDeleteBuffers(1, &p.second.second);
-        }
-        m_vao_vbos.clear();
-        for (auto& p : m_gl_mb)
-        {
-            p.second->drop();
-        }
-        m_gl_mb.clear();
-        m_gl_tbs.clear();
-#endif
-    }
+    void clearBuffer();
     // ------------------------------------------------------------------------
     void reload();
     // ------------------------------------------------------------------------

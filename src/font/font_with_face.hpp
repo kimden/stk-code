@@ -35,7 +35,10 @@
 #include FT_OUTLINE_H
 #endif
 
-#include <irrlicht.h>
+#include <GlyphLayout.h>
+#include <dimension2d.h>
+#include <irrString.h>
+#include <rect.h>
 
 using namespace irr;
 
@@ -44,6 +47,19 @@ const int BEARING = 64;
 class FaceTTF;
 class FontSettings;
 struct FontArea;
+
+namespace irr
+{
+    namespace video
+    {
+        class ITexture;
+        class SColor;
+    }
+    namespace gui
+    {
+        class IGUISpriteBank;
+    }
+}
 
 /** An abstract class which contains functions which convert vector fonts into
  *  bitmap and render them in STK. To make STK draw characters with different
@@ -307,6 +323,10 @@ public:
     float getInverseShaping() const               { return m_inverse_shaping; }
     // ------------------------------------------------------------------------
     virtual bool useColorGlyphPage() const                    { return false; }
+    // ------------------------------------------------------------------------
+    /** Defined by sub-class about the native scaling factor, to provide */
+    /** a texture with higher resolution when the scale is > 1.0f */
+    virtual float getNativeScalingFactor() const               { return 1.0f; }
     // ------------------------------------------------------------------------
     void setDPI();
 };   // FontWithFace

@@ -31,13 +31,14 @@ namespace irr
                       class ISceneNode; class IMeshSceneNode; }
 }
 using namespace irr;
+namespace GE { class GERenderInfo; }
 
 #include "utils/no_copy.hpp"
 #include "utils/vec3.hpp"
 
 class AbstractKart;
 class KartProperties;
-class RenderInfo;
+class MovingTexture;
 class XMLNode;
 
 /** A speed-weighted object is an object whose characteristics are influenced by the kart's speed */
@@ -48,14 +49,17 @@ struct SpeedWeightedObject
     {
         Properties();
 
+        ~Properties();
+
+        Properties& operator=(const Properties& other);
+
         /** Strength factor: how much the kart speed affects the animation's distance from a static pose (-1 to disable) */
         float               m_strength_factor;
 
         /** Speed factor: how much the kart speed affects the animation's speed (-1 to disable) */
         float               m_speed_factor;
 
-        /** Texture speed, in UV coordinates */
-        core::vector2df     m_texture_speed;
+        MovingTexture*      m_moving_texture;
 
         void    loadFromXMLNode(const XMLNode* xml_node);
 
@@ -77,9 +81,6 @@ struct SpeedWeightedObject
 
     /** Attach to which bone in kart model if not empty. */
     std::string                         m_bone_name;
-
-    /** Current uv translation in the texture matrix for speed-weighted texture animations */
-    core::vector2df                     m_texture_cur_offset;
 
     /** Specific properties for this given speed-weighted object,
       * otherwise just a copy of the values from the kart's properties */
@@ -297,7 +298,7 @@ private:
     void  loadNitroEmitterInfo(const XMLNode &node,
                         const std::string &emitter_name, int index);
 
-    void  loadSpeedWeightedInfo(const XMLNode* speed_weighted_node);
+    void  loadSpeedWeightedInfo(const XMLNode* speed_weighted_node, int index);
 
     void  loadHeadlights(const XMLNode &node);
 
@@ -307,7 +308,7 @@ private:
     AbstractKart* m_kart;
 
     /** For our engine to get the desired hue for colorization. */
-    std::shared_ptr<RenderInfo> m_render_info;
+    std::shared_ptr<GE::GERenderInfo> m_render_info;
 
     /** True if this kart model can be colorization in red / blue (now only
      *  used in soccer mode). */
@@ -342,7 +343,7 @@ private:
 public:
                   KartModel(bool is_master);
                  ~KartModel();
-    KartModel*    makeCopy(std::shared_ptr<RenderInfo> ri);
+    KartModel*    makeCopy(std::shared_ptr<GE::GERenderInfo> ri);
     void          reset();
     void          loadInfo(const XMLNode &node);
     bool          loadModels(const KartProperties &kart_properties);
@@ -440,7 +441,7 @@ public:
     // ------------------------------------------------------------------------
     scene::IAnimatedMeshSceneNode* getAnimatedNode(){ return m_animated_node; }
     // ------------------------------------------------------------------------
-    std::shared_ptr<RenderInfo> getRenderInfo();
+    std::shared_ptr<GE::GERenderInfo> getRenderInfo();
     // ------------------------------------------------------------------------
     bool supportColorization() const         { return m_support_colorization; }
     // ------------------------------------------------------------------------

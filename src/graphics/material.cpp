@@ -41,8 +41,17 @@
 #include "utils/log.hpp"
 #include "utils/vs.hpp"
 
+#include <IFileSystem.h>
 #include <IMaterialRendererServices.h>
 #include <ISceneNode.h>
+#include <IVideoDriver.h>
+#include <mini_glm.hpp>
+
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_spm_buffer.hpp>
+#include <ge_texture.hpp>
+#endif
 
 using namespace irr::video;
 
@@ -56,6 +65,7 @@ const unsigned int VCLAMP = 2;
 Material::Material(const XMLNode *node, bool deprecated)
 {
     m_shader_name = "solid";
+    m_sampler_path = {{ }};
     m_deprecated = deprecated;
     m_installed = false;
 
@@ -310,14 +320,14 @@ Material::Material(const XMLNode *node, bool deprecated)
     {
         m_sampler_path[3] = normal_map_tex;
     }
-    for (int i = 2; i < 6; i++)
+    for (unsigned i = 2; i < m_sampler_path.size(); i++)
     {
         const std::string key =
             std::string("tex-layer-") + StringUtils::toString(i);
         node->get(key, &m_sampler_path[i]);
     }
     // Convert to full path
-    for (int i = 1; i < 6; i++)
+    for (unsigned i = 1; i < m_sampler_path.size(); i++)
     {
         if (m_sampler_path[i].empty())
         {
@@ -439,6 +449,7 @@ Material::Material(const std::string& fname, bool is_full_path,
                    const std::string& shader_name)
 {
     m_shader_name = shader_name;
+    m_sampler_path = {{ }};
     m_deprecated = false;
     m_installed = false;
     init();
@@ -526,10 +537,12 @@ void Material::init()
     {
         m_particles_effects[n] = NULL;
     }
+    m_vk_textures               = {{ }};
 }   // init
 
 //-----------------------------------------------------------------------------
-void Material::install(std::function<void(video::IImage*)> image_mani)
+void Material::install(std::function<void(video::IImage*)> image_mani,
+                       video::SMaterial* m)
 {
     // Don't load a texture that are not supposed to be loaded automatically
     if (m_installed) return;
@@ -561,6 +574,27 @@ void Material::install(std::function<void(video::IImage*)> image_mani)
     m_texname = texfname.c_str();
 
     m_texture->grab();
+
+#ifndef SERVER_ONLY
+    if (!m && irr_driver->getVideoDriver()->getDriverType() != EDT_VULKAN)
+        return;
+
+    for (unsigned i = 2; i < m_sampler_path.size(); i++)
+    {
+        if (m_sampler_path[i].empty())
+            continue;
+        GE::getGEConfig()->m_ondemand_load_texture_paths.insert(
+            m_sampler_path[i]);
+        m_vk_textures[i - 2] = STKTexManager::getInstance()->getTexture(
+            m_sampler_path[i]);
+        GE::getGEConfig()->m_ondemand_load_texture_paths.clear();
+        if (m_vk_textures[i - 2])
+        {
+            m_vk_textures[i - 2]->grab();
+            m->setTexture(i, m_vk_textures[i - 2]);
+        }
+    }
+#endif
 }   // install
 
 //-----------------------------------------------------------------------------
@@ -591,6 +625,21 @@ void Material::unloadTexture()
         m_texture = NULL;
         m_installed = false;
     }
+
+#ifndef SERVER_ONLY
+    if (irr_driver->getVideoDriver()->getDriverType() == EDT_VULKAN)
+    {
+        for (unsigned i = 2; i < m_sampler_path.size(); i++)
+        {
+            if (!m_vk_textures[i - 2])
+                continue;
+            m_vk_textures[i - 2]->drop();
+            if (m_vk_textures[i - 2]->getReferenceCount() == 1)
+                irr_driver->removeTexture(m_vk_textures[i - 2]);
+            m_vk_textures[i - 2] = NULL;
+        }
+    }
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -768,7 +817,7 @@ void  Material::setMaterialProperties(video::SMaterial *m, scene::IMeshBuffer* m
 {
     if (!m_installed)
     {
-        install();
+        install(nullptr, m);
     }
 
     if (m_deprecated ||
@@ -779,6 +828,8 @@ void  Material::setMaterialProperties(video::SMaterial *m, scene::IMeshBuffer* m
                   m_texname.c_str());
     }
 
+    m->setColorizable(m_colorizable);
+    bool is_vk = irr_driver->getVideoDriver()->getDriverType() == EDT_VULKAN;
     // Default solid
     m->MaterialType = video::EMT_SOLID;
     if (RaceManager::get()->getReverseTrack() &&
@@ -787,15 +838,40 @@ void  Material::setMaterialProperties(video::SMaterial *m, scene::IMeshBuffer* m
         if (m_mirrorred_mesh_buffers.find((void*)mb) == m_mirrorred_mesh_buffers.end())
         {
             m_mirrorred_mesh_buffers[(void*)mb] = true;
-            //irr::video::S3DVertex* mbVertices = (video::S3DVertex*)mb->getVertices();
+            video::S3DVertexSkinnedMesh* mbVertices = (video::S3DVertexSkinnedMesh*)mb->getVertices();
             for (unsigned int i = 0; i < mb->getVertexCount(); i++)
             {
-                core::vector2df &tc = mb->getTCoords(i);
-                if (m_mirror_axis_when_reverse == 'V')
-                    tc.Y = 1 - tc.Y;
+                if (mb->getVertexType() == video::EVT_SKINNED_MESH)
+                {
+                    using namespace MiniGLM;
+                    if (m_mirror_axis_when_reverse == 'V')
+                    {
+                        mbVertices[i].m_all_uvs[1] =
+                            toFloat16(1.0f - toFloat32(mbVertices[i].m_all_uvs[1]));
+                    }
+                    else
+                    {
+                        mbVertices[i].m_all_uvs[0] =
+                            toFloat16(1.0f - toFloat32(mbVertices[i].m_all_uvs[0]));
+                    }
+                }
                 else
-                    tc.X = 1 - tc.X;
+                {
+                    core::vector2df &tc = mb->getTCoords(i);
+                    if (m_mirror_axis_when_reverse == 'V')
+                        tc.Y = 1 - tc.Y;
+                    else
+                        tc.X = 1 - tc.X;
+                }
             }
+#ifndef SERVER_ONLY
+            if (is_vk)
+            {
+                GE::GESPMBuffer* spmb = static_cast<GE::GESPMBuffer*>(mb);
+                spmb->destroyVertexIndexBuffer();
+                spmb->createVertexIndexBuffer();
+            }
+#endif
         }
     }   // reverse track and texture needs mirroring
 
@@ -834,6 +910,8 @@ void  Material::setMaterialProperties(video::SMaterial *m, scene::IMeshBuffer* m
             video::EMFN_MODULATE_1X,
             video::EAS_TEXTURE |
             video::EAS_VERTEX_COLOR);
+        if (is_vk)
+            m->MaterialType = video::EMT_TRANSPARENT_ADD_COLOR;
     }
     else if (m_shader_name == "grass")
     {
@@ -852,9 +930,16 @@ void  Material::setMaterialProperties(video::SMaterial *m, scene::IMeshBuffer* m
             m->EmissiveColor = video::SColor(255, 150, 150, 150);
             m->SpecularColor = video::SColor(255, 150, 150, 150);
         }
+        if (is_vk)
+            m->MaterialType = video::EMT_STK_GRASS;
 #endif
 
 #endif
+    }
+    else if (m_shader_name == "decal")
+    {
+        if (is_vk)
+            m->MaterialType = video::EMT_SOLID_2_LAYER;
     }
 
     if (isTransparent())
@@ -918,3 +1003,121 @@ void  Material::setMaterialProperties(video::SMaterial *m, scene::IMeshBuffer* m
 #endif
 
 } // setMaterialProperties
+
+//-----------------------------------------------------------------------------
+std::function<void(irr::video::IImage*)> Material::getMaskImageMani() const
+{
+#ifndef SERVER_ONLY
+    std::function<void(irr::video::IImage*)> image_mani;
+    core::dimension2du max_size = irr_driver->getVideoDriver()
+        ->getDriverAttributes().getAttributeAsDimension2d("MAX_TEXTURE_SIZE");
+
+    // Material using alpha channel will be colorized as a whole
+    if (CVS->supportsColorization() &&
+        !useAlphaChannel() && (!m_colorization_mask.empty() ||
+        m_colorization_factor > 0.0f || m_colorizable))
+    {
+        std::string colorization_mask;
+        if (!m_colorization_mask.empty())
+        {
+            colorization_mask = StringUtils::getPath(m_sampler_path[0]) + "/" +
+                m_colorization_mask;
+        }
+        float colorization_factor = m_colorization_factor;
+        image_mani = [colorization_mask, colorization_factor, max_size]
+            (video::IImage* img)->void
+        {
+            video::IImage* mask = NULL;
+            core::dimension2du img_size = img->getDimension();
+            const unsigned total_size = img_size.Width * img_size.Height;
+            std::vector<uint8_t> empty_mask;
+            uint8_t* mask_data = NULL;
+            if (!colorization_mask.empty())
+            {
+                mask = GE::getResizedImage(colorization_mask, max_size);
+                if (!mask)
+                {
+                    Log::warn("Material",
+                        "Applying colorization mask failed for '%s'!",
+                        colorization_mask.c_str());
+                    return;
+                }
+                core::dimension2du mask_size = mask->getDimension();
+                if (mask->getColorFormat() != video::ECF_A8R8G8B8 ||
+                    img_size != mask_size)
+                {
+                    video::IImage* new_mask = irr_driver
+                        ->getVideoDriver()->createImage(video::ECF_A8R8G8B8,
+                        img_size);
+                    if (img_size != mask_size)
+                    {
+                        mask->copyToScaling(new_mask);
+                    }
+                    else
+                    {
+                        mask->copyTo(new_mask);
+                    }
+                    mask->drop();
+                    mask = new_mask;
+                }
+                mask_data = (uint8_t*)mask->lock();
+            }
+            else
+            {
+                empty_mask.resize(total_size * 4, 0);
+                mask_data = empty_mask.data();
+            }
+            uint8_t colorization_factor_encoded = uint8_t
+                (irr::core::clamp(
+                int(colorization_factor * 0.4f * 255.0f), 0, 255));
+            for (unsigned int i = 0; i < total_size; i++)
+            {
+                if (!colorization_mask.empty() && mask_data[i * 4 + 3] > 127)
+                    continue;
+                mask_data[i * 4 + 3] = colorization_factor_encoded;
+            }
+            uint8_t* img_data = (uint8_t*)img->lock();
+            for (unsigned int i = 0; i < total_size; i++)
+                img_data[i * 4 + 3] = mask_data[i * 4 + 3];
+            if (mask)
+                mask->drop();
+        };
+        return image_mani;
+    }
+
+    std::string mask_full_path;
+    if (!m_mask.empty())
+    {
+        mask_full_path = StringUtils::getPath(m_sampler_path[0]) + "/" +
+            m_mask;
+    }
+    if (!mask_full_path.empty())
+    {
+        image_mani = [mask_full_path, max_size](video::IImage* img)->void
+        {
+            video::IImage* converted_mask =
+                GE::getResizedImage(mask_full_path, max_size);
+            if (converted_mask == NULL)
+            {
+                Log::warn("Material", "Applying alpha mask failed for '%s'!",
+                    mask_full_path.c_str());
+                return;
+            }
+            const core::dimension2du& dim = img->getDimension();
+            for (unsigned int x = 0; x < dim.Width; x++)
+            {
+                for (unsigned int y = 0; y < dim.Height; y++)
+                {
+                    video::SColor col = img->getPixel(x, y);
+                    video::SColor alpha = converted_mask->getPixel(x, y);
+                    col.setAlpha(alpha.getRed());
+                    img->setPixel(x, y, col, false);
+                }   // for y
+            }   // for x
+            converted_mask->drop();
+        };
+        return image_mani;
+    }
+#endif
+    return nullptr;
+} // getMaskImageMani

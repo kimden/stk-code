@@ -122,6 +122,22 @@ void mainLoop(STKHost* host)
         {
             host->requestShutdown();
         }
+        else if (str == "quitifempty")
+        {
+            auto peers = host->getPeers();
+            bool has_humans = false;
+            for (auto peer : peers)
+            {
+                if (peer->isAIPeer())
+                    continue;
+                has_humans = true;
+                break;
+            }
+            if (!has_humans)
+                host->requestShutdown();
+            else
+                std::cout << "The server is not empty, abort quitting." << std::endl;
+        }
         else if (str == "kickall")
         {
             auto peers = host->getPeers();

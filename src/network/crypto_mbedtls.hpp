@@ -59,6 +59,8 @@ public:
     // ------------------------------------------------------------------------
     static std::string base64(const std::vector<uint8_t>& input);
     // ------------------------------------------------------------------------
+    static std::string base64url(const std::vector<uint8_t>& input);
+    // ------------------------------------------------------------------------
     static std::vector<uint8_t> decode64(std::string input);
     // ------------------------------------------------------------------------
     static std::array<uint8_t, 32> sha256(const std::string& input);

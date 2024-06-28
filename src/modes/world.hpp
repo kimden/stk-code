@@ -360,7 +360,7 @@ public:
         m_eliminated_players = 0;
     }
     // ------------------------------------------------------------------------
-    virtual void addReservedKart(int kart_id)
+    virtual void addReservedKart(int kart_id, int param = 0)
     {
         if (m_eliminated_karts > 0)
             m_eliminated_karts--;

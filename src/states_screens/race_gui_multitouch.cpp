@@ -22,9 +22,8 @@ using namespace irr;
 #include <algorithm>
 
 #include "config/user_config.hpp"
-#include "graphics/camera.hpp"
-#include "graphics/camera_debug.hpp"
-#include "graphics/central_settings.hpp"
+#include "graphics/camera/camera.hpp"
+#include "graphics/camera/camera_debug.hpp"
 #include "graphics/2dutils.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/material.hpp"
@@ -37,6 +36,7 @@ using namespace irr;
 #include "network/protocols/client_lobby.hpp"
 #include "states_screens/race_gui_base.hpp"
 
+#include <IrrlichtDevice.h>
 
 //-----------------------------------------------------------------------------
 /** The multitouch GUI constructor
@@ -158,15 +158,11 @@ void RaceGUIMultitouch::init()
     m_up_tex = irr_driver->getTexture(FileManager::GUI_ICON, "up.png");
     m_down_tex = irr_driver->getTexture(FileManager::GUI_ICON, "down.png");
     m_screen_tex = irr_driver->getTexture(FileManager::GUI_ICON, "screen_other.png");
-#ifndef SERVER_ONLY
-    if (CVS->isGLSL())
-    {
-        m_steering_wheel_tex_mask_up = irr_driver->getTexture(FileManager::GUI_ICON,
-                                            "android/steering_wheel_mask_up.png");
-        m_steering_wheel_tex_mask_down = irr_driver->getTexture(FileManager::GUI_ICON,
-                                            "android/steering_wheel_mask_down.png");
-    }
-#endif
+    m_steering_wheel_tex_mask_up = irr_driver->getTexture(FileManager::GUI_ICON,
+                                        "android/steering_wheel_mask_up.png");
+    m_steering_wheel_tex_mask_down = irr_driver->getTexture(FileManager::GUI_ICON,
+                                        "android/steering_wheel_mask_down.png");
+
     auto cl = LobbyProtocol::get<ClientLobby>();
     
     if (cl && cl->isSpectator())
@@ -382,25 +378,26 @@ void RaceGUIMultitouch::draw(const AbstractKart* kart,
 
         if (button->type == MultitouchButtonType::BUTTON_STEERING)
         {
+            video::SColor color((unsigned)-1);
             video::ITexture* btn_texture = m_steering_wheel_tex;
             core::rect<s32> coords(pos_zero, btn_texture->getSize());
-            draw2DImage(btn_texture, btn_pos, coords, NULL, NULL, true, false/*draw_translucently*/,
-                (button->axis_y >= 0 ? -1 : 1) * button->axis_x);
-#ifndef SERVER_ONLY
+            draw2DImageRotationColor(btn_texture, btn_pos, coords, NULL,
+                (button->axis_y >= 0 ? -1 : 1) * button->axis_x, color);
             AbstractKart* k = NULL;
             Camera* c = Camera::getActiveCamera();
             if (c)
                 k = c->getKart();
-            if (CVS->isGLSL() && k)
+            if (k)
             {
                 float accel = k->getControls().getAccel();
                 core::rect<s32> mask_coords(pos_zero, m_steering_wheel_tex_mask_up->getSize());
-                draw2DImageCustomAlpha(m_steering_wheel_tex_mask_up, btn_pos, mask_coords, NULL,
-                    (button->axis_y >= 0 ? -1 : 1) * button->axis_x, accel >= 0.0f ? accel * 0.5f : 0.0f);
-                draw2DImageCustomAlpha(m_steering_wheel_tex_mask_down, btn_pos, mask_coords, NULL,
-                    (button->axis_y >= 0 ? -1 : 1) * button->axis_x, k->getControls().getBrake() ? 0.5f : 0.0f);
+                color.setAlpha(core::clamp((int)(accel >= 0.0f ? accel * 128.0f : 0), 0, 255));
+                draw2DImageRotationColor(m_steering_wheel_tex_mask_up, btn_pos, mask_coords, NULL,
+                    (button->axis_y >= 0 ? -1 : 1) * button->axis_x, color);
+                color.setAlpha(k->getControls().getBrake() ? 128 : 0);
+                draw2DImageRotationColor(m_steering_wheel_tex_mask_down, btn_pos, mask_coords, NULL,
+                    (button->axis_y >= 0 ? -1 : 1) * button->axis_x, color);
             }
-#endif
             // float x = (float)(button->x) + (float)(button->width) / 2.0f *
             //                                          (button->axis_x + 1.0f);
             // float y = (float)(button->y) + (float)(button->height) / 2.0f *

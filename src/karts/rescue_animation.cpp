@@ -26,9 +26,9 @@
 #include "modes/follow_the_leader.hpp"
 #include "modes/three_strikes_battle.hpp"
 #include "network/network_string.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 
-#include "ISceneNode.h"
+#include <IAnimatedMeshSceneNode.h>
 
 #include <algorithm>
 #include <cmath>

@@ -19,10 +19,25 @@
 #define HEADER_ABSTRACT_RENDERER_HPP
 
 #include "graphics/gl_headers.hpp"
-#include <irrlicht.h>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <dimension2d.h>
+#include <vector2d.h>
+#include <vector3d.h>
+
+namespace irr
+{
+    namespace scene
+    {
+        class ISceneNode; class ISkinnedMesh; class ICameraSceneNode;
+    }
+    namespace video
+    {
+        class SColorf;
+    }
+}
 
 class RenderTarget;
 
@@ -50,7 +65,7 @@ protected:
     void drawDebugMeshes() const;
 
     void drawJoint(bool drawline, bool drawname,
-                   irr::scene::ISkinnedMesh::SJoint* joint,
+                   void* sjoint,
                    irr::scene::ISkinnedMesh* mesh, int id) const;
 #endif
 

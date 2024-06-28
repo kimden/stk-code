@@ -20,6 +20,7 @@
 #include "graphics/central_settings.hpp"
 #include "config/user_config.hpp"
 #include "graphics/irr_driver.hpp"
+#include "graphics/material.hpp"
 #include "graphics/material_manager.hpp"
 #include "graphics/sp/sp_dynamic_draw_call.hpp"
 #include "graphics/sp/sp_mesh.hpp"
@@ -36,8 +37,24 @@
 #include "network/rewind_manager.hpp"
 #include "tracks/quad.hpp"
 #include "utils/constants.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 
+#include <IMeshCache.h>
+#include <ISceneManager.h>
+#include <SMeshBuffer.h>
+#include <SMesh.h>
+
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_render_info.hpp>
+#endif
+
+//-----------------------------------------------------------------------------
+const char* g_slipstream_textures[3] =
+{
+    "slipstream.png", "slipstream2.png", "slipstream_bonus.png"
+};
+//-----------------------------------------------------------------------------
 /** Creates the slip stream object
  *  \param kart Pointer to the kart to which the slip stream
  *              belongs to.
@@ -52,15 +69,18 @@ SlipStream::SlipStream(AbstractKart* kart)
     m_node = NULL;
     m_node_fast = NULL;
     m_bonus_node = NULL;
+    m_length = 0.0f;
 
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics())
     {
         m_moving = new MovingTexture(0.0f, 0.0f);
 
-        Material* material =
-            material_manager->getMaterialSPM("slipstream.png", "");
-        SP::SPMesh* mesh = createMesh(material, false);
+        scene::IAnimatedMesh* mesh = NULL;
+        if (CVS->isGLSL())
+            mesh = createMeshSP(0, false);
+        else
+            mesh = createMesh(0, false);
         m_node = irr_driver->addMesh(mesh, "slipstream");
         mesh->drop();
         std::string debug_name = m_kart->getIdent()+" (slip-stream)";
@@ -69,13 +89,22 @@ SlipStream::SlipStream(AbstractKart* kart)
             m_kart->getKartLength()));
         m_node->setVisible(false);
         SP::SPMeshNode* spmn = dynamic_cast<SP::SPMeshNode*>(m_node);
-        assert(spmn);
-        m_moving->setSPTM(spmn->getTextureMatrix(0).data());
+        if (spmn)
+            m_moving->setSPTM(spmn->getTextureMatrix(0).data());
+        else
+        {
+            m_moving->setTextureMatrix(&(m_node->getMaterial(0)
+                .getTextureMatrix(0)));
+            m_node->getMaterial(0).getRenderInfo() =
+                std::make_shared<GE::GERenderInfo>();
+        }
 
         m_moving_fast = new MovingTexture(0.0f, 0.0f);
 
-        material = material_manager->getMaterialSPM("slipstream2.png", "");
-        mesh = createMesh(material, false);
+        if (CVS->isGLSL())
+            mesh = createMeshSP(1, false);
+        else
+            mesh = createMesh(1, false);
         m_node_fast = irr_driver->addMesh(mesh, "slipstream2");
         mesh->drop();
         debug_name = m_kart->getIdent()+" (slip-stream2)";
@@ -84,13 +113,22 @@ SlipStream::SlipStream(AbstractKart* kart)
             m_kart->getKartLength()));
         m_node_fast->setVisible(false);
         spmn = dynamic_cast<SP::SPMeshNode*>(m_node_fast);
-        assert(spmn);
-        m_moving_fast->setSPTM(spmn->getTextureMatrix(0).data());
+        if (spmn)
+            m_moving_fast->setSPTM(spmn->getTextureMatrix(0).data());
+        else
+        {
+            m_moving_fast->setTextureMatrix(&(m_node_fast->getMaterial(0)
+                .getTextureMatrix(0)));
+            m_node_fast->getMaterial(0).getRenderInfo() =
+                std::make_shared<GE::GERenderInfo>();
+        }
 
         m_moving_bonus = new MovingTexture(0.0f, 0.0f);
 
-        material = material_manager->getMaterialSPM("slipstream_bonus.png", "");
-        mesh = createMesh(material, true);
+        if (CVS->isGLSL())
+            mesh = createMeshSP(2, true);
+        else
+            mesh = createMesh(2, true);
         m_bonus_node = irr_driver->addMesh(mesh, "slipstream-bonus");
         mesh->drop();
         debug_name = m_kart->getIdent()+" (slip-stream-bonus)";
@@ -99,8 +137,15 @@ SlipStream::SlipStream(AbstractKart* kart)
             m_kart->getKartLength()));
         m_bonus_node->setVisible(true);
         spmn = dynamic_cast<SP::SPMeshNode*>(m_bonus_node);
-        assert(spmn);
-        m_moving_bonus->setSPTM(spmn->getTextureMatrix(0).data());
+        if (spmn)
+            m_moving_bonus->setSPTM(spmn->getTextureMatrix(0).data());
+        else
+        {
+            m_moving_bonus->setTextureMatrix(&(m_bonus_node->getMaterial(0)
+                .getTextureMatrix(0)));
+            m_bonus_node->getMaterial(0).getRenderInfo() =
+                std::make_shared<GE::GERenderInfo>();
+        }
     }
 #endif
 
@@ -130,7 +175,7 @@ SlipStream::SlipStream(AbstractKart* kart)
     //The position will be corrected in the update anyway
     m_slipstream_outer_quad    = new Quad(p[0], p[1], p[2], p[3]);
 #ifndef SERVER_ONLY
-    if (UserConfigParams::m_slipstream_debug)
+    if (UserConfigParams::m_slipstream_debug && CVS->isGLSL())
     {
         m_debug_dc = std::make_shared<SP::SPDynamicDrawCall>
             (scene::EPT_TRIANGLE_STRIP,
@@ -198,15 +243,21 @@ SlipStream::~SlipStream()
     delete m_slipstream_quad;
     delete m_slipstream_inner_quad;
     delete m_slipstream_outer_quad;
+    delete m_moving;
+    delete m_moving_fast;
+    delete m_moving_bonus;
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && !CVS->isGLSL())
     {
-        delete m_moving;
-        delete m_moving_fast;
-        delete m_moving_bonus;
+        scene::IMeshCache* mc = irr_driver->getSceneManager()->getMeshCache();
+        for (const char* texture : g_slipstream_textures)
+        {
+            scene::IAnimatedMesh* amesh = mc->getMeshByName(texture);
+            if (amesh && amesh->getReferenceCount() == 1)
+                mc->removeMesh(amesh);
+        }
     }
 #endif
-
 }   // ~SlipStream
 
 //-----------------------------------------------------------------------------
@@ -219,6 +270,7 @@ void SlipStream::reset()
     m_speed_increase_ticks = m_speed_increase_duration = -1;
     // Reset a potential max speed increase
     m_kart->increaseMaxSpeed(MaxSpeed::MS_INCREASE_SLIPSTREAM, 0, 0, 0, 0);
+    hideAllNodes();
 }   // reset
 
 //-----------------------------------------------------------------------------
@@ -226,9 +278,150 @@ void SlipStream::reset()
  *  first a series of circles (with a certain number of vertices each and
  *  distance from each other. Then it will create the triangles and add
  *  texture coordniates.
- *  \param material  The material to use.
+ *  \param material_id  The material to use.
  */
-SP::SPMesh* SlipStream::createMesh(Material* material, bool bonus_mesh)
+scene::IAnimatedMesh* SlipStream::createMesh(unsigned material_id,
+                                             bool bonus_mesh)
+{
+    // All radius, starting with the one closest to the kart (and
+    // widest) to the one furthest away. A 0 indicates the end of the list
+
+    std::vector<float> radius = {1.5f, 1.0f, 0.5f, 0.0f};
+
+    if (bonus_mesh)
+    {
+        radius = {0.9f,0.6f,0.3f,0.0f};
+    }
+
+    // The distance of each of the circle from the kart. The number of
+    // entries in this array must be the same as the number of non-zero
+    // entries in the radius[] array above. No 'end of list' entry required.
+    // Note also that in order to avoid a 'bent' in the texture the
+    // difference between the distances must be linearly correlated to the
+    // difference in the corresponding radius, see the following sideview:
+    //            +
+    //       +    |
+    //  +    |    |    three radius
+    //  |    |    |
+    //  +----+----+
+    //  0    1    2
+    //  distances
+    // (radius1-radius0)/(distance1-distance0) = (radius2-radius1)/(distnace2-distance0)
+    // This way the line connecting the upper "+" is a straight line,
+    // and so the 3d cone shape will not be disturbed.
+    std::vector<float> distance = {2.0f, 6.0f, 10.0f };
+
+    if (bonus_mesh)
+    {
+        distance = {0.4f, 0.8f, 1.2f };
+    }
+
+    // The alpha values for the rings, no 'end of list' entry required.
+    int alphas[] = {0, 255, 0};
+
+    // Loop through all given radius to determine the number
+    // of segments to create.
+    unsigned int num_circles=0;
+    while(radius[num_circles]>0.0f) num_circles++;
+
+    assert(num_circles > 0);
+
+    // Length is distance of last circle to distance of first circle:
+    float length = distance[num_circles-1] - distance[0];
+
+    if (!bonus_mesh)
+        m_length = length;
+
+    const io::path cache_key = g_slipstream_textures[material_id];
+    scene::IMeshCache* mc = irr_driver->getSceneManager()->getMeshCache();
+    scene::IAnimatedMesh* amesh = mc->getMeshByName(cache_key);
+    if (amesh)
+    {
+        amesh->grab();
+        return amesh;
+    }
+
+    // The number of points for each circle. Since part of the slip stream
+    // might be under the ground (esp. first and last segment), specify
+    // which one is the first and last to be actually drawn.
+    const unsigned int  num_segments   = 15;
+    const unsigned int  first_segment  = 0;
+    const unsigned int  last_segment   = 14;
+    const float         f              = 2*M_PI/float(num_segments);
+    scene::SMeshBuffer* buffer         = new scene::SMeshBuffer();
+    Material* material                 = material_manager->getMaterialSPM(
+                                         cache_key.c_str(), "");
+    buffer->getMaterial().TextureLayer[0].Texture = material->getTexture();
+    for(unsigned int j=0; j<num_circles; j++)
+    {
+        float curr_distance = distance[j]-distance[0];
+        // Create the vertices for each of the circle
+        for(unsigned int i=first_segment; i<=last_segment; i++)
+        {
+            video::S3DVertex v;
+            // Offset every 2nd circle by one half segment to increase
+            // the number of planes so it looks better.
+            v.Pos.X =  sinf((i+(j%2)*0.5f)*f)*radius[j];
+            v.Pos.Y = -cosf((i+(j%2)*0.5f)*f)*radius[j];
+            v.Pos.Z = distance[j];
+            v.Normal = core::vector3df(0.0f,1.0f,0.0f);
+            v.Color = video::SColor(alphas[j],255,255,255);
+            v.TCoords.X = curr_distance/length;
+            v.TCoords.Y = (float)(i-first_segment)/(last_segment-first_segment)
+                          + (j%2)*(.5f/num_segments);
+            buffer->Vertices.push_back(v);
+        }   // for i<num_segments
+    }   // while radius[num_circles]!=0
+
+    // Now create the triangles from circle j to j+1 (so the loop
+    // only goes to num_circles-1).
+    const int diff_segments = last_segment-first_segment+1;
+    for(unsigned int j=0; j<num_circles-1; j++)
+    {
+        for(unsigned int i=first_segment; i<last_segment; i++)
+        {
+            buffer->Indices.push_back( j   *diff_segments+i  );
+            buffer->Indices.push_back((j+1)*diff_segments+i  );
+            buffer->Indices.push_back( j   *diff_segments+i+1);
+            buffer->Indices.push_back( j   *diff_segments+i+1);
+            buffer->Indices.push_back((j+1)*diff_segments+i  );
+            buffer->Indices.push_back((j+1)*diff_segments+i+1);
+        }
+    }   // for j<num_circles-1
+
+    material->setMaterialProperties(&buffer->getMaterial(), buffer);
+    buffer->Material.setFlag(video::EMF_BACK_FACE_CULLING, false);
+    buffer->Material.setFlag(video::EMF_COLOR_MATERIAL, true);
+    buffer->Material.ColorMaterial = video::ECM_DIFFUSE_AND_AMBIENT;
+
+    scene::SMesh* mesh = new scene::SMesh();
+    mesh->addMeshBuffer(buffer);
+    mesh->recalculateBoundingBox();
+
+    buffer->drop();
+#ifndef SERVER_ONLY
+    if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
+    {
+        amesh = GE::convertIrrlichtMeshToSPM(mesh);
+        mesh->drop();
+        mc->addMesh(cache_key, amesh);
+        return amesh;
+    }
+    else
+#endif
+        mc->addMesh(cache_key, mesh);
+
+    return mesh;
+}   // createMesh
+
+//-----------------------------------------------------------------------------
+/** Creates the mesh for the slipstream effect. This function creates a
+ *  first a series of circles (with a certain number of vertices each and
+ *  distance from each other. Then it will create the triangles and add
+ *  texture coordniates.
+ *  \param material_id  The material to use.
+ */
+SP::SPMesh* SlipStream::createMeshSP(unsigned material_id, bool bonus_mesh)
 {
     SP::SPMesh* spm = NULL;
 #ifndef SERVER_ONLY
@@ -351,6 +544,8 @@ SP::SPMesh* SlipStream::createMesh(Material* material, bool bonus_mesh)
     }   // for j<num_circles-1
     buffer->setSPMVertices(vertices);
     buffer->setIndices(indices);
+    Material* material = material_manager->getMaterialSPM(
+        g_slipstream_textures[material_id], "");
     buffer->setSTKMaterial(material);
     buffer->uploadGLMesh();
 
@@ -359,7 +554,7 @@ SP::SPMesh* SlipStream::createMesh(Material* material, bool bonus_mesh)
     spm->updateBoundingBox();
 #endif
     return spm;
-}   // createMesh
+}   // createMeshSP
 
 //----------------------------------------------------------------------------- */
 void SlipStream::updateSlipstreamingTextures(float f, const AbstractKart *kart)
@@ -398,6 +593,17 @@ void SlipStream::updateSlipstreamingTextures(float f, const AbstractKart *kart)
 
     m_node->setVisible(f>0.0f && f<ktf);
     m_node_fast->setVisible(f>=ktf);
+#ifndef SERVER_ONLY
+    if (!CVS->isGLSL())
+    {
+        float a = m_slipstream_time * 255.0f;
+        if (a > 255.0f)
+            a = 255.0f;
+        m_node->getMaterial(0).getRenderInfo()->getVertexColor().setAlpha(a);
+        m_node_fast->getMaterial(0).getRenderInfo()->getVertexColor()
+            .setAlpha(a);
+    }
+#endif
 
     //specify the texture speed movement
     float max_f = m_kart->getKartProperties()->getSlipstreamMaxCollectTime();
@@ -434,6 +640,16 @@ void SlipStream::updateBonusTexture()
     m_bonus_node->setRotation(rotation);
 
     m_bonus_node->setVisible(m_bonus_time > 0.0f && m_kart->getSpeed() > 2.0f);
+#ifndef SERVER_ONLY
+    if (!CVS->isGLSL())
+    {
+        float a = m_bonus_time * 255.0f;
+        if (a > 255.0f)
+            a = 255.0f;
+        m_bonus_node->getMaterial(0).getRenderInfo()->getVertexColor()
+            .setAlpha(a);
+    }
+#endif
 
     float bonus_speed = 1.0f + std::max(m_bonus_time/1.5f,0.0f);
     m_moving_bonus->setSpeed(bonus_speed, 0);
@@ -566,7 +782,7 @@ void SlipStream::updateQuad()
 
 #ifndef SERVER_ONLY
     //recalculate quad position for debug drawing
-    if (UserConfigParams::m_slipstream_debug)
+    if (UserConfigParams::m_slipstream_debug && CVS->isGLSL())
     {
         video::S3DVertexSkinnedMesh* v =
             m_debug_dc->getVerticesVector().data();
@@ -597,7 +813,7 @@ void SlipStream::updateQuad()
 
 #ifndef SERVER_ONLY
     //recalculate inner quad position for debug drawing
-    if (UserConfigParams::m_slipstream_debug)
+    if (UserConfigParams::m_slipstream_debug && CVS->isGLSL())
     {
         video::S3DVertexSkinnedMesh* v =
             m_debug_dc2->getVerticesVector().data();
@@ -612,7 +828,23 @@ void SlipStream::updateQuad()
     }
 #endif
 
-} //updateQuad
+}   // updateQuad
+
+//-----------------------------------------------------------------------------
+void SlipStream::hideAllNodes()
+{
+#ifndef SERVER_ONLY
+    if (!GUIEngine::isNoGraphics())
+    {
+        if (m_node && m_node->isVisible())
+            m_node->setVisible(false);
+        if (m_node_fast && m_node_fast->isVisible())
+            m_node_fast->setVisible(false);
+        if (m_bonus_node && m_bonus_node->isVisible())
+            m_bonus_node->setVisible(false);
+    }
+#endif
+}   // hideAllNodes
 
 //-----------------------------------------------------------------------------
 /** Update, called once per timestep.
@@ -626,17 +858,7 @@ void SlipStream::update(int ticks)
     if (m_kart->getController()->disableSlipstreamBonus()
         || m_kart->isGhostKart())
     {
-#ifndef SERVER_ONLY
-        if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
-        {
-            if (m_node && m_node->isVisible())
-                m_node->setVisible(false);
-            if (m_node_fast && m_node_fast->isVisible())
-                m_node_fast->setVisible(false);
-            if (m_bonus_node && m_bonus_node->isVisible())
-                m_bonus_node->setVisible(false);
-        }
-#endif
+        hideAllNodes();
         return;
     }
 
@@ -649,7 +871,7 @@ void SlipStream::update(int ticks)
 
     float dt = stk_config->ticks2Time(ticks);
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics())
     {
         m_moving->update(dt);
         m_moving_fast->update(dt);
@@ -672,7 +894,7 @@ void SlipStream::update(int ticks)
     if(m_kart->getSpeed() < kp->getSlipstreamMinSpeed() - 2.0f)
     {
 #ifndef SERVER_ONLY
-        if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+        if (!GUIEngine::isNoGraphics())
         {
             updateSlipstreamingTextures(0,NULL);
             updateBonusTexture();
@@ -864,7 +1086,7 @@ void SlipStream::update(int ticks)
             m_slipstream_time -=3*dt;
         if(m_slipstream_time<0) m_slipstream_mode = SS_NONE;
 #ifndef SERVER_ONLY
-        if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+        if (!GUIEngine::isNoGraphics())
         {
             updateSlipstreamingTextures(0,NULL);
             updateBonusTexture();
@@ -899,7 +1121,7 @@ void SlipStream::update(int ticks)
     if(isSlipstreamReady())
         m_kart->setSlipstreamEffect(9.0f);
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics())
     {
         updateSlipstreamingTextures(m_slipstream_time, m_target_kart);
         updateBonusTexture();

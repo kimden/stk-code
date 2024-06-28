@@ -25,16 +25,28 @@
 #include "config/user_config.hpp"
 #include "graphics/2dutils.hpp"
 #include "graphics/central_settings.hpp"
+#include "graphics/irr_driver.hpp"
 #include "guiengine/engine.hpp"
 #include "guiengine/modaldialog.hpp"
 #include "guiengine/scalable_font.hpp"
 #include "guiengine/screen.hpp"
 #include "guiengine/screen_keyboard.hpp"
-#include "guiengine/widgets.hpp"
+#include "guiengine/widgets/bubble_widget.hpp"
+#include "guiengine/widgets/check_box_widget.hpp"
+#include "guiengine/widgets/list_widget.hpp"
+#include "guiengine/widgets/model_view_widget.hpp"
+#include "guiengine/widgets/progress_bar_widget.hpp"
+#include "guiengine/widgets/rating_bar_widget.hpp"
+#include "guiengine/widgets/ribbon_widget.hpp"
+#include "guiengine/widgets/spinner_widget.hpp"
 #include "io/file_manager.hpp"
 #include "states_screens/state_manager.hpp"
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
+
+#include <IrrlichtDevice.h>
+#include <IFileSystem.h>
+#include <IVideoDriver.h>
 
 using namespace GUIEngine;
 using namespace irr;
@@ -1115,7 +1127,7 @@ void Skin::drawProgressBarInScreen(SkinWidgetContainer* swc,
     core::recti rect2 = rect;
     rect2.LowerRightCorner.X -= (rect.getWidth())
                               - int(progress * rect.getWidth());
-    drawBoxFromStretchableTexture(swc, rect2,
+    drawBoxFromStretchableTexture(swc->m_next, rect2,
         SkinConfig::m_render_params["progress::fill"], deactivated);
 }   // drawProgress
 
@@ -1153,6 +1165,39 @@ void Skin::drawRatingBar(Widget *w, const core::recti &rect,
 
     core::recti stars_rect(x_from, y_from, x_from + (star_number * star_w), y_from + star_h);
 
+    if (focused)
+    {
+        static float glow_effect = 0;
+
+        const float dt = GUIEngine::getLatestDt();
+        glow_effect += dt*3;
+        if (glow_effect > 6.2832f /* 2*PI */) glow_effect -= 6.2832f;
+        float grow = 10*sinf(glow_effect);
+
+        const int glow_center_x = stars_rect.UpperLeftCorner.X + stars_rect.getWidth() / 2;
+        const int glow_center_y = stars_rect.LowerRightCorner.Y + stars_rect.getHeight() / 2;
+
+        ITexture* tex_ficonhighlight =
+            SkinConfig::m_render_params["focusHalo::neutral"].getImage();
+        const int texture_w = tex_ficonhighlight->getSize().Width;
+        const int texture_h = tex_ficonhighlight->getSize().Height;
+
+        core::recti source_area = core::recti(0, 0, texture_w, texture_h);
+
+        float scale = (float)std::min(irr_driver->getActualScreenSize().Height / 1080.0f, 
+                                    irr_driver->getActualScreenSize().Width / 1350.0f);
+        int size = (int)((90.0f + grow) * scale);
+        const core::recti rect2(glow_center_x - size,
+                                glow_center_y - size / 2,
+                                glow_center_x + size,
+                                glow_center_y + size / 2);
+
+        draw2DImage(tex_ficonhighlight, rect2,
+                    source_area,
+                    0 /* no clipping */, 0,
+                    true /* alpha */);
+    }
+
     if(!w->m_deactivated)
         ratingBar->setStepValuesByMouse(irr_driver->getDevice()->getCursorControl()->getPosition(), stars_rect);
 
@@ -1176,10 +1221,10 @@ void Skin::drawRatingBar(Widget *w, const core::recti &rect,
                                       texture_w * (step + 1), texture_h);
 
         draw2DImage(texture,
-                                            star_rect, source_area,
-                                            0 /* no clipping */,
-                                           (w->m_deactivated || ID_DEBUG) ? colors : 0,
-                                            true /* alpha */);
+                    star_rect, source_area,
+                    0 /* no clipping */,
+                    (w->m_deactivated || ID_DEBUG) ? colors : 0,
+                    true /* alpha */);
     }
 #endif
 }   // drawRatingBar
@@ -1459,7 +1504,8 @@ void Skin::drawRibbonChild(const core::recti &rect, Widget* widget,
 
                 core::recti source_area(0, 0, texture_w, texture_h);
 
-                float scale = (float)irr_driver->getActualScreenSize().Height / 1080.0f;
+                float scale = (float)std::min(irr_driver->getActualScreenSize().Height / 1080.0f, 
+                                            irr_driver->getActualScreenSize().Width / 1350.0f);
                 int size = (int)((90.0f + grow) * scale);
                 const core::recti rect2(glow_center_x - size,
                                         glow_center_y - size / 2,
@@ -1835,7 +1881,8 @@ void Skin::drawIconButton(const core::recti &rect, Widget* widget,
 
         core::recti source_area = core::recti(0, 0, texture_w, texture_h);
 
-        float scale = (float)irr_driver->getActualScreenSize().Height / 1080.0f;
+        float scale = (float)std::min(irr_driver->getActualScreenSize().Height / 1080.0f, 
+                                    irr_driver->getActualScreenSize().Width / 1350.0f);
         int size = (int)((90.0f + grow) * scale);
         const core::recti rect2(glow_center_x - size,
                                 glow_center_y - size / 2,
@@ -2882,7 +2929,15 @@ u32 Skin::getIcon (EGUI_DEFAULT_ICON icon) const
 
 s32 Skin::getSize (EGUI_DEFAULT_SIZE texture_size) const
 {
-    return m_fallback_skin->getSize(texture_size);
+    switch(texture_size)
+    {
+        // TODO : make this depend on the text-size parameter and/or skin
+        // and perhaps rename it
+        case EGDS_TEXT_DISTANCE_X:
+            return 10;
+        default:
+            return m_fallback_skin->getSize(texture_size);
+    }
 }
 
 // -----------------------------------------------------------------------------

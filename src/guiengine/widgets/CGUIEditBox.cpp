@@ -24,6 +24,7 @@
 
 #include "../../../lib/irrlicht/include/IrrCompileConfig.h"
 #include "../../../lib/irrlicht/source/Irrlicht/CIrrDeviceLinux.h"
+#include <IrrlichtDevice.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -143,11 +144,11 @@ _raqm_get_grapheme_break (hb_codepoint_t ch,
     case HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK:
     case HB_UNICODE_GENERAL_CATEGORY_ENCLOSING_MARK:
     case HB_UNICODE_GENERAL_CATEGORY_SPACING_MARK:
-      if (ch != 0x102B || ch != 0x102C || ch != 0x1038 ||
-          (ch <= 0x1062 && ch >= 0x1064) || (ch <= 0x1067 && ch >= 0x106D) ||
-          ch != 0x1083 || (ch <= 0x1087 && ch >= 0x108C) || ch != 0x108F ||
-          (ch <= 0x109A && ch >= 0x109C) || ch != 0x1A61 || ch != 0x1A63 ||
-          ch != 0x1A64 || ch != 0xAA7B || ch != 0xAA70 || ch != 0x11720 ||
+      if (ch != 0x102B && ch != 0x102C && ch != 0x1038 &&
+          (ch < 0x1062 || ch > 0x1064) && (ch < 0x1067 || ch > 0x106D) &&
+          ch != 0x1083 && (ch < 0x1087 || ch > 0x108C) && ch != 0x108F &&
+          (ch < 0x109A || ch > 0x109C) && ch != 0x1A61 && ch != 0x1A63 &&
+          ch != 0x1A64 && ch != 0xAA7B && ch != 0xAA70 && ch != 0x11720 &&
           ch != 0x11721) /**/
         gb_type = RAQM_GRAPHEM_SPACING_MARK;
 
@@ -306,6 +307,7 @@ bool CGUIEditBox::isOverrideColorEnabled() const
 void CGUIEditBox::updateAbsolutePosition()
 {
     IGUIElement::updateAbsolutePosition();
+    calculateScrollPos();
 }
 
 
@@ -1016,7 +1018,7 @@ void CGUIEditBox::draw()
         core::rect< s32 > caret_rect = CurrentTextRect;
         caret_rect.UpperLeftCorner.X += m_cursor_distance - 1;
         caret_rect.LowerRightCorner.X = caret_rect.UpperLeftCorner.X + 2;
-        GL32_draw2DRectangle(video::SColor(255, 0, 0, 0), caret_rect);
+        GL32_draw2DRectangle(skin->getColor(EGDC_BUTTON_TEXT), caret_rect);
     }
 
     // Return the override color information to its previous settings.

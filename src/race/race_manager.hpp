@@ -28,11 +28,13 @@
 
 #include <vector>
 #include <algorithm>
+#include <cassert>
 #include <string>
 
 #include "network/remote_kart_info.hpp"
 #include "race/grand_prix_data.hpp"
 #include "utils/vec3.hpp"
+#include "utils/types.hpp"
 
 class AbstractKart;
 class NetworkString;
@@ -168,7 +170,7 @@ public:
             case MINOR_MODE_NORMAL_RACE:    return "/gui/icons/mode_normal.png";
             case MINOR_MODE_TIME_TRIAL:     return "/gui/icons/mode_tt.png";
             case MINOR_MODE_FOLLOW_LEADER:  return "/gui/icons/mode_ftl.png";
-            case MINOR_MODE_LAP_TRIAL:      return "/gui/icons/mode_normal.png"; // TODO: Add lap trial icon
+            case MINOR_MODE_LAP_TRIAL:      return "/gui/icons/mode_laptrial.png";
             case MINOR_MODE_3_STRIKES:      return "/gui/icons/mode_3strikes.png";
             case MINOR_MODE_FREE_FOR_ALL:   return "/gui/icons/mode_weapons.png";
             case MINOR_MODE_CAPTURE_THE_FLAG: return "/gui/icons/mode_weapons.png";
@@ -315,7 +317,8 @@ private:
     std::vector<int>                 m_num_laps;
 
     /** Whether a track should be reversed */
-    std::vector<bool>                m_reverse_track;
+    // This is uint8_t instead of bool because of GitHub issue #5053
+    std::vector<uint8_t>                m_reverse_track;
 
     /** The list of default AI karts to use. This is from the command line. */
     std::vector<std::string>         m_default_ai_list;
@@ -363,12 +366,16 @@ private:
 
     /** Determines if saved GP should be continued or not*/
     bool m_continue_saved_gp;
-
     bool m_is_recording_race;
-
     bool m_has_ghost_karts;
-
     bool m_watching_replay;
+
+    std::vector<unsigned> m_pending_karts_id;
+    std::vector<float> m_pending_karts_time;
+    std::vector<int> m_pending_karts_pos;
+    bool m_benchmarking;
+    bool m_scheduled_benchmark;
+
 public:
     // ----------------------------------------------------------------------------------------
     static RaceManager* get();
@@ -437,6 +444,8 @@ public:
     void setNumPlayers(int players, int local_players=-1);
     void setDefaultAIKartList(const std::vector<std::string> &ai_list);
     void computeRandomKartList();
+    void setBenchmarking(bool benchmark);
+    void scheduleBenchmark();
 
     // ----------------------------------------------------------------------------------------
     bool hasTimeTarget() const { return m_time_target > 0.0f; }
@@ -649,11 +658,14 @@ public:
     // ----------------------------------------------------------------------------------------
     int getKartLocalPlayerId(int k) const
     {
+        assert(k < (int)m_kart_status.size());
         return m_kart_status[k].m_local_player_id;
     }   // getKartLocalPlayerId
     // ----------------------------------------------------------------------------------------
     int getKartGlobalPlayerId(int k) const
     {
+        if (k >= (int)m_kart_status.size())
+            return -1;
         return m_kart_status[k].m_global_player_id;
     }   // getKartGlobalPlayerId
     // ----------------------------------------------------------------------------------------
@@ -870,6 +882,16 @@ public:
     {
         return m_watching_replay;
     }   // isWatchingReplay
+    // ----------------------------------------------------------------------------------------
+    bool isBenchmarking() const
+    {
+        return m_benchmarking;
+    }   // isBenchmarking
+    // ----------------------------------------------------------------------------------------
+    bool isBenchmarkScheduled() const
+    {
+        return m_scheduled_benchmark;
+    }   // isBenchmarkSchedule
     // ----------------------------------------------------------------------------------------
     void addSpareTireKart(const std::string& name)
     {

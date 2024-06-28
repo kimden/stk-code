@@ -318,7 +318,14 @@ void SoccerWorld::init()
     if (!m_ball)
         Log::fatal("SoccerWorld","Ball is missing in soccer field, abort.");
 
-    m_bgd->init(m_ball->getPhysicalObject()->getRadius());
+    float radius = m_ball->getPhysicalObject()->getRadius();
+    if (radius <= 0.0f)
+    {
+        btVector3 min, max;
+        m_ball->getPhysicalObject()->getBody()->getAabb(min, max);
+        radius = (max.y() - min.y()) / 2.0f;
+    }
+    m_bgd->init(radius);
 
 }   // init
 
@@ -510,6 +517,8 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
         NetworkConfig::get()->isClient()))
         return;
 
+    if (getTicksSinceStart() < m_ticks_back_to_own_goal)
+        return;
     m_ticks_back_to_own_goal = getTicksSinceStart() +
         stk_config->time2Ticks(3.0f);
     m_goal_sound->play();
@@ -1051,6 +1060,30 @@ btTransform SoccerWorld::getRescueTransform(unsigned int rescue_pos) const
     pos.setOrigin(xyz);
     btQuaternion q1 = shortestArcQuat(Vec3(0.0f, 1.0f, 0.0f), normal);
     pos.setRotation(q1);
+
+    // Get the ball initial position (at the moment of hitting the rescue button)
+    Vec3 ball_position_0 = getBallPosition();
+
+    // Get the ball Linear Velocity
+    Vec3 ball_velocity = m_ball_body->getLinearVelocity();
+
+    // Calculate the new ball position after 1.1 s (after the rescue animation is over) assuming the ball to be moving in URM
+    Vec3 ball_position = ball_velocity*1.1 + ball_position_0;
+
+    // Calculate the direction vector from the kart to the ball
+    Vec3 direction = (ball_position - xyz).normalized();
+
+    // Calculate the angle between the kart's forward direction and the direction vector
+    float angle = atan2f(direction.getX(), direction.getZ());
+
+    // Create a quaternion representing the rotation around the Y axis
+    btQuaternion q2(btVector3(0.0f, 1.0f, 0.0f), angle);
+
+    // Combine the two rotations and normalize the result
+    btQuaternion combined_rotation = q1 * q2;
+    combined_rotation.normalize();
+    pos.setRotation(combined_rotation);
+
     return pos;
 }   // getRescueTransform
 
@@ -1297,16 +1330,24 @@ void SoccerWorld::setInitialCount(int red, int blue)
 }   // setInitialCount
 // ----------------------------------------------------------------------------
 
-void SoccerWorld::tellCount() const
+std::pair<int, int> SoccerWorld::getCount() const {
+    int red = (int)m_red_scorers.size() - m_bad_red_goals
+              + m_init_red_goals;
+    int blue = (int)m_blue_scorers.size() - m_bad_blue_goals
+               + m_init_blue_goals;
+    return std::make_pair(red, blue);
+}   // getCount
+// ----------------------------------------------------------------------------
+
+void SoccerWorld::tellCountToEveryoneInGame() const
 {
     auto peers = STKHost::get()->getPeers();
     NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
     chat->addUInt8(17); // LE_CHAT
     chat->setSynchronous(true);
-    int real_red = (int)m_red_scorers.size() - m_bad_red_goals
-        + m_init_red_goals;
-    int real_blue = (int)m_blue_scorers.size() - m_bad_blue_goals
-        + m_init_blue_goals;
+    auto real_score = getCount();
+    int real_red = real_score.first;
+    int real_blue = real_score.second;
     std::string real_count =
         std::to_string(real_red) + " : " + std::to_string(real_blue);
     chat->encodeString16(StringUtils::utf8ToWide(real_count));
@@ -1314,6 +1355,23 @@ void SoccerWorld::tellCount() const
         if (peer->isValidated() && !peer->isWaitingForGame())
             peer->sendPacket(chat, true/*reliable*/);
 
+    delete chat;
+}   // tellCountToEveryoneInGame
+// ----------------------------------------------------------------------------
+void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
+{
+    if (!peer->isValidated())
+        return;
+    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
+    chat->addUInt8(17); // LE_CHAT
+    chat->setSynchronous(true);
+    auto real_score = getCount();
+    int real_red = real_score.first;
+    int real_blue = real_score.second;
+    std::string real_count =
+            std::to_string(real_red) + " : " + std::to_string(real_blue);
+    chat->encodeString16(StringUtils::utf8ToWide(real_count));
+    peer->sendPacket(chat, true/*reliable*/);
     delete chat;
 }   // tellCount
 // ----------------------------------------------------------------------------
@@ -1323,7 +1381,7 @@ void SoccerWorld::tellCountIfDiffers() const
     if (m_init_red_goals - m_bad_red_goals != 0 ||
         m_init_blue_goals - m_bad_blue_goals != 0)
     {
-        tellCount();
+        tellCountToEveryoneInGame();
     }
 }   // tellCountIfDiffers
 // ----------------------------------------------------------------------------

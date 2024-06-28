@@ -25,14 +25,16 @@
  * Contains generic utility classes for file I/O (especially XML handling).
  */
 
-#include <mutex>
 #include <string>
 #include <vector>
 #include <set>
 
 #include <irrString.h>
-#include <IFileSystem.h>
-namespace irr { class IrrlichtDevice; }
+namespace irr
+{
+    class IrrlichtDevice;
+    namespace io { class IFileSystem; }
+}
 using namespace irr;
 
 #include "io/xml_node.hpp"
@@ -66,8 +68,6 @@ public:
                     ASSET_COUNT};
 
 private:
-    mutable std::mutex m_file_system_lock;
-
     /** The names of the various subdirectories of the asset types. */
     std::vector< std::string > m_subdir_name;
 
@@ -155,12 +155,13 @@ public:
     std::string       getReplayDir() const;
     std::string       getCachedTexturesDir() const;
     std::string       getGPDir() const;
+    std::string       getStdoutDir() const;
     bool              checkAndCreateDirectory(const std::string &path);
     bool              checkAndCreateDirectoryP(const std::string &path);
     const std::string &getAddonsDir() const;
     std::string        getAddonsFile(const std::string &name);
     void checkAndCreateDirForAddons(const std::string &dir);
-    bool isDirectory(const std::string &path) const;
+    static bool isDirectory(const std::string &path);
     bool removeFile(const std::string &name) const;
     bool removeDirectory(const std::string &name) const;
     // ------------------------------------------------------------------------

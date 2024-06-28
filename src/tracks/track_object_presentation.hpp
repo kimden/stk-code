@@ -29,7 +29,6 @@
 #include "utils/vec3.hpp"
 
 #include <vector3d.h>
-#include <IAnimatedMeshSceneNode.h>
 
 #include <memory>
 #include <limits>
@@ -40,14 +39,14 @@ class ParticleEmitter;
 class PhysicalObject;
 class ThreeDAnimation;
 class ModelDefinitionLoader;
-class RenderInfo;
+namespace GE { class GERenderInfo; }
 class STKInstancedSceneNode;
 class XMLNode;
 class TrackObject;
 
 namespace irr
 {
-    namespace scene { class IAnimatedMesh; class IMeshSceneNode; class ISceneNode; }
+    namespace scene { class IAnimatedMesh; class IMesh; class IMeshSceneNode; class ISceneNode; }
 }
 using namespace irr;
 
@@ -221,7 +220,7 @@ public:
     TrackObjectPresentationLOD(const XMLNode& xml_node,
                                scene::ISceneNode* parent,
                                ModelDefinitionLoader& model_def_loader,
-                               std::shared_ptr<RenderInfo> ri);
+                               std::shared_ptr<GE::GERenderInfo> ri);
     virtual ~TrackObjectPresentationLOD();
     virtual void reset() OVERRIDE;
 };
@@ -245,14 +244,14 @@ private:
 
     std::string             m_model_file;
 
-    std::shared_ptr<RenderInfo> m_render_info;
+    std::shared_ptr<GE::GERenderInfo> m_render_info;
 
     void init(const XMLNode* xml_node, scene::ISceneNode* parent, bool enabled);
 
 public:
     TrackObjectPresentationMesh(const XMLNode& xml_node, bool enabled,
                                 scene::ISceneNode* parent,
-                                std::shared_ptr<RenderInfo> render_info);
+                                std::shared_ptr<GE::GERenderInfo> render_info);
 
     TrackObjectPresentationMesh(const std::string& model_file,
                                 const core::vector3df& xyz,

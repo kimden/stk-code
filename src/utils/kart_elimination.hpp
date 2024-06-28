@@ -50,7 +50,7 @@ public:
     void disable(); // done
     std::string getStandings() const; // done
     std::string getStartingMessage() const; // done
-    std::string getWarningMessage() const; // done
+    std::string getWarningMessage(bool isEliminated) const; // done
     std::string update(std::map<std::string, double>& order);
 };
 

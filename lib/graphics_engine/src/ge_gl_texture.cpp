@@ -3,6 +3,7 @@
 #include "ge_main.hpp"
 #include "ge_texture.hpp"
 
+#include <IAttributes.h>
 #include <vector>
 
 // TODO remove it after vulkan is done
@@ -20,6 +21,8 @@ GEGLTexture::GEGLTexture(const std::string& path,
              m_driver_type(GE::getDriver()->getDriverType()),
              m_disable_reload(false), m_single_channel(false)
 {
+    m_max_size = getDriver()->getDriverAttributes()
+        .getAttributeAsDimension2d("MAX_TEXTURE_SIZE");
     reload();
 }   // GEGLTexture
 
@@ -31,7 +34,10 @@ GEGLTexture::GEGLTexture(video::IImage* img, const std::string& name)
              m_disable_reload(true), m_single_channel(false)
 {
     if (!img)
+    {
+        LoadingFailed = true;
         return;
+    }
     glGenTextures(1, &m_texture_name);
     m_size = m_orig_size = img->getDimension();
     uint8_t* data = (uint8_t*)img->lock();
@@ -89,9 +95,12 @@ void GEGLTexture::reload()
     if (m_disable_reload)
         return;
     video::IImage* texture_image = getResizedImage(NamedPath.getPtr(),
-        &m_orig_size);
+        m_max_size, &m_orig_size);
     if (texture_image == NULL)
+    {
+        LoadingFailed = true;
         return;
+    }
     m_size = texture_image->getDimension();
     if (m_image_mani)
         m_image_mani(texture_image);
@@ -146,7 +155,7 @@ void* GEGLTexture::lock(video::E_TEXTURE_LOCK_MODE mode, u32 mipmap_level)
 
     if (m_driver_type == video::EDT_OGLES2 || !glGetTexImage)
     {
-        video::IImage* img = getResizedImage(NamedPath.getPtr());
+        video::IImage* img = getResizedImage(NamedPath.getPtr(), m_max_size);
         if (!img)
             return NULL;
         img->setDeleteMemory(false);

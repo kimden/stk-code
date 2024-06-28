@@ -56,6 +56,27 @@ std::string Crypto::base64(const std::vector<uint8_t>& input)
 }   // base64
 
 // ============================================================================
+std::string Crypto::base64url(const std::vector<uint8_t>& input)
+{
+    std::string result = base64(input);
+    while (!result.empty() && result.back() == '=')
+        result.pop_back();
+    std::string answer = "";
+    for (char& c: result)
+    {
+        if (c == '+')
+            answer.push_back('-');
+        else if (c == '/')
+            answer.push_back('_');
+        else if (c == '\n')
+            continue;
+        else
+            answer.push_back(c);
+    }
+    return answer;
+}   // base64url
+
+// ============================================================================
 std::vector<uint8_t> Crypto::decode64(std::string input)
 {
     BIO *b64, *bmem;
@@ -89,6 +110,21 @@ std::array<uint8_t, 32> Crypto::sha256(const std::string& input)
     SHA256_Final(result.data(), &sha256_ctx);
     return result;
 }   // sha256
+
+// ============================================================================
+std::vector<uint8_t> Crypto::hmac_sha256_array(const std::string& key, const std::string& input)
+{
+    unsigned char res[100];
+    unsigned result_len = 0;
+    HMAC(EVP_sha256(),
+         (const void*)key.c_str(), key.size(),
+         (const unsigned char*)(input.c_str()), input.size(),
+         res, &result_len);
+    std::vector<uint8_t> output;
+    for (int i = 0; i < result_len; ++i)
+        output.push_back(res[i]);
+    return output;
+}   // hmac_sha256_array
 
 // ============================================================================
 std::string Crypto::m_client_key;

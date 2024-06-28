@@ -20,8 +20,13 @@
 
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
+#include "graphics/irr_driver.hpp"
 #include "graphics/material.hpp"
 #include "guiengine/CGUISpriteBank.hpp"
+#include "guiengine/widgets/check_box_widget.hpp"
+#include "guiengine/widgets/label_widget.hpp"
+#include "guiengine/widgets/ribbon_widget.hpp"
+#include "io/file_manager.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "states_screens/dialogs/ghost_replay_info_dialog.hpp"
@@ -122,7 +127,6 @@ void GhostReplaySelection::loadedFromFile()
     m_compare_toggle_widget->setVisible(false);
     getWidget<LabelWidget>("compare-toggle-text")->setVisible(false);
 
-    m_mode_tabs = getWidget<GUIEngine::RibbonWidget>("race_mode");
     m_active_mode = RaceManager::MINOR_MODE_TIME_TRIAL;
     m_active_mode_is_linear = true;
     
@@ -173,14 +177,11 @@ void GhostReplaySelection::init()
 {
     Screen::init();
     m_cur_difficulty = RaceManager::get()->getDifficulty();
-    
-    int icon_height = GUIEngine::getFontHeight();
-    int row_height = GUIEngine::getFontHeight() * 5 / 4;
-                                                        
+
     // 128 is the height of the image file
-    m_icon_bank->setScale(icon_height/128.0f);
+    m_icon_bank->setScale(1.0f / 128.0f);
     m_icon_bank->setTargetIconSize(128, 128);
-    m_replay_list_widget->setIcons(m_icon_bank, (int)row_height);
+    m_replay_list_widget->setIcons(m_icon_bank, 1.25f);
 
     refresh(/*reload replay files*/ false, /* update columns */ true);
 }   // init
@@ -294,10 +295,15 @@ void GhostReplaySelection::loadList()
 
     unsigned int best_index = 0;
 
-    // getReplayIdByUID will send 0 if the UID is incorrect,
-    // and m_is_comparing will be false if it is incorrect,
-    // so it always work
-    unsigned int compare_index = ReplayPlay::get()->getReplayIdByUID(m_replay_to_compare_uid);
+    // Only compute the compare index if we are actually going to compare.
+    // This avoids spurious errors trying to find a replay with UID 0.
+    unsigned int compare_index = 0;
+    if (m_is_comparing)
+        // In case the requested replay is not found, compare_index will be 0.
+        compare_index = ReplayPlay::get()->getReplayIdByUID(m_replay_to_compare_uid);
+
+    // It's better to do this when not comparing than to do it repeatedly in the loop,
+    // it will simply be unused if not comparing.
     const ReplayPlay::ReplayData& rd_compare = ReplayPlay::get()->getReplayData(compare_index);
 
     for (unsigned int i = 0; i < ReplayPlay::get()->getNumReplayFile() ; i++)

@@ -26,6 +26,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <shellapi.h>
+#ifdef _MSC_VER
+#pragma comment (lib, "Shell32.lib")
+#endif
 #endif
 
 #ifndef SERVER_ONLY
@@ -88,13 +91,13 @@ namespace Online
         ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
 #elif defined(IOS_STK)
         irr::CIrrDeviceiOS::openURLiOS(url.c_str());
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__HAIKU__)
         std::string command = std::string("open ").append(url);
         if (system(command.c_str()))
         {
             Log::error("OpenURL", "Command returned non-zero exit status");
         }
-#elif !defined(__ANDROID__) && (defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__HAIKU__))
+#elif !defined(__ANDROID__) && (defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__))
         std::string command = std::string("xdg-open ").append(url);
 
         const char* lib_path = getenv("LD_LIBRARY_PATH");

@@ -18,7 +18,7 @@
 #ifndef HEADER_SP_MESH_LOADER_HPP
 #define HEADER_SP_MESH_LOADER_HPP
 
-#include "graphics/sp/sp_animation.hpp"
+#include "ge_animation.hpp"
 
 #include <IMeshLoader.h>
 #include <ISceneManager.h>
@@ -38,7 +38,7 @@ private:
     // ------------------------------------------------------------------------
     unsigned m_bind_frame, m_joint_count, m_frame_count;
     // ------------------------------------------------------------------------
-    std::vector<SP::Armature> m_all_armatures;
+    std::vector<GE::Armature> m_all_armatures;
     // ------------------------------------------------------------------------
     std::vector<core::matrix4> m_to_bind_pose_matrices;
     // ------------------------------------------------------------------------
@@ -53,6 +53,12 @@ private:
                     bool read_tangent, bool uv_one, bool uv_two,
                     SPVertexType vt, const video::SMaterial& m);
     // ------------------------------------------------------------------------
+    void decompressGESPM(irr::io::IReadFile* spm, unsigned vertices_count,
+                         unsigned indices_count, bool read_normal,
+                         bool read_vcolor, bool read_tangent, bool uv_one,
+                         bool uv_two, SPVertexType vt,
+                         const video::SMaterial& m);
+    // ------------------------------------------------------------------------
     void decompressSPM(irr::io::IReadFile* spm, unsigned vertices_count,
                        unsigned indices_count, bool read_normal,
                        bool read_vcolor, bool read_tangent, bool uv_one,
@@ -63,7 +69,7 @@ private:
     // ------------------------------------------------------------------------
     void convertIrrlicht();
 
-    scene::ISkinnedMesh* m_mesh;
+    scene::IAnimatedMesh* m_mesh;
 
     scene::ISceneManager* m_scene_manager;
 

@@ -701,8 +701,11 @@ namespace GUIEngine
 #include <algorithm>
 #include <iostream>
 #include <assert.h>
-#include <irrlicht.h>
 #include <mutex>
+
+#include <IrrlichtDevice.h>
+#include <IGUIEnvironment.h>
+#include <IVideoDriver.h>
 
 using namespace irr::gui;
 using namespace irr::video;
@@ -948,6 +951,8 @@ namespace GUIEngine
         }
 
         Debug::closeDebugMenu();
+        if (!g_current_screen->isLoaded())
+            g_current_screen->loadFromFile();
         g_current_screen->beforeAddingWidget();
 
         // show screen
@@ -1235,7 +1240,10 @@ namespace GUIEngine
             g_small_title_font->getDimension( L"X" ).Height;
         Private::tiny_title_font_height =
             g_tiny_title_font->getDimension( L"X" ).Height;
-        StateManager::get()->onResize();
+        if (ScreenKeyboard::isActive())
+            ScreenKeyboard::getCurrent()->onResize();
+        if (ModalDialog::isADialogActive())
+            ModalDialog::getCurrent()->onResize();
     }   // reloadForNewSize
 
     // -----------------------------------------------------------------------
@@ -1277,6 +1285,16 @@ namespace GUIEngine
 #endif
 
         GameState gamestate = g_state_manager->getGameState();
+
+        core::dimension2d<u32> screen_size = irr_driver->getFrameSize();
+        core::dimension2d<u32> cur_screen_size;
+        if (getCurrentScreen())
+        {
+            cur_screen_size.Width = getCurrentScreen()->getWidth();
+            cur_screen_size.Height = getCurrentScreen()->getHeight();
+            if (screen_size != cur_screen_size)
+                getCurrentScreen()->onResize();
+        }
 
         // ---- some menus may need updating
         bool dialog_opened = false;
@@ -1367,7 +1385,6 @@ namespace GUIEngine
 
         if (gamestate != GAME && !gui_messages.empty())
         {
-            core::dimension2d<u32> screen_size = irr_driver->getFrameSize();
             const int text_height = getFontHeight() + 20;
             const int y_from = screen_size.Height - text_height;
 
@@ -1531,6 +1548,14 @@ namespace GUIEngine
                 x = ICON_MARGIN;
             }
         }
+#endif
+    } // renderLoading
+
+    // -----------------------------------------------------------------------
+
+    void flushRenderLoading(bool launching)
+    {
+#ifndef SERVER_ONLY
         // This will avoid no response in windows, also allow showing loading
         // icon in apple device, because apple device only update render
         // buffer if you poll the mainloop
@@ -1542,7 +1567,7 @@ namespace GUIEngine
         }
 
         // If launch is finished, pause & display the story mode timers
-        if ( !launching)
+        if (!launching)
         {
             // For speedruns only, display the timer on loading screens
             if (UserConfigParams::m_speedrun_mode)
@@ -1557,7 +1582,7 @@ namespace GUIEngine
             irr_driver->handleWindowResize();
         }
 #endif
-    } // renderLoading
+    } // flushRenderLoading
 
     // -----------------------------------------------------------------------
 
@@ -1571,6 +1596,7 @@ namespace GUIEngine
                     ->beginScene(true, true, video::SColor(255,100,101,140));
             renderLoading(false, true, false);
             g_device->getVideoDriver()->endScene();
+            GUIEngine::flushRenderLoading(true/*launching*/);
         }
         else
         {

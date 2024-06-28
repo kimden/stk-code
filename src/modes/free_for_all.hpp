@@ -74,16 +74,18 @@ public:
     virtual std::pair<uint32_t, uint32_t> getGameStartedProgress() const
         OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void addReservedKart(int kart_id) OVERRIDE
+    virtual void addReservedKart(int kart_id, int param = 0) OVERRIDE
     {
-        WorldWithRank::addReservedKart(kart_id);
-        m_scores.at(kart_id) = 0;
+        WorldWithRank::addReservedKart(kart_id, param);
+        m_scores.at(kart_id) = param;
     }
     // ------------------------------------------------------------------------
     virtual void saveCompleteState(BareNetworkString* bns,
                                    STKPeer* peer) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
+    // ------------------------------------------------------------------------
+    void notifyAboutScoreIfNonzero(int id);
 };   // FreeForAll
 
 

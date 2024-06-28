@@ -421,17 +421,20 @@ void LinearWorld::newLap(unsigned int kart_index)
         }
         if(!m_last_lap_sfx_played && lap_count > 1)
         {
-            if (UserConfigParams::m_music)
+            if (UserConfigParams::m_sfx)
             {
                 m_last_lap_sfx->play();
                 m_last_lap_sfx_played = true;
                 m_last_lap_sfx_playing = true;
 
-                // In case that no music is defined
-                if(music_manager->getCurrentMusic() &&
-                    music_manager->getMasterMusicVolume() > 0.2f)
+                // Temporarily reduce the volume of the main music
+                // So that the last lap SFX can be heard
+                if(UserConfigParams::m_music &&
+                    music_manager->getCurrentMusic())
                 {
-                    music_manager->setTemporaryVolume(0.2f);
+                    // The parameter taken by SetTemporaryVolume is a factor
+                    // that gets multiplied with the master volume
+                    music_manager->setTemporaryVolume(0.5f);
                 }
             }
             else
@@ -1139,6 +1142,7 @@ void LinearWorld::serverCheckForWrongDirection(unsigned int i, float dt)
     if ((angle_diff > DEGREE_TO_RAD * 120.0f ||
         angle_diff < -DEGREE_TO_RAD * 120.0f) &&
         kart->getVelocityLC().getY() > 0.0f &&
+        std::fabs(kart->getSpeed()) > -ServerConfig::m_troll_max_stop_speed &&
         !kart->hasFinishedRace())
     {
         ki.m_wrong_way_timer += dt;

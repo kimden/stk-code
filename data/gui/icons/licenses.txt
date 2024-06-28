@@ -10,24 +10,103 @@ Copyright: SuperTuxKart dev team
 License: CC-BY-SA 3.0
 Comment: Material data
 
-Files: *.png
+Files:
+ *.png
+ back.png
+ player.png
+ mode_3strikes.png
+ mode_weapons.png
 Copyright: SuperTuxKart dev team
 License: CC-BY-SA 3.0+
 Comment:
  All icons come from Open Game Art (art by onyum.com, comissionned by Bart Kelsey)
- released under CC-BY-SA 3+, options_players & random_kart were tweaked by Marianne Gagnon
+ Released under CC-BY-SA 3+, options_players & random_kart were tweaked by Marianne Gagnon
+ Added in commit: https://sourceforge.net/p/supertuxkart/code/4217/
+
+Files:
+ blue_plus.png
+ down.png
+ player_add.png
+ remove.png
+Copyright: SuperTuxKart dev team, Marc Coll
+License: CC-BY-SA 3.0
+Comment:
+ blue_plus.png, down.png, and remove.png were remixed from back.png, and thus inherit its license.  They were added in https://github.com/supertuxkart/stk-code/commit/2f2547420deb628d8308ef12464b1725ee4160f6
+ player_add.png is a simple combination of player.png and blue_plus.png
+
+Files:
+ player_view.png
+Copyright: SuperTuxKart dev team, Tango Desktop Project
+License: CC-BY-SA 3.0
+Comment: combination of player.png and search.png
 
 Files:
  addons.png
- back.png
  main_*.png
  package*.png
 Copyright: yeKcim (Anthony Carré)
 License: CC-BY-SA 3.0
 
 Files:
- mode_*.png
+ main_network_add.png
+Copyright: yeKcim (Anthony Carré), SuperTuxKart dev team
+License: CC-BY-SA 3.0
+Comment: combination of main_network.png and blue_plus.png
+
+Files:
+ mode_ftl.png
+ mode_ghost.png
+ mode_normal.png
+ mode_soccer.png
  race_giveup.png
+Copyright: Totoplus62, SuperTuxKart dev team, ???
+License: CC-BY-SA 3.0
+Comment:
+ Original backgrounds come from set made by onyum.com (see above)
+ Backgrounds edited by Totoplus62
+ TODO: Source of ghost icon unknown
+ TODO: Check license of gift box model
+ TODO: Source of flag icon unknown
+
+Files:
+ mode_normal.png
+Copyright: Totoplus62, MiniBjorn, Marianne "Auria" Gagnon, SuperTuxKart dev team
+License: CC-BY-SA 3.0
+Comment:
+ Original backgrounds come from set made by onyum.com (see above)
+ Backgrounds edited by Totoplus62
+ Gift box model by MiniBjorn, with slight modifications by Marianne Gagnon
+
+Files:
+ mode_tt.png
+Copyright: Totoplus62, yeKcim, SuperTuxKart dev team
+License: CC-BY-SA 3.0
+Comment:
+ Original backgrounds come from set made by onyum.com (see above)
+ Backgrounds edited by Totoplus62
+ Clock icon from set by yeKcim
+
+Files:
+ mode_easter.png
+Copyright: Totoplus62, fraang, SuperTuxKart dev team
+License: CC-BY-SA 3.0
+Comment:
+ Original backgrounds come from set made by onyum.com (see above)
+ Backgrounds edited by Totoplus62
+ Eggs by fraang from https://opengameart.org/content/easter-egg
+ Rabbit and other bits by Totoplus62
+
+Files:
+ mode_laptrial.png
+Copyright: Totoplus62, yeKcim, Alina Oleynik, SuperTuxKart dev team
+License: CC-BY-SA 3.0
+Comment:
+ Original backgrounds come from set made by onyum.com (see above)
+ Backgrounds edited by Totoplus62
+ Clock icon from set by yeKcim
+ Flag is lap_flag.png by Alina Oleynik
+
+Files:
  tutorial.png
 Copyright: Totoplus62
 License: CC-BY-SA 3.0
@@ -72,9 +151,37 @@ License: CC-BY-SA 3.0
 Comment:
  with elements by Totoplus62
 
-Files: menu_story.png
-Copyright: tavariz91
-License: CC0
+Files:
+ menu_addons*
+ menu_multi*
+ menu_race*
+Copyright: Dakal, SuperTuxKart dev team
+License: CC-BY-SA 3.0
+Comment:
+ Background by Dakal, from https://forum.freegamedev.net/viewtopic.php?f=18&t=585
+ Statement of license of background: https://forum.freegamedev.net/viewtopic.php?f=18&t=585&start=50#p8792
+ Icons come from set made by onyum.com (see above)
+
+Files:
+ online/menu_online_player*
+Copyright: Dakal, yeKcim, SuperTuxKart dev team
+License: CC-BY-SA 3.0
+Comment:
+ Background by Dakal, from https://forum.freegamedev.net/viewtopic.php?f=18&t=585
+ Statement of license of background: https://forum.freegamedev.net/viewtopic.php?f=18&t=585&start=50#p8792
+ Player icon from set made by onyum.com (see above)
+ Globe icon by yeKcim
+
+Files:
+ menu_story*
+ menu_online*
+Copyright: tavariz91, Dakal
+License: CC-BY-SA 3.0
+Comment:
+ Background by Dakal, from https://forum.freegamedev.net/viewtopic.php?f=18&t=585
+ Statement of license of background: https://forum.freegamedev.net/viewtopic.php?f=18&t=585&start=50#p8792
+ Earth icon based on https://openclipart.org/detail/3320/earth (CC0), edited by tavariz91
+ Story book icon by tavariz91 from https://forum.freegamedev.net/viewtopic.php?f=18&t=4401&start=25#p45564 (CC0)
 
 Files:
  crown.png
@@ -104,10 +211,11 @@ License: CC-BY-SA 4
 
 Files:
  lap_flag.png
-Copyright: Alayan
-License: CC-BY-SA 3
+Copyright: Alina Oleynik
+License: CC BY 3.0
 Comment:
- original by Alina Oleynik from The Noun Project
+ "racing flag" icon by Alina Oleynik, from thenounproject.com
+ Source: https://thenounproject.com/icon/racing-flag-1298802/
 
 Files:
  robot.png
@@ -115,3 +223,19 @@ Copyright: Benau
 License: CC0
 Comment:
  source: https://publicdomainvectors.org/en/free-clipart/Outlined-robot-image/74151.html
+
+Files:
+ green_check.png
+Copyright: GNOME Project
+License: GPL-2+
+Comment: From the Gnome icon set. Source: https://github.com/GNOME/adwaita-icon-theme/blob/gnome-2-30/src/emblem-default.svg  License: https://github.com/GNOME/adwaita-icon-theme/blob/gnome-2-30/COPYING
+
+Files:
+ red_x.png
+ search.png
+Copyright: Tango Desktop Project
+License: CC0
+Comment:
+ An error X symbol icon as emblem. A combination of two icons of project Tango. Source: https://commons.wikimedia.org/wiki/File:Dialog-error-round.svg
+ A magnifying glass icon. Source: https://commons.wikimedia.org/wiki/File:System-search.svg
+

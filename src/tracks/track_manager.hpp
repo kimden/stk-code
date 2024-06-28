@@ -136,7 +136,10 @@ public:
     {
         return soccer_arena ? m_soccer_arena_groups[g] : m_arena_groups[g];
     }   // getArenasInGroup
-
+    // ------------------------------------------------------------------------
+    void onDemandLoadTrackScreenshots();
+    // ------------------------------------------------------------------------
+    void updateScreenshotCache();
 };   // TrackManager
 
 extern TrackManager* track_manager;

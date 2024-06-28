@@ -26,6 +26,7 @@ using namespace irr;
 #include "modes/world.hpp"
 #include "tracks/track.hpp"
 
+#include <IAnimatedMeshSceneNode.h>
 #include <IMeshSceneNode.h>
 #include <ISceneManager.h>
 #include <IMeshManipulator.h>
@@ -57,7 +58,7 @@ void ModelDefinitionLoader::addModelDefinition(const XMLNode* xml)
 
 // ----------------------------------------------------------------------------
 
-LODNode* ModelDefinitionLoader::instanciateAsLOD(const XMLNode* node, scene::ISceneNode* parent, std::shared_ptr<RenderInfo> ri)
+LODNode* ModelDefinitionLoader::instanciateAsLOD(const XMLNode* node, scene::ISceneNode* parent, std::shared_ptr<GE::GERenderInfo> ri)
 {
     scene::ISceneManager* sm = irr_driver->getSceneManager();
 
@@ -157,6 +158,7 @@ LODNode* ModelDefinitionLoader::instanciateAsLOD(const XMLNode* node, scene::ISc
         std::string debug_name = groupname+" (LOD track-object)";
         lod_node->setName(debug_name.c_str());
 #endif
+        lod_node->setNeedsUpdateAbsTrans(true);
         return lod_node;
     }
     else

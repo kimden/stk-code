@@ -21,6 +21,7 @@
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
 #include "guiengine/message_queue.hpp"
+#include "guiengine/widgets/button_widget.hpp"
 #include "guiengine/widgets/check_box_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
 #include "guiengine/widgets/list_widget.hpp"
@@ -34,6 +35,7 @@
 #include "network/socket_address.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "online/profile_manager.hpp"
 #include "online/request_manager.hpp"
 #include "states_screens/online/networking_lobby.hpp"
 #include "states_screens/online/online_lan.hpp"
@@ -68,7 +70,6 @@ void OnlineScreen::loadedFromFile()
 {
     m_enable_splitscreen = getWidget<CheckBoxWidget>("enable-splitscreen");
     assert(m_enable_splitscreen);
-    m_enable_splitscreen->setState(UserConfigParams::m_enable_network_splitscreen);
 }   // loadedFromFile
 
 // ----------------------------------------------------------------------------
@@ -92,6 +93,8 @@ void OnlineScreen::init()
     RibbonWidget* r = getWidget<RibbonWidget>("menu_toprow");
     r->setFocusForPlayer(PLAYER_ID_GAME_MASTER);
 
+    m_enable_splitscreen->setState(
+        UserConfigParams::m_enable_network_splitscreen);
     // Pre-add a default single player profile in network
     if (!m_enable_splitscreen->getState() &&
         NetworkConfig::get()->getNetworkPlayers().empty())
@@ -209,9 +212,8 @@ void OnlineScreen::eventCallback(Widget* widget, const std::string& name,
         if (UserConfigParams::m_internet_status != RequestManager::IPERM_ALLOWED)
         {
             new MessageDialog(_("You can not play online without internet access. "
-                                "If you want to play online, go to options, select "
-                                " tab 'User Interface', and edit "
-                                "\"Connect to the Internet\"."));
+                                "If you want to play online, go in the options menu, "
+                                "and check \"Connect to the Internet\"."));
             return;
         }
 

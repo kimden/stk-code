@@ -20,8 +20,6 @@
 
 #include "utils/synchronised.hpp"
 
-#include <irrlicht.h>
-
 #include <assert.h>
 #include <atomic>
 #include <iostream>
@@ -32,6 +30,10 @@
 #include <streambuf>
 #include <string>
 #include <vector>
+
+#include <vector2d.h>
+#include <SColor.h>
+using namespace irr;
 
 enum QueryPerf
 {
@@ -66,6 +68,7 @@ extern Profiler profiler;
 
 double getTimeMilliseconds();
 
+#define MAX_ANALYZED_FPS  1000
 #define ENABLE_PROFILER
 
 #ifdef ENABLE_PROFILER
@@ -239,8 +242,40 @@ private:
      *  while a new thread is added. */
     Synchronised<bool> m_lock;
 
+    /** Stores the frame times (in µs), once FPS metrics are computed. */
+    std::vector<int> m_frame_times;
+
+    /** Stores the total duration of the frames analyzed (in µs), once FPS metrics
+     * are computed. Int overflow is not a concern unless more than 30 minutes
+     * of data is stored and analyzed. */
+    int m_total_frametime;
+
+    /** Stores the frame count */
+    int m_total_frames;
+
+    /** Store the count of slow frames for a given FPS value */
+    int m_slow_frames[MAX_ANALYZED_FPS];
+
+    /** Store time spent in slow frames for a given FPS value (in µs) */
+    int m_time_spent_in_slow_frames[MAX_ANALYZED_FPS];
+
+    /** Store time spent beyond the maximum duration of a frame for a given FPS value (in µs) */
+    int m_time_waited_in_slow_frames[MAX_ANALYZED_FPS];
+
+    /** Store the highest FPS with <50% time in slow frames and < 10% time waited beyond maximum duration */
+    int m_fps_metrics_high;
+
+    /** Store the highest FPS with <12% time in slow frames and <  2% time waited beyond maximum duration */
+    int m_fps_metrics_mid;
+
+    /** Store the highest FPS with < 1% time in slow frames and <0.1% time waited beyond maximum duration */
+    int m_fps_metrics_low;
+
     /** True if the circular buffer has wrapped around. */
     bool m_has_wrapped_around;
+
+    /** True if the profiler UI should be rendered */
+    bool m_drawing;
 
     /** The maximum number of frames to be buffered. Used to minimise
      *  reallocations. */
@@ -277,18 +312,28 @@ public:
              Profiler();
     virtual ~Profiler();
     void     init();
+    void     reset();
     void     pushCPUMarker(const char* name="N/A",
                            const video::SColor& color=video::SColor());
     void     popCPUMarker();
-    void     toggleStatus(); 
+    void     activate();
+    void     desactivate();
     void     synchronizeFrame();
     void     draw();
     void     onClick(const core::vector2di& mouse_pos);
+    void     computeStableFPS();
+    void     startBenchmark();
     void     writeToFile();
 
     // ------------------------------------------------------------------------
     bool isFrozen() const { return m_freeze_state == FROZEN; }
+    // ------------------------------------------------------------------------
+    void setDrawing(bool drawing) { m_drawing = drawing; }
 
+    int getTotalFrametime() { return m_total_frametime;  }
+    int getTotalFrames()    { return m_total_frames;     }
+    int getFPSMetricsHigh() { return m_fps_metrics_high; }
+    int getFPSMetricsMid()  { return m_fps_metrics_mid;  }
+    int getFPSMetricsLow()  { return m_fps_metrics_low;  }
 };
-
 #endif // PROFILER_HPP

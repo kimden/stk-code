@@ -65,15 +65,7 @@ public:
     // ------------------------------------------------------------------------
     int dumpTextureUsage();
     // ------------------------------------------------------------------------
-    void reloadAllTextures()
-    {
-        for (auto p : m_all_textures)
-        {
-            if (p.second == NULL)
-                continue;
-            p.second->reload();
-        }
-    }
+    void reloadAllTextures();
     // ------------------------------------------------------------------------
     /** Returns the currently defined texture error message, which is used
      *  by event_handler.cpp to print additional info about irrlicht
@@ -127,6 +119,9 @@ public:
         return getTexture(filename, std::string(error_message),
                           std::string(detail));
     }   // getTexture
+    // ------------------------------------------------------------------------
+    std::unordered_map<std::string, irr::video::ITexture*>& getAllTextures()
+                                                     { return m_all_textures; }
 
 };   // STKTexManager
 

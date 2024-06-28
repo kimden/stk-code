@@ -145,7 +145,7 @@ void StandardRace::endRaceEarly()
     for (unsigned int i = 0; i < active_players.size(); i++)
     {
         int kartid = active_players[i];
-        int position = getNumKarts() - (int) active_players.size() + 1 + i;
+        int position = getCurrentNumKarts() - (int) active_players.size() + 1 + i;
         setKartPosition(kartid, position);
         // Compute the finish time, with a different formula for networked races
         // to avoid making auto-end too punishing

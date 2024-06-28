@@ -21,6 +21,7 @@
 
 #include "config/stk_config.hpp"
 #include "graphics/central_settings.hpp"
+#include "graphics/irr_driver.hpp"
 #include "graphics/material.hpp"
 #include "graphics/material_manager.hpp"
 #include "graphics/sp/sp_dynamic_draw_call.hpp"
@@ -33,9 +34,16 @@
 #include "karts/skidding.hpp"
 #include "modes/world.hpp"
 #include "physics/btKart.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 
 #ifndef SERVER_ONLY
+
+#include <ge_vulkan_dynamic_spm_buffer.hpp>
+#include <IMeshSceneNode.h>
+#include <IVideoDriver.h>
+#include <SMesh.h>
+#include <SMeshBuffer.h>
+#include <ge_render_info.hpp>
 
 float     SkidMarks::m_avoid_z_fighting  = 0.005f;
 const int SkidMarks::m_start_alpha       = 200;
@@ -47,11 +55,14 @@ SkidMarks::SkidMarks(const AbstractKart& kart, float width) : m_kart(kart)
     m_width = width;
     m_material = material_manager->getMaterialSPM("skidmarks.png", "",
         "alphablend");
-    m_shader = SP::SPShaderManager::get()->getSPShader("alphablend");
-    assert(m_shader);
-    auto texture = SP::SPTextureManager::get()->getTexture(
-        m_material->getSamplerPath(0), m_material,
-        m_shader->isSrgbForTextureLayer(0), m_material->getContainerId());
+    if (CVS->isGLSL())
+    {
+        m_shader = SP::SPShaderManager::get()->getSPShader("alphablend");
+        assert(m_shader);
+        auto texture = SP::SPTextureManager::get()->getTexture(
+            m_material->getSamplerPath(0), m_material,
+            m_shader->isSrgbForTextureLayer(0), m_material->getContainerId());
+    }
     m_skid_marking = false;
 }   // SkidMark
 
@@ -222,19 +233,43 @@ SkidMarks::SkidMarkQuads::SkidMarkQuads(const Vec3 &left,
                                         std::shared_ptr<SP::SPShader> shader,
                                         float z_offset,
                                         video::SColor* custom_color)
+                        : m_node(NULL)
 {
     m_center_start = (left + right)/2;
     m_z_offset = z_offset;
     m_fade_out = 0.0f;
-    m_dy_dc = std::make_shared<SP::SPDynamicDrawCall>
-        (scene::EPT_TRIANGLE_STRIP, shader, material);
-    static_cast<SP::SPPerObjectUniform*>(m_dy_dc.get())->addAssignerFunction
-        ("custom_alpha", [this](SP::SPUniformAssigner* ua)->void
-        {
-            // SP custom_alpha is assigned 1 - x, so this is correct
-            ua->setValue(m_fade_out);
-        });
-    SP::addDynamicDrawCall(m_dy_dc);
+    if (CVS->isGLSL())
+    {
+        m_dy_dc = std::make_shared<SP::SPDynamicDrawCall>
+            (scene::EPT_TRIANGLE_STRIP, shader, material);
+        static_cast<SP::SPPerObjectUniform*>(m_dy_dc.get())->addAssignerFunction
+            ("custom_alpha", [this](SP::SPUniformAssigner* ua)->void
+            {
+                // SP custom_alpha is assigned 1 - x, so this is correct
+                ua->setValue(m_fade_out);
+            });
+        SP::addDynamicDrawCall(m_dy_dc);
+    }
+    else
+    {
+        scene::IMeshBuffer* buffer = NULL;
+        if (irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN)
+            buffer = new GE::GEVulkanDynamicSPMBuffer();
+        else
+            buffer = new scene::SMeshBuffer();
+        material->setMaterialProperties(&buffer->getMaterial(), buffer);
+        buffer->getMaterial().setTexture(0, material->getTexture());
+        buffer->setHardwareMappingHint(scene::EHM_STREAM);
+        scene::SMesh* mesh = new scene::SMesh();
+        mesh->addMeshBuffer(buffer);
+        mesh->setBoundingBox(buffer->getBoundingBox());
+        buffer->drop();
+        m_node = static_cast<scene::IMeshSceneNode*>(
+            irr_driver->addMesh(mesh, "skidmark"));
+        m_node->getMaterial(0).getRenderInfo() =
+            std::make_shared<GE::GERenderInfo>();
+        mesh->drop();
+    }
     m_start_color = (custom_color != NULL ? *custom_color :
         video::SColor(255, SkidMarks::m_start_grey, SkidMarks::m_start_grey,
         SkidMarks::m_start_grey));
@@ -252,17 +287,17 @@ SkidMarks::SkidMarkQuads::SkidMarkQuads(const Vec3 &left,
 //-----------------------------------------------------------------------------
 SkidMarks::SkidMarkQuads::~SkidMarkQuads()
 {
-    m_dy_dc->removeFromSP();
+    if (m_dy_dc)
+        m_dy_dc->removeFromSP();
+    else if (m_node)
+        irr_driver->removeNode(m_node);
 }   // ~SkidMarkQuads
 
 //-----------------------------------------------------------------------------
-/** Adds the two points to this SkidMarkQuads.
- *  \param left,right Left and right coordinates.
- */
-void SkidMarks::SkidMarkQuads::add(const Vec3 &left,
-                                   const Vec3 &right,
-                                   const Vec3 &normal,
-                                   float distance)
+void SkidMarks::SkidMarkQuads::addSP(const Vec3& left,
+                                     const Vec3& right,
+                                     const Vec3& normal,
+                                     float distance)
 {
     // The skid marks must be raised slightly higher, otherwise it blends
     // too much with the track.
@@ -294,7 +329,118 @@ void SkidMarks::SkidMarkQuads::add(const Vec3 &left,
     m_dy_dc->addSPMVertex(v);
     m_dy_dc->setUpdateOffset(n > 3 ? n - 2 : n);
     m_dy_dc->recalculateBoundingBox();
+}   // addSP
 
+//-----------------------------------------------------------------------------
+void SkidMarks::SkidMarkQuads::addLegacy(const Vec3& left,
+                                         const Vec3& right,
+                                         const Vec3& normal,
+                                         float distance)
+{
+    scene::IMesh* mesh = m_node->getMesh();
+    scene::IMeshBuffer* buffer = mesh->getMeshBuffer(0);
+
+    // The skid marks must be raised slightly higher, otherwise it blends
+    // too much with the track.
+    int n = buffer->getVertexCount();
+
+    if (irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN)
+    {
+        std::array<video::S3DVertexSkinnedMesh, 2> v = {{ }};
+        v[0].m_color = m_start_color;
+        v[0].m_color.setAlpha(0); // initially create all vertices at alpha=0...
+        v[1] = v[0];
+
+        // then when adding a new set of vertices, make the previous 2 opaque.
+        // this ensures that the last two vertices are always at alpha=0,
+        // producing a fade-out effect
+        video::S3DVertexSkinnedMesh* vertices = (video::S3DVertexSkinnedMesh*)
+            buffer->getVertices();
+        if (n > 4)
+        {
+            vertices[n - 1].m_color.setAlpha(m_start_alpha);
+            vertices[n - 2].m_color.setAlpha(m_start_alpha);
+        }
+
+        v[0].m_position = Vec3(left + normal * m_z_offset).toIrrVector();
+        v[0].m_normal = MiniGLM::compressVector3(normal.toIrrVector());
+        short half_distance = MiniGLM::toFloat16(distance * 0.5f);
+        v[0].m_all_uvs[1] = half_distance;
+        v[1].m_position = Vec3(right + normal * m_z_offset).toIrrVector();
+        v[1].m_normal = MiniGLM::compressVector3(normal.toIrrVector());
+        short half_float_1 = 15360;
+        v[1].m_all_uvs[0] = half_float_1;
+        v[1].m_all_uvs[1] = half_distance;
+        buffer->append(v.data(), v.size(), NULL, 0);
+        int vertex_update_offset = buffer->getVertexCount();
+        vertex_update_offset -= 4;
+        if (vertex_update_offset < 0)
+            vertex_update_offset = 0;
+        buffer->setDirtyOffset(vertex_update_offset, irr::scene::EBT_VERTEX);
+    }
+    else
+    {
+        std::array<video::S3DVertex, 2> v;
+        v[0].Color = m_start_color;
+        v[0].Color.setAlpha(0);
+        v[1] = v[0];
+
+        video::S3DVertex* vertices = (video::S3DVertex*)buffer->getVertices();
+        if (n > 4)
+        {
+            vertices[n - 1].Color.setAlpha(m_start_alpha);
+            vertices[n - 2].Color.setAlpha(m_start_alpha);
+        }
+
+        v[0].Pos = Vec3(left + normal * m_z_offset).toIrrVector();
+        v[0].Normal = normal.toIrrVector();
+        v[0].TCoords = core::vector2df(0.0f, distance * 0.5f);
+        v[1].Pos = Vec3(right + normal * m_z_offset).toIrrVector();
+        v[1].Normal = normal.toIrrVector();
+        v[1].TCoords = core::vector2df(1.0f, distance * 0.5f);
+        buffer->append(v.data(), v.size(), NULL, 0);
+    }
+
+    // Out of the box Irrlicht only supports triangle meshes and not
+    // triangle strips. Since this is a strip it would be more efficient
+    // to use a special triangle strip scene node.
+    if (n >= 2)
+    {
+        if (!m_node->isVisible())
+            m_node->setVisible(true);
+        std::array<uint16_t, 6> indices = {{ }};
+        buffer->append(NULL, 0, indices.data(), indices.size());
+        buffer->setDirtyOffset(buffer->getIndexCount() - 6,
+            irr::scene::EBT_INDEX);
+        unsigned idx = buffer->getIndexCount() - indices.size();
+        buffer->getIndices()[idx + 0] = n - 2;
+        buffer->getIndices()[idx + 1] = n - 1;
+        buffer->getIndices()[idx + 2] = n;
+        buffer->getIndices()[idx + 3] = n - 1;
+        buffer->getIndices()[idx + 4] = n + 1;
+        buffer->getIndices()[idx + 5] = n;
+    }
+    else
+        m_node->setVisible(false);
+    // Adjust the axis-aligned boundary boxes.
+    mesh->setBoundingBox(buffer->getBoundingBox());
+
+    buffer->setDirty();
+}   // addLegacy
+
+//-----------------------------------------------------------------------------
+/** Adds the two points to this SkidMarkQuads.
+ *  \param left,right Left and right coordinates.
+ */
+void SkidMarks::SkidMarkQuads::add(const Vec3 &left,
+                                   const Vec3 &right,
+                                   const Vec3 &normal,
+                                   float distance)
+{
+    if (CVS->isGLSL())
+        addSP(left, right, normal, distance);
+    else
+        addLegacy(left, right, normal, distance);
 }   // add
 
 // ----------------------------------------------------------------------------
@@ -304,6 +450,13 @@ void SkidMarks::SkidMarkQuads::add(const Vec3 &left,
  */
 bool SkidMarks::SkidMarkQuads::fade(float f)
 {
+    if (!CVS->isGLSL())
+    {
+        float a = (1.0f - m_fade_out) * 255.0f;
+        if (a > 255.0f)
+            a = 255.0f;
+        m_node->getMaterial(0).getRenderInfo()->getVertexColor().setAlpha(a);
+    }
     m_fade_out += f;
     if (m_fade_out >= 1.0f)
     {

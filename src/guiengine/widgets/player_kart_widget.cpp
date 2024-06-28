@@ -21,7 +21,7 @@
 #include "audio/sfx_manager.hpp"
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
-#include "graphics/render_info.hpp"
+#include <ge_render_info.hpp>
 #include "guiengine/widgets/kart_stats_widget.hpp"
 #include "guiengine/widgets/model_view_widget.hpp"
 #include "guiengine/widgets/player_name_spinner.hpp"
@@ -542,6 +542,19 @@ void PlayerKartWidget::onUpdate(float delta)
         if (m_h < target_h) m_h = target_h;
     }
 
+    updateSize();
+    // When coming from the overworld, we must rebuild the preview scene at
+    // least once, since the scene is being cleared by leaving the overworld
+    if (m_not_updated_yet)
+    {
+        m_model_view->clearRttProvider();
+        m_not_updated_yet = false;
+    }
+}   // onUpdate
+
+// -------------------------------------------------------------------------
+void PlayerKartWidget::updateSize()
+{
     setSize(m_x, m_y, m_w, m_h);
 
     if (m_player_ident_spinner != NULL)
@@ -580,15 +593,7 @@ void PlayerKartWidget::onUpdate(float delta)
                       kart_name_y,
                       kart_name_w,
                       kart_name_h);
-
-    // When coming from the overworld, we must rebuild the preview scene at
-    // least once, since the scene is being cleared by leaving the overworld
-    if (m_not_updated_yet)
-    {
-        m_model_view->clearRttProvider();
-        m_not_updated_yet = false;
-    }
-}   // onUpdate
+}   // updateSize
 
 // -------------------------------------------------------------------------
 /** Event callback */
@@ -702,7 +707,7 @@ void PlayerKartWidget::setSize(const int x, const int y, const int w, const int 
     else
     {
         const int modelMaxHeight = h - kart_name_h - player_name_h;
-        const int modelMaxWidth =  w;
+        const int modelMaxWidth =  w / 2;
         const int bestSize = std::min(modelMaxWidth, modelMaxHeight);
         const int modelY = y + player_name_h;
         model_x = x + w/4 - (int)(bestSize/2);

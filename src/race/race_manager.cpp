@@ -60,11 +60,14 @@
 #include "states_screens/main_menu_screen.hpp"
 #include "states_screens/state_manager.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/profiler.hpp"
 #include "utils/ptr_vector.hpp"
 #include "utils/stk_process.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 #include "io/rich_presence.hpp"
+
+#include <IrrlichtDevice.h>
 
 #ifdef __SWITCH__
 extern "C" {
@@ -142,6 +145,8 @@ RaceManager::RaceManager()
     setRecordRace(false);
     setRaceGhostKarts(false);
     setWatchingReplay(false);
+    setBenchmarking(false);
+    m_scheduled_benchmark = false;
     setTrack("jungle");
     m_default_ai_list.clear();
     setNumPlayers(0);
@@ -381,6 +386,10 @@ void RaceManager::computeRandomKartList()
  */
 void RaceManager::startNew(bool from_overworld)
 {
+    m_pending_karts_id.clear();
+    m_pending_karts_pos.clear();
+    m_pending_karts_time.clear();
+
     m_num_ghost_karts = 0;
     if (m_has_ghost_karts)
         m_num_ghost_karts = ReplayPlay::get()->getNumGhostKart();
@@ -449,6 +458,12 @@ void RaceManager::startNew(bool from_overworld)
 
     Log::verbose("RaceManager", "Nb of karts=%u, ghost karts:%u ai:%lu players:%lu\n",
         (unsigned int) m_num_karts, m_num_ghost_karts, m_ai_kart_list.size(), m_player_karts.size());
+    std::set<std::string> used_karts;
+    for (auto& kart : m_ai_kart_list)
+        used_karts.insert(kart);
+    for (auto& kart : m_player_karts)
+        used_karts.insert(kart.getKartName());
+    kart_properties_manager->onDemandLoadKartTextures(used_karts);
 
     assert((unsigned int)m_num_karts == m_num_ghost_karts+m_ai_kart_list.size()+m_player_karts.size());
 
@@ -556,6 +571,7 @@ void RaceManager::startNextRace()
         GUIEngine::clearLoadingTips();
         GUIEngine::renderLoading(true/*clearIcons*/, false/*launching*/, false/*update_tips*/);
         device->getVideoDriver()->endScene();
+        GUIEngine::flushRenderLoading(false/*launching*/);
     }
 
     m_num_finished_karts   = 0;
@@ -591,6 +607,7 @@ void RaceManager::startNextRace()
     else
     {
         const bool random_pos_available = !NetworkConfig::get()->isNetworking() &&
+            !m_has_ghost_karts &&
             (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE
             || RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL
             || RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FOLLOW_LEADER);
@@ -975,17 +992,23 @@ void RaceManager::exitRace(bool delete_world)
 
         StateManager::get()->enterGameState();
         setMinorMode(RaceManager::MINOR_MODE_CUTSCENE);
+        int num_gp_karts = m_num_karts;
         setNumKarts(0);
         setNumPlayers(0);
 
+        std::set<std::string> used_karts;
         if (some_human_player_well_ranked)
         {
             startSingleRace("gpwin", 999,
                                   raceWasStartedFromOverworld());
             GrandPrixWin* scene = GrandPrixWin::getInstance();
             scene->push();
+            scene->setNumGPKarts(num_gp_karts); // This must be set before we set karts
             scene->setKarts(winners);
             scene->setPlayerWon(some_human_player_won);
+            std::set<std::string> karts;
+            for (auto& kart : winners)
+                used_karts.insert(kart.first);
         }
         else
         {
@@ -997,6 +1020,8 @@ void RaceManager::exitRace(bool delete_world)
             if (humanLosers.size() >= 1)
             {
                 scene->setKarts(humanLosers);
+                for (auto& kart : humanLosers)
+                    used_karts.insert(kart.first);
             }
             else
             {
@@ -1004,9 +1029,12 @@ void RaceManager::exitRace(bool delete_world)
                            "This should have never happened\n");
                 std::vector<std::pair<std::string, float> > karts;
                 karts.emplace_back(UserConfigParams::m_default_kart, 0.0f);
+                used_karts.insert(UserConfigParams::m_default_kart);
                 scene->setKarts(karts);
             }
         }
+
+        kart_properties_manager->onDemandLoadKartTextures(used_karts);
     }
 
     if (delete_world)
@@ -1016,6 +1044,8 @@ void RaceManager::exitRace(bool delete_world)
         World::deleteWorld();
     }
 
+    // Reload track screenshot after delete_world (track textures are unloaded)
+    track_manager->onDemandLoadTrackScreenshots();
     m_saved_gp = NULL;
     m_track_number = 0;
 
@@ -1030,7 +1060,7 @@ void RaceManager::exitRace(bool delete_world)
  *  \param kart The kart that finished the race.
  *  \param time Time at which the kart finished the race.
  */
-void RaceManager::kartFinishedRace(const AbstractKart *kart, float time)
+void RaceManager::kartFinishedRace(const AbstractKart *kart, float time = 0.0f)
 {
     unsigned int id = kart->getWorldKartId();
     int pos = kart->getPosition();
@@ -1044,7 +1074,38 @@ void RaceManager::kartFinishedRace(const AbstractKart *kart, float time)
     // position 2, so adjust the points (#points for leader do not matter)
     WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
     if (wwr)
-        m_kart_status[id].m_score += wwr->getScoreForPosition(pos);
+    {
+        if (wwr->canGetScoreForPosition(pos))
+        {
+            m_kart_status[id].m_score += wwr->getScoreForPosition(pos, time);
+            // checking whether we can add score for other karts
+            // which still await for that
+            for (unsigned i = 0; i < m_pending_karts_id.size(); )
+            {
+                unsigned& id2 = m_pending_karts_id[i];
+                float& time2 = m_pending_karts_time[i];
+                int& pos2 = m_pending_karts_pos[i];
+                if (wwr->canGetScoreForPosition(pos2))
+                {
+                    m_kart_status[id2].m_score += wwr->getScoreForPosition(pos2, time2);
+                    std::swap(id2, m_pending_karts_id.back());
+                    std::swap(time2, m_pending_karts_time.back());
+                    std::swap(pos2, m_pending_karts_pos.back());
+                    m_pending_karts_id.pop_back();
+                    m_pending_karts_time.pop_back();
+                    m_pending_karts_pos.pop_back();
+                } else {
+                    ++i;
+                }
+            }
+        }
+        else
+        {
+            m_pending_karts_id.push_back(id);
+            m_pending_karts_time.push_back(time);
+            m_pending_karts_pos.push_back(pos);
+        }
+    }
     else
     {
         Log::error("RaceManager",
@@ -1098,6 +1159,7 @@ void RaceManager::startGP(const GrandPrixData &gp, bool from_overworld,
  * \param trackIdent Internal name of the track to race on
  * \param num_laps   Number of laps to race, or -1 if number of laps is
  *        not relevant in current mode
+ * \param from_overworld If it was started from the Story Mode overworld
  */
 void RaceManager::startSingleRace(const std::string &track_ident,
                                   const int num_laps,
@@ -1291,7 +1353,34 @@ core::stringw RaceManager::getDifficultyName(Difficulty diff) const
         case RaceManager::DIFFICULTY_MEDIUM: return _("Intermediate"); break;
         case RaceManager::DIFFICULTY_HARD:   return _("Expert");   break;
         case RaceManager::DIFFICULTY_BEST:   return _("SuperTux");   break;
-        default:  assert(false);
+        default:    Log::error("RaceManager", "Difficulty level '%u' is unknown.", diff);
+                    // Uncomment to generate a crash and backtrace, if the cause of the
+                    // incorrect difficulty level is unknown (i.e. not online servers' settings)
+                    // assert(false);
     }
     return "";
 }   // getDifficultyName
+
+//---------------------------------------------------------------------------------------------
+/** Set the benchmarking mode as requested, and turn off the profiler if needed. */
+void RaceManager::setBenchmarking(bool benchmark)
+{
+    m_benchmarking = benchmark;
+    m_scheduled_benchmark = false;
+
+    // If the benchmark mode is turned off and the profiler is still activated,
+    // turn the profiler off and reset the drawing mode to default.
+    if (!m_benchmarking && UserConfigParams::m_profiler_enabled)
+    {
+        profiler.desactivate();
+        profiler.setDrawing(true);
+    }
+}   // setBenchmarking
+
+//---------------------------------------------------------------------------------------------
+/** Schedule a benchmark. This function is used because the video options screen
+* might need to be reloaded when switching between old and modern renderer.*/
+void RaceManager::scheduleBenchmark()
+{
+    m_scheduled_benchmark = true;
+}   // scheduleBenchmark

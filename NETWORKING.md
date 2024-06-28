@@ -108,6 +108,12 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- Clients below this value will be rejected from joining this server. It's determined by number of official tracks in client / number of official tracks in server, setting this value too high will prevent android players from joining this server, because STK android apk has some official tracks removed. -->
     <official-tracks-threshold value="0.7" />
 
+    <!-- Clients below this value will be rejected from playing on this server. It's determined by number of official karts in client / number of official karts in server. -->
+    <official-karts-play-threshold value="0" />
+
+    <!-- Clients below this value will be rejected from playing on this server. It's determined by number of official tracks in client / number of official tracks in server, setting this value too high will prevent android players from playing on this server, because STK android apk has some official tracks removed. -->
+    <official-tracks-play-threshold value="0" />
+
     <!-- Clients below this value will be rejected from joining this server. It's determined by number of addon karts in client -->
     <addon_karts_threshold value="0" />
 
@@ -122,6 +128,9 @@ The current server configuration xml looks like this (this is only an example, j
 
     <!-- Tracks needed to enter the server, leave empty for no restriction. -->
     <must-have-tracks value="hacienda xr591 addon_animtrack_1 minigolf" />
+
+    <!-- List of karts that can be played on a server, leave empty for no restriction or put 'not' before the list to name tracks that cannot be played. It is not guaranteed to work with addons. -->
+    <only-played-karts value="" />
 
     <!-- List of tracks that can be played on a server, leave empty for no restriction or put 'not' before the list to name tracks that cannot be played. -->
     <only-played-tracks value="not abyss snowtuxpeak addon_minigolf" />
@@ -192,6 +201,9 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- Kick idle player which has no network activity to server for more than some seconds during game, unless he has finished the race. Negative value to disable, and this option will always be disabled for LAN server. -->
     <kick-idle-player-seconds value="60" />
 
+    <!-- Kick idle player which has no network activity to server for more than some seconds, while in the lobby.. Duration also includes the period after the player finishes and waits for others to finish. Be careful using it. Negative value to disable, and this option will always be disabled for LAN server. -->
+    <kick-idle-lobby-player-seconds value="-1" />
+
     <!-- Set how many states the server will send per second, the higher this value, the more bandwidth requires, also each client will trigger more rewind, which clients with slow device may have problem playing this server, use the default value is recommended. -->
     <state-frequency value="10" />
 
@@ -258,8 +270,17 @@ The current server configuration xml looks like this (this is only an example, j
     <!-- If true and no track is selected, then an addon track can be picked. -->
     <random-selects-addons value="false" />
 
-    <!-- If non-empty, these tracks are played in the order until the list ends. Can be useful for grands prix. -->
+    <!-- If non-empty, these tracks (or track filters if enclosed in curly braces) are played in the order until the list ends. -->
     <tracks-queue value="" />
+
+    <!-- If non-empty, these tracks (or track filters if enclosed in curly braces) are played in the order cyclically,  except if something is in the regular tracks queue. -->
+    <cyclic-tracks-queue value="" />
+
+    <!-- If non-empty, these karts (or kart filters if enclosed in curly braces) are played in the order until the list ends. -->
+    <karts-queue value="" />
+
+    <!-- If non-empty, these karts (or kart filters if enclosed in curly braces) are played in the order cyclically,  except if something is in the regular karts queue. -->
+    <cyclic-karts-queue value="" />
 
     <!-- A custom Grand Prix scoring system to be used, empty for default. -->
     <grand-prix-scoring value="" />
@@ -278,6 +299,9 @@ The current server configuration xml looks like this (this is only an example, j
 
     <!-- If true, the server owner can kick players, either via the UI button or using /kick command. -->
     <kicks-allowed value="true" />
+
+    <!-- Specifies how the server should decide which map vote wins in map selection. 0 corresponds to standard system, 1 - to randomly selecting one of votes. -->
+    <map-vote-handling value="0" />
 
 </server-config>
 

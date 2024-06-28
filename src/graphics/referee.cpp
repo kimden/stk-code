@@ -33,6 +33,9 @@
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
 
+#include <ISceneManager.h>
+#include <ITexture.h>
+
 int                   Referee::m_st_first_start_frame  = 1;
 int                   Referee::m_st_last_start_frame   = 1;
 int                   Referee::m_st_first_rescue_frame = 1;
@@ -155,8 +158,10 @@ Referee::Referee()
     // mesh. ATM it doesn't make any difference, but if we ever should
     // decide to use more than one referee model at startup we only
     // have to change the textures once, and all models will be in synch.
+    //
+    // Disabled due to texture matrix not working in legacy video drivers
     m_scene_node = irr_driver->addAnimatedMesh(NULL, "referee");
-    m_scene_node->setReadOnlyMaterials(true);
+    //m_scene_node->setReadOnlyMaterials(true);
     m_scene_node->setMesh(m_st_referee_mesh);
     m_scene_node->grab();
     m_scene_node->setRotation(m_st_start_rotation.toIrrVector());
@@ -191,7 +196,7 @@ Referee::Referee(const AbstractKart &kart)
     // decide to use more than one referee model at startup we only
     // have to change the textures once, and all models will be in synch.
     m_scene_node = irr_driver->addAnimatedMesh(NULL, "referee");
-    m_scene_node->setReadOnlyMaterials(true);
+    //m_scene_node->setReadOnlyMaterials(true);
     m_scene_node->setMesh(m_st_referee_mesh);
     m_scene_node->grab();
     m_scene_node->setScale(m_st_scale.toIrrVector());
@@ -294,3 +299,25 @@ void Referee::setAnimationFrameWithCreatedTicks(int created_ticks)
     frame += (float)m_st_first_rescue_frame;
     m_scene_node->setCurrentFrame(frame);
 }   // setAnimationFrameWithCreatedTicks
+
+// ----------------------------------------------------------------------------
+/** Moves the referee to the specified position. */
+void Referee::setPosition(const Vec3 &xyz)
+{
+    m_scene_node->setPosition(xyz.toIrrVector());
+}   // setPosition
+
+// ----------------------------------------------------------------------------
+/** Sets the rotation of the scene node (in degrees).
+ *  \param hpr Rotation in degrees. */
+void Referee::setRotation(const Vec3 &hpr)
+{
+    m_scene_node->setRotation(hpr.toIrrVector());
+}   // setRotation
+
+// ----------------------------------------------------------------------------
+/** Returns true if this referee is attached to the scene graph. */
+bool Referee::isAttached() const
+{
+    return m_scene_node->getParent() != NULL;
+}   // isAttached

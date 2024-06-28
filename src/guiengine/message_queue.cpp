@@ -24,6 +24,7 @@
 #include "utils/synchronised.hpp"
 
 #include "GlyphLayout.h"
+#include <IrrlichtDevice.h>
 #include <atomic>
 #include <memory>
 
@@ -301,6 +302,7 @@ public:
     ProgressBarMessage(const core::stringw& msg) :
                Message(9999999.9f, msg)
     {
+        m_swc.m_next = new SkinWidgetContainer;
     }   // ProgressBarMessage
     // ------------------------------------------------------------------------
     ~ProgressBarMessage()                             { g_progress.store(-1); }

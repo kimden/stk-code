@@ -35,9 +35,9 @@ private:
     /** Keep the widget to to the user name. */
     GUIEngine::ButtonWidget *m_user_id;
 
-    MainMenuScreen();
+    core::stringw m_news_text;
 
-    void startTutorial();
+    MainMenuScreen();
 public:
     virtual void onUpdate(float delta) OVERRIDE;
 

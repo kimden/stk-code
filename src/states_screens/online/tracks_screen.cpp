@@ -30,6 +30,7 @@
 #include "guiengine/widgets/check_box_widget.hpp"
 #include "guiengine/widgets/dynamic_ribbon_widget.hpp"
 #include "guiengine/widgets/icon_button_widget.hpp"
+#include "guiengine/widgets/label_widget.hpp"
 #include "guiengine/widgets/list_widget.hpp"
 #include "guiengine/widgets/progress_bar_widget.hpp"
 #include "guiengine/widgets/spinner_widget.hpp"
@@ -354,13 +355,29 @@ void TracksScreen::beforeAddingWidget()
         //I18N: name of the tab that will show tracks from all groups
         tabs->addTextChild( _("All"), ALL_TRACK_GROUPS_ID );
     }
+    
+    // Make group names being picked up by gettext
+#define FOR_GETTEXT_ONLY(x)
+    //I18N: track group name
+    FOR_GETTEXT_ONLY( _("All") )
+    //I18N: track group name
+    FOR_GETTEXT_ONLY( _("Standard") )
+    //I18N: track group name
+    FOR_GETTEXT_ONLY( _("Add-Ons") )
 
-    // add behind the other categories
+    // Add other groups after
     for (int n=0; n<group_amount; n++)
-        tabs->addTextChild( _(groups[n].c_str()), groups[n] );
+    {
+        if (groups[n] == "standard") // Fix capitalization (#4622)
+            tabs->addTextChild( _("Standard") , groups[n]);
+        else // Try to translate group names
+            tabs->addTextChild( _(groups[n].c_str()) , groups[n]);
+    } // for n<group_amount
 
     DynamicRibbonWidget* tracks_widget = getWidget<DynamicRibbonWidget>("tracks");
-    tracks_widget->setItemCountHint( (int)track_manager->getNumberOfTracks()+1 );
+
+    // Avoid too many items shown at the same time
+    tracks_widget->setItemCountHint(std::min((int)track_manager->getNumberOfTracks() + 1, 15));
 
 }   // beforeAddingWidget
 
@@ -370,12 +387,15 @@ void TracksScreen::init()
     if (m_network_tracks)
     {
         m_search_track = getWidget<TextBoxWidget>("search_track");
+        m_search_track->setVisible(true);
         m_search_track->setText(L"");
         // Add listener for incremental update when search text is changed
         m_search_track->clearListeners();
         m_search_track->addListener(this);
         updateProgressBarText();
     }
+    else
+        getWidget("search_track")->setVisible(false);
 
     // change the back button image (because it makes the game quit)
     if (m_quit_server)
@@ -431,10 +451,9 @@ void TracksScreen::init()
             m_track_icons->addTextureAsSprite(tex);
         }
 
-        int icon_height = getHeight() / 13;
-        m_track_icons->setScale(icon_height / 256.0f);
+        m_track_icons->setScale(1.0f / 128.0f);
         m_track_icons->setTargetIconSize(256, 256);
-        m_vote_list->setIcons(m_track_icons, (int)icon_height);
+        m_vote_list->setIcons(m_track_icons);
 
         const PeerVote* vote = cl->getVote(STKHost::get()->getMyHostId());
         if (vote)

@@ -31,13 +31,17 @@
 #include "utils/extract_mobile_assets.hpp"
 #include "utils/file_utils.hpp"
 #include "utils/log.hpp"
+#include "utils/mem_utils.hpp"
 #include "utils/string_utils.hpp"
 
 #ifdef ANDROID
 #include "io/assets_android.hpp"
 #endif
 
-#include <irrlicht.h>
+#ifdef __HAIKU__
+#include <Path.h>
+#include <FindDirectory.h>
+#endif
 
 #include <stdio.h>
 #include <stdexcept>
@@ -45,6 +49,8 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <string>
+
+#include <IFileSystem.h>
 
 namespace irr {
     namespace io
@@ -472,6 +478,8 @@ void FileManager::addAssetsSearchPath()
     // since this also adds a file archive to the file system - and
     // m_file_system is deleted (in irr_driver)
     pushTextureSearchPath(m_subdir_name[TEXTURE], "textures");
+    pushTextureSearchPath(m_subdir_name[TEXTURE]+"skybox/", "skybox");
+
     if (fileExists(m_subdir_name[TEXTURE]+"deprecated/"))
         pushTextureSearchPath(m_subdir_name[TEXTURE]+"deprecated/", "deprecatedtex");
 
@@ -524,7 +532,6 @@ FileManager::~FileManager()
  */
 bool FileManager::fileExists(const std::string& path) const
 {
-    std::lock_guard<std::mutex> lock(m_file_system_lock);
 #ifdef DEBUG
     bool exists = m_file_system->existFile(path.c_str());
     if(exists) return true;
@@ -627,9 +634,9 @@ io::path FileManager::createAbsoluteFilename(const std::string &f)
  */
 void FileManager::pushModelSearchPath(const std::string& path)
 {
-    std::lock_guard<std::mutex> lock(m_file_system_lock);
-
     m_model_search_path.push_back(path);
+    std::unique_lock<std::recursive_mutex> ul = m_file_system->acquireFileArchivesMutex();
+
     const int n=m_file_system->getFileArchiveCount();
     m_file_system->addFileArchive(createAbsoluteFilename(path),
                                   /*ignoreCase*/false,
@@ -656,9 +663,9 @@ void FileManager::pushModelSearchPath(const std::string& path)
  */
 void FileManager::pushTextureSearchPath(const std::string& path, const std::string& container_id)
 {
-    std::lock_guard<std::mutex> lock(m_file_system_lock);
-
     m_texture_search_path.push_back(TextureSearchPath(path, container_id));
+    std::unique_lock<std::recursive_mutex> ul = m_file_system->acquireFileArchivesMutex();
+
     const int n=m_file_system->getFileArchiveCount();
     m_file_system->addFileArchive(createAbsoluteFilename(path),
                                   /*ignoreCase*/false,
@@ -687,7 +694,6 @@ void FileManager::popTextureSearchPath()
 {
     if (!m_texture_search_path.empty())
     {
-        std::lock_guard<std::mutex> lock(m_file_system_lock);
         TextureSearchPath dir = m_texture_search_path.back();
         m_texture_search_path.pop_back();
         m_file_system->removeFileArchive(createAbsoluteFilename(dir.m_texture_search_path));
@@ -701,7 +707,6 @@ void FileManager::popModelSearchPath()
 {
     if (!m_model_search_path.empty())
     {
-        std::lock_guard<std::mutex> lock(m_file_system_lock);
         std::string dir = m_model_search_path.back();
         m_model_search_path.pop_back();
         m_file_system->removeFileArchive(createAbsoluteFilename(dir));
@@ -843,6 +848,14 @@ std::string FileManager::getGPDir() const
 {
     return m_gp_dir;
 }   // getGPDir
+
+//-----------------------------------------------------------------------------
+/** Returns the directory in which the stdout file should be stored.
+ */
+std::string FileManager::getStdoutDir() const
+{
+    return m_stdout_dir;
+}   // getStdoutDir
 
 //-----------------------------------------------------------------------------
 /** Returns the full path of a texture file name by searching in all
@@ -1007,6 +1020,20 @@ void FileManager::checkAndCreateConfigDir()
         const std::string CONFIGDIR("SuperTuxKart");
         m_user_config_dir += CONFIGDIR;
 
+#elif defined(__HAIKU__)
+
+        BPath settings_dir;
+        if (find_directory(B_USER_SETTINGS_DIRECTORY, &settings_dir, true, NULL) == B_OK)
+        {
+            m_user_config_dir = std::string(settings_dir.Path());
+        }
+        else if (getenv("HOME") != NULL)
+        {
+            m_user_config_dir = getenv("HOME");
+            m_user_config_dir += "/config/settings";
+        }
+        m_user_config_dir += "/SuperTuxKart";
+
 #else
 
         // Remaining unix variants. Use the new standards for config directory
@@ -1072,9 +1099,13 @@ void FileManager::checkAndCreateAddonsDir()
 {
 #if defined(WIN32)
     m_addons_dir  = m_user_config_dir+"../addons/";
+#elif defined(__HAIKU__)
+    m_addons_dir  = m_user_config_dir+"addons/";
 #elif defined(__APPLE__)
     m_addons_dir  = getenv("HOME");
     m_addons_dir += "/Library/Application Support/SuperTuxKart/Addons/";
+#elif defined(__HAIKU__)
+    m_addons_dir  = m_user_config_dir+"addons/";
 #else
     m_addons_dir = checkAndCreateLinuxDir("XDG_DATA_HOME", "supertuxkart",
                                           ".local/share", ".stkaddons");
@@ -1107,7 +1138,7 @@ void FileManager::checkAndCreateAddonsDir()
  */
 void FileManager::checkAndCreateScreenshotDir()
 {
-#if defined(WIN32)
+#if defined(WIN32) || defined(__HAIKU__)
     m_screenshot_dir  = m_user_config_dir+"screenshots/";
 #elif defined(__APPLE__)
     m_screenshot_dir  = getenv("HOME");
@@ -1133,7 +1164,7 @@ void FileManager::checkAndCreateScreenshotDir()
  */
 void FileManager::checkAndCreateReplayDir()
 {
-#if defined(WIN32)
+#if defined(WIN32) || defined(__HAIKU__)
     m_replay_dir = m_user_config_dir + "replay/";
 #elif defined(__APPLE__)
     m_replay_dir  = getenv("HOME");
@@ -1159,7 +1190,7 @@ void FileManager::checkAndCreateReplayDir()
 */
 void FileManager::checkAndCreateCachedTexturesDir()
 {
-#if defined(WIN32)
+#if defined(WIN32) || defined(__HAIKU__)
     m_cached_textures_dir = m_user_config_dir + "cached-textures/";
 #elif defined(__APPLE__)
     m_cached_textures_dir = getenv("HOME");
@@ -1184,7 +1215,7 @@ void FileManager::checkAndCreateCachedTexturesDir()
  */
 void FileManager::checkAndCreateGPDir()
 {
-#if defined(WIN32)
+#if defined(WIN32) || defined(__HAIKU__)
     m_gp_dir = m_user_config_dir + "grandprix/";
 #elif defined(__APPLE__)
     m_gp_dir  = getenv("HOME");
@@ -1421,7 +1452,7 @@ std::string FileManager::searchModel(const std::string& file_name) const
 /** Returns true if the given name is a directory.
  *  \param path File name to test.
  */
-bool FileManager::isDirectory(const std::string &path) const
+bool FileManager::isDirectory(const std::string &path)
 {
     struct stat mystat;
     std::string s(path);
@@ -1560,23 +1591,16 @@ bool FileManager::removeDirectory(const std::string &name) const
 bool FileManager::copyFile(const std::string &source, const std::string &dest)
 {
     FILE *f_source = FileUtils::fopenU8Path(source, "rb");
-    if(!f_source) return false;
-
     FILE *f_dest = FileUtils::fopenU8Path(dest, "wb");
-    if(!f_dest)
-    {
-        fclose(f_source);
-        return false;
-    }
-
-    const int BUFFER_SIZE=32768;
+    constexpr int BUFFER_SIZE=32768;
     char *buffer = new char[BUFFER_SIZE];
-    if(!buffer)
-    {
-        fclose(f_source);
-        fclose(f_dest);
-        return false;
-    }
+    auto scoped = [&]() {
+        if (f_source) fclose(f_source);
+        if (f_dest) fclose(f_dest);
+        if (buffer) delete [] buffer;
+    };
+    MemUtils::deref<decltype(scoped)> cls(scoped); 
+    if(!f_source || !f_dest || !buffer) return false;
     size_t n;
     while((n=fread(buffer, 1, BUFFER_SIZE, f_source))>0)
     {
@@ -1584,17 +1608,11 @@ bool FileManager::copyFile(const std::string &source, const std::string &dest)
         {
             Log::error("FileManager", "Write error copying '%s' to '%s",
                         source.c_str(), dest.c_str());
-            delete[] buffer;
-            fclose(f_source);
-            fclose(f_dest);
             return false;
 
         }   // if fwrite()!=n
     }   // while
 
-    delete[] buffer;
-    fclose(f_source);
-    fclose(f_dest);
     return true;
 }   // copyFile
 

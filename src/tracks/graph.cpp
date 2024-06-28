@@ -33,6 +33,13 @@
 #include "tracks/track.hpp"
 #include "utils/log.hpp"
 
+#include <ICameraSceneNode.h>
+#include <ISceneManager.h>
+
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#endif
+
 const int Graph::UNKNOWN_SECTOR = -1;
 const float Graph::MIN_HEIGHT_TESTING = -1.0f;
 const float Graph::MAX_HEIGHT_TESTING = 5.0f;
@@ -96,7 +103,17 @@ void Graph::createDebugMesh()
     }
 #endif
 
+#ifndef SERVER_ONLY
+    bool vk = (GE::getVKDriver() != NULL);
+    if (vk)
+        GE::getGEConfig()->m_convert_irrlicht_mesh = true;
+#endif
     m_node = irr_driver->addMesh(m_mesh, "track-debug-mesh");
+#ifndef SERVER_ONLY
+    if (vk)
+        GE::getGEConfig()->m_convert_irrlicht_mesh = false;
+#endif
+
 #ifdef DEBUG
     m_node->setName("track-debug-mesh");
 #endif
@@ -188,10 +205,11 @@ void Graph::createMesh(bool show_invisible, bool enable_transparency,
         }
         if (flatten)
         {
-            vptr[0].Pos.Y = 0;
-            vptr[1].Pos.Y = 0;
-            vptr[2].Pos.Y = 0;
-            vptr[3].Pos.Y = 0;
+            // Vulkan driver needs 0.1 instead of 0
+            vptr[0].Pos.Y = 0.1f;
+            vptr[1].Pos.Y = 0.1f;
+            vptr[2].Pos.Y = 0.1f;
+            vptr[3].Pos.Y = 0.1f;
         }
 
         // Set up the indices for the triangles
@@ -216,10 +234,10 @@ void Graph::createMesh(bool show_invisible, bool enable_transparency,
         m_all_nodes[0]->getVertices(lap_v, lap_color);
         if (flatten)
         {
-            lap_v[0].Pos.Y = 0;
-            lap_v[1].Pos.Y = 0;
-            lap_v[2].Pos.Y = 0;
-            lap_v[3].Pos.Y = 0;
+            lap_v[0].Pos.Y = 0.1f;
+            lap_v[1].Pos.Y = 0.1f;
+            lap_v[2].Pos.Y = 0.1f;
+            lap_v[3].Pos.Y = 0.1f;
         }
 
         // Now scale the length (distance between vertix 0 and 3
@@ -410,7 +428,11 @@ RenderTarget* Graph::makeMiniMap(const core::dimension2du &dimension,
                                  bool invert_x_z)
 {
     // Skip minimap when profiling
+#ifdef SERVER_ONLY
+    return NULL;
+#else
     if (GUIEngine::isNoGraphics()) return NULL;
+#endif
 
     const video::SColor oldClearColor = irr_driver->getClearColor();
     irr_driver->setClearbackBufferColor(video::SColor(0, 255, 255, 255));
@@ -463,7 +485,17 @@ RenderTarget* Graph::makeMiniMap(const core::dimension2du &dimension,
     }
 #endif
 
+#ifndef SERVER_ONLY
+    bool vk = (GE::getVKDriver() != NULL);
+    if (vk)
+        GE::getGEConfig()->m_convert_irrlicht_mesh = true;
+#endif
     m_node = irr_driver->addMesh(m_mesh, "mini_map");
+#ifndef SERVER_ONLY
+    if (vk)
+        GE::getGEConfig()->m_convert_irrlicht_mesh = false;
+#endif
+
 #ifdef DEBUG
     m_node->setName("minimap-mesh");
 #endif

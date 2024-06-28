@@ -35,12 +35,16 @@
 #include "tracks/track.hpp"
 #include "tracks/track_object.hpp"
 #include "utils/constants.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 #include "utils/string_utils.hpp"
 
+#include <IAnimatedMeshSceneNode.h>
+#include <IFileSystem.h>
 #include <ISceneManager.h>
+#include <IMeshManipulator.h>
 #include <IMeshSceneNode.h>
 #include <ITexture.h>
+#include <IVideoDriver.h>
 using namespace irr;
 
 #include <algorithm>
@@ -511,6 +515,26 @@ void PhysicalObject::init(const PhysicalObject::Settings& settings)
                                                    material                 );
                     }   // for j
                 }
+                else if (mb->getVertexType() == video::EVT_SKINNED_MESH)
+                {
+                    irr::video::S3DVertexSkinnedMesh* mbVertices =
+                        (video::S3DVertexSkinnedMesh*)mb->getVertices();
+                    for(unsigned int j=0; j<mb->getIndexCount(); j+=3)
+                    {
+                        for(unsigned int k=0; k<3; k++)
+                        {
+                            int indx=mbIndices[j+k];
+                            core::vector3df v = mbVertices[indx].m_position;
+                            //mat.transformVect(v);
+                            vertices[k]=v;
+                            normals[k]=MiniGLM::decompressVector3(mbVertices[indx].m_normal);
+                        }   // for k
+                        triangle_mesh->addTriangle(vertices[0], vertices[1],
+                                                   vertices[2], normals[0],
+                                                   normals[1],  normals[2],
+                                                   material                 );
+                    }   // for j
+                }
             }   // for i<getMeshBufferCount
         }
         triangle_mesh->createCollisionShape();
@@ -617,10 +641,12 @@ void PhysicalObject::updateGraphics(float dt)
 
     Vec3 hpr;
     hpr.setHPR(SmoothNetworkBody::getSmoothedTrans().getRotation());
+    // Fix missing rotation when lto is used, see #4811
+    hpr *= RAD_TO_DEGREE;
 
     // This will only update the visual position, so it can be
     // called in updateGraphics()
-    m_object->move(xyz.toIrrVector(), hpr.toIrrVector()*RAD_TO_DEGREE,
+    m_object->move(xyz.toIrrVector(), hpr.toIrrVector(),
                    m_init_scale, /*updateRigidBody*/false, 
                    /* isAbsoluteCoord */true);
 }   // updateGraphics
