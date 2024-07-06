@@ -32,6 +32,7 @@
 #include "modes/soccer_world.hpp"
 // #include "modes/linear_world.hpp"
 #include "network/crypto.hpp"
+#include "network/database_connector.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
 // #include "network/network.hpp"
@@ -3285,14 +3286,7 @@ void CommandManager::process_token(Context& context)
     m_lobby->m_web_tokens.insert(token);
     std::string msg = "Your token is " + token;
 #ifdef ENABLE_SQLITE3
-    std::string tokens_table_name = ServerConfig::m_tokens_table;
-    std::string query = StringUtils::insertValues(
-        "INSERT INTO %s (username, token) "
-        "VALUES (\"%s\", \"%s\");",
-        tokens_table_name.c_str(), username.c_str(), token.c_str()
-    );
-    // TODO fix injection!!
-    if (m_lobby->easySQLQuery(query))
+    if (m_lobby->m_db_connector->insertToken(username, token))
         msg += "\nRetype it on the website to connect your STK account. ";
     else
         msg = "An error occurred, please try again.";
