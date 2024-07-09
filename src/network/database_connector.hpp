@@ -163,7 +163,7 @@ public:
                std::function<void(sqlite3_stmt* stmt)> bind_function = nullptr,
                                             std::string null_value = "") const;
 
-    void checkTableExists(const std::string& table, bool& result);
+    void checkTableExists(const std::string& table, bool& result, bool allow_views = false);
 
     std::string ip2Country(const SocketAddress& addr) const;
 

@@ -136,7 +136,7 @@ void DatabaseConnector::initDatabase()
     checkTableExists(ServerConfig::m_ipv6_geolocation_table,
         m_ipv6_geolocation_table_exists);
     checkTableExists(ServerConfig::m_records_table_name,
-        m_records_table_exists);
+        m_records_table_exists, true);
 
 #ifdef ENABLE_WEB_SUPPORT
     checkTableExists(ServerConfig::m_tokens_table, m_tokens_table_exists);
@@ -218,17 +218,21 @@ bool DatabaseConnector::easySQLQuery(
 /** Performs a query to determine if a certain table exists.
  *  \param table The searched name.
  *  \param result The output value.
+ *  \param allow_views True if views are allowed too (in case we only use SELECT).
  */
-void DatabaseConnector::checkTableExists(const std::string& table, bool& result)
+void DatabaseConnector::checkTableExists(const std::string& table, bool& result, bool allow_views)
 {
     if (!m_db)
         return;
     result = false;
     if (!table.empty())
     {
-        std::string query = StringUtils::insertValues(
-            "SELECT count(type) FROM sqlite_master "
-            "WHERE type='table' AND name='%s';", table.c_str());
+        std::string query = "SELECT count(type) FROM sqlite_master "
+            "WHERE (type='table'";
+        if (allow_views)
+            query += " OR type='view'";
+        query += ") AND name='%s';";
+        query = StringUtils::insertValues(query, table.c_str());
 
         std::vector<std::vector<std::string>> output;
         if (easySQLQuery(query, &output) && !output.empty())
