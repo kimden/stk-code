@@ -73,6 +73,7 @@ void GameSetup::loadWorld()
         else
             UserConfigParams::m_random_arena_item = m_reverse;
 
+        RaceManager::get()->setRandomItemsIndicator(m_reverse);
         RaceManager::get()->setReverseTrack(false);
         if (RaceManager::get()->isSoccerMode())
         {
@@ -92,6 +93,7 @@ void GameSetup::loadWorld()
     }
     else
     {
+        RaceManager::get()->setRandomItemsIndicator(false);
         RaceManager::get()->setReverseTrack(m_reverse);
         RaceManager::get()->startSingleRace(m_tracks.back(), m_laps,
                                       false/*from_overworld*/);

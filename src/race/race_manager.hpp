@@ -320,6 +320,18 @@ private:
     // This is uint8_t instead of bool because of GitHub issue #5053
     std::vector<uint8_t>                m_reverse_track;
 
+    /** This is an additional indicator that items are random during the game.
+     *   It is always false for racing and CTF for now. The reason it's added
+     *   is because it's not stored in m_reverse_track, but only in
+     *   UserConfigParams, and immediately erased from there. It's needed for
+     *   filling GameInfo. It might be removed in the future.
+     *
+     *  The problem with setting m_reverse_track to true in that case is,
+     *   I don't really know if something can break if FFA or soccer are
+     *   invoked with reverse == true.
+     */
+    uint8_t m_random_items;
+
     /** The list of default AI karts to use. This is from the command line. */
     std::vector<std::string>         m_default_ai_list;
 
@@ -957,6 +969,10 @@ public:
             m_minor_mode == MINOR_MODE_CAPTURE_THE_FLAG ||
             m_minor_mode == MINOR_MODE_FREE_FOR_ALL;
     }
+    // ----------------------------------------------------------------------------------------
+    void setRandomItemsIndicator(bool value)        { m_random_items = value; }
+    // ----------------------------------------------------------------------------------------
+    bool getRandomItemsIndicator() const             { return m_random_items; }
 };   // RaceManager
 
 #endif

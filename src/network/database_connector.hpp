@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 
+class GameInfo;
 class SocketAddress;
 class STKPeer;
 class NetworkPlayerProfile;
@@ -204,13 +205,8 @@ public:
 
     std::vector<ServerMessage> getServerMessages(uint32_t online_id) const;
     void deleteServerMessage(int row_id) const;
-    bool getBestResult(std::string& map_name, std::string& reverse_string,
-                std::string& mode_name, int laps_number, std::string& kc_string,
-                std::string& powerup_string, bool* exists, std::string* user, double* result);
-    void insertManyResults(int difficulty, std::vector<std::string>& usernames, std::string& map_name, std::string& reverse_string,
-        std::string& mode_name, std::vector<int>& lap_counts, std::vector<std::string>& scores,
-        std::vector<std::string>& karts, std::vector<float>& colors, std::vector<int>& has_quit, std::string& kc_string,
-        std::string& powerup_string);
+    bool getBestResult(const GameInfo& game_info, bool* exists, std::string* user, double* result);
+    void insertManyResults(const GameInfo& game_info);
 
 #ifdef ENABLE_WEB_SUPPORT
     bool getAllTokens(std::vector<std::string>& result);

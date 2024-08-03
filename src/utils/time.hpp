@@ -59,6 +59,9 @@ public:
     /** Get the time in string for game server logging prefix (thread-safe)*/
     static std::string getLogTime();
     // ------------------------------------------------------------------------
+    /** Get the time in string using a specified format (thread-safe)*/
+    static std::string getLogTimeFormatted(std::string&& format);
+    // ------------------------------------------------------------------------
     /** Converts the time in this object to a human readable string. */
     static std::string toString(const TimeType &tt);
     // ------------------------------------------------------------------------

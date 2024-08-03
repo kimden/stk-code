@@ -254,6 +254,8 @@ int WorldWithRank::getScoreForPosition(int p, float time)
             points = 0.0;
         return round(points);
     }
+    Log::error("WorldWithRank", "Unknown scoring type: %s. Giving 0 points", m_custom_scoring_type.c_str());
+    return 0;
 }   // getScoreForPosition
 
 //-----------------------------------------------------------------------------

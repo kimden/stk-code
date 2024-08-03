@@ -78,10 +78,10 @@ TeamManager::TeamManager()
 {
     addTeam("-", "none",    0.00, "");
     addTeam("r", "red",     1.00, StringUtils::utf32ToUtf8({0x1f7e5})); // 1
-    addTeam("o", "orange",  0.05, StringUtils::utf32ToUtf8({0x1f7e7})); // 2
+    addTeam("b", "blue",    0.66, StringUtils::utf32ToUtf8({0x1f7e6})); // 2
     addTeam("y", "yellow",  0.16, StringUtils::utf32ToUtf8({0x1f7e8})); // 3
     addTeam("g", "green",   0.33, StringUtils::utf32ToUtf8({0x1f7e9})); // 4
-    addTeam("b", "blue",    0.66, StringUtils::utf32ToUtf8({0x1f7e6})); // 5
+    addTeam("o", "orange",  0.05, StringUtils::utf32ToUtf8({0x1f7e7})); // 5
     addTeam("p", "purple",  0.78, StringUtils::utf32ToUtf8({0x1f7ea})); // 6
     addTeam("c", "cyan",    0.46, StringUtils::utf32ToUtf8({0x1f5fd})); // 7
     addTeam("m", "magenta", 0.94, StringUtils::utf32ToUtf8({0x1f338})); // 8

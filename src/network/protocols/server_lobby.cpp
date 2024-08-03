@@ -56,6 +56,7 @@
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/game_info.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
@@ -235,6 +236,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         m_tournament_game = 0;
     }
     m_allowed_to_start = true;
+    m_game_info = nullptr;
     loadTracksQueueFromConfig();
     std::string scoring = ServerConfig::m_gp_scoring;
     loadCustomScoring(scoring);
@@ -469,7 +471,9 @@ void ServerLobby::setup()
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
     getCommandManager().onResetServer();
-    m_saved_ffa_points.clear();
+    if (m_game_info)
+        delete m_game_info;
+    m_game_info = nullptr;
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -1331,6 +1335,40 @@ void ServerLobby::asynchronousUpdate()
                     }
                 }
             }
+            m_game_info = new GameInfo();
+            for (int i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+            {
+                GameInfo::PlayerInfo info;
+                RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
+                if (!rki.isReserved())
+                {
+                    info = GameInfo::PlayerInfo(false/* reserved */,
+                                                false/* game event*/);
+                    // TODO: I suspected it to be local name, but it's not!
+                    info.m_username = StringUtils::wideToUtf8(rki.getPlayerName());
+                    info.m_kart = rki.getKartName();
+                    //info.m_start_position = i;
+                    info.m_when_joined = 0;
+                    info.m_country_code = rki.getCountryCode();
+                    info.m_online_id = rki.getOnlineId();
+                    info.m_kart_class = rki.getKartData().m_kart_type;
+                    info.m_kart_color = rki.getDefaultKartColor();
+                    info.m_handicap = (uint8_t)rki.getHandicap();
+                    info.m_team = (int8_t)rki.getKartTeam();
+                    if (info.m_team == KartTeam::KART_TEAM_NONE)
+                    {
+                        auto npp = rki.getNetworkPlayerProfile().lock();
+                        if (npp)
+                            info.m_team = npp->getTemporaryTeam() - 1;
+                    }
+                }
+                else
+                {
+                    info = GameInfo::PlayerInfo(true/* reserved */,
+                                                false/* game event*/);
+                }
+                m_game_info->m_player_info.push_back(info);
+            }
         }
         break;
     }
@@ -1687,7 +1725,47 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     {
         const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
         std::string name = StringUtils::wideToUtf8(rki.getPlayerName());
-        int points = (ServerConfig::m_preserve_battle_scores ? m_saved_ffa_points[name] : 0);
+        int points = 0;
+
+        if (m_game_info)
+        {
+
+            if (!m_game_info->m_player_info[id].isReserved())
+            {
+                Log::error("ServerLobby", "While live joining kart %d, "
+                        "player info was not reserved.", id);
+            }
+            auto& info = m_game_info->m_player_info[id];
+            info = GameInfo::PlayerInfo(false/* reserved */,
+                    false/* game event*/);
+            info.m_username = StringUtils::wideToUtf8(rki.getPlayerName());
+            info.m_kart = rki.getKartName();
+            info.m_start_position = w->getStartPosition(id);
+            info.m_when_joined = stk_config->ticks2Time(w->getTicksSinceStart());
+            info.m_country_code = rki.getCountryCode();
+            info.m_online_id = rki.getOnlineId();
+            info.m_kart_class = rki.getKartData().m_kart_type;
+            info.m_kart_color = rki.getDefaultKartColor();
+            info.m_handicap = (uint8_t)rki.getHandicap();
+            info.m_team = (int8_t)rki.getKartTeam();
+            if (info.m_team == KartTeam::KART_TEAM_NONE)
+            {
+                auto npp = rki.getNetworkPlayerProfile().lock();
+                if (npp)
+                    info.m_team = npp->getTemporaryTeam() - 1;
+            }
+            if (RaceManager::get()->isBattleMode())
+            {
+                if (ServerConfig::m_preserve_battle_scores)
+                    points = m_game_info->m_saved_ffa_points[name];
+                info.m_result -= points;
+            }
+        }
+        else
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
+
+        // If the mode is not battle/CTF, points are 0.
+        // I assume it's fine like that for now
         World::getWorld()->addReservedKart(id, points);
         addLiveJoiningKart(id, rki, m_last_live_join_util_ticks);
         Log::info("ServerLobby", "%s succeeded live-joining with kart id %d.",
@@ -3259,22 +3337,11 @@ void ServerLobby::clientDisconnected(Event* event)
     if (players_on_peer.empty())
         return;
 
-    // section that handles unsaved FFA scores
     World* w = World::getWorld();
-    if (w) {
-        FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(w);
-        std::shared_ptr<STKPeer> peer = event->getPeerSP();
-        if (ffa_world && worldIsActive() && !peer->isWaitingForGame())
-        {
-            for (const int id : peer->getAvailableKartIDs())
-            {
-                RemoteKartInfo &rki = RaceManager::get()->getKartInfo(id);
-                m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())]
-                        = ffa_world->getKartScore(id);
-            }
-        }
-    }
-    // end of FFA scores section
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
+     // No warnings otherwise, as it could happen during lobby period
+    if (w && m_game_info)
+        saveDisconnectingPeerInfo(peer);
 
     NetworkString* msg = getNetworkString(2);
     const bool waiting_peer_disconnected =
@@ -4804,8 +4871,6 @@ void ServerLobby::testBannedForIP(STKPeer* peer) const
 void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id)
 {
 #ifdef ENABLE_SQLITE3
-    int row_id;
-
     std::vector<DatabaseConnector::ServerMessage> messages =
             m_db_connector->getServerMessages(online_id);
     // in case there will be more than one later
@@ -5138,8 +5203,15 @@ void ServerLobby::handlePlayerDisconnection() const
             total++;
             continue;
         }
+
+        if (!m_game_info)
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
         else
-            rki.makeReserved();
+        {
+            saveDisconnectingIdInfo(i);
+        }
+
+        rki.makeReserved();
 
         AbstractKart* k = World::getWorld()->getKart(i);
         if (!k->isEliminated() && !k->hasFinishedRace())
@@ -5361,15 +5433,14 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
         return;
     }
 
-    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    if (!m_game_info)
+        Log::warn("ServerLobby", "GameInfo is not accessible??");
+    else
+        saveDisconnectingPeerInfo(peer);
+
     for (const int id : peer->getAvailableKartIDs())
     {
         RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
-
-        if (ffa_world)
-            m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())]
-                = ffa_world->getKartScore(id);
-
         if (rki.getHostId() == peer->getHostId())
         {
             Log::info("ServerLobby", "%s left the game with kart id %d.",
@@ -5605,131 +5676,226 @@ void ServerLobby::updateGnuElimination()
 void ServerLobby::storeResults()
 {
 #ifdef ENABLE_SQLITE3
-    std::string powerup_string = powerup_manager->getFileName();
-    std::string kc_string = kart_properties_manager->getFileName();
-    // TODO: don't use file names as constants
-    if (powerup_string == "powerup.xml")
-        powerup_string = "";
-    if (kc_string == "kart_characteristics.xml")
-        kc_string = "";
-
-    bool racing_mode = false;
-    bool ffa = RaceManager::get()->getMinorMode() ==
-               RaceManager::MINOR_MODE_FREE_FOR_ALL;
-    racing_mode |= RaceManager::get()->getMinorMode() ==
-                   RaceManager::MINOR_MODE_NORMAL_RACE;
-    racing_mode |= RaceManager::get()->getMinorMode() ==
-                   RaceManager::MINOR_MODE_TIME_TRIAL;
-    if (!racing_mode && !ffa)
-        return;
     World* w = World::getWorld();
-    assert(w);
-    std::string records_table_name = ServerConfig::m_records_table_name;
-    std::string mode_name = RaceManager::get()->getMinorModeName();
-    int player_count = RaceManager::get()->getNumPlayers();
-    int laps_number = RaceManager::get()->getNumLaps();
-    std::string track_name = RaceManager::get()->getTrackName();
-    std::string reverse_string = "normal";
-    if (racing_mode && RaceManager::get()->getReverseTrack())
-        reverse_string = "reverse";
+    if (!w)
+        return;
+    if (!m_game_info)
+    {
+        Log::warn("ServerLobby", "GameInfo is not accessible??");
+        return;
+    }
+
+    RaceManager* rm = RaceManager::get();
+    m_game_info->m_timestamp = StkTime::getLogTimeFormatted("%Y-%m-%d %H:%M:%S");
+    m_game_info->m_venue = rm->getTrackName();
+    m_game_info->m_reverse = (rm->getReverseTrack() ||
+            rm->getRandomItemsIndicator() ? "reverse" : "normal");
+    m_game_info->m_mode = rm->getMinorModeName();
+    m_game_info->m_value_limit = 0;
+    m_game_info->m_time_limit = rm->getTimeTarget();
+    m_game_info->m_difficulty = getDifficulty();
+    m_game_info->setPowerupString(powerup_manager->getFileName());
+    m_game_info->setKartCharString(kart_properties_manager->getFileName());
+
+    if (rm->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+    {
+        m_game_info->m_value_limit = rm->getHitCaptureLimit();
+        m_game_info->m_flag_return_timeout = ServerConfig::m_flag_return_timeout;
+        m_game_info->m_flag_deactivated_time = ServerConfig::m_flag_deactivated_time;
+    }
+    else if (rm->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
+    {
+        m_game_info->m_value_limit = rm->getHitCaptureLimit(); // TODO doesn't work
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+    else if (rm->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
+    {
+        m_game_info->m_value_limit = rm->getMaxGoal(); // TODO doesn't work
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+    else
+    {
+        m_game_info->m_value_limit = rm->getNumLaps();
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+
+    // m_game_info->m_timestamp = TODO;
+    bool racing_mode = false;
+    bool soccer = false;
+    bool ffa = false;
+    bool ctf = false;
+    auto minor_mode = RaceManager::get()->getMinorMode();
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_NORMAL_RACE;
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_TIME_TRIAL;
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_LAP_TRIAL;
+    ffa |= minor_mode == RaceManager::MINOR_MODE_FREE_FOR_ALL;
+    ctf |= minor_mode == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG;
+    soccer |= minor_mode == RaceManager::MINOR_MODE_SOCCER;
+
+    // Kart class for standard karts
+    // Goal scoring policy?
+    // Do we really need round()/int for ingame timestamps?
+
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    LinearWorld* linear_world = dynamic_cast<LinearWorld*>(World::getWorld());
 
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
     std::string best_user = "";
 
-    if (racing_mode && !records_table_name.empty())
+    if (racing_mode)
     {
-        record_fetched = m_db_connector->getBestResult(
-            track_name, reverse_string, mode_name, laps_number,
-            kc_string, powerup_string, &record_exists, &best_user, &best_result);
+        record_fetched = m_db_connector->getBestResult(*m_game_info, &record_exists, &best_user, &best_result);
     }
 
     int best_cur_player_idx = -1;
     std::string best_cur_player_name = "";
     double best_cur_time = 1e18;
-    const double DISCONNECT_TIME = 123454321;
-    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
-    if (ffa && ffa_world)
-    {
-        // I don't really know how to call this without using a kart from RaceManager
-        laps_number = round(stk_config->ticks2Time(ffa_world->getTicksSinceStart()));
-    }
-    // start of insertions
-    std::vector<std::string> usernames;
-    std::vector<std::string> scores;
-    std::vector<std::string> karts;
-    std::vector<int> lap_counts;
-    std::vector<float> colors;
-    std::vector<int> has_quit;
-    for (int i = 0; i < player_count; i++)
-    {
-        // TODO why I cannot use get()->getPlayerName?
-        std::string username = StringUtils::wideToUtf8(
-            RaceManager::get()->getKartInfo(i).getPlayerName());
-        for (std::string& username: usernames) {
-            m_saved_ffa_points.erase(username);
-        }
-        auto profile = RaceManager::get()->getKartInfo(i).getNetworkPlayerProfile().lock();
-        // TODO fix this properly.
-        if (profile && profile->getOnlineId() == 0)
-            username = "* " + username;
-        double score = DISCONNECT_TIME;
-        std::string kart_name = w->getKart(i)->getIdent();
-        std::stringstream elapsed_string;
-        float kart_color = RaceManager::get()->getKartColor(i);
 
-        if (racing_mode)
+    double current_game_timestamp = stk_config->ticks2Time(w->getTicksSinceStart());
+
+    auto& vec = m_game_info->m_player_info;
+
+    // Set game duration for all items, including game events
+    // and reserved PlayerInfos (even if those will be removed)
+    for (unsigned i = 0; i < vec.size(); i++)
+    {
+        auto& info = vec[i];
+        info.m_game_duration = current_game_timestamp;
+        if (!info.isReserved() && info.m_kart_class.empty())
         {
-            score = RaceManager::get()->getKartRaceTime(i);
-            has_quit.push_back(w->getKart(i)->isEliminated() ? 1 : 0);
-            elapsed_string << std::setprecision(4) << std::fixed << score;
-            if (!w->getKart(i)->isEliminated() && (best_cur_player_idx == -1 || score < best_cur_time))
+            float width, height, length;
+            Vec3 gravity_shift;
+            const KartProperties* kp = OfficialKarts::getKartByIdent(info.m_kart,
+                    &width, &height, &length, &gravity_shift);
+            if (kp)
+                info.m_kart_class = kp->getKartType();
+        }
+    }
+    // For those players inside the game, set some variables
+    for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+    {
+        auto& info = vec[i];
+        if (info.isReserved())
+            continue;
+        info.m_when_left = current_game_timestamp;
+        info.m_start_position = w->getStartPosition(i);
+        if (ffa || ctf)
+        {
+            int points = 0;
+            if (ffa_world)
+                points = ffa_world->getKartScore(i);
+            else
+                Log::error("ServerLobby", "storeResults: battle mode but FFAWorld is not found");
+            info.m_result += points;
+            // I thought it would make sense to set m_autofinish to 1 if
+            // someone wins before time expires. However, it's not hard
+            // to check after reading the database I suppose...
+            info.m_autofinish = 0;
+        }
+        else if (racing_mode)
+        {
+            info.m_fastest_lap = -1;
+            info.m_sog_time = -1;
+            info.m_autofinish = -1;
+            info.m_result = rm->getKartRaceTime(i);
+            float finish_timeout = std::numeric_limits<float>::max();
+            if (linear_world)
+            {
+                info.m_fastest_lap = (double)linear_world->getFastestLapForKart(i);
+                finish_timeout = linear_world->getWorstFinishTime();
+                info.m_sog_time = linear_world->getStartTimeForKart(i);
+                info.m_autofinish = (info.m_result < finish_timeout ? 0 : 1);
+            }
+            else
+                Log::error("ServerLobby", "storeResults: racing mode but LinearWorld is not found");
+            info.m_not_full = 0;
+        }
+        else if (soccer)
+        {
+            // Soccer's m_result is handled in SoccerWorld
+            info.m_autofinish = 0;
+        }
+    }
+    // If the mode is not racing (in which case we set it separately),
+    // set m_not_full to false iff he was present all the time
+    if (!racing_mode)
+    {
+        for (int i = 0; i < vec.size(); i++)
+        {
+            if (vec[i].m_reserved == 0 && vec[i].m_game_event == 0)
+                vec[i].m_not_full = (vec[i].m_when_joined == 0 &&
+                        vec[i].m_when_left == current_game_timestamp ? 0 : 1);
+        }
+    }
+    // Remove reserved PlayerInfos. Note that the first getNumPlayers() items
+    // no longer correspond to same ID in RaceManager (if they exist even)
+    for (int i = 0; i < vec.size(); i++)
+    {
+        if (vec[i].isReserved())
+        {
+            std::swap(vec[i], vec.back());
+            vec.pop_back();
+            --i;
+        }
+    }
+    bool sort_asc = !racing_mode;
+    std::sort(vec.begin(), vec.end(), [sort_asc]
+            (GameInfo::PlayerInfo& lhs, GameInfo::PlayerInfo& rhs) -> bool {
+        if (lhs.m_game_event != rhs.m_game_event)
+            return lhs.m_game_event < rhs.m_game_event;
+        if (lhs.m_when_joined != rhs.m_when_joined)
+            return lhs.m_when_joined < rhs.m_when_joined;
+        if (lhs.m_result != rhs.m_result)
+            return (lhs.m_result > rhs.m_result) ^ sort_asc;
+        return false;
+    });
+    if (soccer || ctf)
+    {
+        for (unsigned i = 1; i < vec.size(); i++)
+        {
+            if (vec[i].m_game_event == 1)
+            {
+                double previous = 0;
+                if (vec[i - 1].m_game_event == 1)
+                    previous = vec[i - 1].m_when_joined;
+                vec[i].m_sog_time = vec[i].m_when_joined - previous;
+            }
+        }
+    }
+    // For racing, find who won and possibly beaten the record
+    if (racing_mode)
+    {
+        for (unsigned i = 0; i < vec.size(); i++)
+        {
+            if (vec[i].m_reserved == 0 && vec[i].m_game_event == 0 &&
+                    vec[i].m_not_full == 0 &&
+                    (best_cur_player_idx == -1 || vec[i].m_result < best_cur_time))
             {
                 best_cur_player_idx = i;
-                best_cur_time = score;
-                best_cur_player_name = username;
+                best_cur_time = vec[i].m_result;
+                best_cur_player_name = vec[i].m_username;
             }
         }
-        else if (ffa)
-        {
-            if (w->getKart(i)->isEliminated())
-                continue;
-            has_quit.push_back(0);
-            if (ffa_world)
-            {
-                score = ffa_world->getKartScore(i);
-            }
-            elapsed_string << std::setprecision(0) << std::fixed << score;
-        }
+    }
 
-        usernames.push_back(username);
-        scores.push_back(elapsed_string.str());
-        karts.push_back(kart_name);
-        lap_counts.push_back(laps_number);
-        colors.push_back(kart_color);
-    }
-    if (ServerConfig::m_preserve_battle_scores)
-    {
-        for (auto &p: m_saved_ffa_points)
-        {
-            usernames.push_back(p.first);
-            lap_counts.push_back(0);
-            scores.push_back(std::to_string(p.second));
-            karts.push_back("unknown");
-            colors.push_back(-1);
-            has_quit.push_back(1);
-        }
-    }
-    m_saved_ffa_points.clear();
-    m_db_connector->insertManyResults(getDifficulty(), usernames, track_name, reverse_string, mode_name,
-                                      lap_counts, scores, karts, colors, has_quit, kc_string, powerup_string);
+    // Note that before, when online_id was 0, "* " was added to the beginning
+    // of the name. I'm not sure it's really needed now that online_id is saved.
+
+    // Note that before, string was used to write the result to take into
+    // account increased precision for racing. Examples:
+    // racing: elapsed_string << std::setprecision(4) << std::fixed << score;
+    // ffa: elapsed_string << std::setprecision(0) << std::fixed << score;
+
+    m_game_info->m_saved_ffa_points.clear();
+    m_db_connector->insertManyResults(*m_game_info);
     // end of insertions
     if (record_fetched && best_cur_player_idx != -1) // implies racing_mode
     {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
         std::string message;
         if (!record_exists)
         {
@@ -5743,13 +5909,9 @@ void ServerLobby::storeResults()
                 "%s has just beaten a server record: %s\nPrevious record: %s by %s",
                 best_cur_player_name, StringUtils::timeToString(best_cur_time),
                 StringUtils::timeToString(best_result), best_user);
-        } else {
-            delete chat;
-            return;
         }
-        chat->encodeString16(StringUtils::utf8ToWide(message));
-        sendMessageToPeers(chat);
-        delete chat;
+        if (!message.empty())
+            sendStringToAllPeers(message);
     }
 #endif
 }  // storeResults
@@ -6384,6 +6546,7 @@ bool ServerLobby::loadCustomScoring(std::string& scoring)
 //-----------------------------------------------------------------------------   
 void ServerLobby::updateWorldSettings()
 {
+    World::getWorld()->setGameInfo(m_game_info);
     WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
     if (wwr)
     {
@@ -6553,26 +6716,24 @@ CommandManager& ServerLobby::getCommandManager()
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     std::string& direction, int laps)
 {
-    std::string records_table_name = ServerConfig::m_records_table_name;
-    if (records_table_name.empty())
-        return "No table storing records!";
-
     std::string powerup_string = powerup_manager->getFileName();
     std::string kc_string = kart_properties_manager->getFileName();
-    // TODO [2]: don't use file names as constants
-    if (powerup_string == "powerup.xml")
-        powerup_string = "";
-    if (kc_string == "kart_characteristics.xml")
-        kc_string = "";
+    GameInfo temp_info;
+    temp_info.m_venue = track;
+    temp_info.m_reverse = direction;
+    temp_info.m_mode = mode;
+    temp_info.m_value_limit = laps;
+    temp_info.m_time_limit = 0;
+    temp_info.m_difficulty = getDifficulty();
+    temp_info.setPowerupString(powerup_manager->getFileName());
+    temp_info.setKartCharString(kart_properties_manager->getFileName());
 
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
     std::string best_user = "";
 
-    record_fetched = m_db_connector->getBestResult(
-        track, direction, mode, laps,
-        kc_string, powerup_string, &record_exists, &best_user, &best_result);
+    record_fetched = m_db_connector->getBestResult(temp_info, &record_exists, &best_user, &best_result);
 
     if (!record_fetched)
         return "Failed to make a query";
@@ -7126,4 +7287,60 @@ bool ServerLobby::playerReportsTableExists() const
 #else
     return false;
 #endif
-}
+}   // playerReportsTableExists
+
+//-----------------------------------------------------------------------------
+void ServerLobby::saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const
+{
+    if (worldIsActive() && !peer->isWaitingForGame())
+    {
+        for (const int id : peer->getAvailableKartIDs())
+        {
+            saveDisconnectingIdInfo(id);
+        }
+    }
+}   // saveDisconnectingPeerInfo
+
+//-----------------------------------------------------------------------------
+void ServerLobby::saveDisconnectingIdInfo(int id) const
+{
+    World* w = World::getWorld();
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(w);
+    LinearWorld* linear_world = dynamic_cast<LinearWorld*>(w);
+    RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
+    int points = 0;
+    m_game_info->m_player_info.emplace_back(true/* reserved */,
+                                            false/* game event*/);
+    std::swap(m_game_info->m_player_info.back(), m_game_info->m_player_info[id]);
+    auto& info = m_game_info->m_player_info.back();
+    if (RaceManager::get()->isBattleMode())
+    {
+        if (ffa_world)
+            points = ffa_world->getKartScore(id);
+        info.m_result += points;
+        if (ServerConfig::m_preserve_battle_scores)
+            m_game_info->m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())] = points;
+    }
+    info.m_when_left = stk_config->ticks2Time(w->getTicksSinceStart());
+    info.m_start_position = w->getStartPosition(id);
+    if (RaceManager::get()->isLinearRaceMode())
+    {
+        info.m_autofinish = 0;
+        info.m_fastest_lap = -1;
+        info.m_sog_time = -1;
+        if (linear_world)
+        {
+            info.m_fastest_lap = (double)linear_world->getFastestLapForKart(id);
+            info.m_sog_time = linear_world->getStartTimeForKart(id);
+        }
+        info.m_not_full = 1;
+        // If a player disconnects before the final screen but finished,
+        // don't set him as "quitting"
+        if (w->getKart(id)->hasFinishedRace())
+            info.m_not_full = 0;
+        if (info.m_not_full == 1)
+            info.m_result = info.m_when_left;
+        else
+            info.m_result = RaceManager::get()->getKartRaceTime(id);
+    }
+}   // saveDisconnectingIdInfo

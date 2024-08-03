@@ -38,6 +38,7 @@
 #include <cstring>
 #include <cwchar>
 #include <exception>
+#include <iomanip>
 
 extern std::string g_android_main_user_agent;
 
@@ -1383,6 +1384,17 @@ namespace StringUtils
         return result;
     }   // toUInt8Vector
     // ------------------------------------------------------------------------
+
+    /** Prints a double value with a certain precision. Useful for insertValues,
+    *   where operator << is used, and not toString which would be fine for doubles.
+    */
+    std::ostream& operator << (std::ostream& os, const Precision& item)
+    {
+        os << std::setprecision(item.m_precision) << std::fixed << item.m_value;
+        return os;
+    }   // operator << (Precision)
+
+    //-----------------------------------------------------------------------------
 } // namespace StringUtils
 
 /* EOF */

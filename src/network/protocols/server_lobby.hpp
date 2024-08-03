@@ -44,6 +44,7 @@
 
 class BareNetworkString;
 class DatabaseConnector;
+class GameInfo;
 class NetworkItemManager;
 class NetworkString;
 class NetworkPlayerProfile;
@@ -374,7 +375,7 @@ private:
 
     std::atomic<unsigned> m_current_max_players_in_game;
 
-    std::map<std::string, int> m_saved_ffa_points;
+    GameInfo* m_game_info;
 
 #ifdef ENABLE_WEB_SUPPORT
     std::set<std::string> m_web_tokens;
@@ -660,6 +661,9 @@ public:
     static int m_default_fixed_laps;
     static int m_fixed_laps;
     bool playerReportsTableExists() const;
+
+    void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
+    void saveDisconnectingIdInfo(int id) const;
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

@@ -26,7 +26,9 @@
 #include "network/stk_host.hpp"
 #include "network/stk_ipv6.hpp"
 #include "network/stk_peer.hpp"
+#include "utils/game_info.hpp"
 #include "utils/log.hpp"
+#include "utils/string_utils.hpp"
 
 //-----------------------------------------------------------------------------
 /** Prints "?" to the output stream and saves the Binder object to the
@@ -421,7 +423,11 @@ void DatabaseConnector::initServerStatsTable()
         "    connected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when connected\n"
         "    disconnected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when disconnected (saved when disconnected)\n"
         "    ping INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Ping of the host\n"
-        "    packet_loss INTEGER NOT NULL DEFAULT 0 -- Mean packet loss count from ENet (saved when disconnected)\n"
+        "    packet_loss INTEGER NOT NULL DEFAULT 0, -- Mean packet loss count from ENet (saved when disconnected)\n"
+        "    addon_karts_count INTEGER UNSIGNED NOT NULL DEFAULT -1, -- Number of addon karts of the host\n"
+        "    addon_tracks_count INTEGER UNSIGNED NOT NULL DEFAULT -1, -- Number of addon tracks of the host\n"
+        "    addon_arenas_count INTEGER UNSIGNED NOT NULL DEFAULT -1, -- Number of addon arenas of the host\n"
+        "    addon_soccers_count INTEGER UNSIGNED NOT NULL DEFAULT -1 -- Number of addon soccers of the host\n"
         ") WITHOUT ROWID;";
     std::string query = oss.str();
 
@@ -443,29 +449,86 @@ void DatabaseConnector::initServerStatsTable()
         ") WITHOUT ROWID;", country_table_name.c_str());
     easySQLQuery(query);
 
-    // Extra default table _results:
-    // Server owner need to initialise this table himself, check NETWORKING.md
-    m_results_table_name = std::string("v") + StringUtils::toString(
-        ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_results";
-    query = StringUtils::insertValues(
-        "CREATE TABLE IF NOT EXISTS %s (\n"
-        "    time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Timestamp of the result\n"
-        "    username TEXT NOT NULL, -- User who set the result\n"
-        "    venue TEXT NOT NULL, -- Map used in the game\n"
-        "    reverse TEXT NOT NULL, -- Direction\n"
-        "    mode TEXT NOT NULL, -- Game mode\n"
-        "    laps INTEGER NOT NULL, -- Length (number of laps or duration)\n"
-        "    result REAL NOT NULL, -- Elapsed time for a race, possibly with autofinish\n"
-        "    difficulty INTEGER, -- Di\n"
-        "    kart TEXT,\n"
-        "    config TEXT,\n"
-        "    visible INTEGER DEFAULT 1,\n"
-        "    items TEXT,\n"
-        "    kart_color REAL DEFAULT 0,\n"
-        "    is_quit INTEGER DEFAULT 0"
-        ");", m_results_table_name.c_str());
-    easySQLQuery(query);
+    std::vector<std::vector<std::string>> output;
+
+    if (ServerConfig::m_store_results)
+    {
+        // Extra default table _results:
+        // Server owner need to initialise this table himself, check NETWORKING.md
+        m_results_table_name = std::string("v") + StringUtils::toString(
+            ServerConfig::m_server_db_version) + "_" +
+            ServerConfig::m_server_uid + "_results";
+        query = StringUtils::insertValues(
+            "CREATE TABLE IF NOT EXISTS %s (\n"
+            // Columns describing game settings
+            "    time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Timestamp of the result\n"
+            "    venue TEXT NOT NULL DEFAULT \"\", -- Map used in the game\n"
+            "    reverse TEXT NOT NULL DEFAULT \"\", -- Direction / whether randomly placed items are used\n"
+            "    mode TEXT NOT NULL DEFAULT \"\", -- Game mode\n"
+            "    value_limit INTEGER NOT NULL DEFAULT 0, -- Length (number of laps/goals/points/captures)\n"
+            "    time_limit REAL NOT NULL DEFAULT 0, -- Length (in seconds)\n"
+            "    difficulty INTEGER DEFAULT -1, -- Difficulty used in the game\n"
+            "    config TEXT DEFAULT \"\", -- Name of kart_characteristics file used (empty for default)\n"
+            "    items TEXT DEFAULT \"\", -- Name of powerup.xml file used (empty for default)\n"
+            "    flag_return_timeout INTEGER DEFAULT 0, -- For CTF, the time after which the flag returns to the base itself\n"
+            "    flag_deactivated_time INTEGER DEFAULT 0, -- For CTF, the deactivation time of the flag\n"
+            "    visible INTEGER DEFAULT 1, -- A mark you can use to disable some entries\n"
+            // Columns describing achieved results
+            "    username TEXT NOT NULL DEFAULT \"\", -- User who set the result\n"
+            "    result REAL NOT NULL, -- The result of the game (e.g. elapsed time for a race)\n"
+            "    kart TEXT DEFAULT \"\", -- Kart used by the player\n"
+            "    kart_class TEXT DEFAULT \"\", -- Kart class used by a player\n"
+            "    kart_color REAL DEFAULT 0, -- Kart color used by the player\n"
+            "    team INTEGER DEFAULT -1, -- The team of the player\n"
+            "    handicap INTEGER DEFAULT -1, -- Handicap used by the player\n"
+            "    start_pos INTEGER DEFAULT -1, -- Starting position of a player, if applicable\n"
+            "    fastest_lap REAL DEFAULT -1, -- For racing modes, the fastest lap of the player\n"
+            "    sog_time REAL DEFAULT -1, -- For racing players, time until crossing the start line; for soccer/ctf goals, the time since previous goal\n"
+            "    online_id INTEGER DEFAULT -1, -- Online id of a player, if exists\n"
+            "    country_code TEXT DEFAULT \"\", -- Country code of a player, if determined\n"
+            "    is_autofinish INTEGER DEFAULT 0, -- Whether the player's game was autofinished\n"
+            "    is_not_full INTEGER DEFAULT 0, -- Whether the player quit the game\n"
+            "    game_duration REAL DEFAULT -1, -- Game duration, if known\n"
+            "    when_joined REAL DEFAULT -1, -- The moment when the player joined the game\n"
+            "    when_left REAL DEFAULT -1, -- The moment when the player left the game\n"
+            "    game_event INTEGER DEFAULT 0, -- Whether this row corresponds to a game event (goal, capture, ...)\n"
+            "    other_info TEXT DEFAULT \"\" -- Any other info that can be useful for the database\n"
+            ");", m_results_table_name.c_str());
+        easySQLQuery(query);
+
+        // If the results table after that query has too few columns,
+        // warn about database update
+        output.clear();
+        query = "SELECT count(cid) FROM pragma_table_info('" + m_results_table_name + "');";
+        int columns = -1;
+        if (easySQLQuery(query, &output) && !output.empty() && !output[0].empty())
+        {
+            if (!StringUtils::fromString(output[0][0], columns))
+                columns = -1;
+        }
+        if (columns < 31) // the number of columns at the moment of big update
+        {
+#ifdef ENABLE_FATAL_WHEN_OLD_RECORDS
+            Log::fatal("DatabaseConnector", ""
+                "Your database schema appears to be old. The current code might work incorrectly. "
+                "You can update your existing database using guides in docs/fork folder. "
+                "Or you can use a new database for the meantime, while updating your old database later. "
+                "Or you can suppress this warning by passing -DFATAL_WHEN_OLD_RECORDS=OFF to CMake. "
+                "Or you can set store-results to false in the config, then make "
+                "sure your records-table-name is either empty or the table has enough columns. "
+                "We apologize for inconvenience. If you have questions, we'd be glad to resolve them. "
+                "Please get in touch with us using kimden/stk-code repo, or in any other way."
+                "\nAborting the server."
+            );
+#else
+            Log::warn("DatabaseConnector", ""
+                "Your database schema appears to be old. The current code might work incorrectly. "
+                "You suppressed this warning, so nothing happens. "
+                "You can make this warning abort STK by passing -DFATAL_WHEN_OLD_RECORDS=OFF to CMake. "
+            );
+#endif
+        }
+    }
 
     // Default views:
     // _full_stats
@@ -578,7 +641,7 @@ void DatabaseConnector::initServerStatsTable()
     query = StringUtils::insertValues("SELECT MAX(host_id) FROM %s;",
         m_server_stats_table.c_str());
 
-    std::vector<std::vector<std::string>> output;
+    output.clear();
     if (easySQLQuery(query, &output))
     {
         if (!output.empty() && !output[0].empty()
@@ -1085,36 +1148,34 @@ void DatabaseConnector::deleteServerMessage(int row_id) const
 
 //-----------------------------------------------------------------------------
 /** Queries the database for the best ever result set under certain settings.
- *  \param map_name (input) Map used.
- *  \param reverse_string (input) Direction used.
- *  \param mode_name (input) Mode used.
- *  \param laps_number (input) Number of laps used.
- *  \param kc_string (input) kart_characteristics.xml file used.
- *  \param powerup_string (input) powerup.xml file used.
+ *  \param game_info (input) Settings of the game used.
  *  \param exists (output) Whether the results exist with that config.
  *  \param user (output) Name of user that set the best result.
  *  \param result (output) The result itself.
  *  \return True if the query succeeded (even if the set of results is empty).
  */
-bool DatabaseConnector::getBestResult(std::string& map_name, std::string& reverse_string,
-        std::string& mode_name, int laps_number, std::string& kc_string,
-        std::string& powerup_string, bool* exists, std::string* user, double* result)
+bool DatabaseConnector::getBestResult(const GameInfo& game_info,
+                            bool* exists, std::string* user, double* result)
 {
     if (!m_records_table_exists)
         return false;
     std::shared_ptr<BinderCollection> coll = std::make_shared<BinderCollection>();
+    // Note that IS is important, as the strings corresponding to value/time
+    // limits can be NULL instead. SQLite manual specifies that IS can be used
+    // to compare strings just as = operator.
     std::string query = StringUtils::insertValues("SELECT username, "
         "result FROM \"%s\" WHERE venue = %s AND reverse = \"%s\" "
-        "AND mode = \"%s\" AND laps = %d AND config = %s "
-        "AND items = %s AND is_quit = 0 "
+        "AND mode = \"%s\" AND value_limit = %s AND time_limit = %s "
+        "AND config = %s AND items = %s AND is_not_full = 0 AND game_event = 0 "
         "ORDER BY result ASC, time ASC LIMIT 1;",
         ServerConfig::m_records_table_name.c_str(),
-        Binder(coll, map_name.c_str(), "map name"),
-        reverse_string.c_str(),
-        mode_name.c_str(),
-        laps_number,
-        Binder(coll, kc_string.c_str(), "kart char string"),
-        Binder(coll, powerup_string.c_str(), "powerup string")
+        Binder(coll, game_info.m_venue, "map name"),
+        game_info.m_reverse.c_str(),
+        game_info.m_mode.c_str(),
+        game_info.m_value_limit,
+        game_info.m_time_limit,
+        Binder(coll, game_info.m_kart_char_string, "kart char string"),
+        Binder(coll, game_info.m_powerup_string, "powerup string")
     );
     std::vector<std::vector<std::string>> output;
     if (easySQLQuery(query, &output, coll->getBindFunction()))
@@ -1144,42 +1205,59 @@ bool DatabaseConnector::getBestResult(std::string& map_name, std::string& revers
 //-----------------------------------------------------------------------------
 /** Inserts all the results of a single game. The parameters will be reordered
  *   later.
- *  \param all_of_them Will be described later, when they are reorganized.
+ *  \param game_info (input) Settings of the game used. Includes the results
+ *                   themselves.
  */
-void DatabaseConnector::insertManyResults(int difficulty, std::vector<std::string>& usernames, std::string& map_name, std::string& reverse_string,
-        std::string& mode_name, std::vector<int>& lap_counts, std::vector<std::string>& scores,
-        std::vector<std::string>& karts, std::vector<float>& colors, std::vector<int>& has_quit, std::string& kc_string,
-        std::string& powerup_string)
+void DatabaseConnector::insertManyResults(const GameInfo& game_info)
 {
-    for (int i = 0; i < (int)usernames.size(); ++i)
+    for (int i = 0; i < (int)game_info.m_player_info.size(); ++i)
     {
+        const GameInfo::PlayerInfo& pi = game_info.m_player_info[i];
         std::shared_ptr<BinderCollection> coll = std::make_shared<BinderCollection>();
+        // Note that insertValues doesn't care about the exact letter, so we
+        // can use %f for StringUtils::Precision, for example
         std::string query = StringUtils::insertValues(
-            "INSERT INTO %s (username, venue, reverse, mode, laps, result"
-#ifdef ENABLE_RECORDS_V2
-            ", difficulty, kart, config, items, kart_color, is_quit"
-#endif
-            ") VALUES (%s, %s, \"%s\", \"%s\", %d, \"%s\""
-#ifdef ENABLE_RECORDS_V2
-            ", %d, %s, %s, %s, %f, %d"
-#endif
-            ");",
+            "INSERT INTO %s (time, venue, reverse, mode, value_limit, time_limit, "
+            "difficulty, config, items, flag_return_timeout, flag_deactivated_time, "
+            "username, result, kart, kart_class, kart_color, team, handicap, start_pos, fastest_lap, sog_time, "
+            "online_id, country_code, is_autofinish, is_not_full, game_duration, when_joined, when_left, "
+            "game_event, other_info) "
+            "VALUES (%s, %s, \"%s\", \"%s\", %d, %f, "
+            "%d, %s, %s, %d, %d, " //%s, "
+            "%s, %f, %s, %s, %f, %d, %d, %d, %f, %f, "
+            "%d, \"%s\", %d, %d, %f, %f, %f, "
+            "%d, %s);",
             m_results_table_name.c_str(),
-            Binder(coll, usernames[i], "username"),
-            Binder(coll, map_name, "map name"),
-            reverse_string.c_str(),
-            mode_name.c_str(),
-            lap_counts[i],
-            scores[i].c_str()
-#ifdef ENABLE_RECORDS_V2
-            ,
-            difficulty,
-            Binder(coll, karts[i].c_str(), "kart name"),
-            Binder(coll, kc_string.c_str(), "kart char string"),
-            Binder(coll, powerup_string.c_str(), "powerup string"),
-            colors[i],
-            has_quit[i]
-#endif
+            Binder(coll, game_info.m_timestamp, "time"),
+            Binder(coll, game_info.m_venue, "map name"),
+            game_info.m_reverse.c_str(),
+            game_info.m_mode.c_str(),
+            game_info.m_value_limit,
+            StringUtils::Precision(game_info.m_time_limit, 6),
+            game_info.m_difficulty,
+            Binder(coll, game_info.m_kart_char_string, "kart char string"),
+            Binder(coll, game_info.m_powerup_string, "powerup string"),
+            game_info.m_flag_return_timeout,
+            game_info.m_flag_deactivated_time,
+            Binder(coll, pi.m_username, "username"),
+            StringUtils::Precision(pi.m_result, 6),
+            Binder(coll, pi.m_kart.c_str(), "kart name"),
+            Binder(coll, pi.m_kart_class, "kart class"),
+            StringUtils::Precision(pi.m_kart_color, 2),
+            pi.m_team,
+            pi.m_handicap,
+            pi.m_start_position,
+            StringUtils::Precision(pi.m_fastest_lap, 6),
+            StringUtils::Precision(pi.m_sog_time, 6),
+            pi.m_online_id,
+            pi.m_country_code.c_str(),
+            pi.m_autofinish,
+            pi.m_not_full,
+            StringUtils::Precision(pi.m_game_duration, 6),
+            StringUtils::Precision(pi.m_when_joined, 6),
+            StringUtils::Precision(pi.m_when_left, 6),
+            pi.m_game_event,
+            Binder(coll, pi.m_other_info, "other info")
         );
         easySQLQuery(query, nullptr, coll->getBindFunction());
     }
