@@ -32,6 +32,7 @@
 #include "modes/soccer_world.hpp"
 #include "modes/linear_world.hpp"
 #include "network/crypto.hpp"
+#include "network/database_connector.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
 #include "network/network.hpp"
@@ -56,6 +57,7 @@
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/game_info.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
@@ -106,69 +108,6 @@ public:
 
 // We use max priority for all server requests to avoid downloading of addons
 // icons blocking the poll request in all-in-one graphical client server
-
-#ifdef ENABLE_SQLITE3
-
-// ----------------------------------------------------------------------------
-static void upperIPv6SQL(sqlite3_context* context, int argc,
-                         sqlite3_value** argv)
-{
-    if (argc != 1)
-    {
-        sqlite3_result_int64(context, 0);
-        return;
-    }
-
-    char* ipv6 = (char*)sqlite3_value_text(argv[0]);
-    if (ipv6 == NULL)
-    {
-        sqlite3_result_int64(context, 0);
-        return;
-    }
-    sqlite3_result_int64(context, upperIPv6(ipv6));
-}
-
-// ----------------------------------------------------------------------------
-void insideIPv6CIDRSQL(sqlite3_context* context, int argc,
-                       sqlite3_value** argv)
-{
-    if (argc != 2)
-    {
-        sqlite3_result_int(context, 0);
-        return;
-    }
-
-    char* ipv6_cidr = (char*)sqlite3_value_text(argv[0]);
-    char* ipv6_in = (char*)sqlite3_value_text(argv[1]);
-    if (ipv6_cidr == NULL || ipv6_in == NULL)
-    {
-        sqlite3_result_int(context, 0);
-        return;
-    }
-    sqlite3_result_int(context, insideIPv6CIDR(ipv6_cidr, ipv6_in));
-}   // insideIPv6CIDRSQL
-
-// ----------------------------------------------------------------------------
-/*
-Copy below code so it can be use as loadable extension to be used in sqlite3
-command interface (together with andIPv6 and insideIPv6CIDR from stk_ipv6)
-
-#include "sqlite3ext.h"
-SQLITE_EXTENSION_INIT1
-// ----------------------------------------------------------------------------
-sqlite3_extension_init(sqlite3* db, char** pzErrMsg,
-                       const sqlite3_api_routines* pApi)
-{
-    SQLITE_EXTENSION_INIT2(pApi)
-    sqlite3_create_function(db, "insideIPv6CIDR", 2, SQLITE_UTF8, NULL,
-        insideIPv6CIDRSQL, NULL, NULL);
-    sqlite3_create_function(db, "upperIPv6", 1, SQLITE_UTF8,  0, upperIPv6SQL,
-        0, 0);
-    return 0;
-}   // sqlite3_extension_init
-*/
-
-#endif
 
 /** This is the central game setup protocol running in the server. It is
  *  mostly a finite state machine. Note that all nodes in ellipses and light
@@ -287,9 +226,10 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
     m_default_vote = new PeerVote();
-    m_player_reports_table_exists = false;
-    initDatabase();
-
+#ifdef ENABLE_SQLITE3
+    m_db_connector = new DatabaseConnector();
+    m_db_connector->initDatabase();
+#endif
     initCategories();
     if (ServerConfig::m_soccer_tournament)
     {
@@ -297,6 +237,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         m_tournament_game = 0;
     }
     m_allowed_to_start = true;
+    m_game_info = nullptr;
     loadTracksQueueFromConfig();
     std::string scoring = ServerConfig::m_gp_scoring;
     loadCustomScoring(scoring);
@@ -323,333 +264,21 @@ ServerLobby::~ServerLobby()
     if (m_save_server_config)
         ServerConfig::writeServerConfigToDisk();
     delete m_default_vote;
-    destroyDatabase();
+
+#ifdef ENABLE_SQLITE3
+    m_db_connector->destroyDatabase();
+    delete m_db_connector;
+#endif
 }   // ~ServerLobby
 
 //-----------------------------------------------------------------------------
-void ServerLobby::initDatabase()
-{
-#ifdef ENABLE_SQLITE3
-    m_last_poll_db_time = StkTime::getMonoTimeMs();
-    m_db = NULL;
-    m_ip_ban_table_exists = false;
-    m_ipv6_ban_table_exists = false;
-    m_online_id_ban_table_exists = false;
-    m_ip_geolocation_table_exists = false;
-    m_ipv6_geolocation_table_exists = false;
-    if (!ServerConfig::m_sql_management)
-        return;
-    const std::string& path = ServerConfig::getConfigDirectory() + "/" +
-        ServerConfig::m_database_file.c_str();
-    int ret = sqlite3_open_v2(path.c_str(), &m_db,
-        SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_FULLMUTEX |
-        SQLITE_OPEN_READWRITE, NULL);
-    if (ret != SQLITE_OK)
-    {
-        Log::error("ServerLobby", "Cannot open database: %s.",
-            sqlite3_errmsg(m_db));
-        sqlite3_close(m_db);
-        m_db = NULL;
-        return;
-    }
-    sqlite3_busy_handler(m_db, [](void* data, int retry)
-        {
-            int retry_count = ServerConfig::m_database_timeout / 100;
-            if (retry < retry_count)
-            {
-                sqlite3_sleep(100);
-                // Return non-zero to let caller retry again
-                return 1;
-            }
-            // Return zero to let caller return SQLITE_BUSY immediately
-            return 0;
-        }, NULL);
-    sqlite3_create_function(m_db, "insideIPv6CIDR", 2, SQLITE_UTF8, NULL,
-        &insideIPv6CIDRSQL, NULL, NULL);
-    sqlite3_create_function(m_db, "upperIPv6", 1, SQLITE_UTF8, NULL,
-        &upperIPv6SQL, NULL, NULL);
-    checkTableExists(ServerConfig::m_ip_ban_table, m_ip_ban_table_exists);
-    checkTableExists(ServerConfig::m_ipv6_ban_table, m_ipv6_ban_table_exists);
-    checkTableExists(ServerConfig::m_online_id_ban_table,
-        m_online_id_ban_table_exists);
-    checkTableExists(ServerConfig::m_player_reports_table,
-        m_player_reports_table_exists);
-    checkTableExists(ServerConfig::m_ip_geolocation_table,
-        m_ip_geolocation_table_exists);
-    checkTableExists(ServerConfig::m_ipv6_geolocation_table,
-        m_ipv6_geolocation_table_exists);
-#endif
-}   // initDatabase
 
-//-----------------------------------------------------------------------------
 void ServerLobby::initServerStatsTable()
 {
 #ifdef ENABLE_SQLITE3
-    if (!ServerConfig::m_sql_management || !m_db)
-        return;
-    std::string table_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_stats";
-
-    std::ostringstream oss;
-    oss << "CREATE TABLE IF NOT EXISTS " << table_name << " (\n"
-        "    host_id INTEGER UNSIGNED NOT NULL PRIMARY KEY, -- Unique host id in STKHost of each connection session for a STKPeer\n"
-        "    ip INTEGER UNSIGNED NOT NULL, -- IP decimal of host\n";
-    if (ServerConfig::m_ipv6_connection)
-        oss << "    ipv6 TEXT NOT NULL DEFAULT '', -- IPv6 (if exists) in string of host\n";
-    oss << "    port INTEGER UNSIGNED NOT NULL, -- Port of host\n"
-        "    online_id INTEGER UNSIGNED NOT NULL, -- Online if of the host (0 for offline account)\n"
-        "    username TEXT NOT NULL, -- First player name in the host (if the host has splitscreen player)\n"
-        "    player_num INTEGER UNSIGNED NOT NULL, -- Number of player(s) from the host, more than 1 if it has splitscreen player\n"
-        "    country_code TEXT NULL DEFAULT NULL, -- 2-letter country code of the host\n"
-        "    version TEXT NOT NULL, -- SuperTuxKart version of the host\n"
-        "    os TEXT NOT NULL, -- Operating system of the host\n"
-        "    connected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when connected\n"
-        "    disconnected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when disconnected (saved when disconnected)\n"
-        "    ping INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Ping of the host\n"
-        "    packet_loss INTEGER NOT NULL DEFAULT 0, -- Mean packet loss count from ENet (saved when disconnected)\n"
-        "    addon_karts_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon karts of the host\n"
-        "    addon_tracks_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon tracks of the host\n"
-        "    addon_arenas_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon arenas of the host\n"
-        "    addon_soccers_count INTEGER UNSIGNED NOT NULL DEFAULT 0 -- Number of addon soccers of the host\n"
-        ") WITHOUT ROWID;";
-    std::string query = oss.str();
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        ret = sqlite3_finalize(stmt);
-        if (ret == SQLITE_OK)
-            m_server_stats_table = table_name;
-        else
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-    }
-    if (m_server_stats_table.empty())
-        return;
-
-    // Extra default table _countries:
-    // Server owner need to initialise this table himself, check NETWORKING.md
-    std::string country_table_name = std::string("v") + StringUtils::toString(
-        ServerConfig::m_server_db_version) + "_countries";
-    query = StringUtils::insertValues(
-        "CREATE TABLE IF NOT EXISTS %s (\n"
-        "    country_code TEXT NOT NULL PRIMARY KEY UNIQUE, -- Unique 2-letter country code\n"
-        "    country_flag TEXT NOT NULL, -- Unicode country flag representation of 2-letter country code\n"
-        "    country_name TEXT NOT NULL -- Readable name of this country\n"
-        ") WITHOUT ROWID;", country_table_name.c_str());
-    easySQLQuery(query);
-
-    // Extra default table _results:
-    // Server owner need to initialise this table himself, check NETWORKING.md
-    m_results_table_name = std::string("v") + StringUtils::toString(
-        ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_results";
-    query = StringUtils::insertValues(
-        "CREATE TABLE IF NOT EXISTS %s (\n"
-        "    time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Timestamp of the result\n"
-        "    username TEXT NOT NULL, -- User who set the result\n"
-        "    venue TEXT NOT NULL, -- Map used in the game\n"
-        "    reverse TEXT NOT NULL, -- Direction\n"
-        "    mode TEXT NOT NULL, -- Game mode\n"
-        "    laps INTEGER NOT NULL, -- Length (number of laps or duration)\n"
-        "    result REAL NOT NULL, -- Elapsed time for a race, possibly with autofinish\n"
-        "    difficulty INTEGER, -- Di\n"
-        "    kart TEXT,\n"
-        "    config TEXT,\n"
-        "    visible INTEGER DEFAULT 1,\n"
-        "    items TEXT,\n"
-        "    kart_color REAL DEFAULT 0,\n"
-        "    is_quit INTEGER DEFAULT 0"
-        ");", m_results_table_name.c_str());
-    easySQLQuery(query);
-
-    // Default views:
-    // _full_stats
-    // Full stats with ip in human readable format and time played of each
-    // players in minutes
-    std::string full_stats_view_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_full_stats";
-    oss.str("");
-    oss << "CREATE VIEW IF NOT EXISTS " << full_stats_view_name << " AS\n"
-        << "    SELECT host_id, ip,\n"
-        << "    ((ip >> 24) & 255) ||'.'|| ((ip >> 16) & 255) ||'.'|| ((ip >>  8) & 255) ||'.'|| ((ip ) & 255) AS ip_readable,\n";
-    if (ServerConfig::m_ipv6_connection)
-        oss << "    ipv6,";
-    oss << "    port, online_id, username, player_num,\n"
-        << "    " << m_server_stats_table << ".country_code AS country_code, country_flag, country_name, version, os,\n"
-        << "    ROUND((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0, 2) AS time_played,\n"
-        << "    connected_time, disconnected_time, ping, packet_loss, \n"
-        << "    addon_karts_count, addon_tracks_count, addon_arenas_count,\n"
-        << "    addon_soccers_count FROM " << m_server_stats_table << "\n"
-        << "    LEFT JOIN " << country_table_name << " ON "
-        <<      country_table_name << ".country_code = " << m_server_stats_table << ".country_code\n"
-        << "    ORDER BY connected_time DESC;";
-    query = oss.str();
-    easySQLQuery(query);
-
-    // _current_players
-    // Current players in server with ip in human readable format and time
-    // played of each players in minutes
-    std::string current_players_view_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_current_players";
-    oss.str("");
-    oss.clear();
-    oss << "CREATE VIEW IF NOT EXISTS " << current_players_view_name << " AS\n"
-        << "    SELECT host_id, ip,\n"
-        << "    ((ip >> 24) & 255) ||'.'|| ((ip >> 16) & 255) ||'.'|| ((ip >>  8) & 255) ||'.'|| ((ip ) & 255) AS ip_readable,\n";
-    if (ServerConfig::m_ipv6_connection)
-        oss << "    ipv6,";
-    oss << "    port, online_id, username, player_num,\n"
-        << "    " << m_server_stats_table << ".country_code AS country_code, country_flag, country_name, version, os,\n"
-        << "    ROUND((STRFTIME(\"%s\", 'now') - STRFTIME(\"%s\", connected_time)) / 60.0, 2) AS time_played,\n"
-        << "    connected_time, ping, "
-        << "    addon_karts_count, addon_tracks_count, addon_arenas_count,\n"
-        << "    addon_soccers_count FROM " << m_server_stats_table << "\n"
-        << "    LEFT JOIN " << country_table_name << " ON "
-        <<      country_table_name << ".country_code = " << m_server_stats_table << ".country_code\n"
-        << "    WHERE connected_time = disconnected_time;";
-    query = oss.str();
-    easySQLQuery(query);
-
-    // _player_stats
-    // All players with online id and username with their time played stats
-    // in this server since creation of this database
-    // If sqlite supports window functions (since 3.25), it will include last session player info (ip, country, ping...)
-    std::string player_stats_view_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_player_stats";
-    oss.str("");
-    oss.clear();
-    if (sqlite3_libversion_number() < 3025000)
-    {
-        oss << "CREATE VIEW IF NOT EXISTS " << player_stats_view_name << " AS\n"
-            << "    SELECT online_id, username, COUNT(online_id) AS num_connections,\n"
-            << "    MIN(connected_time) AS first_connected_time,\n"
-            << "    MAX(connected_time) AS last_connected_time,\n"
-            << "    ROUND(SUM((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS total_time_played,\n"
-            << "    ROUND(AVG((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS average_time_played,\n"
-            << "    ROUND(MIN((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS min_time_played,\n"
-            << "    ROUND(MAX((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS max_time_played\n"
-            << "    FROM " << m_server_stats_table << "\n"
-            << "    WHERE online_id != 0 GROUP BY online_id ORDER BY num_connections DESC;";
-    }
-    else
-    {
-        oss << "CREATE VIEW IF NOT EXISTS " << player_stats_view_name << " AS\n"
-            << "    SELECT a.online_id, a.username, a.ip, a.ip_readable,\n";
-        if (ServerConfig::m_ipv6_connection)
-            oss << "    a.ipv6,";
-        oss << "    a.port, a.player_num,\n"
-            << "    a.country_code, a.country_flag, a.country_name, a.version, a.os, a.ping, a.packet_loss,\n"
-            << "    b.num_connections, b.first_connected_time, b.first_disconnected_time,\n"
-            << "    a.connected_time AS last_connected_time, a.disconnected_time AS last_disconnected_time,\n"
-            << "    a.time_played AS last_time_played, b.total_time_played, b.average_time_played,\n"
-            << "    b.min_time_played, b.max_time_played\n"
-            << "    FROM\n"
-            << "    (\n"
-            << "        SELECT *,\n"
-            << "        ROW_NUMBER() OVER\n"
-            << "        (\n"
-            << "            PARTITION BY online_id\n"
-            << "            ORDER BY connected_time DESC\n"
-            << "        ) RowNum\n"
-            << "        FROM " << full_stats_view_name << " where online_id != 0\n"
-            << "    ) as a\n"
-            << "    JOIN\n"
-            << "    (\n"
-            << "        SELECT online_id, COUNT(online_id) AS num_connections,\n"
-            << "        MIN(connected_time) AS first_connected_time,\n"
-            << "        MIN(disconnected_time) AS first_disconnected_time,\n"
-            << "        ROUND(SUM((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS total_time_played,\n"
-            << "        ROUND(AVG((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS average_time_played,\n"
-            << "        ROUND(MIN((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS min_time_played,\n"
-            << "        ROUND(MAX((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS max_time_played\n"
-            << "        FROM " << m_server_stats_table << " WHERE online_id != 0 GROUP BY online_id\n"
-            << "    ) AS b\n"
-            << "    ON b.online_id = a.online_id\n"
-            << "    WHERE RowNum = 1 ORDER BY num_connections DESC;\n";
-    }
-    query = oss.str();
-    easySQLQuery(query);
-
-    uint32_t last_host_id = 0;
-    query = StringUtils::insertValues("SELECT MAX(host_id) FROM %s;",
-        m_server_stats_table.c_str());
-    ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW && sqlite3_column_type(stmt, 0) != SQLITE_NULL)
-        {
-            last_host_id = (unsigned)sqlite3_column_int64(stmt, 0);
-            Log::info("ServerLobby", "%u was last server session max host id.",
-                last_host_id);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-            m_server_stats_table = "";
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        m_server_stats_table = "";
-    }
-    STKHost::get()->setNextHostId(last_host_id);
-
-    // Update disconnected time (if stk crashed it will not be written)
-    query = StringUtils::insertValues(
-        "UPDATE %s SET disconnected_time = datetime('now') "
-        "WHERE connected_time = disconnected_time;",
-        m_server_stats_table.c_str());
-    easySQLQuery(query);
+    m_db_connector->initServerStatsTable();
 #endif
 }   // initServerStatsTable
-
-//-----------------------------------------------------------------------------
-void ServerLobby::destroyDatabase()
-{
-#ifdef ENABLE_SQLITE3
-    auto peers = STKHost::get()->getPeers();
-    for (auto& peer : peers)
-        writeDisconnectInfoTable(peer.get());
-    if (m_db != NULL)
-        sqlite3_close(m_db);
-#endif
-}   // destroyDatabase
-
-//-----------------------------------------------------------------------------
-void ServerLobby::writeDisconnectInfoTable(STKPeer* peer)
-{
-#ifdef ENABLE_SQLITE3
-    if (m_server_stats_table.empty())
-        return;
-    std::string query = StringUtils::insertValues(
-        "UPDATE %s SET disconnected_time = datetime('now'), "
-        "ping = %d, packet_loss = %d "
-        "WHERE host_id = %u;", m_server_stats_table.c_str(),
-        peer->getAveragePing(), peer->getPacketLoss(),
-        peer->getHostId());
-    easySQLQuery(query);
-#endif
-}   // writeDisconnectInfoTable
 
 //-----------------------------------------------------------------------------
 void ServerLobby::updateAddons()
@@ -843,7 +472,9 @@ void ServerLobby::setup()
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
     getCommandManager().onResetServer();
-    m_saved_ffa_points.clear();
+    if (m_game_info)
+        delete m_game_info;
+    m_game_info = nullptr;
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -1204,395 +835,105 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
  */
 void ServerLobby::pollDatabase()
 {
-    if (!ServerConfig::m_sql_management || !m_db)
+    if (!ServerConfig::m_sql_management || !m_db_connector->hasDatabase())
         return;
 
-    if (StkTime::getMonoTimeMs() < m_last_poll_db_time + 60000)
+    if (!m_db_connector->isTimeToPoll())
         return;
 
-    m_last_poll_db_time = StkTime::getMonoTimeMs();
+    m_db_connector->updatePollTime();
 
-    if (m_ip_ban_table_exists)
+    std::vector<DatabaseConnector::IpBanTableData> ip_ban_list =
+            m_db_connector->getIpBanTableData();
+    std::vector<DatabaseConnector::Ipv6BanTableData> ipv6_ban_list =
+            m_db_connector->getIpv6BanTableData();
+    std::vector<DatabaseConnector::OnlineIdBanTableData> online_id_ban_list =
+            m_db_connector->getOnlineIdBanTableData();
+
+    for (std::shared_ptr<STKPeer>& p : STKHost::get()->getPeers())
     {
-        std::string query =
-            "SELECT ip_start, ip_end, reason, description FROM ";
-        query += ServerConfig::m_ip_ban_table;
-        query += " WHERE datetime('now') > datetime(starting_time) AND "
-            "(expired_days is NULL OR datetime"
-            "(starting_time, '+'||expired_days||' days') > datetime('now'));";
-        auto peers = STKHost::get()->getPeers();
-        sqlite3_exec(m_db, query.c_str(),
-            [](void* ptr, int count, char** data, char** columns)
+        if (p->isAIPeer())
+            continue;
+        bool is_kicked = false;
+        std::string address = "";
+        std::string reason = "";
+        std::string description = "";
+
+        if (p->getAddress().isIPv6())
+        {
+            address = p->getAddress().toString(false);
+            if (address.empty())
+                continue;
+            for (auto& item: ipv6_ban_list)
             {
-                std::vector<std::shared_ptr<STKPeer> >* peers_ptr =
-                    (std::vector<std::shared_ptr<STKPeer> >*)ptr;
-                for (std::shared_ptr<STKPeer>& p : *peers_ptr)
+                if (insideIPv6CIDR(item.ipv6_cidr.c_str(), address.c_str()) == 1)
                 {
-                    // IPv4 ban list atm
-                    if (p->isAIPeer() || p->getAddress().isIPv6())
-                        continue;
-
-                    uint32_t ip_start = 0;
-                    uint32_t ip_end = 0;
-                    if (!StringUtils::fromString(data[0], ip_start))
-                        continue;
-                    if (!StringUtils::fromString(data[1], ip_end))
-                        continue;
-                    uint32_t peer_addr = p->getAddress().getIP();
-                    if (ip_start <= peer_addr && ip_end >= peer_addr)
-                    {
-                        Log::info("ServerLobby",
-                            "Kick %s, reason: %s, description: %s",
-                            p->getAddress().toString().c_str(),
-                            data[2], data[3]);
-                        p->kick();
-                    }
+                    is_kicked = true;
+                    reason = item.reason;
+                    description = item.description;
+                    break;
                 }
-                return 0;
-            }, &peers, NULL);
-    }
-
-    if (m_ipv6_ban_table_exists)
-    {
-        std::string query =
-            "SELECT ipv6_cidr, reason, description FROM ";
-        query += ServerConfig::m_ipv6_ban_table;
-        query += " WHERE datetime('now') > datetime(starting_time) AND "
-            "(expired_days is NULL OR datetime"
-            "(starting_time, '+'||expired_days||' days') > datetime('now'));";
-        auto peers = STKHost::get()->getPeers();
-        sqlite3_exec(m_db, query.c_str(),
-            [](void* ptr, int count, char** data, char** columns)
+            }
+        }
+        else
+        {
+            uint32_t peer_addr = p->getAddress().getIP();
+            address = p->getAddress().toString();
+            for (auto& item: ip_ban_list)
             {
-                std::vector<std::shared_ptr<STKPeer> >* peers_ptr =
-                    (std::vector<std::shared_ptr<STKPeer> >*)ptr;
-                for (std::shared_ptr<STKPeer>& p : *peers_ptr)
+                if (item.ip_start <= peer_addr && item.ip_end >= peer_addr)
                 {
-                    std::string ipv6;
-                    if (p->getAddress().isIPv6())
-                        ipv6 = p->getAddress().toString(false);
-                    // IPv6 ban list atm
-                    if (p->isAIPeer() || ipv6.empty())
-                        continue;
-
-                    char* ipv6_cidr = data[0];
-                    if (insideIPv6CIDR(ipv6_cidr, ipv6.c_str()) == 1)
-                    {
-                        Log::info("ServerLobby",
-                            "Kick %s, reason: %s, description: %s",
-                            ipv6.c_str(), data[1], data[2]);
-                        p->kick();
-                    }
+                    is_kicked = true;
+                    reason = item.reason;
+                    description = item.description;
+                    break;
                 }
-                return 0;
-            }, &peers, NULL);
-    }
-
-    if (m_online_id_ban_table_exists)
-    {
-        std::string query = "SELECT online_id, reason, description FROM ";
-        query += ServerConfig::m_online_id_ban_table;
-        query += " WHERE datetime('now') > datetime(starting_time) AND "
-            "(expired_days is NULL OR datetime"
-            "(starting_time, '+'||expired_days||' days') > datetime('now'));";
-        auto peers = STKHost::get()->getPeers();
-        sqlite3_exec(m_db, query.c_str(),
-            [](void* ptr, int count, char** data, char** columns)
+            }
+        }
+        if (!is_kicked && !p->getPlayerProfiles().empty())
+        {
+            uint32_t online_id = p->getPlayerProfiles()[0]->getOnlineId();
+            for (auto& item: online_id_ban_list)
             {
-                std::vector<std::shared_ptr<STKPeer> >* peers_ptr =
-                    (std::vector<std::shared_ptr<STKPeer> >*)ptr;
-                for (std::shared_ptr<STKPeer>& p : *peers_ptr)
+                if (item.online_id == online_id)
                 {
-                    if (p->isAIPeer()
-                        || p->getPlayerProfiles().empty())
-                        continue;
-
-                    uint32_t online_id = 0;
-                    if (!StringUtils::fromString(data[0], online_id))
-                        continue;
-                    if (online_id == p->getPlayerProfiles()[0]->getOnlineId())
-                    {
-                        Log::info("ServerLobby",
-                            "Kick %s, reason: %s, description: %s",
-                            p->getAddress().toString().c_str(),
-                            data[1], data[2]);
-                        p->kick();
-                    }
+                    is_kicked = true;
+                    reason = item.reason;
+                    description = item.description;
+                    break;
                 }
-                return 0;
-            }, &peers, NULL);
-    }
+            }
+        }
+        if (is_kicked)
+        {
+            Log::info("ServerLobby", "Kick %s, reason: %s, description: %s",
+                address.c_str(), reason.c_str(), description.c_str());
+            p->kick();
+        }
+    } // for p in peers
 
-    if (m_player_reports_table_exists &&
-        ServerConfig::m_player_reports_expired_days != 0.0f)
-    {
-        std::string query = StringUtils::insertValues(
-            "DELETE FROM %s "
-            "WHERE datetime"
-            "(reported_time, '+%f days') < datetime('now');",
-            ServerConfig::m_player_reports_table.c_str(),
-            ServerConfig::m_player_reports_expired_days);
-        easySQLQuery(query);
-    }
-    if (m_server_stats_table.empty())
-        return;
+    m_db_connector->clearOldReports();
 
-    std::string query;
     auto peers = STKHost::get()->getPeers();
-    std::vector<uint32_t> exist_hosts;
+    std::vector<uint32_t> hosts;
     if (!peers.empty())
     {
         for (auto& peer : peers)
         {
             if (!peer->isValidated())
                 continue;
-            exist_hosts.push_back(peer->getHostId());
+            hosts.push_back(peer->getHostId());
         }
     }
-    if (peers.empty() || exist_hosts.empty())
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET disconnected_time = datetime('now') "
-            "WHERE connected_time = disconnected_time;",
-            m_server_stats_table.c_str());
-    }
-    else
-    {
-        std::ostringstream oss;
-        oss << "UPDATE " << m_server_stats_table
-            << "    SET disconnected_time = datetime('now')"
-            << "    WHERE connected_time = disconnected_time AND"
-            << "    host_id NOT IN (";
-        for (unsigned i = 0; i < exist_hosts.size(); i++)
-        {
-            oss << exist_hosts[i];
-            if (i != (exist_hosts.size() - 1))
-                oss << ",";
-        }
-        oss << ");";
-        query = oss.str();
-    }
-    easySQLQuery(query);
+    m_db_connector->setDisconnectionTimes(hosts);
 }   // pollDatabase
 
-//-----------------------------------------------------------------------------
-/** Run simple query with write lock waiting and optional function, this
- *  function has no callback for the return (if any) by the query.
- *  Return true if no error occurs
- */
-bool ServerLobby::easySQLQuery(const std::string& query,
-                   std::function<void(sqlite3_stmt* stmt)> bind_function) const
-{
-    if (!m_db)
-        return false;
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        if (bind_function)
-            bind_function(stmt);
-        char* actual_query_cstr = sqlite3_expanded_sql(stmt);
-        std::string actual_query(actual_query_cstr);
-        sqlite3_free(actual_query_cstr);
-        ret = sqlite3_step(stmt);
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for easy query %s: %s",
-                actual_query.c_str(), sqlite3_errmsg(m_db));
-            return false;
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby",
-            "Error preparing database for easy query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return false;
-    }
-    return true;
-}   // easySQLQuery
-
-//-----------------------------------------------------------------------------
-std::pair<bool, std::vector<std::vector<std::string>>>
-ServerLobby::vectorSQLQuery(const std::string& query,
-    int columns, std::function<void(sqlite3_stmt* stmt)> bind_function) const
-{
-    std::vector<std::vector<std::string>> ans(columns);
-    if (!m_db)
-        return {false, {}};
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        if (bind_function)
-            bind_function(stmt);
-        char* actual_query_cstr = sqlite3_expanded_sql(stmt);
-        std::string actual_query(actual_query_cstr);
-        sqlite3_free(actual_query_cstr);
-        ret = sqlite3_step(stmt);
-        while (sqlite3_column_text(stmt, 0))
-        {
-            for (int i = 0; i < columns; i++)
-            {
-                ans[i].push_back(std::string(
-                    (char*)sqlite3_column_text(stmt, i)));
-            }
-            ret = sqlite3_step(stmt);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for vector query %s: %s",
-                actual_query.c_str(), sqlite3_errmsg(m_db));
-            return {false, {}};
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby",
-            "Error preparing database for vector query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return {false, {}};
-    }
-    return {true, ans};
-}   // vectorSQLQuery
-
-//-----------------------------------------------------------------------------
-/* Write true to result if table name exists in database. */
-void ServerLobby::checkTableExists(const std::string& table, bool& result)
-{
-    if (!m_db)
-        return;
-    sqlite3_stmt* stmt = NULL;
-    if (!table.empty())
-    {
-        std::string query = StringUtils::insertValues(
-            "SELECT count(type) FROM sqlite_master "
-            "WHERE type='table' AND name='%s';", table.c_str());
-
-        int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-        if (ret == SQLITE_OK)
-        {
-            ret = sqlite3_step(stmt);
-            if (ret == SQLITE_ROW)
-            {
-                int number = sqlite3_column_int(stmt, 0);
-                if (number == 1)
-                {
-                    Log::info("ServerLobby", "Table named %s will used.",
-                        table.c_str());
-                    result = true;
-                }
-            }
-            ret = sqlite3_finalize(stmt);
-            if (ret != SQLITE_OK)
-            {
-                Log::error("ServerLobby",
-                    "Error finalize database for query %s: %s",
-                    query.c_str(), sqlite3_errmsg(m_db));
-            }
-        }
-    }
-    if (!result && !table.empty())
-    {
-        Log::warn("ServerLobby", "Table named %s not found in database.",
-            table.c_str());
-    }
-}   // checkTableExists
-
-//-----------------------------------------------------------------------------
-std::string ServerLobby::ip2Country(const SocketAddress& addr) const
-{
-    if (!m_db || !m_ip_geolocation_table_exists || addr.isLAN())
-        return "";
-
-    std::string cc_code;
-    std::string query = StringUtils::insertValues(
-        "SELECT country_code FROM %s "
-        "WHERE `ip_start` <= %d AND `ip_end` >= %d "
-        "ORDER BY `ip_start` DESC LIMIT 1;",
-        ServerConfig::m_ip_geolocation_table.c_str(), addr.getIP(),
-        addr.getIP());
-
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            const char* country_code = (char*)sqlite3_column_text(stmt, 0);
-            cc_code = country_code;
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return "";
-    }
-    return cc_code;
-}   // ip2Country
-
-//-----------------------------------------------------------------------------
-std::string ServerLobby::ipv62Country(const SocketAddress& addr) const
-{
-    if (!m_db || !m_ipv6_geolocation_table_exists)
-        return "";
-
-    std::string cc_code;
-    const std::string& ipv6 = addr.toString(false/*show_port*/);
-    std::string query = StringUtils::insertValues(
-        "SELECT country_code FROM %s "
-        "WHERE `ip_start` <= upperIPv6(\"%s\") AND `ip_end` >= upperIPv6(\"%s\") "
-        "ORDER BY `ip_start` DESC LIMIT 1;",
-        ServerConfig::m_ipv6_geolocation_table.c_str(), ipv6.c_str(),
-        ipv6.c_str());
-
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            const char* country_code = (char*)sqlite3_column_text(stmt, 0);
-            cc_code = country_code;
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return "";
-    }
-    return cc_code;
-}   // ipv62Country
-
 #endif
-
 //-----------------------------------------------------------------------------
 void ServerLobby::writePlayerReport(Event* event)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_player_reports_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasPlayerReportsTable())
         return;
     STKPeer* reporter = event->getPeer();
     if (!reporter->hasPlayerProfiles())
@@ -1610,65 +951,8 @@ void ServerLobby::writePlayerReport(Event* event)
         return;
     auto reporting_npp = reporting_peer->getPlayerProfiles()[0];
 
-    std::string query;
-    if (ServerConfig::m_ipv6_connection)
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_ipv6, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_ipv6, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, \"%s\", %u, ?, ?, %u, \"%s\", %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            !reporter->getAddress().isIPv6() ? reporter->getAddress().getIP() : 0,
-            reporter->getAddress().isIPv6() ? reporter->getAddress().toString(false) : "",
-            reporter_npp->getOnlineId(),
-            !reporting_peer->getAddress().isIPv6() ? reporting_peer->getAddress().getIP() : 0,
-            reporting_peer->getAddress().isIPv6() ? reporting_peer->getAddress().toString(false) : "",
-            reporting_npp->getOnlineId());
-    }
-    else
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, %u, ?, ?, %u, %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            reporter->getAddress().getIP(), reporter_npp->getOnlineId(),
-            reporting_peer->getAddress().getIP(), reporting_npp->getOnlineId());
-    }
-    bool written = easySQLQuery(query,
-        [reporter_npp, reporting_npp, info](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, ServerConfig::m_server_uid.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    ServerConfig::m_server_uid.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 2,
-                StringUtils::wideToUtf8(reporter_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporter_npp->getName()).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 3,
-                StringUtils::wideToUtf8(info).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(info).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 4,
-                StringUtils::wideToUtf8(reporting_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporting_npp->getName()).c_str());
-            }
-        });
+    bool written = m_db_connector->writeReport(reporter, reporter_npp,
+            reporting_peer.get(), reporting_npp, info);
     if (written)
     {
         NetworkString* success = getNetworkString();
@@ -2052,6 +1336,40 @@ void ServerLobby::asynchronousUpdate()
                     }
                 }
             }
+            m_game_info = new GameInfo();
+            for (int i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+            {
+                GameInfo::PlayerInfo info;
+                RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
+                if (!rki.isReserved())
+                {
+                    info = GameInfo::PlayerInfo(false/* reserved */,
+                                                false/* game event*/);
+                    // TODO: I suspected it to be local name, but it's not!
+                    info.m_username = StringUtils::wideToUtf8(rki.getPlayerName());
+                    info.m_kart = rki.getKartName();
+                    //info.m_start_position = i;
+                    info.m_when_joined = 0;
+                    info.m_country_code = rki.getCountryCode();
+                    info.m_online_id = rki.getOnlineId();
+                    info.m_kart_class = rki.getKartData().m_kart_type;
+                    info.m_kart_color = rki.getDefaultKartColor();
+                    info.m_handicap = (uint8_t)rki.getHandicap();
+                    info.m_team = (int8_t)rki.getKartTeam();
+                    if (info.m_team == KartTeam::KART_TEAM_NONE)
+                    {
+                        auto npp = rki.getNetworkPlayerProfile().lock();
+                        if (npp)
+                            info.m_team = npp->getTemporaryTeam() - 1;
+                    }
+                }
+                else
+                {
+                    info = GameInfo::PlayerInfo(true/* reserved */,
+                                                false/* game event*/);
+                }
+                m_game_info->m_player_info.push_back(info);
+            }
         }
         break;
     }
@@ -2408,7 +1726,47 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     {
         const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
         std::string name = StringUtils::wideToUtf8(rki.getPlayerName());
-        int points = (ServerConfig::m_preserve_battle_scores ? m_saved_ffa_points[name] : 0);
+        int points = 0;
+
+        if (m_game_info)
+        {
+
+            if (!m_game_info->m_player_info[id].isReserved())
+            {
+                Log::error("ServerLobby", "While live joining kart %d, "
+                        "player info was not reserved.", id);
+            }
+            auto& info = m_game_info->m_player_info[id];
+            info = GameInfo::PlayerInfo(false/* reserved */,
+                    false/* game event*/);
+            info.m_username = StringUtils::wideToUtf8(rki.getPlayerName());
+            info.m_kart = rki.getKartName();
+            info.m_start_position = w->getStartPosition(id);
+            info.m_when_joined = stk_config->ticks2Time(w->getTicksSinceStart());
+            info.m_country_code = rki.getCountryCode();
+            info.m_online_id = rki.getOnlineId();
+            info.m_kart_class = rki.getKartData().m_kart_type;
+            info.m_kart_color = rki.getDefaultKartColor();
+            info.m_handicap = (uint8_t)rki.getHandicap();
+            info.m_team = (int8_t)rki.getKartTeam();
+            if (info.m_team == KartTeam::KART_TEAM_NONE)
+            {
+                auto npp = rki.getNetworkPlayerProfile().lock();
+                if (npp)
+                    info.m_team = npp->getTemporaryTeam() - 1;
+            }
+            if (RaceManager::get()->isBattleMode())
+            {
+                if (ServerConfig::m_preserve_battle_scores)
+                    points = m_game_info->m_saved_ffa_points[name];
+                info.m_result -= points;
+            }
+        }
+        else
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
+
+        // If the mode is not battle/CTF, points are 0.
+        // I assume it's fine like that for now
         World::getWorld()->addReservedKart(id, points);
         addLiveJoiningKart(id, rki, m_last_live_join_util_ticks);
         Log::info("ServerLobby", "%s succeeded live-joining with kart id %d.",
@@ -3980,22 +3338,11 @@ void ServerLobby::clientDisconnected(Event* event)
     if (players_on_peer.empty())
         return;
 
-    // section that handles unsaved FFA scores
     World* w = World::getWorld();
-    if (w) {
-        FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(w);
-        std::shared_ptr<STKPeer> peer = event->getPeerSP();
-        if (ffa_world && worldIsActive() && !peer->isWaitingForGame())
-        {
-            for (const int id : peer->getAvailableKartIDs())
-            {
-                RemoteKartInfo &rki = RaceManager::get()->getKartInfo(id);
-                m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())]
-                        = ffa_world->getKartScore(id);
-            }
-        }
-    }
-    // end of FFA scores section
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
+     // No warnings otherwise, as it could happen during lobby period
+    if (w && m_game_info)
+        saveDisconnectingPeerInfo(peer);
 
     NetworkString* msg = getNetworkString(2);
     const bool waiting_peer_disconnected =
@@ -4030,7 +3377,9 @@ void ServerLobby::clientDisconnected(Event* event)
     updatePlayerList();
     delete msg;
 
-    writeDisconnectInfoTable(event->getPeer());
+#ifdef ENABLE_SQLITE3
+    m_db_connector->writeDisconnectInfoTable(event->getPeer());
+#endif
 }   // clientDisconnected
 
 //-----------------------------------------------------------------------------
@@ -4073,14 +3422,7 @@ void ServerLobby::kickPlayerWithReason(STKPeer* peer, const char* reason) const
 void ServerLobby::saveIPBanTable(const SocketAddress& addr)
 {
 #ifdef ENABLE_SQLITE3
-    if (addr.isIPv6() || !m_db || !m_ip_ban_table_exists)
-        return;
-
-    std::string query = StringUtils::insertValues(
-        "INSERT INTO %s (ip_start, ip_end) "
-        "VALUES (%u, %u);",
-        ServerConfig::m_ip_ban_table.c_str(), addr.getIP(), addr.getIP());
-    easySQLQuery(query);
+    m_db_connector->saveAddressToIpBanTable(addr);
 #endif
 }   // saveIPBanTable
 
@@ -4535,9 +3877,9 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 
 #ifdef ENABLE_SQLITE3
     if (country_code.empty() && !peer->getAddress().isIPv6())
-        country_code = ip2Country(peer->getAddress());
+        country_code = m_db_connector->ip2Country(peer->getAddress());
     if (country_code.empty() && peer->getAddress().isIPv6())
-        country_code = ipv62Country(peer->getAddress());
+        country_code = m_db_connector->ipv62Country(peer->getAddress());
 #endif
 
     auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
@@ -4642,7 +3984,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     message_ack->addFloat(auto_start_timer)
         .addUInt32(ServerConfig::m_state_frequency)
         .addUInt8(ServerConfig::m_chat ? 1 : 0)
-        .addUInt8(m_player_reports_table_exists ? 1 : 0);
+        .addUInt8(playerReportsTableExists() ? 1 : 0);
 
     peer->setSpectator(false);
 
@@ -4703,80 +4045,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     }
 
 #ifdef ENABLE_SQLITE3
-    if (m_server_stats_table.empty() || peer->isAIPeer())
-        return;
-    std::string query;
-    if (ServerConfig::m_ipv6_connection && peer->getAddress().isIPv6())
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(host_id, ip, ipv6 ,port, online_id, username, player_num, "
-            "country_code, version, os, ping, addon_karts_count, addon_tracks_count, "
-            "addon_arenas_count, addon_soccers_count) "
-            "VALUES (%u, 0, \"%s\" ,%u, %u, ?, %u, ?, ?, ?, %u, %d, %d, %d, %d);",
-            m_server_stats_table.c_str(), peer->getHostId(),
-            peer->getAddress().toString(false), peer->getAddress().getPort(),
-            online_id, player_count, peer->getAveragePing(), peer->addon_karts_count,
-            peer->addon_tracks_count, peer->addon_arenas_count,
-            peer->addon_soccers_count);
-    }
-    else
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(host_id, ip, port, online_id, username, player_num, "
-            "country_code, version, os, ping, addon_karts_count, addon_tracks_count, "
-            "addon_arenas_count, addon_soccers_count) "
-            "VALUES (%u, %u, %u, %u, ?, %u, ?, ?, ?, %u, %d, %d, %d, %d);",
-            m_server_stats_table.c_str(), peer->getHostId(),
-            peer->getAddress().getIP(), peer->getAddress().getPort(),
-            online_id, player_count, peer->getAveragePing(), peer->addon_karts_count,
-            peer->addon_tracks_count, peer->addon_arenas_count,
-            peer->addon_soccers_count);
-    }
-    easySQLQuery(query, [peer, country_code](sqlite3_stmt* stmt)
-        {
-            if (sqlite3_bind_text(stmt, 1, StringUtils::wideToUtf8(
-                peer->getPlayerProfiles()[0]->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(
-                    peer->getPlayerProfiles()[0]->getName()).c_str());
-            }
-            if (country_code.empty())
-            {
-                if (sqlite3_bind_null(stmt, 2) != SQLITE_OK)
-                {
-                    Log::error("easySQLQuery",
-                        "Failed to bind NULL for country code.");
-                }
-            }
-            else
-            {
-                if (sqlite3_bind_text(stmt, 2, country_code.c_str(),
-                    -1, SQLITE_TRANSIENT) != SQLITE_OK)
-                {
-                    Log::error("easySQLQuery", "Failed to bind country: %s.",
-                        country_code.c_str());
-                }
-            }
-            auto version_os =
-                StringUtils::extractVersionOS(peer->getUserVersion());
-            if (sqlite3_bind_text(stmt, 3, version_os.first.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    version_os.first.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 4, version_os.second.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    version_os.second.c_str());
-            }
-        }
-    );
+    m_db_connector->onPlayerJoinQueries(peer, online_id, player_count, country_code);
 #endif
     if (m_kart_elimination.isEnabled())
     {
@@ -5568,66 +4837,34 @@ void ServerLobby::resetServer()
 void ServerLobby::testBannedForIP(STKPeer* peer) const
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_ip_ban_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasIpBanTable())
         return;
 
     // Test for IPv4
     if (peer->getAddress().isIPv6())
         return;
 
-    int row_id = -1;
-    unsigned ip_start = 0;
-    unsigned ip_end = 0;
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, ip_start, ip_end, reason, description FROM %s "
-        "WHERE ip_start <= %u AND ip_end >= %u "
-        "AND datetime('now') > datetime(starting_time) AND "
-        "(expired_days is NULL OR datetime"
-        "(starting_time, '+'||expired_days||' days') > datetime('now')) "
-        "LIMIT 1;",
-        ServerConfig::m_ip_ban_table.c_str(),
-        peer->getAddress().getIP(), peer->getAddress().getIP());
+    bool is_banned = false;
+    uint32_t ip_start = 0;
+    uint32_t ip_end = 0;
 
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    std::vector<DatabaseConnector::IpBanTableData> ip_ban_list =
+            m_db_connector->getIpBanTableData(peer->getAddress().getIP());
+    if (!ip_ban_list.empty())
     {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            ip_start = (unsigned)sqlite3_column_int64(stmt, 1);
-            ip_end = (unsigned)sqlite3_column_int64(stmt, 2);
-            const char* reason = (char*)sqlite3_column_text(stmt, 3);
-            const char* desc = (char*)sqlite3_column_text(stmt, 4);
-            Log::info("ServerLobby", "%s banned by IP: %s "
+        is_banned = true;
+        ip_start = ip_ban_list[0].ip_start;
+        ip_end = ip_ban_list[0].ip_end;
+        int row_id = ip_ban_list[0].row_id;
+        std::string reason = ip_ban_list[0].reason;
+        std::string description = ip_ban_list[0].description;
+        Log::info("ServerLobby", "%s banned by IP: %s "
                 "(rowid: %d, description: %s).",
-                peer->getAddress().toString().c_str(), reason, row_id, desc);
-            kickPlayerWithReason(peer, reason);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
+                peer->getAddress().toString().c_str(), reason.c_str(), row_id, description.c_str());
+        kickPlayerWithReason(peer, reason.c_str());
     }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET trigger_count = trigger_count + 1, "
-            "last_trigger = datetime('now') "
-            "WHERE ip_start = %u AND ip_end = %u;",
-            ServerConfig::m_ip_ban_table.c_str(), ip_start, ip_end);
-        easySQLQuery(query);
-    }
+    if (is_banned)
+        m_db_connector->increaseIpBanTriggerCount(ip_start, ip_end);
 #endif
 }   // testBannedForIP
 
@@ -5635,54 +4872,16 @@ void ServerLobby::testBannedForIP(STKPeer* peer) const
 void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_player_reports_table_exists || online_id == 0)
-        return;
-
-    int row_id;
-    // At most one message for now, sorry
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, reported_time, info FROM \"%s\" "
-        "WHERE reporter_online_id = %u "
-        "AND reporting_online_id = -1 "
-        "AND (server_uid = \"\" OR server_uid = \"%s\") LIMIT 1;",
-        ServerConfig::m_player_reports_table.c_str(),
-        online_id, ServerConfig::m_server_uid.c_str());
-
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    std::vector<DatabaseConnector::ServerMessage> messages =
+            m_db_connector->getServerMessages(online_id);
+    // in case there will be more than one later
+    for (const auto& message: messages)
     {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            const char* timestamp = (char*)sqlite3_column_text(stmt, 1);
-            const char* info = (char*)sqlite3_column_text(stmt, 2);
-            Log::info("ServerLobby", "A message from server was delivered");
-            std::string msg = "A message from the server (" +
-                std::string(timestamp) + "):\n" + std::string(info);
-            sendStringToPeer(msg, peer);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "DELETE FROM \"%s\" WHERE rowid = %u;",
-            ServerConfig::m_player_reports_table.c_str(), row_id);
-        easySQLQuery(query);
+        Log::info("ServerLobby", "A message from server was delivered");
+        std::string msg = "A message from the server (" +
+            std::string(message.timestamp) + "):\n" + std::string(message.message);
+        sendStringToPeer(msg, peer);
+        m_db_connector->deleteServerMessage(message.row_id);
     }
 #endif
 }   // getMessagesFromHost
@@ -5691,78 +4890,33 @@ void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id)
 void ServerLobby::testBannedForIPv6(STKPeer* peer) const
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_ipv6_ban_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasIpv6BanTable())
         return;
 
     // Test for IPv6
     if (!peer->getAddress().isIPv6())
         return;
 
-    int row_id = -1;
-    std::string ipv6_cidr;
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, ipv6_cidr, reason, description FROM %s "
-        "WHERE insideIPv6CIDR(ipv6_cidr, ?) = 1 "
-        "AND datetime('now') > datetime(starting_time) AND "
-        "(expired_days is NULL OR datetime"
-        "(starting_time, '+'||expired_days||' days') > datetime('now')) "
-        "LIMIT 1;",
-        ServerConfig::m_ipv6_ban_table.c_str());
+    bool is_banned = false;
+    std::string ipv6_cidr = "";
 
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    std::vector<DatabaseConnector::Ipv6BanTableData> ipv6_ban_list =
+            m_db_connector->getIpv6BanTableData(peer->getAddress().toString(false));
+
+    if (!ipv6_ban_list.empty())
     {
-        if (sqlite3_bind_text(stmt, 1,
-            peer->getAddress().toString(false).c_str(), -1, SQLITE_TRANSIENT)
-            != SQLITE_OK)
-        {
-            Log::error("ServerLobby", "Error binding ipv6 addr for query: %s",
-                sqlite3_errmsg(m_db));
-        }
-
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            ipv6_cidr = (char*)sqlite3_column_text(stmt, 1);
-            const char* reason = (char*)sqlite3_column_text(stmt, 2);
-            const char* desc = (char*)sqlite3_column_text(stmt, 3);
-            Log::info("ServerLobby", "%s banned by IP: %s "
+        is_banned = true;
+        ipv6_cidr = ipv6_ban_list[0].ipv6_cidr;
+        int row_id = ipv6_ban_list[0].row_id;
+        std::string reason = ipv6_ban_list[0].reason;
+        std::string description = ipv6_ban_list[0].description;
+        Log::info("ServerLobby", "%s banned by IPv6: %s "
                 "(rowid: %d, description: %s).",
-                peer->getAddress().toString().c_str(), reason, row_id, desc);
-            kickPlayerWithReason(peer, reason);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
+                peer->getAddress().toString(false).c_str(), reason.c_str(), row_id, description.c_str());
+        kickPlayerWithReason(peer, reason.c_str());
     }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET trigger_count = trigger_count + 1, "
-            "last_trigger = datetime('now') "
-            "WHERE ipv6_cidr = ?;", ServerConfig::m_ipv6_ban_table.c_str());
-        easySQLQuery(query, [ipv6_cidr](sqlite3_stmt* stmt)
-            {
-                if (sqlite3_bind_text(stmt, 1, ipv6_cidr.c_str(),
-                    -1, SQLITE_TRANSIENT) != SQLITE_OK)
-                {
-                    Log::error("easySQLQuery", "Failed to bind %s.",
-                        ipv6_cidr.c_str());
-                }
-            });
-    }
+    if (is_banned)
+        m_db_connector->increaseIpv6BanTriggerCount(ipv6_cidr);
 #endif
 }   // testBannedForIPv6
 
@@ -5771,57 +4925,26 @@ void ServerLobby::testBannedForOnlineId(STKPeer* peer,
                                         uint32_t online_id) const
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_online_id_ban_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasOnlineIdBanTable())
         return;
 
-    int row_id = -1;
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, reason, description FROM %s "
-        "WHERE online_id = %u "
-        "AND datetime('now') > datetime(starting_time) AND "
-        "(expired_days is NULL OR datetime"
-        "(starting_time, '+'||expired_days||' days') > datetime('now')) "
-        "LIMIT 1;",
-        ServerConfig::m_online_id_ban_table.c_str(), online_id);
+    bool is_banned = false;
+    std::vector<DatabaseConnector::OnlineIdBanTableData> online_id_ban_list =
+            m_db_connector->getOnlineIdBanTableData(online_id);
 
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    if (!online_id_ban_list.empty())
     {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            const char* reason = (char*)sqlite3_column_text(stmt, 1);
-            const char* desc = (char*)sqlite3_column_text(stmt, 2);
-            Log::info("ServerLobby", "%s banned by online id: %s "
-                "(online id: %u rowid: %d, description: %s).",
-                peer->getAddress().toString().c_str(), reason, online_id,
-                row_id, desc);
-            kickPlayerWithReason(peer, reason);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby", "Error finalize database: %s",
-                sqlite3_errmsg(m_db));
-        }
+        is_banned = true;
+        int row_id = online_id_ban_list[0].row_id;
+        std::string reason = online_id_ban_list[0].reason;
+        std::string description = online_id_ban_list[0].description;
+        Log::info("ServerLobby", "%s banned by online id: %s "
+                "(online id: %u, rowid: %d, description: %s).",
+                peer->getAddress().toString().c_str(), reason.c_str(), online_id, row_id, description.c_str());
+        kickPlayerWithReason(peer, reason.c_str());
     }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database: %s",
-            sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET trigger_count = trigger_count + 1, "
-            "last_trigger = datetime('now') "
-            "WHERE online_id = %u;",
-            ServerConfig::m_online_id_ban_table.c_str(), online_id);
-        easySQLQuery(query);
-    }
+    if (is_banned)
+        m_db_connector->increaseOnlineIdBanTriggerCount(online_id);
 #endif
 }   // testBannedForOnlineId
 
@@ -5829,34 +4952,7 @@ void ServerLobby::testBannedForOnlineId(STKPeer* peer,
 void ServerLobby::listBanTable()
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db)
-        return;
-    auto printer = [](void* data, int argc, char** argv, char** name)
-        {
-            for (int i = 0; i < argc; i++)
-            {
-                std::cout << name[i] << " = " << (argv[i] ? argv[i] : "NULL")
-                    << "\n";
-            }
-            std::cout << "\n";
-            return 0;
-        };
-    if (m_ip_ban_table_exists)
-    {
-        std::string query = "SELECT * FROM ";
-        query += ServerConfig::m_ip_ban_table;
-        query += ";";
-        std::cout << "IP ban list:\n";
-        sqlite3_exec(m_db, query.c_str(), printer, NULL, NULL);
-    }
-    if (m_online_id_ban_table_exists)
-    {
-        std::string query = "SELECT * FROM ";
-        query += ServerConfig::m_online_id_ban_table;
-        query += ";";
-        std::cout << "Online Id ban list:\n";
-        sqlite3_exec(m_db, query.c_str(), printer, NULL, NULL);
-    }
+    m_db_connector->listBanTable();
 #endif
 }   // listBanTable
 
@@ -6112,8 +5208,15 @@ void ServerLobby::handlePlayerDisconnection() const
             total++;
             continue;
         }
+
+        if (!m_game_info)
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
         else
-            rki.makeReserved();
+        {
+            saveDisconnectingIdInfo(i);
+        }
+
+        rki.makeReserved();
 
         Kart* k = World::getWorld()->getKart(i);
         if (!k->isEliminated() && !k->hasFinishedRace())
@@ -6335,15 +5438,14 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
         return;
     }
 
-    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    if (!m_game_info)
+        Log::warn("ServerLobby", "GameInfo is not accessible??");
+    else
+        saveDisconnectingPeerInfo(peer);
+
     for (const int id : peer->getAvailableKartIDs())
     {
         RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
-
-        if (ffa_world)
-            m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())]
-                = ffa_world->getKartScore(id);
-
         if (rki.getHostId() == peer->getHostId())
         {
             Log::info("ServerLobby", "%s left the game with kart id %d.",
@@ -6579,175 +5681,226 @@ void ServerLobby::updateGnuElimination()
 void ServerLobby::storeResults()
 {
 #ifdef ENABLE_SQLITE3
-    std::string powerup_string = powerup_manager->getFileName();
-    std::string kc_string = kart_properties_manager->getFileName();
-    // TODO: don't use file names as constants
-    if (powerup_string == "powerup.xml")
-        powerup_string = "";
-    if (kc_string == "kart_characteristics.xml")
-        kc_string = "";
-
-    bool racing_mode = false;
-    bool ffa = RaceManager::get()->getMinorMode() ==
-               RaceManager::MINOR_MODE_FREE_FOR_ALL;
-    racing_mode |= RaceManager::get()->getMinorMode() ==
-                   RaceManager::MINOR_MODE_NORMAL_RACE;
-    racing_mode |= RaceManager::get()->getMinorMode() ==
-                   RaceManager::MINOR_MODE_TIME_TRIAL;
-    if (!racing_mode && !ffa)
-        return;
     World* w = World::getWorld();
-    assert(w);
-    std::string records_table_name = ServerConfig::m_records_table_name;
-    std::string mode_name = RaceManager::get()->getMinorModeName();
-    int player_count = RaceManager::get()->getNumPlayers();
-    int laps_number = RaceManager::get()->getNumLaps();
-    std::string track_name = RaceManager::get()->getTrackName();
-    std::string reverse_string = "normal";
-    if (racing_mode && RaceManager::get()->getReverseTrack())
-        reverse_string = "reverse";
+    if (!w)
+        return;
+    if (!m_game_info)
+    {
+        Log::warn("ServerLobby", "GameInfo is not accessible??");
+        return;
+    }
+
+    RaceManager* rm = RaceManager::get();
+    m_game_info->m_timestamp = StkTime::getLogTimeFormatted("%Y-%m-%d %H:%M:%S");
+    m_game_info->m_venue = rm->getTrackName();
+    m_game_info->m_reverse = (rm->getReverseTrack() ||
+            rm->getRandomItemsIndicator() ? "reverse" : "normal");
+    m_game_info->m_mode = rm->getMinorModeName();
+    m_game_info->m_value_limit = 0;
+    m_game_info->m_time_limit = rm->getTimeTarget();
+    m_game_info->m_difficulty = getDifficulty();
+    m_game_info->setPowerupString(powerup_manager->getFileName());
+    m_game_info->setKartCharString(kart_properties_manager->getFileName());
+
+    if (rm->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+    {
+        m_game_info->m_value_limit = rm->getHitCaptureLimit();
+        m_game_info->m_flag_return_timeout = ServerConfig::m_flag_return_timeout;
+        m_game_info->m_flag_deactivated_time = ServerConfig::m_flag_deactivated_time;
+    }
+    else if (rm->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
+    {
+        m_game_info->m_value_limit = rm->getHitCaptureLimit(); // TODO doesn't work
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+    else if (rm->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
+    {
+        m_game_info->m_value_limit = rm->getMaxGoal(); // TODO doesn't work
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+    else
+    {
+        m_game_info->m_value_limit = rm->getNumLaps();
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+
+    // m_game_info->m_timestamp = TODO;
+    bool racing_mode = false;
+    bool soccer = false;
+    bool ffa = false;
+    bool ctf = false;
+    auto minor_mode = RaceManager::get()->getMinorMode();
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_NORMAL_RACE;
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_TIME_TRIAL;
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_LAP_TRIAL;
+    ffa |= minor_mode == RaceManager::MINOR_MODE_FREE_FOR_ALL;
+    ctf |= minor_mode == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG;
+    soccer |= minor_mode == RaceManager::MINOR_MODE_SOCCER;
+
+    // Kart class for standard karts
+    // Goal scoring policy?
+    // Do we really need round()/int for ingame timestamps?
+
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    LinearWorld* linear_world = dynamic_cast<LinearWorld*>(World::getWorld());
 
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
     std::string best_user = "";
 
-    if (racing_mode && !records_table_name.empty())
+    if (racing_mode)
     {
-        std::string get_query = StringUtils::insertValues("SELECT username, "
-            "result FROM '%s' WHERE venue = '%s' and reverse = '%s' "
-            "and mode = '%s' and laps = %d and config = '%s' "
-            "and items = '%s' and is_quit = 0 "
-            "order by result asc, time asc limit 1;",
-            records_table_name.c_str(), track_name.c_str(), reverse_string.c_str(), mode_name.c_str(),
-            laps_number, kc_string.c_str(), powerup_string.c_str());
-        auto ret = vectorSQLQuery(get_query, 2);
-        record_fetched = ret.first;
-        if (record_fetched && ret.second[0].size() > 0)
-        {
-            record_exists = true;
-            best_user = ret.second[0][0];
-            if (!StringUtils::parseString<double>(ret.second[1][0], &best_result))
-                record_fetched = false;
-        }
+        record_fetched = m_db_connector->getBestResult(*m_game_info, &record_exists, &best_user, &best_result);
     }
 
     int best_cur_player_idx = -1;
     std::string best_cur_player_name = "";
     double best_cur_time = 1e18;
-    const double DISCONNECT_TIME = 123454321;
-    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
-    if (ffa && ffa_world)
-    {
-        // I don't really know how to call this without using a kart from RaceManager
-        laps_number = round(stk_config->ticks2Time(ffa_world->getTicksSinceStart()));
-    }
-    // start of insertions
-    std::vector<std::string> usernames;
-    std::vector<std::string> scores;
-    std::vector<std::string> karts;
-    std::vector<int> lap_counts;
-    std::vector<float> colors;
-    std::vector<int> has_quit;
-    for (int i = 0; i < player_count; i++)
-    {
-        // TODO why I cannot use get()->getPlayerName?
-        std::string username = StringUtils::wideToUtf8(
-            RaceManager::get()->getKartInfo(i).getPlayerName());
-        for (std::string& username: usernames) {
-            m_saved_ffa_points.erase(username);
-        }
-        auto profile = RaceManager::get()->getKartInfo(i).getNetworkPlayerProfile().lock();
-        // TODO fix this properly.
-        if (profile && profile->getOnlineId() == 0)
-            username = "* " + username;
-        double score = DISCONNECT_TIME;
-        std::string kart_name = w->getKart(i)->getIdent();
-        std::stringstream elapsed_string;
-        float kart_color = RaceManager::get()->getKartColor(i);
 
-        if (racing_mode)
+    double current_game_timestamp = stk_config->ticks2Time(w->getTicksSinceStart());
+
+    auto& vec = m_game_info->m_player_info;
+
+    // Set game duration for all items, including game events
+    // and reserved PlayerInfos (even if those will be removed)
+    for (unsigned i = 0; i < vec.size(); i++)
+    {
+        auto& info = vec[i];
+        info.m_game_duration = current_game_timestamp;
+        if (!info.isReserved() && info.m_kart_class.empty())
         {
-            score = RaceManager::get()->getKartRaceTime(i);
-            has_quit.push_back(w->getKart(i)->isEliminated() ? 1 : 0);
-            elapsed_string << std::setprecision(4) << std::fixed << score;
-            if (!w->getKart(i)->isEliminated() && (best_cur_player_idx == -1 || score < best_cur_time))
+            float width, height, length;
+            Vec3 gravity_shift;
+            const KartProperties* kp = OfficialKarts::getKartByIdent(info.m_kart,
+                    &width, &height, &length, &gravity_shift);
+            if (kp)
+                info.m_kart_class = kp->getKartType();
+        }
+    }
+    // For those players inside the game, set some variables
+    for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+    {
+        auto& info = vec[i];
+        if (info.isReserved())
+            continue;
+        info.m_when_left = current_game_timestamp;
+        info.m_start_position = w->getStartPosition(i);
+        if (ffa || ctf)
+        {
+            int points = 0;
+            if (ffa_world)
+                points = ffa_world->getKartScore(i);
+            else
+                Log::error("ServerLobby", "storeResults: battle mode but FFAWorld is not found");
+            info.m_result += points;
+            // I thought it would make sense to set m_autofinish to 1 if
+            // someone wins before time expires. However, it's not hard
+            // to check after reading the database I suppose...
+            info.m_autofinish = 0;
+        }
+        else if (racing_mode)
+        {
+            info.m_fastest_lap = -1;
+            info.m_sog_time = -1;
+            info.m_autofinish = -1;
+            info.m_result = rm->getKartRaceTime(i);
+            float finish_timeout = std::numeric_limits<float>::max();
+            if (linear_world)
+            {
+                info.m_fastest_lap = (double)linear_world->getFastestLapForKart(i);
+                finish_timeout = linear_world->getWorstFinishTime();
+                info.m_sog_time = linear_world->getStartTimeForKart(i);
+                info.m_autofinish = (info.m_result < finish_timeout ? 0 : 1);
+            }
+            else
+                Log::error("ServerLobby", "storeResults: racing mode but LinearWorld is not found");
+            info.m_not_full = 0;
+        }
+        else if (soccer)
+        {
+            // Soccer's m_result is handled in SoccerWorld
+            info.m_autofinish = 0;
+        }
+    }
+    // If the mode is not racing (in which case we set it separately),
+    // set m_not_full to false iff he was present all the time
+    if (!racing_mode)
+    {
+        for (int i = 0; i < vec.size(); i++)
+        {
+            if (vec[i].m_reserved == 0 && vec[i].m_game_event == 0)
+                vec[i].m_not_full = (vec[i].m_when_joined == 0 &&
+                        vec[i].m_when_left == current_game_timestamp ? 0 : 1);
+        }
+    }
+    // Remove reserved PlayerInfos. Note that the first getNumPlayers() items
+    // no longer correspond to same ID in RaceManager (if they exist even)
+    for (int i = 0; i < vec.size(); i++)
+    {
+        if (vec[i].isReserved())
+        {
+            std::swap(vec[i], vec.back());
+            vec.pop_back();
+            --i;
+        }
+    }
+    bool sort_asc = !racing_mode;
+    std::sort(vec.begin(), vec.end(), [sort_asc]
+            (GameInfo::PlayerInfo& lhs, GameInfo::PlayerInfo& rhs) -> bool {
+        if (lhs.m_game_event != rhs.m_game_event)
+            return lhs.m_game_event < rhs.m_game_event;
+        if (lhs.m_when_joined != rhs.m_when_joined)
+            return lhs.m_when_joined < rhs.m_when_joined;
+        if (lhs.m_result != rhs.m_result)
+            return (lhs.m_result > rhs.m_result) ^ sort_asc;
+        return false;
+    });
+    if (soccer || ctf)
+    {
+        for (unsigned i = 1; i < vec.size(); i++)
+        {
+            if (vec[i].m_game_event == 1)
+            {
+                double previous = 0;
+                if (vec[i - 1].m_game_event == 1)
+                    previous = vec[i - 1].m_when_joined;
+                vec[i].m_sog_time = vec[i].m_when_joined - previous;
+            }
+        }
+    }
+    // For racing, find who won and possibly beaten the record
+    if (racing_mode)
+    {
+        for (unsigned i = 0; i < vec.size(); i++)
+        {
+            if (vec[i].m_reserved == 0 && vec[i].m_game_event == 0 &&
+                    vec[i].m_not_full == 0 &&
+                    (best_cur_player_idx == -1 || vec[i].m_result < best_cur_time))
             {
                 best_cur_player_idx = i;
-                best_cur_time = score;
-                best_cur_player_name = username;
+                best_cur_time = vec[i].m_result;
+                best_cur_player_name = vec[i].m_username;
             }
         }
-        else if (ffa)
-        {
-            if (w->getKart(i)->isEliminated())
-                continue;
-            has_quit.push_back(0);
-            if (ffa_world)
-            {
-                score = ffa_world->getKartScore(i);
-            }
-            elapsed_string << std::setprecision(0) << std::fixed << score;
-        }
+    }
 
-        usernames.push_back(username);
-        scores.push_back(elapsed_string.str());
-        karts.push_back(kart_name);
-        lap_counts.push_back(laps_number);
-        colors.push_back(kart_color);
-    }
-    if (ServerConfig::m_preserve_battle_scores)
-    {
-        for (auto &p: m_saved_ffa_points)
-        {
-            usernames.push_back(p.first);
-            lap_counts.push_back(0);
-            scores.push_back(std::to_string(p.second));
-            karts.push_back("unknown");
-            colors.push_back(-1);
-            has_quit.push_back(1);
-        }
-    }
-    m_saved_ffa_points.clear();
-    for (int i = 0; i < (int)usernames.size(); ++i)
-    {
-        std::string query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(username, venue, reverse, mode, laps, result"
-#ifdef ENABLE_RECORDS_V2
-            ", difficulty, kart, config, items, kart_color, is_quit"
-#endif
-            ") "
-            "VALUES (?, '%s', '%s', '%s', %d, '%s'"
-#ifdef ENABLE_RECORDS_V2
-            ", %d, '%s', '%s', '%s', %f, %d"
-#endif
-            ");",
-            m_results_table_name.c_str(), track_name.c_str(),
-            reverse_string.c_str(), mode_name.c_str(), lap_counts[i], scores[i].c_str()
-#ifdef ENABLE_RECORDS_V2
-            , getDifficulty(), karts[i].c_str(), kc_string.c_str(),
-            powerup_string.c_str(), colors[i], has_quit[i]
-#endif
-        );
-        std::string name = usernames[i];
-        //bool written =
-        easySQLQuery(query, [name](sqlite3_stmt* stmt)
-        {
-            if (sqlite3_bind_text(stmt, 1, name.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    name.c_str());
-            }
-        });
-    }
+    // Note that before, when online_id was 0, "* " was added to the beginning
+    // of the name. I'm not sure it's really needed now that online_id is saved.
+
+    // Note that before, string was used to write the result to take into
+    // account increased precision for racing. Examples:
+    // racing: elapsed_string << std::setprecision(4) << std::fixed << score;
+    // ffa: elapsed_string << std::setprecision(0) << std::fixed << score;
+
+    m_game_info->m_saved_ffa_points.clear();
+    m_db_connector->insertManyResults(*m_game_info);
     // end of insertions
     if (record_fetched && best_cur_player_idx != -1) // implies racing_mode
     {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
         std::string message;
         if (!record_exists)
         {
@@ -6761,13 +5914,9 @@ void ServerLobby::storeResults()
                 "%s has just beaten a server record: %s\nPrevious record: %s by %s",
                 best_cur_player_name, StringUtils::timeToString(best_cur_time),
                 StringUtils::timeToString(best_result), best_user);
-        } else {
-            delete chat;
-            return;
         }
-        chat->encodeString16(StringUtils::utf8ToWide(message));
-        sendMessageToPeers(chat);
-        delete chat;
+        if (!message.empty())
+            sendStringToAllPeers(message);
     }
 #endif
 }  // storeResults
@@ -6835,7 +5984,7 @@ void ServerLobby::resetToDefaultSettings()
 void ServerLobby::writeOwnReport(STKPeer* reporter, STKPeer* reporting, const std::string& info)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_player_reports_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasPlayerReportsTable())
         return;
     if (!reporting)
         reporting = reporter;
@@ -6845,70 +5994,14 @@ void ServerLobby::writeOwnReport(STKPeer* reporter, STKPeer* reporting, const st
 
     if (info.empty())
         return;
+    auto info_w = StringUtils::utf8ToWide(info);
 
     if (!reporting->hasPlayerProfiles())
         return;
     auto reporting_npp = reporting->getPlayerProfiles()[0];
 
-    std::string query;
-    if (ServerConfig::m_ipv6_connection)
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_ipv6, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_ipv6, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, \"%s\", %u, ?, ?, %u, \"%s\", %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            !reporter->getAddress().isIPv6() ? reporter->getAddress().getIP() : 0,
-            reporter->getAddress().isIPv6() ? reporter->getAddress().toString(false) : "",
-            reporter_npp->getOnlineId(),
-            !reporting->getAddress().isIPv6() ? reporting->getAddress().getIP() : 0,
-            reporting->getAddress().isIPv6() ? reporting->getAddress().toString(false) : "",
-            reporting_npp->getOnlineId());
-    }
-    else
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, %u, ?, ?, %u, %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            reporter->getAddress().getIP(), reporter_npp->getOnlineId(),
-            reporting->getAddress().getIP(), reporting_npp->getOnlineId());
-    }
-    bool written = easySQLQuery(query,
-        [reporter_npp, reporting_npp, info](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, ServerConfig::m_server_uid.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    ServerConfig::m_server_uid.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 2,
-                StringUtils::wideToUtf8(reporter_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporter_npp->getName()).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 3,
-                info.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    info.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 4,
-                StringUtils::wideToUtf8(reporting_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporting_npp->getName()).c_str());
-            }
-        });
+    bool written = m_db_connector->writeReport(reporter, reporter_npp,
+            reporting, reporting_npp, info_w);
     if (written)
     {
         NetworkString* success = getNetworkString();
@@ -7458,6 +6551,7 @@ bool ServerLobby::loadCustomScoring(std::string& scoring)
 //-----------------------------------------------------------------------------   
 void ServerLobby::updateWorldSettings()
 {
+    World::getWorld()->setGameInfo(m_game_info);
     WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
     if (wwr)
     {
@@ -7498,45 +6592,17 @@ bool ServerLobby::writeOnePlayerReport(STKPeer* reporter,
     const std::string& table, const std::string& info)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db)
+    if (!m_db_connector->hasDatabase())
+        return false;
+    if (!m_db_connector->hasPlayerReportsTable())
         return false;
     if (!reporter->hasPlayerProfiles())
         return false;
     auto reporter_npp = reporter->getPlayerProfiles()[0];
+    auto info_w = StringUtils::utf8ToWide(info);
 
-    std::string query = StringUtils::insertValues(
-        "INSERT INTO %s "
-        "(server_uid, reporter_online_id, reporter_username, "
-        "info) "
-        "VALUES (?, %u, ?, ?);",
-        table.c_str(),
-        reporter_npp->getOnlineId());
-
-    bool written = easySQLQuery(query,
-        [reporter_npp, info](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, ServerConfig::m_server_uid.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    ServerConfig::m_server_uid.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 2,
-                StringUtils::wideToUtf8(reporter_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporter_npp->getName()).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 3,
-                info.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    info.c_str());
-            }
-        });
+    bool written = m_db_connector->writeReport(reporter, reporter_npp,
+            reporter, reporter_npp, info_w);
     return written;
 #endif
 }   // writeOnePlayerReport
@@ -7655,66 +6721,35 @@ CommandManager& ServerLobby::getCommandManager()
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     std::string& direction, int laps)
 {
-    std::string records_table_name = ServerConfig::m_records_table_name;
-    if (!records_table_name.empty())
-    {
-        std::string powerup_string = powerup_manager->getFileName();
-        std::string kc_string = kart_properties_manager->getFileName();
-        // TODO [2]: don't use file names as constants
-        if (powerup_string == "powerup.xml")
-            powerup_string = "";
-        if (kc_string == "kart_characteristics.xml")
-            kc_string = "";
-        std::string get_query = StringUtils::insertValues("SELECT username, "
-            "result FROM '%s' WHERE venue = ? and reverse = '%s' "
-            "and mode = '%s' and laps = %d and is_quit = 0 "
-            "and config = '%s' and items = '%s' "
-            "order by result asc, time asc limit 1;",
-            records_table_name.c_str(), direction.c_str(), mode.c_str(),
-            laps, kc_string.c_str(), powerup_string.c_str());
-        auto ret = vectorSQLQuery(get_query, 2,
-        [track](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, track.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("vectorSQLQuery", "Failed to bind %s.",
-                    track.c_str());
-            }
-        });
-        if (!ret.first)
-        {
-            return "Failed to make a query";
-        }
-        else if (ret.second[0].size() > 0)
-        {
-            double best_result = 1e18;
-            if (!StringUtils::parseString<double>(
-                ret.second[1][0], &best_result))
-            {
-                return "A strange error occured, "
-                    "please take a screenshot "
-                    "and contact the server owner.";
-            }
-            else
-            {
-                std::string message = StringUtils::insertValues(
-                    "The record is %s by %s",
-                    StringUtils::timeToString(best_result),
-                    ret.second[0][0]);
-                return message;
-            }
-        }
-        else
-        {
-            return "No time set yet. Or there is a typo.";
-        }
-    }
-    else
-    {
-        return "No table storing records!";
-    }
+    std::string powerup_string = powerup_manager->getFileName();
+    std::string kc_string = kart_properties_manager->getFileName();
+    GameInfo temp_info;
+    temp_info.m_venue = track;
+    temp_info.m_reverse = direction;
+    temp_info.m_mode = mode;
+    temp_info.m_value_limit = laps;
+    temp_info.m_time_limit = 0;
+    temp_info.m_difficulty = getDifficulty();
+    temp_info.setPowerupString(powerup_manager->getFileName());
+    temp_info.setKartCharString(kart_properties_manager->getFileName());
+
+    bool record_fetched = false;
+    bool record_exists = false;
+    double best_result = 0.0;
+    std::string best_user = "";
+
+    record_fetched = m_db_connector->getBestResult(temp_info, &record_exists, &best_user, &best_result);
+
+    if (!record_fetched)
+        return "Failed to make a query";
+    if (!record_exists)
+        return "No time set yet. Or there is a typo.";
+
+    std::string message = StringUtils::insertValues(
+        "The record is %s by %s",
+        StringUtils::timeToString(best_result),
+        best_user);
+    return message;
 }   // getRecord
 #endif
 //-----------------------------------------------------------------------------
@@ -7724,19 +6759,15 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
 void ServerLobby::loadAllTokens()
 {
 #ifdef ENABLE_SQLITE3
-    std::string tokens_table_name = ServerConfig::m_tokens_table;
-    std::string get_query = StringUtils::insertValues(
-        "SELECT distinct tokens from %s;",
-        tokens_table_name.c_str());
-    auto ret = vectorSQLQuery(get_query, 1);
-    if (!ret.first)
+    std::vector<std::string> tokens;
+    if (!m_db_connector->getAllTokens(tokens))
     {
         Log::warn("ServerLobby", "Could not make a query to retrieve tokens.");
     }
-    else if (ret.second[0].size() > 0)
+    else
     {
-        Log::info("ServerLobby", "Successfully loaded %d tokens.", (int)ret.second[0].size());
-        for (std::string& s: ret.second[0])
+        Log::info("ServerLobby", "Successfully loaded %d tokens.", (int)tokens.size());
+        for (std::string& s: tokens)
             m_web_tokens.insert(s);
     }
 #endif
@@ -8253,3 +7284,68 @@ void ServerLobby::setKartDataProperly(KartData& kart_data, const std::string& ka
     }
 }   // setKartDataProperly
 //-----------------------------------------------------------------------------
+
+bool ServerLobby::playerReportsTableExists() const
+{
+#ifdef ENABLE_SQLITE3
+    return m_db_connector->hasPlayerReportsTable();
+#else
+    return false;
+#endif
+}   // playerReportsTableExists
+
+//-----------------------------------------------------------------------------
+void ServerLobby::saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const
+{
+    if (worldIsActive() && !peer->isWaitingForGame())
+    {
+        for (const int id : peer->getAvailableKartIDs())
+        {
+            saveDisconnectingIdInfo(id);
+        }
+    }
+}   // saveDisconnectingPeerInfo
+
+//-----------------------------------------------------------------------------
+void ServerLobby::saveDisconnectingIdInfo(int id) const
+{
+    World* w = World::getWorld();
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(w);
+    LinearWorld* linear_world = dynamic_cast<LinearWorld*>(w);
+    RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
+    int points = 0;
+    m_game_info->m_player_info.emplace_back(true/* reserved */,
+                                            false/* game event*/);
+    std::swap(m_game_info->m_player_info.back(), m_game_info->m_player_info[id]);
+    auto& info = m_game_info->m_player_info.back();
+    if (RaceManager::get()->isBattleMode())
+    {
+        if (ffa_world)
+            points = ffa_world->getKartScore(id);
+        info.m_result += points;
+        if (ServerConfig::m_preserve_battle_scores)
+            m_game_info->m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())] = points;
+    }
+    info.m_when_left = stk_config->ticks2Time(w->getTicksSinceStart());
+    info.m_start_position = w->getStartPosition(id);
+    if (RaceManager::get()->isLinearRaceMode())
+    {
+        info.m_autofinish = 0;
+        info.m_fastest_lap = -1;
+        info.m_sog_time = -1;
+        if (linear_world)
+        {
+            info.m_fastest_lap = (double)linear_world->getFastestLapForKart(id);
+            info.m_sog_time = linear_world->getStartTimeForKart(id);
+        }
+        info.m_not_full = 1;
+        // If a player disconnects before the final screen but finished,
+        // don't set him as "quitting"
+        if (w->getKart(id)->hasFinishedRace())
+            info.m_not_full = 0;
+        if (info.m_not_full == 1)
+            info.m_result = info.m_when_left;
+        else
+            info.m_result = RaceManager::get()->getKartRaceTime(id);
+    }
+}   // saveDisconnectingIdInfo

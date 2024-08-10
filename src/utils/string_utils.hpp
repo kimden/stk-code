@@ -341,6 +341,13 @@ namespace StringUtils
     // ------------------------------------------------------------------------
     std::vector<uint8_t> toUInt8Vector(const std::string& s);
     // ------------------------------------------------------------------------
+    struct Precision
+    {
+        double m_value;
+        int m_precision;
+        Precision(double value, int precision): m_value(value), m_precision(precision) {}
+    };
+    std::ostream& operator << (std::ostream& os, const Precision& item);
 
 } // namespace StringUtils
 

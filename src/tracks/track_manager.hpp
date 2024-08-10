@@ -19,6 +19,8 @@
 #ifndef HEADER_TRACK_MANAGER_HPP
 #define HEADER_TRACK_MANAGER_HPP
 
+#include "config/favorite_track_status.hpp"
+
 #include <string>
 #include <vector>
 #include <map>
@@ -44,13 +46,13 @@ private:
     Tracks                                   m_tracks;
 
     typedef std::map<std::string, std::vector<int> > Group2Indices;
-    /** List of all racing track groups. */
+    /** List of all track indexes for each racing track group. */
     Group2Indices                            m_track_groups;
 
-    /** List of all arena groups. */
+    /** List of all arena indexes for each arena group. */
     Group2Indices                            m_arena_groups;
 
-    /** List of all soccer arena groups. */
+    /** List of all soccer arena indexes for each soccer arena group. */
     Group2Indices                            m_soccer_arena_groups;
 
     /** List of the names of all groups containing tracks */
@@ -62,10 +64,17 @@ private:
     /** List of the names of all groups containing soccer arenas */
     std::vector<std::string>                 m_soccer_arena_group_names;
 
+    /** Same as above but without user-defined groups. */
+    Group2Indices                            m_track_groups_no_custom;
+    Group2Indices                            m_arena_groups_no_custom;
+    Group2Indices                            m_soccer_arena_groups_no_custom;
+
     /** Flag if this track is available or not. Tracks are set unavailable
      *  if they are not available on all clients (applies only to network mode)
      */
     std::vector<bool>                        m_track_avail;
+
+    FavoriteTrackStatus                     *m_current_favorite_status;
 
     void          updateGroups(const Track* track);
 
@@ -74,6 +83,14 @@ public:
                ~TrackManager();
     static void removeTrackSearchDirs();
     static void addTrackSearchDir(const std::string &dir);
+
+    /** Adds a track to the special group of favorite tracks.
+    * We need a special treatment, because the list of tracks in this group
+    * depends on the player-profile, not on the track data. */
+    void setFavoriteTrackStatus(FavoriteTrackStatus *status);
+
+    void clearFavoriteTrackStatus();
+
     /** Returns a list of all track identifiers. */
     std::vector<std::string> getAllTrackIdentifiers();
 

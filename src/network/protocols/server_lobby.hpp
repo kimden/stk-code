@@ -42,11 +42,9 @@
 #include <set>
 #include <deque>
 
-#ifdef ENABLE_SQLITE3
-#include <sqlite3.h>
-#endif
-
 class BareNetworkString;
+class DatabaseConnector;
+class GameInfo;
 class NetworkItemManager;
 class NetworkString;
 class NetworkPlayerProfile;
@@ -103,45 +101,12 @@ private:
         std::string m_country_code;
         bool m_tried = false;
     };
-    bool m_player_reports_table_exists;
 
 #ifdef ENABLE_SQLITE3
-    sqlite3* m_db;
-
-    std::string m_server_stats_table;
-
-    std::string m_results_table_name;
-
-    bool m_ip_ban_table_exists;
-
-    bool m_ipv6_ban_table_exists;
-
-    bool m_online_id_ban_table_exists;
-
-    bool m_ip_geolocation_table_exists;
-
-    bool m_ipv6_geolocation_table_exists;
-
-    uint64_t m_last_poll_db_time;
+    DatabaseConnector* m_db_connector;
 
     void pollDatabase();
-
-    bool easySQLQuery(const std::string& query,
-        std::function<void(sqlite3_stmt* stmt)> bind_function = nullptr) const;
-
-    std::pair<bool, std::vector<std::vector<std::string>>>
-        vectorSQLQuery(const std::string& query, int columns,
-        std::function<void(sqlite3_stmt* stmt)> bind_function = nullptr) const;
-
-    void checkTableExists(const std::string& table, bool& result);
-
-    std::string ip2Country(const SocketAddress& addr) const;
-
-    std::string ipv62Country(const SocketAddress& addr) const;
 #endif
-    void initDatabase();
-
-    void destroyDatabase();
 
     std::atomic<ServerState> m_state;
 
@@ -410,7 +375,7 @@ private:
 
     std::atomic<unsigned> m_current_max_players_in_game;
 
-    std::map<std::string, int> m_saved_ffa_points;
+    GameInfo* m_game_info;
 
 #ifdef ENABLE_WEB_SUPPORT
     std::set<std::string> m_web_tokens;
@@ -569,7 +534,6 @@ private:
     void testBannedForIPv6(STKPeer* peer) const;
     void testBannedForOnlineId(STKPeer* peer, uint32_t online_id) const;
     void getMessagesFromHost(STKPeer* peer, int online_id);
-    void writeDisconnectInfoTable(STKPeer* peer);
     void writePlayerReport(Event* event);
     bool supportsAI();
     void updateAddons();
@@ -694,6 +658,11 @@ public:
                              const std::string& type) const;
 
     static int m_default_fixed_laps;
+    static int m_fixed_laps;
+    bool playerReportsTableExists() const;
+
+    void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
+    void saveDisconnectingIdInfo(int id) const;
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

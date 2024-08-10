@@ -46,7 +46,7 @@ option(USE_SYSTEM_WIIUSE "Use system WiiUse instead of the built-in version, whe
 option(USE_SQLITE3 "Use sqlite to manage server stats and ban list." ON)
 
 option(WEB_SUPPORT "Website integration tools" OFF)
-option(USE_RECORDS_V2 "Use records table with additional columns" OFF)
+option(FATAL_WHEN_OLD_RECORDS "Fatal error if the results table is old" ON)
 
 if(APPLE)
     CMAKE_DEPENDENT_OPTION(DLOPEN_MOLTENVK "Use dlopen to load MoltenVK for Apple." ON
@@ -520,9 +520,9 @@ if(WEB_SUPPORT)
     add_definitions(-DENABLE_WEB_SUPPORT)
 endif()
 
-# Records table
-if(USE_RECORDS_V2)
-    add_definitions(-DENABLE_RECORDS_V2)
+# Error if the records table is too old
+if(FATAL_WHEN_OLD_RECORDS)
+    add_definitions(-DENABLE_FATAL_WHEN_OLD_RECORDS)
 endif()
 
 # Set some compiler options

@@ -108,6 +108,7 @@ void LinearWorld::reset(bool restart)
 {
     WorldWithRank::reset(restart);
     m_finish_timeout = std::numeric_limits<float>::max();
+    m_worst_finish_time = std::numeric_limits<float>::max();
     m_last_lap_sfx_played  = false;
     m_last_lap_sfx_playing = false;
     m_fastest_lap_ticks    = INT_MAX;
@@ -511,7 +512,9 @@ void LinearWorld::newLap(unsigned int kart_index)
                 ServerConfig::m_auto_end &&
                 m_finish_timeout == std::numeric_limits<float>::max())
             {
-                m_finish_timeout = finish_time * 0.25f + 15.0f;
+                m_worst_finish_time = finish_time * 0.25f + 15.0f;
+                m_finish_timeout = m_worst_finish_time;
+                m_worst_finish_time += finish_time;
             }
             kart->finishedRace(finish_time);
         }
@@ -532,6 +535,14 @@ void LinearWorld::newLap(unsigned int kart_index)
             ticks_per_lap = kart_info.m_lap_start_ticks - getTimeTicks();
         else
             ticks_per_lap = getTimeTicks() - kart_info.m_lap_start_ticks;
+    }
+
+    if (raceHasLaps())
+    {
+        if (kart_info.m_finished_laps == 0)
+            kart_info.m_start_time = ticks_per_lap;
+        else if (kart_info.m_finished_laps > 0 && ticks_per_lap < kart_info.m_fastest_lap_ticks)
+            kart_info.m_fastest_lap_ticks = ticks_per_lap;
     }
 
     // if new fastest lap
