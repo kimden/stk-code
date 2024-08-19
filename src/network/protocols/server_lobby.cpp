@@ -1200,6 +1200,9 @@ void ServerLobby::asynchronousUpdate()
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
             m_game_setup->setRace(winner_vote, m_extra_seconds);
+
+            // For spectators that don't have the track, remember their
+            // spectate mode and don't load the track
             std::string track_name = winner_vote.m_track_name;
             if (ServerConfig::m_soccer_tournament)
             {
@@ -1208,13 +1211,14 @@ void ServerLobby::asynchronousUpdate()
                 m_tournament_arenas[m_tournament_game] = track_name;
             }
             auto peers = STKHost::get()->getPeers();
-            std::map<std::shared_ptr<STKPeer>, AlwaysSpectateMode> bad_spectators;
+            std::map<std::shared_ptr<STKPeer>,
+                    AlwaysSpectateMode> previous_spectate_mode;
             for (auto peer : peers)
             {
                 if (peer->alwaysSpectate() &&
                     peer->getClientAssets().second.count(track_name) == 0)
                 {
-                    bad_spectators[peer] = peer->getAlwaysSpectate();
+                    previous_spectate_mode[peer] = peer->getAlwaysSpectate();
                     peer->setAlwaysSpectate(ASM_NONE);
                     peer->setWaitingForGame(true);
                     m_peers_ready.erase(peer);
@@ -1223,8 +1227,9 @@ void ServerLobby::asynchronousUpdate()
             bool has_always_on_spectators = false;
             auto players = STKHost::get()
                 ->getPlayersForNewGame(&has_always_on_spectators);
-            for (auto& p: bad_spectators)
-                p.first->setAlwaysSpectate(p.second);
+            for (auto& p: previous_spectate_mode)
+                if (p.first)
+                    p.first->setAlwaysSpectate(p.second);
             auto ai_instance = m_ai_peer.lock();
             if (supportsAI())
             {
@@ -1315,7 +1320,7 @@ void ServerLobby::asynchronousUpdate()
             sendMessageToPeers(load_world_message);
             // updatePlayerList so the in lobby players (if any) can see always
             // spectators join the game
-            if (has_always_on_spectators || !bad_spectators.empty())
+            if (has_always_on_spectators || !previous_spectate_mode.empty())
                 updatePlayerList();
             delete load_world_message;
 
@@ -3994,7 +3999,12 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         unsigned max_players = ServerConfig::m_server_max_players;
         // We need to reserve at least 1 slot for new player
         if (player_count + ai_add + 1 > max_players)
-            ai_add = max_players - player_count - 1;
+        {
+            if (max_players >= player_count + 1)
+                ai_add = max_players - player_count - 1;
+            else
+                ai_add = 0;
+        }
         for (unsigned i = 0; i < ai_add; i++)
         {
 #ifdef SERVER_ONLY
