@@ -798,7 +798,7 @@ namespace ServerConfig
     /** Server uid, extracted from server_config.xml file with .xml removed. */
     extern std::string m_server_uid;
     // ========================================================================
-    static bool m_loaded_from_external_config;
+    extern bool m_loaded_from_external_config;
     // ========================================================================
     void loadServerConfig(const std::string& path = "");
     // ------------------------------------------------------------------------

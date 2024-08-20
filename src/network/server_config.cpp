@@ -55,6 +55,7 @@ namespace ServerConfig
 std::string g_server_config_path[2];
 int m_server_config_level = 0;
 std::string m_server_uid;
+bool m_loaded_from_external_config = false;
 // ============================================================================
 FloatServerConfigParam::FloatServerConfigParam(float default_value,
                                                const char* param_name,

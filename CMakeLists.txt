@@ -52,6 +52,7 @@ if(APPLE)
     CMAKE_DEPENDENT_OPTION(DLOPEN_MOLTENVK "Use dlopen to load MoltenVK for Apple." ON
         "NOT IOS;NOT SERVER_ONLY" OFF)
 endif()
+
 CMAKE_DEPENDENT_OPTION(USE_CRYPTO_OPENSSL "Use OpenSSL instead of MbedTLS for cryptography in STK." ON
     "NOT USE_SWITCH;NOT WIN32" OFF)
 CMAKE_DEPENDENT_OPTION(BUILD_RECORDER "Build opengl recorder" ON

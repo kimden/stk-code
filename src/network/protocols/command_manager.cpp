@@ -201,7 +201,6 @@ void CommandManager::initCommandsInfo()
 {
     const std::string file_name = file_manager->getAsset("commands.xml");
     const XMLNode *root = file_manager->createXMLTree(file_name);
-    unsigned int num_nodes = root->getNumNodes();
     uint32_t version = 1;
     root->get("version", &version);
     if (version != 1)
@@ -382,7 +381,7 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("length x", &CM::process_length_multi);
     applyFunctionIfPossible("direction", &CM::process_direction);
     applyFunctionIfPossible("direction =", &CM::process_direction_assign);
-    for (int i = 0; i < QUEUE_NAMES.size(); i++)
+    for (int i = 0; i < (int)QUEUE_NAMES.size(); i++)
     {
         const std::string& name = QUEUE_NAMES[i];
         if (name.empty())
@@ -679,7 +678,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         if (one_omittable_subcommand)
             --idx;
         current_command = command;
-        if (idx + 1 == argv.size() || command->m_subcommands.empty()) {
+        if (idx + 1 == (int)argv.size() || command->m_subcommands.empty()) {
             executed_command = command;
             execute(command, context);
             break;
@@ -767,7 +766,6 @@ void CommandManager::vote(Context& context, std::string category, std::string va
         error(context, true);
         return;
     }
-    auto& argv = context.m_argv;
     if (!peer->hasPlayerProfiles())
         return;
     std::string username = StringUtils::wideToUtf8(
@@ -856,7 +854,7 @@ void CommandManager::process_help(Context& context)
         return;
     }
     std::shared_ptr<Command> command = m_root_command;
-    for (int i = 1; i < argv.size(); ++i) {
+    for (int i = 1; i < (int)argv.size(); ++i) {
         if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
             return;
         auto ptr = command->m_name_to_subcommand[argv[i]].lock();
@@ -958,7 +956,7 @@ void CommandManager::process_commands(Context& context)
     auto& argv = context.m_argv;
     std::shared_ptr<Command> command = m_root_command;
     bool valid_prefix = true;
-    for (int i = 1; i < argv.size(); ++i) {
+    for (int i = 1; i < (int)argv.size(); ++i) {
         if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
             return;
         auto ptr = command->m_name_to_subcommand[argv[i]].lock();
@@ -3909,7 +3907,7 @@ void CommandManager::process_history_assign(Context& context)
         2, m_stf_all_maps, 3, false, false))
         return;
     std::string id = argv[2];
-    if (index >= m_lobby->m_tournament_arenas.size())
+    if (index >= (int)m_lobby->m_tournament_arenas.size())
         m_lobby->m_tournament_arenas.resize(index + 1, "");
     m_lobby->m_tournament_arenas[index] = id;
 
@@ -4140,7 +4138,7 @@ void CommandManager::restoreCmdByArgv(std::string& cmd,
         int from)
 {
     cmd.clear();
-    for (unsigned i = from; i < argv.size(); ++i) {
+    for (int i = from; i < (int)argv.size(); ++i) {
         bool quoted = false;
         if (argv[i].find(c) != std::string::npos || argv[i].empty()) {
             quoted = true;
@@ -4298,7 +4296,7 @@ std::string CommandManager::getAddonPreferredType() const
 
 int CommandManager::get_queue_mask(std::string a)
 {
-    for (int i = 0; i < QUEUE_NAMES.size(); i++)
+    for (int i = 0; i < (int)QUEUE_NAMES.size(); i++)
         if (a == QUEUE_NAMES[i])
             return i;
     return QM_NONE;

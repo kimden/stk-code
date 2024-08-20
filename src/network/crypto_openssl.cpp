@@ -121,7 +121,7 @@ std::vector<uint8_t> Crypto::hmac_sha256_array(const std::string& key, const std
          (const unsigned char*)(input.c_str()), input.size(),
          res, &result_len);
     std::vector<uint8_t> output;
-    for (int i = 0; i < result_len; ++i)
+    for (unsigned i = 0; i < result_len; ++i)
         output.push_back(res[i]);
     return output;
 }   // hmac_sha256_array

@@ -1341,7 +1341,7 @@ void ServerLobby::asynchronousUpdate()
                 }
             }
             m_game_info = new GameInfo();
-            for (int i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+            for (int i = 0; i < (int)RaceManager::get()->getNumPlayers(); i++)
             {
                 GameInfo::PlayerInfo info;
                 RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
@@ -2824,12 +2824,14 @@ void ServerLobby::checkRaceFinished()
         std::string fastest_kart = StringUtils::wideToUtf8(fastest_kart_wide);
 
         int points_fl = 0;
-        int points_pole = 0;
+        // Commented until used to remove the warning
+        // int points_pole = 0;
         WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
         if (wwr)
         {
             points_fl = wwr->getFastestLapPoints();
-            points_pole = wwr->getPolePoints();
+            // Commented until used to remove the warning
+            // points_pole = wwr->getPolePoints();
         }
         else
         {
@@ -5835,7 +5837,7 @@ void ServerLobby::storeResults()
     // set m_not_full to false iff he was present all the time
     if (!racing_mode)
     {
-        for (int i = 0; i < vec.size(); i++)
+        for (unsigned i = 0; i < vec.size(); i++)
         {
             if (vec[i].m_reserved == 0 && vec[i].m_game_event == 0)
                 vec[i].m_not_full = (vec[i].m_when_joined == 0 &&
@@ -5844,7 +5846,7 @@ void ServerLobby::storeResults()
     }
     // Remove reserved PlayerInfos. Note that the first getNumPlayers() items
     // no longer correspond to same ID in RaceManager (if they exist even)
-    for (int i = 0; i < vec.size(); i++)
+    for (int i = 0; i < (int)vec.size(); i++)
     {
         if (vec[i].isReserved())
         {

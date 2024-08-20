@@ -171,9 +171,9 @@ class CommandManager
 
         std::string m_prefix_name;
 
-        int m_permissions;
-
         void (CommandManager::*m_action)(Context& context);
+
+        int m_permissions;
 
         int m_mode_scope;
 
