@@ -391,6 +391,9 @@ A typical current server configuration xml that fits the current code version is
     <!-- Specifies how the server should decide which map vote wins in map selection. 0 corresponds to standard system, 1 - to randomly selecting one of votes. -->
     <map-vote-handling value="0" />
 
+    <!-- Codes of teams initially available on the server. Format is any subset of rbygopcms (the teams currently available). You can change it from the lobby using hammer command(s), and this will be overridden during soccer and ctf modes. -->
+    <available-teams value="rbygopcms" />
+
 </server-config>
 ```
 

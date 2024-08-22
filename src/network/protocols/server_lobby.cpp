@@ -176,6 +176,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_last_teammate_hit_msg = 0;
     m_teammate_swatter_punish.clear();
     m_collecting_teammate_hit_info = false;
+    m_available_teams = ServerConfig::m_init_available_teams;
 
     m_map_vote_handler.setAlgorithm(ServerConfig::m_map_vote_handling);
 
@@ -722,18 +723,23 @@ void ServerLobby::changeTeam(Event* event)
     if (ServerConfig::m_soccer_tournament)
         return; // message here?
 
+    // For now, the change team button will still only work in soccer + CTF.
+    // Further logic might be added later, but now it seems to be complicated
+    // because there's a restriction of 7 for those modes, and unnecessary
+    // because we don't have client changes.
+
     // At most 7 players on each team (for live join)
     if (player->getTeam() == KART_TEAM_BLUE)
     {
         if (red_blue.first >= 7 && !ServerConfig::m_free_teams)
             return;
-        player->setTeam(KART_TEAM_RED);
+        setTeamInLobby(player, KART_TEAM_RED);
     }
     else
     {
         if (red_blue.second >= 7 && !ServerConfig::m_free_teams)
             return;
-        player->setTeam(KART_TEAM_BLUE);
+        setTeamInLobby(player, KART_TEAM_BLUE);
     }
     updatePlayerList();
 }   // changeTeam
@@ -1215,8 +1221,8 @@ void ServerLobby::asynchronousUpdate()
                     AlwaysSpectateMode> previous_spectate_mode;
             for (auto peer : peers)
             {
-                if (peer->alwaysSpectate() &&
-                    peer->getClientAssets().second.count(track_name) == 0)
+                if (peer->alwaysSpectate() && (!peer->alwaysSpectateForReal() ||
+                    peer->getClientAssets().second.count(track_name) == 0))
                 {
                     previous_spectate_mode[peer] = peer->getAlwaysSpectate();
                     peer->setAlwaysSpectate(ASM_NONE);
@@ -1397,8 +1403,7 @@ void ServerLobby::encodePlayers(BareNetworkString* bns,
             .addUInt32(player->getOnlineId())
             .addUInt8(player->getHandicap())
             .addUInt8(player->getLocalPlayerId())
-            .addUInt8(
-            RaceManager::get()->teamEnabled() ? player->getTeam() : KART_TEAM_NONE)
+            .addUInt8(player->getTeam())
             .encodeString(player->getCountryCode());
         bns->encodeString(player->getKartName());
     }
@@ -1618,7 +1623,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
 /** Decide where to put the live join player depends on his team and game mode.
  */
 int ServerLobby::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
-                               unsigned local_id) const
+                               unsigned local_id)
 {
     const bool is_ffa =
         RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL;
@@ -1667,7 +1672,7 @@ int ServerLobby::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
             {
                 if (rki.getKartTeam() == target_team)
                 {
-                    p->setTeam(target_team);
+                    setTeamInLobby(p, target_team);
                     rki.copyFrom(p, local_id);
                     return i;
                 }
@@ -3909,36 +3914,47 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             peer->getHostId(), default_kart_color, i == 0 ? online_id : 0,
             handicap, (uint8_t)i, KART_TEAM_NONE,
             country_code);
+
+        int previous_team = -1;
+        std::string username = StringUtils::wideToUtf8(player->getName());
+        auto it2 = m_team_for_player.find(username);
+        if (it2 != m_team_for_player.end())
+            previous_team = it2->second;
+
         if (ServerConfig::m_team_choosing && !ServerConfig::m_soccer_tournament)
         {
             KartTeam cur_team = KART_TEAM_NONE;
-            if (red_blue.first > red_blue.second)
+
+            if (RaceManager::get()->teamEnabled())
             {
-                cur_team = KART_TEAM_BLUE;
-                red_blue.second++;
+                if (red_blue.first > red_blue.second)
+                {
+                    cur_team = KART_TEAM_BLUE;
+                    red_blue.second++;
+                }
+                else
+                {
+                    cur_team = KART_TEAM_RED;
+                    red_blue.first++;
+                }
             }
-            else
-            {
-                cur_team = KART_TEAM_RED;
-                red_blue.first++;
-            }
-            player->setTeam(cur_team);
+            if (cur_team != KART_TEAM_NONE)
+                setTeamInLobby(player, cur_team);
         }
         if (ServerConfig::m_soccer_tournament)
         {
             if (m_tournament_red_players.count(utf8_online_name))
-                player->setTeam(KART_TEAM_RED);
+                setTeamInLobby(player, KART_TEAM_RED);
             else if (m_tournament_blue_players.count(utf8_online_name))
-                player->setTeam(KART_TEAM_BLUE);
+                setTeamInLobby(player, KART_TEAM_BLUE);
             if (tournamentColorsSwapped(m_tournament_game))
             {
                 if (player->getTeam() == KART_TEAM_BLUE)
-                    player->setTeam(KART_TEAM_RED);
+                    setTeamInLobby(player, KART_TEAM_RED);
                 else if (player->getTeam() == KART_TEAM_RED)
-                    player->setTeam(KART_TEAM_BLUE);
+                    setTeamInLobby(player, KART_TEAM_BLUE);
             }
         }
-        std::string username = StringUtils::wideToUtf8(player->getName());
         getCommandManager().addUser(username);
         if (m_game_setup->isGrandPrix())
         {
@@ -3949,12 +3965,18 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                 player->setOverallTime(it->second.time);
             }
         }
-        auto it2 = m_team_for_player.find(username);
-        if (it2 != m_team_for_player.end())
+        if (!RaceManager::get()->teamEnabled())
         {
-            player->setTemporaryTeam(it2->second);
+            if (previous_team != -1)
+            {
+                setTemporaryTeamInLobby(player, previous_team);
+            }
         }
         peer->addPlayer(player);
+
+        // As it sets spectating mode for peer based on which players it has,
+        // we need to set the team once again to the same thing
+        setTemporaryTeamInLobby(player, player->getTemporaryTeam());
     }
 
     peer->setValidated(true);
@@ -4204,7 +4226,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             prefix = "[" + prefix + "] ";
         }
         int team = profile->getTemporaryTeam();
-        if (team != 0) {
+        if (team != 0 && !RaceManager::get()->teamEnabled()) {
             prefix = TeamUtils::getTeamByIndex(team).getEmoji() + " " + prefix;
         }
 
@@ -4220,7 +4242,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= 1;
         if (p && (p->isSpectator() ||
             ((m_state.load() == WAITING_FOR_START_GAME ||
-            update_when_reset_server) && p->alwaysSpectate())))
+            update_when_reset_server) && p->alwaysSpectateButNotNeutral())))
             boolean_combine |= (1 << 1);
         if (p && m_server_owner_id.load() == p->getHostId())
             boolean_combine |= (1 << 2);
@@ -4232,8 +4254,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= (1 << 4);
         pl->addUInt8(boolean_combine);
         pl->addUInt8(profile->getHandicap());
-        if (ServerConfig::m_team_choosing &&
-            RaceManager::get()->teamEnabled())
+        if (ServerConfig::m_team_choosing)
             pl->addUInt8(profile->getTeam());
         else
             pl->addUInt8(KART_TEAM_NONE);
@@ -5008,6 +5029,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         Log::warn("ServerLobby", "server-configurable is not enabled.");
         return;
     }
+    bool teams_before = RaceManager::get()->teamEnabled();
     unsigned total_players = 0;
     STKHost::get()->updatePlayers(NULL, NULL, &total_players);
     bool bad_mode = (m_available_modes.count(mode) == 0);
@@ -5041,6 +5063,8 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     m_game_setup->resetExtraServerInfo();
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
         m_game_setup->setSoccerGoalTarget(soccer_goal_target);
+
+    bool teams_after = RaceManager::get()->teamEnabled();
 
     if (NetworkConfig::get()->isWAN() &&
         (m_difficulty.load() != difficulty ||
@@ -5091,6 +5115,31 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
                 "Player has incompatible tracks for new game mode.");
         }
     }
+
+    if (teams_before ^ teams_after)
+    {
+        if (teams_after)
+        {
+            int final_number, players_number;
+            m_team_for_player.clear();
+            m_command_manager.assignRandomTeams(2, &final_number, &players_number);
+        }
+        else
+        {
+            clearTemporaryTeams();
+        }
+        for (auto& peer : STKHost::get()->getPeers())
+        {
+            if (teams_before)
+                peer->resetNoTeamSpectate();
+            for (auto &profile: peer->getPlayerProfiles())
+            {
+                // updates KartTeam
+                setTemporaryTeamInLobby(profile, profile->getTemporaryTeam());
+            }
+        }
+    }
+
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
@@ -6172,6 +6221,8 @@ void ServerLobby::initTournamentPlayers()
 //-----------------------------------------------------------------------------
 void ServerLobby::changeColors()
 {
+    // We assume here that it's soccer, as it's only called
+    // from tournament command
     auto peers = STKHost::get()->getPeers();
     for (auto peer : peers)
     {
@@ -6179,9 +6230,13 @@ void ServerLobby::changeColors()
         {
             auto pp = peer->getPlayerProfiles()[0];
             if (pp->getTeam() == KART_TEAM_RED)
-                pp->setTeam(KART_TEAM_BLUE);
+            {
+                setTeamInLobby(pp, KART_TEAM_BLUE);
+            }
             else if (pp->getTeam() == KART_TEAM_BLUE)
-                pp->setTeam(KART_TEAM_RED);
+            {
+                setTeamInLobby(pp, KART_TEAM_RED);
+            }
         }
     }
     updatePlayerList();
@@ -6686,17 +6741,17 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
         core::stringw name = player->getName();
         std::string utf8_name = StringUtils::wideToUtf8(name);
         if (m_tournament_red_players.count(utf8_online_name))
-            player->setTeam(KART_TEAM_RED);
+            setTeamInLobby(player, KART_TEAM_RED);
         else if (m_tournament_blue_players.count(utf8_online_name))
-            player->setTeam(KART_TEAM_BLUE);
+            setTeamInLobby(player, KART_TEAM_BLUE);
         else
-            player->setTeam(KART_TEAM_NONE);
+            setTeamInLobby(player, KART_TEAM_NONE);
         if (tournamentColorsSwapped(m_tournament_game))
         {
             if (player->getTeam() == KART_TEAM_BLUE)
-                player->setTeam(KART_TEAM_RED);
+                setTeamInLobby(player, KART_TEAM_RED);
             else if (player->getTeam() == KART_TEAM_RED)
-                player->setTeam(KART_TEAM_BLUE);
+                setTeamInLobby(player, KART_TEAM_BLUE);
         }
     }
     if (erased_from_tournament_roles)
@@ -7080,10 +7135,8 @@ bool ServerLobby::isSoccerGoalTarget() const
 //-----------------------------------------------------------------------------
 
 // This should be moved later to another unit.
-void ServerLobby::setTemporaryTeam(const std::string& username, std::string& arg)
+void ServerLobby::setTemporaryTeamInLobby(const std::string& username, int team)
 {
-    int index = TeamUtils::getIndexByCode(arg);
-    m_team_for_player[username] = index;
     irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
             wide_player_name);
@@ -7093,12 +7146,12 @@ void ServerLobby::setTemporaryTeam(const std::string& username, std::string& arg
         {
             if (profile->getName() == wide_player_name)
             {
-                profile->setTemporaryTeam(index);
+                setTemporaryTeamInLobby(profile, team);
                 break;
             }
         }
     }
-}   // setTemporaryTeam
+}   // setTemporaryTeamInLobby (username)
 //-----------------------------------------------------------------------------
 
 // todo This should be moved later to another unit.
@@ -7107,8 +7160,12 @@ void ServerLobby::clearTemporaryTeams()
     m_team_for_player.clear();
 
     for (auto& peer : STKHost::get()->getPeers())
+    {
         for (auto& profile : peer->getPlayerProfiles())
-            profile->setTemporaryTeam(0);
+        {
+            setTemporaryTeamInLobby(profile, TeamUtils::NO_TEAM);
+        }
+    }
 }   // clearTemporaryTeams
 //-----------------------------------------------------------------------------
 
@@ -7127,7 +7184,9 @@ void ServerLobby::shuffleTemporaryTeams(const std::map<int, int>& permutation)
         {
             auto it = permutation.find(profile->getTemporaryTeam());
             if (it != permutation.end())
-                profile->setTemporaryTeam(it->second);
+            {
+                setTemporaryTeamInLobby(profile, it->second);
+            }
         }
     }
     auto old_scores = m_gp_team_scores;
@@ -7356,3 +7415,88 @@ void ServerLobby::saveDisconnectingIdInfo(int id) const
             info.m_result = RaceManager::get()->getKartRaceTime(id);
     }
 }   // saveDisconnectingIdInfo
+
+//-----------------------------------------------------------------------------
+std::string ServerLobby::getAvailableTeams() const
+{
+    if (RaceManager::get()->teamEnabled())
+        return "rb";
+
+    return m_available_teams;
+}   // getAvailableTeams
+
+//-----------------------------------------------------------------------------
+void ServerLobby::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team)
+{
+    // Used for soccer+CTF, where everything can be defined by KartTeam
+    profile->setTeam(team);
+    profile->setTemporaryTeam(TeamUtils::getIndexFromKartTeam(team));
+    m_team_for_player[StringUtils::wideToUtf8(profile->getName())] = profile->getTemporaryTeam();
+
+    checkNoTeamSpectator(profile->getPeer());
+}   // setTeamInLobby
+
+//-----------------------------------------------------------------------------
+void ServerLobby::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team)
+{
+    // Used for racing+FFA, where everything can be defined by a temporary team
+    profile->setTemporaryTeam(team);
+    if (RaceManager::get()->teamEnabled())
+        profile->setTeam((KartTeam)(TeamUtils::getKartTeamFromIndex(team)));
+    else
+        profile->setTeam(KART_TEAM_NONE);
+    m_team_for_player[StringUtils::wideToUtf8(profile->getName())] = profile->getTemporaryTeam();
+
+    checkNoTeamSpectator(profile->getPeer());
+}   // setTemporaryTeamInLobby
+
+//-----------------------------------------------------------------------------
+
+void ServerLobby::checkNoTeamSpectator(std::shared_ptr<STKPeer> peer)
+{
+    if (!peer)
+        return;
+    if (RaceManager::get()->teamEnabled())
+    {
+        bool has_teamed = false;
+        for (auto& other: peer->getPlayerProfiles())
+        {
+            if (other->getTeam() != KART_TEAM_NONE)
+            {
+                has_teamed = true;
+                break;
+            }
+        }
+
+        if (!has_teamed && peer->getAlwaysSpectate() == ASM_NONE)
+        {
+            setSpectateModeProperly(peer, ASM_NO_TEAM);
+        }
+        if (has_teamed && peer->getAlwaysSpectate() == ASM_NO_TEAM)
+        {
+            setSpectateModeProperly(peer, ASM_NONE);
+        }
+    }
+}   // checkNoTeamSpectator
+
+//-----------------------------------------------------------------------------
+void ServerLobby::setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode)
+{
+    auto state = m_state.load();
+    bool selection_started = (state >= ServerLobby::SELECTING);
+    bool no_racing_yet = (state < ServerLobby::RACING);
+
+    peer->setDefaultAlwaysSpectate(mode);
+    if (!selection_started || !no_racing_yet)
+        peer->setAlwaysSpectate(mode);
+    else
+    {
+        erasePeerReady(peer);
+        peer->setAlwaysSpectate(mode);
+        peer->setWaitingForGame(true);
+    }
+    if (mode == ASM_NONE)
+        checkNoTeamSpectator(peer);
+}   // setSpectateModeProperly
+
+//-----------------------------------------------------------------------------

@@ -361,6 +361,8 @@ private:
     void process_voting(Context& context);
     void process_voting_assign(Context& context);
     void process_why_hourglass(Context& context);
+    void process_available_teams(Context& context);
+    void process_available_teams_assign(Context& context);
     void special(Context& context);
 
     std::string getRandomMap() const;
@@ -409,6 +411,8 @@ public:
 
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
+
+    bool assignRandomTeams(int intended_number, int* final_number, int* player_number);
 
 };
 

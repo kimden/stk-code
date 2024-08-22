@@ -784,8 +784,14 @@ namespace ServerConfig
             SERVER_CFG_DEFAULT(IntServerConfigParam(0, "map-vote-handling",
             "Specifies how the server should decide which map vote wins in map "
             "selection. 0 corresponds to standard system, 1 - to randomly selecting "
-            "one of votes."
-            ));
+            "one of votes."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_init_available_teams
+            SERVER_CFG_DEFAULT(StringServerConfigParam("rbygopcms", "available-teams",
+            "Codes of teams initially available on the server. Format is any "
+            "subset of rbygopcms (the teams currently available). You can "
+            "change it from the lobby using hammer command(s), and this will "
+            "be overridden during soccer and ctf modes."));
 
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */

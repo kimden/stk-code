@@ -50,6 +50,7 @@ class NetworkString;
 class NetworkPlayerProfile;
 class STKPeer;
 class SocketAddress;
+enum AlwaysSpectateMode: uint8_t;
 
 namespace Online
 {
@@ -373,6 +374,8 @@ private:
 
     bool m_shuffle_gp;
 
+    std::string m_available_teams;
+
     std::atomic<unsigned> m_current_max_players_in_game;
 
     GameInfo* m_game_info;
@@ -525,7 +528,7 @@ private:
     bool canLiveJoinNow() const;
     bool worldIsActive() const;
     int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
-                      unsigned local_id) const;
+                      unsigned local_id);
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
@@ -644,7 +647,7 @@ public:
                      { return m_available_difficulties.count(difficulty) > 0; }
     bool isModeAvailable(int mode) const
                                   { return m_available_modes.count(mode) > 0; }
-    void setTemporaryTeam(const std::string& username, std::string& arg);
+    void setTemporaryTeamInLobby(const std::string& username, int team);
     void clearTemporaryTeams();
     void shuffleTemporaryTeams(const std::map<int, int>& permutation);
     void resetGrandPrix();
@@ -664,6 +667,16 @@ public:
 
     void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
     void saveDisconnectingIdInfo(int id) const;
+    std::string getInternalAvailableTeams() const { return m_available_teams; }
+    std::string getAvailableTeams() const;
+    void setInternalAvailableTeams(std::string& s)   { m_available_teams = s; }
+
+    // The functions below set *both* KartTeam and temporary team,
+    // depending on game mode; also reset/set ASM_NO_TEAM if needed.
+    void setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team);
+    void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
+    void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
+    void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP
