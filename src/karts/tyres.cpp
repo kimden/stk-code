@@ -32,12 +32,16 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	float turn_radius = 1.0f/steer_amount; // not really the "turn radius" but proportional
 	float mass = m_kart->getKartProperties()->getMass();
 	float current_hardness = m_kart->getKartProperties()->getTyresHardnessMultiplier()*m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve().get(m_heat_cycle_count);
+	float deg_tur = 0.0f;
+	float deg_tra = 0.0f;
+	float deg_tur_percent = 0.0f;
+	float deg_tra_percent = 0.0f;
 
 	m_center_of_gravity_x = m_acceleration*mass;
 	m_center_of_gravity_y = ((speed*speed)/turn_radius)*mass;
-	if (!is_on_ground) return;
+	if (!is_on_ground) goto LOG_ZONE;
 
-	float deg_tra = dt*std::abs(m_center_of_gravity_x)*std::abs(speed)*current_hardness/1000.0f;
+	deg_tra = dt*std::abs(m_center_of_gravity_x)*std::abs(speed)*current_hardness/1000.0f;
 	deg_tra += std::abs(speed/20000000.0f)/dt;
 
 	if (brake_amount > 0.2f) {
@@ -47,15 +51,15 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 		deg_tra *= 5.0f;
 	}
 
-	float deg_tur = dt*std::abs(m_center_of_gravity_y)*std::abs(speed)*current_hardness/100000.0f;
+	deg_tur = dt*std::abs(m_center_of_gravity_y)*std::abs(speed)*current_hardness/100000.0f;
 	deg_tur += std::abs(m_center_of_gravity_y)/mass/100000000.0f/dt;
 
 	if (is_skidding) {
 		deg_tur *= 3.0f;
 	}
 
-	float deg_tra_percent = deg_tra/m_kart->getKartProperties()->getTyresMaxLifeTraction();
-	float deg_tur_percent = deg_tur/m_kart->getKartProperties()->getTyresMaxLifeTurning();
+	deg_tra_percent = deg_tra/m_kart->getKartProperties()->getTyresMaxLifeTraction();
+	deg_tur_percent = deg_tur/m_kart->getKartProperties()->getTyresMaxLifeTurning();
 
 	if(m_current_life_traction < m_current_life_turning) {
 		m_current_life_turning -= deg_tra_percent*m_kart->getKartProperties()->getTyresLimitingTransferTraction()*m_kart->getKartProperties()->getTyresMaxLifeTurning();
@@ -84,10 +88,11 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 		m_minimum_temp = m_maximum_temp;
 	}
 */
+	LOG_ZONE:
    	float hardness_deviation = (current_hardness - m_kart->getKartProperties()->getTyresHardnessMultiplier()) / m_kart->getKartProperties()->getTyresHardnessMultiplier();
    	float hardness_penalty = current_hardness *  m_kart->getKartProperties()->getTyresHardnessPenaltyCurve().get(hardness_deviation*100);
 
-	printf("Cycle %20lu || DT: %f\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, dt, 100.0f*(m_current_life_traction)/m_kart->getKartProperties()->getTyresMaxLifeTraction(), 100.0f*(m_current_life_turning)/m_kart->getKartProperties()->getTyresMaxLifeTurning());
+	printf("Cycle %20lu || Kart %s || Time: %f\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(), m_time_elapsed, 100.0f*(m_current_life_traction)/m_kart->getKartProperties()->getTyresMaxLifeTraction(), 100.0f*(m_current_life_turning)/m_kart->getKartProperties()->getTyresMaxLifeTurning());
 	printf("\tCenter of gravity: (%f, %f)\n\tRadius: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x, m_center_of_gravity_y, turn_radius, speed, brake_amount);
 	printf("\tGround: %b || Skid: %b || Wreck: %b\n\tHard: %f || Pen: %f || Temp: %f\n", is_on_ground, is_skidding, wreck_tyres, current_hardness, hardness_penalty, m_current_temp);
 	printf("\tSubstractive: (Tra %b || Tur %b || Top %b)\n", m_kart->getKartProperties()->getTyresDoSubstractiveTraction(), m_kart->getKartProperties()->getTyresDoSubstractiveTurning(), m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed());
