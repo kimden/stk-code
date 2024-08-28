@@ -1138,6 +1138,180 @@ float KartProperties::getElectroFadeOutTime() const
 }  // getElectroFadeOutTime
 
 // ----------------------------------------------------------------------------
+float KartProperties::getTyresMaxLifeTurning() const
+{
+    return m_cached_characteristic->getTyresMaxLifeTurning();
+}  // getTyresMaxLifeTurning
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresMaxLifeTraction() const
+{
+    return m_cached_characteristic->getTyresMaxLifeTraction();
+}  // getTyresMaxLifeTraction
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresMinLifeTurning() const
+{
+    return m_cached_characteristic->getTyresMinLifeTurning();
+}  // getTyresMinLifeTurning
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresMinLifeTraction() const
+{
+    return m_cached_characteristic->getTyresMinLifeTraction();
+}  // getTyresMinLifeTraction
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresRegularTransferTurning() const
+{
+    return m_cached_characteristic->getTyresRegularTransferTurning();
+}  // getTyresRegularTransferTurning
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresRegularTransferTraction() const
+{
+    return m_cached_characteristic->getTyresRegularTransferTraction();
+}  // getTyresRegularTransferTraction
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresLimitingTransferTurning() const
+{
+    return m_cached_characteristic->getTyresLimitingTransferTurning();
+}  // getTyresLimitingTransferTurning
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresLimitingTransferTraction() const
+{
+    return m_cached_characteristic->getTyresLimitingTransferTraction();
+}  // getTyresLimitingTransferTraction
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresHardnessMultiplier() const
+{
+    return m_cached_characteristic->getTyresHardnessMultiplier();
+}  // getTyresHardnessMultiplier
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresInitialBonusAddTurning() const
+{
+    return m_cached_characteristic->getTyresInitialBonusAddTurning();
+}  // getTyresInitialBonusAddTurning
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresInitialBonusMultTurning() const
+{
+    return m_cached_characteristic->getTyresInitialBonusMultTurning();
+}  // getTyresInitialBonusMultTurning
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresInitialBonusAddTraction() const
+{
+    return m_cached_characteristic->getTyresInitialBonusAddTraction();
+}  // getTyresInitialBonusAddTraction
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresInitialBonusMultTraction() const
+{
+    return m_cached_characteristic->getTyresInitialBonusMultTraction();
+}  // getTyresInitialBonusMultTraction
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresInitialBonusAddTopspeed() const
+{
+    return m_cached_characteristic->getTyresInitialBonusAddTopspeed();
+}  // getTyresInitialBonusAddTopspeed
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresInitialBonusMultTopspeed() const
+{
+    return m_cached_characteristic->getTyresInitialBonusMultTopspeed();
+}  // getTyresInitialBonusMultTopspeed
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresIdealTemp() const
+{
+    return m_cached_characteristic->getTyresIdealTemp();
+}  // getTyresIdealTemp
+
+// ----------------------------------------------------------------------------
+InterpolationArray KartProperties::getTyresTempPerformanceCurve() const
+{
+    return m_cached_characteristic->getTyresTempPerformanceCurve();
+}  // getTyresTempPerformanceCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray KartProperties::getTyresHeatTransferCurve() const
+{
+    return m_cached_characteristic->getTyresHeatTransferCurve();
+}  // getTyresHeatTransferCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray KartProperties::getTyresHardnessPenaltyCurve() const
+{
+    return m_cached_characteristic->getTyresHardnessPenaltyCurve();
+}  // getTyresHardnessPenaltyCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray KartProperties::getTyresHeatCycleHardnessCurve() const
+{
+    return m_cached_characteristic->getTyresHeatCycleHardnessCurve();
+}  // getTyresHeatCycleHardnessCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray KartProperties::getTyresResponseCurveTurning() const
+{
+    return m_cached_characteristic->getTyresResponseCurveTurning();
+}  // getTyresResponseCurveTurning
+
+// ----------------------------------------------------------------------------
+InterpolationArray KartProperties::getTyresResponseCurveTraction() const
+{
+    return m_cached_characteristic->getTyresResponseCurveTraction();
+}  // getTyresResponseCurveTraction
+
+// ----------------------------------------------------------------------------
+InterpolationArray KartProperties::getTyresResponseCurveTopspeed() const
+{
+    return m_cached_characteristic->getTyresResponseCurveTopspeed();
+}  // getTyresResponseCurveTopspeed
+
+// ----------------------------------------------------------------------------
+bool KartProperties::getTyresDoSubstractiveTurning() const
+{
+    return m_cached_characteristic->getTyresDoSubstractiveTurning();
+}  // getTyresDoSubstractiveTurning
+
+// ----------------------------------------------------------------------------
+bool KartProperties::getTyresDoSubstractiveTraction() const
+{
+    return m_cached_characteristic->getTyresDoSubstractiveTraction();
+}  // getTyresDoSubstractiveTraction
+
+// ----------------------------------------------------------------------------
+bool KartProperties::getTyresDoSubstractiveTopspeed() const
+{
+    return m_cached_characteristic->getTyresDoSubstractiveTopspeed();
+}  // getTyresDoSubstractiveTopspeed
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresTractionConstant() const
+{
+    return m_cached_characteristic->getTyresTractionConstant();
+}  // getTyresTractionConstant
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresTurningConstant() const
+{
+    return m_cached_characteristic->getTyresTurningConstant();
+}  // getTyresTurningConstant
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresTopspeedConstant() const
+{
+    return m_cached_characteristic->getTyresTopspeedConstant();
+}  // getTyresTopspeedConstant
+
+// ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getStartupTime() const
 {
     return m_cached_characteristic->getStartupTime();

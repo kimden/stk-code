@@ -67,6 +67,7 @@ namespace GE { class GERenderInfo; }
 class SFXBase;
 class SFXBuffer;
 class Shadow;
+class Tyres;
 class Skidding;
 class SkidMarks;
 class SlipStream;
@@ -402,6 +403,7 @@ public:
                         std::shared_ptr<GE::GERenderInfo> ri);
     virtual       ~Kart();
     /** Returns a name to be displayed for this kart. */
+    std::unique_ptr<Tyres> m_tyres;
     const core::stringw& getName() const { return m_name; }
     /** Returns the index of this kart in world. */
     unsigned int   getWorldKartId() const         { return m_world_kart_id;   }

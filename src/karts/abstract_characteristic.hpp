@@ -168,11 +168,42 @@ public:
         NITROHACK_DURATION,
         NITROHACK_FACTOR,
 
-        // Electro-shield
+        // Electro
         ELECTRO_DURATION,
         ELECTRO_ENGINE_MULT,
         ELECTRO_MAX_SPEED_INCREASE,
         ELECTRO_FADE_OUT_TIME,
+
+        // Tyres
+        TYRES_MAX_LIFE_TURNING,
+        TYRES_MAX_LIFE_TRACTION,
+        TYRES_MIN_LIFE_TURNING,
+        TYRES_MIN_LIFE_TRACTION,
+        TYRES_REGULAR_TRANSFER_TURNING,
+        TYRES_REGULAR_TRANSFER_TRACTION,
+        TYRES_LIMITING_TRANSFER_TURNING,
+        TYRES_LIMITING_TRANSFER_TRACTION,
+        TYRES_HARDNESS_MULTIPLIER,
+        TYRES_INITIAL_BONUS_ADD_TURNING,
+        TYRES_INITIAL_BONUS_MULT_TURNING,
+        TYRES_INITIAL_BONUS_ADD_TRACTION,
+        TYRES_INITIAL_BONUS_MULT_TRACTION,
+        TYRES_INITIAL_BONUS_ADD_TOPSPEED,
+        TYRES_INITIAL_BONUS_MULT_TOPSPEED,
+        TYRES_IDEAL_TEMP,
+        TYRES_TEMP_PERFORMANCE_CURVE,
+        TYRES_HEAT_TRANSFER_CURVE,
+        TYRES_HARDNESS_PENALTY_CURVE,
+        TYRES_HEAT_CYCLE_HARDNESS_CURVE,
+        TYRES_RESPONSE_CURVE_TURNING,
+        TYRES_RESPONSE_CURVE_TRACTION,
+        TYRES_RESPONSE_CURVE_TOPSPEED,
+        TYRES_DO_SUBSTRACTIVE_TURNING,
+        TYRES_DO_SUBSTRACTIVE_TRACTION,
+        TYRES_DO_SUBSTRACTIVE_TOPSPEED,
+        TYRES_TRACTION_CONSTANT,
+        TYRES_TURNING_CONSTANT,
+        TYRES_TOPSPEED_CONSTANT,
 
         // Startup
         STARTUP_TIME,
@@ -357,6 +388,36 @@ public:
     float getElectroEngineMult() const;
     float getElectroMaxSpeedIncrease() const;
     float getElectroFadeOutTime() const;
+
+    float getTyresMaxLifeTurning() const;
+    float getTyresMaxLifeTraction() const;
+    float getTyresMinLifeTurning() const;
+    float getTyresMinLifeTraction() const;
+    float getTyresRegularTransferTurning() const;
+    float getTyresRegularTransferTraction() const;
+    float getTyresLimitingTransferTurning() const;
+    float getTyresLimitingTransferTraction() const;
+    float getTyresHardnessMultiplier() const;
+    float getTyresInitialBonusAddTurning() const;
+    float getTyresInitialBonusMultTurning() const;
+    float getTyresInitialBonusAddTraction() const;
+    float getTyresInitialBonusMultTraction() const;
+    float getTyresInitialBonusAddTopspeed() const;
+    float getTyresInitialBonusMultTopspeed() const;
+    float getTyresIdealTemp() const;
+    InterpolationArray getTyresTempPerformanceCurve() const;
+    InterpolationArray getTyresHeatTransferCurve() const;
+    InterpolationArray getTyresHardnessPenaltyCurve() const;
+    InterpolationArray getTyresHeatCycleHardnessCurve() const;
+    InterpolationArray getTyresResponseCurveTurning() const;
+    InterpolationArray getTyresResponseCurveTraction() const;
+    InterpolationArray getTyresResponseCurveTopspeed() const;
+    bool getTyresDoSubstractiveTurning() const;
+    bool getTyresDoSubstractiveTraction() const;
+    bool getTyresDoSubstractiveTopspeed() const;
+    float getTyresTractionConstant() const;
+    float getTyresTurningConstant() const;
+    float getTyresTopspeedConstant() const;
 
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;

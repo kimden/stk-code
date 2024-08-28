@@ -189,6 +189,64 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case ELECTRO_FADE_OUT_TIME:
         return TYPE_FLOAT;
+    case TYRES_MAX_LIFE_TURNING:
+        return TYPE_FLOAT;
+    case TYRES_MAX_LIFE_TRACTION:
+        return TYPE_FLOAT;
+    case TYRES_MIN_LIFE_TURNING:
+        return TYPE_FLOAT;
+    case TYRES_MIN_LIFE_TRACTION:
+        return TYPE_FLOAT;
+    case TYRES_REGULAR_TRANSFER_TURNING:
+        return TYPE_FLOAT;
+    case TYRES_REGULAR_TRANSFER_TRACTION:
+        return TYPE_FLOAT;
+    case TYRES_LIMITING_TRANSFER_TURNING:
+        return TYPE_FLOAT;
+    case TYRES_LIMITING_TRANSFER_TRACTION:
+        return TYPE_FLOAT;
+    case TYRES_HARDNESS_MULTIPLIER:
+        return TYPE_FLOAT;
+    case TYRES_INITIAL_BONUS_ADD_TURNING:
+        return TYPE_FLOAT;
+    case TYRES_INITIAL_BONUS_MULT_TURNING:
+        return TYPE_FLOAT;
+    case TYRES_INITIAL_BONUS_ADD_TRACTION:
+        return TYPE_FLOAT;
+    case TYRES_INITIAL_BONUS_MULT_TRACTION:
+        return TYPE_FLOAT;
+    case TYRES_INITIAL_BONUS_ADD_TOPSPEED:
+        return TYPE_FLOAT;
+    case TYRES_INITIAL_BONUS_MULT_TOPSPEED:
+        return TYPE_FLOAT;
+    case TYRES_IDEAL_TEMP:
+        return TYPE_FLOAT;
+    case TYRES_TEMP_PERFORMANCE_CURVE:
+        return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_HEAT_TRANSFER_CURVE:
+        return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_HARDNESS_PENALTY_CURVE:
+        return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_HEAT_CYCLE_HARDNESS_CURVE:
+        return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_RESPONSE_CURVE_TURNING:
+        return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_RESPONSE_CURVE_TRACTION:
+        return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_RESPONSE_CURVE_TOPSPEED:
+        return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_DO_SUBSTRACTIVE_TURNING:
+        return TYPE_BOOL;
+    case TYRES_DO_SUBSTRACTIVE_TRACTION:
+        return TYPE_BOOL;
+    case TYRES_DO_SUBSTRACTIVE_TOPSPEED:
+        return TYPE_BOOL;
+    case TYRES_TRACTION_CONSTANT:
+        return TYPE_FLOAT;
+    case TYRES_TURNING_CONSTANT:
+        return TYPE_FLOAT;
+    case TYRES_TOPSPEED_CONSTANT:
+        return TYPE_FLOAT;
     case STARTUP_TIME:
         return TYPE_FLOAT_VECTOR;
     case STARTUP_BOOST:
@@ -445,6 +503,64 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "ELECTRO_MAX_SPEED_INCREASE";
     case ELECTRO_FADE_OUT_TIME:
         return "ELECTRO_FADE_OUT_TIME";
+    case TYRES_MAX_LIFE_TURNING:
+        return "TYRES_MAX_LIFE_TURNING";
+    case TYRES_MAX_LIFE_TRACTION:
+        return "TYRES_MAX_LIFE_TRACTION";
+    case TYRES_MIN_LIFE_TURNING:
+        return "TYRES_MIN_LIFE_TURNING";
+    case TYRES_MIN_LIFE_TRACTION:
+        return "TYRES_MIN_LIFE_TRACTION";
+    case TYRES_REGULAR_TRANSFER_TURNING:
+        return "TYRES_REGULAR_TRANSFER_TURNING";
+    case TYRES_REGULAR_TRANSFER_TRACTION:
+        return "TYRES_REGULAR_TRANSFER_TRACTION";
+    case TYRES_LIMITING_TRANSFER_TURNING:
+        return "TYRES_LIMITING_TRANSFER_TURNING";
+    case TYRES_LIMITING_TRANSFER_TRACTION:
+        return "TYRES_LIMITING_TRANSFER_TRACTION";
+    case TYRES_HARDNESS_MULTIPLIER:
+        return "TYRES_HARDNESS_MULTIPLIER";
+    case TYRES_INITIAL_BONUS_ADD_TURNING:
+        return "TYRES_INITIAL_BONUS_ADD_TURNING";
+    case TYRES_INITIAL_BONUS_MULT_TURNING:
+        return "TYRES_INITIAL_BONUS_MULT_TURNING";
+    case TYRES_INITIAL_BONUS_ADD_TRACTION:
+        return "TYRES_INITIAL_BONUS_ADD_TRACTION";
+    case TYRES_INITIAL_BONUS_MULT_TRACTION:
+        return "TYRES_INITIAL_BONUS_MULT_TRACTION";
+    case TYRES_INITIAL_BONUS_ADD_TOPSPEED:
+        return "TYRES_INITIAL_BONUS_ADD_TOPSPEED";
+    case TYRES_INITIAL_BONUS_MULT_TOPSPEED:
+        return "TYRES_INITIAL_BONUS_MULT_TOPSPEED";
+    case TYRES_IDEAL_TEMP:
+        return "TYRES_IDEAL_TEMP";
+    case TYRES_TEMP_PERFORMANCE_CURVE:
+        return "TYRES_TEMP_PERFORMANCE_CURVE";
+    case TYRES_HEAT_TRANSFER_CURVE:
+        return "TYRES_HEAT_TRANSFER_CURVE";
+    case TYRES_HARDNESS_PENALTY_CURVE:
+        return "TYRES_HARDNESS_PENALTY_CURVE";
+    case TYRES_HEAT_CYCLE_HARDNESS_CURVE:
+        return "TYRES_HEAT_CYCLE_HARDNESS_CURVE";
+    case TYRES_RESPONSE_CURVE_TURNING:
+        return "TYRES_RESPONSE_CURVE_TURNING";
+    case TYRES_RESPONSE_CURVE_TRACTION:
+        return "TYRES_RESPONSE_CURVE_TRACTION";
+    case TYRES_RESPONSE_CURVE_TOPSPEED:
+        return "TYRES_RESPONSE_CURVE_TOPSPEED";
+    case TYRES_DO_SUBSTRACTIVE_TURNING:
+        return "TYRES_DO_SUBSTRACTIVE_TURNING";
+    case TYRES_DO_SUBSTRACTIVE_TRACTION:
+        return "TYRES_DO_SUBSTRACTIVE_TRACTION";
+    case TYRES_DO_SUBSTRACTIVE_TOPSPEED:
+        return "TYRES_DO_SUBSTRACTIVE_TOPSPEED";
+    case TYRES_TRACTION_CONSTANT:
+        return "TYRES_TRACTION_CONSTANT";
+    case TYRES_TURNING_CONSTANT:
+        return "TYRES_TURNING_CONSTANT";
+    case TYRES_TOPSPEED_CONSTANT:
+        return "TYRES_TOPSPEED_CONSTANT";
     case STARTUP_TIME:
         return "STARTUP_TIME";
     case STARTUP_BOOST:
@@ -1362,6 +1478,354 @@ float AbstractCharacteristic::getElectroFadeOutTime() const
                     getName(ELECTRO_FADE_OUT_TIME).c_str());
     return result;
 }  // getElectroFadeOutTime
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresMaxLifeTurning() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_MAX_LIFE_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_MAX_LIFE_TURNING).c_str());
+    return result;
+}  // getTyresMaxLifeTurning
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresMaxLifeTraction() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_MAX_LIFE_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_MAX_LIFE_TRACTION).c_str());
+    return result;
+}  // getTyresMaxLifeTraction
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresMinLifeTurning() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_MIN_LIFE_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_MIN_LIFE_TURNING).c_str());
+    return result;
+}  // getTyresMinLifeTurning
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresMinLifeTraction() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_MIN_LIFE_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_MIN_LIFE_TRACTION).c_str());
+    return result;
+}  // getTyresMinLifeTraction
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresRegularTransferTurning() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_REGULAR_TRANSFER_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_REGULAR_TRANSFER_TURNING).c_str());
+    return result;
+}  // getTyresRegularTransferTurning
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresRegularTransferTraction() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_REGULAR_TRANSFER_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_REGULAR_TRANSFER_TRACTION).c_str());
+    return result;
+}  // getTyresRegularTransferTraction
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresLimitingTransferTurning() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_LIMITING_TRANSFER_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_LIMITING_TRANSFER_TURNING).c_str());
+    return result;
+}  // getTyresLimitingTransferTurning
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresLimitingTransferTraction() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_LIMITING_TRANSFER_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_LIMITING_TRANSFER_TRACTION).c_str());
+    return result;
+}  // getTyresLimitingTransferTraction
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresHardnessMultiplier() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_HARDNESS_MULTIPLIER, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_HARDNESS_MULTIPLIER).c_str());
+    return result;
+}  // getTyresHardnessMultiplier
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresInitialBonusAddTurning() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_INITIAL_BONUS_ADD_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_INITIAL_BONUS_ADD_TURNING).c_str());
+    return result;
+}  // getTyresInitialBonusAddTurning
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresInitialBonusMultTurning() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_INITIAL_BONUS_MULT_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_INITIAL_BONUS_MULT_TURNING).c_str());
+    return result;
+}  // getTyresInitialBonusMultTurning
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresInitialBonusAddTraction() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_INITIAL_BONUS_ADD_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_INITIAL_BONUS_ADD_TRACTION).c_str());
+    return result;
+}  // getTyresInitialBonusAddTraction
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresInitialBonusMultTraction() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_INITIAL_BONUS_MULT_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_INITIAL_BONUS_MULT_TRACTION).c_str());
+    return result;
+}  // getTyresInitialBonusMultTraction
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresInitialBonusAddTopspeed() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_INITIAL_BONUS_ADD_TOPSPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_INITIAL_BONUS_ADD_TOPSPEED).c_str());
+    return result;
+}  // getTyresInitialBonusAddTopspeed
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresInitialBonusMultTopspeed() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_INITIAL_BONUS_MULT_TOPSPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_INITIAL_BONUS_MULT_TOPSPEED).c_str());
+    return result;
+}  // getTyresInitialBonusMultTopspeed
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresIdealTemp() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_IDEAL_TEMP, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_IDEAL_TEMP).c_str());
+    return result;
+}  // getTyresIdealTemp
+
+// ----------------------------------------------------------------------------
+InterpolationArray AbstractCharacteristic::getTyresTempPerformanceCurve() const
+{
+    InterpolationArray result;
+    bool is_set = false;
+    process(TYRES_TEMP_PERFORMANCE_CURVE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_TEMP_PERFORMANCE_CURVE).c_str());
+    return result;
+}  // getTyresTempPerformanceCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray AbstractCharacteristic::getTyresHeatTransferCurve() const
+{
+    InterpolationArray result;
+    bool is_set = false;
+    process(TYRES_HEAT_TRANSFER_CURVE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_HEAT_TRANSFER_CURVE).c_str());
+    return result;
+}  // getTyresHeatTransferCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray AbstractCharacteristic::getTyresHardnessPenaltyCurve() const
+{
+    InterpolationArray result;
+    bool is_set = false;
+    process(TYRES_HARDNESS_PENALTY_CURVE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_HARDNESS_PENALTY_CURVE).c_str());
+    return result;
+}  // getTyresHardnessPenaltyCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray AbstractCharacteristic::getTyresHeatCycleHardnessCurve() const
+{
+    InterpolationArray result;
+    bool is_set = false;
+    process(TYRES_HEAT_CYCLE_HARDNESS_CURVE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_HEAT_CYCLE_HARDNESS_CURVE).c_str());
+    return result;
+}  // getTyresHeatCycleHardnessCurve
+
+// ----------------------------------------------------------------------------
+InterpolationArray AbstractCharacteristic::getTyresResponseCurveTurning() const
+{
+    InterpolationArray result;
+    bool is_set = false;
+    process(TYRES_RESPONSE_CURVE_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_RESPONSE_CURVE_TURNING).c_str());
+    return result;
+}  // getTyresResponseCurveTurning
+
+// ----------------------------------------------------------------------------
+InterpolationArray AbstractCharacteristic::getTyresResponseCurveTraction() const
+{
+    InterpolationArray result;
+    bool is_set = false;
+    process(TYRES_RESPONSE_CURVE_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_RESPONSE_CURVE_TRACTION).c_str());
+    return result;
+}  // getTyresResponseCurveTraction
+
+// ----------------------------------------------------------------------------
+InterpolationArray AbstractCharacteristic::getTyresResponseCurveTopspeed() const
+{
+    InterpolationArray result;
+    bool is_set = false;
+    process(TYRES_RESPONSE_CURVE_TOPSPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_RESPONSE_CURVE_TOPSPEED).c_str());
+    return result;
+}  // getTyresResponseCurveTopspeed
+
+// ----------------------------------------------------------------------------
+bool AbstractCharacteristic::getTyresDoSubstractiveTurning() const
+{
+    bool result;
+    bool is_set = false;
+    process(TYRES_DO_SUBSTRACTIVE_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_DO_SUBSTRACTIVE_TURNING).c_str());
+    return result;
+}  // getTyresDoSubstractiveTurning
+
+// ----------------------------------------------------------------------------
+bool AbstractCharacteristic::getTyresDoSubstractiveTraction() const
+{
+    bool result;
+    bool is_set = false;
+    process(TYRES_DO_SUBSTRACTIVE_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_DO_SUBSTRACTIVE_TRACTION).c_str());
+    return result;
+}  // getTyresDoSubstractiveTraction
+
+// ----------------------------------------------------------------------------
+bool AbstractCharacteristic::getTyresDoSubstractiveTopspeed() const
+{
+    bool result;
+    bool is_set = false;
+    process(TYRES_DO_SUBSTRACTIVE_TOPSPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_DO_SUBSTRACTIVE_TOPSPEED).c_str());
+    return result;
+}  // getTyresDoSubstractiveTopspeed
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresTractionConstant() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_TRACTION_CONSTANT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_TRACTION_CONSTANT).c_str());
+    return result;
+}  // getTyresTractionConstant
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresTurningConstant() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_TURNING_CONSTANT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_TURNING_CONSTANT).c_str());
+    return result;
+}  // getTyresTurningConstant
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresTopspeedConstant() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_TOPSPEED_CONSTANT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_TOPSPEED_CONSTANT).c_str());
+    return result;
+}  // getTyresTopspeedConstant
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getStartupTime() const

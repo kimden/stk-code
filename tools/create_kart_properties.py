@@ -27,10 +27,11 @@ import sys
 # Input data
 # Each line contains a topic and the attributes of that topic.
 # This model is used for the xml file and to access the kart properties in the code.
+
 characteristics = """Suspension: stiffness, rest, travel, expSpringResponse(bool), maxForce
 Stability: rollInfluence, chassisLinearDamping, chassisAngularDamping, downwardImpulseFactor, trackConnectionAccel, angularFactor(std::vector<float>/floatVector), smoothFlyingImpulse
 Turn: radius(InterpolationArray), timeResetSteer, timeFullSteer(InterpolationArray)
-Engine: power, maxSpeed, genericMaxSpeed, brakeFactor, brakeTimeIncrease, maxSpeedReverseRatio
+Engine: power, maxSpeed, genericMaxSpeed, brakeFactor, timeFullBrake, maxSpeedReverseRatio
 Gear: switchRatio(std::vector<float>/floatVector), powerIncrease(std::vector<float>/floatVector)
 Mass
 Wheels: dampingRelaxation, dampingCompression
@@ -43,12 +44,15 @@ Bubblegum: duration, speedFraction, torque, fadeInTime, shieldDuration
 Zipper: duration, force, speedGain, maxSpeedIncrease, fadeOutTime
 Swatter: duration, distance, squashDuration, squashSlowdown
 Plunger: bandMaxLength, bandForce, bandDuration, bandSpeedIncrease, bandFadeOutTime, inFaceTime
-Startup: time(std::vector<float>/floatVector), boost(std::vector<float>/floatVector)
+Nitrohack: duration, factor
+Electro: duration, engineMult, maxSpeedIncrease, fadeOutTime
+Tyres: maxLifeTurning, maxLifeTraction, minLifeTurning, minLifeTraction, regularTransferTurning, regularTransferTraction, limitingTransferTurning, limitingTransferTraction, hardnessMultiplier, initialBonusAddTurning, initialBonusMultTurning, initialBonusAddTraction, initialBonusMultTraction, initialBonusAddTopspeed, initialBonusMultTopspeed, idealTemp, TempPerformanceCurve(InterpolationArray), heatTransferCurve(InterpolationArray), hardnessPenaltyCurve(InterpolationArray), heatCycleHardnessCurve(InterpolationArray), responseCurveTurning(InterpolationArray), responseCurveTraction(InterpolationArray), responseCurveTopspeed(InterpolationArray), doSubstractiveTurning(bool), doSubstractiveTraction(bool), doSubstractiveTopspeed(bool), tractionConstant, turningConstant, topspeedConstant
+Startup: time(std::vector<float>/floatVector), boost(std::vector<float>/floatVector), engineForce(std::vector<float>/floatVector), duration, fadeOutTime
 Rescue: duration, vertOffset, height
 Explosion: duration, radius, invulnerabilityTime
-Nitro: duration, engineForce, engineMult, consumption, smallContainer, bigContainer, maxSpeedIncrease, fadeOutTime, max
+Nitro: duration, engineForce, engineMult, consumption, smallContainer, bigContainer, maxSpeedIncrease, minBurst, fadeOutTime, max
 Slipstream: durationFactor, baseSpeed, length, width, innerFactor, minCollectTime, maxCollectTime, addPower, minSpeed, maxSpeedIncrease, fadeOutTime
-Skid: increase, decrease, max, timeTillMax, visual, visualTime, revertVisualTime, minSpeed, timeTillBonus(std::vector<float>/floatVector), bonusSpeed(std::vector<float>/floatVector), bonusTime(std::vector<float>/floatVector), bonusForce(std::vector<float>/floatVector), physicalJumpTime, graphicalJumpTime, postSkidRotateFactor, reduceTurnMin, reduceTurnMax, enabled(bool)"""
+Skid: increase, decrease, max, timeTillMax, visual, visualTime, revertVisualTime, minSpeed, timeTillBonus(std::vector<float>/floatVector), bonusSpeed(std::vector<float>/floatVector), bonusTime(std::vector<float>/floatVector), fadeOutTime(std::vector<float>/floatVector), bonusForce(std::vector<float>/floatVector), physicalJumpTime, graphicalJumpTime, postSkidRotateFactor, reduceTurnMin, reduceTurnMax, enabled(bool)"""
 
 """ A GroupMember is an attribute of a group.
     In the xml files, a value will be assigned to it.

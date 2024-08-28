@@ -317,6 +317,70 @@ void XmlCharacteristic::load(const XMLNode *node)
     // by the script and replace the contained content.
     // To update the code, use tools/update_characteristics.py
     /* <characteristics-start getXml> */
+
+    if (const XMLNode *sub_node = node->getNode("tyres"))
+    {
+        sub_node->get("max-life-turning",
+            &m_values[TYRES_MAX_LIFE_TURNING]);
+        sub_node->get("max-life-traction",
+            &m_values[TYRES_MAX_LIFE_TRACTION]);
+        sub_node->get("min-life-turning",
+            &m_values[TYRES_MIN_LIFE_TURNING]);
+        sub_node->get("min-life-traction",
+            &m_values[TYRES_MIN_LIFE_TRACTION]);
+        sub_node->get("regular-transfer-turning",
+            &m_values[TYRES_REGULAR_TRANSFER_TURNING]);
+        sub_node->get("regular-transfer-traction",
+            &m_values[TYRES_REGULAR_TRANSFER_TRACTION]);
+        sub_node->get("limiting-transfer-turning",
+            &m_values[TYRES_LIMITING_TRANSFER_TURNING]);
+        sub_node->get("limiting-transfer-traction",
+           &m_values[TYRES_LIMITING_TRANSFER_TRACTION]);
+        sub_node->get("hardness-multiplier",
+            &m_values[TYRES_HARDNESS_MULTIPLIER]);
+        sub_node->get("initial-bonus-add-turning",
+            &m_values[TYRES_INITIAL_BONUS_ADD_TURNING]);
+        sub_node->get("initial-bonus-mult-turning",
+            &m_values[TYRES_INITIAL_BONUS_MULT_TURNING]);
+        sub_node->get("initial-bonus-add-traction",
+            &m_values[TYRES_INITIAL_BONUS_ADD_TRACTION]);
+        sub_node->get("initial-bonus-mult-traction",
+            &m_values[TYRES_INITIAL_BONUS_MULT_TRACTION]);
+        sub_node->get("initial-bonus-add-topspeed",
+            &m_values[TYRES_INITIAL_BONUS_ADD_TOPSPEED]);
+        sub_node->get("initial-bonus-mult-topspeed",
+            &m_values[TYRES_INITIAL_BONUS_MULT_TOPSPEED]);
+        sub_node->get("ideal-temp",
+            &m_values[TYRES_IDEAL_TEMP]);
+        sub_node->get("temp-performance-curve",
+            &m_values[TYRES_TEMP_PERFORMANCE_CURVE]);
+        sub_node->get("heat-transfer-curve",
+            &m_values[TYRES_HEAT_TRANSFER_CURVE]);
+        sub_node->get("hardness-penalty-curve",
+            &m_values[TYRES_HARDNESS_PENALTY_CURVE]);
+        sub_node->get("heat-cycle-hardness-curve",
+            &m_values[TYRES_HEAT_CYCLE_HARDNESS_CURVE]);
+        sub_node->get("response-curve-turning",
+            &m_values[TYRES_RESPONSE_CURVE_TURNING]);
+        sub_node->get("response-curve-traction",
+            &m_values[TYRES_RESPONSE_CURVE_TRACTION]);
+        sub_node->get("response-curve-topspeed",
+            &m_values[TYRES_RESPONSE_CURVE_TOPSPEED]);
+        sub_node->get("do-substractive-turning",
+            &m_values[TYRES_DO_SUBSTRACTIVE_TURNING]);
+        sub_node->get("do-substractive-traction",
+            &m_values[TYRES_DO_SUBSTRACTIVE_TRACTION]);
+        sub_node->get("do-substractive-topspeed",
+            &m_values[TYRES_DO_SUBSTRACTIVE_TOPSPEED]);
+        sub_node->get("traction-constant",
+            &m_values[TYRES_TRACTION_CONSTANT]);
+        sub_node->get("turning-constant",
+            &m_values[TYRES_TURNING_CONSTANT]);
+        sub_node->get("topspeed-constant",
+            &m_values[TYRES_TOPSPEED_CONSTANT]);
+    }
+
+
     if (const XMLNode *sub_node = node->getNode("suspension"))
     {
         sub_node->get("stiffness",

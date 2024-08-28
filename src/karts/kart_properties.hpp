@@ -470,6 +470,36 @@ public:
     float getElectroMaxSpeedIncrease() const;
     float getElectroFadeOutTime() const;
 
+    float getTyresMaxLifeTurning() const;
+    float getTyresMaxLifeTraction() const;
+    float getTyresMinLifeTurning() const;
+    float getTyresMinLifeTraction() const;
+    float getTyresRegularTransferTurning() const;
+    float getTyresRegularTransferTraction() const;
+    float getTyresLimitingTransferTurning() const;
+    float getTyresLimitingTransferTraction() const;
+    float getTyresHardnessMultiplier() const;
+    float getTyresInitialBonusAddTurning() const;
+    float getTyresInitialBonusMultTurning() const;
+    float getTyresInitialBonusAddTraction() const;
+    float getTyresInitialBonusMultTraction() const;
+    float getTyresInitialBonusAddTopspeed() const;
+    float getTyresInitialBonusMultTopspeed() const;
+    float getTyresIdealTemp() const;
+    InterpolationArray getTyresTempPerformanceCurve() const;
+    InterpolationArray getTyresHeatTransferCurve() const;
+    InterpolationArray getTyresHardnessPenaltyCurve() const;
+    InterpolationArray getTyresHeatCycleHardnessCurve() const;
+    InterpolationArray getTyresResponseCurveTurning() const;
+    InterpolationArray getTyresResponseCurveTraction() const;
+    InterpolationArray getTyresResponseCurveTopspeed() const;
+    bool getTyresDoSubstractiveTurning() const;
+    bool getTyresDoSubstractiveTraction() const;
+    bool getTyresDoSubstractiveTopspeed() const;
+    float getTyresTractionConstant() const;
+    float getTyresTurningConstant() const;
+    float getTyresTopspeedConstant() const;
+
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;
     std::vector<float> getStartupEngineForce() const;
@@ -491,7 +521,7 @@ public:
     float getNitroSmallContainer() const;
     float getNitroBigContainer() const;
     float getNitroMaxSpeedIncrease() const;
-    float getNitroMinBurst() const; 
+    float getNitroMinBurst() const;
     float getNitroFadeOutTime() const;
     float getNitroMax() const;
 

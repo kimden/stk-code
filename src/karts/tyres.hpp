@@ -1,0 +1,82 @@
+//
+//  SuperTuxKart - a fun racing game with go-kart
+//  Copyright (C) 2024  Nomagno
+//
+//  This program is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU General Public License
+//  as published by the Free Software Foundation; either version 3
+//  of the License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+#ifndef HEADER_TYRES_HPP
+#define HEADER_TYRES_HPP
+
+#include "vector"
+#include "utils/leak_check.hpp"
+#include "utils/no_copy.hpp"
+#include "utils/types.hpp"
+
+class BareNetworkString;
+class Kart;
+class ShowCurve;
+
+
+/**
+ * \ingroup karts
+ */
+
+#undef SKID_DEBUG
+
+class Tyres
+{
+friend class KartRewinder;
+public:
+    LEAK_CHECK();
+private:
+    float m_heat_accumulator;
+	float m_minimum_temp;
+	float m_maximum_temp;
+    float m_center_of_gravity_x;
+    float m_center_of_gravity_y;
+    float m_time_elapsed;
+	float m_acceleration;
+	float m_previous_speed;
+    long unsigned m_debug_cycles;
+
+public:
+    float m_current_life_traction;
+    float m_current_life_turning;
+    float m_current_temp;
+    float m_heat_cycle_count;
+
+private:
+    /** A read-only pointer to the kart's properties. */
+    Kart *m_kart;
+
+public:
+         Tyres(Kart *kart);
+        ~Tyres() { reset(); };
+    void reset();
+    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_force, float speed, float steer_amount);
+    float degEngineForce(float);
+    float degTopSpeed(float);
+    float degTurnRadius(float);
+    void saveState(BareNetworkString *buffer);
+    void rewindTo(BareNetworkString *buffer);
+
+
+};   // Tyres
+
+
+#endif
+
+/* EOF */
+

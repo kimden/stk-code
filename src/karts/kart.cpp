@@ -18,6 +18,7 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "karts/kart.hpp"
+#include "karts/tyres.hpp"
 
 #include "audio/sfx_manager.hpp"
 #include "audio/sfx_base.hpp"
@@ -3049,8 +3050,21 @@ void Kart::updatePhysics(int ticks)
     }
 
     float steering = getMaxSteerAngle() * m_skidding->getSteeringFraction();
-    m_vehicle->setSteeringValue(steering, 0);
-    m_vehicle->setSteeringValue(steering, 1);
+    
+    m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 0);
+    m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 1);
+
+    float f = stk_config->ticks2Time(m_brake_ticks);
+    if(m_controls.getBrake() && m_speed > 0.0f) {
+	    if (f >= m_kart_properties->getEngineTimeFullBrake())
+	        f = 1.0f;
+	    else
+	        f = f * (0.35f + 0.65f / m_kart_properties->getEngineTimeFullBrake());
+	}
+	if ((getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)) {
+		//printf("SLOWING DOWN BY: %f\n", getMaterial()->getMaxSpeedFraction());
+	}
+	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT),  ( (getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)), f, getSpeed(), fabs(steering));
 
     updateSliding();
 
@@ -3187,7 +3201,7 @@ void Kart::updateEnginePowerAndBrakes(int ticks)
 {
     updateWeight();
     updateNitro(ticks);
-    float engine_power = getActualWheelForce();
+    float engine_power = m_tyres->degEngineForce(getActualWheelForce());
 
     // apply nitro boost if relevant
     if(getSpeedIncreaseTicksLeft(MaxSpeed::MS_INCREASE_NITRO) > 0)
@@ -3323,7 +3337,7 @@ void Kart::updateSteering(int ticks)
     // to full steer for a current steer of 0 (which should be
     // the highest possible value)
     float dt = stk_config->ticks2Time(ticks);
-    const float STEER_CHANGE = ( (requested_steer > m_effective_steer && m_effective_steer < 0) ||
+    float STEER_CHANGE = ( (requested_steer > m_effective_steer && m_effective_steer < 0) ||
                                  (requested_steer < m_effective_steer && m_effective_steer > 0)   )
                      ? dt/getTimeFullSteer(0.0f)
                      : dt/getTimeFullSteer(fabsf(m_effective_steer));
@@ -3496,6 +3510,7 @@ void Kart::loadData(RaceManager::KartType type, bool is_animated_model)
     m_kart_gfx.reset(
         new KartGFX(this, Track::getCurrentTrack()->getIsDuringDay()));
     m_skidding.reset(new Skidding(this));
+    m_tyres.reset(new Tyres(this));
     // Create the stars effect
     if (!GUIEngine::isNoGraphics())
         m_stars_effect.reset(new Stars(this));

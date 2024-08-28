@@ -17,6 +17,7 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "karts/max_speed.hpp"
+#include "karts/tyres.hpp"
 
 #include "config/stk_config.hpp"
 #include "karts/kart.hpp"
@@ -66,7 +67,7 @@ MaxSpeed::MaxSpeed(Kart *kart)
  */
 void MaxSpeed::reset()
 {
-    m_current_max_speed = m_kart->getKartProperties()->getEngineMaxSpeed();
+    m_current_max_speed = m_kart->m_tyres->degTopSpeed(m_kart->getKartProperties()->getEngineMaxSpeed());
     m_min_speed         = -1.0f;
     m_last_triggered_skid_level = 0;
 
@@ -436,7 +437,7 @@ void MaxSpeed::update(int ticks)
     }
 
     m_add_engine_force  = 0;
-    m_current_max_speed = m_kart->getKartProperties()->getEngineMaxSpeed();
+    m_current_max_speed = m_kart->m_tyres->degTopSpeed(m_kart->getKartProperties()->getEngineMaxSpeed());
 
     // Then add the speed increase from each category
     // ----------------------------------------------
