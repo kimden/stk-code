@@ -41,7 +41,6 @@ friend class KartRewinder;
 public:
     LEAK_CHECK();
 private:
-    float m_heat_accumulator;
 	float m_minimum_temp;
 	float m_maximum_temp;
     float m_center_of_gravity_x;

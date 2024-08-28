@@ -29,6 +29,7 @@
 #include "karts/controller/player_controller.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/max_speed.hpp"
+#include "karts/tyres.hpp"
 #include "karts/skidding.hpp"
 #include "modes/world.hpp"
 #include "network/compress_network_body.hpp"
@@ -283,6 +284,11 @@ BareNetworkString* KartRewinder::saveState(std::vector<std::string>* ru)
     // -----------
     m_skidding->saveState(buffer);
 
+    // 7) Tyres
+    // -----------
+    m_tyres->saveState(buffer);
+
+
     return buffer;
 }   // saveState
 
@@ -483,6 +489,10 @@ void KartRewinder::restoreState(BareNetworkString *buffer, int count)
     // 6) Skidding
     // -----------
     m_skidding->rewindTo(buffer);
+
+    // 6) Tyres
+    // -----------
+    m_tyres->rewindTo(buffer);
 
 }   // restoreState
 

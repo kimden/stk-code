@@ -2,6 +2,8 @@
 
 #include "karts/kart_properties.hpp"
 #include "karts/kart.hpp"
+#include "network/network_string.hpp"
+#include "network/rewind_manager.hpp"
 
 
 Tyres::Tyres(Kart *kart) {
@@ -9,7 +11,6 @@ Tyres::Tyres(Kart *kart) {
 	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction();
 	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning();
 	m_heat_cycle_count = 0.0f;
-	m_heat_accumulator = 0;
 	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp();
 	m_maximum_temp = m_current_temp;
 	m_minimum_temp = m_current_temp;
@@ -143,7 +144,6 @@ void Tyres::reset() {
 	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction();
 	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning();
 	m_heat_cycle_count = 0.0f;
-	m_heat_accumulator = 0.0f;
 	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp();
 	m_maximum_temp = m_current_temp;
 	m_minimum_temp = m_current_temp;
@@ -154,3 +154,20 @@ void Tyres::reset() {
 	m_time_elapsed = 0.0f;
 	m_debug_cycles = 0;
 }
+
+void Tyres::saveState(BareNetworkString *buffer)
+{
+    buffer->addFloat(m_current_life_traction);
+    buffer->addFloat(m_current_life_turning);
+    buffer->addFloat(m_current_temp);
+    buffer->addFloat(m_heat_cycle_count);
+}
+
+void Tyres::rewindTo(BareNetworkString *buffer)
+{
+    m_current_life_traction = buffer->getFloat();
+    m_current_life_turning = buffer->getFloat();
+    m_current_temp = buffer->getFloat();
+    m_heat_cycle_count = buffer->getFloat();
+}
+
