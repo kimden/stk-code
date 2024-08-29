@@ -46,7 +46,7 @@ Swatter: duration, distance, squashDuration, squashSlowdown
 Plunger: bandMaxLength, bandForce, bandDuration, bandSpeedIncrease, bandFadeOutTime, inFaceTime
 Nitrohack: duration, factor
 Electro: duration, engineMult, maxSpeedIncrease, fadeOutTime
-Tyres: maxLifeTurning, maxLifeTraction, minLifeTurning, minLifeTraction, regularTransferTurning, regularTransferTraction, limitingTransferTurning, limitingTransferTraction, hardnessMultiplier, initialBonusAddTurning, initialBonusMultTurning, initialBonusAddTraction, initialBonusMultTraction, initialBonusAddTopspeed, initialBonusMultTopspeed, idealTemp, TempPerformanceCurve(InterpolationArray), heatTransferCurve(InterpolationArray), hardnessPenaltyCurve(InterpolationArray), heatCycleHardnessCurve(InterpolationArray), responseCurveTurning(InterpolationArray), responseCurveTraction(InterpolationArray), responseCurveTopspeed(InterpolationArray), doSubstractiveTurning(bool), doSubstractiveTraction(bool), doSubstractiveTopspeed(bool), tractionConstant, turningConstant, topspeedConstant
+Tyres: maxLifeTurning(std::vector<float>/floatVector), maxLifeTraction(std::vector<float>/floatVector), minLifeTurning(std::vector<float>/floatVector), minLifeTraction(std::vector<float>/floatVector), regularTransferTurning(std::vector<float>/floatVector), regularTransferTraction(std::vector<float>/floatVector), limitingTransferTurning(std::vector<float>/floatVector), limitingTransferTraction(std::vector<float>/floatVector), hardnessMultiplier(std::vector<float>/floatVector), initialBonusAddTurning(std::vector<float>/floatVector), initialBonusMultTurning(std::vector<float>/floatVector), initialBonusAddTraction(std::vector<float>/floatVector), initialBonusMultTraction(std::vector<float>/floatVector), initialBonusAddTopspeed(std::vector<float>/floatVector), initialBonusMultTopspeed(std::vector<float>/floatVector), idealTemp(std::vector<float>/floatVector), TempPerformanceCurve(InterpolationArray), heatTransferCurve(InterpolationArray), hardnessPenaltyCurve(InterpolationArray), heatCycleHardnessCurve(InterpolationArray), responseCurveTurning(InterpolationArray), responseCurveTraction(InterpolationArray), responseCurveTopspeed(InterpolationArray), doSubstractiveTurning(bool), doSubstractiveTraction(bool), doSubstractiveTopspeed(bool), tractionConstant(std::vector<float>/floatVector), turningConstant(std::vector<float>/floatVector), topspeedConstant(std::vector<float>/floatVector), compoundNumber
 Startup: time(std::vector<float>/floatVector), boost(std::vector<float>/floatVector), engineForce(std::vector<float>/floatVector), duration, fadeOutTime
 Rescue: duration, vertOffset, height
 Explosion: duration, radius, invulnerabilityTime
@@ -106,7 +106,7 @@ class Group:
     def getBaseName(self):
         return self.baseName
 
-    """ E.g. engine: power, gears(std::vector<Gear>/Gears)
+    """ E.g. engine: power, gears(std::vector<Gear>/n)
         or mass(float) or only mass """
     def parse(content):
         pos = content.find(":")

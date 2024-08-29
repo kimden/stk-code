@@ -8,18 +8,51 @@
 
 Tyres::Tyres(Kart *kart) {
 	m_kart = kart;
-	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction();
-	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning();
+	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_kart->m_current_compound];
+	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_kart->m_current_compound];
 	m_heat_cycle_count = 0.0f;
-	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp();
-	m_maximum_temp = m_current_temp;
-	m_minimum_temp = m_current_temp;
+	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp()[m_kart->m_current_compound];
 	m_center_of_gravity_x = 0.0f;
 	m_center_of_gravity_y = 0.0f;
 	m_previous_speed = 0.0f;
 	m_acceleration = 0.0f;
 	m_time_elapsed = 0.0f;
 	m_debug_cycles = 0;
+
+	m_c_hardness_multiplier = m_kart->getKartProperties()->getTyresHardnessMultiplier()[m_kart->m_current_compound];
+	m_c_heat_cycle_hardness_curve = m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve();
+	m_c_hardness_penalty_curve = m_kart->getKartProperties()->getTyresHardnessPenaltyCurve();
+
+	m_c_mass = m_kart->getKartProperties()->getMass();
+	m_c_ideal_temp = m_kart->getKartProperties()->getTyresIdealTemp()[m_kart->m_current_compound];
+	m_c_max_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_kart->m_current_compound];
+	m_c_max_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_kart->m_current_compound];
+	m_c_min_life_traction = m_kart->getKartProperties()->getTyresMinLifeTraction()[m_kart->m_current_compound];
+	m_c_min_life_turning = m_kart->getKartProperties()->getTyresMinLifeTurning()[m_kart->m_current_compound];
+	m_c_limiting_transfer_traction = m_kart->getKartProperties()->getTyresLimitingTransferTraction()[m_kart->m_current_compound];
+	m_c_regular_transfer_traction = m_kart->getKartProperties()->getTyresRegularTransferTraction()[m_kart->m_current_compound];
+	m_c_limiting_transfer_turning = m_kart->getKartProperties()->getTyresLimitingTransferTurning()[m_kart->m_current_compound];
+	m_c_regular_transfer_turning = m_kart->getKartProperties()->getTyresRegularTransferTurning()[m_kart->m_current_compound];
+	m_c_do_substractive_traction = m_kart->getKartProperties()->getTyresDoSubstractiveTraction();
+	m_c_do_substractive_turning  = m_kart->getKartProperties()->getTyresDoSubstractiveTurning();
+	m_c_do_substractive_topspeed  = m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed();
+	m_c_response_curve_traction = m_kart->getKartProperties()->getTyresResponseCurveTraction();
+	m_c_response_curve_turning = m_kart->getKartProperties()->getTyresResponseCurveTurning();
+	m_c_response_curve_topspeed = m_kart->getKartProperties()->getTyresResponseCurveTopspeed();
+	m_c_initial_bonus_mult_traction = m_kart->getKartProperties()->getTyresInitialBonusMultTraction()[m_kart->m_current_compound];
+	m_c_initial_bonus_add_traction = m_kart->getKartProperties()->getTyresInitialBonusAddTraction()[m_kart->m_current_compound];
+	m_c_initial_bonus_mult_turning = m_kart->getKartProperties()->getTyresInitialBonusMultTurning()[m_kart->m_current_compound];
+	m_c_initial_bonus_add_turning = m_kart->getKartProperties()->getTyresInitialBonusAddTurning()[m_kart->m_current_compound];
+	m_c_initial_bonus_mult_topspeed = m_kart->getKartProperties()->getTyresInitialBonusMultTopspeed()[m_kart->m_current_compound];
+	m_c_initial_bonus_add_topspeed = m_kart->getKartProperties()->getTyresInitialBonusAddTopspeed()[m_kart->m_current_compound];
+	m_c_traction_constant = m_kart->getKartProperties()->getTyresTractionConstant()[m_kart->m_current_compound];
+	m_c_turning_constant = m_kart->getKartProperties()->getTyresTurningConstant()[m_kart->m_current_compound];
+	m_c_topspeed_constant = m_kart->getKartProperties()->getTyresTopspeedConstant()[m_kart->m_current_compound];
+
+}
+
+float Tyres::correct(float f) {
+	return (100.0f*(float)m_kart->m_current_compound+(float)m_kart->m_current_compound)+f;
 }
 
 void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_amount, float speed, float steer_amount) {
@@ -31,15 +64,14 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 		m_previous_speed = speed;
 	}
 	float turn_radius = 1.0f/steer_amount; // not really the "turn radius" but proportional
-	float mass = m_kart->getKartProperties()->getMass();
-	float current_hardness = m_kart->getKartProperties()->getTyresHardnessMultiplier()*m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve().get(m_heat_cycle_count);
+	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
 	float deg_tur = 0.0f;
 	float deg_tra = 0.0f;
 	float deg_tur_percent = 0.0f;
 	float deg_tra_percent = 0.0f;
 
-	m_center_of_gravity_x = m_acceleration*mass;
-	m_center_of_gravity_y = ((speed*speed)/turn_radius)*mass;
+	m_center_of_gravity_x = m_acceleration*m_c_mass;
+	m_center_of_gravity_y = ((speed*speed)/turn_radius)*m_c_mass;
 	if (!is_on_ground) goto LOG_ZONE;
 
 	deg_tra = dt*std::abs(m_center_of_gravity_x)*std::abs(speed)*current_hardness/1000.0f;
@@ -53,21 +85,21 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	}
 
 	deg_tur = dt*std::abs(m_center_of_gravity_y)*std::abs(speed)*current_hardness/100000.0f;
-	deg_tur += std::abs(m_center_of_gravity_y)/mass/100000000.0f/dt;
+	deg_tur += std::abs(m_center_of_gravity_y)/m_c_mass/100000000.0f/dt;
 
 	if (is_skidding) {
 		deg_tur *= 3.0f;
 	}
 
-	deg_tra_percent = deg_tra/m_kart->getKartProperties()->getTyresMaxLifeTraction();
-	deg_tur_percent = deg_tur/m_kart->getKartProperties()->getTyresMaxLifeTurning();
+	deg_tra_percent = deg_tra/m_c_max_life_traction;
+	deg_tur_percent = deg_tur/m_c_max_life_turning;
 
 	if(m_current_life_traction < m_current_life_turning) {
-		m_current_life_turning -= deg_tra_percent*m_kart->getKartProperties()->getTyresLimitingTransferTraction()*m_kart->getKartProperties()->getTyresMaxLifeTurning();
-		m_current_life_traction -= deg_tur_percent*m_kart->getKartProperties()->getTyresRegularTransferTurning()*m_kart->getKartProperties()->getTyresMaxLifeTraction();
+		m_current_life_turning -= deg_tra_percent*m_c_limiting_transfer_traction*m_c_max_life_turning;
+		m_current_life_traction -= deg_tur_percent*m_c_regular_transfer_turning*m_c_max_life_traction;
 	} else {
-		m_current_life_turning -= deg_tra_percent*m_kart->getKartProperties()->getTyresRegularTransferTraction()*m_kart->getKartProperties()->getTyresMaxLifeTurning();
-		m_current_life_traction -= deg_tur_percent*m_kart->getKartProperties()->getTyresLimitingTransferTurning()*m_kart->getKartProperties()->getTyresMaxLifeTraction();
+		m_current_life_turning -= deg_tra_percent*m_c_regular_transfer_traction*m_c_max_life_turning;
+		m_current_life_traction -= deg_tur_percent*m_c_limiting_transfer_turning*m_c_max_life_traction;
 	}
 
 	m_current_life_traction -= deg_tra;
@@ -75,64 +107,55 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	if (m_current_life_traction < 0.0f) m_current_life_traction = 0.0f;
 	if (m_current_life_turning < 0.0f) m_current_life_turning = 0.0f;
 
-/*
-	float old_temp = m_current_temp;
-	if (m_acceleration >= 10) m_current_temp += deg_tra/current_hardness/current_hardness;
-	m_current_temp -= dt*m_kart->getKartProperties()->getTyresHeatTransferCurve().get(m_current_temp);
-	if (m_current_temp > m_maximum_temp) m_maximum_temp = m_current_temp;
-	if (m_current_temp < m_minimum_temp) m_minimum_temp = m_current_temp;
-	m_heat_accumulator += m_current_temp - old_temp;
-	if ((old_temp < m_kart->getKartProperties()->getTyresIdealTemp() && m_current_temp > m_kart->getKartProperties()->getTyresIdealTemp()) || (old_temp > m_kart->getKartProperties()->getTyresIdealTemp() && m_current_temp < m_kart->getKartProperties()->getTyresIdealTemp()) || (m_maximum_temp - m_minimum_temp > 15)) {
-		m_heat_cycle_count += std::abs(m_heat_accumulator);
-		m_heat_accumulator = 0;
-		m_maximum_temp = m_kart->getKartProperties()->getTyresIdealTemp();
-		m_minimum_temp = m_maximum_temp;
-	}
-*/
 	LOG_ZONE:
-   	float hardness_deviation = (current_hardness - m_kart->getKartProperties()->getTyresHardnessMultiplier()) / m_kart->getKartProperties()->getTyresHardnessMultiplier();
-   	float hardness_penalty = current_hardness *  m_kart->getKartProperties()->getTyresHardnessPenaltyCurve().get(hardness_deviation*100);
 
-	printf("Cycle %20lu || Kart %s || Time: %f\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(), m_time_elapsed, 100.0f*(m_current_life_traction)/m_kart->getKartProperties()->getTyresMaxLifeTraction(), 100.0f*(m_current_life_turning)/m_kart->getKartProperties()->getTyresMaxLifeTurning());
-	printf("\tCenter of gravity: (%f, %f)\n\tRadius: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x, m_center_of_gravity_y, turn_radius, speed, brake_amount);
-	printf("\tGround: %b || Skid: %b || Wreck: %b\n\tHard: %f || Pen: %f || Temp: %f\n", is_on_ground, is_skidding, wreck_tyres, current_hardness, hardness_penalty, m_current_temp);
-	printf("\tSubstractive: (Tra %b || Tur %b || Top %b)\n", m_kart->getKartProperties()->getTyresDoSubstractiveTraction(), m_kart->getKartProperties()->getTyresDoSubstractiveTurning(), m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed());
+	printf("Cycle %20lu || Kart %s || Time: %f\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
+	m_time_elapsed, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
+
+	printf("\tCenter of gravity: (%f, %f)\n\tRadius: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x,
+	m_center_of_gravity_y, turn_radius, speed, brake_amount);
+	printf("\tGround: %b || Skid: %b || Wreck: %b\n", is_on_ground, is_skidding, wreck_tyres);
+	printf("\tSubstractive: (Tra %b || Tur %b || Top %b)\n", m_c_do_substractive_traction, m_c_do_substractive_turning,
+	m_c_do_substractive_topspeed);
+	printf("\tCompound: %u\n", m_kart->m_current_compound);
 }
 
     float Tyres::degEngineForce(float initial_force) {
-    	float current_hardness = m_kart->getKartProperties()->getTyresHardnessMultiplier()*m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve().get(m_heat_cycle_count);
-    	float hardness_deviation = (current_hardness - m_kart->getKartProperties()->getTyresHardnessMultiplier()) / m_kart->getKartProperties()->getTyresHardnessMultiplier();
-    	float hardness_penalty = current_hardness *  m_kart->getKartProperties()->getTyresHardnessPenaltyCurve().get(hardness_deviation*100);
-	   	float percent = m_current_life_traction/m_kart->getKartProperties()->getTyresMaxLifeTraction();
-    	float factor = m_kart->getKartProperties()->getTyresResponseCurveTraction().get(percent*100.0f)*m_kart->getKartProperties()->getTyresTractionConstant();
-    	float bonus_traction = (initial_force+m_kart->getKartProperties()->getTyresInitialBonusAddTraction())*m_kart->getKartProperties()->getTyresInitialBonusMultTraction();
-    	if (m_kart->getKartProperties()->getTyresDoSubstractiveTraction()) {
+    	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
+    	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
+    	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
+	   	float percent = m_current_life_traction/m_c_max_life_traction;
+    	float factor = m_c_response_curve_traction.get(correct(percent*100.0f))*m_c_traction_constant;
+    	float bonus_traction = (initial_force+m_c_initial_bonus_add_traction)*m_c_initial_bonus_mult_traction;
+    	if (m_c_do_substractive_traction) {
     		return bonus_traction - hardness_penalty*factor;
     	} else {
     		return bonus_traction*hardness_penalty*factor;
     	}
     }
+
     float Tyres::degTurnRadius(float initial_radius) {
-    	float current_hardness = m_kart->getKartProperties()->getTyresHardnessMultiplier()*m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve().get(m_heat_cycle_count);
-    	float hardness_deviation = (current_hardness - m_kart->getKartProperties()->getTyresHardnessMultiplier()) / m_kart->getKartProperties()->getTyresHardnessMultiplier();
-    	float hardness_penalty = current_hardness *  m_kart->getKartProperties()->getTyresHardnessPenaltyCurve().get(hardness_deviation*100);
-	   	float percent = m_current_life_turning/m_kart->getKartProperties()->getTyresMaxLifeTurning();
-    	float factor = m_kart->getKartProperties()->getTyresResponseCurveTurning().get(percent*100.0f)*m_kart->getKartProperties()->getTyresTurningConstant();
-    	float bonus_turning = (initial_radius+m_kart->getKartProperties()->getTyresInitialBonusAddTurning())*m_kart->getKartProperties()->getTyresInitialBonusMultTurning();
-    	if (m_kart->getKartProperties()->getTyresDoSubstractiveTurning()) {
+    	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
+    	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
+    	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
+	   	float percent = m_current_life_turning/m_c_max_life_turning;
+    	float factor = m_c_response_curve_turning.get(correct(percent*100.0f))*m_c_turning_constant;
+    	float bonus_turning = (initial_radius+m_c_initial_bonus_add_turning)*m_c_initial_bonus_mult_turning;
+    	if (m_c_do_substractive_turning) {
     		return bonus_turning - hardness_penalty*factor;
     	} else {
     		return bonus_turning*hardness_penalty*factor;
     	}
     }
+
     float Tyres::degTopSpeed(float initial_topspeed) {
-    	float current_hardness = m_kart->getKartProperties()->getTyresHardnessMultiplier()*m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve().get(m_heat_cycle_count);
-    	float hardness_deviation = (current_hardness - m_kart->getKartProperties()->getTyresHardnessMultiplier()) / m_kart->getKartProperties()->getTyresHardnessMultiplier();
-    	float hardness_penalty = current_hardness *  m_kart->getKartProperties()->getTyresHardnessPenaltyCurve().get(hardness_deviation*100);
-    	float percent = m_current_life_traction/m_kart->getKartProperties()->getTyresMaxLifeTraction();
-		float factor = m_kart->getKartProperties()->getTyresResponseCurveTopspeed().get(percent*100.0f)*m_kart->getKartProperties()->getTyresTopspeedConstant();
-    	float bonus_topspeed = (initial_topspeed+m_kart->getKartProperties()->getTyresInitialBonusAddTopspeed())*m_kart->getKartProperties()->getTyresInitialBonusMultTopspeed();
-    	if (m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed()) {
+    	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
+    	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
+    	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
+	   	float percent = m_current_life_traction/m_c_max_life_traction;
+    	float factor = m_c_response_curve_topspeed.get(correct(percent*100.0f))*m_c_topspeed_constant;
+    	float bonus_topspeed = (initial_topspeed+m_c_initial_bonus_add_topspeed)*m_c_initial_bonus_mult_topspeed;
+    	if (m_c_do_substractive_topspeed) {
     		return bonus_topspeed - hardness_penalty*factor;
     	} else {
     		return bonus_topspeed*hardness_penalty*factor;
@@ -141,18 +164,47 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 
 
 void Tyres::reset() {
-	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction();
-	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning();
+	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_kart->m_current_compound];
+	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_kart->m_current_compound];
 	m_heat_cycle_count = 0.0f;
-	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp();
-	m_maximum_temp = m_current_temp;
-	m_minimum_temp = m_current_temp;
+	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp()[m_kart->m_current_compound];
 	m_center_of_gravity_x = 0.0f;
 	m_center_of_gravity_y = 0.0f;
 	m_previous_speed = 0.0f;
 	m_acceleration = 0.0f;
 	m_time_elapsed = 0.0f;
 	m_debug_cycles = 0;
+
+	m_c_hardness_multiplier = m_kart->getKartProperties()->getTyresHardnessMultiplier()[m_kart->m_current_compound];
+	m_c_heat_cycle_hardness_curve = m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve();
+	m_c_hardness_penalty_curve = m_kart->getKartProperties()->getTyresHardnessPenaltyCurve();
+
+	m_c_mass = m_kart->getKartProperties()->getMass();
+	m_c_ideal_temp = m_kart->getKartProperties()->getTyresIdealTemp()[m_kart->m_current_compound];
+	m_c_max_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_kart->m_current_compound];
+	m_c_max_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_kart->m_current_compound];
+	m_c_min_life_traction = m_kart->getKartProperties()->getTyresMinLifeTraction()[m_kart->m_current_compound];
+	m_c_min_life_turning = m_kart->getKartProperties()->getTyresMinLifeTurning()[m_kart->m_current_compound];
+	m_c_limiting_transfer_traction = m_kart->getKartProperties()->getTyresLimitingTransferTraction()[m_kart->m_current_compound];
+	m_c_regular_transfer_traction = m_kart->getKartProperties()->getTyresRegularTransferTraction()[m_kart->m_current_compound];
+	m_c_limiting_transfer_turning = m_kart->getKartProperties()->getTyresLimitingTransferTurning()[m_kart->m_current_compound];
+	m_c_regular_transfer_turning = m_kart->getKartProperties()->getTyresRegularTransferTurning()[m_kart->m_current_compound];
+	m_c_do_substractive_traction = m_kart->getKartProperties()->getTyresDoSubstractiveTraction();
+	m_c_do_substractive_turning  = m_kart->getKartProperties()->getTyresDoSubstractiveTurning();
+	m_c_do_substractive_topspeed  = m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed();
+	m_c_response_curve_traction = m_kart->getKartProperties()->getTyresResponseCurveTraction();
+	m_c_response_curve_turning = m_kart->getKartProperties()->getTyresResponseCurveTurning();
+	m_c_response_curve_topspeed = m_kart->getKartProperties()->getTyresResponseCurveTopspeed();
+	m_c_initial_bonus_mult_traction = m_kart->getKartProperties()->getTyresInitialBonusMultTraction()[m_kart->m_current_compound];
+	m_c_initial_bonus_add_traction = m_kart->getKartProperties()->getTyresInitialBonusAddTraction()[m_kart->m_current_compound];
+	m_c_initial_bonus_mult_turning = m_kart->getKartProperties()->getTyresInitialBonusMultTurning()[m_kart->m_current_compound];
+	m_c_initial_bonus_add_turning = m_kart->getKartProperties()->getTyresInitialBonusAddTurning()[m_kart->m_current_compound];
+	m_c_initial_bonus_mult_topspeed = m_kart->getKartProperties()->getTyresInitialBonusMultTopspeed()[m_kart->m_current_compound];
+	m_c_initial_bonus_add_topspeed = m_kart->getKartProperties()->getTyresInitialBonusAddTopspeed()[m_kart->m_current_compound];
+	m_c_traction_constant = m_kart->getKartProperties()->getTyresTractionConstant()[m_kart->m_current_compound];
+	m_c_turning_constant = m_kart->getKartProperties()->getTyresTurningConstant()[m_kart->m_current_compound];
+	m_c_topspeed_constant = m_kart->getKartProperties()->getTyresTopspeedConstant()[m_kart->m_current_compound];
+
 }
 
 void Tyres::saveState(BareNetworkString *buffer)

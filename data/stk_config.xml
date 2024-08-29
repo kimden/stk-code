@@ -222,7 +222,7 @@
   <!-- Item return times.
        Time until an item that has been collected returns. Can be set
        differently for bonus (gift) boxes, nitro, bananas and bubble gums -->
-  <item-return-time bonusbox="1.25" nitro="1.0" banana="2.0" bubblegum="2.0"/>
+  <item-return-time bonusbox="1.25" nitro="1.0" banana="2.0" bubblegum="2.0" tyre-change="2.0"/>
 
   <!-- Powerup
         collect-mode : decides what is collected if a kart has already an item.
@@ -242,7 +242,7 @@
        items for each item list the index of the item it is switched with.
              Order: giftbox, banana, big-nitro, small-nitro, bubble-gum, nolok-bubble-gum,
                     small-bubble-gum, small-nolok-bubble-gum, easter egg-->
-  <switch time="5"  items="1 0 4 6 2 2 3 3 8"/>
+  <switch time="5"  items="1 0 4 6 2 2 3 3 8 9"/>
 
   <!-- Bubblegum
        disappear-counter: How often bubblegum gets driven over before it disappears.

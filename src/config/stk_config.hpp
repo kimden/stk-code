@@ -71,6 +71,7 @@ public:
     int   m_nitro_item_return_ticks;     /** Time until a nitro collected by a kart returns */
     int   m_banana_item_return_ticks;    /** Time until a banana collected by a kart return */
     int   m_bubblegum_item_return_ticks; /** Time until a bubble gum collected bý a kart returns */
+    int   m_tyre_change_item_return_ticks; /** Time until a tyre change collected bý a kart returns */
 
     static float UNDEFINED;
     float m_bomb_time;                 /**<Time before a bomb explodes.        */

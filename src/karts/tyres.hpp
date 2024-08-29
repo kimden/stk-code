@@ -21,6 +21,7 @@
 
 #include "vector"
 #include "utils/leak_check.hpp"
+#include "utils/interpolation_array.hpp"
 #include "utils/no_copy.hpp"
 #include "utils/types.hpp"
 
@@ -41,14 +42,44 @@ friend class KartRewinder;
 public:
     LEAK_CHECK();
 private:
-	float m_minimum_temp;
-	float m_maximum_temp;
     float m_center_of_gravity_x;
     float m_center_of_gravity_y;
     float m_time_elapsed;
 	float m_acceleration;
 	float m_previous_speed;
     long unsigned m_debug_cycles;
+
+	float m_c_hardness_multiplier;
+	InterpolationArray m_c_heat_cycle_hardness_curve;
+	InterpolationArray m_c_hardness_penalty_curve;
+
+	float m_c_mass;
+	float m_c_ideal_temp;
+	float m_c_max_life_traction;
+	float m_c_max_life_turning;
+	float m_c_min_life_traction;
+	float m_c_min_life_turning;
+	float m_c_limiting_transfer_traction;
+	float m_c_regular_transfer_traction;
+	float m_c_limiting_transfer_turning;
+	float m_c_regular_transfer_turning;
+	bool m_c_do_substractive_traction;
+	bool m_c_do_substractive_turning;
+	bool m_c_do_substractive_topspeed;
+	InterpolationArray m_c_response_curve_traction;
+	InterpolationArray m_c_response_curve_turning;
+	InterpolationArray m_c_response_curve_topspeed;
+	float m_c_initial_bonus_mult_traction;
+	float m_c_initial_bonus_add_traction;
+	float m_c_initial_bonus_mult_turning;
+	float m_c_initial_bonus_add_turning;
+	float m_c_initial_bonus_mult_topspeed;
+	float m_c_initial_bonus_add_topspeed;
+	float m_c_traction_constant;
+	float m_c_turning_constant;
+	float m_c_topspeed_constant;
+
+
 
 public:
     float m_current_life_traction;
@@ -64,7 +95,9 @@ public:
          Tyres(Kart *kart);
         ~Tyres() { reset(); };
     void reset();
+    float correct(float);
     void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_force, float speed, float steer_amount);
+
     float degEngineForce(float);
     float degTopSpeed(float);
     float degTurnRadius(float);

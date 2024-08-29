@@ -192,6 +192,7 @@ void STKConfig::load(const std::string &filename)
     CHECK_NEG(m_nitro_item_return_ticks, "nitro return time");
     CHECK_NEG(m_banana_item_return_ticks, "banana return time");
     CHECK_NEG(m_bubblegum_item_return_ticks, "bubble gum return time");
+    CHECK_NEG(m_tyre_change_item_return_ticks, "tyre change return time");
 
     // Square distance to make distance checks cheaper (no sqrt)
     m_default_kart_properties->checkAllSet(filename);
@@ -265,6 +266,7 @@ void STKConfig::init_defaults()
     m_nitro_item_return_ticks     = -100;
     m_banana_item_return_ticks    = -100;
     m_bubblegum_item_return_ticks = -100;
+    m_tyre_change_item_return_ticks = -100;
 
     m_score_increase.clear();
     m_leader_intervals.clear();
@@ -493,6 +495,8 @@ void STKConfig::getAllData(const XMLNode * root)
             m_banana_item_return_ticks = time2Ticks(f);
         if(item_return_node->get("bubblegum", &f))
             m_bubblegum_item_return_ticks = time2Ticks(f);
+        if(item_return_node->get("tyre-change", &f))
+            m_tyre_change_item_return_ticks = time2Ticks(f);
     }
 
     if(const XMLNode *powerup_node= root->getNode("powerup"))
@@ -529,6 +533,7 @@ void STKConfig::getAllData(const XMLNode * root)
         bubblegum_node->get("disappear-counter", &m_bubblegum_counter      );
         bubblegum_node->get("restrict-weapons",  &m_shield_restrict_weapons);
     }
+
 
     if(const XMLNode *explosion_node= root->getNode("explosion"))
     {

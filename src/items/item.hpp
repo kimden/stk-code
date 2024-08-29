@@ -73,7 +73,9 @@ public:
 
         /** For easter egg mode only. */
         ITEM_EASTER_EGG,
-        ITEM_LAST = ITEM_EASTER_EGG,
+		ITEM_TYRE_CHANGE,
+
+        ITEM_LAST = ITEM_TYRE_CHANGE,
         ITEM_COUNT,
         ITEM_NONE
     };

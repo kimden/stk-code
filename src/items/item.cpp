@@ -174,6 +174,9 @@ void ItemState::collected(const Kart *kart)
             case ITEM_BUBBLEGUM_SMALL_NOLOK:
                 m_ticks_till_return = stk_config->m_bubblegum_item_return_ticks;
                 break;
+            case ITEM_TYRE_CHANGE:
+                m_ticks_till_return = stk_config->m_tyre_change_item_return_ticks;
+            	break;
             default:
                 m_ticks_till_return = stk_config->time2Ticks(2.0f);
                 break;

@@ -190,37 +190,37 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
     case ELECTRO_FADE_OUT_TIME:
         return TYPE_FLOAT;
     case TYRES_MAX_LIFE_TURNING:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_MAX_LIFE_TRACTION:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_MIN_LIFE_TURNING:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_MIN_LIFE_TRACTION:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_REGULAR_TRANSFER_TURNING:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_REGULAR_TRANSFER_TRACTION:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_LIMITING_TRANSFER_TURNING:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_LIMITING_TRANSFER_TRACTION:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_HARDNESS_MULTIPLIER:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_ADD_TURNING:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_MULT_TURNING:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_ADD_TRACTION:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_MULT_TRACTION:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_ADD_TOPSPEED:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_MULT_TOPSPEED:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_IDEAL_TEMP:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_TEMP_PERFORMANCE_CURVE:
         return TYPE_INTERPOLATION_ARRAY;
     case TYRES_HEAT_TRANSFER_CURVE:
@@ -242,10 +242,12 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
     case TYRES_DO_SUBSTRACTIVE_TOPSPEED:
         return TYPE_BOOL;
     case TYRES_TRACTION_CONSTANT:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_TURNING_CONSTANT:
-        return TYPE_FLOAT;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_TOPSPEED_CONSTANT:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_COMPOUND_NUMBER:
         return TYPE_FLOAT;
     case STARTUP_TIME:
         return TYPE_FLOAT_VECTOR;
@@ -561,6 +563,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_TURNING_CONSTANT";
     case TYRES_TOPSPEED_CONSTANT:
         return "TYRES_TOPSPEED_CONSTANT";
+    case TYRES_COMPOUND_NUMBER:
+        return "TYRES_COMPOUND_NUMBER";
     case STARTUP_TIME:
         return "STARTUP_TIME";
     case STARTUP_BOOST:
@@ -1480,9 +1484,9 @@ float AbstractCharacteristic::getElectroFadeOutTime() const
 }  // getElectroFadeOutTime
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresMaxLifeTurning() const
+std::vector<float> AbstractCharacteristic::getTyresMaxLifeTurning() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_MAX_LIFE_TURNING, &result, &is_set);
     if (!is_set)
@@ -1492,9 +1496,9 @@ float AbstractCharacteristic::getTyresMaxLifeTurning() const
 }  // getTyresMaxLifeTurning
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresMaxLifeTraction() const
+std::vector<float> AbstractCharacteristic::getTyresMaxLifeTraction() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_MAX_LIFE_TRACTION, &result, &is_set);
     if (!is_set)
@@ -1504,9 +1508,9 @@ float AbstractCharacteristic::getTyresMaxLifeTraction() const
 }  // getTyresMaxLifeTraction
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresMinLifeTurning() const
+std::vector<float> AbstractCharacteristic::getTyresMinLifeTurning() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_MIN_LIFE_TURNING, &result, &is_set);
     if (!is_set)
@@ -1516,9 +1520,9 @@ float AbstractCharacteristic::getTyresMinLifeTurning() const
 }  // getTyresMinLifeTurning
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresMinLifeTraction() const
+std::vector<float> AbstractCharacteristic::getTyresMinLifeTraction() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_MIN_LIFE_TRACTION, &result, &is_set);
     if (!is_set)
@@ -1528,9 +1532,9 @@ float AbstractCharacteristic::getTyresMinLifeTraction() const
 }  // getTyresMinLifeTraction
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresRegularTransferTurning() const
+std::vector<float> AbstractCharacteristic::getTyresRegularTransferTurning() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_REGULAR_TRANSFER_TURNING, &result, &is_set);
     if (!is_set)
@@ -1540,9 +1544,9 @@ float AbstractCharacteristic::getTyresRegularTransferTurning() const
 }  // getTyresRegularTransferTurning
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresRegularTransferTraction() const
+std::vector<float> AbstractCharacteristic::getTyresRegularTransferTraction() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_REGULAR_TRANSFER_TRACTION, &result, &is_set);
     if (!is_set)
@@ -1552,9 +1556,9 @@ float AbstractCharacteristic::getTyresRegularTransferTraction() const
 }  // getTyresRegularTransferTraction
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresLimitingTransferTurning() const
+std::vector<float> AbstractCharacteristic::getTyresLimitingTransferTurning() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_LIMITING_TRANSFER_TURNING, &result, &is_set);
     if (!is_set)
@@ -1564,9 +1568,9 @@ float AbstractCharacteristic::getTyresLimitingTransferTurning() const
 }  // getTyresLimitingTransferTurning
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresLimitingTransferTraction() const
+std::vector<float> AbstractCharacteristic::getTyresLimitingTransferTraction() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_LIMITING_TRANSFER_TRACTION, &result, &is_set);
     if (!is_set)
@@ -1576,9 +1580,9 @@ float AbstractCharacteristic::getTyresLimitingTransferTraction() const
 }  // getTyresLimitingTransferTraction
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresHardnessMultiplier() const
+std::vector<float> AbstractCharacteristic::getTyresHardnessMultiplier() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_HARDNESS_MULTIPLIER, &result, &is_set);
     if (!is_set)
@@ -1588,9 +1592,9 @@ float AbstractCharacteristic::getTyresHardnessMultiplier() const
 }  // getTyresHardnessMultiplier
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresInitialBonusAddTurning() const
+std::vector<float> AbstractCharacteristic::getTyresInitialBonusAddTurning() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_INITIAL_BONUS_ADD_TURNING, &result, &is_set);
     if (!is_set)
@@ -1600,9 +1604,9 @@ float AbstractCharacteristic::getTyresInitialBonusAddTurning() const
 }  // getTyresInitialBonusAddTurning
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresInitialBonusMultTurning() const
+std::vector<float> AbstractCharacteristic::getTyresInitialBonusMultTurning() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_INITIAL_BONUS_MULT_TURNING, &result, &is_set);
     if (!is_set)
@@ -1612,9 +1616,9 @@ float AbstractCharacteristic::getTyresInitialBonusMultTurning() const
 }  // getTyresInitialBonusMultTurning
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresInitialBonusAddTraction() const
+std::vector<float> AbstractCharacteristic::getTyresInitialBonusAddTraction() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_INITIAL_BONUS_ADD_TRACTION, &result, &is_set);
     if (!is_set)
@@ -1624,9 +1628,9 @@ float AbstractCharacteristic::getTyresInitialBonusAddTraction() const
 }  // getTyresInitialBonusAddTraction
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresInitialBonusMultTraction() const
+std::vector<float> AbstractCharacteristic::getTyresInitialBonusMultTraction() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_INITIAL_BONUS_MULT_TRACTION, &result, &is_set);
     if (!is_set)
@@ -1636,9 +1640,9 @@ float AbstractCharacteristic::getTyresInitialBonusMultTraction() const
 }  // getTyresInitialBonusMultTraction
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresInitialBonusAddTopspeed() const
+std::vector<float> AbstractCharacteristic::getTyresInitialBonusAddTopspeed() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_INITIAL_BONUS_ADD_TOPSPEED, &result, &is_set);
     if (!is_set)
@@ -1648,9 +1652,9 @@ float AbstractCharacteristic::getTyresInitialBonusAddTopspeed() const
 }  // getTyresInitialBonusAddTopspeed
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresInitialBonusMultTopspeed() const
+std::vector<float> AbstractCharacteristic::getTyresInitialBonusMultTopspeed() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_INITIAL_BONUS_MULT_TOPSPEED, &result, &is_set);
     if (!is_set)
@@ -1660,9 +1664,9 @@ float AbstractCharacteristic::getTyresInitialBonusMultTopspeed() const
 }  // getTyresInitialBonusMultTopspeed
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresIdealTemp() const
+std::vector<float> AbstractCharacteristic::getTyresIdealTemp() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_IDEAL_TEMP, &result, &is_set);
     if (!is_set)
@@ -1792,9 +1796,9 @@ bool AbstractCharacteristic::getTyresDoSubstractiveTopspeed() const
 }  // getTyresDoSubstractiveTopspeed
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresTractionConstant() const
+std::vector<float> AbstractCharacteristic::getTyresTractionConstant() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_TRACTION_CONSTANT, &result, &is_set);
     if (!is_set)
@@ -1804,9 +1808,9 @@ float AbstractCharacteristic::getTyresTractionConstant() const
 }  // getTyresTractionConstant
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresTurningConstant() const
+std::vector<float> AbstractCharacteristic::getTyresTurningConstant() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_TURNING_CONSTANT, &result, &is_set);
     if (!is_set)
@@ -1816,9 +1820,9 @@ float AbstractCharacteristic::getTyresTurningConstant() const
 }  // getTyresTurningConstant
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getTyresTopspeedConstant() const
+std::vector<float> AbstractCharacteristic::getTyresTopspeedConstant() const
 {
-    float result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_TOPSPEED_CONSTANT, &result, &is_set);
     if (!is_set)
@@ -1826,6 +1830,18 @@ float AbstractCharacteristic::getTyresTopspeedConstant() const
                     getName(TYRES_TOPSPEED_CONSTANT).c_str());
     return result;
 }  // getTyresTopspeedConstant
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresCompoundNumber() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_COMPOUND_NUMBER, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_COMPOUND_NUMBER).c_str());
+    return result;
+}  // getTyresCompoundNumber
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getStartupTime() const

@@ -2274,7 +2274,7 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
             const std::string &name = node->getName();
             if (name=="banana"      || name=="item"      ||
                 name=="small-nitro" || name=="big-nitro" ||
-                name=="easter-egg"                           )
+                name=="easter-egg" || name=="tyre-change")
             {
                 itemCommand(node);
             }
@@ -2382,7 +2382,7 @@ void Track::loadObjects(const XMLNode* root, const std::string& path,
         {
             createWater(*node);
         }
-        else if (name == "banana"      || name == "item" ||
+        else if (name == "banana"      || name == "item" || name=="tyre-change" ||
                  name == "small-nitro" || name == "big-nitro" ||
                  name == "easter-egg"  || name == "red-flag" ||
                  name == "blue-flag")
@@ -2693,6 +2693,7 @@ void Track::itemCommand(const XMLNode *node)
     else if(name=="item"       ) type = Item::ITEM_BONUS_BOX;
     else if(name=="small-nitro") type = Item::ITEM_NITRO_SMALL;
     else if(name=="easter-egg" ) type = Item::ITEM_EASTER_EGG;
+    else if(name=="tyre-change" ) type = Item::ITEM_TYRE_CHANGE;
     else                         type = Item::ITEM_NITRO_BIG;
     Vec3 xyz;
     // Set some kind of default in case Y is not defined in the file

@@ -84,6 +84,7 @@ void ItemManager::loadDefaultItemMeshes()
     item_names[ItemState::ITEM_BUBBLEGUM_SMALL] = "bubblegum-small";
     item_names[ItemState::ITEM_BUBBLEGUM_SMALL_NOLOK] = "bubblegum-small-nolok";
     item_names[ItemState::ITEM_EASTER_EGG     ] = "easter-egg";
+    item_names[ItemState::ITEM_TYRE_CHANGE     ] = "tyre-change";
 
     const std::string file_name = file_manager->getAsset("items.xml");
     const XMLNode *root         = file_manager->createXMLTree(file_name);

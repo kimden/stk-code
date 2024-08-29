@@ -1138,97 +1138,97 @@ float KartProperties::getElectroFadeOutTime() const
 }  // getElectroFadeOutTime
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresMaxLifeTurning() const
+std::vector<float> KartProperties::getTyresMaxLifeTurning() const
 {
     return m_cached_characteristic->getTyresMaxLifeTurning();
 }  // getTyresMaxLifeTurning
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresMaxLifeTraction() const
+std::vector<float> KartProperties::getTyresMaxLifeTraction() const
 {
     return m_cached_characteristic->getTyresMaxLifeTraction();
 }  // getTyresMaxLifeTraction
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresMinLifeTurning() const
+std::vector<float> KartProperties::getTyresMinLifeTurning() const
 {
     return m_cached_characteristic->getTyresMinLifeTurning();
 }  // getTyresMinLifeTurning
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresMinLifeTraction() const
+std::vector<float> KartProperties::getTyresMinLifeTraction() const
 {
     return m_cached_characteristic->getTyresMinLifeTraction();
 }  // getTyresMinLifeTraction
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresRegularTransferTurning() const
+std::vector<float> KartProperties::getTyresRegularTransferTurning() const
 {
     return m_cached_characteristic->getTyresRegularTransferTurning();
 }  // getTyresRegularTransferTurning
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresRegularTransferTraction() const
+std::vector<float> KartProperties::getTyresRegularTransferTraction() const
 {
     return m_cached_characteristic->getTyresRegularTransferTraction();
 }  // getTyresRegularTransferTraction
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresLimitingTransferTurning() const
+std::vector<float> KartProperties::getTyresLimitingTransferTurning() const
 {
     return m_cached_characteristic->getTyresLimitingTransferTurning();
 }  // getTyresLimitingTransferTurning
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresLimitingTransferTraction() const
+std::vector<float> KartProperties::getTyresLimitingTransferTraction() const
 {
     return m_cached_characteristic->getTyresLimitingTransferTraction();
 }  // getTyresLimitingTransferTraction
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresHardnessMultiplier() const
+std::vector<float> KartProperties::getTyresHardnessMultiplier() const
 {
     return m_cached_characteristic->getTyresHardnessMultiplier();
 }  // getTyresHardnessMultiplier
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresInitialBonusAddTurning() const
+std::vector<float> KartProperties::getTyresInitialBonusAddTurning() const
 {
     return m_cached_characteristic->getTyresInitialBonusAddTurning();
 }  // getTyresInitialBonusAddTurning
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresInitialBonusMultTurning() const
+std::vector<float> KartProperties::getTyresInitialBonusMultTurning() const
 {
     return m_cached_characteristic->getTyresInitialBonusMultTurning();
 }  // getTyresInitialBonusMultTurning
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresInitialBonusAddTraction() const
+std::vector<float> KartProperties::getTyresInitialBonusAddTraction() const
 {
     return m_cached_characteristic->getTyresInitialBonusAddTraction();
 }  // getTyresInitialBonusAddTraction
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresInitialBonusMultTraction() const
+std::vector<float> KartProperties::getTyresInitialBonusMultTraction() const
 {
     return m_cached_characteristic->getTyresInitialBonusMultTraction();
 }  // getTyresInitialBonusMultTraction
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresInitialBonusAddTopspeed() const
+std::vector<float> KartProperties::getTyresInitialBonusAddTopspeed() const
 {
     return m_cached_characteristic->getTyresInitialBonusAddTopspeed();
 }  // getTyresInitialBonusAddTopspeed
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresInitialBonusMultTopspeed() const
+std::vector<float> KartProperties::getTyresInitialBonusMultTopspeed() const
 {
     return m_cached_characteristic->getTyresInitialBonusMultTopspeed();
 }  // getTyresInitialBonusMultTopspeed
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresIdealTemp() const
+std::vector<float> KartProperties::getTyresIdealTemp() const
 {
     return m_cached_characteristic->getTyresIdealTemp();
 }  // getTyresIdealTemp
@@ -1294,22 +1294,28 @@ bool KartProperties::getTyresDoSubstractiveTopspeed() const
 }  // getTyresDoSubstractiveTopspeed
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresTractionConstant() const
+std::vector<float> KartProperties::getTyresTractionConstant() const
 {
     return m_cached_characteristic->getTyresTractionConstant();
 }  // getTyresTractionConstant
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresTurningConstant() const
+std::vector<float> KartProperties::getTyresTurningConstant() const
 {
     return m_cached_characteristic->getTyresTurningConstant();
 }  // getTyresTurningConstant
 
 // ----------------------------------------------------------------------------
-float KartProperties::getTyresTopspeedConstant() const
+std::vector<float> KartProperties::getTyresTopspeedConstant() const
 {
     return m_cached_characteristic->getTyresTopspeedConstant();
 }  // getTyresTopspeedConstant
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresCompoundNumber() const
+{
+    return m_cached_characteristic->getTyresCompoundNumber();
+}  // getTyresCompoundNumber
 
 // ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getStartupTime() const

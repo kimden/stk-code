@@ -403,6 +403,7 @@ public:
                         std::shared_ptr<GE::GERenderInfo> ri);
     virtual       ~Kart();
     /** Returns a name to be displayed for this kart. */
+	unsigned m_current_compound;
     std::unique_ptr<Tyres> m_tyres;
     const core::stringw& getName() const { return m_name; }
     /** Returns the index of this kart in world. */

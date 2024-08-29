@@ -378,6 +378,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_TURNING_CONSTANT]);
         sub_node->get("topspeed-constant",
             &m_values[TYRES_TOPSPEED_CONSTANT]);
+        sub_node->get("compound-number",
+            &m_values[TYRES_COMPOUND_NUMBER]);
     }
 
 

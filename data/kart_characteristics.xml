@@ -26,23 +26,22 @@
     <characteristic name="base">
         <!-- ********** Physics ********** -->
 
-        <tyres max-life-turning="6000"
-               max-life-traction="900"
-               min-life-turning="100"
-               min-life-traction="100"
-               regular-transfer-turning="0.1"
-               regular-transfer-traction="0.1"
-               limiting-transfer-turning="0.3"
-               limiting-transfer-traction="0.7"
-               hardness-multiplier="1"
-               initial-bonus-add-turning="0"
-               initial-bonus-mult-turning="1"
-               initial-bonus-add-traction="0"
-               initial-bonus-mult-traction="1"
-               initial-bonus-add-topspeed="0"
-               initial-bonus-mult-topspeed="1"
-               ideal-temp="100"
-               maximum-percentual-distance="20"
+        <tyres max-life-turning="2000 6000"
+               max-life-traction="300 900"
+               min-life-turning="100 100"
+               min-life-traction="100 100"
+               regular-transfer-turning="0.1 0.1"
+               regular-transfer-traction="0.1 0.1"
+               limiting-transfer-turning="0.3 0.3"
+               limiting-transfer-traction="0.7 0.7"
+               hardness-multiplier="1 1"
+               initial-bonus-add-turning="0 0"
+               initial-bonus-mult-turning="1 1"
+               initial-bonus-add-traction="0 0"
+               initial-bonus-mult-traction="1 1"
+               initial-bonus-add-topspeed="0 0"
+               initial-bonus-mult-topspeed="1 1"
+               ideal-temp="100 100"
                temp-performance-curve="0:0.2 10:0.6 20:0.65 40:0.7 60:0.75 65:0.8 75:0.9 80:0.93 90:1 110:1 120:0.95 130:0.7 140:0.4 300:0"
                heat-transfer-curve="0:60 30:20 60:10 80:0 100:5 110:-10 130:-20 150:-60"
                hardness-penalty-curve="0:1 2:1.03 5:1.08 10:1.2 20:1.3 60:2"
@@ -50,14 +49,52 @@
                do-substractive-turning="false"
                do-substractive-traction="false"
                do-substractive-topspeed="false"
-               response-curve-turning="0:0.3 30:0.35 40:0.4 50:0.5 60:0.55 70:0.65 85:0.85 90:0.95 95:0.98 100:1"
-               response-curve-traction="0:0.2 30:0.3 40:0.4 50:0.5 60:0.6 70:0.8 80:0.85 90:0.95 95:1 100:1"
-               response-curve-topspeed="0:0.5 50:0.5 60:0.8 80:0.93 90:0.97 100:1"
-               turning-constant="1"
-               traction-constant="1"
-               topspeed-constant="1"
+               turning-constant="1 1"
+               traction-constant="1 1"
+               topspeed-constant="1 1"
+               response-curve-turning="000:0.300 030:0.350 040:0.500 050:0.600 060:0.850 070:0.900 085:0.920 090:0.980 095:1.100 100:1.200 101:0.300 131:0.350 141:0.400 151:0.500 161:0.550 171:0.650 186:0.850 191:0.950 196:0.980 201:1.000"
+               response-curve-traction="000:0.200 030:0.300 040:0.400 050:0.500 060:0.600 070:0.850 080:0.900 090:0.950 095:1.000 100:1.500 101:0.200 131:0.300 141:0.400 151:0.500 161:0.600 171:0.800 181:0.850 191:0.950 196:1.000 201:1.000"
+               response-curve-topspeed="000:0.500 050:0.400 060:0.800 080:0.950 090:1.000 100:1.150 101:0.500 151:0.500 161:0.800 181:0.930 191:0.970 201:1.000"
+               compound-number="2"
                />
-    
+<!--
+TEMPLATE
+00%      |05%      |10%      |15%      |20%      |25%      |30%      |35%      |40%      |45%      |50%      |55%      |60%      |65%      |70%      |75%      |80%      |85%      |90%      |95%      |100%     
+000:x.xxx|005:x.xxx|010:x.xxx|015:x.xxx|020:x.xxx|025:x.xxx|030:x.xxx|035:x.xxx|040:x.xxx|045:x.xxx|050:x.xxx|055:x.xxx|060:x.xxx|065:x.xxx|070:x.xxx|075:x.xxx|080:x.xxx|085:x.xxx|090:x.xxx|095:x.xxx|100:x.xxx
+101:x.xxx|106:x.xxx|111:x.xxx|116:x.xxx|121:x.xxx|126:x.xxx|131:x.xxx|136:x.xxx|141:x.xxx|146:x.xxx|151:x.xxx|156:x.xxx|161:x.xxx|166:x.xxx|171:x.xxx|176:x.xxx|181:x.xxx|186:x.xxx|191:x.xxx|196:x.xxx|201:x.xxx
+202:x.xxx|207:x.xxx|212:x.xxx|217:x.xxx|222:x.xxx|227:x.xxx|232:x.xxx|237:x.xxx|242:x.xxx|247:x.xxx|252:x.xxx|257:x.xxx|262:x.xxx|267:x.xxx|272:x.xxx|277:x.xxx|282:x.xxx|287:x.xxx|292:x.xxx|297:x.xxx|302:x.xxx
+303:x.xxx|308:x.xxx|313:x.xxx|318:x.xxx|323:x.xxx|328:x.xxx|333:x.xxx|338:x.xxx|343:x.xxx|348:x.xxx|353:x.xxx|358:x.xxx|363:x.xxx|368:x.xxx|373:x.xxx|378:x.xxx|383:x.xxx|388:x.xxx|393:x.xxx|398:x.xxx|403:x.xxx
+404:x.xxx|409:x.xxx|414:x.xxx|419:x.xxx|424:x.xxx|429:x.xxx|434:x.xxx|439:x.xxx|444:x.xxx|449:x.xxx|454:x.xxx|459:x.xxx|464:x.xxx|469:x.xxx|474:x.xxx|479:x.xxx|484:x.xxx|489:x.xxx|494:x.xxx|499:x.xxx|504:x.xxx
+
+NOTE, MODIFIED THE SOFTER TYRE AND DIDN'T UPDATE THE COLUMN HERE, TO BE DONE LATER
+
+turning:
+00%      |05%      |10%      |15%      |20%      |25%      |30%      |35%      |40%      |45%      |50%      |55%      |60%      |65%      |70%      |75%      |80%      |85%      |90%      |95%      |100%     
+000:0.300|         |         |         |         |         |030:0.350|         |040:0.400|         |050:0.500|         |060:0.550|         |070:0.650|         |         |085:0.850|090:0.950|095:0.980|100:1.000
+101:0.300|         |         |         |         |         |131:0.350|         |141:0.400|         |151:0.500|         |161:0.550|         |171:0.650|         |         |186:0.850|191:0.950|196:0.980|201:1.000
+
+000:0.300 030:0.350 040:0.400 050:0.500 060:0.550 070:0.650 085:0.850 090:0.950 095:0.980 100:1.000 101:0.300 131:0.350 141:0.400 151:0.500 161:0.550 171:0.650 186:0.850 191:0.950 196:0.980 201:1.000
+
+
+
+traction:
+00%      |05%      |10%      |15%      |20%      |25%      |30%      |35%      |40%      |45%      |50%      |55%      |60%      |65%      |70%      |75%      |80%      |85%      |90%      |95%      |100%     
+000:0.200|         |         |         |         |         |030:0.300|         |040:0.400|         |050:0.500|         |060:0.600|         |070:0.800|         |080:0.850|         |090:0.950|095:1.000|100:1.000
+101:0.200|         |         |         |         |         |131:0.300|         |141:0.400|         |151:0.500|         |161:0.600|         |171:0.800|         |181:0.850|         |191:0.950|196:1.000|201:1.000
+
+000:0.200 030:0.300 040:0.400 050:0.500 060:0.600 070:0.800 080:0.850 090:0.950 095:1.000 100:1.000 101:0.200 131:0.300 141:0.400 151:0.500 161:0.600 171:0.800 181:0.850 191:0.950 196:1.000 201:1.000
+
+
+
+topspeed:
+00%      |05%      |10%      |15%      |20%      |25%      |30%      |35%      |40%      |45%      |50%      |55%      |60%      |65%      |70%      |75%      |80%      |85%      |90%      |95%      |100%     
+000:0.500|         |         |         |         |         |         |         |         |         |050:0.500|         |060:0.800|         |         |         |080:0.930|         |090:0.970|         |100:1.000
+101:0.500|         |         |         |         |         |         |         |         |         |151:0.500|         |161:0.800|         |         |         |181:0.930|         |191:0.970|         |201:1.000
+
+000:0.500 050:0.500 060:0.800 080:0.930 090:0.970 100:1.000 101:0.500 151:0.500 161:0.800 181:0.930 191:0.970 201:1.000
+
+
+-->
         <!-- Suspension
             stiffness: kart's suspension stiffness.
             rest: Length of suspension when at rest.
