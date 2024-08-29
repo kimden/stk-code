@@ -86,6 +86,7 @@ public:
     float m_current_life_turning;
     float m_current_temp;
     float m_heat_cycle_count;
+	unsigned m_current_compound;
 
 private:
     /** A read-only pointer to the kart's properties. */

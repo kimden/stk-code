@@ -107,8 +107,6 @@
 #  pragma warning(disable:4355)
 #endif
 
-#define DEFAULT_CURRENT_COMPOUND 1
-
 void Kart::loadKartProperties(const std::string& new_ident,
                                       HandicapLevel handicap,
                                       std::shared_ptr<GE::GERenderInfo> ri,
@@ -252,8 +250,6 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_powerup_buckets.clear();
 
     m_xyz_history_size     = stk_config->time2Ticks(XYZ_HISTORY_TIME);
-
-	m_current_compound = DEFAULT_CURRENT_COMPOUND;
 
     Vec3 initial_position = getXYZ();
     for (int i=0;i<m_xyz_history_size;i++)
@@ -532,9 +528,6 @@ void Kart::reset()
         m_previous_xyz_times[i] = 0.0f;
     }
     m_time_previous_counter = 0.0f;
-
-	m_current_compound = DEFAULT_CURRENT_COMPOUND;
-
     // In case that the kart was in the air, in which case its
     // linear damping is 0
     if(m_body)
@@ -1299,13 +1292,13 @@ void Kart::collectedItem(ItemState *item_state)
     case Item::ITEM_TYRE_CHANGE:
 		if (!m_controls.getBrake()) break;
 	    if (m_controls.getSteer() < -0.1f) {
-	    	m_current_compound = ((int)(m_current_compound - 1)) % (int)m_kart_properties->getTyresCompoundNumber();
+	    	m_tyres->m_current_compound = ((int)(m_tyres->m_current_compound - 1)) % (int)m_kart_properties->getTyresCompoundNumber();
 	    	m_tyres->reset();	    	
 	    } else if (m_controls.getSteer() > 0.1f) {
-	    	m_current_compound = ((int)(m_current_compound + 1)) % (int)m_kart_properties->getTyresCompoundNumber();
+	    	m_tyres->m_current_compound = ((int)(m_tyres->m_current_compound + 1)) % (int)m_kart_properties->getTyresCompoundNumber();
 	    	m_tyres->reset();
 	    } else {
-	    	m_current_compound = ((int)(m_current_compound)) % (int)m_kart_properties->getTyresCompoundNumber();
+	    	m_tyres->m_current_compound = ((int)(m_tyres->m_current_compound)) % (int)m_kart_properties->getTyresCompoundNumber();
 	    	m_tyres->reset();
 	    }
         break;
