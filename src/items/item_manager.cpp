@@ -335,7 +335,7 @@ Item* ItemManager::dropNewItem(ItemState::ItemType type,
 
     Item* item = new Item(type, pos, normal, m_item_mesh[mesh_type],
                           m_item_lowres_mesh[mesh_type], m_icon[mesh_type],
-                          /*prev_owner*/kart);
+                          /*prev_owner*/kart, 0);
 
     // restoreState in NetworkItemManager will handle the insert item
     if (!server_xyz)
@@ -357,7 +357,7 @@ Item* ItemManager::dropNewItem(ItemState::ItemType type,
  *  \param normal The normal of the terrain to set roll and pitch.
  */
 Item* ItemManager::placeItem(ItemState::ItemType type, const Vec3& xyz,
-                             const Vec3 &normal)
+                             const Vec3 &normal, int compound)
 {
     // Make sure this subroutine is not used otherwise (since networking
     // needs to be aware of items added to the track, so this would need
@@ -368,7 +368,7 @@ Item* ItemManager::placeItem(ItemState::ItemType type, const Vec3& xyz,
 
     Item* item = new Item(type, xyz, normal, m_item_mesh[mesh_type],
                           m_item_lowres_mesh[mesh_type], m_icon[mesh_type],
-                          /*prev_owner*/NULL);
+                          /*prev_owner*/NULL, compound);
 
     insertItem(item);
     if (m_switch_ticks >= 0)
@@ -710,13 +710,13 @@ bool ItemManager::randomItemsForArena(const AlignedArray<btTransform>& pos)
 
         if (success)
         {
-            placeItem(type, hit_point, normal);
+            placeItem(type, hit_point, normal, 0);
         }
         else
         {
             Log::warn("[ItemManager]","Raycast to surface failed"
                       "from node %d", used_location[i]);
-            placeItem(type, an->getCenter(), quad_normal);
+            placeItem(type, an->getCenter(), quad_normal, 0);
         }
     }
 

@@ -94,7 +94,7 @@ private:
 
 public:
          Tyres(Kart *kart);
-        ~Tyres() { reset(); };
+        ~Tyres() { };
     void reset();
     float correct(float);
     void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_force, float speed, float steer_amount);

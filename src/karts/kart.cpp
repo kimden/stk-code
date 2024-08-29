@@ -42,6 +42,7 @@
 #include "graphics/stk_text_billboard.hpp"
 #include "graphics/stars.hpp"
 #include "guiengine/scalable_font.hpp"
+#include "guiengine/message_queue.hpp"
 #include "io/file_manager.hpp"
 #include "items/attachment.hpp"
 #include "items/item_manager.hpp"
@@ -234,6 +235,7 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_wheel_box            = NULL;
     m_collision_particles  = NULL;
     m_controller           = NULL;
+    m_tyres                = new Tyres(this);
     m_saved_controller     = NULL;
     m_consumption_per_tick = stk_config->ticks2Time(1) *
                              m_kart_properties->getNitroConsumption();
@@ -418,6 +420,9 @@ Kart::~Kart()
     delete m_terrain_info;
     delete m_powerup;
 
+    if(m_tyres)
+    	delete m_tyres;
+
     if(m_controller)
         delete m_controller;
     if(m_saved_controller)
@@ -594,6 +599,7 @@ void Kart::reset()
 
     // Reset is also called when the kart is created, at which time
     // m_controller is not yet defined, so this has to be tested here.
+	m_tyres->reset();
     if(m_controller)
         m_controller->reset();
 
@@ -1272,6 +1278,7 @@ void Kart::setRaceResult()
  */
 void Kart::collectedItem(ItemState *item_state)
 {
+    char *initmessage = (char *)"Switching to compound ";
     float old_energy          = m_collected_energy;
     const Item::ItemType type = item_state->getType();
 
@@ -1290,17 +1297,11 @@ void Kart::collectedItem(ItemState *item_state)
         m_powerup->hitBonusBox(*item_state);
         break;
     case Item::ITEM_TYRE_CHANGE:
-		if (!m_controls.getBrake()) break;
-	    if (m_controls.getSteer() < -0.1f) {
-	    	m_tyres->m_current_compound = ((int)(m_tyres->m_current_compound - 1)) % (int)m_kart_properties->getTyresCompoundNumber();
-	    	m_tyres->reset();	    	
-	    } else if (m_controls.getSteer() > 0.1f) {
-	    	m_tyres->m_current_compound = ((int)(m_tyres->m_current_compound + 1)) % (int)m_kart_properties->getTyresCompoundNumber();
-	    	m_tyres->reset();
-	    } else {
-	    	m_tyres->m_current_compound = ((int)(m_tyres->m_current_compound)) % (int)m_kart_properties->getTyresCompoundNumber();
-	    	m_tyres->reset();
-	    }
+    	if (item_state->m_compound >= 0) m_tyres->m_current_compound = (item_state->m_compound) % (int)m_kart_properties->getTyresCompoundNumber();
+    	else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
+    	m_tyres->reset();
+	if (m_controller && m_controller->isLocalPlayerController()) MessageQueue::add(MessageQueue::MT_GENERIC, core::stringw((initmessage + std::string(std::to_string(m_tyres->m_current_compound).c_str()) + std::string((m_tyres->m_current_compound == 0) ? " (SOFT)" : (m_tyres->m_current_compound == 1) ? " (MEDIUM)" : (m_tyres->m_current_compound == 2) ? "(HARD)" : " ") ).c_str()));
+
         break;
     case Item::ITEM_BUBBLEGUM:
     case Item::ITEM_BUBBLEGUM_SMALL:
@@ -3522,7 +3523,7 @@ void Kart::loadData(RaceManager::KartType type, bool is_animated_model)
     m_kart_gfx.reset(
         new KartGFX(this, Track::getCurrentTrack()->getIsDuringDay()));
     m_skidding.reset(new Skidding(this));
-    m_tyres.reset(new Tyres(this));
+
     // Create the stars effect
     if (!GUIEngine::isNoGraphics())
         m_stars_effect.reset(new Stars(this));

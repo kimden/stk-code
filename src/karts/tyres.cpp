@@ -9,6 +9,7 @@
 Tyres::Tyres(Kart *kart) {
 	m_kart = kart;
 	m_current_compound = (((int)(m_kart->getKartProperties()->getTyresCompoundNumber())) == 0) ? 0 : 1;
+
 	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_current_compound];
 	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_current_compound];
 	m_heat_cycle_count = 0.0f;
@@ -226,4 +227,3 @@ void Tyres::rewindTo(BareNetworkString *buffer)
     m_heat_cycle_count = buffer->getFloat();
 	m_current_compound = buffer->getUInt8();
 }
-

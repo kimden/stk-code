@@ -2765,7 +2765,13 @@ void Track::itemCommand(const XMLNode *node)
 #endif
     }
 
-    m_item_manager->placeItem(type, drop ? hit_point : loc, normal);
+	int compound = 0;
+	
+	if (!node->get("compound", &compound)) {
+		compound = -1;
+	}
+
+    m_item_manager->placeItem(type, drop ? hit_point : loc, normal, compound);
 }   // itemCommand
 
 // ----------------------------------------------------------------------------
@@ -2996,7 +3002,7 @@ void Track::copyFromMainProcess()
     {
         ItemState* it = m_item_manager->getItem(i);
         nim->insertItem(new Item(it->getType(), it->getXYZ(), it->getNormal(),
-            NULL/*mesh*/, NULL/*lowres_mesh*/, "", NULL/*owner*/));
+            NULL/*mesh*/, NULL/*lowres_mesh*/, "", NULL/*owner*/, it->m_compound));
     }
     m_item_manager = nim;
 }   // copyFromMainProcess

@@ -230,15 +230,16 @@ protected:
     /** For collisions */
     ParticleEmitter *m_collision_particles;
 
-    /** The main controller of this object, used for driving. This
-     *  controller is used to run the kart. It will be replaced
-     *  with an end kart controller when the kart finishes the race. */
-    Controller  *m_controller;
-
     /** This saves the original controller when the end controller is
      *  used. This is an easy solution for restarting the race, since
      *  the controller do not need to be reinitialised. */
     Controller  *m_saved_controller;
+
+
+    /** The main controller of this object, used for driving. This
+     *  controller is used to run the kart. It will be replaced
+     *  with an end kart controller when the kart finishes the race. */
+    Controller  *m_controller;
 
     /** Remember the last **used** powerup type of a kart for AI purposes. */
     PowerupManager::PowerupType m_last_used_powerup;
@@ -403,8 +404,10 @@ public:
                         std::shared_ptr<GE::GERenderInfo> ri);
     virtual       ~Kart();
     /** Returns a name to be displayed for this kart. */
-    std::unique_ptr<Tyres> m_tyres;
+
+    Tyres *m_tyres;
     const core::stringw& getName() const { return m_name; }
+
     /** Returns the index of this kart in world. */
     unsigned int   getWorldKartId() const         { return m_world_kart_id;   }
     virtual void   init(RaceManager::KartType type);

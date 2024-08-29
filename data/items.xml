@@ -12,5 +12,5 @@
   <bubblegum-small   model="bubblegum.spm"       lowmodel="bubblegum-low.spm"       glow="246 150 209" collect-distance-squared="0.4556"/> <!-- real distance 0.675 -->
   <bubblegum-small-nolok   model="bubblegum-nolok.spm" lowmodel="bubblegum-nolok-low.spm" glow="20 190 0" collect-distance-squared="0.4556"/> <!-- real distance 0.675 -->
   <easter-egg  model="easter_egg.spm" glow="0 60 120" collect-distance-squared="0.3025" /> <!-- real distance 0.55 -->
-  <tyre-change  model="tire.spm" glow="0 60 120" collect-distance-squared="0.3025" /> <!-- real distance 0.55 -->
+  <tyre-change  model="easter_egg.spm" glow="0 60 120" collect-distance-squared="0.3025" /> <!-- real distance 0.55 -->
 </items>

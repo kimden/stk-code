@@ -57,6 +57,7 @@ ItemState::ItemState(ItemType type, const Kart *owner, int id)
     setType(type);
     m_item_id = id;
     m_previous_owner = owner;
+    m_compound = 0;
     m_used_up_counter = -1;
     if (owner)
         setDeactivatedTicks(stk_config->time2Ticks(1.5f));
@@ -107,12 +108,13 @@ void ItemState::setDisappearCounter()
  *  \param xyz The position for this item.
  *  \param normal The normal for this item.
  */
-void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal)
+void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int compound)
 {
     m_xyz               = xyz;
     m_original_rotation = shortestArcQuat(Vec3(0, 1, 0), normal);
     m_original_type     = ITEM_NONE;
     m_ticks_till_return = 0;
+	m_compound = compound;
     setDisappearCounter();
 }   // initItem
 
@@ -227,14 +229,14 @@ void ItemState::saveCompleteState(BareNetworkString* buffer) const
  */
 Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
            scene::IMesh* mesh, scene::IMesh* lowres_mesh,
-           const std::string& icon, const Kart *owner)
+           const std::string& icon, const Kart *owner, int compound)
     : ItemState(type, owner)
 {
     m_icon_node = NULL;
     m_was_available_previously = true;
     m_animation_start_ticks = 0;
     m_distance_2        = ItemManager::getCollectDistanceSquared(type);
-    initItem(type, xyz, normal);
+    initItem(type, xyz, normal, compound);
     m_graphical_type    = getGraphicalType();
 
     m_node = NULL;
@@ -300,9 +302,9 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
  *  \param xyz Position of this item.
  *  \param normal Normal for this item.
  */
-void Item::initItem(ItemType type, const Vec3 &xyz, const Vec3&normal)
+void Item::initItem(ItemType type, const Vec3 &xyz, const Vec3&normal, int compound)
 {
-    ItemState::initItem(type, xyz, normal);
+    ItemState::initItem(type, xyz, normal, compound);
     // Now determine in which quad this item is, and its distance
     // from the center within this quad.
     m_graph_node = Graph::UNKNOWN_SECTOR;
