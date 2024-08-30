@@ -100,7 +100,7 @@ void NetworkItemManager::collectedItem(ItemState *item, Kart *kart)
         m_item_events.getData().emplace_back(World::getWorld()->getTicksSinceStart(),
                                              item->getItemId(),
                                              kart->getWorldKartId(),
-                                             item->getTicksTillReturn());
+                                             item->getTicksTillReturn(), item->m_compound);
         m_item_events.unlock();
     }
     else

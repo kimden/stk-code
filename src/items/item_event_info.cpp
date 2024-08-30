@@ -50,7 +50,8 @@ ItemEventInfo::ItemEventInfo(BareNetworkString *buffer, int *count)
         else   // IEI_COLLECT
         {
             m_ticks_till_return = buffer->getUInt16();
-            *count -= 2;
+        	m_compound = buffer->getUInt8();
+            *count -= 3;
         }
     }   // is not switch
     else   // switch
@@ -77,7 +78,9 @@ void ItemEventInfo::saveState(BareNetworkString *buffer)
             buffer->add(m_xyz);
             buffer->add(m_normal);
         }
-        else if (m_type == IEI_COLLECT)
+        else if (m_type == IEI_COLLECT) {
             buffer->addUInt16(m_ticks_till_return);
+            buffer->addUInt8(m_compound);
+        }
     }
 }   // saveState

@@ -82,6 +82,7 @@ ItemState::ItemState(const BareNetworkString& buffer)
     int8_t kart_id = buffer.getUInt8();
     if (kart_id != -1)
         m_previous_owner = World::getWorld()->getKart(kart_id);
+   m_compound = buffer.getUInt8();
 }   // ItemState(const BareNetworkString& buffer)
 
 // ------------------------------------------------------------------------
@@ -212,7 +213,7 @@ void ItemState::saveCompleteState(BareNetworkString* buffer) const
         .addUInt32(m_deactive_ticks).addUInt32(m_used_up_counter)
         .add(m_xyz).add(m_original_rotation)
         .addUInt8(m_previous_owner ?
-            (int8_t)m_previous_owner->getWorldKartId() : (int8_t)-1);
+            (int8_t)m_previous_owner->getWorldKartId() : (int8_t)-1).addUInt8(m_compound);
 }   // saveCompleteState
 
 // ============================================================================

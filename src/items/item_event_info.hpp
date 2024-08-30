@@ -65,11 +65,13 @@ public:
      *  \param item_id The index of the item that was collected.
      *  \param kart_id the kart that collected the item.
     *   \param ttr Ticks till return after being collected. */
+	int m_compound;
 
-    ItemEventInfo(int ticks, int index, int kart_id, int16_t ttr)
+    ItemEventInfo(int ticks, int index, int kart_id, int16_t ttr, int compound)
         : m_ticks(ticks), m_index(index), m_kart_id(kart_id),
           m_ticks_till_return(ttr)
     {
+    	m_compound = compound;
         m_type = IEI_COLLECT;
     }   // ItemEventInfo(collected existing item)
 

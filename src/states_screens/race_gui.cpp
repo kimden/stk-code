@@ -420,7 +420,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
 	core::recti pos; 
 
 	std::stringstream stream;
-	stream << std::fixed << std::setprecision(2) << 100*kart->m_tyres->m_current_life_traction/kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound] << "% / " << 100*kart->m_tyres->m_current_life_turning/kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound] << "% / " << kart->m_tyres->m_current_compound;
+	stream << std::fixed << std::setprecision(2) << 100*kart->m_tyres->m_current_life_traction/kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1] << "% / " << 100*kart->m_tyres->m_current_life_turning/kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1] << "% / " << kart->m_tyres->m_current_compound;
 	std::string s = stream.str();
 
 
@@ -431,8 +431,6 @@ void RaceGUI::drawCompoundData(const Kart* kart,
 
     pos.UpperLeftCorner.Y = pos.LowerRightCorner.Y - m_font_height;
     pos.UpperLeftCorner.X = viewport.LowerRightCorner.X/2 - font->getDimension(L"xxx.xx% / xxx.xx% / x").Width;
-
-	printf("GUI: printing %s\n", s.c_str());
 
     video::SColor color = video::SColor(255, 255, 255, 255);
     font->setBlackBorder(true);

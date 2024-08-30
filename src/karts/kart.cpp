@@ -1297,10 +1297,11 @@ void Kart::collectedItem(ItemState *item_state)
         m_powerup->hitBonusBox(*item_state);
         break;
     case Item::ITEM_TYRE_CHANGE:
-    	if (item_state->m_compound >= 0) m_tyres->m_current_compound = (item_state->m_compound) % (int)m_kart_properties->getTyresCompoundNumber();
-    	else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
+    
+    	if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
+    	else if (item_state->m_compound == -1) m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
+    	else Log::error("Kart", "Invalid compound index\n");
     	m_tyres->reset();
-	if (m_controller && m_controller->isLocalPlayerController()) MessageQueue::add(MessageQueue::MT_GENERIC, core::stringw((initmessage + std::string(std::to_string(m_tyres->m_current_compound).c_str()) + std::string((m_tyres->m_current_compound == 0) ? " (SOFT)" : (m_tyres->m_current_compound == 1) ? " (MEDIUM)" : (m_tyres->m_current_compound == 2) ? "(HARD)" : " ") ).c_str()));
 
         break;
     case Item::ITEM_BUBBLEGUM:
