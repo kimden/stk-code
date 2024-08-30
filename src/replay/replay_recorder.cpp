@@ -26,6 +26,7 @@
 #include "guiengine/message_queue.hpp"
 #include "karts/controller/player_controller.hpp"
 #include "karts/ghost_kart.hpp"
+#include "karts/tyres.hpp"
 #include "karts/skidding.hpp"
 #include "karts/kart_gfx.hpp"
 #include "modes/easter_egg_hunt.hpp"
@@ -71,6 +72,7 @@ void ReplayRecorder::reset()
     m_incorrect_replay = false;
     m_transform_events.clear();
     m_physic_info.clear();
+    m_tyre_info.clear();
     m_bonus_info.clear();
     m_kart_replay_event.clear();
     m_count_transforms.clear();
@@ -92,6 +94,8 @@ void ReplayRecorder::init()
     reset();
     m_transform_events.resize(RaceManager::get()->getNumberOfKarts());
     m_physic_info.resize(RaceManager::get()->getNumberOfKarts());
+    m_tyre_info.resize(RaceManager::get()->getNumberOfKarts()) ;
+
     m_bonus_info.resize(RaceManager::get()->getNumberOfKarts());
     m_kart_replay_event.resize(RaceManager::get()->getNumberOfKarts());
 
@@ -99,6 +103,7 @@ void ReplayRecorder::init()
     {
         m_transform_events[i].resize(m_max_frames);
         m_physic_info[i].resize(m_max_frames);
+        m_tyre_info[i].resize(m_max_frames);
         m_bonus_info[i].resize(m_max_frames);
         m_kart_replay_event[i].resize(m_max_frames);
     }
@@ -264,6 +269,7 @@ void ReplayRecorder::update(int ticks)
         PhysicInfo *q          = &(m_physic_info[i][m_count_transforms[i]-1]);
         BonusInfo *b           = &(m_bonus_info[i][m_count_transforms[i]-1]);
         KartReplayEvent *r     = &(m_kart_replay_event[i][m_count_transforms[i]-1]);
+        int *t     = &(m_tyre_info[i][m_count_transforms[i]-1])[0] ;
 
         p->m_time              = World::getWorld()->getTime();
         p->m_transform.setOrigin(kart->getXYZ());
@@ -271,6 +277,14 @@ void ReplayRecorder::update(int ticks)
 
         q->m_speed             = kart->getSpeed();
         q->m_steer             = kart->getSteerPercent();
+
+        t[0] = kart->m_tyres->m_current_life_turning;
+        t[1] = kart->m_tyres->m_current_life_traction;
+        t[2] = kart->m_tyres->m_current_temp;
+        t[3] = kart->m_tyres->m_current_compound;
+
+
+
         const int num_wheels = kart->getVehicle()->getNumWheels();
         for (int j = 0; j < 4; j++)
         {
@@ -446,7 +460,8 @@ void ReplayRecorder::save()
             const PhysicInfo *q      = &(m_physic_info[k][i]);
             const BonusInfo *b      = &(m_bonus_info[k][i]);
             const KartReplayEvent *r = &(m_kart_replay_event[k][i]);
-            fprintf(fd, "%f  %f %f %f  %f %f %f %f  %f  %f  %f %f %f %f %d  %d %f %d %d %d  %f %d %d %d %d %d %d\n",
+            const int *t = &(m_tyre_info[k][i])[0];
+            fprintf(fd, "%f  %f %f %f  %f %f %f %f  %f  %f  %f %f %f %f %d  %d %f %d %d %d  %f %d %d %d %d %d %d  %d %d %d %d\n",
                     p->m_time,
                     p->m_transform.getOrigin().getX(),
                     p->m_transform.getOrigin().getY(),
@@ -473,7 +488,11 @@ void ReplayRecorder::save()
                     r->m_skidding_effect,
                     (int)r->m_red_skidding,
                     (int)r->m_purple_skidding,
-                    (int)r->m_jumping
+                    (int)r->m_jumping,
+                    t[0],
+                    t[1],
+                    t[2],
+                    t[3]
                 );
         }   // for i
     }

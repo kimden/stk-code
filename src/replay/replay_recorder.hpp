@@ -46,6 +46,8 @@ private:
     /** A separate vector of Replay Events for all other events. */
     std::vector< std::vector<KartReplayEvent> > m_kart_replay_event;
 
+	std::vector< std::vector<std::array<int, 4> > > m_tyre_info;
+
     /** Time at which a transform was saved for the last time. */
     std::vector<float> m_last_saved_time;
 
