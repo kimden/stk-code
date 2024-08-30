@@ -215,7 +215,6 @@ void Tyres::saveState(BareNetworkString *buffer)
     buffer->addFloat(m_current_life_turning);
     buffer->addFloat(m_current_temp);
     buffer->addFloat(m_heat_cycle_count);
-    buffer->addFloat(m_heat_cycle_count);
     buffer->addUInt8(m_current_compound);
 }
 
