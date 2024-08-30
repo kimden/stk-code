@@ -44,6 +44,7 @@ using namespace irr;
 #include "items/powerup_manager.hpp"
 #include "items/projectile_manager.hpp"
 #include "karts/kart.hpp"
+#include "karts/tyres.hpp"
 #include "karts/controller/controller.hpp"
 #include "karts/controller/spare_tire_ai.hpp"
 #include "karts/kart_properties.hpp"
@@ -402,12 +403,43 @@ void RaceGUI::renderPlayerView(const Camera *camera, float dt)
             drawSpeedEnergyRank(kart, viewport, scaling, dt);
         }
     }
+    
+
+    drawCompoundData(kart, viewport, scaling);
 
     if (!m_is_tutorial)
         drawLap(kart, viewport, scaling);
     FontDrawer::endBatching();
 #endif
 }   // renderPlayerView
+
+void RaceGUI::drawCompoundData(const Kart* kart,
+     const core::recti &viewport, const core::vector2df &scaling) {
+
+
+	core::recti pos; 
+
+	std::stringstream stream;
+	stream << std::fixed << std::setprecision(2) << 100*kart->m_tyres->m_current_life_traction/kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound] << "% / " << 100*kart->m_tyres->m_current_life_turning/kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound] << "% / " << kart->m_tyres->m_current_compound;
+	std::string s = stream.str();
+
+
+    gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+
+    pos.LowerRightCorner.X = viewport.LowerRightCorner.X/2;
+    pos.LowerRightCorner.Y = viewport.LowerRightCorner.Y;
+
+    pos.UpperLeftCorner.Y = pos.LowerRightCorner.Y - m_font_height;
+    pos.UpperLeftCorner.X = viewport.LowerRightCorner.X/2 - font->getDimension(L"xxx.xx% / xxx.xx% / x").Width;
+
+	printf("GUI: printing %s\n", s.c_str());
+
+    video::SColor color = video::SColor(255, 255, 255, 255);
+    font->setBlackBorder(true);
+    font->draw(s.c_str(), pos, color);
+    font->setBlackBorder(false);
+    font->setScale(1.0f);
+}
 
 //-----------------------------------------------------------------------------
 /** Displays the racing time on the screen.

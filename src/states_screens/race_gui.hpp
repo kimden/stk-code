@@ -124,6 +124,9 @@ private:
     void drawSpeedEnergyRank   (const Kart* kart,
                                 const core::recti &viewport,
                                 const core::vector2df &scaling, float dt);
+void drawCompoundData(const Kart* kart,
+     const core::recti &viewport, const core::vector2df &scaling);
+
     void drawLap               (const Kart* kart,
                                 const core::recti &viewport,
                                 const core::vector2df &scaling);
