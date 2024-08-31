@@ -1278,7 +1278,6 @@ void Kart::setRaceResult()
  */
 void Kart::collectedItem(ItemState *item_state)
 {
-    char *initmessage = (char *)"Switching to compound ";
     float old_energy          = m_collected_energy;
     const Item::ItemType type = item_state->getType();
 

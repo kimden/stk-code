@@ -535,30 +535,48 @@ void LinearWorld::newLap(unsigned int kart_index)
     }
 
     // if new fastest lap
-    if(ticks_per_lap < m_fastest_lap_ticks && raceHasLaps() &&
+    if(raceHasLaps() &&
         kart_info.m_finished_laps>0 && !isLiveJoinWorld())
     {
-        m_fastest_lap_ticks = ticks_per_lap;
+        const core::stringw &kart_name = kart->getController()->getName();
+		bool is_local = kart->getController()->isLocalPlayerController();
 
         std::string s = StringUtils::ticksTimeToString(ticks_per_lap);
 
-        // Store the temporary string because clang would mess this up
-        // (remove the stringw before the wchar_t* is used).
-        const core::stringw &kart_name = kart->getController()->getName();
-        m_fastest_lap_kart_name = kart_name;
+		irr::core::stringw lap_message;
+		
+		if (ticks_per_lap < m_fastest_lap_ticks ) {
+	        // Store the temporary string because clang would mess this up
+	        // (remove the stringw before the wchar_t* is used).
+	        m_fastest_lap_ticks = ticks_per_lap;
+	        m_fastest_lap_kart_name = kart_name;
 
-        //I18N: as in "fastest lap: 60 seconds by Wilber"
-        irr::core::stringw m_fastest_lap_message =
-            _C("fastest_lap", "%s by %s", s.c_str(), kart_name);
+	        //I18N: as in "fastest lap: 60 seconds by Wilber"
+	        lap_message = _C("fastest_lap", "%s by %s", s.c_str(), kart_name);
+	        if (m_race_gui)
+	        {
+	            m_race_gui->addMessage(lap_message, NULL, 4.0f,
+	                video::SColor(255, 255, 255, 255), false);
+	            m_race_gui->addMessage(_("New fastest lap"), NULL, 4.0f,
+	                video::SColor(255, 255, 255, 255), false);
+	        }
+		} else {
+	        //I18N: as in "fastest lap: 60 seconds by Wilber"
+	        lap_message = _C("fastest_lap", "%s", s.c_str(), kart_name);
+	        if (m_race_gui && is_local)
+	        {
+	            m_race_gui->addMessage(lap_message, NULL, 4.0f,
+	                video::SColor(255, 255, 255, 255), false);
+	            m_race_gui->addMessage(_("Last lap was"), NULL, 4.0f,
+	                video::SColor(255, 255, 255, 255), false);
+	        }
+		}
 
-        if (m_race_gui)
-        {
-            m_race_gui->addMessage(m_fastest_lap_message, NULL, 4.0f,
-                video::SColor(255, 255, 255, 255), false);
-            m_race_gui->addMessage(_("New fastest lap"), NULL, 4.0f,
-                video::SColor(255, 255, 255, 255), false);
-        }
+
     } // end if new fastest lap
+    else if (raceHasLaps() && kart_info.m_finished_laps>0 && !isLiveJoinWorld()) {
+    	
+    }
 
     kart_info.m_lap_start_ticks = getTimeTicks();
     kart->getController()->newLap(kart_info.m_finished_laps);
