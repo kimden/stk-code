@@ -1296,12 +1296,17 @@ void Kart::collectedItem(ItemState *item_state)
         m_powerup->hitBonusBox(*item_state);
         break;
     case Item::ITEM_TYRE_CHANGE:
+		if (item_state->m_compound < -1 || item_state->m_compound == 0) {
+			Log::error("Kart", "Invalid compound index\n");
+			break;
+		}
     
     	if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
-    	else if (item_state->m_compound == -1) m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
-    	else Log::error("Kart", "Invalid compound index\n");
+    	else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
     	m_tyres->reset();
-
+    	if (item_state->m_stop_time > 0) {
+    		m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(item_state->m_stop_time));
+    	}
         break;
     case Item::ITEM_BUBBLEGUM:
     case Item::ITEM_BUBBLEGUM_SMALL:

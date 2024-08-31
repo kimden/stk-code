@@ -100,7 +100,7 @@ void NetworkItemManager::collectedItem(ItemState *item, Kart *kart)
         m_item_events.getData().emplace_back(World::getWorld()->getTicksSinceStart(),
                                              item->getItemId(),
                                              kart->getWorldKartId(),
-                                             item->getTicksTillReturn(), item->m_compound);
+                                             item->getTicksTillReturn(), item->m_compound, item->m_stop_time);
         m_item_events.unlock();
     }
     else
@@ -406,7 +406,7 @@ void NetworkItemManager::restoreState(BareNetworkString *buffer, int count)
             Kart *kart = world->getKart(iei.getKartId());
             ItemState *is = new ItemState(iei.getNewItemType(), kart,
                                           iei.getIndex()             );
-            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), 0);
+            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), 0, 0);
             if (m_switch_ticks >= 0)
             {
                 ItemState::ItemType new_type = m_switch_to[is->getType()];

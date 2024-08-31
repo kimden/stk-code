@@ -154,10 +154,11 @@ public:
     // ------------------------------------------------------------------------
          ItemState(const BareNetworkString& buffer);
     // ------------------------------------------------------------------------
-    void initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int compound);
+    void initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int compound, int stop_time);
     void update(int ticks);
     void setDisappearCounter();
 	int m_compound;
+	int m_stop_time;
     virtual void collected(const Kart *kart);
     // ------------------------------------------------------------------------
     virtual ~ItemState() {}
@@ -369,14 +370,14 @@ private:
      *  would not be collected. Used by the AI to avoid items. */
     Vec3 *m_avoidance_points[2];
 
-    void          initItem(ItemType type, const Vec3 &xyz, const Vec3 &normal, int compound);
+    void          initItem(ItemType type, const Vec3 &xyz, const Vec3 &normal, int compound, int stop_time);
     void          setMesh(scene::IMesh* mesh, scene::IMesh* lowres_mesh);
     void          handleNewMesh(ItemType type);
 
 public:
                   Item(ItemType type, const Vec3& xyz, const Vec3& normal,
                        scene::IMesh* mesh, scene::IMesh* lowres_mesh,
-                       const std::string& icon, const Kart *owner, int compound);
+                       const std::string& icon, const Kart *owner, int compound, int stop_time);
     virtual       ~Item ();
     virtual void  updateGraphics(float dt) OVERRIDE;
     virtual void  reset() OVERRIDE;

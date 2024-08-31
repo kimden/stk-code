@@ -58,6 +58,7 @@ ItemState::ItemState(ItemType type, const Kart *owner, int id)
     m_item_id = id;
     m_previous_owner = owner;
     m_compound = 0;
+    m_stop_time = 0;
     m_used_up_counter = -1;
     if (owner)
         setDeactivatedTicks(stk_config->time2Ticks(1.5f));
@@ -83,6 +84,7 @@ ItemState::ItemState(const BareNetworkString& buffer)
     if (kart_id != -1)
         m_previous_owner = World::getWorld()->getKart(kart_id);
    m_compound = buffer.getUInt8();
+   m_stop_time = buffer.getUInt8();
 }   // ItemState(const BareNetworkString& buffer)
 
 // ------------------------------------------------------------------------
@@ -109,13 +111,14 @@ void ItemState::setDisappearCounter()
  *  \param xyz The position for this item.
  *  \param normal The normal for this item.
  */
-void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int compound)
+void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int compound, int stop_time)
 {
     m_xyz               = xyz;
     m_original_rotation = shortestArcQuat(Vec3(0, 1, 0), normal);
     m_original_type     = ITEM_NONE;
     m_ticks_till_return = 0;
 	m_compound = compound;
+	m_stop_time = stop_time;
     setDisappearCounter();
 }   // initItem
 
@@ -213,7 +216,7 @@ void ItemState::saveCompleteState(BareNetworkString* buffer) const
         .addUInt32(m_deactive_ticks).addUInt32(m_used_up_counter)
         .add(m_xyz).add(m_original_rotation)
         .addUInt8(m_previous_owner ?
-            (int8_t)m_previous_owner->getWorldKartId() : (int8_t)-1).addUInt8(m_compound);
+            (int8_t)m_previous_owner->getWorldKartId() : (int8_t)-1).addUInt8(m_compound).addUInt8(m_stop_time);
 }   // saveCompleteState
 
 // ============================================================================
@@ -230,14 +233,14 @@ void ItemState::saveCompleteState(BareNetworkString* buffer) const
  */
 Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
            scene::IMesh* mesh, scene::IMesh* lowres_mesh,
-           const std::string& icon, const Kart *owner, int compound)
+           const std::string& icon, const Kart *owner, int compound, int m_stop_time)
     : ItemState(type, owner)
 {
     m_icon_node = NULL;
     m_was_available_previously = true;
     m_animation_start_ticks = 0;
     m_distance_2        = ItemManager::getCollectDistanceSquared(type);
-    initItem(type, xyz, normal, compound);
+    initItem(type, xyz, normal, compound, m_stop_time);
     m_graphical_type    = getGraphicalType();
 
     m_node = NULL;
@@ -303,9 +306,9 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
  *  \param xyz Position of this item.
  *  \param normal Normal for this item.
  */
-void Item::initItem(ItemType type, const Vec3 &xyz, const Vec3&normal, int compound)
+void Item::initItem(ItemType type, const Vec3 &xyz, const Vec3&normal, int compound, int stop_time)
 {
-    ItemState::initItem(type, xyz, normal, compound);
+    ItemState::initItem(type, xyz, normal, compound, stop_time);
     // Now determine in which quad this item is, and its distance
     // from the center within this quad.
     m_graph_node = Graph::UNKNOWN_SECTOR;

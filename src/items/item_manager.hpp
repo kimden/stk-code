@@ -144,7 +144,7 @@ public:
     virtual ~ItemManager();
 
     virtual Item*  placeItem       (ItemState::ItemType type, const Vec3& xyz,
-                                    const Vec3 &normal, int compound);
+                                    const Vec3 &normal, int compound, int stop_time);
     virtual Item*  dropNewItem     (ItemState::ItemType type,
                                     const Kart* parent,
                                     const Vec3 *server_xyz = NULL,
