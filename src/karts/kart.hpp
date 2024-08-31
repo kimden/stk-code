@@ -178,9 +178,6 @@ protected:
      *  the karts to bounce back*/
     uint8_t      m_bounce_back_ticks;
 
-    /** Handles speed increase and capping due to powerup, terrain, ... */
-    MaxSpeed *m_max_speed;
-
     /** Stores information about the terrain the kart is on. */
     TerrainInfo *m_terrain_info;
 
@@ -404,6 +401,9 @@ public:
                         std::shared_ptr<GE::GERenderInfo> ri);
     virtual       ~Kart();
     /** Returns a name to be displayed for this kart. */
+
+    /** Handles speed increase and capping due to powerup, terrain, ... */
+    MaxSpeed *m_max_speed;
 
     Tyres *m_tyres;
     const core::stringw& getName() const { return m_name; }

@@ -35,6 +35,8 @@
 #include "items/attachment_manager.hpp"
 #include "items/powerup.hpp"
 #include "karts/kart.hpp"
+#include "karts/max_speed.hpp"
+#include "karts/tyres.hpp"
 #include "karts/abstract_kart_animation.hpp"
 #include "karts/controller/controller.hpp"
 #include "karts/explosion_animation.hpp"
@@ -1238,6 +1240,19 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
             font->setScale(1.0f);
         }
     }
+
+    int compound = kart->m_tyres->m_current_compound;
+    bool pit = kart->m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP);
+    if (!kart->hasFinishedRace())
+    {
+
+        gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+        const core::rect<s32> posNumber(x + w, y + w/4, x + 7*w/4, y + w);
+        font->setScale(1.5f*((float) w)/(4.f*(float)font->getDimension(L"X").Height));
+        if (pit) font->draw(L"PIT", posNumber, video::SColor(255, 0, 255, 255));
+        else font->draw(StringUtils::toWString(compound), posNumber, video::SColor(255, 0, 255, 255));
+        font->setScale(1.0f);
+     }
 
     //Plunger
     if (kart->getBlockedByPlungerTicks()>0)
