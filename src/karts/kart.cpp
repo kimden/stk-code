@@ -599,6 +599,7 @@ void Kart::reset()
 
     // Reset is also called when the kart is created, at which time
     // m_controller is not yet defined, so this has to be tested here.
+    m_tyres->m_reset_compound = true;
 	m_tyres->reset();
     if(m_controller)
         m_controller->reset();
@@ -1303,6 +1304,7 @@ void Kart::collectedItem(ItemState *item_state)
     
     	if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
     	else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
+    	m_tyres->m_reset_compound = false;
     	m_tyres->reset();
     	if (item_state->m_stop_time > 0) {
     		m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(item_state->m_stop_time));

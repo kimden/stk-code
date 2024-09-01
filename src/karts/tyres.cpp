@@ -9,6 +9,7 @@
 Tyres::Tyres(Kart *kart) {
 	m_kart = kart;
 	m_current_compound = 1; // Placeholder value
+	m_reset_compound = false;
 
 	m_speed_fetching_period = 0.3f;
 	m_speed_accumulation_limit = 6;
@@ -185,7 +186,10 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 
 void Tyres::reset() {
 	const float kart_hue = RaceManager::get()->getKartColor(m_kart->getWorldKartId()) * 100.0f;
-	m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
+
+	if (m_reset_compound) {
+		m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
+	}
 
 	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_current_compound-1];
 	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_current_compound-1];

@@ -91,6 +91,7 @@ public:
     float m_current_temp;
     float m_heat_cycle_count;
 	unsigned m_current_compound;
+	bool m_reset_compound;
 
 private:
     /** A read-only pointer to the kart's properties. */
