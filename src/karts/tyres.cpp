@@ -8,7 +8,7 @@
 
 Tyres::Tyres(Kart *kart) {
 	m_kart = kart;
-	m_current_compound = (((int)(m_kart->getKartProperties()->getTyresCompoundNumber())) >= 1) ? 1 : 2;
+	m_current_compound = 1; // Placeholder value
 
 	m_speed_fetching_period = 0.3f;
 	m_speed_accumulation_limit = 6;
@@ -140,50 +140,53 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 //	printf("\tCompound: %u\n", m_current_compound);
 }
 
-    float Tyres::degEngineForce(float initial_force) {
-    	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
-    	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
-    	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
-	   	float percent = m_current_life_traction/m_c_max_life_traction;
-    	float factor = m_c_response_curve_traction.get(correct(percent*100.0f))*m_c_traction_constant;
-    	float bonus_traction = (initial_force+m_c_initial_bonus_add_traction)*m_c_initial_bonus_mult_traction;
-    	if (m_c_do_substractive_traction) {
-    		return bonus_traction - hardness_penalty*factor;
-    	} else {
-    		return bonus_traction*hardness_penalty*factor;
-    	}
-    }
+float Tyres::degEngineForce(float initial_force) {
+	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
+	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
+	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
+	float percent = m_current_life_traction/m_c_max_life_traction;
+	float factor = m_c_response_curve_traction.get(correct(percent*100.0f))*m_c_traction_constant;
+	float bonus_traction = (initial_force+m_c_initial_bonus_add_traction)*m_c_initial_bonus_mult_traction;
+	if (m_c_do_substractive_traction) {
+		return bonus_traction - hardness_penalty*factor;
+	} else {
+		return bonus_traction*hardness_penalty*factor;
+	}
+}
 
-    float Tyres::degTurnRadius(float initial_radius) {
-    	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
-    	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
-    	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
-	   	float percent = m_current_life_turning/m_c_max_life_turning;
-    	float factor = m_c_response_curve_turning.get(correct(percent*100.0f))*m_c_turning_constant;
-    	float bonus_turning = (initial_radius+m_c_initial_bonus_add_turning)*m_c_initial_bonus_mult_turning;
-    	if (m_c_do_substractive_turning) {
-    		return bonus_turning - hardness_penalty*factor;
-    	} else {
-    		return bonus_turning*hardness_penalty*factor;
-    	}
-    }
+float Tyres::degTurnRadius(float initial_radius) {
+	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
+	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
+	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
+	float percent = m_current_life_turning/m_c_max_life_turning;
+	float factor = m_c_response_curve_turning.get(correct(percent*100.0f))*m_c_turning_constant;
+	float bonus_turning = (initial_radius+m_c_initial_bonus_add_turning)*m_c_initial_bonus_mult_turning;
+	if (m_c_do_substractive_turning) {
+		return bonus_turning - hardness_penalty*factor;
+	} else {
+		return bonus_turning*hardness_penalty*factor;
+	}
+}
 
-    float Tyres::degTopSpeed(float initial_topspeed) {
-    	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
-    	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
-    	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
-	   	float percent = m_current_life_traction/m_c_max_life_traction;
-    	float factor = m_c_response_curve_topspeed.get(correct(percent*100.0f))*m_c_topspeed_constant;
-    	float bonus_topspeed = (initial_topspeed+m_c_initial_bonus_add_topspeed)*m_c_initial_bonus_mult_topspeed;
-    	if (m_c_do_substractive_topspeed) {
-    		return bonus_topspeed - hardness_penalty*factor;
-    	} else {
-    		return bonus_topspeed*hardness_penalty*factor;
-    	}
-    }
+float Tyres::degTopSpeed(float initial_topspeed) {
+	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
+	float hardness_deviation = (current_hardness - m_c_hardness_multiplier) / m_c_hardness_multiplier;
+	float hardness_penalty = current_hardness *  m_c_hardness_penalty_curve.get((hardness_deviation*100));
+	float percent = m_current_life_traction/m_c_max_life_traction;
+	float factor = m_c_response_curve_topspeed.get(correct(percent*100.0f))*m_c_topspeed_constant;
+	float bonus_topspeed = (initial_topspeed+m_c_initial_bonus_add_topspeed)*m_c_initial_bonus_mult_topspeed;
+	if (m_c_do_substractive_topspeed) {
+		return bonus_topspeed - hardness_penalty*factor;
+	} else {
+		return bonus_topspeed*hardness_penalty*factor;
+	}
+}
 
 
 void Tyres::reset() {
+	const float kart_hue = RaceManager::get()->getKartColor(m_kart->getWorldKartId()) * 100.0f;
+	m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
+
 	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_current_compound-1];
 	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_current_compound-1];
 	m_heat_cycle_count = 0.0f;
