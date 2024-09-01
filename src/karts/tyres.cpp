@@ -4,11 +4,14 @@
 #include "karts/kart.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
-
+#include <iostream>
 
 Tyres::Tyres(Kart *kart) {
 	m_kart = kart;
 	m_current_compound = (((int)(m_kart->getKartProperties()->getTyresCompoundNumber())) >= 1) ? 1 : 2;
+
+	m_speed_fetching_period = 0.3f;
+	m_speed_accumulation_limit = 6;
 
 	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_current_compound-1];
 	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_current_compound-1];
@@ -16,7 +19,7 @@ Tyres::Tyres(Kart *kart) {
 	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp()[m_current_compound-1];
 	m_center_of_gravity_x = 0.0f;
 	m_center_of_gravity_y = 0.0f;
-	m_previous_speed = 0.0f;
+	m_previous_speeds.clear();
 	m_acceleration = 0.0f;
 	m_time_elapsed = 0.0f;
 	m_debug_cycles = 0;
@@ -57,13 +60,29 @@ float Tyres::correct(float f) {
 	return (100.0f*(float)(m_current_compound-1)+(float)(m_current_compound-1))+f;
 }
 
-void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_amount, float speed, float steer_amount) {
+void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_amount, float steer_amount) {
 	m_debug_cycles += 1;
 	m_time_elapsed += dt;
-	if (fmod(m_time_elapsed, 0.3f) < 0.01f ) {
-		m_acceleration = speed-m_previous_speed;
-		m_previous_speed = speed;
+	float speed = m_kart->getSpeed();
+	if (fmod(m_time_elapsed, m_speed_fetching_period) < dt) {
+		m_previous_speeds.push_back(speed);
+		if (m_previous_speeds.size() > m_speed_accumulation_limit ) {
+			m_previous_speeds.pop_front();
+		}
+		if (m_previous_speeds.size() >= 2) {
+			m_acceleration = std::abs(speed-m_previous_speeds[m_previous_speeds.size()-2])/dt;
+			for (unsigned i = 0; i < m_previous_speeds.size()-2; i++) {
+				if (std::abs(speed-m_previous_speeds[i])/dt < m_acceleration && std::abs(speed-m_previous_speeds[i])/dt < 2300.0f) { //Empirical, above this generally indicates a crash, so we throw it out.
+					m_acceleration = std::abs(speed-m_previous_speeds[i])/dt;
+				}
+			}
+//			printf("Smallest acceleration: %f. Queue:\n", m_acceleration);
+//			for (float n : m_previous_speeds)
+//			    printf("%f ", n);
+//			printf("\n\n");
+		}
 	}
+	
 	float turn_radius = 1.0f/steer_amount; // not really the "turn radius" but proportional
 	float current_hardness = m_c_hardness_multiplier*m_c_heat_cycle_hardness_curve.get((m_heat_cycle_count));
 	float deg_tur = 0.0f;
@@ -75,8 +94,9 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	m_center_of_gravity_y = ((speed*speed)/turn_radius)*m_c_mass;
 	if (!is_on_ground) goto LOG_ZONE;
 
-	deg_tra = dt*std::abs(m_center_of_gravity_x)*std::abs(speed)*current_hardness/1000.0f;
-	deg_tra += std::abs(speed/20000000.0f)/dt;
+	
+	deg_tra = dt*std::abs(m_center_of_gravity_x)*current_hardness/100000.0f;
+	deg_tra += dt*std::abs(speed)/50.0f;
 
 	if (brake_amount > 0.2f) {
 		deg_tra *= brake_amount*5.0f;
@@ -85,8 +105,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 		deg_tra *= 5.0f;
 	}
 
-	deg_tur = dt*std::abs(m_center_of_gravity_y)*std::abs(speed)*current_hardness/100000.0f;
-	deg_tur += std::abs(m_center_of_gravity_y)/m_c_mass/100000000.0f/dt;
+	deg_tur = dt*std::abs(m_center_of_gravity_y)*current_hardness/10000.0f;
 
 	if (is_skidding) {
 		deg_tur *= 3.0f;
@@ -171,7 +190,7 @@ void Tyres::reset() {
 	m_current_temp = m_kart->getKartProperties()->getTyresIdealTemp()[m_current_compound-1];
 	m_center_of_gravity_x = 0.0f;
 	m_center_of_gravity_y = 0.0f;
-	m_previous_speed = 0.0f;
+	m_previous_speeds.clear();
 	m_acceleration = 0.0f;
 	m_time_elapsed = 0.0f;
 	m_debug_cycles = 0;

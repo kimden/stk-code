@@ -24,6 +24,7 @@
 #include "utils/interpolation_array.hpp"
 #include "utils/no_copy.hpp"
 #include "utils/types.hpp"
+#include <queue>
 
 class BareNetworkString;
 class Kart;
@@ -46,7 +47,10 @@ private:
     float m_center_of_gravity_y;
     float m_time_elapsed;
 	float m_acceleration;
-	float m_previous_speed;
+
+	float m_speed_fetching_period;
+	unsigned m_speed_accumulation_limit;
+	std::deque<float> m_previous_speeds;
     long unsigned m_debug_cycles;
 
 	float m_c_hardness_multiplier;
@@ -97,7 +101,7 @@ public:
         ~Tyres() { };
     void reset();
     float correct(float);
-    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_force, float speed, float steer_amount);
+    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_force, float steer_amount);
 
     float degEngineForce(float);
     float degTopSpeed(float);

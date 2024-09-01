@@ -3082,7 +3082,7 @@ void Kart::updatePhysics(int ticks)
 	if ((getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)) {
 		//printf("SLOWING DOWN BY: %f\n", getMaterial()->getMaxSpeedFraction());
 	}
-	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT),  ( (getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)), f, getSpeed(), fabs(steering));
+	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT),  ( (getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)), f, fabs(steering));
 
     updateSliding();
 
