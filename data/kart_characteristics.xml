@@ -331,12 +331,9 @@ topspeed:
         <!-- Plunger and rubber band handling
             band-max-length: The maximum length of rubber band before it snaps.
             band-force: The force a plunger/rubber band applies to the kart(s).
-            band-duration: The duration a rubber band acts.
-            in-face-time determines how long it takes before a plunger
-                in your face is removed. -->
+            band-duration: The duration a rubber band acts.-->
         <plunger band-max-length="50" band-force="1500" band-duration="1"
-                 band-speed-increase="7" band-fade-out-time="3"
-                 in-face-time="4.5" />
+                 band-speed-increase="7" band-fade-out-time="3" />
 
          <!-- Nitro-hack
             duration: Time a nitro-hack is active.
@@ -442,7 +439,6 @@ topspeed:
             <nitro engine-force="*0.8" consumption="*0.7" max-speed-increase="*0.7" />
             <skid bonus-speed="*0.5 *0.5 *0.5" bonus-force="*0.5 *0.5 *0.5" />
             <turn time-full-steer="0:0.18 0.3:0.18 0.3:0.28 0.6:0.28 0.6:0.42 1.0:0.42" />
-            <plunger in-face-time="3" />
         </characteristic>
         <characteristic name="casual">
             <engine power="*0.82" max-speed="*0.75" generic-max-speed="*0.75"
@@ -452,7 +448,6 @@ topspeed:
             <nitro engine-force="*0.83" consumption="*0.78" max-speed-increase="*0.78" />
             <skid bonus-speed="*0.7 *0.7 *0.7" bonus-force="*0.7 *0.7 *0.7" />
             <turn time-full-steer="0:0.14 0.3:0.14 0.3:0.22 0.6:0.22 0.6:0.33 1.0:0.33" />
-            <plunger in-face-time="3.5" />
         </characteristic>
         <characteristic name="medium">
             <engine power="*0.88" max-speed="*0.85" generic-max-speed="*0.85"
@@ -460,7 +455,6 @@ topspeed:
             <rescue duration="*1.2" />
             <nitro engine-force="*0.88" consumption="*0.85" max-speed-increase="*0.85" />
             <skid bonus-speed="*0.85 *0.85 *0.85" bonus-force="*0.85 *0.85 *0.85" />
-            <plunger in-face-time="4" />
         </characteristic>
         <characteristic name="hard">
             <engine power="*0.95" max-speed="*0.95" generic-max-speed="*0.95" 
