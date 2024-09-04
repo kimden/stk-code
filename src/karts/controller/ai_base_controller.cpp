@@ -189,12 +189,6 @@ void AIBaseController::setSteering(float angle)
     if     (steer_fraction >  1.0f) steer_fraction =  1.0f;
     else if(steer_fraction < -1.0f) steer_fraction = -1.0f;
 
-    if(m_kart->getBlockedByPlungerTicks()>0)
-    {
-        if     (steer_fraction >  0.5f) steer_fraction =  0.5f;
-        else if(steer_fraction < -0.5f) steer_fraction = -0.5f;
-    }
-
     m_controls->setSteer(steer_fraction);
 }   // setSteering
 

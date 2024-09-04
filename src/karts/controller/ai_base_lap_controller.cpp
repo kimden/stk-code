@@ -252,10 +252,7 @@ float AIBaseLapController::steerToAngle(const unsigned int sector,
     //Desired angle minus current angle equals how many angles to turn
     float steer_angle = angle - m_kart->getHeading();
 
-    if(m_kart->getBlockedByPlungerTicks()>0)
-        steer_angle += add_angle*0.2f;
-    else
-        steer_angle += add_angle;
+    steer_angle += add_angle;
     steer_angle = normalizeAngle( steer_angle );
 
     return steer_angle;

@@ -162,7 +162,6 @@ public:
         PLUNGER_BAND_DURATION,
         PLUNGER_BAND_SPEED_INCREASE,
         PLUNGER_BAND_FADE_OUT_TIME,
-        PLUNGER_IN_FACE_TIME,
 
         // Nitrohack
         NITROHACK_DURATION,
@@ -380,7 +379,6 @@ public:
     float getPlungerBandDuration() const;
     float getPlungerBandSpeedIncrease() const;
     float getPlungerBandFadeOutTime() const;
-    float getPlungerInFaceTime() const;
 
     float getNitrohackDuration() const;
     float getNitrohackFactor() const;

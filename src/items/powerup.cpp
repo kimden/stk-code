@@ -386,6 +386,22 @@ void Powerup::use()
 }   // use
 
 //-----------------------------------------------------------------------------
+/** Set the current item count to zero, mainly for the backwards-plunger effect
+*/
+void Powerup::remove() {
+    m_mini_state = PowerupManager::NOT_MINI;
+    m_number--;
+    if (m_type == PowerupManager::POWERUP_MINI && m_number > 0)
+        m_mini_state = PowerupManager::MINI_SELECT;
+    if (m_number <= 0) {
+        m_number = 0;
+    	m_type = PowerupManager::POWERUP_NOTHING;
+    }
+
+
+} // remove
+
+//-----------------------------------------------------------------------------
 /** This function handles the bubblegum logic, in backward use (dropping a ground
  * gum) and forward use (creating a gum shield).
  * Its return value indicates the sound to play: none (0), ground gum (1), shield (2) */

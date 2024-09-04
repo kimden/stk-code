@@ -491,7 +491,7 @@ void SkiddingAI::handleSteering(float dt)
 
         // Potentially adjust the point to aim for in order to either
         // aim to collect item, or steer to avoid a bad item.
-        if(m_ai_properties->m_collect_avoid_items && m_kart->getBlockedByPlungerTicks()<=0)
+        if(m_ai_properties->m_collect_avoid_items)
             handleItemCollectionAndAvoidance(&aim_point, last_node);
 
         steer_angle = steerToPoint(aim_point);
@@ -1399,14 +1399,6 @@ void SkiddingAI::handleBubblegum(int item_skill,
         }
     }
 
-    //If the kart view is blocked by a plunger, use the shield
-    if(m_kart->getBlockedByPlungerTicks()>0)
-    {
-        m_controls->setFire(true);
-        m_controls->setLookBack(false);
-        return;
-    }
-    
     // Use shield if kart is going to hit a bad item (banana or bubblegum)
     if((item_skill == 4) || (item_skill == 5)) 
     {
@@ -2042,32 +2034,6 @@ void SkiddingAI::handleAccelerationAndBraking(int ticks)
     if(!m_controls->getNitro())
         handleNitroAndZipper(max_turn_speed);
 
-    // Step 4 : handle plunger effect
-
-    if(m_kart->getBlockedByPlungerTicks()>0)
-    {
-        int item_skill = computeSkill(ITEM_SKILL);
-        float accel_threshold = 0.5f;
-
-        if (item_skill == 0)
-            accel_threshold = 0.3f;
-        else if (item_skill == 1)
-            accel_threshold = 0.5f;
-        else if (item_skill == 2)
-            accel_threshold = 0.6f;
-        else if (item_skill == 3)
-            accel_threshold = 0.7f;
-        else if (item_skill == 4)
-            accel_threshold = 0.8f;
-        // The best players, knowing the track, don't slow down with a plunger
-        else if (item_skill == 5)
-            accel_threshold = 1.0f;
-
-        if(m_kart->getSpeed() > m_kart->getCurrentMaxSpeed() * accel_threshold)
-            m_controls->setAccel(0.0f);
-        return;
-    }
-
     m_controls->setAccel(stk_config->m_ai_acceleration);
 
 }   // handleAccelerationAndBraking
@@ -2254,18 +2220,6 @@ void SkiddingAI::handleNitroAndZipper(float max_safe_speed)
     // Don't use nitro or zipper if the kart is not on ground or has finished the race
     if(!m_kart->isOnGround() || m_kart->hasFinishedRace()) return;
    
-    // Don't use nitro or zipper when the AI has a plunger in the face!
-    if(m_kart->getBlockedByPlungerTicks()>0)
-    {
-        if ((nitro_skill < 4) && (item_skill < 5))
-            return;
-        // No else-if because the nitro_skill and item_skill conditions can happen together
-        if (nitro_skill < 4)
-            nitro_skill = 0;
-        if (item_skill < 5)
-            item_skill = 0;
-    }
-
     // Don't use nitro or zipper if it would make the kart go too fast
 
     if(m_kart->getSpeed() + m_kart->getKartProperties()->getNitroMaxSpeedIncrease() > max_safe_speed)
@@ -3117,29 +3071,6 @@ void SkiddingAI::setSteering(float angle)
             steer_fraction = -1.0f;
         else if(steer_fraction>1.0f)
             steer_fraction = 1.0f;
-    }
-
-    // Restrict steering when a plunger is in the face
-    //FIXME : the AI speed estimate in curves don't account for this restriction
-    if(m_kart->getBlockedByPlungerTicks()>0)
-    {
-        int item_skill = computeSkill(ITEM_SKILL);
-        float steering_limit = 0.5f;
-        if (item_skill == 0)
-            steering_limit = 0.35f;
-        else if (item_skill == 1)
-            steering_limit = 0.45f;
-        else if (item_skill == 2)
-            steering_limit = 0.55f;
-        else if (item_skill == 3)
-            steering_limit = 0.65f;
-        else if (item_skill == 4)
-            steering_limit = 0.75f;
-        else if (item_skill == 5)
-            steering_limit = 0.9f;
-
-        if     (steer_fraction >  steering_limit) steer_fraction =  steering_limit;
-        else if(steer_fraction < -steering_limit) steer_fraction = -steering_limit;
     }
 
     m_controls->setSteer(steer_fraction);

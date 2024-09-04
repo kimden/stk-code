@@ -275,10 +275,6 @@ protected:
     /** If > 0 then bubble gum effect is on. This is the sliding when hitting a gum on the floor, not the shield. */
     int16_t      m_bubblegum_ticks;
 
-    /** When a kart has its view blocked by the plunger, this variable will be
-     *  > 0 the number it contains is the time left before removing plunger. */
-    int16_t       m_view_blocked_by_plunger;
-
     /** Current leaning of the kart. */
     float        m_current_lean;
 
@@ -753,12 +749,8 @@ public:
     /** Returns if the kart is invulnerable to basket ball squashing. */
     virtual bool hasBasketSquashImmunity() const { return m_basket_squash_invulnerable_ticks > 0; }
     // ----------------------------------------------------------------------------------------
-    /** Returns true if the kart has a plunger attached to its face. */
-    virtual int getBlockedByPlungerTicks() const { return m_view_blocked_by_plunger; }
-    // ----------------------------------------------------------------------------------------
-    /** Sets the view to blocked by a plunger. The duration depends on
-     *  the difficulty, see KartProperties getPlungerInFaceTime. */
-    virtual void blockViewWithPlunger();
+    /** Removes the item and plays an animation. */
+    virtual void removeItemWithPlunger();
     // ----------------------------------------------------------------------------------------
     /** Enables a kart shield protection for a certain amount of time. */
     virtual void setShieldTime(float t);

@@ -202,7 +202,7 @@ bool Plunger::hit(Kart *kart, PhysicalObject *obj)
     {
         if(kart)
         {
-            kart->blockViewWithPlunger();
+            kart->removeItemWithPlunger();
             if (kart->getController()->isLocalPlayerController() &&
                 !m_has_locally_played_sound)
             {

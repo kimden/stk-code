@@ -59,6 +59,7 @@ public:
     void            reset        ();
     Material*       getIcon      (bool wide=false) const;
     void            use          ();
+    void            remove          ();
     void            hitBonusBox (const ItemState &item);
     void            saveState(BareNetworkString *buffer) const;
     void            rewindTo(BareNetworkString *buffer);

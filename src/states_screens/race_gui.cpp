@@ -377,8 +377,6 @@ void RaceGUI::renderPlayerView(const Camera *camera, float dt)
 
     bool isSpectatorCam = Camera::getActiveCamera()->isSpectatorMode();
 
-    if (!isSpectatorCam) drawPlungerInFace(camera, dt);
-
     if (viewport.getWidth() != (int)irr_driver->getActualScreenSize().Width ||
         viewport.getHeight() != (int)irr_driver->getActualScreenSize().Height)
     {
@@ -425,12 +423,19 @@ void RaceGUI::drawCompoundData(const Kart* kart,
 
 
     gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+    while (1) {
+		if (font->getDimension(L"xxx.xx% / xxx.xx% / x").Width > (unsigned)viewport.getWidth()/2) {
+			font->setScale(0.95f * font->getScale());
+		} else {
+			break;
+		}
+    }
 
-    pos.LowerRightCorner.X = viewport.LowerRightCorner.X/2;
+    pos.LowerRightCorner.X = viewport.UpperLeftCorner.X+(viewport.getWidth()/2);
     pos.LowerRightCorner.Y = viewport.LowerRightCorner.Y;
 
-    pos.UpperLeftCorner.Y = pos.LowerRightCorner.Y - m_font_height;
-    pos.UpperLeftCorner.X = viewport.LowerRightCorner.X/2 - font->getDimension(L"xxx.xx% / xxx.xx% / x").Width;
+    pos.UpperLeftCorner.Y = pos.LowerRightCorner.Y - font->getDimension(L"9").Height;
+    pos.UpperLeftCorner.X = pos.LowerRightCorner.X - font->getDimension(L"xxx.xx% / xxx.xx% / x").Width;
 
     video::SColor color = video::SColor(255, 255, 255, 255);
     font->setBlackBorder(true);

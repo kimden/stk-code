@@ -1530,15 +1530,6 @@ void SkiddingAI::handleAcceleration(int ticks)
         return;
     }
 
-    if(m_kart->getBlockedByPlungerTicks()>0)
-    {
-        if(m_kart->getSpeed() < m_kart->getCurrentMaxSpeed() / 2)
-            m_controls->setAccel(0.05f);
-        else
-            m_controls->setAccel(0.0f);
-        return;
-    }
-
     m_controls->setAccel(stk_config->m_ai_acceleration);
 
 }   // handleAcceleration
@@ -1641,9 +1632,6 @@ void SkiddingAI::handleNitroAndZipper()
     // lighthouse           10      316.346           194.38 0.00   0  1192 0.00   0   0   0  69   0   0  3062 0.00
     // olivermath           10          188            83.93 0.00   1  2498 0.00   0   0   0  54   0   0  2072 1.00
     // sandtrack            10      489.963            64.18 0.00   3  1009 0.00   0   0   1 135   0   0  1407 0.00
-
-    // Don't use nitro when the AI has a plunger in the face!
-    if(m_kart->getBlockedByPlungerTicks()>0) return;
 
     // Don't use nitro if we are braking
     if(m_controls->getBrake()) return;
@@ -2434,13 +2422,6 @@ void SkiddingAI::setSteering(float angle)
     // Adjust steer fraction in case to be in [-1,1]
     if     (steer_fraction >  1.0f) steer_fraction =  1.0f;
     else if(steer_fraction < -1.0f) steer_fraction = -1.0f;
-
-    // Restrict steering when a plunger is in the face
-    if(m_kart->getBlockedByPlungerTicks()>0)
-    {
-        if     (steer_fraction >  0.5f) steer_fraction =  0.5f;
-        else if(steer_fraction < -0.5f) steer_fraction = -0.5f;
-    }
 
     const Skidding *skidding = m_kart->getSkidding();
 

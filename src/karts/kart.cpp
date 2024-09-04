@@ -516,7 +516,6 @@ void Kart::reset()
     m_speed                = 0.0f;
     m_current_lean         = 0.0f;
     m_falling_time         = 0.0f;
-    m_view_blocked_by_plunger = 0;
     m_has_caught_nolok_bubblegum = false;
     m_is_jumping           = false;
     m_flying               = false;
@@ -745,16 +744,14 @@ void Kart::setPosition(int p)
 }   // setPosition
 
 // -----------------------------------------------------------------------------
-/** Sets that the view is blocked by a plunger. The duration depends on
- *  the difficulty, see KartProperties getPlungerInFaceTime.
- */
-void Kart::blockViewWithPlunger()
+/** Removes an item with the plunger, plays an animation. */
+void Kart::removeItemWithPlunger()
 {
     // Avoid that a plunger extends the plunger time
-    if(m_view_blocked_by_plunger<=0 && !isShielded())
+    if(!isShielded())
     {
-        m_view_blocked_by_plunger = (int16_t)
-            stk_config->time2Ticks(m_kart_properties->getPlungerInFaceTime());
+        m_powerup->remove();
+        /*Animation playing would go here*/
     }
     if(isShielded())
     {
@@ -1729,15 +1726,6 @@ void Kart::update(int ticks)
         );
 #endif
 
-    // if its view is blocked by plunger, decrease remaining time
-    if(m_view_blocked_by_plunger > 0)
-    {
-        m_view_blocked_by_plunger -= ticks;
-        //unblock the view if kart just became shielded
-        if(isShielded())
-            m_view_blocked_by_plunger = 0;
-    }
-
     // Decrease the remaining invulnerability time
     if(m_invulnerable_ticks>0)
         m_invulnerable_ticks -= ticks;
@@ -1991,7 +1979,6 @@ void Kart::update(int ticks)
 
     if (emergency)
     {
-        m_view_blocked_by_plunger = 0;
         if (m_flying)
         {
             stopFlying();

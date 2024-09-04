@@ -563,8 +563,6 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[PLUNGER_BAND_SPEED_INCREASE]);
         sub_node->get("band-fade-out-time",
             &m_values[PLUNGER_BAND_FADE_OUT_TIME]);
-        sub_node->get("in-face-time",
-            &m_values[PLUNGER_IN_FACE_TIME]);
     }
 
     if (const XMLNode *sub_node = node->getNode("nitro-hack"))

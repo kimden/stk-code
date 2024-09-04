@@ -175,8 +175,6 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case PLUNGER_BAND_FADE_OUT_TIME:
         return TYPE_FLOAT;
-    case PLUNGER_IN_FACE_TIME:
-        return TYPE_FLOAT;
     case NITROHACK_DURATION:
         return TYPE_FLOAT;
     case NITROHACK_FACTOR:
@@ -491,8 +489,6 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "PLUNGER_BAND_SPEED_INCREASE";
     case PLUNGER_BAND_FADE_OUT_TIME:
         return "PLUNGER_BAND_FADE_OUT_TIME";
-    case PLUNGER_IN_FACE_TIME:
-        return "PLUNGER_IN_FACE_TIME";
     case NITROHACK_DURATION:
         return "NITROHACK_DURATION";
     case NITROHACK_FACTOR:
@@ -1398,18 +1394,6 @@ float AbstractCharacteristic::getPlungerBandFadeOutTime() const
                     getName(PLUNGER_BAND_FADE_OUT_TIME).c_str());
     return result;
 }  // getPlungerBandFadeOutTime
-
-// ----------------------------------------------------------------------------
-float AbstractCharacteristic::getPlungerInFaceTime() const
-{
-    float result;
-    bool is_set = false;
-    process(PLUNGER_IN_FACE_TIME, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(PLUNGER_IN_FACE_TIME).c_str());
-    return result;
-}  // getPlungerInFaceTime
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getNitrohackDuration() const

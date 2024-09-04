@@ -1245,33 +1245,20 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
     bool pit = kart->m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP);
     if (!kart->hasFinishedRace())
     {
-
-        gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-        const core::rect<s32> posNumber(x + w, y + w/4, x + 7*w/4, y + w);
-        font->setScale(1.5f*((float) w)/(4.f*(float)font->getDimension(L"X").Height));
-        if (pit) font->draw(L"PIT", posNumber, video::SColor(255, 0, 255, 255));
-        else font->draw(StringUtils::toWString(compound), posNumber, video::SColor(255, 0, 255, 255));
-        font->setScale(1.0f);
-     }
-
-    //Plunger
-    if (kart->getBlockedByPlungerTicks()>0)
-    {
-        video::ITexture *icon_plunger =
-        powerup_manager->getIcon(PowerupManager::POWERUP_PLUNGER)->getTexture();
-        if (icon_plunger != NULL)
-        {
-            const core::rect<s32> rect(core::position2d<s32>(0,0),
-                                       icon_plunger->getSize());
-            const core::rect<s32> pos1(x+10, y-10, x+w+10, y+w-10);
-            draw2DImage(icon_plunger, pos1,
-                                                      rect, NULL, NULL,
-                                                      true);
+	    {
+	        gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+	        const core::rect<s32> posNumber(x, y, x + w/4, y + w/4);
+	        font->setScale(2.0f*((float) w)/(4.f*(float)font->getDimension(L"X").Height));
+	        if (pit) font->draw(L"PIT", posNumber, video::SColor(255, 0, 255, 255));
+	        else font->draw(StringUtils::toWString(compound), posNumber, video::SColor(255, 0, 255, 255));
+	        font->setScale(1.0f);
         }
     }
+
     //attachment
     if (kart->getAttachment()->getType() != Attachment::ATTACH_NOTHING)
     {
+
         video::ITexture *icon_attachment =
         attachment_manager->getIcon(kart->getAttachment()->getType())
         ->getTexture();
@@ -1299,105 +1286,6 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
     }
 #endif
 }   // drawPlayerIcon
-
-// ----------------------------------------------------------------------------
-
-/** Draws the plunger-in-face if necessary. Does nothing if there is no
- *  plunger in face atm.
- */
-void RaceGUIBase::drawPlungerInFace(const Camera *camera, float dt)
-{
-#ifndef SERVER_ONLY
-    const Kart *kart = camera->getKart();
-    if (kart->getBlockedByPlungerTicks()<=0)
-    {
-        m_plunger_state = PLUNGER_STATE_INIT;
-        return;
-    }
-
-    const core::recti &viewport = camera->getViewport();
-
-    const int screen_width = viewport.LowerRightCorner.X
-                           - viewport.UpperLeftCorner.X;
-
-    if(m_plunger_state == PLUNGER_STATE_INIT)
-    {
-        m_plunger_move_time = 0.0f;
-        m_plunger_offset    = core::vector2di(0,0);
-        m_plunger_state     = PLUNGER_STATE_SLOW_2;
-        m_plunger_speed     = core::vector2df(0, 0);
-    }
-
-    if(World::getWorld()->getPhase()!=World::IN_GAME_MENU_PHASE)
-    {
-        m_plunger_move_time -= dt;
-        if(m_plunger_move_time < dt && m_plunger_state!=PLUNGER_STATE_FAST)
-        {
-            const float fast_time = 0.3f;
-            if(kart->getBlockedByPlungerTicks()<stk_config->time2Ticks(fast_time))
-            {
-                // First time we reach faste state: select random target point
-                // at top of screen and set speed accordingly
-                RandomGenerator random;
-                float movement_fraction = 0.3f;
-                int plunger_x_target  = screen_width/2
-                    + random.get((int)(screen_width*movement_fraction))
-                    - (int)(screen_width*movement_fraction*0.5f);
-                m_plunger_state = PLUNGER_STATE_FAST;
-                m_plunger_speed =
-                    core::vector2df((plunger_x_target-screen_width/2)/fast_time,
-                    viewport.getHeight()*0.5f/fast_time);
-                m_plunger_move_time = fast_time;
-            }
-            else
-            {
-                RandomGenerator random;
-                m_plunger_move_time = 0.1f+random.get(50)/200.0f;
-                // Plunger is either moving or not moving
-                if(m_plunger_state==PLUNGER_STATE_SLOW_1)
-                {
-                    m_plunger_state = PLUNGER_STATE_SLOW_2;
-                    m_plunger_speed =
-                        core::vector2df(0, 0.05f*viewport.getHeight()
-                        /m_plunger_move_time      );
-                }
-                else
-                {
-                    m_plunger_state = PLUNGER_STATE_SLOW_1;
-                    m_plunger_speed =
-                        core::vector2df(0, 0.02f*viewport.getHeight()
-                        /m_plunger_move_time      );
-                }
-            }   // has not reach fast moving state
-        }
-
-        m_plunger_offset.X += (int)(m_plunger_speed.X * dt);
-        m_plunger_offset.Y += (int)(m_plunger_speed.Y * dt);
-    }
-
-    if (m_plunger_face != NULL)
-    {
-        const int plunger_size = (int)(0.6f * screen_width);
-        int offset_y = viewport.UpperLeftCorner.Y + viewport.getHeight()/2
-                     - plunger_size/2 - m_plunger_offset.Y;
-    
-        int plunger_x = viewport.UpperLeftCorner.X + screen_width/2
-                      - plunger_size/2;
-    
-        plunger_x += (int)m_plunger_offset.X;
-        core::rect<s32> dest(plunger_x,              offset_y,
-                             plunger_x+plunger_size, offset_y+plunger_size);
-    
-        const core::rect<s32> source(core::position2d<s32>(0,0),
-                                     m_plunger_face->getSize());
-    
-        draw2DImage(m_plunger_face, dest, source,
-                                                  &viewport /* clip */,
-                                                  NULL /* color */,
-                                                  true /* alpha */     );
-    }
-#endif   // !SERVER_ONLY
-}   // drawPlungerInFace
 
 // ----------------------------------------------------------------------------
 void RaceGUIBase::removeReferee()

@@ -641,7 +641,7 @@ bool handleContextMenuAction(s32 cmd_id)
         for (unsigned int i = 0; i < RaceManager::get()->getNumLocalPlayers(); i++)
         {
             Kart* kart = world->getLocalPlayerKart(i);
-            kart->blockViewWithPlunger();
+            kart->removeItemWithPlunger();
         }
         break;
     case DEBUG_ATTACHMENT_EXPLOSION:

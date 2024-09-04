@@ -1096,12 +1096,6 @@ float KartProperties::getPlungerBandFadeOutTime() const
 }  // getPlungerBandFadeOutTime
 
 // ----------------------------------------------------------------------------
-float KartProperties::getPlungerInFaceTime() const
-{
-    return m_cached_characteristic->getPlungerInFaceTime();
-}  // getPlungerInFaceTime
-
-// ----------------------------------------------------------------------------
 float KartProperties::getNitrohackDuration() const
 {
     return m_cached_characteristic->getNitrohackDuration();

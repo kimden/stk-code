@@ -185,8 +185,6 @@ BareNetworkString* KartRewinder::saveState(std::vector<std::string>* ru)
         bool_for_each_data |= 1;
     if (m_bubblegum_ticks > 0)
         bool_for_each_data |= (1 << 1);
-    if (m_view_blocked_by_plunger > 0)
-        bool_for_each_data |= (1 << 2);
     if (m_invulnerable_ticks > 0)
         bool_for_each_data |= (1 << 3);
     if (getEnergy() != 0.0f)
@@ -225,8 +223,6 @@ BareNetworkString* KartRewinder::saveState(std::vector<std::string>* ru)
 
     if (m_bubblegum_ticks > 0)
         buffer->addUInt16(m_bubblegum_ticks);
-    if (m_view_blocked_by_plunger > 0)
-        buffer->addUInt16(m_view_blocked_by_plunger);
     if (m_invulnerable_ticks > 0)
         buffer->addUInt16(m_invulnerable_ticks);
     if (isNitroHackActive())
@@ -312,7 +308,6 @@ void KartRewinder::restoreState(BareNetworkString *buffer, int count)
     uint8_t bool_for_each_data = buffer->getUInt8();
     m_fire_clicked = (bool_for_each_data & 1) == 1;
     bool read_bubblegum = ((bool_for_each_data >> 1) & 1) == 1;
-    bool read_plunger = ((bool_for_each_data >> 2) & 1) == 1;
     bool read_invulnerable = ((bool_for_each_data >> 3) & 1) == 1;
     bool read_energy =  ((bool_for_each_data >> 4) & 1) == 1;
     bool has_animation_in_state = ((bool_for_each_data >> 5) & 1) == 1;
@@ -342,11 +337,6 @@ void KartRewinder::restoreState(BareNetworkString *buffer, int count)
         m_bubblegum_ticks = buffer->getUInt16();
     else
         m_bubblegum_ticks = 0;
-
-    if (read_plunger)
-        m_view_blocked_by_plunger = buffer->getUInt16();
-    else
-        m_view_blocked_by_plunger = 0;
 
     if (read_invulnerable)
         m_invulnerable_ticks = buffer->getUInt16();
