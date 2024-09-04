@@ -175,6 +175,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case PLUNGER_BAND_FADE_OUT_TIME:
         return TYPE_FLOAT;
+    case PLUNGER_IN_FACE_TIME:
+        return TYPE_FLOAT;
     case NITROHACK_DURATION:
         return TYPE_FLOAT;
     case NITROHACK_FACTOR:
@@ -247,6 +249,14 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_COMPOUND_NUMBER:
         return TYPE_FLOAT;
+    case TYRES_OFFROAD_FACTOR:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_SKID_FACTOR:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_BRAKE_THRESHOLD:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_CRASH_PENALTY:
+        return TYPE_FLOAT_VECTOR;
     case STARTUP_TIME:
         return TYPE_FLOAT_VECTOR;
     case STARTUP_BOOST:
@@ -489,6 +499,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "PLUNGER_BAND_SPEED_INCREASE";
     case PLUNGER_BAND_FADE_OUT_TIME:
         return "PLUNGER_BAND_FADE_OUT_TIME";
+    case PLUNGER_IN_FACE_TIME:
+        return "PLUNGER_IN_FACE_TIME";
     case NITROHACK_DURATION:
         return "NITROHACK_DURATION";
     case NITROHACK_FACTOR:
@@ -561,6 +573,14 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_TOPSPEED_CONSTANT";
     case TYRES_COMPOUND_NUMBER:
         return "TYRES_COMPOUND_NUMBER";
+    case TYRES_OFFROAD_FACTOR:
+        return "TYRES_OFFROAD_FACTOR";
+    case TYRES_SKID_FACTOR:
+        return "TYRES_SKID_FACTOR";
+    case TYRES_BRAKE_THRESHOLD:
+        return "TYRES_BRAKE_THRESHOLD";
+    case TYRES_CRASH_PENALTY:
+        return "TYRES_CRASH_PENALTY";
     case STARTUP_TIME:
         return "STARTUP_TIME";
     case STARTUP_BOOST:
@@ -1396,6 +1416,18 @@ float AbstractCharacteristic::getPlungerBandFadeOutTime() const
 }  // getPlungerBandFadeOutTime
 
 // ----------------------------------------------------------------------------
+float AbstractCharacteristic::getPlungerInFaceTime() const
+{
+    float result;
+    bool is_set = false;
+    process(PLUNGER_IN_FACE_TIME, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(PLUNGER_IN_FACE_TIME).c_str());
+    return result;
+}  // getPlungerInFaceTime
+
+// ----------------------------------------------------------------------------
 float AbstractCharacteristic::getNitrohackDuration() const
 {
     float result;
@@ -1826,6 +1858,54 @@ float AbstractCharacteristic::getTyresCompoundNumber() const
                     getName(TYRES_COMPOUND_NUMBER).c_str());
     return result;
 }  // getTyresCompoundNumber
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresOffroadFactor() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_OFFROAD_FACTOR, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_OFFROAD_FACTOR).c_str());
+    return result;
+}  // getTyresOffroadFactor
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresSkidFactor() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_SKID_FACTOR, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_SKID_FACTOR).c_str());
+    return result;
+}  // getTyresSkidFactor
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresBrakeThreshold() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_BRAKE_THRESHOLD, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_BRAKE_THRESHOLD).c_str());
+    return result;
+}  // getTyresBrakeThreshold
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresCrashPenalty() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_CRASH_PENALTY, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_CRASH_PENALTY).c_str());
+    return result;
+}  // getTyresCrashPenalty
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getStartupTime() const

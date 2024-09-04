@@ -83,6 +83,10 @@ private:
 	float m_c_turning_constant;
 	float m_c_topspeed_constant;
 
+	float m_c_offroad_factor;
+	float m_c_skid_factor;
+	float m_c_brake_threshold;
+	float m_c_crash_penalty;
 
 
 public:
@@ -103,6 +107,8 @@ public:
     void reset();
     float correct(float);
     void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_force, float steer_amount);
+
+	void applyCrashPenalty(void);
 
     float degEngineForce(float);
     float degTopSpeed(float);

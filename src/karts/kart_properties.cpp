@@ -1096,6 +1096,12 @@ float KartProperties::getPlungerBandFadeOutTime() const
 }  // getPlungerBandFadeOutTime
 
 // ----------------------------------------------------------------------------
+float KartProperties::getPlungerInFaceTime() const
+{
+    return m_cached_characteristic->getPlungerInFaceTime();
+}  // getPlungerInFaceTime
+
+// ----------------------------------------------------------------------------
 float KartProperties::getNitrohackDuration() const
 {
     return m_cached_characteristic->getNitrohackDuration();
@@ -1310,6 +1316,30 @@ float KartProperties::getTyresCompoundNumber() const
 {
     return m_cached_characteristic->getTyresCompoundNumber();
 }  // getTyresCompoundNumber
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresOffroadFactor() const
+{
+    return m_cached_characteristic->getTyresOffroadFactor();
+}  // getTyresOffroadFactor
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresSkidFactor() const
+{
+    return m_cached_characteristic->getTyresSkidFactor();
+}  // getTyresSkidFactor
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresBrakeThreshold() const
+{
+    return m_cached_characteristic->getTyresBrakeThreshold();
+}  // getTyresBrakeThreshold
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresCrashPenalty() const
+{
+    return m_cached_characteristic->getTyresCrashPenalty();
+}  // getTyresCrashPenalty
 
 // ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getStartupTime() const

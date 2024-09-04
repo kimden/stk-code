@@ -162,6 +162,7 @@ public:
         PLUNGER_BAND_DURATION,
         PLUNGER_BAND_SPEED_INCREASE,
         PLUNGER_BAND_FADE_OUT_TIME,
+        PLUNGER_IN_FACE_TIME,
 
         // Nitrohack
         NITROHACK_DURATION,
@@ -204,6 +205,10 @@ public:
         TYRES_TURNING_CONSTANT,
         TYRES_TOPSPEED_CONSTANT,
         TYRES_COMPOUND_NUMBER,
+        TYRES_OFFROAD_FACTOR,
+        TYRES_SKID_FACTOR,
+        TYRES_BRAKE_THRESHOLD,
+        TYRES_CRASH_PENALTY,
 
         // Startup
         STARTUP_TIME,
@@ -379,6 +384,7 @@ public:
     float getPlungerBandDuration() const;
     float getPlungerBandSpeedIncrease() const;
     float getPlungerBandFadeOutTime() const;
+    float getPlungerInFaceTime() const;
 
     float getNitrohackDuration() const;
     float getNitrohackFactor() const;
@@ -418,6 +424,10 @@ public:
     std::vector<float> getTyresTurningConstant() const;
     std::vector<float> getTyresTopspeedConstant() const;
     float getTyresCompoundNumber() const;
+    std::vector<float> getTyresOffroadFactor() const;
+    std::vector<float> getTyresSkidFactor() const;
+    std::vector<float> getTyresBrakeThreshold() const;
+    std::vector<float> getTyresCrashPenalty() const;
 
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;

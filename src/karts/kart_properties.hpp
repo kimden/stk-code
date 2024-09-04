@@ -460,6 +460,7 @@ public:
     float getPlungerBandDuration() const;
     float getPlungerBandSpeedIncrease() const;
     float getPlungerBandFadeOutTime() const;
+    float getPlungerInFaceTime() const;
 
     float getNitrohackDuration() const;
     float getNitrohackFactor() const;
@@ -499,6 +500,10 @@ public:
     std::vector<float> getTyresTurningConstant() const;
     std::vector<float> getTyresTopspeedConstant() const;
     float getTyresCompoundNumber() const;
+    std::vector<float> getTyresOffroadFactor() const;
+    std::vector<float> getTyresSkidFactor() const;
+    std::vector<float> getTyresBrakeThreshold() const;
+    std::vector<float> getTyresCrashPenalty() const;
 
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;

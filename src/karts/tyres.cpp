@@ -55,6 +55,11 @@ Tyres::Tyres(Kart *kart) {
 	m_c_turning_constant = m_kart->getKartProperties()->getTyresTurningConstant()[m_current_compound-1];
 	m_c_topspeed_constant = m_kart->getKartProperties()->getTyresTopspeedConstant()[m_current_compound-1];
 
+	m_c_offroad_factor = m_kart->getKartProperties()->getTyresOffroadFactor()[m_current_compound-1];
+	m_c_skid_factor = m_kart->getKartProperties()->getTyresSkidFactor()[m_current_compound-1];
+	m_c_brake_threshold = m_kart->getKartProperties()->getTyresBrakeThreshold()[m_current_compound-1];
+	m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];
+
 }
 
 float Tyres::correct(float f) {
@@ -99,17 +104,17 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	deg_tra = dt*std::abs(m_center_of_gravity_x)*current_hardness/100000.0f;
 	deg_tra += dt*std::abs(speed)/50.0f;
 
-	if (brake_amount > 0.2f) {
-		deg_tra *= brake_amount*5.0f;
+	if (brake_amount > m_c_brake_threshold) {
+		deg_tra *= brake_amount*(1.0f/m_c_brake_threshold);
 	}
 	if (wreck_tyres) {
-		deg_tra *= 5.0f;
+		deg_tra *= m_c_offroad_factor;
 	}
 
 	deg_tur = dt*std::abs(m_center_of_gravity_y)*current_hardness/10000.0f;
 
 	if (is_skidding) {
-		deg_tur *= 3.0f;
+		deg_tur *= m_c_skid_factor;
 	}
 
 	deg_tra_percent = deg_tra/m_c_max_life_traction;
@@ -139,6 +144,11 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 //	printf("\tSubstractive: (Tra %b || Tur %b || Top %b)\n", m_c_do_substractive_traction, m_c_do_substractive_turning,
 //	m_c_do_substractive_topspeed);
 //	printf("\tCompound: %u\n", m_current_compound);
+}
+
+void Tyres::applyCrashPenalty(void) {
+	m_current_life_traction -= (m_c_crash_penalty/100.0f)*m_c_max_life_traction;
+	m_current_life_turning -= (m_c_crash_penalty/100.0f)*m_c_max_life_turning;
 }
 
 float Tyres::degEngineForce(float initial_force) {
@@ -232,7 +242,12 @@ void Tyres::reset() {
 	m_c_turning_constant = m_kart->getKartProperties()->getTyresTurningConstant()[m_current_compound-1];
 	m_c_topspeed_constant = m_kart->getKartProperties()->getTyresTopspeedConstant()[m_current_compound-1];
 
+	m_c_offroad_factor = m_kart->getKartProperties()->getTyresOffroadFactor()[m_current_compound-1];
+	m_c_skid_factor = m_kart->getKartProperties()->getTyresSkidFactor()[m_current_compound-1];
+	m_c_brake_threshold = m_kart->getKartProperties()->getTyresBrakeThreshold()[m_current_compound-1];
+	m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];
 }
+
 
 void Tyres::saveState(BareNetworkString *buffer)
 {

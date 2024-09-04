@@ -178,6 +178,8 @@ protected:
      *  the karts to bounce back*/
     uint8_t      m_bounce_back_ticks;
 
+    int16_t m_crash_cooldown_ticks;
+
     /** Stores information about the terrain the kart is on. */
     TerrainInfo *m_terrain_info;
 

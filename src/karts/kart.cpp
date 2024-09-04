@@ -239,6 +239,7 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_saved_controller     = NULL;
     m_consumption_per_tick = stk_config->ticks2Time(1) *
                              m_kart_properties->getNitroConsumption();
+	m_crash_cooldown_ticks = 0;
     m_nitro_hack_ticks     = 0;
     m_nitro_hack_factor    = 1.0f;
     m_stolen_nitro_ticks   = 0;
@@ -2733,8 +2734,13 @@ void Kart::crashed(Kart *k, bool update_attachments)
  */
 void Kart::crashed(const Material *m, const Vec3 &normal)
 {
-    if (m && !(m->getCollisionReaction() == Material::RESCUE))
+    if (m && !(m->getCollisionReaction() == Material::RESCUE)) {
         playCrashSFX(m, NULL);
+        if (m_crash_cooldown_ticks <= 0) {
+        	m_crash_cooldown_ticks = stk_config->time2Ticks(2);
+        	m_tyres->applyCrashPenalty();
+        }
+    }
 #ifdef DEBUG
     // Simple debug output for people playing without sound.
     // This makes it easier to see if a kart hit the track (esp.
@@ -3073,6 +3079,12 @@ void Kart::updatePhysics(int ticks)
 	}
 	if ((getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)) {
 		//printf("SLOWING DOWN BY: %f\n", getMaterial()->getMaxSpeedFraction());
+	}
+	if (m_crash_cooldown_ticks > 0) {
+		m_crash_cooldown_ticks -= ticks;
+			if (m_crash_cooldown_ticks <= 0) {
+				m_crash_cooldown_ticks = 0;
+			}
 	}
 	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT),  ( (getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)), f, fabs(steering));
 
