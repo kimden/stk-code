@@ -3086,7 +3086,7 @@ void Kart::updatePhysics(int ticks)
 				m_crash_cooldown_ticks = 0;
 			}
 	}
-	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT),  ( (getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)), f, fabs(steering));
+	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT), m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0, getMaterial() && getMaterial()->getMaxSpeedFraction(), f, fabs(steering));
 
     updateSliding();
 

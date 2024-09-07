@@ -106,7 +106,7 @@ public:
         ~Tyres() { };
     void reset();
     float correct(float);
-    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_force, float steer_amount);
+    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_force, float steer_amount);
 
 	void applyCrashPenalty(void);
 

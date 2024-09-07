@@ -66,7 +66,7 @@ float Tyres::correct(float f) {
 	return (100.0f*(float)(m_current_compound-1)+(float)(m_current_compound-1))+f;
 }
 
-void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool wreck_tyres, float brake_amount, float steer_amount) {
+void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_amount, float steer_amount) {
 	m_debug_cycles += 1;
 	m_time_elapsed += dt;
 	float speed = m_kart->getSpeed();
@@ -86,6 +86,9 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 //			for (float n : m_previous_speeds)
 //			    printf("%f ", n);
 //			printf("\n\n");
+		}
+		if (slowdown < 0.5f && !is_using_zipper) {
+			m_acceleration = 0.0f; //No fair traction simulation can be achieved with such materials
 		}
 	}
 	
@@ -107,7 +110,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	if (brake_amount > m_c_brake_threshold) {
 		deg_tra *= brake_amount*(1.0f/m_c_brake_threshold);
 	}
-	if (wreck_tyres) {
+	if (slowdown < 0.98f && !is_using_zipper) {
 		deg_tra *= m_c_offroad_factor;
 	}
 
