@@ -793,6 +793,13 @@ namespace ServerConfig
             "change it from the lobby using hammer command(s), and this will "
             "be overridden during soccer and ctf modes."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_commands_file
+            SERVER_CFG_DEFAULT(StringServerConfigParam("commands.xml", "commands-file",
+            "File with commands used for this server. Default file is commands.xml "
+            "which can be changed with new commits, but you can use any other file "
+            "from data/ folder, or even include contents of one other commands file "
+            "using external-commands-file tag inside your file."));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;

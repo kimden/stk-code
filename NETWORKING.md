@@ -394,6 +394,9 @@ A typical current server configuration xml that fits the current code version is
     <!-- Codes of teams initially available on the server. Format is any subset of rbygopcms (the teams currently available). You can change it from the lobby using hammer command(s), and this will be overridden during soccer and ctf modes. -->
     <available-teams value="rbygopcms" />
 
+    <!-- File with commands used for this server. Default file is commands.xml which can be changed with new commits, but you can use any other file from data/ folder, or even include contents of one other commands file using external-commands-file tag inside your file. -->
+    <commands-file value="commands.xml" />
+
 </server-config>
 ```
 

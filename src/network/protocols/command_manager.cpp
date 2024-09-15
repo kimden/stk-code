@@ -197,14 +197,41 @@ CommandManager::Command::Command(std::string name,
 } // Command::Command(5)
 // ========================================================================
 
+// From the result perspective, it works in the same way as
+// ServerConfig - just as there, there can be two files, one of them
+// overriding another. However, I'm right now lazy to make them use the
+// same "abstract mechanism" for that, which could be good in case other
+// settings can be generalized that way. Also I don't exclude the
+// possibility that commands.xml and ServerConfig could be united (apart
+// from the fact there are default commands and no default config).
+// (Also commands.xml has nested things and config doesn't)
+
+// So the implementation is different from ServerConfig for simplicity.
+// The *custom* config is loaded first, and then a generic one if the
+// custom one includes it. If a generic one tries to load a *top-level*
+// command already defined in *custom* one, it's ignored. It means that
+// to override command's behaviour, you need to specify its full block.
+
 void CommandManager::initCommandsInfo()
 {
-    const std::string file_name = file_manager->getAsset("commands.xml");
+    // "commands.xml"
+    const std::string file_name = file_manager->getAsset(ServerConfig::m_commands_file);
     const XMLNode *root = file_manager->createXMLTree(file_name);
     uint32_t version = 1;
     root->get("version", &version);
     if (version != 1)
         Log::warn("CommandManager", "command.xml has version %d which is not supported", version);
+    std::string external_commands;
+
+    XMLNode* root2 = nullptr;
+    auto external_node = root->getNode("external-commands-file");
+    if (external_node && external_node->get("value", &external_commands))
+    {
+        const std::string file_name_2 = file_manager->getAsset(external_commands);
+        root2 = file_manager->createXMLTree(file_name_2);
+    }
+
+    std::set<std::string> used_commands;
 
     std::function<void(const XMLNode* current, std::shared_ptr<Command> command)> dfs =
             [&](const XMLNode* current, const std::shared_ptr<Command>& command) {
@@ -212,6 +239,8 @@ void CommandManager::initCommandsInfo()
         {
             const XMLNode *node = current->getNode(i);
             std::string node_name = node->getName();
+            if (node_name == "external-commands-file")
+                continue;
             // here the commands go
             std::string name = "";
             std::string text = ""; // for text-command
@@ -231,6 +260,21 @@ void CommandManager::initCommandsInfo()
             std::string secret = ""; // for auth-command
             std::string link_format = ""; // for auth-command
             std::string server = ""; // for auth-command
+
+            // Name is read before enabled/disabled property, because we want
+            // to disable commands in "default" config that are present in
+            // "custom" config, regardless of server name
+            node->get("name", &name);
+            if (current == root2 && command == m_root_command
+                    && used_commands.find(name) != used_commands.end())
+            {
+                continue;
+            }
+            else if (current == root)
+            {
+                used_commands.insert(name);
+            }
+
             // If enabled is not empty, command is added iff the server name is in enabled
             // Otherwise it is added iff the server name is not in disabled
             std::string enabled = "";
@@ -257,7 +301,6 @@ void CommandManager::initCommandsInfo()
             if (!ok)
                 continue;
 
-            node->get("name", &name);
             node->get("usage", &usage);
             node->get("permissions", &permissions_s);
             permissions = CommandManager::permission_reader.parse(permissions_s);
@@ -311,7 +354,10 @@ void CommandManager::initCommandsInfo()
         }
     };
     dfs(root, m_root_command);
+    if (root2)
+        dfs(root2, m_root_command);
     delete root;
+    delete root2;
 } // initCommandsInfo
 // ========================================================================
 
