@@ -1,0 +1,2 @@
+#!/bin/sh
+export CPLUS_INCLUDE_PATH=$PWD"/src":$PWD"/lib/mcpp":$PWD"/lib/mojoal/AL":$PWD"/lib/dnsc":$PWD"/lib/angelscript/include":$PWD"/lib/bullet/src":$PWD"/lib/graphics_engine/include":$PWD"/lib/irrlicht/include":$PWD"/lib/enet/include":$PWD"/lib/graphics_utils/mipmap":$PWD"/lib/libsquish":$PWD"/lib/sheenbidi/Headers":$PWD"/lib/simd_wrapper":$PWD"/lib/tinygettext/include":$PWD"/lib/wiiuse/src/include":$CPLUS_INCLUDE_PATH

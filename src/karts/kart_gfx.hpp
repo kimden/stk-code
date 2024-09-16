@@ -81,14 +81,9 @@ private:
     /** The particle kind for skidding bonus level 2 (red). */
     const ParticleKind *m_skid_kind2;
 
-<<<<<<< HEAD
-    /** The particle kind for skidding bonus level 3 (purple). */
     const ParticleKind *m_skid_kind3;
 
-
-=======
 #ifndef SERVER_ONLY
->>>>>>> upstream/master
     /** Vector of all particle emitters. */
     std::vector<ParticleEmitter*> m_all_emitters;
 #endif
