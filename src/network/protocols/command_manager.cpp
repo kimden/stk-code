@@ -534,6 +534,7 @@ void CommandManager::initCommands()
     m_votables.emplace("kick", 0.81);
     m_votables.emplace("kickban", 0.81);
     m_votables.emplace("gnu", 0.81);
+    m_votables.emplace("randomteams", 0.6);
     m_votables.emplace("slots", CommandVoting::DEFAULT_THRESHOLD);
     m_votables["gnu"].setCustomThreshold("gnu kart", 1.1);
     m_votables["config"].setMerge(7);
@@ -2963,16 +2964,19 @@ void CommandManager::process_randomteams(Context& context)
 {
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
-    if (!peer)
-    {
-        error(context, true);
-        return;
-    }
     int teams_number = -1;
     int final_number = -1;
     int players_number = -1;
     if (argv.size() >= 2)
         StringUtils::parseString(argv[1], &teams_number);
+    if (context.m_voting)
+    {
+        if (argv.size() > 1)
+            vote(context, "randomteams", argv[1]);
+        else
+            vote(context, "randomteams", "");
+        return;
+    }
     if (!assignRandomTeams(teams_number, &final_number, &players_number))
     {
         std::string msg;
@@ -4399,6 +4403,7 @@ void CommandManager::onStartSelection()
     m_votables["config"].resetAllVotes();
     m_votables["gnu"].resetAllVotes();
     m_votables["slots"].resetAllVotes();
+    m_votables["randomteams"].resetAllVotes();
     update();
 } // onStartSelection
 // ========================================================================
