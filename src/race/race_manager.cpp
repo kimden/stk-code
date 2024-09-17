@@ -331,6 +331,20 @@ void RaceManager::setTrack(const std::string& track)
     m_coin_target = 0;
 }   // setTrack
 
+void RaceManager::setFuelInfo(float fuel, float regen, float stop, float weight, float rate)
+{
+	m_fuel_info[0] = fuel;
+	m_fuel_info[1] = regen;
+	m_fuel_info[2] = stop;
+	m_fuel_info[3] = weight;
+	m_fuel_info[4] = rate;
+}
+
+std::array<float, 5> RaceManager::getFuelInfo(void) {
+		return m_fuel_info;
+}
+
+
 //---------------------------------------------------------------------------------------------
 /** \brief Computes the list of random karts to be used for the AI.
  *  If a command line option specifies karts, they will be used first

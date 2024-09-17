@@ -3528,7 +3528,7 @@ void ServerLobby::handlePlayerVote(Event* event)
         }
         else if (m_fixed_laps != -1)
             vote.m_num_laps = m_fixed_laps;
-        else if (vote.m_num_laps == 0 || vote.m_num_laps > 20)
+        else if (vote.m_num_laps == 0 || vote.m_num_laps > 100)
             vote.m_num_laps = (uint8_t)3;
         if (!t->reverseAvailable() && vote.m_reverse)
             vote.m_reverse = false;

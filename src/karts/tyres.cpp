@@ -2,9 +2,11 @@
 
 #include "karts/kart_properties.hpp"
 #include "karts/kart.hpp"
+#include "race/race_manager.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include <iostream>
+#include <algorithm>
 
 Tyres::Tyres(Kart *kart) {
 	m_kart = kart;
@@ -24,6 +26,19 @@ Tyres::Tyres(Kart *kart) {
 	m_acceleration = 0.0f;
 	m_time_elapsed = 0.0f;
 	m_debug_cycles = 0;
+
+	m_c_fuel = RaceManager::get()->getFuelInfo()[0];
+	m_c_fuel_regen = RaceManager::get()->getFuelInfo()[1];
+	m_c_fuel_stop = RaceManager::get()->getFuelInfo()[2];
+	m_c_fuel_weight = RaceManager::get()->getFuelInfo()[3]/100.0f;
+	m_c_fuel_rate = RaceManager::get()->getFuelInfo()[4];
+	irr::core::clamp(m_c_fuel, 1.0f, 1000.0f);
+	irr::core::clamp(m_c_fuel_stop, 0.0f, 1000.0f);
+	irr::core::clamp(m_c_fuel_rate, 0.0f, 1000.0f);
+	irr::core::clamp(m_c_fuel_regen, 0.0f, 100.0f);
+	irr::core::clamp(m_c_fuel_weight, 0.0f, 1.0f);
+
+	m_current_fuel = m_c_fuel;
 
 	m_c_hardness_multiplier = m_kart->getKartProperties()->getTyresHardnessMultiplier()[m_current_compound-1];
 	m_c_heat_cycle_hardness_curve = m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve();
@@ -66,7 +81,7 @@ float Tyres::correct(float f) {
 	return (100.0f*(float)(m_current_compound-1)+(float)(m_current_compound-1))+f;
 }
 
-void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_amount, float steer_amount) {
+void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_amount, float steer_amount, float throttle_amount) {
 	m_debug_cycles += 1;
 	m_time_elapsed += dt;
 	float speed = m_kart->getSpeed();
@@ -76,13 +91,13 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 			m_previous_speeds.pop_front();
 		}
 		if (m_previous_speeds.size() >= 2) {
-			m_acceleration = std::abs(speed-m_previous_speeds[m_previous_speeds.size()-2])/dt;
+			m_acceleration = (speed-m_previous_speeds[m_previous_speeds.size()-2])/dt;
 			for (unsigned i = 0; i < m_previous_speeds.size()-2; i++) {
-				if (std::abs(speed-m_previous_speeds[i])/dt < m_acceleration && std::abs(speed-m_previous_speeds[i])/dt < 2300.0f) { //Empirical, above this generally indicates a crash, so we throw it out.
-					m_acceleration = std::abs(speed-m_previous_speeds[i])/dt;
+				if (std::abs(speed-m_previous_speeds[i])/dt < std::abs(m_acceleration) && std::abs(speed-m_previous_speeds[i])/dt < 2300.0f) { //Empirical, above this generally indicates a crash, so we throw it out.
+					m_acceleration = speed-m_previous_speeds[i]/dt;
 				}
 			}
-//			printf("Smallest acceleration: %f. Queue:\n", m_acceleration);
+//			printf("Smallest acceleration: %f. Queue:\n", std::abs(m_acceleration));
 //			for (float n : m_previous_speeds)
 //			    printf("%f ", n);
 //			printf("\n\n");
@@ -99,9 +114,19 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	float deg_tur_percent = 0.0f;
 	float deg_tra_percent = 0.0f;
 
-	m_center_of_gravity_x = m_acceleration*m_c_mass;
-	m_center_of_gravity_y = ((speed*speed)/turn_radius)*m_c_mass;
+	m_center_of_gravity_x = m_acceleration*m_kart->getMass();
+	m_center_of_gravity_y = ((speed*speed)/turn_radius)*m_kart->getMass();
+
 	if (!is_on_ground) goto LOG_ZONE;
+
+	if (throttle_amount > 0.3f) {
+		m_current_fuel -= std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
+	}
+	if(m_center_of_gravity_x < 0.0f && throttle_amount < 0.3f) {
+		m_current_fuel += std::abs(m_center_of_gravity_x)*0.0000001f*dt*m_c_fuel_regen;
+	}
+	if (m_current_fuel > 1000.0f) m_current_fuel = 1000.0f;
+	if (m_current_fuel < 0.0f) m_current_fuel = 0.0f;
 
 	
 	deg_tra = dt*std::abs(m_center_of_gravity_x)*current_hardness/100000.0f;
@@ -139,14 +164,11 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	LOG_ZONE:
 	;
 
-//	printf("Cycle %20lu || Kart %s || Time: %f\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
-//	m_time_elapsed, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
-//	printf("\tCenter of gravity: (%f, %f)\n\tRadius: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x,
-//	m_center_of_gravity_y, turn_radius, speed, brake_amount);
-//	printf("\tGround: %b || Skid: %b || Wreck: %b\n", is_on_ground, is_skidding, wreck_tyres);
-//	printf("\tSubstractive: (Tra %b || Tur %b || Top %b)\n", m_c_do_substractive_traction, m_c_do_substractive_turning,
-//	m_c_do_substractive_topspeed);
-//	printf("\tCompound: %u\n", m_current_compound);
+	printf("Cycle %20lu || K %s || C %u\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
+	m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
+	printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x,
+	m_center_of_gravity_y, turn_radius, speed, brake_amount);
+	printf("\tFuel: %f || Weight: %f\n", m_current_fuel, m_kart->getMass());
 }
 
 void Tyres::applyCrashPenalty(void) {
@@ -191,8 +213,10 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 	float bonus_topspeed = (initial_topspeed+m_c_initial_bonus_add_topspeed)*m_c_initial_bonus_mult_topspeed;
 	if (m_c_do_substractive_topspeed) {
 		return bonus_topspeed - hardness_penalty*factor;
-	} else {
+	} else if (m_c_fuel > 0.01f) {
 		return bonus_topspeed*hardness_penalty*factor;
+	} else {
+		return 1;
 	}
 }
 
@@ -214,6 +238,14 @@ void Tyres::reset() {
 	m_acceleration = 0.0f;
 	m_time_elapsed = 0.0f;
 	m_debug_cycles = 0;
+
+	m_c_fuel = RaceManager::get()->getFuelInfo()[0];
+	m_c_fuel_regen = RaceManager::get()->getFuelInfo()[1];
+	m_c_fuel_stop = RaceManager::get()->getFuelInfo()[2];
+	m_c_fuel_weight = RaceManager::get()->getFuelInfo()[3]/100.0f;
+	m_c_fuel_rate = RaceManager::get()->getFuelInfo()[4];
+
+	m_current_fuel = m_c_fuel;
 
 	m_c_hardness_multiplier = m_kart->getKartProperties()->getTyresHardnessMultiplier()[m_current_compound-1];
 	m_c_heat_cycle_hardness_curve = m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve();
@@ -258,6 +290,7 @@ void Tyres::saveState(BareNetworkString *buffer)
     buffer->addFloat(m_current_life_turning);
     buffer->addFloat(m_current_temp);
     buffer->addFloat(m_heat_cycle_count);
+    buffer->addFloat(m_current_fuel);
     buffer->addUInt8(m_current_compound);
 //	printf("Saved compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }
@@ -268,6 +301,7 @@ void Tyres::rewindTo(BareNetworkString *buffer)
     m_current_life_turning = buffer->getFloat();
     m_current_temp = buffer->getFloat();
     m_heat_cycle_count = buffer->getFloat();
+	m_current_fuel = buffer->getFloat();
 	m_current_compound = buffer->getUInt8();
 //	printf("Rewinded compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }

@@ -467,7 +467,7 @@ void TracksScreen::init()
         }
 
         if (UserConfigParams::m_num_laps == 0 ||
-            UserConfigParams::m_num_laps > 20)
+            UserConfigParams::m_num_laps > 100)
             UserConfigParams::m_num_laps = 1;
         if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
         {
@@ -546,7 +546,7 @@ void TracksScreen::init()
                          ->setText(_("Number of laps"), false);
                 m_laps->setVisible(true);
                 m_laps->setMin(1);
-                m_laps->setMax(20);
+                m_laps->setMax(100);
                 m_laps->setValue(UserConfigParams::m_num_laps);
                 if (vote)
                     m_laps->setValue(vote->m_num_laps);

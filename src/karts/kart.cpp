@@ -241,6 +241,8 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_saved_controller     = NULL;
     m_consumption_per_tick = stk_config->ticks2Time(1) *
                              m_kart_properties->getNitroConsumption();
+    m_is_refueling = false;
+    m_target_refuel = 0.0f;
 	m_crash_cooldown_ticks = 0;
     m_nitro_hack_ticks     = 0;
     m_nitro_hack_factor    = 1.0f;
@@ -317,6 +319,14 @@ void Kart::init(RaceManager::KartType type)
     initSound();
     reset();
 }   // init
+
+float Kart::getMass() const {
+	if(m_tyres) {
+		return (m_tyres->m_current_fuel*m_tyres->getFuelWeight())+getKartProperties()->getMass();
+	} else {
+		return getKartProperties()->getMass();
+	}
+};
 
 // ----------------------------------------------------------------------------
 void Kart::initSound()
@@ -879,7 +889,7 @@ void Kart::createPhysics()
 
     // Set mass and inertia
     // --------------------
-    float mass = m_kart_properties->getMass();
+    float mass = getMass();
 
     // Position the chassis
     // --------------------
@@ -1024,7 +1034,7 @@ void Kart::updateWeight()
 {
     if (!m_body)
         return;
-    float mass = m_kart_properties->getMass() + m_attachment->weightAdjust();
+    float mass = getMass() + m_attachment->weightAdjust();
     if (m_weight != mass)
     {
         m_weight = mass;
@@ -1306,13 +1316,19 @@ void Kart::collectedItem(ItemState *item_state)
 			Log::error("Kart", "Invalid compound index\n");
 			break;
 		}
-    
-    	if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
-    	else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
-    	m_tyres->m_reset_compound = false;
-    	m_tyres->reset();
-    	if (item_state->m_stop_time > 0) {
-    		m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(item_state->m_stop_time));
+
+		if (item_state->m_compound == 123) {
+			// 123 is the code for a refueling
+	    	m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(item_state->m_stop_time));
+            m_is_refueling = true;
+		} else {
+	    	if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
+	    	else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
+	    	m_tyres->m_reset_compound = false;
+	    	m_tyres->reset();
+	    	if (item_state->m_stop_time > 0) {
+	    		m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(item_state->m_stop_time));
+	    	}
     	}
         break;
     case Item::ITEM_BUBBLEGUM:
@@ -1427,8 +1443,7 @@ float Kart::getActualWheelForce()
  */
 bool Kart::isOnGround() const
 {
-    return ((int)m_vehicle->getNumWheelsOnGround() == m_vehicle->getNumWheels()
-          && !getKartAnimation());
+    return ((int)m_vehicle->getNumWheelsOnGround() == m_vehicle->getNumWheels() && !getKartAnimation());
 }   // isOnGround
 
 //-----------------------------------------------------------------------------
@@ -2647,7 +2662,7 @@ void Kart::updateNitro(int ticks)
     if (m_collected_energy <= 0)
         m_min_nitro_ticks = 0;
 
-    if (m_controls.getNitro() && m_min_nitro_ticks <= 0 && m_collected_energy > 0)
+    if (m_controls.getNitro() && !m_is_refueling && m_min_nitro_ticks <= 0 && m_collected_energy > 0)
     {
         m_min_nitro_ticks = stk_config->time2Ticks(m_kart_properties->getNitroMinBurst());
         float min_consumption = m_min_nitro_ticks * m_consumption_per_tick;
@@ -3090,7 +3105,21 @@ void Kart::updatePhysics(int ticks)
 				m_crash_cooldown_ticks = 0;
 			}
 	}
-	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT), m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0, getMaterial() && getMaterial()->getMaxSpeedFraction(), f, fabs(steering));
+
+	if (m_is_refueling) {
+		if (!m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP)) {
+			m_is_refueling = false;
+	    	m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(m_target_refuel*m_tyres->getFuelStopRatio()*0.001f));
+			m_tyres->m_current_fuel += m_target_refuel;
+			m_target_refuel = 0;
+		}
+		if (m_controls.getNitro()) {
+			m_target_refuel += 300.0f*((float)1.0f/(float)stk_config->time2Ticks(ticks));
+			if (m_target_refuel > 1000.0f) m_target_refuel -= 1000.0f;
+		}
+	}
+
+	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT), m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0, getMaterial() && getMaterial()->getMaxSpeedFraction(), f, fabs(steering), m_controls.getAccel());
 
     updateSliding();
 
@@ -3174,7 +3203,7 @@ float Kart::compensateLinearSlowdown(float engine_power)
     //too easy to accelerate farther.
     //Instead of making increasing gears have enormous power gaps, we use air friction
 
-    float mass_factor = m_kart_properties->getMass()/350.0f;
+    float mass_factor = getMass()/350.0f;
 
     // Compensate the linear slowdown
     float compensate_linear_slowdown = 39.33f*getSpeed()*mass_factor;

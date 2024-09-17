@@ -408,6 +408,10 @@ public:
     /** Handles speed increase and capping due to powerup, terrain, ... */
     MaxSpeed *m_max_speed;
 
+	bool m_is_refueling;
+    float m_target_refuel;
+
+
     Tyres *m_tyres;
     const core::stringw& getName() const { return m_name; }
 
@@ -693,6 +697,7 @@ public:
 
     // ========================================================================================
     // NITRO related functions.
+    float getMass() const;
     // ----------------------------------------------------------------------------------------
     /** Returns the remaining collected energy. */
     virtual float getEnergy() const { return m_collected_energy; }

@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <cassert>
 #include <string>
+#include <array>
 
 #include "network/remote_kart_info.hpp"
 #include "race/grand_prix_data.hpp"
@@ -309,6 +310,7 @@ private:
     /** Stores remote kart information about all player karts. */
     std::vector<RemoteKartInfo>      m_player_karts;
     std::vector<std::string>         m_tracks;
+	std::array<float, 5> m_fuel_info;
 
     /** Number of local players. */
     unsigned int m_num_local_players;
@@ -403,6 +405,11 @@ public:
      *  \param track Pointer to the track to use.
      */
     void setTrack(const std::string& track);
+
+	void setFuelInfo(float fuel, float regen, float stop, float weight, float rate);
+
+	std::array<float, 5> getFuelInfo(void);
+
 
     /** \brief Returns the kart with a given GP rank (or NULL if no such
      *  kart exists).

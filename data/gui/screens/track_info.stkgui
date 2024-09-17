@@ -38,9 +38,57 @@
                         <spacer width="3%"/>
                         <label id="target-value-text" proportion="3" I18N="In the track info screen" text="Number of laps" text_align="left" align="center"/>
                     </div>
-                    
+
+	                    <spacer width="1" height="1%"/>
+	                    <div width="100%" height="fit" layout="horizontal-row" >
+	                        <div proportion="1" height="fit" layout="horizontal-row">
+	                            <spinner id="fuel-spinner" width="100%" min_value="1" max_value="1000" align="center"
+	                                     wrap_around="true" />
+	                        </div>
+	                        <spacer width="3%"/>
+	                        <label id="fuel-text" proportion="3" I18N="In the track info screen" text="Starting E" text_align="left" align="center"/>
+	                    </div>
+	                    <spacer width="1" height="1%"/>
+	                    <div width="100%" height="fit" layout="horizontal-row" >
+	                        <div proportion="1" height="fit" layout="horizontal-row">
+	                            <spinner id="fuel-stop-spinner" width="100%" min_value="0" max_value="1000" align="center"
+	                                     wrap_around="true" />
+	                        </div>
+	                        <spacer width="3%"/>
+	                        <label id="fuel-stop-text" proportion="3" I18N="In the track info screen" text="Pitstop E" text_align="left" align="center"/>
+	                    </div>
+
+	                    <spacer width="1" height="1%"/>
+	                    <div width="100%" height="fit" layout="horizontal-row" >
+	                        <div proportion="1" height="fit" layout="horizontal-row">
+	                            <spinner id="fuel-rate-spinner" width="100%" min_value="0" max_value="1000" align="center"
+	                                     wrap_around="true" />
+	                        </div>
+	                        <spacer width="3%"/>
+	                        <label id="fuel-rate-text" proportion="3" I18N="In the track info screen" text="E rate" text_align="left" align="center"/>
+	                    </div>
+
+	                    <spacer width="1" height="1%"/>
+	                    <div width="100%" height="fit" layout="horizontal-row" >
+	                        <div proportion="1" height="fit" layout="horizontal-row">
+	                            <spinner id="fuel-weight-spinner" width="100%" min_value="0" max_value="100" align="center"
+	                                     wrap_around="true" />
+	                        </div>
+	                        <spacer width="3%"/>
+	                        <label id="fuel-weight-text" proportion="3" I18N="In the track info screen" text="E weight" text_align="left" align="center"/>
+	                    </div>
+	                    
+	                    <spacer width="1" height="1%"/>	                    
+	                    <div width="100%" height="fit" layout="horizontal-row" >
+	                        <div proportion="1" height="fit" layout="horizontal-row">
+	                            <spinner id="fuel-regen-spinner" width="100%" min_value="0" max_value="1000" align="center"
+	                                     wrap_around="true" />
+	                        </div>
+	                        <spacer width="3%"/>
+	                        <label id="fuel-regen-text" proportion="3" I18N="In the track info screen" text="Regen E" text_align="left" align="center"/>
+	                    </div>
+	                    	                    	                    	                    
                     <spacer width="1" height="1%"/>
-                    
                     <div width="100%" height="fit" layout="horizontal-row" >
                         <div proportion="1" height="fit" layout="horizontal-row">
                             <spinner id="ai-spinner" width="100%" min_value="1" max_value="20" align="center"

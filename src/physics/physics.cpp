@@ -481,9 +481,9 @@ void Physics::KartKartCollision(Kart *kart_a,
     // The value of f_right is applied to the right kart, and f_left
     // to the left kart. f_left = 1 / f_right
     // The max value based on mass with standard settings is 350/210 = 1.6667
-    float f_right =  right_kart->getKartProperties()->getMass() > 0
-                     ? left_kart->getKartProperties()->getMass()
-                       / right_kart->getKartProperties()->getMass()
+    float f_right =  right_kart->getMass() > 0
+                     ? left_kart->getMass()
+                       / right_kart->getMass()
                      : 2.0f;
 
     if (f_right > 2.0f)

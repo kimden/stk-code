@@ -57,6 +57,13 @@ private:
 	InterpolationArray m_c_heat_cycle_hardness_curve;
 	InterpolationArray m_c_hardness_penalty_curve;
 
+	float m_c_max_fuel;
+	float m_c_fuel;
+	float m_c_fuel_regen;
+	float m_c_fuel_stop;
+	float m_c_fuel_weight;
+	float m_c_fuel_rate;
+
 	float m_c_mass;
 	float m_c_ideal_temp;
 	float m_c_max_life_traction;
@@ -92,10 +99,12 @@ private:
 public:
     float m_current_life_traction;
     float m_current_life_turning;
-    float m_current_temp;
-    float m_heat_cycle_count;
+	float m_current_fuel;
 	unsigned m_current_compound;
 	bool m_reset_compound;
+
+    float m_current_temp;
+    float m_heat_cycle_count;
 
 private:
     /** A read-only pointer to the kart's properties. */
@@ -105,8 +114,12 @@ public:
          Tyres(Kart *kart);
         ~Tyres() { };
     void reset();
+
+	float getFuelWeight(void) { return m_c_fuel_weight; };
+	float getFuelStopRatio(void) { return m_c_fuel_stop; };
+
     float correct(float);
-    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_force, float steer_amount);
+    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_force, float steer_amount, float throttle_amount);
 
 	void applyCrashPenalty(void);
 
