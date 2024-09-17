@@ -50,7 +50,10 @@ void WorldWithRank::init()
     m_position_used.resize(m_karts.size());
     m_position_setting_initialised = false;
 #endif
-    stk_config->getAllScores(&m_score_for_position, getNumKarts());
+    if (!m_custom_scoring)
+        stk_config->getAllScores(&m_score_for_position, getNumKarts());
+    else
+        refreshCustomScores(getNumKarts());
 
     Track *track = Track::getCurrentTrack();
     // Don't init track sector if navmesh is not found in arena
@@ -59,7 +62,6 @@ void WorldWithRank::init()
 
     for (unsigned int i = 0; i < m_karts.size(); i++)
         m_kart_track_sector.push_back(new TrackSector());
-
 }   // init
 
 //-----------------------------------------------------------------------------
@@ -213,10 +215,68 @@ unsigned int WorldWithRank::getRescuePositionIndex(Kart *kart)
  */
 int WorldWithRank::getScoreForPosition(int p)
 {
-    assert(p-1 >= 0);
-    assert(p - 1 <(int) m_score_for_position.size());
-    return m_score_for_position[p - 1];
+    return getScoreForPosition(p, 0.0f);
 }   // getScoreForPosition
+
+//-----------------------------------------------------------------------------
+/** Returns the number of points for a kart at a specified position.
+ *  \param p Position (starting with 1).
+ *  \param time Time shown by the kart in the game.
+ */
+int WorldWithRank::getScoreForPosition(int p, float time)
+{
+    assert(p - 1 >= 0);
+    assert(p - 1 < (int)m_score_for_position.size());
+    m_race_times[p] = time;
+    if (!m_custom_scoring)
+        return m_score_for_position[p - 1];
+    if (m_custom_scoring_type == "inc" || m_custom_scoring_type == "fixed")
+        return m_score_for_position[p - 1];
+    if (m_custom_scoring_type == "linear-gap"
+        || m_custom_scoring_type == "exp-gap")
+    {
+        double delta = time - m_race_times[1];
+        if (m_custom_scoring_type == "exp-gap")
+        {
+            if (m_race_times[1] < 1e-6) // just in case
+                return 0;
+            delta = log(time / m_race_times[1]) / log(2);
+        }
+        double points = m_custom_scoring_params[2] * 0.001;
+        bool continuous = (m_custom_scoring_params[5] != 0);
+        double time_step = m_custom_scoring_params[3] * 0.001;
+        double decrease = m_custom_scoring_params[4] * 0.001;
+        delta /= time_step;
+        if (!continuous)
+            delta = floor(delta);
+        points -= delta * decrease;
+        if (points < 0.0)
+            points = 0.0;
+        return round(points);
+    }
+    Log::error("WorldWithRank", "Unknown scoring type: %s. Giving 0 points", m_custom_scoring_type.c_str());
+    return 0;
+}   // getScoreForPosition
+
+//-----------------------------------------------------------------------------
+/** Returns true if and only if it can determine the score for position p
+ *  if called right now. For standard point systems, it's always true;
+ *  however, if the score depends on times of certain players (e.g.
+ *  the current player and the winner), it can arrive here later than needed,
+ *  thus we may need to invoke the function when it can be applied.
+ *  \param p Position (starting with 1).
+ */
+bool WorldWithRank::canGetScoreForPosition(int p)
+{
+    if (m_custom_scoring_type == "linear-gap"
+        || m_custom_scoring_type == "exp-gap")
+    {
+        if (p == 1 || m_race_times.count(1))
+            return true;
+        return false;
+    }
+    return true;
+}   // canGetScoreForPosition
 
 //-----------------------------------------------------------------------------
 /** Returns true if the kart is on a valid graph quad.
@@ -260,3 +320,62 @@ void WorldWithRank::updateSectorForKarts()
             getTrackSector(i)->update(m_karts[i]->getXYZ());
     }
 }   // updateSectorForKarts
+//-----------------------------------------------------------------------------
+
+void WorldWithRank::setCustomScoringSystem(std::string& type, std::vector<int>& params)
+{
+    m_custom_scoring_type = type;
+    m_custom_scoring_params = params;
+    if (type == "" || type == "standard" || type == "default") {
+        m_custom_scoring = false;
+        return;
+    }
+    m_custom_scoring = true;
+    refreshCustomScores(getNumKarts());
+}   // setCustomScoringSystem
+//-----------------------------------------------------------------------------
+
+void WorldWithRank::refreshCustomScores(int num_karts)
+{
+    if (m_custom_scoring_type == "inc")
+    {
+        m_score_for_position.clear();
+        for (unsigned i = 2; i < m_custom_scoring_params.size(); i++)
+            m_score_for_position.push_back(m_custom_scoring_params[i]);
+        m_score_for_position.resize(num_karts, 0);
+        std::sort(m_score_for_position.begin(), m_score_for_position.end());
+        for (unsigned i = 1; i < m_score_for_position.size(); i++)
+            m_score_for_position[i] += m_score_for_position[i - 1];
+        std::reverse(m_score_for_position.begin(), m_score_for_position.end());
+    }
+    else if (m_custom_scoring_type == "fixed")
+    {
+        m_score_for_position.clear();
+        for (unsigned i = 2; i < m_custom_scoring_params.size(); i++)
+            m_score_for_position.push_back(m_custom_scoring_params[i]);
+        m_score_for_position.resize(num_karts, 0);
+    }
+    else if (m_custom_scoring_type == "linear-gap"
+        || m_custom_scoring_type == "exp-gap")
+    {
+        m_score_for_position.clear();
+        m_score_for_position.resize(num_karts, 0);
+    }
+}   // refreshCustomScores
+//-----------------------------------------------------------------------------
+
+int WorldWithRank::getFastestLapPoints() const
+{
+    if (!m_custom_scoring)
+        return 0;
+    return m_custom_scoring_params[1];
+}   // getFastestLapPoints
+//-----------------------------------------------------------------------------
+
+int WorldWithRank::getPolePoints() const
+{
+    if (!m_custom_scoring)
+        return 0;
+    return m_custom_scoring_params[0];
+}   // getPolePoints
+//-----------------------------------------------------------------------------

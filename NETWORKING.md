@@ -25,7 +25,7 @@ Than you can just run:
 It will create that xml configuration file if not found in current directory, you can type `quit` in terminal, than you can edit that file for further configuration as required.
 ` --network-console` should not be used if you run supertuxkart server later with systemd service, see issue [#4299](https://github.com/supertuxkart/stk-code/issues/4299).
 
-The current server configuration xml looks like this:
+The current server configuration xml looks like this (this is only an example, just copying and running server with this config file makes some tracks obligatory and some unplayable, please read carefully):
 ```xml
 <?xml version="1.0"?>
 <server-config version="6" >
@@ -60,8 +60,11 @@ The current server configuration xml looks like this:
     <!-- Password for private server, leave empty for a public server. -->
     <private-server-password value="" />
 
-    <!-- Message of today shown in lobby, you can enter encoded XML words here or a file.txt and let STK load it. -->
+    <!-- Message of today shown in lobby, you can enter here encoded XML words or a .txt file and let STK load it. -->
     <motd value="" />
+
+    <!-- Help message shown after sending /help. You can enter here the message or a .txt file and let STK load it. -->
+    <help value="" />
 
     <!-- If this value is set to false, the server will ignore chat messages from all players. -->
     <chat value="true" />
@@ -92,12 +95,51 @@ The current server configuration xml looks like this:
 
     <!-- Time to wait before entering kart selection screen if satisfied min-start-game-players below for owner less or ranked server. -->
     <start-game-counter value="60" />
+    
+    <!-- If this value is set to true, a message is send to everybody if a player makes a teammate explode. -->
+    <show-teammate-hits value="false" />
+
+    <!-- Punish teammate hits? If set to true players get an anvil when they hit teammates. -->
+    <teammate-hit-mode value="false" />
 
     <!-- Clients below this value will be rejected from joining this server. It's determined by number of official karts in client / number of official karts in server -->
     <official-karts-threshold value="1" />
 
     <!-- Clients below this value will be rejected from joining this server. It's determined by number of official tracks in client / number of official tracks in server, setting this value too high will prevent android players from joining this server, because STK android apk has some official tracks removed. -->
     <official-tracks-threshold value="0.7" />
+
+    <!-- Clients below this value will be rejected from playing on this server. It's determined by number of official karts in client / number of official karts in server. -->
+    <official-karts-play-threshold value="0" />
+
+    <!-- Clients below this value will be rejected from playing on this server. It's determined by number of official tracks in client / number of official tracks in server, setting this value too high will prevent android players from playing on this server, because STK android apk has some official tracks removed. -->
+    <official-tracks-play-threshold value="0" />
+
+    <!-- Clients below this value will be rejected from joining this server. It's determined by number of addon karts in client -->
+    <addon_karts_threshold value="0" />
+
+    <!-- Clients below this value will be rejected from joining this server. It's determined by number of addon tracks in client -->
+    <addon_tracks_threshold value="0" />
+
+    <!-- Clients below this value will be rejected from joining this server. It's determined by number of addon arenas in client -->
+    <addon_arenas_threshold value="0" />
+
+    <!-- Clients below this value will be rejected from joining this server. It's determined by number of addon soccer fields in client -->
+    <addon_soccers_threshold value="0" />
+
+    <!-- Tracks needed to enter the server, leave empty for no restriction. -->
+    <must-have-tracks value="hacienda xr591 addon_animtrack_1 minigolf" />
+
+    <!-- List of karts that can be played on a server, leave empty for no restriction or put 'not' before the list to name tracks that cannot be played. It is not guaranteed to work with addons. -->
+    <only-played-karts value="" />
+
+    <!-- List of tracks that can be played on a server, leave empty for no restriction or put 'not' before the list to name tracks that cannot be played. -->
+    <only-played-tracks value="not abyss snowtuxpeak addon_minigolf" />
+
+    <!-- Use fixed lap count, negative or zero to disable. -->
+    <fixed-lap-count value="-1" />
+    
+    <!-- If this value is set to true, players and the server must have at least one common official track. -->
+    <official-tracks-needed value="true" />
 
     <!-- Only auto start kart selection when number of connected player is larger than or equals this value, for owner less or ranked server, after start-game-counter reaches 0. -->
     <min-start-game-players value="2" />
@@ -116,6 +158,9 @@ The current server configuration xml looks like this:
 
     <!-- If true, the server owner can config the difficulty and game mode in the GUI of lobby. This option cannot be used with owner-less or grand prix server, and will be automatically turned on if the server was created using the in-game GUI. The changed difficulty and game mode will not be saved in this config file. -->
     <server-configurable value="false" />
+
+    <!-- Description of modes and difficulties that can be set on a configurable server. Doesn't affect initial mode and doesn't affect unconfigurable servers. Use the format "d0123 m012345678". -->
+    <available-modes value="d0123 m012345678" />
 
     <!-- If true, players can live join or spectate the in-progress game. Currently live joining is only available if the current game mode used in server is FFA, CTF or soccer, also official-karts-threshold will be made 1.0. If false addon karts will use their original hitbox other than tux, all players having it restriction applies. -->
     <live-spectate value="true" />
@@ -156,6 +201,9 @@ The current server configuration xml looks like this:
     <!-- Kick idle player which has no network activity to server for more than some seconds during game, unless he has finished the race. Negative value to disable, and this option will always be disabled for LAN server. -->
     <kick-idle-player-seconds value="60" />
 
+    <!-- Kick idle player which has no network activity to server for more than some seconds, while in the lobby.. Duration also includes the period after the player finishes and waits for others to finish. Be careful using it. Negative value to disable, and this option will always be disabled for LAN server. -->
+    <kick-idle-lobby-player-seconds value="-1" />
+
     <!-- Set how many states the server will send per second, the higher this value, the more bandwidth requires, also each client will trigger more rewind, which clients with slow device may have problem playing this server, use the default value is recommended. -->
     <state-frequency value="10" />
 
@@ -192,8 +240,68 @@ The current server configuration xml looks like this:
     <!-- If true this server will auto add / remove AI connected with network-ai=x, which will kick N - 1 bot(s) where N is the number of human players. Only use this for non-GP racing server. -->
     <ai-handling value="false" />
 
+    <!-- If true no one can start a race and everyone should use the server for sleeping/chatting only. -->
+    <sleeping-server value="false" />
+
+    <!-- IP that should be used to connect to a server, set 0 for a default IP. You need this only if the server's IP shouldn't be used for some reason (e.g. blocking) and there is another IP ('good') that points to the same server. In this case, you should write a good IP here as a number. Only IPv4 is supported. -->
+    <false-ip value="0" />
+
+    <!-- When true, stores race results in a separate table for each server. -->
+    <store-results value="false" />
+
+    <!-- When non-empty, server is telling whether a player has beaten a server record, records are taken from the table specified in this field. So it can be the results table for this server or for all servers hosted on the machine.-->
+    <records-table-name value="" />
+
+    <!-- When true, stores the info about each forced kick in a database (if it exists). -->
+    <track-kicks value="false" />
+
+    <!-- When true, the server allows changing teams freely. -->
+    <free-teams value="false" />
+
+    <!-- When true, the server has the functionality to host soccer tournaments. Rules may change so better ask STK players about the actual rules. -->
+    <soccer-tournament value="false" />
+
+    <!-- List of players and judges. Use the format "R red red red B blue blue blue J judge judge" where the category is preceded by its letter. Categories can be empty or absent and can go in any order. -->
+    <soccer-tournament-players value="" />
+
+    <!-- A string given to a peer if it has incompatible data, so that it can know why it cannot enter, empty to disable. -->
+    <incompatible-advice value="Well, you have incompatible data!" />
+
+    <!-- If true and no track is selected, then an addon track can be picked. -->
+    <random-selects-addons value="false" />
+
+    <!-- If non-empty, these tracks (or track filters if enclosed in curly braces) are played in the order until the list ends. -->
+    <tracks-queue value="" />
+
+    <!-- If non-empty, these tracks (or track filters if enclosed in curly braces) are played in the order cyclically,  except if something is in the regular tracks queue. -->
+    <cyclic-tracks-queue value="" />
+
+    <!-- If non-empty, these karts (or kart filters if enclosed in curly braces) are played in the order until the list ends. -->
+    <karts-queue value="" />
+
+    <!-- If non-empty, these karts (or kart filters if enclosed in curly braces) are played in the order cyclically,  except if something is in the regular karts queue. -->
+    <cyclic-karts-queue value="" />
+
+    <!-- A custom Grand Prix scoring system to be used, empty for default. -->
+    <grand-prix-scoring value="" />
+
+    <!-- For a private server, a list of players who can enter with any password. Works only for online accounts. -->
+    <white-list value="kimden" />
+
+    <!-- If true, all mobile peers get a corresponding icon into the name. -->
+    <expose-mobile value="true" />
+
+    <!-- Specifies how to count own goals: standard - last touching player is counted, no-own-goals - last touching player of scoring team is counted if existing, advanced - as standard for now. -->
+    <soccer-goals-policy value="standard" />
+
     <!-- If true this server will allow AI instance to be connected from anywhere. (other than LAN network only) -->
     <ai-anywhere value="false" />
+
+    <!-- If true, the server owner can kick players, either via the UI button or using /kick command. -->
+    <kicks-allowed value="true" />
+
+    <!-- Specifies how the server should decide which map vote wins in map selection. 0 corresponds to standard system, 1 - to randomly selecting one of votes. -->
+    <map-vote-handling value="0" />
 
 </server-config>
 
@@ -265,7 +373,12 @@ CREATE TABLE IF NOT EXISTS (table name above)
     os TEXT NOT NULL, -- Operating system of the host
     connected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when connected
     disconnected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when disconnected (saved when disconnected)
-    ping INTEGER UNSIGNED NOT NULL DEFAULT 0 -- Ping of the host
+    ping INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Ping of the host
+    packet_loss INTEGER NOT NULL DEFAULT 0, -- Mean packet loss count from ENet (saved when disconnected)
+    addon_karts_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon karts of the host
+    addon_tracks_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon tracks of the host
+    addon_arenas_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon arenas of the host
+    addon_soccers_count INTEGER UNSIGNED NOT NULL DEFAULT 0 -- Number of addon soccers of the host
 ) WITHOUT ROWID;
 ```
 
@@ -293,7 +406,7 @@ CREATE TABLE IF NOT EXISTS (table name above)
 
 If you want to see flags and readable names of countries in the above views, you need to initialize `v(server database version)_countries` table, check [this script](tools/generate-countries-table.py).
 
-For IPv4 and online ID ban list, player reports or IP mapping, you need to create one yourself:
+For IPv4 and online ID ban list, player reports or IP mapping (in case your server doesn't communicate with STK addons server, which can do IP mapping instead of your server), you need to create one yourself:
 ```sql
 CREATE TABLE ip_ban
 (

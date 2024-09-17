@@ -290,3 +290,21 @@ std::pair<uint32_t, uint32_t> FreeForAll::getGameStartedProgress() const
     }
     return progress;
 }   // getGameStartedProgress
+
+// ----------------------------------------------------------------------------
+/** Called when the score of the kart is nonzero and needs to be updated.
+ *  \param id The world kart id of the kart whose score needs to be notified about.
+ */
+void FreeForAll::notifyAboutScoreIfNonzero(int id)
+{
+    if (NetworkConfig::get()->isNetworking() &&
+        NetworkConfig::get()->isServer() &&
+        m_scores[id] != 0)
+    {
+        NetworkString p(PROTOCOL_GAME_EVENTS);
+        p.setSynchronous(true);
+        p.addUInt8(GameEventsProtocol::GE_BATTLE_KART_SCORE);
+        p.addUInt8((uint8_t)id).addUInt16((int16_t)m_scores[id]);
+        STKHost::get()->sendPacketToAllPeers(&p, true);
+    }
+}   // notifyAboutScoreIfNonzero

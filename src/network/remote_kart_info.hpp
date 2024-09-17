@@ -41,13 +41,13 @@ enum KartTeam : int8_t
 enum HandicapLevel : uint8_t
 {
     HANDICAP_NONE = 0,
-    HANDICAP_4,
-    HANDICAP_8,
-    HANDICAP_12,
-    HANDICAP_16,
-    HANDICAP_20,
-    HANDICAP_24,
-    HANDICAP_COUNT
+    HANDICAP_4 = 1,
+    HANDICAP_8 = 2,
+    HANDICAP_12 = 3,
+    HANDICAP_16 = 4,
+    HANDICAP_20 = 5,
+    HANDICAP_24 = 6,
+    HANDICAP_COUNT = 7
 };
 
 class NetworkPlayerProfile;

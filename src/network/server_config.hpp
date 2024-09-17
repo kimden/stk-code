@@ -104,8 +104,7 @@ namespace ServerConfig
         "Game mode in server, 0 is normal race (grand prix), "
         "1 is time trial (grand prix), 3 is normal race, "
         "4 time trial, 6 is soccer, 7 is free-for-all and "
-        "8 is capture the flag. Notice: grand prix server doesn't "
-        "allow for players to join and wait for ongoing game."));
+        "8 is capture the flag."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_server_difficulty
         SERVER_CFG_DEFAULT(IntServerConfigParam(0, "server-difficulty",
@@ -147,8 +146,13 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX StringServerConfigParam m_motd
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
-        "motd", "Message of today shown in lobby, you can enter encoded XML "
-        "words here or a file.txt and let STK load it."));
+        "motd", "Message of today shown in lobby, you can enter here "
+        "encoded XML words or a .txt file and let STK load it."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_help
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "help", "Help message shown after sending /help. You can enter here "
+        "the message or a .txt file and let STK load it."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_chat
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "chat",
@@ -209,7 +213,8 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(FloatServerConfigParam(60.0f, "start-game-counter",
         "Time to wait before entering kart selection screen "
         "if satisfied min-start-game-players below for owner less or ranked "
-        "server."));
+        "server. Negative to disable the timer, you will need to use /start "
+        "then instead of the button."));
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_official_karts_threshold
         SERVER_CFG_DEFAULT(FloatServerConfigParam(1.0f,
@@ -224,8 +229,145 @@ namespace ServerConfig
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of official tracks in client / number of "
         "official tracks in server, setting this value too high will prevent "
-        "android players from joining this server, because STK android apk "
+        "android players from playing on this server, because STK android apk "
         "has some official tracks removed."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_official_karts_play_threshold
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(1.0f,
+        "official-karts-play-threshold",
+        "Clients below this value will be rejected from playing on this server. "
+        "It's determined by number of official karts in client / number of "
+        "official karts in server."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_official_tracks_play_threshold
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(0.7f,
+        "official-tracks-play-threshold",
+        "Clients below this value will be rejected from playing on this server. "
+        "It's determined by number of official tracks in client / number of "
+        "official tracks in server, setting this value too high will prevent "
+        "android players from playing on this server, because STK android apk "
+        "has some official tracks removed."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_join_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-karts-join-threshold",
+        "Clients below this value will be rejected from joining this server. "
+        "It's determined by number of addon karts in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_join_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-tracks-join-threshold",
+        "Clients below this value will be rejected from joining this server. "
+        "It's determined by number of addon tracks in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_join_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-arenas-join-threshold",
+        "Clients below this value will be rejected from joining this server. "
+        "It's determined by number of addon arenas in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_join_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-soccers-join-threshold",
+        "Clients below this value will be rejected from joining this server. "
+        "It's determined by number of addon soccer fields in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-karts-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon karts in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-tracks-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon tracks in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-arenas-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon arenas in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-soccers-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon soccer fields in client"));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_must_have_tracks_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "must-have-tracks", "Tracks needed to enter the server, "
+        "leave empty for no restriction."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_play_requirement_tracks_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+       "play-requirement-tracks", "Tracks needed to be able to play, "
+       "leave empty for no restriction."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_only_played_karts_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "only-played-karts", "List of karts that can be played on a server, "
+        "leave empty for no restriction or put 'not' before the list "
+        "to name tracks that cannot be played. It is not guaranteed to work with addons."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_only_played_tracks_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "only-played-tracks", "List of tracks that can be played on a server, "
+        "leave empty for no restriction or put 'not' before the list "
+        "to name tracks that cannot be played."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_fixed_lap_count
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "fixed-lap-count",
+        "Use fixed lap count, negative or zero to disable."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_fixed_direction
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "fixed-direction",
+        "Use fixed direction (0 for forward or 1 for reverse), -1 to disable."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_official_tracks_needed
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "official-tracks-needed",
+        "If this value is set to true, players and the server must have "
+        "at least one common official track."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_troll_active
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "use-anti-troll-system",
+        "If this value is set to true, warn and kick players who troll others."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_troll_warn_msg
+        SERVER_CFG_DEFAULT(StringServerConfigParam("WARNING: You troll, you get kicked!",
+        "troll-warn-message",
+        "This message is shown as warning."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_warning_time
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(7.0f, "troll-warning-time",
+        "After this time (in sec) of backwards movement or stopping a warning is issued."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_kick_time
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(10.0f, "troll-kick-time",
+        "After this time (in sec) of backwards movement or stopping the player is kicked."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_min_normal_speed
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(12.0f, "troll-min-normal-speed",
+        "Minimum speed in correct direction to decrease wron_way timer."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_troll_max_stop_speed
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(5.0f, "troll-max-stop-speed",
+        "A player going slower than this is considered stopping. Negative speed allows to move with it in any direction."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_show_teammate_hits
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "show-teammate-hits",
+        "If this value is set to true, a message is send to everybody if a player makes a teammate explode."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_teammate_hit_mode
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "teammate-hit-mode",
+        "Punish teammate hits? If set to true players get an anvil when they hit teammates."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_teammate_hit_msg_prefix
+        SERVER_CFG_DEFAULT(StringServerConfigParam("LOL: ",
+        "teammate-hit-msg-prefix",
+        "This string is the prefix for the messages if players hit teammates. (Make sure it ends with a whitespace if non-empty.)"));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_min_start_game_players
         SERVER_CFG_DEFAULT(IntServerConfigParam(2, "min-start-game-players",
@@ -264,6 +406,13 @@ namespace ServerConfig
         "grand prix server, and will be automatically turned on if the server "
         "was created using the in-game GUI. The changed difficulty and game "
         "mode will not be saved in this config file."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_available_modes
+        SERVER_CFG_DEFAULT(StringServerConfigParam("d0123 m012345678", "available-modes",
+        "Description of modes and difficulties that can be set "
+        "on a configurable server. Doesn't affect initial mode "
+        "and doesn't affect unconfigurable servers. Use the "
+        "format \"d0123 m012345678\"."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_live_players
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "live-spectate",
@@ -348,6 +497,15 @@ namespace ServerConfig
         "than some seconds during game, unless he has finished the race. "
         "Negative value to disable, and this option will always be disabled "
         "for LAN server."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_kick_idle_lobby_player_seconds
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1,
+        "kick-idle-lobby-player-seconds",
+        "Kick idle player which has no network activity to server for more "
+        "than some seconds, while in the lobby. Duration also includes the "
+        "period after the player finishes and waits for others to finish. "
+        "Be careful using it. Negative value to disable, and this option "
+        "will always be disabled for LAN server."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_state_frequency
         SERVER_CFG_DEFAULT(IntServerConfigParam(10,
@@ -444,10 +602,190 @@ namespace ServerConfig
         "network-ai=x, which will kick N - 1 bot(s) where N is the number "
         "of human players. Only use this for non-GP racing server."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_sleeping_server
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "sleeping-server",
+        "If true no one can start a race and everyone should use the "
+        "server for sleeping/chatting only."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_false_ip
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0, "false-ip",
+        "IP that should be used to connect to a server, set 0 for a "
+        "default IP. You need this only if the server's IP shouldn't be "
+        "used for some reason (e.g. blocking) and there is another IP "
+        "('good') that points to the same server. In this case, you "
+        "should write a good IP here as a number. Only IPv4 is "
+        "supported."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_store_results
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "store-results",
+        "When true, stores race results in a separate table for each "
+        "server."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_records_table_name
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "records-table-name",
+        "When non-empty, server is telling whether a player has beaten "
+        "a server record, records are taken from the table specified "
+        "in this field. So it can be the results table for this server "
+        "or for all servers hosted on the machine."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_track_kicks
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "track-kicks",
+        "When true, stores the info about each forced kick in a database "
+        "(if it exists)."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_free_teams
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "free-teams",
+        "When true, the server allows changing teams freely."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_soccer_tournament
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "soccer-tournament",
+        "When true, the server has the functionality to host soccer "
+        "tournaments. Rules may change so better ask STK players about "
+        "the actual rules."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_tournament_match
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "soccer-tournament-match",
+        "List of players and judges. Use the format \"R red red "
+        "red B blue blue blue J judge judge\" where "
+        "the category is preceded by its letter. Categories can "
+        "be empty or absent and can go in any order. You can use "
+        "a category (#A) instead of listing all players."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_categories
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "categories",
+        "List of players with categories (teams, etc.). Use the "
+        "format #Category1 player1 ... playerN #Category2 ... "
+        "Use ## to hide the category from the player list."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_tournament_rules
+        SERVER_CFG_DEFAULT(StringServerConfigParam("nochat 10 TTTTG RRBBR +++++;"
+        ";;not %1;"
+        "not %1 "
+        "%2;;;",
+        "soccer-tournament-rules",
+        "A string specifying the match format."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_incompatible_advice
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "incompatible-advice",
+        "A string given to a peer if it has incompatible data, so "
+        "that it can know why it cannot enter, empty to disable."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_only_host_riding
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "only-host-riding",
+        "A feature to make others only spectate."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_record_replays
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "record-replays",
+        "If true, normal race and time trial games are recorded into ghost "
+        "replays."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_random_selects_addons
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "random-selects-addons",
+        "If true and no track is selected, then an addon track can be picked."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_tracks_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "tracks-queue",
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order until the list ends."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cyclic_tracks_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "cyclic-tracks-queue",
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order cyclically, "
+        "except if something is in the regular tracks queue."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_karts_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "karts-queue",
+        "If non-empty, these karts (or kart filters if enclosed in curly braces) "
+        "are played in the order until the list ends."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cyclic_karts_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "cyclic-karts-queue",
+        "If non-empty, these karts (or kart filters if enclosed in curly braces) "
+        "are played in the order cyclically, "
+        "except if something is in the regular karts queue."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_gp_scoring
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "fixed 0 1 10 8 6 5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+        "grand-prix-scoring",
+        "A custom Grand Prix scoring system to be used, "
+        "should have format 'type int int int int ...', where "
+        "type is either 'inc' or 'fixed'."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_white_list
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "white-list",
+        "For a private server, a list of players who can enter with "
+        "any password. Works only for online accounts."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_expose_mobile
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "expose-mobile",
+        "If true, all mobile peers get a corresponding icon into the name."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_goals_policy
+        SERVER_CFG_DEFAULT(StringServerConfigParam("standard",
+        "soccer-goals-policy",
+        "Specifies how to count own goals: standard - last touching player "
+        "is counted, no-own-goals - last touching player of scoring team "
+        "is counted if existing, advanced - as standard for now."));
+
+#ifdef ENABLE_WEB_SUPPORT
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_tokens_table
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "tokens-table",
+        "A table containing tokens for website authentication using "
+        "STK account only."));
+#endif
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_power_password
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "power-password",
+        "Allows server owner (not crowned player!) to go to power mode "
+        "to kick players using GUI and not be kicked, empty to disable."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_ai_anywhere
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ai-anywhere",
         "If true this server will allow AI instance to be connected from "
         "anywhere. (other than LAN network only)"));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_kicks_allowed
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "kicks-allowed",
+        "If true, the server owner can kick players, either via "
+        "the UI button or using /kick command."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_register_table_name
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "registration-table-name",
+        "When non-empty, stores input given by /register command in "
+        "the corresponding table. Otherwise, /register command does "
+        "nothing"));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_shuffle_gp
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "shuffle-grand-prix-grid",
+        "If true, the GP grid is shuffled before each race, not only before "
+        "the first one."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_preserve_battle_scores
+            SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "preserve-battle-scores",
+            "If true, when a player leaves and rejoins the battle server, "
+            "the score is preserved (works for distinct names only for now)."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_preserve_on_reset
+            SERVER_CFG_DEFAULT(StringServerConfigParam("", "preserve-on-reset",
+            "Whatever specified here wouldn't be reset when all players leave. "
+            "Possible options are mode, elim, laps, queue, replay, to include several "
+            "separate them by spaces, empty to include nothing."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_map_vote_handling
+            SERVER_CFG_DEFAULT(IntServerConfigParam(0, "map-vote-handling",
+            "Specifies how the server should decide which map vote wins in map "
+            "selection. 0 corresponds to standard system, 1 - to randomly selecting "
+            "one of votes."
+            ));
 
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
@@ -459,6 +797,8 @@ namespace ServerConfig
     // ========================================================================
     /** Server uid, extracted from server_config.xml file with .xml removed. */
     extern std::string m_server_uid;
+    // ========================================================================
+    static bool m_loaded_from_external_config;
     // ========================================================================
     void loadServerConfig(const std::string& path = "");
     // ------------------------------------------------------------------------

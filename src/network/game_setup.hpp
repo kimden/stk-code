@@ -61,13 +61,15 @@ private:
     /** Utf8 server name (with xml decoded) */
     std::string m_server_name_utf8;
 
+    float m_extra_seconds;
+
 public:
     // ------------------------------------------------------------------------
     GameSetup();
     // ------------------------------------------------------------------------
     ~GameSetup() {}
     // ------------------------------------------------------------------------
-    void setRace(const PeerVote &vote);
+    void setRace(const PeerVote &vote, float extra_seconds = 0.0f);
     // ------------------------------------------------------------------------
     void reset()
     {
@@ -125,6 +127,8 @@ public:
             m_tracks.size() != getTotalGrandPrixTracks();
     }
     // ------------------------------------------------------------------------
+    void cancelOneRace()                                  { m_tracks.pop_back(); }
+    // ------------------------------------------------------------------------
     void stopGrandPrix()                                  { m_tracks.clear(); }
     // ------------------------------------------------------------------------
     const std::vector<std::string>& getAllTracks() const   { return m_tracks; }
@@ -132,7 +136,8 @@ public:
     const std::string& getCurrentTrack() const      { return m_tracks.back(); }
     // ------------------------------------------------------------------------
     void sortPlayersForGrandPrix(
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
+        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+        bool shuffle_instead) const;
     // ------------------------------------------------------------------------
     void sortPlayersForGame(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
@@ -144,6 +149,8 @@ public:
     }
     // ------------------------------------------------------------------------
     const std::string& getServerNameUtf8() const { return m_server_name_utf8; }
+    // ------------------------------------------------------------------------
+    irr::core::stringw readOrLoadFromFile(std::string value);
 };
 
 #endif // GAME_SETUP_HPP

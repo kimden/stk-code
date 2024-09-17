@@ -1686,7 +1686,7 @@ int handleCmdLine(bool has_server_config, bool has_parent_process)
         {
             Log::verbose("main", "You chose to have %d laps.", laps);
             if (NetworkConfig::get()->isServer())
-                ServerLobby::m_fixed_laps = laps;
+                ServerLobby::m_default_fixed_laps = laps;
             else
                 RaceManager::get()->setNumLaps(laps);
         }
@@ -1957,10 +1957,12 @@ void initRest()
             file_manager->getAddonsFile("tracks/"));
     }
 
-    {
-        XMLNode characteristicsNode(file_manager->getAsset("kart_characteristics.xml"));
-        kart_properties_manager->loadCharacteristics(&characteristicsNode);
-    }
+    std::string char_file;
+    if (!CommandLine::has("--char-file", &char_file))
+        char_file = "kart_characteristics.xml";
+    kart_properties_manager->setFileName(char_file);
+    XMLNode characteristicsNode(file_manager->getAsset(char_file));
+    kart_properties_manager->loadCharacteristics(&characteristicsNode);
 
     track_manager->loadTrackList();
     music_manager->addMusicToTracks();
@@ -2323,7 +2325,11 @@ int main(int argc, char *argv[])
             material_manager->addSharedMaterial(materials_file);
         }
         Referee::init();
+
+        if (CommandLine::has("--powerup-file", &s))
+            powerup_manager->setFileName(s);
         powerup_manager->loadPowerupsModels();
+
         ItemManager::loadDefaultItemMeshes();
 
         GUIEngine::addLoadingIcon( irr_driver->getTexture(FileManager::GUI_ICON,

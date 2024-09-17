@@ -53,6 +53,8 @@ void showHelp()
     std::cout << "listpeers, List all peers with host ID and IP." << std::endl;
     std::cout << "listban, List IP ban list of server." << std::endl;
     std::cout << "speedstats, Show upload and download speed." << std::endl;
+    std::cout << "msg # string, Sent a message to all peers "
+        "(# is ignored)." << std::endl;
 }   // showHelp
 
 // ----------------------------------------------------------------------------
@@ -120,6 +122,22 @@ void mainLoop(STKHost* host)
         {
             host->requestShutdown();
         }
+        else if (str == "quitifempty")
+        {
+            auto peers = host->getPeers();
+            bool has_humans = false;
+            for (auto peer : peers)
+            {
+                if (peer->isAIPeer())
+                    continue;
+                has_humans = true;
+                break;
+            }
+            if (!has_humans)
+                host->requestShutdown();
+            else
+                std::cout << "The server is not empty, abort quitting." << std::endl;
+        }
         else if (str == "kickall")
         {
             auto peers = host->getPeers();
@@ -177,6 +195,21 @@ void mainLoop(STKHost* host)
                 (float)host->getUploadSpeed() / 1024.0f <<
                 "   Download speed (KBps): " <<
                 (float)host->getDownloadSpeed() / 1024.0f  << std::endl;
+        }
+        else if (str == "msg" && number != -1 &&
+            NetworkConfig::get()->isServer())
+        {
+            std::string message;
+            std::getline(ss, message);
+            std::reverse(message.begin(), message.end());
+            while (!message.empty() && message.back() == ' ')
+                message.pop_back();
+            std::reverse(message.begin(), message.end());
+            while (!message.empty() && message.back() == ' ')
+                message.pop_back();
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (sl && !message.empty())
+                sl->sendStringToAllPeers(message);
         }
         else
         {

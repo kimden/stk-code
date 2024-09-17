@@ -16,6 +16,8 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+#include <regex>
+
 #include "network/stk_host.hpp"
 
 #include "config/stk_config.hpp"
@@ -1485,6 +1487,44 @@ std::shared_ptr<STKPeer>
         });
     return ret != m_peers.end() ? ret->second : nullptr;
 }   // findPeerByName
+
+//-----------------------------------------------------------------------------
+std::shared_ptr<STKPeer>
+    STKHost::findPeerByWildcard(const core::stringw& name_pattern, std::string& name_found) const
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    bool found = false;
+    std::shared_ptr<STKPeer> ret = nullptr;
+    std::map<ENetPeer*, std::shared_ptr<STKPeer>>::const_iterator iter = m_peers.begin();
+    std::map<ENetPeer*, std::shared_ptr<STKPeer>>::const_iterator end  = m_peers.end();
+
+    // change wildcard symbols to regex
+    std::string pat = StringUtils::wideToUtf8(name_pattern);
+    pat = std::regex_replace(pat, std::regex("\\?"), ".");
+    pat = std::regex_replace(pat, std::regex("\\*"), ".*");
+
+    std::regex regexString(pat, std::regex_constants::icase);
+
+    for (; iter != end; iter++)
+    {
+        auto p = iter->second;
+        for (auto& profile : p->getPlayerProfiles())
+        {
+            if (std::regex_match(StringUtils::wideToUtf8(profile->getName()), regexString))
+            {
+                if (found == true) {
+                    // not unique
+                    return nullptr;
+                } else {
+                    found = true;
+                    name_found = StringUtils::wideToUtf8(profile->getName());
+                    ret = p;
+                }
+            }
+        }
+    }
+    return ret;
+}   // findPeerByWildcard
 
 //-----------------------------------------------------------------------------
 void STKHost::initClientNetwork(ENetEvent& event, Network* new_network)

@@ -318,7 +318,7 @@ void ReplayRecorder::update(int ticks)
         r->m_jumping = kart->isJumping();
     }   // for i
 
-    if (world->getPhase() == World::RESULT_DISPLAY_PHASE && !m_complete_replay)
+    if ((world->getPhase() == World::RESULT_DISPLAY_PHASE || world->getPhase() == World::DELAY_FINISH_PHASE) && !m_complete_replay)
     {
         m_complete_replay = true;
         save();
@@ -422,12 +422,12 @@ void ReplayRecorder::save()
         fprintf(fd, "kart: %s %s\n", kart->getIdent().c_str(),
                 StringUtils::xmlEncode(kart->getController()->getName()).c_str());
 
-        if (kart->getController()->isPlayerController())
+/*        if (kart->getController()->isPlayerController())
         {
             fprintf(fd, "kart_color: %f\n", StateManager::get()->getActivePlayer(player_count)->getConstProfile()->getDefaultKartColor());
             player_count++;
         }
-        else
+        else*/
             fprintf(fd, "kart_color: 0\n");
     }
 

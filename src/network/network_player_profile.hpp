@@ -23,6 +23,7 @@
 #define HEADER_NETWORK_PLAYER_PROFILE
 
 #include "network/kart_data.hpp"
+#include "utils/team_utils.hpp"
 #include "utils/types.hpp"
 
 #include "irrString.h"
@@ -73,6 +74,8 @@ private:
     /** 2-letter country code of player. */
     std::string m_country_code;
 
+    int m_temporary_team;
+
     KartData m_kart_data;
 public:
     // ------------------------------------------------------------------------
@@ -93,6 +96,7 @@ public:
         m_handicap.store((HandicapLevel)0);
         m_local_player_id       = 0;
         m_team.store(team);
+        m_temporary_team        = 0;
         resetGrandPrixData();
     }
     // ------------------------------------------------------------------------
@@ -112,6 +116,7 @@ public:
         m_local_player_id       = local_player_id;
         m_team.store(team);
         m_country_code          = country_code;
+        m_temporary_team        = 0;
         resetGrandPrixData();
     }
     // ------------------------------------------------------------------------
@@ -143,7 +148,12 @@ public:
     /** Returns the name of this player. */
     const irr::core::stringw& getName() const         { return m_player_name; }
     // ------------------------------------------------------------------------
-    float getDefaultKartColor() const          { return m_default_kart_color; }
+    float getDefaultKartColor() const
+    {
+        if (m_temporary_team == 0)
+            return m_default_kart_color;
+        return TeamUtils::getTeamByIndex(m_temporary_team).getColor();
+    }
     // ------------------------------------------------------------------------
     uint32_t getOnlineId() const                        { return m_online_id; }
     // ------------------------------------------------------------------------
@@ -168,6 +178,10 @@ public:
     void setTeam(KartTeam team)                         { m_team.store(team); }
     // ------------------------------------------------------------------------
     KartTeam getTeam() const                          { return m_team.load(); }
+    // ------------------------------------------------------------------------
+    void setTemporaryTeam(int team)                { m_temporary_team = team; }
+    // ------------------------------------------------------------------------
+    int getTemporaryTeam() const                   { return m_temporary_team; }
     // ------------------------------------------------------------------------
     const std::string& getCountryCode() const        { return m_country_code; }
     // ------------------------------------------------------------------------

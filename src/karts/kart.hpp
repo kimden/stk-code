@@ -60,7 +60,6 @@ class KartProperties;
 class KartRewinder;
 class Material;
 class MaxSpeed;
-class ParticleEmitter;
 class ParticleKind;
 class Powerup;
 namespace GE { class GERenderInfo; }
@@ -73,6 +72,10 @@ class SkidMarks;
 class SlipStream;
 class Stars;
 class TerrainInfo;
+
+#ifndef SERVER_ONLY
+class ParticleEmitter;
+#endif
 
 /** The main kart class. All type of karts are of this object, but with
  *  different controllers. The controllers are what turn a kart into a
@@ -226,8 +229,10 @@ protected:
     };
     std::unique_ptr<btCompoundShape, btCompoundShapeDeleter> m_kart_chassis;
 
+#ifndef SERVER_ONLY
     /** For collisions */
     ParticleEmitter *m_collision_particles;
+#endif
 
     /** This saves the original controller when the end controller is
      *  used. This is an easy solution for restarting the race, since

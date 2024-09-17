@@ -388,6 +388,10 @@ void RaceManager::computeRandomKartList()
  */
 void RaceManager::startNew(bool from_overworld)
 {
+    m_pending_karts_id.clear();
+    m_pending_karts_pos.clear();
+    m_pending_karts_time.clear();
+
     m_num_ghost_karts = 0;
     if (m_has_ghost_karts)
         m_num_ghost_karts = ReplayPlay::get()->getNumGhostKart();
@@ -1058,7 +1062,7 @@ void RaceManager::exitRace(bool delete_world)
  *  \param kart The kart that finished the race.
  *  \param time Time at which the kart finished the race.
  */
-void RaceManager::kartFinishedRace(const Kart *kart, float time)
+void RaceManager::kartFinishedRace(const Kart *kart, float time = 0.0f)
 {
     unsigned int id = kart->getWorldKartId();
     int pos = kart->getPosition();
@@ -1072,7 +1076,38 @@ void RaceManager::kartFinishedRace(const Kart *kart, float time)
     // position 2, so adjust the points (#points for leader do not matter)
     WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
     if (wwr)
-        m_kart_status[id].m_score += wwr->getScoreForPosition(pos);
+    {
+        if (wwr->canGetScoreForPosition(pos))
+        {
+            m_kart_status[id].m_score += wwr->getScoreForPosition(pos, time);
+            // checking whether we can add score for other karts
+            // which still await for that
+            for (unsigned i = 0; i < m_pending_karts_id.size(); )
+            {
+                unsigned& id2 = m_pending_karts_id[i];
+                float& time2 = m_pending_karts_time[i];
+                int& pos2 = m_pending_karts_pos[i];
+                if (wwr->canGetScoreForPosition(pos2))
+                {
+                    m_kart_status[id2].m_score += wwr->getScoreForPosition(pos2, time2);
+                    std::swap(id2, m_pending_karts_id.back());
+                    std::swap(time2, m_pending_karts_time.back());
+                    std::swap(pos2, m_pending_karts_pos.back());
+                    m_pending_karts_id.pop_back();
+                    m_pending_karts_time.pop_back();
+                    m_pending_karts_pos.pop_back();
+                } else {
+                    ++i;
+                }
+            }
+        }
+        else
+        {
+            m_pending_karts_id.push_back(id);
+            m_pending_karts_time.push_back(time);
+            m_pending_karts_pos.push_back(pos);
+        }
+    }
     else
     {
         Log::error("RaceManager",

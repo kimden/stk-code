@@ -933,7 +933,6 @@ void ClientLobby::handleChat(Event* event)
     SFXManager::get()->quickSound("plopp");
     core::stringw message;
     event->data().decodeString16(&message);
-    Log::info("ClientLobby", "%s", StringUtils::wideToUtf8(message).c_str());
     if (GUIEngine::isNoGraphics())
         return;
     if (message.size() > 0)

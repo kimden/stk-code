@@ -49,11 +49,13 @@ namespace StringUtils
 
     std::string ticksTimeToString(int time);
     std::string timeToString(float time, unsigned int precision = 3,
-                             bool display_minutes_if_zero = true, bool display_hours = false);
+                             bool display_minutes_if_zero = true, bool display_hours = true);
     irr::core::stringw loadingDots(float interval = 0.5f, int max_dots = 3);
     irr::core::stringw loadingDots(const irr::core::stringw& s);
     std::string                     toUpperCase(const std::string&);
     std::string                     toLowerCase(const std::string&);
+    std::vector<std::string>        splitQuoted(const std::string& s, char c,
+                                        char d, char e, char f);
     std::vector<std::string>        split(const std::string& s, char c,
                                           bool keepSplitChar=false);
     std::vector<std::u32string>     split(const std::u32string& s, char32_t c,
@@ -332,6 +334,20 @@ namespace StringUtils
             }
         }
     }
+    // ------------------------------------------------------------------------
+    bool isEqual(char a, char b, char any_char, bool case_sensitive = true);
+    int getEditDistance(const std::string& a, const std::string& b,
+        bool case_sensitive = true, char any_substr = 0, char any_char = 0);
+    // ------------------------------------------------------------------------
+    std::vector<uint8_t> toUInt8Vector(const std::string& s);
+    // ------------------------------------------------------------------------
+    struct Precision
+    {
+        double m_value;
+        int m_precision;
+        Precision(double value, int precision): m_value(value), m_precision(precision) {}
+    };
+    std::ostream& operator << (std::ostream& os, const Precision& item);
 
 } // namespace StringUtils
 

@@ -43,7 +43,7 @@ public:
     {
         /** World ID of kart which scores. */
         unsigned int  m_id;
-        /** Whether this goal is socred correctly (identify for own goal). */
+        /** Whether this goal is scored correctly (identify for own goal). */
         bool          m_correct_goal;
         /** Time goal. */
         float         m_time;
@@ -96,6 +96,20 @@ private:
     int m_ball_invalid_timer;
     int m_ball_hitter;
 
+    int m_red_hit_ticks;
+    int m_blue_hit_ticks;
+
+    int m_red_ball_hitter;
+    int m_blue_ball_hitter;
+
+    enum GoalScoringPolicy {
+        STANDARD = 0,
+        NO_OWN_GOALS = 1,
+        ADVANCED = 2
+    };
+
+    GoalScoringPolicy m_scoring_policy;
+
     /** Goals data of each team scored */
     std::vector<ScorerData> m_red_scorers;
     std::vector<ScorerData> m_blue_scorers;
@@ -106,6 +120,8 @@ private:
     float m_ball_heading;
 
     std::vector<int> m_team_icon_draw_id;
+
+    bool stopped;
 
     std::vector<btTransform> m_goal_transforms;
     /** Function to update the location the ball on the polygon map */
@@ -123,6 +139,18 @@ private:
     int m_ticks_back_to_own_goal;
 
     void resetKartsToSelfGoals();
+
+
+    std::vector<ScorerData> m_backup_red_scorers;
+    std::vector<ScorerData> m_backup_blue_scorers;
+    int m_backup_reset_ball_ticks;
+    int m_backup_ticks_back_to_own_goal;
+
+    bool m_explicit_stop;
+    int m_bad_red_goals;
+    int m_bad_blue_goals;
+    int m_init_red_goals;
+    int m_init_blue_goals;
 
 public:
 
@@ -248,6 +276,27 @@ public:
     // ------------------------------------------------------------------------
     Kart* getKartAtDrawingPosition(unsigned int p) const OVERRIDE
                                 { return getKart(m_team_icon_draw_id[p - 1]); }
+    // ------------------------------------------------------------------------
+    void setGoalScoringPolicy(int value)
+                                { m_scoring_policy = (GoalScoringPolicy)value;}
+    // ------------------------------------------------------------------------
+    void stop();
+    // ------------------------------------------------------------------------
+    void resume();
+    // ------------------------------------------------------------------------
+    void allToLobby() { m_explicit_stop = true; }
+    // ------------------------------------------------------------------------
+    void setInitialCount(int red, int blue);
+    // ------------------------------------------------------------------------
+    std::pair<int, int> getCount() const;
+    // ------------------------------------------------------------------------
+    void tellCountToEveryoneInGame() const;
+    // ------------------------------------------------------------------------
+    void tellCount(std::shared_ptr<STKPeer> peer) const;
+    // ------------------------------------------------------------------------
+    void tellCountIfDiffers() const;
+    // ------------------------------------------------------------------------
+    bool getStopped() { return stopped; }
     // ------------------------------------------------------------------------
     TrackObject* getBall() const { return m_ball; }
 };   // SoccerWorld

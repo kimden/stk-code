@@ -186,7 +186,7 @@
                 new transform event is generated before maximum time.
         delta-steering If the steering angle difference exceeds this delta,
                 new transform event is generated before maximum time. -->
-  <replay max-frames="12000" delta-t="0.100"  delta-speed="0.6"
+  <replay max-frames="540000" delta-t="0.100"  delta-speed="0.6"
           delta-steering="0.26" />
 
   <!-- Special urls -->
@@ -262,7 +262,7 @@
            larger than this value.
   -->
   <networking steering-reduction="1.0"
-              max-moveable-objects="15"/>
+              max-moveable-objects="30"/>
 
   <!-- Camera
        The field of views for 1-4 player split screen. fov-3 is
@@ -514,9 +514,9 @@
 
   <!-- Maximum bones from all animated meshes in each frame to be uploaded for
        hardware skinning, For gles 3.0 the specification guarantees at least 2048, for
-       TBO in desktop at least 65536 (max buffer size) / 64, SSBO at least 2^24 / 64.
-       1024 is guaranteed to work everywhere, but can be limiting, in kart creation and
-       in the max number of karts. Most systems should support at least 2048. -->
+       TBO in desktop at least 65536 (max buffer size) / 64, SSBO at least 2^24 / 64,
+       and for cases TBO doesn't support equal or more than 2048, use texture instead,
+       so 2048 will work everywhere. -->
   <skinning max-bones="2048"/>
 
   <!-- For users with libsquish:

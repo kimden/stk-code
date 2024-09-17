@@ -29,6 +29,7 @@ public:
     KartData(const BareNetworkString& ns);
     // ------------------------------------------------------------------------
     void encode(BareNetworkString* ns) const;
+
 };   // class KartData
 
 #endif // KART_DATA_HPP

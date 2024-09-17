@@ -43,8 +43,10 @@ STKPeer::STKPeer(ENetPeer *enet_peer, STKHost* host, uint32_t host_id)
     m_enet_peer           = enet_peer;
     m_host_id             = host_id;
     m_connected_time      = StkTime::getMonoTimeMs();
+    m_rejoin_time         = m_connected_time;
     m_validated.store(false);
     m_always_spectate.store(ASM_NONE);
+    m_default_always_spectate.store(ASM_NONE);
     m_average_ping.store(0);
     m_packet_loss.store(0);
     m_waiting_for_game.store(true);
@@ -53,6 +55,7 @@ STKPeer::STKPeer(ENetPeer *enet_peer, STKHost* host, uint32_t host_id)
     m_warned_for_high_ping.store(false);
     m_last_activity.store((int64_t)StkTime::getMonoTimeMs());
     m_last_message.store(0);
+    m_angry_host.store(false);
     m_consecutive_messages = 0;
 }   // STKPeer
 

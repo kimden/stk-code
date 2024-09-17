@@ -41,30 +41,13 @@
 //-----------------------------------------------------------------------------
 GameSetup::GameSetup()
 {
-    const std::string& motd = ServerConfig::m_motd;
-    if (motd.find(".txt") != std::string::npos)
-    {
-        const std::string& path = ServerConfig::getConfigDirectory() + "/" +
-            motd;
-        std::ifstream message(FileUtils::getPortableReadingPath(path));
-        if (message.is_open())
-        {
-            for (std::string line; std::getline(message, line); )
-            {
-                m_message_of_today += StringUtils::utf8ToWide(line).trim() +
-                    L"\n";
-            }
-            // Remove last newline
-            m_message_of_today.erase(m_message_of_today.size() - 1);
-        }
-    }
-    else if (!motd.empty())
-        m_message_of_today = StringUtils::xmlDecode(motd);
-
+    m_message_of_today = readOrLoadFromFile
+        ((std::string) ServerConfig::m_motd);
     const std::string& server_name = ServerConfig::m_server_name;
     m_server_name_utf8 = StringUtils::wideToUtf8
         (StringUtils::xmlDecode(server_name));
     m_extra_server_info = -1;
+    m_extra_seconds = 0.0f;
     m_is_grand_prix.store(false);
     reset();
 }   // GameSetup
@@ -90,18 +73,19 @@ void GameSetup::loadWorld()
         else
             UserConfigParams::m_random_arena_item = m_reverse;
 
+        RaceManager::get()->setRandomItemsIndicator(m_reverse);
         RaceManager::get()->setReverseTrack(false);
         if (RaceManager::get()->isSoccerMode())
         {
             if (isSoccerGoalTarget())
                 RaceManager::get()->setMaxGoal(m_laps);
             else
-                RaceManager::get()->setTimeTarget((float)m_laps * 60.0f);
+                RaceManager::get()->setTimeTarget((float)m_laps * 60.0f - m_extra_seconds);
         }
         else
         {
             RaceManager::get()->setHitCaptureTime(m_hit_capture_limit,
-                m_battle_time_limit);
+                m_battle_time_limit - m_extra_seconds);
         }
         RaceManager::get()->startSingleRace(m_tracks.back(), -1,
             false/*from_overworld*/);
@@ -109,6 +93,7 @@ void GameSetup::loadWorld()
     }
     else
     {
+        RaceManager::get()->setRandomItemsIndicator(false);
         RaceManager::get()->setReverseTrack(m_reverse);
         RaceManager::get()->startSingleRace(m_tracks.back(), m_laps,
                                       false/*from_overworld*/);
@@ -153,7 +138,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
     if (ServerConfig::m_owner_less)
     {
         ns->addUInt8(ServerConfig::m_min_start_game_players)
-            .addFloat(ServerConfig::m_start_game_counter);
+            .addFloat(std::max<float>(0.0f, ServerConfig::m_start_game_counter));
     }
     else
         ns->addUInt8(0).addFloat(0.0f);
@@ -165,12 +150,13 @@ void GameSetup::addServerInfo(NetworkString* ns)
 
 //-----------------------------------------------------------------------------
 void GameSetup::sortPlayersForGrandPrix(
-    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const
+    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+    bool shuffle_instead) const
 {
     if (!isGrandPrix())
         return;
 
-    if (m_tracks.size() == 1)
+    if (m_tracks.size() == 1 || shuffle_instead)
     {
         std::random_device rd;
         std::mt19937 g(rd());
@@ -212,9 +198,35 @@ void GameSetup::sortPlayersForGame(
 }   // sortPlayersForGame
 
 // ----------------------------------------------------------------------------
-void GameSetup::setRace(const PeerVote &vote)
+void GameSetup::setRace(const PeerVote &vote, float extra_seconds)
 {
     m_tracks.push_back(vote.m_track_name);
     m_laps = vote.m_num_laps;
     m_reverse = vote.m_reverse;
+    m_extra_seconds = extra_seconds;
 }   // setRace
+// ----------------------------------------------------------------------------
+irr::core::stringw GameSetup::readOrLoadFromFile(std::string value)
+{
+    const std::string& temp = value;
+    irr::core::stringw answer;
+    if (temp.find(".txt") != std::string::npos)
+    {
+        const std::string& path = ServerConfig::getConfigDirectory() + "/" +
+            temp;
+        std::ifstream message(FileUtils::getPortableReadingPath(path));
+        if (message.is_open())
+        {
+            for (std::string line; std::getline(message, line); )
+            {
+                answer += StringUtils::utf8ToWide(line).trim() +
+                    L"\n";
+            }
+            // Remove last newline
+            answer.erase(answer.size() - 1);
+        }
+    }
+    else if (!temp.empty())
+        answer = StringUtils::xmlDecode(temp);
+    return answer;
+}

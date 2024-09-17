@@ -52,7 +52,8 @@ static std::vector<UserConfigParam*> g_server_params;
 namespace ServerConfig
 {
 // ============================================================================
-std::string g_server_config_path;
+std::string g_server_config_path[2];
+int m_server_config_level = 0;
 std::string m_server_uid;
 // ============================================================================
 FloatServerConfigParam::FloatServerConfigParam(float default_value,
@@ -117,21 +118,25 @@ MapServerConfigParam<T, U>::MapServerConfigParam(const char* param_name,
 // ============================================================================
 void loadServerConfig(const std::string& path)
 {
+    m_loaded_from_external_config = false;
     bool default_config = false;
     if (path.empty())
     {
         default_config = true;
-        g_server_config_path =
+        g_server_config_path[m_server_config_level] =
             file_manager->getUserConfigFile("server_config.xml");
     }
     else
     {
-        g_server_config_path = file_manager->getFileSystem()
+        g_server_config_path[m_server_config_level] =
+            file_manager->getFileSystem()
             ->getAbsolutePath(path.c_str()).c_str();
     }
-    m_server_uid = StringUtils::removeExtension(
-        StringUtils::getBasename(g_server_config_path));
-    const XMLNode* root = file_manager->createXMLTree(g_server_config_path);
+    if (m_server_config_level == 0)
+        m_server_uid = StringUtils::removeExtension(StringUtils::getBasename(
+            g_server_config_path[m_server_config_level]));
+    const XMLNode* root = file_manager->createXMLTree(
+        g_server_config_path[m_server_config_level]);
     loadServerConfigXML(root, default_config);
 }   // loadServerConfig
 
@@ -142,7 +147,8 @@ void loadServerConfigXML(const XMLNode* root, bool default_config)
     {
         Log::info("ServerConfig",
             "Could not read server config file '%s'. "
-            "A new file will be created.", g_server_config_path.c_str());
+            "A new file will be created.",
+            g_server_config_path[m_server_config_level].c_str());
         if (root)
             delete root;
         writeServerConfigToDisk();
@@ -159,6 +165,22 @@ void loadServerConfigXML(const XMLNode* root, bool default_config)
         delete root;
         writeServerConfigToDisk();
         return;
+    }
+
+    std::string external_config_path;
+    if (m_server_config_level == 0)
+    {
+        const XMLNode* child = root->getNode("external-config");
+        if (child != NULL && child->get("value", &external_config_path))
+        {
+            m_server_config_level = 1;
+            loadServerConfig(external_config_path);
+            m_server_config_level = 0;
+        }
+    }
+    else
+    {
+        m_loaded_from_external_config = true;
     }
 
     for (unsigned i = 0; i < g_server_params.size(); i++)
@@ -185,21 +207,23 @@ std::string getServerConfigXML()
 // ----------------------------------------------------------------------------
 void writeServerConfigToDisk()
 {
+    if (m_loaded_from_external_config) // Don't overwrite if there were 2 files
+        return;
     const std::string& config_xml = getServerConfigXML();
     try
     {
         // Save to a new file and rename later to avoid disk space problem, see #4709
         std::ofstream configfile(FileUtils::getPortableWritingPath(
-            g_server_config_path + "new"), std::ofstream::out);
+            g_server_config_path[0] + "new"), std::ofstream::out);
         configfile << config_xml;
         configfile.close();
-        file_manager->removeFile(g_server_config_path);
-        FileUtils::renameU8Path(g_server_config_path + "new", g_server_config_path);
+        file_manager->removeFile(g_server_config_path[0]);
+        FileUtils::renameU8Path(g_server_config_path[0] + "new", g_server_config_path[0]);
     }
     catch (std::runtime_error& e)
     {
         Log::error("ServerConfig", "Failed to write server config to %s, "
-            "because %s", g_server_config_path.c_str(), e.what());
+            "because %s", g_server_config_path[0].c_str(), e.what());
     }
 }   // writeServerConfigToDisk
 
@@ -327,7 +351,7 @@ void loadServerLobbyFromConfig()
     if (m_official_tracks_threshold > 1.0f)
         m_official_tracks_threshold = 1.0f;
 
-    if (m_live_players)
+    if (m_live_players && !m_sleeping_server)
         m_official_karts_threshold = 1.0f;
     if (m_high_ping_workaround)
         m_kick_high_ping_players = false;
@@ -338,7 +362,7 @@ void loadServerLobbyFromConfig()
     RaceManager::get()->setDifficulty(RaceManager::Difficulty(difficulty));
 
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL &&
-        m_server_max_players > 10)
+        m_server_max_players > 10 && !m_server_configurable)
         m_server_max_players = 10;
 
     m_max_players_in_game = (m_max_players_in_game <= 0) ? m_server_max_players :
@@ -351,6 +375,44 @@ void loadServerLobbyFromConfig()
 #endif
     }
 
+    if (m_only_host_riding) {
+        m_max_players_in_game = 1;
+    }
+
+    if (m_soccer_tournament) {
+        m_server_mode = 6;
+        m_server_difficulty = 3;
+        if (m_server_max_players < 9) {
+            m_server_max_players = 9;
+        }
+        // m_voting_timeout = 15;
+        m_soccer_goal_target = false;
+        m_official_tracks_needed = false;
+        // m_owner_less = false;
+        m_official_karts_threshold = 1.0f;
+        m_official_tracks_threshold = 0.0f;
+        m_addon_karts_join_threshold = 0;
+        m_addon_tracks_join_threshold = 0;
+        m_addon_arenas_join_threshold = 0;
+        m_addon_soccers_join_threshold = 0; // maybe 1 ?
+        m_team_choosing = true;
+        m_ranked = false;
+        m_server_configurable = false;
+        m_live_players = true;
+        m_sleeping_server = false;
+        m_free_teams = true;
+        // m_validating_player = true;
+        m_random_selects_addons = true;
+        if (m_owner_less)
+        {
+            m_min_start_game_players = 1;
+        }
+        else
+        {
+
+        }
+    }
+
     if (m_ranked)
     {
         m_validating_player = true;
@@ -358,10 +420,17 @@ void loadServerLobbyFromConfig()
         m_owner_less = true;
         m_strict_players = true;
     }
+    if (m_sleeping_server) {
+        m_owner_less = true;
+    }
     if (m_owner_less)
     {
-        if (m_min_start_game_players > m_max_players_in_game)
-            m_min_start_game_players = 1;
+        if (m_sleeping_server) {
+            m_min_start_game_players = 256;
+        } else {
+            if (m_min_start_game_players > m_max_players_in_game)
+                m_min_start_game_players = 1;
+        }
         if (!m_live_players)
             m_team_choosing = false;
         m_server_configurable = false;
@@ -411,8 +480,7 @@ void loadServerLobbyFromConfig()
 // ----------------------------------------------------------------------------
 std::string getConfigDirectory()
 {
-    return StringUtils::getPath(g_server_config_path);
+    return StringUtils::getPath(g_server_config_path[0]);
 }   // getConfigDirectory
 
 }
-

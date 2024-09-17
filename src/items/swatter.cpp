@@ -42,7 +42,7 @@
 #include "modes/capture_the_flag.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
-
+#include "network/protocols/server_lobby.hpp"
 #include <IAnimatedMeshSceneNode.h>
 
 #define SWAT_POS_OFFSET        core::vector3df(0.0, 0.2f, -0.4f)
@@ -67,6 +67,8 @@ Swatter::Swatter(Kart *kart, int16_t bomb_ticks, int ticks,
     m_animation_phase  = SWATTER_AIMING;
     m_discard_now      = false;
     m_closest_kart     = NULL;
+    m_has_hit_kart     = false;
+    m_created_ticks    = World::getWorld()->getTicksSinceStart();
     m_discard_ticks    = World::getWorld()->getTicksSinceStart() + ticks;
     m_bomb_remaining   = bomb_ticks;
     m_scene_node       = NULL;
@@ -398,10 +400,22 @@ void Swatter::squashThingsAround()
     float slowdown =  kp->getSwatterSquashSlowdown();
     // The squash attempt may fail because of invulnerability, shield, etc.
     // Making a bomb explode counts as a success
+    bool wasHit = !m_closest_kart->isInvulnerable() && !m_closest_kart->getKartAnimation();
     bool success = m_closest_kart->setSquash(duration, slowdown);
     const bool has_created_explosion_animation =
         success && m_closest_kart->getKartAnimation() != NULL;
 
+    // we can't use success here, because unshielding a kart is not considered a succes
+    // punishment system however, does consider it a hit
+    if (wasHit)
+    {
+        // check if we are in team gp and hit a teammate and should punish attacker
+        auto sl = LobbyProtocol::get<ServerLobby>();
+        if (sl && !m_closest_kart->hasFinishedRace())
+            sl->handleSwatterHit(m_kart->getWorldKartId(),
+                m_closest_kart->getWorldKartId(), success, m_has_hit_kart,
+                World::getWorld()->getTicksSinceStart() - m_created_ticks);
+    }
     if (success)
     {
         World::getWorld()->kartHit(m_closest_kart->getWorldKartId(),
@@ -426,6 +440,7 @@ void Swatter::squashThingsAround()
                 PlayerManager::increaseAchievement(AchievementsStatus::ALL_HITS_1RACE, 1);
             }
         }
+        m_has_hit_kart = true;
     }
 
     if (!GUIEngine::isNoGraphics() && has_created_explosion_animation &&

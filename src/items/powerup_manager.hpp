@@ -182,6 +182,8 @@ private:
      *  for network games it will use the start time from server. */
     std::atomic<uint64_t> m_random_seed;
 
+    std::string m_config_file;
+
     /** Parameters for the nitro-hack powerup */
     unsigned int m_nh_max_targets;
     float m_nh_negative_multiply;
@@ -195,6 +197,8 @@ public:
 
                   PowerupManager  ();
                  ~PowerupManager  ();
+    void          setFileName(std::string s)              { m_config_file = s; }
+    std::string   getFileName()                        { return m_config_file; }
     void          loadPowerupsModels ();
     void          loadWeights(const XMLNode *node, const std::string &category);
     void          sortRaceWeights(const XMLNode *powerup_node, const std::string &node_name);
