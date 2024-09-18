@@ -333,6 +333,13 @@ void RaceManager::setTrack(const std::string& track)
 
 void RaceManager::setFuelInfo(float fuel, float regen, float stop, float weight, float rate)
 {
+	printf("FUEL INFO WAS JUST SET:\n"
+	       "\t fuel        %f\n"
+	       "\t fuel regen  %f\n"
+	       "\t fuel stop   %f\n"
+	       "\t fuel weight %f\n"
+	       "\t fuel rate   %f\n------\n\n",
+	       fuel, regen, stop, weight, rate);
 	m_fuel_info[0] = fuel;
 	m_fuel_info[1] = regen;
 	m_fuel_info[2] = stop;

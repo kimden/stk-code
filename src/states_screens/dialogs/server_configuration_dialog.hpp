@@ -36,9 +36,29 @@ private:
     int m_prev_value;
     bool m_self_destroy;
 
-    GUIEngine::SpinnerWidget* m_more_options_spinner;
 
-    GUIEngine::LabelWidget* m_more_options_text;
+
+    GUIEngine::SpinnerWidget* m_more_options_spinner;
+	GUIEngine::LabelWidget* m_more_options_text;
+
+
+
+    GUIEngine::SpinnerWidget* m_fuel_spinner;
+	GUIEngine::LabelWidget* m_fuel_text;
+
+    GUIEngine::SpinnerWidget* m_fuel_stop_spinner;
+	GUIEngine::LabelWidget* m_fuel_stop_text;
+
+    GUIEngine::SpinnerWidget* m_fuel_regen_spinner;
+	GUIEngine::LabelWidget* m_fuel_regen_text;
+
+    GUIEngine::SpinnerWidget* m_fuel_rate_spinner;
+	GUIEngine::LabelWidget* m_fuel_rate_text;
+
+    GUIEngine::SpinnerWidget* m_fuel_weight_spinner;
+	GUIEngine::LabelWidget* m_fuel_weight_text;
+
+
 
     GUIEngine::RibbonWidget* m_difficulty_widget;
     GUIEngine::RibbonWidget* m_game_mode_widget;

@@ -42,6 +42,52 @@
 
             <spacer height="1%" width="20"/>
 
+            <div width="50%" height="5%" layout="horizontal-row" >
+                <div proportion="1" height="fit" layout="horizontal-row">
+	                <spinner id="fuel-spinner"  proportion="1" min_value="1" max_value="1000" wrap_around="true"/>
+	            </div>
+                <spacer width="3%"/>
+	            <label id="fuel-label" proportion="1" text="E" text_align="left"/>
+            </div>
+
+            <spacer height="1%" width="20"/>
+            <div width="50%" height="5%" layout="horizontal-row" >
+                <div proportion="1" height="fit" layout="horizontal-row">
+	                <spinner id="fuel-weight-spinner"  proportion="1" min_value="0" max_value="100" wrap_around="true"/>
+	            </div>
+                <spacer width="3%"/>
+                <label id="fuel-weight-label" proportion="1" text="E mass" text_align="left"/>
+			</div>
+
+            <spacer height="1%" width="20"/>
+            <div width="50%" height="5%" layout="horizontal-row" >
+                <div proportion="1" height="fit" layout="horizontal-row">
+	                <spinner id="fuel-rate-spinner"  proportion="1" min_value="0" max_value="1000" wrap_around="true"/>
+	            </div>
+                <spacer width="3%"/>
+                <label id="fuel-rate-label" proportion="1" text="E rate" text_align="left"/>
+			</div>
+
+            <spacer height="1%" width="20"/>
+            <div width="50%" height="5%" layout="horizontal-row" >
+                <div proportion="1" height="fit" layout="horizontal-row">
+	                <spinner id="fuel-stop-spinner"  proportion="1" min_value="0" max_value="1000" wrap_around="true"/>
+	            </div>
+                <spacer width="3%"/>
+                <label id="fuel-stop-label" proportion="1" text="E stop" text_align="left"/>
+			</div>
+
+            <spacer height="1%" width="20"/>
+            <div width="50%" height="5%" layout="horizontal-row" >
+                <div proportion="1" height="fit" layout="horizontal-row">
+	                <spinner id="fuel-regen-spinner"  proportion="1" min_value="0" max_value="1000" wrap_around="true"/>
+	            </div>
+                <spacer width="3%"/>
+                <label id="fuel-regen-label" proportion="1" text="E regen" text_align="left"/>
+			</div>
+            <spacer height="1%" width="20"/>
+
+
             <buttonbar id="options" x="0" y="0" width="40%" height="18%" align="center">
                 <icon-button id="cancel" width="64" height="64" icon="gui/icons/red_x.png"
                              I18N="In the server configuration screen" text="Cancel" label_location="bottom"/>

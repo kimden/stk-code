@@ -113,6 +113,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	float deg_tra = 0.0f;
 	float deg_tur_percent = 0.0f;
 	float deg_tra_percent = 0.0f;
+	float regen_amount = 0.0f;
 
 	m_center_of_gravity_x = m_acceleration*m_kart->getMass();
 	m_center_of_gravity_y = ((speed*speed)/turn_radius)*m_kart->getMass();
@@ -121,12 +122,13 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 
 	if (throttle_amount > 0.3f) {
 		m_current_fuel -= std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
+	} else {
+		m_current_fuel -= 0.5f*std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
 	}
+
 	if(m_center_of_gravity_x < 0.0f && throttle_amount < 0.3f) {
-		m_current_fuel += std::abs(m_center_of_gravity_x)*0.0000001f*dt*m_c_fuel_regen;
+		regen_amount += std::abs(m_center_of_gravity_x)*0.00000001f*dt*m_c_fuel_regen;
 	}
-	if (m_current_fuel > 1000.0f) m_current_fuel = 1000.0f;
-	if (m_current_fuel < 0.0f) m_current_fuel = 0.0f;
 
 	
 	deg_tra = dt*std::abs(m_center_of_gravity_x)*current_hardness/100000.0f;
@@ -134,6 +136,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 
 	if (brake_amount > m_c_brake_threshold) {
 		deg_tra *= brake_amount*(1.0f/m_c_brake_threshold);
+		regen_amount *= 2;
 	}
 	if (slowdown < 0.98f && !is_using_zipper) {
 		deg_tra *= m_c_offroad_factor;
@@ -143,7 +146,13 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 
 	if (is_skidding) {
 		deg_tur *= m_c_skid_factor;
+		regen_amount *= 2;
 	}
+
+	m_current_fuel += regen_amount;
+	if (m_current_fuel > 1000.0f) m_current_fuel = 1000.0f;
+	if (m_current_fuel < 0.0f) m_current_fuel = 0.0f;
+
 
 	deg_tra_percent = deg_tra/m_c_max_life_traction;
 	deg_tur_percent = deg_tur/m_c_max_life_turning;
@@ -164,11 +173,11 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	LOG_ZONE:
 	;
 
-	printf("Cycle %20lu || K %s || C %u\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
-	m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
-	printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x,
-	m_center_of_gravity_y, turn_radius, speed, brake_amount);
-	printf("\tFuel: %f || Weight: %f\n", m_current_fuel, m_kart->getMass());
+	//printf("Cycle %20lu || K %s || C %u\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
+	//m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
+	//printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x,
+	//m_center_of_gravity_y, turn_radius, speed, brake_amount);
+	//printf("\tFuel: %f || Weight: %f\n", m_current_fuel, m_kart->getMass());
 }
 
 void Tyres::applyCrashPenalty(void) {
@@ -211,12 +220,12 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 	float percent = m_current_life_traction/m_c_max_life_traction;
 	float factor = m_c_response_curve_topspeed.get(correct(percent*100.0f))*m_c_topspeed_constant;
 	float bonus_topspeed = (initial_topspeed+m_c_initial_bonus_add_topspeed)*m_c_initial_bonus_mult_topspeed;
-	if (m_c_do_substractive_topspeed) {
+	if (m_c_do_substractive_topspeed && m_current_fuel > 0.1f) {
 		return bonus_topspeed - hardness_penalty*factor;
-	} else if (m_c_fuel > 0.01f) {
+	} else if (m_current_fuel > 0.1f) {
 		return bonus_topspeed*hardness_penalty*factor;
 	} else {
-		return 1;
+		return 5;
 	}
 }
 
@@ -291,6 +300,7 @@ void Tyres::saveState(BareNetworkString *buffer)
     buffer->addFloat(m_current_temp);
     buffer->addFloat(m_heat_cycle_count);
     buffer->addFloat(m_current_fuel);
+    buffer->addFloat(m_kart->m_target_refuel);
     buffer->addUInt8(m_current_compound);
 //	printf("Saved compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }
@@ -302,6 +312,7 @@ void Tyres::rewindTo(BareNetworkString *buffer)
     m_current_temp = buffer->getFloat();
     m_heat_cycle_count = buffer->getFloat();
 	m_current_fuel = buffer->getFloat();
+	m_kart->m_target_refuel = buffer->getFloat();
 	m_current_compound = buffer->getUInt8();
 //	printf("Rewinded compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }

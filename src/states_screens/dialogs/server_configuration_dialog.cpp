@@ -39,6 +39,51 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_more_options_spinner = getWidget<SpinnerWidget>("more-options-spinner");
     assert(m_more_options_spinner != NULL);
 
+    m_fuel_text = getWidget<LabelWidget>("fuel-label");
+    assert(m_fuel_text != NULL);
+    m_fuel_spinner = getWidget<SpinnerWidget>("fuel-spinner");
+    assert(m_fuel_spinner != NULL);
+    m_fuel_spinner->setVisible(true);
+    m_fuel_spinner->setValue(1);
+    m_fuel_text->setVisible(true);
+
+
+    m_fuel_stop_text = getWidget<LabelWidget>("fuel-stop-label");
+    assert(m_fuel_stop_text != NULL);
+    m_fuel_stop_spinner = getWidget<SpinnerWidget>("fuel-stop-spinner");
+    assert(m_fuel_stop_spinner != NULL);
+    m_fuel_stop_spinner->setVisible(true);
+    m_fuel_stop_spinner->setValue(0);
+    m_fuel_stop_text->setVisible(true);
+
+
+    m_fuel_weight_text = getWidget<LabelWidget>("fuel-weight-label");
+    assert(m_fuel_weight_text != NULL);
+    m_fuel_weight_spinner = getWidget<SpinnerWidget>("fuel-weight-spinner");
+    assert(m_fuel_weight_spinner != NULL);
+    m_fuel_weight_spinner->setVisible(true);
+    m_fuel_weight_spinner->setValue(0);
+    m_fuel_weight_text->setVisible(true);
+
+
+    m_fuel_rate_text = getWidget<LabelWidget>("fuel-rate-label");
+    assert(m_fuel-rate_text != NULL);
+    m_fuel_rate_spinner = getWidget<SpinnerWidget>("fuel-rate-spinner");
+    assert(m_fuel_rate_spinner != NULL);
+    m_fuel_rate_spinner->setVisible(true);
+    m_fuel_rate_spinner->setValue(0);
+    m_fuel_rate_text->setVisible(true);
+
+
+    m_fuel_regen_text = getWidget<LabelWidget>("fuel-regen-label");
+    assert(m_fuel_regen_text != NULL);
+    m_fuel_regen_spinner = getWidget<SpinnerWidget>("fuel-regen-spinner");
+    assert(m_fuel_regen_spinner != NULL);
+    m_fuel_regen_spinner->setVisible(true);
+    m_fuel_regen_spinner->setValue(0);
+    m_fuel_regen_text->setVisible(true);
+
+
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
     m_game_mode_widget = getWidget<RibbonWidget>("gamemode");
@@ -90,6 +135,13 @@ GUIEngine::EventPropagation
             change.addUInt8(LobbyProtocol::LE_CONFIG_SERVER);
             change.addUInt8((uint8_t)m_difficulty_widget
                 ->getSelection(PLAYER_ID_GAME_MASTER));
+
+            change.addFloat(m_fuel_spinner->getValue());
+            change.addFloat(m_fuel_stop_spinner->getValue());
+            change.addFloat(m_fuel_regen_spinner->getValue());
+            change.addFloat(m_fuel_rate_spinner->getValue());
+            change.addFloat(m_fuel_weight_spinner->getValue());
+
             switch (m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER))
             {
                 case 0:

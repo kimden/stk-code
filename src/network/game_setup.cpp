@@ -124,6 +124,13 @@ void GameSetup::addServerInfo(NetworkString* ns)
     ns->encodeString(m_server_name_utf8);
     auto sl = LobbyProtocol::get<ServerLobby>();
     assert(sl);
+
+    ns->addFloat(RaceManager::get()->getFuelInfo()[0]);
+    ns->addFloat(RaceManager::get()->getFuelInfo()[1]);
+    ns->addFloat(RaceManager::get()->getFuelInfo()[2]);
+    ns->addFloat(RaceManager::get()->getFuelInfo()[3]);
+    ns->addFloat(RaceManager::get()->getFuelInfo()[4]);
+
     ns->addUInt8((uint8_t)sl->getDifficulty())
         .addUInt8((uint8_t)ServerConfig::m_server_max_players)
         // Reserve for extra spectators

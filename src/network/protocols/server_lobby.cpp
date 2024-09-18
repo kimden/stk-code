@@ -4284,7 +4284,17 @@ void ServerLobby::handleServerConfiguration(Event* event)
         return;
     }
     NetworkString& data = event->data();
+
     int new_difficulty = data.getUInt8();
+
+    float fuel_info[5];
+    fuel_info[0] = data.getFloat();
+    fuel_info[2] = data.getFloat();
+    fuel_info[1] = data.getFloat();
+    fuel_info[4] = data.getFloat();
+    fuel_info[3] = data.getFloat();
+    RaceManager::get()->setFuelInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4]);
+
     int new_game_mode = data.getUInt8();
     bool new_soccer_goal_target = data.getUInt8() == 1;
     auto modes = ServerConfig::getLocalGameMode(new_game_mode);

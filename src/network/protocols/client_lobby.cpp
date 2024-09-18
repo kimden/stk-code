@@ -731,6 +731,14 @@ void ClientLobby::handleServerInfo(Event* event)
 
     NetworkingLobby::getInstance()->setHeader(str);
 
+	float fuel_info[5];
+	fuel_info[0] = data.getFloat();
+	fuel_info[1] = data.getFloat();
+	fuel_info[2] = data.getFloat();
+	fuel_info[3] = data.getFloat();
+	fuel_info[4] = data.getFloat();
+	RaceManager::get()->setFuelInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4]);
+
     u_data = data.getUInt8();
     const core::stringw& difficulty_name =
         RaceManager::get()->getDifficultyName((RaceManager::Difficulty)u_data);

@@ -418,13 +418,13 @@ void RaceGUI::drawCompoundData(const Kart* kart,
 	core::recti pos; 
 
 	std::stringstream stream;
-	stream << std::fixed << std::setprecision(2) << 100*kart->m_tyres->m_current_life_traction/kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1] << "%;" << 100*kart->m_tyres->m_current_life_turning/kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1] << "%;" << (int)kart->m_target_refuel;
+	stream << std::fixed << std::setprecision(2) << 100*kart->m_tyres->m_current_life_traction/kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1] << "%;" << 100*kart->m_tyres->m_current_life_turning/kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1] << "%;" << ((kart->m_is_refueling) ? (kart->m_target_refuel) : (kart->m_tyres->m_current_fuel));
 	std::string s = stream.str();
 
 
     gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
     while (1) {
-		if (font->getDimension(L"xxx.xx%;xxx.xx%;xxx").Width > (unsigned)viewport.getWidth()/2) {
+		if (font->getDimension(L"xxx.xx%;xxx.xx%;xxx.xx").Width > (unsigned)viewport.getWidth()/2) {
 			font->setScale(0.95f * font->getScale());
 		} else {
 			break;
@@ -435,7 +435,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     pos.LowerRightCorner.Y = viewport.LowerRightCorner.Y;
 
     pos.UpperLeftCorner.Y = pos.LowerRightCorner.Y - font->getDimension(L"9").Height;
-    pos.UpperLeftCorner.X = pos.LowerRightCorner.X - font->getDimension(L"xxx.xx%;xxx.xx%;xxx").Width;
+    pos.UpperLeftCorner.X = pos.LowerRightCorner.X - font->getDimension(L"xxx.xx%;xxx.xx%;xxx.xx").Width;
 
     video::SColor color = video::SColor(255, 255, 255, 255);
     font->setBlackBorder(true);
