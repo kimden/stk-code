@@ -102,6 +102,7 @@ public:
 	float m_current_fuel;
 	unsigned m_current_compound;
 	bool m_reset_compound;
+	bool m_reset_fuel;
 
     float m_current_temp;
     float m_heat_cycle_count;

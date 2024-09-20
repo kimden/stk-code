@@ -2,6 +2,7 @@
 
 #include "karts/kart_properties.hpp"
 #include "karts/kart.hpp"
+#include "tracks/track.hpp"
 #include "race/race_manager.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
@@ -11,6 +12,7 @@
 Tyres::Tyres(Kart *kart) {
 	m_kart = kart;
 	m_current_compound = 1; // Placeholder value
+	m_current_fuel = 1; // Placeholder value
 	m_reset_compound = false;
 
 	m_speed_fetching_period = 0.3f;
@@ -94,7 +96,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 			m_acceleration = (speed-m_previous_speeds[m_previous_speeds.size()-2])/dt;
 			for (unsigned i = 0; i < m_previous_speeds.size()-2; i++) {
 				if (std::abs(speed-m_previous_speeds[i])/dt < std::abs(m_acceleration) && std::abs(speed-m_previous_speeds[i])/dt < 2300.0f) { //Empirical, above this generally indicates a crash, so we throw it out.
-					m_acceleration = speed-m_previous_speeds[i]/dt;
+					m_acceleration = (speed-m_previous_speeds[i])/dt;
 				}
 			}
 //			printf("Smallest acceleration: %f. Queue:\n", std::abs(m_acceleration));
@@ -173,11 +175,11 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	LOG_ZONE:
 	;
 
-	//printf("Cycle %20lu || K %s || C %u\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
-	//m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
-	//printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x,
-	//m_center_of_gravity_y, turn_radius, speed, brake_amount);
-	//printf("\tFuel: %f || Weight: %f\n", m_current_fuel, m_kart->getMass());
+	printf("Cycle %20lu || K %s || C %u\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
+	m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
+	printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_center_of_gravity_x,
+	m_center_of_gravity_y, turn_radius, speed, brake_amount);
+	printf("\tFuel: %f || Weight: %f || TrackLength: %f\n", m_current_fuel, m_kart->getMass(), Track::getCurrentTrack()->getTrackLength());
 }
 
 void Tyres::applyCrashPenalty(void) {
@@ -236,6 +238,9 @@ void Tyres::reset() {
 	if (m_reset_compound) {
 		m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
 	}
+	if (m_reset_fuel) {
+		m_current_fuel = m_c_fuel;
+	}
 
 	m_current_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_current_compound-1];
 	m_current_life_turning = m_kart->getKartProperties()->getTyresMaxLifeTurning()[m_current_compound-1];
@@ -253,8 +258,6 @@ void Tyres::reset() {
 	m_c_fuel_stop = RaceManager::get()->getFuelInfo()[2];
 	m_c_fuel_weight = RaceManager::get()->getFuelInfo()[3]/100.0f;
 	m_c_fuel_rate = RaceManager::get()->getFuelInfo()[4];
-
-	m_current_fuel = m_c_fuel;
 
 	m_c_hardness_multiplier = m_kart->getKartProperties()->getTyresHardnessMultiplier()[m_current_compound-1];
 	m_c_heat_cycle_hardness_curve = m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve();

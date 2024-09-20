@@ -32,7 +32,7 @@
                     
                     <div width="100%" height="fit" layout="horizontal-row" >
                         <div proportion="1" height="fit" layout="horizontal-row">
-                            <spinner id="target-value-spinner" width="100%" min_value="1" max_value="20" align="center"
+                            <spinner id="target-value-spinner" width="100%" min_value="1" max_value="100" align="center"
                                      wrap_around="true" />
                         </div>
                         <spacer width="3%"/>
