@@ -1276,19 +1276,25 @@ InterpolationArray KartProperties::getTyresResponseCurveTopspeed() const
 }  // getTyresResponseCurveTopspeed
 
 // ----------------------------------------------------------------------------
-bool KartProperties::getTyresDoSubstractiveTurning() const
+std::vector<float> KartProperties::getTyresDoGripBasedTurning() const
+{
+    return m_cached_characteristic->getTyresDoGripBasedTurning();
+}  // getTyresDoGripBasedTurning
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresDoSubstractiveTurning() const
 {
     return m_cached_characteristic->getTyresDoSubstractiveTurning();
 }  // getTyresDoSubstractiveTurning
 
 // ----------------------------------------------------------------------------
-bool KartProperties::getTyresDoSubstractiveTraction() const
+std::vector<float> KartProperties::getTyresDoSubstractiveTraction() const
 {
     return m_cached_characteristic->getTyresDoSubstractiveTraction();
 }  // getTyresDoSubstractiveTraction
 
 // ----------------------------------------------------------------------------
-bool KartProperties::getTyresDoSubstractiveTopspeed() const
+std::vector<float> KartProperties::getTyresDoSubstractiveTopspeed() const
 {
     return m_cached_characteristic->getTyresDoSubstractiveTopspeed();
 }  // getTyresDoSubstractiveTopspeed

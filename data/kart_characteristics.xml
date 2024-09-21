@@ -26,7 +26,7 @@
     <characteristic name="base">
         <!-- ********** Physics ********** -->
 
-        <tyres max-life-turning="750 750 1500 3200 3200 1000 1000 1000 1000 1000"
+        <tyres max-life-turning="750 750 500 3200 3200 1000 1000 1000 1000 1000"
                max-life-traction="1600 1600 3200 4800 4800 1000 1000 1000 1000 1000"
                min-life-turning="100 100 100 100 100 100 100 100 100 100"
                min-life-traction="100 100 100 100 100 100 100 100 100 100"
@@ -50,9 +50,10 @@
                skid-factor="3 3 3 3 3 3 3 3 3 3"
                brake-threshold="0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2"
                crash-penalty="0 0 0 0 0 0 0 0 0 0"
-               do-substractive-turning="false"
-               do-substractive-traction="false"
-               do-substractive-topspeed="false"
+               do-grip-based-turning="0 0 0 0 0 0 0 0 0 0"
+               do-substractive-turning="0 0 0 0 0 0 0 0 0 0"
+               do-substractive-traction="0 0 0 0 0 0 0 0 0 0"
+               do-substractive-topspeed="0 0 0 0 0 0 0 0 0 0"
                turning-constant="1 1 1 1 1 1 1 1 1 1"
                traction-constant="1 1 1 1 1 1 1 1 1 1"
                topspeed-constant="1 1 1 1 1 1 1 1 1 1"

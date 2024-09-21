@@ -198,6 +198,7 @@ public:
         TYRES_RESPONSE_CURVE_TURNING,
         TYRES_RESPONSE_CURVE_TRACTION,
         TYRES_RESPONSE_CURVE_TOPSPEED,
+        TYRES_DO_GRIP_BASED_TURNING,
         TYRES_DO_SUBSTRACTIVE_TURNING,
         TYRES_DO_SUBSTRACTIVE_TRACTION,
         TYRES_DO_SUBSTRACTIVE_TOPSPEED,
@@ -417,9 +418,10 @@ public:
     InterpolationArray getTyresResponseCurveTurning() const;
     InterpolationArray getTyresResponseCurveTraction() const;
     InterpolationArray getTyresResponseCurveTopspeed() const;
-    bool getTyresDoSubstractiveTurning() const;
-    bool getTyresDoSubstractiveTraction() const;
-    bool getTyresDoSubstractiveTopspeed() const;
+    std::vector<float> getTyresDoGripBasedTurning() const;
+    std::vector<float> getTyresDoSubstractiveTurning() const;
+    std::vector<float> getTyresDoSubstractiveTraction() const;
+    std::vector<float> getTyresDoSubstractiveTopspeed() const;
     std::vector<float> getTyresTractionConstant() const;
     std::vector<float> getTyresTurningConstant() const;
     std::vector<float> getTyresTopspeedConstant() const;

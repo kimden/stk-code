@@ -75,6 +75,7 @@ private:
 	float m_c_limiting_transfer_turning;
 	float m_c_regular_transfer_turning;
 	bool m_c_do_substractive_traction;
+	bool m_c_do_grip_based_turning;
 	bool m_c_do_substractive_turning;
 	bool m_c_do_substractive_topspeed;
 	InterpolationArray m_c_response_curve_traction;
@@ -118,6 +119,8 @@ public:
 
 	float getFuelWeight(void) { return m_c_fuel_weight; };
 	float getFuelStopRatio(void) { return m_c_fuel_stop; };
+
+	bool getGripBasedTurning(void) { return m_c_do_grip_based_turning; };
 
     float correct(float);
     void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_force, float steer_amount, float throttle_amount);

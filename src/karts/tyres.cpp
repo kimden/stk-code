@@ -14,6 +14,8 @@ Tyres::Tyres(Kart *kart) {
 	m_current_compound = 1; // Placeholder value
 	m_current_fuel = 1; // Placeholder value
 	m_reset_compound = false;
+	m_reset_fuel = false;
+	m_current_fuel = m_c_fuel;
 
 	m_speed_fetching_period = 0.3f;
 	m_speed_accumulation_limit = 6;
@@ -40,8 +42,6 @@ Tyres::Tyres(Kart *kart) {
 	irr::core::clamp(m_c_fuel_regen, 0.0f, 100.0f);
 	irr::core::clamp(m_c_fuel_weight, 0.0f, 1.0f);
 
-	m_current_fuel = m_c_fuel;
-
 	m_c_hardness_multiplier = m_kart->getKartProperties()->getTyresHardnessMultiplier()[m_current_compound-1];
 	m_c_heat_cycle_hardness_curve = m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve();
 	m_c_hardness_penalty_curve = m_kart->getKartProperties()->getTyresHardnessPenaltyCurve();
@@ -56,9 +56,12 @@ Tyres::Tyres(Kart *kart) {
 	m_c_regular_transfer_traction = m_kart->getKartProperties()->getTyresRegularTransferTraction()[m_current_compound-1];
 	m_c_limiting_transfer_turning = m_kart->getKartProperties()->getTyresLimitingTransferTurning()[m_current_compound-1];
 	m_c_regular_transfer_turning = m_kart->getKartProperties()->getTyresRegularTransferTurning()[m_current_compound-1];
-	m_c_do_substractive_traction = m_kart->getKartProperties()->getTyresDoSubstractiveTraction();
-	m_c_do_substractive_turning  = m_kart->getKartProperties()->getTyresDoSubstractiveTurning();
-	m_c_do_substractive_topspeed  = m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed();
+
+	m_c_do_substractive_traction = m_kart->getKartProperties()->getTyresDoSubstractiveTraction()[m_current_compound-1] > 0.5f;
+	m_c_do_grip_based_turning  = m_kart->getKartProperties()->getTyresDoGripBasedTurning()[m_current_compound-1] > 0.5f;
+	m_c_do_substractive_turning  = m_kart->getKartProperties()->getTyresDoSubstractiveTurning()[m_current_compound-1] > 0.5f;
+	m_c_do_substractive_topspeed  = m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed()[m_current_compound-1] > 0.5f;
+
 	m_c_response_curve_traction = m_kart->getKartProperties()->getTyresResponseCurveTraction();
 	m_c_response_curve_turning = m_kart->getKartProperties()->getTyresResponseCurveTurning();
 	m_c_response_curve_topspeed = m_kart->getKartProperties()->getTyresResponseCurveTopspeed();
@@ -76,7 +79,6 @@ Tyres::Tyres(Kart *kart) {
 	m_c_skid_factor = m_kart->getKartProperties()->getTyresSkidFactor()[m_current_compound-1];
 	m_c_brake_threshold = m_kart->getKartProperties()->getTyresBrakeThreshold()[m_current_compound-1];
 	m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];
-
 }
 
 float Tyres::correct(float f) {
@@ -258,6 +260,11 @@ void Tyres::reset() {
 	m_c_fuel_stop = RaceManager::get()->getFuelInfo()[2];
 	m_c_fuel_weight = RaceManager::get()->getFuelInfo()[3]/100.0f;
 	m_c_fuel_rate = RaceManager::get()->getFuelInfo()[4];
+	irr::core::clamp(m_c_fuel, 1.0f, 1000.0f);
+	irr::core::clamp(m_c_fuel_stop, 0.0f, 1000.0f);
+	irr::core::clamp(m_c_fuel_rate, 0.0f, 1000.0f);
+	irr::core::clamp(m_c_fuel_regen, 0.0f, 100.0f);
+	irr::core::clamp(m_c_fuel_weight, 0.0f, 1.0f);
 
 	m_c_hardness_multiplier = m_kart->getKartProperties()->getTyresHardnessMultiplier()[m_current_compound-1];
 	m_c_heat_cycle_hardness_curve = m_kart->getKartProperties()->getTyresHeatCycleHardnessCurve();
@@ -273,9 +280,12 @@ void Tyres::reset() {
 	m_c_regular_transfer_traction = m_kart->getKartProperties()->getTyresRegularTransferTraction()[m_current_compound-1];
 	m_c_limiting_transfer_turning = m_kart->getKartProperties()->getTyresLimitingTransferTurning()[m_current_compound-1];
 	m_c_regular_transfer_turning = m_kart->getKartProperties()->getTyresRegularTransferTurning()[m_current_compound-1];
-	m_c_do_substractive_traction = m_kart->getKartProperties()->getTyresDoSubstractiveTraction();
-	m_c_do_substractive_turning  = m_kart->getKartProperties()->getTyresDoSubstractiveTurning();
-	m_c_do_substractive_topspeed  = m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed();
+
+	m_c_do_substractive_traction = m_kart->getKartProperties()->getTyresDoSubstractiveTraction()[m_current_compound-1] > 0.5f;
+	m_c_do_grip_based_turning  = m_kart->getKartProperties()->getTyresDoGripBasedTurning()[m_current_compound-1] > 0.5f;
+	m_c_do_substractive_turning  = m_kart->getKartProperties()->getTyresDoSubstractiveTurning()[m_current_compound-1] > 0.5f;
+	m_c_do_substractive_topspeed  = m_kart->getKartProperties()->getTyresDoSubstractiveTopspeed()[m_current_compound-1] > 0.5f;
+
 	m_c_response_curve_traction = m_kart->getKartProperties()->getTyresResponseCurveTraction();
 	m_c_response_curve_turning = m_kart->getKartProperties()->getTyresResponseCurveTurning();
 	m_c_response_curve_topspeed = m_kart->getKartProperties()->getTyresResponseCurveTopspeed();
@@ -292,8 +302,7 @@ void Tyres::reset() {
 	m_c_offroad_factor = m_kart->getKartProperties()->getTyresOffroadFactor()[m_current_compound-1];
 	m_c_skid_factor = m_kart->getKartProperties()->getTyresSkidFactor()[m_current_compound-1];
 	m_c_brake_threshold = m_kart->getKartProperties()->getTyresBrakeThreshold()[m_current_compound-1];
-	m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];
-}
+	m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];}
 
 
 void Tyres::saveState(BareNetworkString *buffer)

@@ -366,6 +366,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_RESPONSE_CURVE_TRACTION]);
         sub_node->get("response-curve-topspeed",
             &m_values[TYRES_RESPONSE_CURVE_TOPSPEED]);
+        sub_node->get("do-grip-based-turning",
+            &m_values[TYRES_DO_GRIP_BASED_TURNING]);
         sub_node->get("do-substractive-turning",
             &m_values[TYRES_DO_SUBSTRACTIVE_TURNING]);
         sub_node->get("do-substractive-traction",
