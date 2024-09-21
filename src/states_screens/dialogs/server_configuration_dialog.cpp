@@ -67,7 +67,7 @@ void ServerConfigurationDialog::beforeAddingWidgets()
 
 
     m_fuel_rate_text = getWidget<LabelWidget>("fuel-rate-label");
-    assert(m_fuel-rate_text != NULL);
+    assert(m_fuel_rate_text != NULL);
     m_fuel_rate_spinner = getWidget<SpinnerWidget>("fuel-rate-spinner");
     assert(m_fuel_rate_spinner != NULL);
     m_fuel_rate_spinner->setVisible(true);
