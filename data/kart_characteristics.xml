@@ -26,7 +26,7 @@
     <characteristic name="base">
         <!-- ********** Physics ********** -->
 
-        <tyres max-life-turning="750 750 500 3200 3200 1000 1000 1000 1000 1000"
+        <tyres max-life-turning="750 750 1500 3200 3200 1000 1000 1000 1000 1000"
                max-life-traction="1600 1600 3200 4800 4800 1000 1000 1000 1000 1000"
                min-life-turning="100 100 100 100 100 100 100 100 100 100"
                min-life-traction="100 100 100 100 100 100 100 100 100 100"
