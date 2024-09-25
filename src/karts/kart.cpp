@@ -2,6 +2,7 @@
 //  SuperTuxKart - a fun racing game with go-kart
 //  Copyright (C) 2004-2016 Steve Baker <sjbaker1@airmail.net>
 //  Copyright (C) 2006-2016 SuperTuxKart-Team, Joerg Henrichs, Steve Baker
+//  Copyright (C) 2024 Nomagno
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
