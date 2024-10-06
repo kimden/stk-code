@@ -534,50 +534,49 @@ void LinearWorld::newLap(unsigned int kart_index)
             ticks_per_lap = getTimeTicks() - kart_info.m_lap_start_ticks;
     }
 
-    // if new fastest lap
-    if(raceHasLaps() &&
-        kart_info.m_finished_laps>0 && !isLiveJoinWorld())
-    {
-        const core::stringw &kart_name = kart->getController()->getName();
-		bool is_local = kart->getController()->isLocalPlayerController();
-
-        std::string s = StringUtils::ticksTimeToString(ticks_per_lap);
-
-		irr::core::stringw lap_message;
-		
-		if (ticks_per_lap < m_fastest_lap_ticks ) {
-	        // Store the temporary string because clang would mess this up
-	        // (remove the stringw before the wchar_t* is used).
-	        m_fastest_lap_ticks = ticks_per_lap;
-	        m_fastest_lap_kart_name = kart_name;
-
-	        //I18N: as in "fastest lap: 60 seconds by Wilber"
-	        lap_message = _C("fastest_lap", "%s by %s", s.c_str(), kart_name);
-	        if (m_race_gui)
-	        {
-	            m_race_gui->addMessage(lap_message, NULL, 4.0f,
-	                video::SColor(255, 255, 255, 255), false);
-	            m_race_gui->addMessage(_("New fastest lap"), NULL, 4.0f,
-	                video::SColor(255, 255, 255, 255), false);
-	        }
-		} else {
-	        //I18N: as in "fastest lap: 60 seconds by Wilber"
-	        lap_message = _C("fastest_lap", "%s", s.c_str(), kart_name);
-	        if (m_race_gui && is_local)
-	        {
-	            m_race_gui->addMessage(lap_message, NULL, 4.0f,
-	                video::SColor(255, 255, 255, 255), false);
-	            m_race_gui->addMessage(_("Last lap was"), NULL, 4.0f,
-	                video::SColor(255, 255, 255, 255), false);
-	        }
-		}
-
-
-    } // end if new fastest lap
-    else if (raceHasLaps() && kart_info.m_finished_laps>0 && !isLiveJoinWorld()) {
-    	
+    const core::stringw &kart_name = kart->getController()->getName();
+    bool is_local = kart->getController()->isLocalPlayerController();
+    std::string s = StringUtils::ticksTimeToString(ticks_per_lap);
+    irr::core::stringw lap_message;
+    video::SColor color = video::SColor(255, 255, 255, 255);
+    if(! (raceHasLaps() && kart_info.m_finished_laps>0 && !isLiveJoinWorld()) ) {
+        goto ENDOFNEWLAP;
     }
 
+    if (is_local) {
+        m_last_local_lap = stk_config->ticks2Time(ticks_per_lap);
+        m_last_local_position = kart->getPosition();
+        m_last_local_index = kart_index;
+        lap_message = _C("fastest_lap", "Last lap: %s", s.c_str());
+        color = video::SColor(255, 255, 255, 255);
+    } else if (m_last_local_index > -1 &&
+               kart->getPosition() > 0 &&
+               m_karts[m_last_local_index].get()->getPosition() > 0 &&
+                   ((kart->getPosition() == 1) ||
+                   (std::abs(kart->getPosition() - m_karts[m_last_local_index].get()->getPosition()) <= 1))){
+        float diff = (stk_config->ticks2Time(ticks_per_lap) - m_last_local_lap)*100;
+        bool sign = (diff > -0.1f);
+        int diffint = std::abs(diff);
+        int diffwhole = diffint / 100;
+        int difffrac = (diffint % 100) / 10;
+        int difffracfrac = diffint % 10;
+        lap_message = _C("fastest_lap", "%s was %s%s.%s%s", kart_name, sign ? "+" : "-", diffwhole, difffrac, difffracfrac);
+        color = video::SColor(255, 255, 0, 0);
+    }
+
+    if (ticks_per_lap < m_fastest_lap_ticks ) {
+        // Store the temporary string because clang would mess this up
+        // (remove the stringw before the wchar_t* is used).
+        m_fastest_lap_ticks = ticks_per_lap;
+        m_fastest_lap_kart_name = kart_name;
+        //I18N: as in "fastest lap: 60 seconds by Wilber"
+        lap_message = _C("fastest_lap", "New FL: %s by %s", s.c_str(), kart_name);
+        color = video::SColor(255, 255, 255, 255);
+	}
+
+     if (m_race_gui) m_race_gui->addMessage(lap_message, NULL, 4.0f, color, false);
+
+	ENDOFNEWLAP:
     kart_info.m_lap_start_ticks = getTimeTicks();
     kart->getController()->newLap(kart_info.m_finished_laps);
 }   // newLap
