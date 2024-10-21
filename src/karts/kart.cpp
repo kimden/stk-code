@@ -1078,8 +1078,8 @@ float Kart::getMaxSteerAngle(float speed) const
                                     * m_kart_properties->getWheelBase());
 
     // Make reverse mode turn the same way as forward
-    if (speed < 0.0f)
-        speed = -speed;
+    //if (speed < 0.0f)
+    //    speed = -speed;
 
     return turn_angle_at_speed.get(speed);
 }   // getMaxSteerAngle
@@ -3122,7 +3122,11 @@ void Kart::updatePhysics(int ticks)
 		}
 	}
 
-	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), (m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT), m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0, getMaterial() && getMaterial()->getMaxSpeedFraction(), f, fabs(steering), m_controls.getAccel());
+	bool is_skidding = m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT || m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_RIGHT;
+	bool do_slowdown = getMaterial() && getMaterial()->getMaxSpeedFraction();
+	bool is_zippered = m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0;
+
+	m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), is_skidding, is_zippered, do_slowdown, f, fabs(steering), m_controls.getAccel());
 
     updateSliding();
 

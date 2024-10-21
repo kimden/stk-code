@@ -140,7 +140,8 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 	m_center_of_gravity_x = m_acceleration*m_kart->getMass();
 	m_center_of_gravity_y = ((speed*speed)/turn_radius)*m_kart->getMass();
 
-	if (!is_on_ground) goto LOG_ZONE;
+	//Doesn't make much sense to degrade the tyres midair or in reverse or at ridiculously low speeds, now does it?
+	if (!is_on_ground || speed < 1.0f) goto LOG_ZONE;
 
 	if (throttle_amount > 0.3f) {
 		m_current_fuel -= std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
