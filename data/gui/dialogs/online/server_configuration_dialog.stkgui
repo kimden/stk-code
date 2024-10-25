@@ -80,7 +80,7 @@
             <spacer height="1%" width="20"/>
             <div width="50%" height="5%" layout="horizontal-row" >
                 <div proportion="1" height="fit" layout="horizontal-row">
-	                <spinner id="fuel-regen-spinner"  proportion="1" min_value="0" max_value="1000" wrap_around="true"/>
+	                <spinner id="fuel-regen-spinner"  proportion="1" min_value="0" max_value="9999" wrap_around="true"/>
 	            </div>
                 <spacer width="3%"/>
                 <label id="fuel-regen-label" proportion="1" text="E regen" text_align="left"/>
