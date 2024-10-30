@@ -44,7 +44,7 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_fuel_spinner = getWidget<SpinnerWidget>("fuel-spinner");
     assert(m_fuel_spinner != NULL);
     m_fuel_spinner->setVisible(true);
-    m_fuel_spinner->setValue(1);
+    m_fuel_spinner->setValue(1000);
     m_fuel_text->setVisible(true);
 
 

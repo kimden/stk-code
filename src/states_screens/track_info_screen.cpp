@@ -221,6 +221,8 @@ void TrackInfoScreen::init()
     m_fuel_rate_label->setVisible(true);
 	m_fuel_rate_label->setText(_("E rate") , false);
 
+   	RaceManager::get()->setFuelInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue());
+
 // fuel fuel_regen fuel_stop fuel_weight fuel_rate
 
 
