@@ -62,6 +62,7 @@
 #include "online/xml_request.hpp"
 #include "states_screens/dialogs/addons_pack.hpp"
 #include "states_screens/dialogs/message_dialog.hpp"
+#include "states_screens/dialogs/kart_color_slider_dialog.hpp"
 #include "states_screens/online/networking_lobby.hpp"
 #include "states_screens/online/network_kart_selection.hpp"
 #include "states_screens/online/tracks_screen.hpp"
@@ -1690,6 +1691,13 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         }
         if (m_background_download.joinable())
             m_background_download.join();
+    }
+    else if (argv[0] == "changecolor" && argv.size() == 2) {
+    	float new_hue = std::stof(argv[1])/100.0f;
+        PlayerManager::getCurrentPlayer()->setDefaultKartColor(new_hue);
+        NetworkString change_color(PROTOCOL_LOBBY_ROOM);
+        change_color.addUInt8(LobbyProtocol::LE_CHANGE_COLOR).addUInt8(/*PlayerManager::getCurrentPlayer()->getLocalPlayerId()*/0).addFloat(new_hue);
+        STKHost::get()->sendToServer(&change_color, true/*reliable*/);
     }
     else if (argv[0] == "installaddon" && argv.size() == 2)
         AddonsPack::install(argv[1]);

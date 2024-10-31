@@ -144,6 +144,9 @@ public:
     const irr::core::stringw& getName() const         { return m_player_name; }
     // ------------------------------------------------------------------------
     float getDefaultKartColor() const          { return m_default_kart_color; }
+
+    void setDefaultKartColor(float m) { m_default_kart_color = m; }
+
     // ------------------------------------------------------------------------
     uint32_t getOnlineId() const                        { return m_online_id; }
     // ------------------------------------------------------------------------

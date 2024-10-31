@@ -321,6 +321,7 @@ private:
     void resetServer();
     void addWaitingPlayersToGame();
     void changeHandicap(Event* event);
+    void changeColor(Event* event);
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;

@@ -599,6 +599,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
         case LE_CHAT: handleChat(event);                          break;
         case LE_CONFIG_SERVER: handleServerConfiguration(event);  break;
         case LE_CHANGE_HANDICAP: changeHandicap(event);           break;
+        case LE_CHANGE_COLOR: changeColor(event);           break;
         case LE_CLIENT_BACK_LOBBY:
             clientSelectingAssetsWantsToBackLobby(event);         break;
         case LE_REPORT_PLAYER: writePlayerReport(event);          break;
@@ -4399,6 +4400,23 @@ void ServerLobby::changeHandicap(Event* event)
     }
     HandicapLevel h = (HandicapLevel)handicap_id;
     player->setHandicap(h);
+    updatePlayerList();
+}   // changeHandicap
+
+void ServerLobby::changeColor(Event* event)
+{
+    NetworkString& data = event->data();
+    if (m_state.load() != WAITING_FOR_START_GAME &&
+        !event->getPeer()->isWaitingForGame())
+    {
+        Log::warn("ServerLobby", "Set color at wrong time.");
+        return;
+    }
+    uint8_t local_id = data.getUInt8();
+    auto& player = event->getPeer()->getPlayerProfiles().at(local_id);
+    float hue = data.getFloat();
+
+    player->setDefaultKartColor(hue);
     updatePlayerList();
 }   // changeHandicap
 
