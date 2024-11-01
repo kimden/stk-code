@@ -259,6 +259,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_CRASH_PENALTY:
         return TYPE_FLOAT_VECTOR;
+    case TYRES_DEFAULT_COLOR:
+        return TYPE_FLOAT_VECTOR;
     case STARTUP_TIME:
         return TYPE_FLOAT_VECTOR;
     case STARTUP_BOOST:
@@ -585,6 +587,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_BRAKE_THRESHOLD";
     case TYRES_CRASH_PENALTY:
         return "TYRES_CRASH_PENALTY";
+    case TYRES_DEFAULT_COLOR:
+        return "TYRES_DEFAULT_COLOR";
     case STARTUP_TIME:
         return "STARTUP_TIME";
     case STARTUP_BOOST:
@@ -1922,6 +1926,18 @@ std::vector<float> AbstractCharacteristic::getTyresCrashPenalty() const
                     getName(TYRES_CRASH_PENALTY).c_str());
     return result;
 }  // getTyresCrashPenalty
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresDefaultColor() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_DEFAULT_COLOR, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_DEFAULT_COLOR).c_str());
+    return result;
+}  // getTyresDefaultColor
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getStartupTime() const

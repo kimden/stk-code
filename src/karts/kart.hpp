@@ -29,9 +29,11 @@
 
 #include <memory>
 #include <SColor.h>
+#include <ge_render_info.hpp>
 
 #include "items/powerup_manager.hpp"    // For PowerupType
 #include "karts/controller/kart_control.hpp"
+#include "karts/kart_model.hpp"
 #include "karts/moveable.hpp"
 #include "LinearMath/btTransform.h"
 #include "race/race_manager.hpp"
@@ -414,6 +416,8 @@ public:
 
 
     Tyres *m_tyres;
+	float m_initial_color;
+    
     const core::stringw& getName() const { return m_name; }
 
     /** Returns the index of this kart in world. */
@@ -664,6 +668,10 @@ public:
     // ------------------------------------------------------------------------
     /** Returns this kart's kart model. */
     KartModel* getKartModel() const { return m_kart_model.get();      }
+
+    /** Returns this kart's kart model. */
+    void setKartColor(float f) { return m_kart_model.get()->getRenderInfo()->setHue(f) ;      }
+
     // ------------------------------------------------------------------------
     /** Returns the length of the kart. */
     float getKartLength() const { return m_kart_length; }

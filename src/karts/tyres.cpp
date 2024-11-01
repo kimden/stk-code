@@ -254,10 +254,14 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 
 
 void Tyres::reset() {
-	const float kart_hue = RaceManager::get()->getKartColor(m_kart->getWorldKartId()) * 100.0f;
 
 	if (m_reset_compound) {
+		const float kart_hue = RaceManager::get()->getKartColor(m_kart->getWorldKartId()) * 100.0f;
 		m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
+	} else if (m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1] > -0.5f) {
+		const float kart_hue = m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]/100.0f;
+		m_kart->setKartColor(kart_hue);
+		printf("Setting color to %f\n", m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]);
 	}
 	if (m_reset_fuel) {
 		m_current_fuel = m_c_fuel;
@@ -321,7 +325,9 @@ void Tyres::reset() {
 	m_c_offroad_factor = m_kart->getKartProperties()->getTyresOffroadFactor()[m_current_compound-1];
 	m_c_skid_factor = m_kart->getKartProperties()->getTyresSkidFactor()[m_current_compound-1];
 	m_c_brake_threshold = m_kart->getKartProperties()->getTyresBrakeThreshold()[m_current_compound-1];
-	m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];}
+	m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];
+
+}
 
 
 void Tyres::saveState(BareNetworkString *buffer)

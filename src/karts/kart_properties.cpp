@@ -1354,6 +1354,12 @@ std::vector<float> KartProperties::getTyresCrashPenalty() const
 }  // getTyresCrashPenalty
 
 // ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresDefaultColor() const
+{
+    return m_cached_characteristic->getTyresDefaultColor();
+}  // getTyresDefaultColor
+
+// ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getStartupTime() const
 {
     return m_cached_characteristic->getStartupTime();

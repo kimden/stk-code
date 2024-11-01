@@ -239,6 +239,7 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
 #endif
     m_controller           = NULL;
     m_tyres                = new Tyres(this);
+    m_initial_color        = 0.0f;
     m_saved_controller     = NULL;
     m_consumption_per_tick = stk_config->ticks2Time(1) *
                              m_kart_properties->getNitroConsumption();
@@ -489,6 +490,11 @@ void Kart::reset()
 
     // Reset animations and wheels
     m_kart_model->reset();
+	printf("INITIAL COLOR: %f, Saved: %f\n", m_kart_model.get()->getRenderInfo()->getHue(), m_initial_color);
+	if (m_initial_color == 0.0f && m_kart_model.get()->getRenderInfo()->getHue() != 0.0f) {
+		m_initial_color = m_kart_model.get()->getRenderInfo()->getHue();
+	}
+	m_kart_model.get()->getRenderInfo()->setHue(m_initial_color);
 
     // If the controller was replaced (e.g. replaced by end controller),
     // restore the original controller.

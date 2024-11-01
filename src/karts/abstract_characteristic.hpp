@@ -210,6 +210,7 @@ public:
         TYRES_SKID_FACTOR,
         TYRES_BRAKE_THRESHOLD,
         TYRES_CRASH_PENALTY,
+        TYRES_DEFAULT_COLOR,
 
         // Startup
         STARTUP_TIME,
@@ -430,6 +431,7 @@ public:
     std::vector<float> getTyresSkidFactor() const;
     std::vector<float> getTyresBrakeThreshold() const;
     std::vector<float> getTyresCrashPenalty() const;
+    std::vector<float> getTyresDefaultColor() const;
 
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;

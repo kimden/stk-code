@@ -505,6 +505,7 @@ public:
     std::vector<float> getTyresSkidFactor() const;
     std::vector<float> getTyresBrakeThreshold() const;
     std::vector<float> getTyresCrashPenalty() const;
+    std::vector<float> getTyresDefaultColor() const;
 
     std::vector<float> getStartupTime() const;
     std::vector<float> getStartupBoost() const;

@@ -391,6 +391,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_BRAKE_THRESHOLD]);
         sub_node->get("crash-penalty",
             &m_values[TYRES_CRASH_PENALTY]);
+        sub_node->get("default-color",
+            &m_values[TYRES_DEFAULT_COLOR]);
 
     }
 
