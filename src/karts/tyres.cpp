@@ -257,7 +257,12 @@ void Tyres::reset() {
 
 	if (m_reset_compound) {
 		const float kart_hue = RaceManager::get()->getKartColor(m_kart->getWorldKartId()) * 100.0f;
-		m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
+		if (kart_hue < 0.5f) { /*Color 0 -> random kart color*/
+			m_current_compound = ((int)rand() % 5) + 1; /*Should be modulo the compound number, but at the moment some compounds are not finished*/
+		} else {
+			m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
+		}
+	    system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " S " + std::to_string(m_current_compound).c_str() + " " + m_kart->getIdent().c_str()).c_str());
 	} else if (m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1] > -0.5f) {
 		const float kart_hue = m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]/100.0f;
 		m_kart->setKartColor(kart_hue);
