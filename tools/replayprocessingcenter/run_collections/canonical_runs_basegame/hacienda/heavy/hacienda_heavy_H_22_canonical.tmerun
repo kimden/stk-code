@@ -1,0 +1,33 @@
+# A canonical run of length N for compound X consists of:
+# A run of N laps with X from the start of the race
+# A padder lap
+# A single tyre change to X again
+# A single outlap with the new set of tyres of compound X
+# Hence, a canonical run of length N must have N+2 laps.
+START 4 pidgin
+LAP 37.375000
+LAP 34.462502
+LAP 34.825001
+LAP 34.266666
+LAP 34.625000
+LAP 34.670834
+LAP 35.291668
+LAP 35.150002
+LAP 36.187500
+LAP 35.562500
+LAP 36.033333
+LAP 36.983334
+LAP 35.158333
+LAP 36.287498
+LAP 36.520832
+LAP 38.070835
+LAP 38.179167
+LAP 38.279167
+LAP 38.387501
+LAP 38.829166
+LAP 41.170834
+LAP 39.037498
+LAP 39.504166
+CHANGE 4 10
+END
+LAP 46.745834
