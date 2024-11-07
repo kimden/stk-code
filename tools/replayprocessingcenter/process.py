@@ -172,7 +172,7 @@ def findBestTimeAbsolute(lap_count, times_cumulative_list, memoization_of_best_t
         for j in reversed(range(1, len(times_cumulative_list[i])-2+1)):
             if lap_count >= j:
                 if memoization_of_best_times[i][lap_count-1][j-1][0] == 0:
-                    (t, c, s) = findBestTime(lap_count, i, j, times_cumulative_list, memoization_of_best_times, penalty, stop_limit,1) # + penalty # Uncomment this to assume penalty-corrected outlap
+                    (t, c, s) = findBestTime(lap_count, i, j, times_cumulative_list, memoization_of_best_times, penalty, stop_limit,1)
                     memoization_of_best_times[i][lap_count-1][j-1] = (t, c.copy(), s.copy())
                 else:
                     (t, c, s) = memoization_of_best_times[i][lap_count-1][j-1]
