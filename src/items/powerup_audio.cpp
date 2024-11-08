@@ -28,22 +28,22 @@
 //-----------------------------------------------------------------------------
 PowerupAudio* PowerupAudio::getInstance()
 {
-	static PowerupAudio instance;
-	return &instance;
+    static PowerupAudio instance;
+    return &instance;
 } // getInstance
 
 //-----------------------------------------------------------------------------
 /** Constructor */
 PowerupAudio::PowerupAudio()
 {
-	m_sudo_good = SFXManager::get()->createSoundSource("sudo_good");
-	m_sudo_bad  = SFXManager::get()->createSoundSource("sudo_bad");
+    m_sudo_good = SFXManager::get()->createSoundSource("sudo_good");
+    m_sudo_bad  = SFXManager::get()->createSoundSource("sudo_bad");
 
-	for (int i=0; i<POWERUP_SOUND_SOURCES;i++)
-	{
-		m_powerup_sound[i] = NULL;
-	}
-	m_curr_sound = 0;
+    for (int i=0; i<POWERUP_SOUND_SOURCES;i++)
+    {
+        m_powerup_sound[i] = NULL;
+    }
+    m_curr_sound = 0;
 } // PowerupAudio
 
 //-----------------------------------------------------------------------------
@@ -51,13 +51,13 @@ PowerupAudio::PowerupAudio()
  */
 PowerupAudio::~PowerupAudio()
 {
-	m_sudo_good->deleteSFX();
-	m_sudo_bad->deleteSFX();
+    m_sudo_good->deleteSFX();
+    m_sudo_bad->deleteSFX();
    for (int i=0; i<POWERUP_SOUND_SOURCES;i++)
-	{
-		if (m_powerup_sound[i])
-			m_powerup_sound[i]->deleteSFX();
-	}
+    {
+        if (m_powerup_sound[i])
+            m_powerup_sound[i]->deleteSFX();
+    }
 } // ~PowerupAudio
 
 //-----------------------------------------------------------------------------
@@ -65,26 +65,26 @@ PowerupAudio::~PowerupAudio()
  */
 void PowerupAudio::adjustSound(Kart* kart)
 {
-	if (m_powerup_sound[m_curr_sound] == NULL)
-		return;
+    if (m_powerup_sound[m_curr_sound] == NULL)
+        return;
 
-	m_powerup_sound[m_curr_sound]->setPosition(kart->getXYZ());
-	// in multiplayer mode, sounds are NOT positional (because we have multiple listeners)
-	// so the sounds of all AIs are constantly heard. So reduce volume of sounds.
-	if (RaceManager::get()->getNumLocalPlayers() > 1)
-	{
-		// player karts played at full volume; AI karts much dimmer
+    m_powerup_sound[m_curr_sound]->setPosition(kart->getXYZ());
+    // in multiplayer mode, sounds are NOT positional (because we have multiple listeners)
+    // so the sounds of all AIs are constantly heard. So reduce volume of sounds.
+    if (RaceManager::get()->getNumLocalPlayers() > 1)
+    {
+        // player karts played at full volume; AI karts much dimmer
 
-		if (kart->getController()->isLocalPlayerController())
-		{
-			m_powerup_sound[m_curr_sound]->setVolume( 1.0f );
-		}
-		else
-		{
-			m_powerup_sound[m_curr_sound]->setVolume( 
-					 std::min(0.5f, 1.0f / RaceManager::get()->getNumberOfKarts()) );
-		}
-	}
+        if (kart->getController()->isLocalPlayerController())
+        {
+            m_powerup_sound[m_curr_sound]->setVolume( 1.0f );
+        }
+        else
+        {
+            m_powerup_sound[m_curr_sound]->setVolume( 
+                     std::min(0.5f, 1.0f / RaceManager::get()->getNumberOfKarts()) );
+        }
+    }
 }   // adjustSound
 
 
@@ -93,117 +93,117 @@ void PowerupAudio::adjustSound(Kart* kart)
  */
 void PowerupAudio::onUseAudio(Kart* kart, PowerupManager::PowerupType type, int sound_type, PowerupManager::MiniState mini_state)
 {
-	const int ticks = World::getWorld()->getTicksSinceStart();
-	bool has_played_sound = false;
-	auto it = m_played_sound_ticks.find(ticks);
-	if (it != m_played_sound_ticks.end())
-		has_played_sound = true;
-	else
-		m_played_sound_ticks.insert(ticks);
+    const int ticks = World::getWorld()->getTicksSinceStart();
+    bool has_played_sound = false;
+    auto it = m_played_sound_ticks.find(ticks);
+    if (it != m_played_sound_ticks.end())
+        has_played_sound = true;
+    else
+        m_played_sound_ticks.insert(ticks);
 
-	if (has_played_sound)
-		return;
+    if (has_played_sound)
+        return;
 
-	prepareSoundSource();
+    prepareSoundSource();
 
-	// Play custom kart sound when collectible is used //TODO: what about the bubble gum?
-	if (type != PowerupManager::POWERUP_NOTHING &&
-		type != PowerupManager::POWERUP_SWATTER &&
-		type != PowerupManager::POWERUP_ZIPPER)
-		kart->playCustomSFX(SFXManager::CUSTOM_SHOOT);
+    // Play custom kart sound when collectible is used //TODO: what about the bubble gum?
+    if (type != PowerupManager::POWERUP_NOTHING &&
+        type != PowerupManager::POWERUP_SWATTER &&
+        type != PowerupManager::POWERUP_ZIPPER)
+        kart->playCustomSFX(SFXManager::CUSTOM_SHOOT);
 
-	switch (type)
-	{
-	case PowerupManager::POWERUP_ZIPPER:
-		// TODO
-		break;
-	case PowerupManager::POWERUP_SWITCH:
-		m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("swap");
-		m_powerup_sound[m_curr_sound]->play();
-		break;
-	case PowerupManager::POWERUP_CAKE:	     // Fall-through
-	case PowerupManager::POWERUP_RUBBERBALL: // Fall-through
-	case PowerupManager::POWERUP_PLUNGER:
-		playShootSound(kart);
-		break;
-	case PowerupManager::POWERUP_BOWLING:
-		m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("bowling_shoot");
-		adjustSound(kart);
-		m_powerup_sound[m_curr_sound]->play();
-		break;
-	case PowerupManager::POWERUP_SWATTER:
-		break;
-	case PowerupManager::POWERUP_SUDO:
-		// If a local player benefits from the "nitro-hack", play a good sound
-		if (sound_type % 2 == 1)
-			m_sudo_good->play();
-		// Play a bad sound if there is an affected local player
-		if (sound_type >= 2)
-			m_sudo_bad->play();
-		break;
-	case PowerupManager::POWERUP_ELECTRO:
-		break;
-	case PowerupManager::POWERUP_MINI:
-		switch (mini_state)
-		{
-			case PowerupManager::NOT_MINI:
-			case PowerupManager::MINI_SELECT:
-				break;
-			case PowerupManager::MINI_CAKE:
-				playShootSound(kart);
-				break;
-			// Mini-zipper case
-			case PowerupManager::MINI_ZIPPER:
-					// TODO
-					break;
-			// Mini-gum case
-			case PowerupManager::MINI_GUM:
-				playGumSound(kart, sound_type);
-				break;
-		} // Switch mini-state
-		break;
-	case PowerupManager::POWERUP_BUBBLEGUM:
-		playGumSound(kart, sound_type);
-		break;
+    switch (type)
+    {
+    case PowerupManager::POWERUP_ZIPPER:
+        // TODO
+        break;
+    case PowerupManager::POWERUP_SWITCH:
+        m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("swap");
+        m_powerup_sound[m_curr_sound]->play();
+        break;
+    case PowerupManager::POWERUP_CAKE:       // Fall-through
+    case PowerupManager::POWERUP_RUBBERBALL: // Fall-through
+    case PowerupManager::POWERUP_PLUNGER:
+        playShootSound(kart);
+        break;
+    case PowerupManager::POWERUP_BOWLING:
+        m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("bowling_shoot");
+        adjustSound(kart);
+        m_powerup_sound[m_curr_sound]->play();
+        break;
+    case PowerupManager::POWERUP_SWATTER:
+        break;
+    case PowerupManager::POWERUP_SUDO:
+        // If a local player benefits from the "nitro-hack", play a good sound
+        if (sound_type % 2 == 1)
+            m_sudo_good->play();
+        // Play a bad sound if there is an affected local player
+        if (sound_type >= 2)
+            m_sudo_bad->play();
+        break;
+    case PowerupManager::POWERUP_ELECTRO:
+        break;
+    case PowerupManager::POWERUP_MINI:
+        switch (mini_state)
+        {
+            case PowerupManager::NOT_MINI:
+            case PowerupManager::MINI_SELECT:
+                break;
+            case PowerupManager::MINI_CAKE:
+                playShootSound(kart);
+                break;
+            // Mini-zipper case
+            case PowerupManager::MINI_ZIPPER:
+                    // TODO
+                    break;
+            // Mini-gum case
+            case PowerupManager::MINI_GUM:
+                playGumSound(kart, sound_type);
+                break;
+        } // Switch mini-state
+        break;
+    case PowerupManager::POWERUP_BUBBLEGUM:
+        playGumSound(kart, sound_type);
+        break;
 
-	case PowerupManager::POWERUP_ANVIL:
-		m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("anvil");
-		// Not worth the effort
-		break;
+    case PowerupManager::POWERUP_ANVIL:
+        m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("anvil");
+        // Not worth the effort
+        break;
 
-	case PowerupManager::POWERUP_PARACHUTE:
-		m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("parachute");
-		// should we position the sound at the kart that is hit,
-		// or the kart "throwing" the anvil? Ideally it should be both.
-		// Meanwhile, don't play it near AI karts since they obviously
-		// don't hear anything
-		if(kart->getController()->isLocalPlayerController())
-			m_powerup_sound[m_curr_sound]->setPosition(kart->getXYZ());
-		// FIXME else if(player_kart)
-			//FIXME m_powerup_sound[m_curr_sound]->setPosition(player_kart->getXYZ());
-		m_powerup_sound[m_curr_sound]->play();
-		break;
+    case PowerupManager::POWERUP_PARACHUTE:
+        m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("parachute");
+        // should we position the sound at the kart that is hit,
+        // or the kart "throwing" the anvil? Ideally it should be both.
+        // Meanwhile, don't play it near AI karts since they obviously
+        // don't hear anything
+        if(kart->getController()->isLocalPlayerController())
+            m_powerup_sound[m_curr_sound]->setPosition(kart->getXYZ());
+        // FIXME else if(player_kart)
+            //FIXME m_powerup_sound[m_curr_sound]->setPosition(player_kart->getXYZ());
+        m_powerup_sound[m_curr_sound]->play();
+        break;
 
-	case PowerupManager::POWERUP_NOTHING:
-		if(!kart->getKartAnimation())
-			kart->beep();
-		break;
-	default : break;
-	}
+    case PowerupManager::POWERUP_NOTHING:
+        if(!kart->getKartAnimation())
+            kart->beep();
+        break;
+    default : break;
+    }
 } // onUseAudio
 
 //-----------------------------------------------------------------------------
 void PowerupAudio::playGumSound(Kart* kart, int sound_type)
 {
-	if (sound_type >= 1) // A sound type of 0 indicates nothing to be played
-	{
-		if (sound_type == 1) // gum successfully dropped on the ground
-			m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("goo");
-		else if (sound_type == 2) // gum shield inflating
-			m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("inflate");
-		adjustSound(kart);
-		m_powerup_sound[m_curr_sound]->play();
-	}
+    if (sound_type >= 1) // A sound type of 0 indicates nothing to be played
+    {
+        if (sound_type == 1) // gum successfully dropped on the ground
+            m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("goo");
+        else if (sound_type == 2) // gum shield inflating
+            m_powerup_sound[m_curr_sound] = SFXManager::get()->createSoundSource("inflate");
+        adjustSound(kart);
+        m_powerup_sound[m_curr_sound]->play();
+    }
 } // playGumSound
 
 //-----------------------------------------------------------------------------
@@ -218,20 +218,20 @@ void PowerupAudio::playShootSound(Kart* kart)
 //-----------------------------------------------------------------------------
 void PowerupAudio::update(Kart* kart, int ticks)
 {
-	/*
-	// Remove any sound ticks that should have played
-	const int remove_ticks = World::getWorld()->getTicksSinceStart() - 1000;
-	for (auto it = m_played_sound_ticks.begin();
-		 it != m_played_sound_ticks.end();)
-	{
-		if (*it < remove_ticks)
-		{
-			it = m_played_sound_ticks.erase(it);
-			continue;
-		}
-		break;
-	}
-	*/
+    /*
+    // Remove any sound ticks that should have played
+    const int remove_ticks = World::getWorld()->getTicksSinceStart() - 1000;
+    for (auto it = m_played_sound_ticks.begin();
+         it != m_played_sound_ticks.end();)
+    {
+        if (*it < remove_ticks)
+        {
+            it = m_played_sound_ticks.erase(it);
+            continue;
+        }
+        break;
+    }
+    */
 }   // update
 
 //-----------------------------------------------------------------------------
@@ -241,20 +241,20 @@ void PowerupAudio::resetSoundSource()
 void PowerupAudio::prepareSoundSource()
 {
 // Select a sound source that's not already in use, if there is one
-	for (int i=0 ; i<POWERUP_SOUND_SOURCES; i++)
-	{
-		if (m_powerup_sound[i] == NULL ||
-			m_powerup_sound[i]->getStatus() != SFXBase::SFX_PLAYING)
-		{
-			m_curr_sound = i;
-			break;
-		}
-	}
+    for (int i=0 ; i<POWERUP_SOUND_SOURCES; i++)
+    {
+        if (m_powerup_sound[i] == NULL ||
+            m_powerup_sound[i]->getStatus() != SFXBase::SFX_PLAYING)
+        {
+            m_curr_sound = i;
+            break;
+        }
+    }
 
-	// Avoid leaking sound sources
-	if (m_powerup_sound[m_curr_sound] != NULL)
-	{
-		m_powerup_sound[m_curr_sound]->deleteSFX();
-		m_powerup_sound[m_curr_sound] = NULL;
-	}
+    // Avoid leaking sound sources
+    if (m_powerup_sound[m_curr_sound] != NULL)
+    {
+        m_powerup_sound[m_curr_sound]->deleteSFX();
+        m_powerup_sound[m_curr_sound] = NULL;
+    }
 } // resetSoundSource

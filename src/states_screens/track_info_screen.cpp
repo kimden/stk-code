@@ -194,34 +194,34 @@ void TrackInfoScreen::init()
     m_target_value_label->setVisible(false);
 
 
-	m_fuel_spinner->setValue(1000);
+    m_fuel_spinner->setValue(1000);
     m_fuel_spinner->setVisible(true);
     m_fuel_label->setVisible(true);
-	m_fuel_label->setText(_("Start E") , false);
+    m_fuel_label->setText(_("Start E") , false);
 
 
-	m_fuel_regen_spinner->setValue(0);
+    m_fuel_regen_spinner->setValue(0);
     m_fuel_regen_spinner->setVisible(true);
     m_fuel_regen_label->setVisible(true);
-	m_fuel_regen_label->setText(_("E regen") , false);
+    m_fuel_regen_label->setText(_("E regen") , false);
 
-	m_fuel_stop_spinner->setValue(0);
+    m_fuel_stop_spinner->setValue(0);
     m_fuel_stop_spinner->setVisible(true);
     m_fuel_stop_label->setVisible(true);
-	m_fuel_stop_label->setText(_("Pitstop E") , false);
+    m_fuel_stop_label->setText(_("Pitstop E") , false);
 
-	m_fuel_weight_spinner->setValue(0);
+    m_fuel_weight_spinner->setValue(0);
     m_fuel_weight_spinner->setVisible(true);
     m_fuel_weight_label->setVisible(true);
-	m_fuel_weight_label->setText(_("E mass") , false);
-	
+    m_fuel_weight_label->setText(_("E mass") , false);
+    
 
-	m_fuel_rate_spinner->setValue(0);
+    m_fuel_rate_spinner->setValue(0);
     m_fuel_rate_spinner->setVisible(true);
     m_fuel_rate_label->setVisible(true);
-	m_fuel_rate_label->setText(_("E rate") , false);
+    m_fuel_rate_label->setText(_("E rate") , false);
 
-   	RaceManager::get()->setFuelInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue());
+    RaceManager::get()->setFuelInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue());
 
 // fuel fuel_regen fuel_stop fuel_weight fuel_rate
 
@@ -750,7 +750,7 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
         }
     }
     else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" || name == "fuel-weight-spinner" || name == "fuel-rate-spinner") {
-    	RaceManager::get()->setFuelInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue());
+        RaceManager::get()->setFuelInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue());
     }
     else if (name == "option")
     {

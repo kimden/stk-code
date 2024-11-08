@@ -117,8 +117,8 @@ void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int
     m_original_rotation = shortestArcQuat(Vec3(0, 1, 0), normal);
     m_original_type     = ITEM_NONE;
     m_ticks_till_return = 0;
-	m_compound = compound;
-	m_stop_time = stop_time;
+    m_compound = compound;
+    m_stop_time = stop_time;
     setDisappearCounter();
 }   // initItem
 
@@ -182,7 +182,7 @@ void ItemState::collected(const Kart *kart)
                 break;
             case ITEM_TYRE_CHANGE:
                 m_ticks_till_return = stk_config->m_tyre_change_item_return_ticks;
-            	break;
+                break;
             default:
                 m_ticks_till_return = stk_config->time2Ticks(2.0f);
                 break;

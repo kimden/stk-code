@@ -28,7 +28,7 @@ class BareNetworkString;
 class EventRewinder
 {
 public:
- 	         EventRewinder();
+             EventRewinder();
     virtual ~EventRewinder();
 
     /** Called when an event needs to be undone. This is called while going

@@ -732,13 +732,13 @@ void ClientLobby::handleServerInfo(Event* event)
 
     NetworkingLobby::getInstance()->setHeader(str);
 
-	float fuel_info[5];
-	fuel_info[0] = data.getFloat();
-	fuel_info[1] = data.getFloat();
-	fuel_info[2] = data.getFloat();
-	fuel_info[3] = data.getFloat();
-	fuel_info[4] = data.getFloat();
-	RaceManager::get()->setFuelInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4]);
+    float fuel_info[5];
+    fuel_info[0] = data.getFloat();
+    fuel_info[1] = data.getFloat();
+    fuel_info[2] = data.getFloat();
+    fuel_info[3] = data.getFloat();
+    fuel_info[4] = data.getFloat();
+    RaceManager::get()->setFuelInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4]);
 
     u_data = data.getUInt8();
     const core::stringw& difficulty_name =
@@ -1693,7 +1693,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
             m_background_download.join();
     }
     else if (argv[0] == "changecolor" && argv.size() == 2) {
-    	float new_hue = std::stof(argv[1])/100.0f;
+        float new_hue = std::stof(argv[1])/100.0f;
         PlayerManager::getCurrentPlayer()->setDefaultKartColor(new_hue);
         NetworkString change_color(PROTOCOL_LOBBY_ROOM);
         change_color.addUInt8(LobbyProtocol::LE_CHANGE_COLOR).addUInt8(/*PlayerManager::getCurrentPlayer()->getLocalPlayerId()*/0).addFloat(new_hue);

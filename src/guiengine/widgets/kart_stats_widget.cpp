@@ -76,7 +76,7 @@ KartStatsWidget::KartStatsWidget(core::recti area, const int player_id,
         m_children.push_back(skill_bar);
     }
 
-	setValues(props, HANDICAP_NONE);
+    setValues(props, HANDICAP_NONE);
 
     move(area.UpperLeftCorner.X, area.UpperLeftCorner.Y,
          area.getWidth(), area.getHeight());

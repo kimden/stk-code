@@ -460,7 +460,7 @@ bool RubberBall::updateAndDelete(int ticks)
     if(UserConfigParams::logFlyable())
         Log::debug("[RubberBall]", "ball %d: %f %f %f height %f gethot %f terrain %d aim %d",
                 m_id, next_xyz.getX(), next_xyz.getY(), next_xyz.getZ(), height, getHoT(),
-			    isOnRoad(),
+                isOnRoad(),
             m_aiming_at_target);
 
     // No need to check for terrain height if the ball is low to the ground

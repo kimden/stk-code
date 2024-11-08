@@ -50,8 +50,8 @@ ItemEventInfo::ItemEventInfo(BareNetworkString *buffer, int *count)
         else   // IEI_COLLECT
         {
             m_ticks_till_return = buffer->getUInt16();
-        	m_compound = buffer->getUInt8();
-        	m_stop_time = buffer->getUInt8();
+            m_compound = buffer->getUInt8();
+            m_stop_time = buffer->getUInt8();
             *count -= 4;
         }
     }   // is not switch

@@ -2769,16 +2769,16 @@ void Track::itemCommand(const XMLNode *node)
 #endif
     }
 
-	int compound = 0;
-	int stop_time = 0;
-	
-	if (!node->get("compound", &compound)) {
-		compound = -1;
-	}
+    int compound = 0;
+    int stop_time = 0;
+    
+    if (!node->get("compound", &compound)) {
+        compound = -1;
+    }
 
-	if (!node->get("stop-time", &stop_time)) {
-		stop_time = 0;
-	}
+    if (!node->get("stop-time", &stop_time)) {
+        stop_time = 0;
+    }
 
     m_item_manager->placeItem(type, drop ? hit_point : loc, normal, compound, stop_time);
 }   // itemCommand

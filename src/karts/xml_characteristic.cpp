@@ -251,7 +251,7 @@ void XmlCharacteristic::processFloat(const std::string &processor, float *value,
     else
     {
         float val;
-    	if (!StringUtils::fromString(parts[index], val))
+        if (!StringUtils::fromString(parts[index], val))
         {
             Log::fatal("XmlCharacteristic::processFloat",
                 "Can't parse %s: Not a float", parts[index].c_str());

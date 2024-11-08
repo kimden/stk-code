@@ -21,7 +21,7 @@
 
 namespace TutorialUtils
 {
-	void startTutorial(bool from_overworld = false);
+    void startTutorial(bool from_overworld = false);
 }
 
 #endif

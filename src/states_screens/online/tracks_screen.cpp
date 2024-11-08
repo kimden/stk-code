@@ -584,7 +584,7 @@ void TracksScreen::buildTrackList()
 
     // First build a list of all tracks to be displayed
     // (e.g. exclude arenas, ...)
-	bool is_network = (STKHost::existHost());
+    bool is_network = (STKHost::existHost());
     std::shared_ptr<ClientLobby> clrp;
     if (is_network)
     {

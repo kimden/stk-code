@@ -395,7 +395,7 @@ void Powerup::remove() {
         m_mini_state = PowerupManager::MINI_SELECT;
     if (m_number <= 0) {
         m_number = 0;
-    	m_type = PowerupManager::POWERUP_NOTHING;
+        m_type = PowerupManager::POWERUP_NOTHING;
     }
 
 

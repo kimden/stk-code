@@ -573,11 +573,11 @@ void LinearWorld::newLap(unsigned int kart_index)
         //I18N: as in "fastest lap: 60 seconds by Wilber"
         lap_message = _C("fastest_lap", "New FL: %s by %s", s.c_str(), kart_name);
         color = video::SColor(255, 255, 255, 255);
-	}
+    }
 
      if (m_race_gui) m_race_gui->addMessage(lap_message, NULL, 4.0f, color, false);
 
-	ENDOFNEWLAP:
+    ENDOFNEWLAP:
     kart_info.m_lap_start_ticks = getTimeTicks();
     kart->getController()->newLap(kart_info.m_finished_laps);
 }   // newLap

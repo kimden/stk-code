@@ -73,7 +73,7 @@ public:
 
         /** For easter egg mode only. */
         ITEM_EASTER_EGG,
-		ITEM_TYRE_CHANGE,
+        ITEM_TYRE_CHANGE,
 
         ITEM_LAST = ITEM_TYRE_CHANGE,
         ITEM_COUNT,
@@ -157,8 +157,8 @@ public:
     void initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int compound, int stop_time);
     void update(int ticks);
     void setDisappearCounter();
-	int m_compound;
-	int m_stop_time;
+    int m_compound;
+    int m_stop_time;
     virtual void collected(const Kart *kart);
     // ------------------------------------------------------------------------
     virtual ~ItemState() {}
