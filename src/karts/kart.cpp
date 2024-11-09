@@ -1348,10 +1348,10 @@ void Kart::collectedItem(ItemState *item_state)
                 if (!m_tyres_queue.empty()) { /*Empty queue just means it wasn't initialized*/
                     if (m_tyres_queue.size() < m_tyres->m_current_compound ||
                           m_tyres_queue[m_tyres->m_current_compound-1].empty()){
-                        m_is_disqualified = true;
                         /*Penalty for pitting with no available compound*/
-                        m_tyres->m_current_life_turning *= 0.8;
-                        m_tyres->m_current_life_traction *= 0.8;
+                        m_is_disqualified = true;
+                        m_tyres->m_current_life_turning *= 0.2;
+                        m_tyres->m_current_life_traction *= 0.2;
                     } else {
                         std::tuple<int, float, float, float> e = m_tyres_queue[m_tyres->m_current_compound-1].back();
                         m_tyres->m_lap_count = std::get<0>(e);
@@ -1362,7 +1362,6 @@ void Kart::collectedItem(ItemState *item_state)
                     }
                 }
             }
-
             if (item_state->m_stop_time > 0) {
                 m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(item_state->m_stop_time));
             }
