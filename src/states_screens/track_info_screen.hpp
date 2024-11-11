@@ -108,6 +108,22 @@ class TrackInfoScreen : public GUIEngine::Screen,
     GUIEngine::LabelWidget* m_fuel_rate_label;
 
 
+    /** Spinner for soft tyre allocation*/
+    GUIEngine::SpinnerWidget* m_allowed_compound_1_spinner;
+    /** The label besides the soft alloc spinner. */
+    GUIEngine::LabelWidget* m_allowed_compound_1_label;
+
+    /** Spinner for medium tyre allocation*/
+    GUIEngine::SpinnerWidget* m_allowed_compound_2_spinner;
+    /** The label besides the medium alloc spinner. */
+    GUIEngine::LabelWidget* m_allowed_compound_2_label;
+
+    /** Spinner for hard tyre allocation*/
+    GUIEngine::SpinnerWidget* m_allowed_compound_3_spinner;
+    /** The label besides the hard alloc spinner. */
+    GUIEngine::LabelWidget* m_allowed_compound_3_label;
+
+
     /** Spinner for number of AI karts. */
     GUIEngine::SpinnerWidget* m_ai_kart_spinner;
 

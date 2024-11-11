@@ -156,7 +156,10 @@ RaceManager::RaceManager()
     m_fuel_info[2] = 0.0f;
     m_fuel_info[3] = 0.0f;
     m_fuel_info[4] = 0.0f;
-
+    m_compound_limits[0] = 0;
+    m_compound_limits[1] = 0;
+    m_compound_limits[2] = 0;
+    m_tyres_queue_info = {};
 }   // RaceManager
 
 //---------------------------------------------------------------------------------------------
@@ -337,7 +340,7 @@ void RaceManager::setTrack(const std::string& track)
     m_coin_target = 0;
 }   // setTrack
 
-void RaceManager::setFuelInfo(float fuel, float regen, float stop, float weight, float rate)
+void RaceManager::setFuelAndQueueInfo(float fuel, float regen, float stop, float weight, float rate, int amount_1, int amount_2, int amount_3)
 {
     printf("FUEL INFO WAS JUST SET:\n"
            "\t fuel        %f\n"
@@ -351,10 +354,45 @@ void RaceManager::setFuelInfo(float fuel, float regen, float stop, float weight,
     m_fuel_info[2] = stop;
     m_fuel_info[3] = weight;
     m_fuel_info[4] = rate;
+
+    m_compound_limits[0] = amount_1;
+    m_compound_limits[1] = amount_2;
+    m_compound_limits[2] = amount_3;
+
+    m_tyres_queue_info = {};
+    if (amount_1 == 0 && amount_2 == 0 && amount_3 == 0) {
+        m_tyres_queue_info = {};
+    } else {
+        std::vector<std::tuple<int, float, float, float>> tmpvec;
+
+        tmpvec = {};
+        m_tyres_queue_info.push_back(tmpvec); // Empty compound 1
+
+        tmpvec = {};
+        for (int i = 0; i < amount_1; i++) {
+            tmpvec.push_back(std::make_tuple(0, -1, -1, -1));
+        }
+        m_tyres_queue_info.push_back(tmpvec);
+
+        tmpvec = {};
+        for (int i = 0; i < amount_2; i++) {
+            tmpvec.push_back(std::make_tuple(0, -1, -1, -1));
+        }
+        m_tyres_queue_info.push_back(tmpvec);
+
+        tmpvec = {};
+        for (int i = 0; i < amount_3; i++) {
+            tmpvec.push_back(std::make_tuple(0, -1, -1, -1));
+        }
+        m_tyres_queue_info.push_back(tmpvec);
+
+        tmpvec = {};
+        m_tyres_queue_info.push_back(tmpvec); // Empty compound 5
+    }
 }
 
-std::array<float, 5> RaceManager::getFuelInfo(void) {
-        return m_fuel_info;
+std::tuple<std::array<float, 5>,  std::array<int, 3>, std::vector<std::vector<std::tuple<int, float, float, float>>>> RaceManager::getFuelAndQueueInfo(void) {
+        return std::make_tuple(m_fuel_info, m_compound_limits, m_tyres_queue_info);
 }
 
 

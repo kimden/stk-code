@@ -1355,9 +1355,9 @@ void Kart::collectedItem(ItemState *item_state)
                     } else {
                         std::tuple<int, float, float, float> e = m_tyres_queue[m_tyres->m_current_compound-1].back();
                         m_tyres->m_lap_count = std::get<0>(e);
-                        m_tyres->m_current_life_turning = std::get<1>(e);
-                        m_tyres->m_current_life_traction = std::get<2>(e);
-                        m_tyres->m_current_temp = std::get<3>(e);
+                        if (std::get<1>(e) > 0.0f) m_tyres->m_current_life_turning = std::get<1>(e);
+                        if (std::get<2>(e) > 0.0f) m_tyres->m_current_life_traction = std::get<2>(e);
+                        if (std::get<3>(e) > 0.0f) m_tyres->m_current_temp = std::get<3>(e);
                         m_tyres_queue[m_tyres->m_current_compound-1].pop_back();
                     }
                 }

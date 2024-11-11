@@ -90,6 +90,14 @@ void TrackInfoScreen::loadedFromFile()
     m_fuel_rate_spinner  = getWidget<SpinnerWidget>("fuel-rate-spinner");
     m_fuel_rate_label    = getWidget<LabelWidget>("fuel-rate-text");
 
+    m_allowed_compound_1_spinner  = getWidget<SpinnerWidget>("allowed-compound-1-spinner");
+    m_allowed_compound_1_label  = getWidget<LabelWidget>("allowed-compound-1-text");
+
+    m_allowed_compound_2_spinner  = getWidget<SpinnerWidget>("allowed-compound-2-spinner");
+    m_allowed_compound_2_label  = getWidget<LabelWidget>("allowed-compound-2-text");
+
+    m_allowed_compound_3_spinner  = getWidget<SpinnerWidget>("allowed-compound-3-spinner");
+    m_allowed_compound_3_label  = getWidget<LabelWidget>("allowed-compound-3-text");
 
     m_ai_kart_spinner       = getWidget<SpinnerWidget>("ai-spinner");
     m_ai_kart_label         = getWidget<LabelWidget>("ai-text");
@@ -221,9 +229,24 @@ void TrackInfoScreen::init()
     m_fuel_rate_label->setVisible(true);
     m_fuel_rate_label->setText(_("E rate") , false);
 
-    RaceManager::get()->setFuelInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue());
+    m_allowed_compound_1_spinner->setValue(0);
+    m_allowed_compound_1_spinner->setVisible(true);
+    m_allowed_compound_1_label->setVisible(true);
+    m_allowed_compound_1_label->setText(_("S alloc:"), false);
 
-// fuel fuel_regen fuel_stop fuel_weight fuel_rate
+    m_allowed_compound_2_spinner->setValue(0);
+    m_allowed_compound_2_spinner->setVisible(true);
+    m_allowed_compound_2_label->setVisible(true);
+    m_allowed_compound_2_label->setText(_("M alloc:"), false);
+
+    m_allowed_compound_3_spinner->setValue(0);
+    m_allowed_compound_3_spinner->setVisible(true);
+    m_allowed_compound_3_label->setVisible(true);
+    m_allowed_compound_3_label->setText(_("H alloc:"), false);
+
+    RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue(), m_allowed_compound_1_spinner->getValue(), m_allowed_compound_2_spinner->getValue(), m_allowed_compound_3_spinner->getValue());
+
+// fuel fuel_regen fuel_stop fuel_weight fuel_rate amount_1 amount_2 amount_3
 
 
     m_ai_blue_spinner->setVisible(false);
@@ -749,8 +772,8 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
             updateHighScores();
         }
     }
-    else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" || name == "fuel-weight-spinner" || name == "fuel-rate-spinner") {
-        RaceManager::get()->setFuelInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue());
+    else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" || name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-1-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-2-spinner") {
+        RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue(), m_allowed_compound_1_spinner->getValue(), m_allowed_compound_2_spinner->getValue(), m_allowed_compound_3_spinner->getValue());
     }
     else if (name == "option")
     {

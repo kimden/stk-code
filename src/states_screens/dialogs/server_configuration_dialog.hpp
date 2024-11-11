@@ -58,6 +58,14 @@ private:
     GUIEngine::SpinnerWidget* m_fuel_weight_spinner;
     GUIEngine::LabelWidget* m_fuel_weight_text;
 
+    GUIEngine::SpinnerWidget* m_allowed_compounds_1_spinner;
+    GUIEngine::LabelWidget* m_allowed_compounds_1_text;
+
+    GUIEngine::SpinnerWidget* m_allowed_compounds_2_spinner;
+    GUIEngine::LabelWidget* m_allowed_compounds_2_text;
+
+    GUIEngine::SpinnerWidget* m_allowed_compounds_3_spinner;
+    GUIEngine::LabelWidget* m_allowed_compounds_3_text;
 
 
     GUIEngine::RibbonWidget* m_difficulty_widget;

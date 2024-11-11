@@ -125,11 +125,15 @@ void GameSetup::addServerInfo(NetworkString* ns)
     auto sl = LobbyProtocol::get<ServerLobby>();
     assert(sl);
 
-    ns->addFloat(RaceManager::get()->getFuelInfo()[0]);
-    ns->addFloat(RaceManager::get()->getFuelInfo()[1]);
-    ns->addFloat(RaceManager::get()->getFuelInfo()[2]);
-    ns->addFloat(RaceManager::get()->getFuelInfo()[3]);
-    ns->addFloat(RaceManager::get()->getFuelInfo()[4]);
+    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[0]);
+    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[1]);
+    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[2]);
+    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[3]);
+    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[4]);
+
+    ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[0]);
+    ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[1]);
+    ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[2]);
 
     ns->addUInt8((uint8_t)sl->getDifficulty())
         .addUInt8((uint8_t)ServerConfig::m_server_max_players)
