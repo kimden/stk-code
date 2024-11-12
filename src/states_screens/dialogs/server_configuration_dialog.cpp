@@ -88,7 +88,7 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_allowed_compounds_1_spinner = getWidget<SpinnerWidget>("allowed-compound-1-spinner");
     assert(m_allowed_compounds_1_spinner != NULL);
     m_allowed_compounds_1_spinner->setVisible(true);
-    m_allowed_compounds_1_spinner->setValue(0);
+    m_allowed_compounds_1_spinner->setValue(-1);
     m_allowed_compounds_1_text->setVisible(true);
 
     m_allowed_compounds_2_text = getWidget<LabelWidget>("allowed-compound-2-label");
@@ -96,7 +96,7 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_allowed_compounds_2_spinner = getWidget<SpinnerWidget>("allowed-compound-2-spinner");
     assert(m_allowed_compounds_2_spinner != NULL);
     m_allowed_compounds_2_spinner->setVisible(true);
-    m_allowed_compounds_2_spinner->setValue(0);
+    m_allowed_compounds_2_spinner->setValue(-1);
     m_allowed_compounds_2_text->setVisible(true);
 
     m_allowed_compounds_3_text = getWidget<LabelWidget>("allowed-compound-3-label");
@@ -104,7 +104,7 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_allowed_compounds_3_spinner = getWidget<SpinnerWidget>("allowed-compound-3-spinner");
     assert(m_allowed_compounds_3_spinner != NULL);
     m_allowed_compounds_3_spinner->setVisible(true);
-    m_allowed_compounds_3_spinner->setValue(0);
+    m_allowed_compounds_3_spinner->setValue(-1);
     m_allowed_compounds_3_text->setVisible(true);
 
 
@@ -166,10 +166,15 @@ GUIEngine::EventPropagation
             change.addFloat(m_fuel_rate_spinner->getValue());
             change.addFloat(m_fuel_weight_spinner->getValue());
 
-            change.addUInt8(m_allowed_compounds_1_spinner->getValue());
-            change.addUInt8(m_allowed_compounds_2_spinner->getValue());
-            change.addUInt8(m_allowed_compounds_3_spinner->getValue());
+            change.addUInt8(m_allowed_compounds_1_spinner->getValue()+1);
+            change.addUInt8(m_allowed_compounds_2_spinner->getValue()+1);
+            change.addUInt8(m_allowed_compounds_3_spinner->getValue()+1);
 
+            RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_regen_spinner->getValue(),
+                                                    m_fuel_rate_spinner->getValue(), m_fuel_weight_spinner->getValue(),
+                                                    m_allowed_compounds_1_spinner->getValue(),
+                                                    m_allowed_compounds_2_spinner->getValue(),
+                                                    m_allowed_compounds_3_spinner->getValue());
 
             switch (m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER))
             {

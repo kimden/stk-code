@@ -1347,19 +1347,14 @@ void Kart::collectedItem(ItemState *item_state)
             if (m_is_under_tme_ruleset) {
                 if (!m_tyres_queue.empty()) { /*Empty queue just means it wasn't initialized*/
                     if (m_tyres_queue.size() < m_tyres->m_current_compound ||
-                          m_tyres_queue[m_tyres->m_current_compound-1].empty()){
+                          m_tyres_queue[m_tyres->m_current_compound-1] == 0){
                         /*Penalty for pitting with no available compound*/
                         m_is_disqualified = true;
                         m_tyres->m_current_life_turning *= 0.2;
                         m_tyres->m_current_life_traction *= 0.2;
-                    } else {
-                        std::tuple<int, float, float, float> e = m_tyres_queue[m_tyres->m_current_compound-1].back();
-                        m_tyres->m_lap_count = std::get<0>(e);
-                        if (std::get<1>(e) > 0.0f) m_tyres->m_current_life_turning = std::get<1>(e);
-                        if (std::get<2>(e) > 0.0f) m_tyres->m_current_life_traction = std::get<2>(e);
-                        if (std::get<3>(e) > 0.0f) m_tyres->m_current_temp = std::get<3>(e);
-                        m_tyres_queue[m_tyres->m_current_compound-1].pop_back();
-                    }
+                    } else if (m_tyres_queue.size() >= m_tyres->m_current_compound && m_tyres_queue[m_tyres->m_current_compound-1] > 0){
+                        m_tyres_queue[m_tyres->m_current_compound-1] -= 1;
+                    } else { }
                 }
             }
             if (item_state->m_stop_time > 0) {

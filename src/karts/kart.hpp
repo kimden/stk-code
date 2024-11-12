@@ -417,10 +417,7 @@ public:
     Tyres *m_tyres;
     /** Format of each tuple: age in laps, life turning, life traction, temperature
         There can be multiple in the queue, and there's a queue for each compound*/
-    std::vector<
-        std::vector<
-            std::tuple<int, float, float, float>>>
-    m_tyres_queue;
+    std::vector<int> m_tyres_queue;
     bool m_is_under_tme_ruleset;
     bool m_is_disqualified;
     float m_initial_color;

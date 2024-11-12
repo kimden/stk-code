@@ -360,38 +360,20 @@ void RaceManager::setFuelAndQueueInfo(float fuel, float regen, float stop, float
     m_compound_limits[2] = amount_3;
 
     m_tyres_queue_info = {};
-    if (amount_1 == 0 && amount_2 == 0 && amount_3 == 0) {
-        m_tyres_queue_info = {};
-    } else {
-        std::vector<std::tuple<int, float, float, float>> tmpvec;
 
-        tmpvec = {};
-        m_tyres_queue_info.push_back(tmpvec); // Empty compound 1
-
-        tmpvec = {};
-        for (int i = 0; i < amount_1; i++) {
-            tmpvec.push_back(std::make_tuple(0, -1, -1, -1));
-        }
-        m_tyres_queue_info.push_back(tmpvec);
-
-        tmpvec = {};
-        for (int i = 0; i < amount_2; i++) {
-            tmpvec.push_back(std::make_tuple(0, -1, -1, -1));
-        }
-        m_tyres_queue_info.push_back(tmpvec);
-
-        tmpvec = {};
-        for (int i = 0; i < amount_3; i++) {
-            tmpvec.push_back(std::make_tuple(0, -1, -1, -1));
-        }
-        m_tyres_queue_info.push_back(tmpvec);
-
-        tmpvec = {};
-        m_tyres_queue_info.push_back(tmpvec); // Empty compound 5
-    }
+    m_tyres_queue_info.push_back(0); // Empty compound 1
+    m_tyres_queue_info.push_back(amount_1);
+    m_tyres_queue_info.push_back(amount_2);
+    m_tyres_queue_info.push_back(amount_3);
+    m_tyres_queue_info.push_back(0); // Empty compound 5
+    m_tyres_queue_info.push_back(0); // Empty compound 6
+    m_tyres_queue_info.push_back(0); // Empty compound 7
+    m_tyres_queue_info.push_back(0); // Empty compound 8
+    m_tyres_queue_info.push_back(0); // Empty compound 9
+    m_tyres_queue_info.push_back(0); // Empty compound 10 (This one's specially important, can't pit for the no-degradation tyre under any circumstances, only start with it!)
 }
 
-std::tuple<std::array<float, 5>,  std::array<int, 3>, std::vector<std::vector<std::tuple<int, float, float, float>>>> RaceManager::getFuelAndQueueInfo(void) {
+std::tuple<std::array<float, 5>,  std::array<int, 3>, std::vector<int>> RaceManager::getFuelAndQueueInfo(void) {
         return std::make_tuple(m_fuel_info, m_compound_limits, m_tyres_queue_info);
 }
 

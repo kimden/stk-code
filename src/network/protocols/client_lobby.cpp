@@ -740,9 +740,9 @@ void ClientLobby::handleServerInfo(Event* event)
     fuel_info[4] = data.getFloat();
 
     int compound_amount[3];
-    compound_amount[0] = data.getUInt8();
-    compound_amount[1] = data.getUInt8();
-    compound_amount[2] = data.getUInt8();
+    compound_amount[0] = data.getUInt8()-1;
+    compound_amount[1] = data.getUInt8()-1;
+    compound_amount[2] = data.getUInt8()-1;
 
     RaceManager::get()->setFuelAndQueueInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4], compound_amount[0], compound_amount[1], compound_amount[2]);
 

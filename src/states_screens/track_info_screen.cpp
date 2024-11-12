@@ -229,17 +229,17 @@ void TrackInfoScreen::init()
     m_fuel_rate_label->setVisible(true);
     m_fuel_rate_label->setText(_("E rate") , false);
 
-    m_allowed_compound_1_spinner->setValue(0);
+    m_allowed_compound_1_spinner->setValue(-1);
     m_allowed_compound_1_spinner->setVisible(true);
     m_allowed_compound_1_label->setVisible(true);
     m_allowed_compound_1_label->setText(_("S alloc:"), false);
 
-    m_allowed_compound_2_spinner->setValue(0);
+    m_allowed_compound_2_spinner->setValue(-1);
     m_allowed_compound_2_spinner->setVisible(true);
     m_allowed_compound_2_label->setVisible(true);
     m_allowed_compound_2_label->setText(_("M alloc:"), false);
 
-    m_allowed_compound_3_spinner->setValue(0);
+    m_allowed_compound_3_spinner->setValue(-1);
     m_allowed_compound_3_spinner->setVisible(true);
     m_allowed_compound_3_label->setVisible(true);
     m_allowed_compound_3_label->setText(_("H alloc:"), false);
@@ -772,7 +772,7 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
             updateHighScores();
         }
     }
-    else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" || name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-1-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-2-spinner") {
+    else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" || name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-1-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-3-spinner") {
         RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue(), m_allowed_compound_1_spinner->getValue(), m_allowed_compound_2_spinner->getValue(), m_allowed_compound_3_spinner->getValue());
     }
     else if (name == "option")

@@ -375,7 +375,7 @@ void RaceGUI::renderPlayerView(const Camera *camera, float dt)
     const Kart *kart = camera->getKart();
     if(!kart) return;
 
-    bool isSpectatorCam = Camera::getActiveCamera()->isSpectatorMode();
+    //bool isSpectatorCam = Camera::getActiveCamera()->isSpectatorMode();
 
     if (viewport.getWidth() != (int)irr_driver->getActualScreenSize().Width ||
         viewport.getHeight() != (int)irr_driver->getActualScreenSize().Height)
@@ -414,32 +414,129 @@ void RaceGUI::renderPlayerView(const Camera *camera, float dt)
 void RaceGUI::drawCompoundData(const Kart* kart,
      const core::recti &viewport, const core::vector2df &scaling) {
 
-
-    core::recti pos; 
-
-    std::stringstream stream;
-    stream << std::fixed << std::setprecision(2) << 100*kart->m_tyres->m_current_life_traction/kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1] << "%;" << 100*kart->m_tyres->m_current_life_turning/kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1] << "%;" << ((kart->m_is_refueling) ? (kart->m_target_refuel) : (kart->m_tyres->m_current_fuel));
-    std::string s = stream.str();
-
-
     gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
     while (1) {
-        if (font->getDimension(L"xxx.xx%;xxx.xx%;xxx.xx").Width > (unsigned)viewport.getWidth()/2) {
+        if (font->getDimension(L"xxx.xx%;xxx.xx%").Width > (unsigned)viewport.getWidth()/2) {
             font->setScale(0.95f * font->getScale());
         } else {
             break;
         }
     }
 
-    pos.LowerRightCorner.X = viewport.UpperLeftCorner.X+(viewport.getWidth()/2);
-    pos.LowerRightCorner.Y = viewport.LowerRightCorner.Y;
 
-    pos.UpperLeftCorner.Y = pos.LowerRightCorner.Y - font->getDimension(L"9").Height;
-    pos.UpperLeftCorner.X = pos.LowerRightCorner.X - font->getDimension(L"xxx.xx%;xxx.xx%;xxx.xx").Width;
+    //ARGB
+    video::SColor color_traction = video::SColor(180, 200, 20, 20);
+    video::SColor color_turning = video::SColor(180, 20, 20, 200);
+    video::SColor color_fuel = video::SColor(180, 100, 0, 115);
+    video::SColor color_base = video::SColor(150, 100, 100, 100);
 
-    video::SColor color = video::SColor(255, 255, 255, 255);
+    float maxLifes[2] = {kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1], kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1]};
+    float minLifes[2] = {kart->getKartProperties()->getTyresMinLifeTraction()[kart->m_tyres->m_current_compound-1], kart->getKartProperties()->getTyresMinLifeTurning()[kart->m_tyres->m_current_compound-1]};
+    float currlives[2] = {kart->m_tyres->m_current_life_traction, kart->m_tyres->m_current_life_turning};
+    float height_outer = font->getDimension(L"9").Height*3;
+    int width_outer = font->getDimension(L"9").Width;
+    int width_inner = width_outer ;
+    float inner_width_divisor = 0;
+    float height_inner_base = height_outer;
+    float heights_inner[3] = { std::max((currlives[0]-minLifes[0])/(maxLifes[0]-minLifes[0]), 0.0f),
+                             std::max((currlives[1]-minLifes[1])/(maxLifes[1]-minLifes[1]), 0.0f),
+                             ((kart->m_is_refueling) ? (kart->m_target_refuel) : (kart->m_tyres->m_current_fuel))/1000.0f };
+
+    core::recti pos_bars_outer[3];
+    core::recti pos_bars_inner[3];
+
+    // The reason the math is this complicated is it also admits centering the contents of the tyre health bars WITHIN the baseline.
+    pos_bars_outer[0].UpperLeftCorner.X = viewport.UpperLeftCorner.X + (viewport.getWidth()*6.5f)/10.0f;
+    pos_bars_outer[0].UpperLeftCorner.Y = viewport.LowerRightCorner.Y - height_outer;
+    pos_bars_outer[0].LowerRightCorner.X = pos_bars_outer[0].UpperLeftCorner.X + width_outer;
+    pos_bars_outer[0].LowerRightCorner.Y = viewport.LowerRightCorner.Y;
+
+    pos_bars_outer[1].UpperLeftCorner.X = pos_bars_outer[0].LowerRightCorner.X + font->getDimension(L"9").Width;
+    pos_bars_outer[1].UpperLeftCorner.Y = pos_bars_outer[0].UpperLeftCorner.Y;
+    pos_bars_outer[1].LowerRightCorner.X = pos_bars_outer[1].UpperLeftCorner.X + width_outer;
+    pos_bars_outer[1].LowerRightCorner.Y = pos_bars_outer[0].LowerRightCorner.Y;
+
+    pos_bars_outer[2].UpperLeftCorner.X = pos_bars_outer[1].LowerRightCorner.X + font->getDimension(L"9").Width;
+    pos_bars_outer[2].UpperLeftCorner.Y = pos_bars_outer[1].UpperLeftCorner.Y;
+    pos_bars_outer[2].LowerRightCorner.X = pos_bars_outer[2].UpperLeftCorner.X + width_outer;
+    pos_bars_outer[2].LowerRightCorner.Y = pos_bars_outer[1].LowerRightCorner.Y;
+
+    pos_bars_inner[0].UpperLeftCorner.X = pos_bars_outer[0].UpperLeftCorner.X + (pos_bars_outer[0].LowerRightCorner.X - pos_bars_outer[0].UpperLeftCorner.X)*inner_width_divisor;
+    pos_bars_inner[0].LowerRightCorner.X = pos_bars_inner[0].UpperLeftCorner.X + width_inner;
+    pos_bars_inner[0].LowerRightCorner.Y = pos_bars_outer[0].LowerRightCorner.Y - (pos_bars_outer[0].LowerRightCorner.Y - pos_bars_outer[0].UpperLeftCorner.Y)*inner_width_divisor;
+    pos_bars_inner[0].UpperLeftCorner.Y = pos_bars_inner[0].LowerRightCorner.Y - (float)(heights_inner[0]*height_inner_base);
+
+    pos_bars_inner[1].UpperLeftCorner.X = pos_bars_outer[1].UpperLeftCorner.X + (pos_bars_outer[1].LowerRightCorner.X - pos_bars_outer[1].UpperLeftCorner.X)*inner_width_divisor;
+    pos_bars_inner[1].LowerRightCorner.X = pos_bars_inner[1].UpperLeftCorner.X + width_inner;
+    pos_bars_inner[1].LowerRightCorner.Y = pos_bars_outer[1].LowerRightCorner.Y - (pos_bars_outer[1].LowerRightCorner.Y - pos_bars_outer[1].UpperLeftCorner.Y)*inner_width_divisor;
+    pos_bars_inner[1].UpperLeftCorner.Y = pos_bars_inner[1].LowerRightCorner.Y - (float)(heights_inner[1]*height_inner_base);
+
+    pos_bars_inner[2].UpperLeftCorner.X = pos_bars_outer[2].UpperLeftCorner.X + (pos_bars_outer[2].LowerRightCorner.X - pos_bars_outer[2].UpperLeftCorner.X)*inner_width_divisor;
+    pos_bars_inner[2].LowerRightCorner.X = pos_bars_inner[2].UpperLeftCorner.X + width_inner;
+    pos_bars_inner[2].LowerRightCorner.Y = pos_bars_outer[2].LowerRightCorner.Y - (pos_bars_outer[2].LowerRightCorner.Y - pos_bars_outer[2].UpperLeftCorner.Y)*inner_width_divisor;
+    pos_bars_inner[2].UpperLeftCorner.Y = pos_bars_inner[2].LowerRightCorner.Y - (float)(heights_inner[2]*height_inner_base);
+    
+
+    GL32_draw2DRectangle(color_base, pos_bars_outer[0]);
+    GL32_draw2DRectangle(color_base, pos_bars_outer[1]);
+    GL32_draw2DRectangle(color_base, pos_bars_outer[2]);
+
+    GL32_draw2DRectangle(color_traction, pos_bars_inner[0]);
+    GL32_draw2DRectangle(color_turning, pos_bars_inner[1]);
+    GL32_draw2DRectangle(color_fuel, pos_bars_inner[2]);
+
+
+    std::stringstream stream;
+    auto tyres_queue = kart->m_tyres_queue;
+    if (tyres_queue.size() < 4) { //Hardcoded range from compound 2 (soft) to compound 4 (hard)
+        stream << "000 000 000";
+    } else {
+        long signed remaining_compounds[3] = {
+            tyres_queue[1],
+            tyres_queue[2],
+            tyres_queue[3]
+        };
+        if (remaining_compounds[0] < 0) {
+            stream << "INF" << " ";
+        } else {
+            stream << std::setfill('0') << std::setw(3) << remaining_compounds[0] << " ";
+        }
+
+        if (remaining_compounds[1] < 0) {
+            stream << "INF" << " ";
+        } else {
+            stream << std::setfill('0') << std::setw(3) << remaining_compounds[1] << " ";
+        }
+
+        if (remaining_compounds[2] < 0) {
+            stream << "INF" << " ";
+        } else {
+            stream << std::setfill('0') << std::setw(3) << remaining_compounds[2];
+        }
+
+    }
+    std::string s = stream.str();
+
+    core::recti pos_text_1;
+    core::recti pos_text_2;
+
+    pos_text_1.LowerRightCorner.X = pos_bars_outer[0].UpperLeftCorner.X + font->getDimension(L"xxx xxx xxx").Width;
+    pos_text_1.LowerRightCorner.Y = pos_bars_outer[0].UpperLeftCorner.Y - (font->getDimension(L"9").Height/2.0f);
+    pos_text_1.UpperLeftCorner.X = pos_text_1.LowerRightCorner.X - font->getDimension(L"xxx xxx xxx").Width;
+    pos_text_1.UpperLeftCorner.Y = pos_text_1.LowerRightCorner.Y - font->getDimension(L"9").Height;
+
+
+    pos_text_2.LowerRightCorner.X = pos_text_1.LowerRightCorner.X;
+    pos_text_2.LowerRightCorner.Y = pos_text_1.LowerRightCorner.Y - (font->getDimension(L"9").Height);
+    pos_text_2.UpperLeftCorner.X = pos_text_1.UpperLeftCorner.X;
+    pos_text_2.UpperLeftCorner.Y = pos_text_2.LowerRightCorner.Y - (font->getDimension(L"9").Height);
+
+    video::SColor color_text_1 = video::SColor(255, 255, 255, 255);
+    video::SColor color_text_2 = video::SColor(255, 230, 40, 30);
     font->setBlackBorder(true);
-    font->draw(s.c_str(), pos, color);
+    font->draw(s.c_str(), pos_text_1, color_text_1);
+    font->draw("S-- M-- H--", pos_text_2, color_text_2);
+
     font->setBlackBorder(false);
     font->setScale(1.0f);
 }

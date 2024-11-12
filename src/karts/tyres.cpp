@@ -274,6 +274,7 @@ void Tyres::reset() {
         printf("Setting color to %f\n", m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]);
     }
     if (m_reset_fuel) {
+        m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
         m_current_fuel = m_c_fuel;
     }
 
@@ -352,6 +353,10 @@ void Tyres::saveState(BareNetworkString *buffer)
     buffer->addFloat(m_kart->m_target_refuel);
     buffer->addUInt8(m_current_compound);
     buffer->addUInt8(m_lap_count);
+    buffer->addUInt8(m_kart->m_tyres_queue.size());
+    for (long unsigned i = 0; i < m_kart->m_tyres_queue.size(); i++) {
+        buffer->addUInt8(m_kart->m_tyres_queue[i]+1);
+    }
 //  printf("Saved compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }
 
@@ -365,5 +370,12 @@ void Tyres::rewindTo(BareNetworkString *buffer)
     m_kart->m_target_refuel = buffer->getFloat();
     m_current_compound = buffer->getUInt8();
     m_lap_count = buffer->getUInt8();
+    unsigned queue_size = buffer->getUInt8();
+    std::vector<int> tmpvec;
+    for (unsigned i = 0; i < queue_size; i++) {
+        int tmpint = buffer->getUInt8()-1;
+        tmpvec.push_back(tmpint);
+    }
+    m_kart->m_tyres_queue = tmpvec;
 //  printf("Rewinded compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }
