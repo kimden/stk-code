@@ -28,7 +28,7 @@
 
         <tyres max-life-turning="750 750 1500 3200 3200 1000 1000 1000 1000 1000"
                max-life-traction="1600 1600 3200 4800 4800 1000 1000 1000 1000 1000"
-               min-life-turning="325 325 750 1600 1600 100 100 100 100"
+               min-life-turning="150 150 300 640 640 100 100 100 100"
                min-life-traction="800 800 1600 2400 2400 100 100 100 100 100"
                default-color="1 1 12 63 63 -1 -1 -1 -1 29"
                regular-transfer-turning="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"
