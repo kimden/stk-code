@@ -38,6 +38,8 @@ namespace HelpCommon
             screen = HelpScreen6::getInstance();
         else if (selected_tab == "page7")
             screen = HelpScreen7::getInstance();
+        else if (selected_tab == "page8")
+            screen = HelpScreen8::getInstance();
         if(screen)
             StateManager::get()->replaceTopMostScreen(screen);
     }
