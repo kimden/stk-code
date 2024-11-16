@@ -1116,7 +1116,7 @@ void Kart::finishedRace(float time, bool from_server)
     // it would trigger a race end again.
     if (m_finished_race) return;
 
-    system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " E").c_str());
+    //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " E").c_str());
 
     const bool is_linear_race = RaceManager::get()->isLinearRaceMode();
 
@@ -1339,7 +1339,7 @@ void Kart::collectedItem(ItemState *item_state)
         } else {
             if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
             else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
-            system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " C " + std::to_string(item_state->m_compound).c_str() + " " + std::to_string(item_state->m_stop_time).c_str()).c_str());
+            //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " C " + std::to_string(item_state->m_compound).c_str() + " " + std::to_string(item_state->m_stop_time).c_str()).c_str());
             m_tyres->m_reset_compound = false;
             m_tyres->m_reset_fuel = false;
             m_tyres->reset();
