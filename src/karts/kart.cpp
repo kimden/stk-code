@@ -3154,7 +3154,16 @@ void Kart::updatePhysics(int ticks)
     bool do_slowdown = getMaterial() && getMaterial()->getMaxSpeedFraction();
     bool is_zippered = m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0;
 
-    m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), is_skidding, is_zippered, do_slowdown, f, fabs(steering), m_controls.getAccel());
+    /* 0.872281 is pidgin's wheelbase.
+    We divide by the kart's wheelbase because the turn angle
+    has been previously multiplied by it in getMaxSteerAngle(),
+    then we multiply by pidgin's wheelbase simply because the tyres
+    were calibrated for pidgin during development. The reason this
+    is done is different karts WILL use less or more centripetal force
+    to steer, however this doesn't really matter for balance purposes as it is
+    unfair for a kart to degrade more simply because it is longer (as it is not really an STK mechanic)*/
+    float tyres_steering = 0.872281*(fabs(steering)/(float)m_kart_properties->getWheelBase());
+    m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), is_skidding, is_zippered, do_slowdown, f, tyres_steering, m_controls.getAccel());
 
     updateSliding();
 
