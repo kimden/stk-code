@@ -435,7 +435,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     float currlives[2] = {kart->m_tyres->m_current_life_traction, kart->m_tyres->m_current_life_turning};
     float currfuel = ((kart->m_is_refueling) ? (kart->m_target_refuel) : (kart->m_tyres->m_current_fuel));
     float height_outer = font->getDimension(L"9").Height*2.5;
-    int width_outer = font->getDimension(L"9").Width;
+    int width_outer = 2*font->getDimension(L"9").Width;
     int width_inner = width_outer ;
     float inner_width_divisor = 0;
     float height_inner_base = height_outer;
@@ -457,18 +457,20 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     core::recti pos_bars_outer[3];
     core::recti pos_bars_inner[3];
 
+    int padding = 10*font->getDimension(L"9").Width/10;
+
     // The reason the math is this complicated is it also admits centering the contents of the tyre health bars WITHIN the baseline.
     pos_bars_outer[0].UpperLeftCorner.X = initial_x;
     pos_bars_outer[0].UpperLeftCorner.Y = initial_y - height_outer - font->getDimension(L"9").Height;
     pos_bars_outer[0].LowerRightCorner.X = pos_bars_outer[0].UpperLeftCorner.X + width_outer;
     pos_bars_outer[0].LowerRightCorner.Y = initial_y - font->getDimension(L"9").Height;
 
-    pos_bars_outer[1].UpperLeftCorner.X = pos_bars_outer[0].LowerRightCorner.X + font->getDimension(L"9").Width;
+    pos_bars_outer[1].UpperLeftCorner.X = pos_bars_outer[0].LowerRightCorner.X + padding;
     pos_bars_outer[1].UpperLeftCorner.Y = pos_bars_outer[0].UpperLeftCorner.Y;
     pos_bars_outer[1].LowerRightCorner.X = pos_bars_outer[1].UpperLeftCorner.X + width_outer;
     pos_bars_outer[1].LowerRightCorner.Y = pos_bars_outer[0].LowerRightCorner.Y;
 
-    pos_bars_outer[2].UpperLeftCorner.X = pos_bars_outer[1].LowerRightCorner.X + font->getDimension(L"9").Width;
+    pos_bars_outer[2].UpperLeftCorner.X = pos_bars_outer[1].LowerRightCorner.X + padding;
     pos_bars_outer[2].UpperLeftCorner.Y = pos_bars_outer[1].UpperLeftCorner.Y;
     pos_bars_outer[2].LowerRightCorner.X = pos_bars_outer[2].UpperLeftCorner.X + width_outer;
     pos_bars_outer[2].LowerRightCorner.Y = pos_bars_outer[1].LowerRightCorner.Y;
@@ -501,7 +503,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     std::stringstream stream;
     auto tyres_queue = kart->m_tyres_queue;
     if (tyres_queue.size() < 4) { //Hardcoded range from compound 2 (soft) to compound 4 (hard)
-        stream << "000 000 000";
+        stream << "000  000  000";
     } else {
         long signed remaining_compounds[3] = {
             tyres_queue[1],
@@ -509,19 +511,19 @@ void RaceGUI::drawCompoundData(const Kart* kart,
             tyres_queue[3]
         };
         if (remaining_compounds[0] < 0) {
-            stream << "INF" << " ";
+            stream << "INF" << "  ";
         } else {
-            stream << std::setfill('0') << std::setw(3) << remaining_compounds[0] << " ";
+            stream << std::setfill('0') << std::setw(3) << remaining_compounds[0] << "  ";
         }
 
         if (remaining_compounds[1] < 0) {
-            stream << "INF" << " ";
+            stream << "INF" << "  ";
         } else {
-            stream << std::setfill('0') << std::setw(3) << remaining_compounds[1] << " ";
+            stream << std::setfill('0') << std::setw(3) << remaining_compounds[1] << "  ";
         }
 
         if (remaining_compounds[2] < 0) {
-            stream << "INF" << " ";
+            stream << "INF";
         } else {
             stream << std::setfill('0') << std::setw(3) << remaining_compounds[2];
         }
@@ -543,18 +545,21 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     pos_text_2.UpperLeftCorner.X = pos_text_1.UpperLeftCorner.X;
     pos_text_2.UpperLeftCorner.Y = pos_text_2.LowerRightCorner.Y - (font->getDimension(L"9").Height);
 
-    video::SColor color_text_1 = video::SColor(255, 255, 255, 255);
+    video::SColor color_text_1 = video::SColor(255, 255, 200, 255);
     video::SColor color_text_2 = video::SColor(255, 230, 40, 30);
-    video::SColor color_text_3 = video::SColor(255, 50, 100, 170);
+    video::SColor color_text_3 = video::SColor(255, 255, 255, 255);
 
     font->setBlackBorder(true);
     font->draw(s.c_str(), pos_text_1, color_text_1);
-    font->draw("S-- M-- H--", pos_text_2, color_text_2);
+    font->draw("S--  M--  H--", pos_text_2, color_text_2);
+    font->setBlackBorder(false);
 
 
     std::stringstream stream_percent_traction;
     std::stringstream stream_percent_turning;
     std::stringstream stream_percent_fuel;
+
+    //Precision originally 1
     stream_percent_traction << std::fixed << std::setprecision(1) << 100.0f*currlives[0]/maxLives[0] << "%";
     stream_percent_turning << std::fixed << std::setprecision(1) << 100.0f*currlives[1]/maxLives[1] << "%";
     stream_percent_fuel << std::fixed << std::setprecision(1) << 100.0f*currfuel/1000.0f << "%";
@@ -562,9 +567,11 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     std::string s_tur = stream_percent_turning.str();
     std::string s_fuel = stream_percent_fuel.str();
 
-    while (1) {
-        if (font->getDimension(L"xx.x%").Width > 2*(unsigned)(pos_bars_outer[0].LowerRightCorner.X-pos_bars_outer[0].UpperLeftCorner.X)) {
-            font->setScale(0.95f * font->getScale());
+    gui::ScalableFont* font2 = GUIEngine::getFont();
+    font2->setBlackBorder(true);
+   while (1) {
+        if (font2->getDimension(L"xx.x%").Width > 3*(unsigned)(pos_bars_outer[0].LowerRightCorner.X-pos_bars_outer[0].UpperLeftCorner.X)) {
+            font2->setScale(0.95f * font2->getScale());
         } else {
             break;
         }
@@ -574,28 +581,33 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     core::recti pos_text_turning;
     core::recti pos_text_fuel;
 
-    pos_text_traction.LowerRightCorner.Y = pos_bars_outer[0].UpperLeftCorner.Y - (font->getDimension(L"9").Height/3.0f);
-    pos_text_traction.UpperLeftCorner.Y = pos_text_traction.LowerRightCorner.Y - (font->getDimension(L"9").Height);
+    //int pos_text_padding_h = font2->getDimension(L"9").Height/3.0f;
+    int pos_text_padding_h = 0;
+    
+    pos_text_traction.UpperLeftCorner.Y = pos_bars_outer[0].LowerRightCorner.Y - pos_text_padding_h;
+    pos_text_traction.LowerRightCorner.Y = pos_text_traction.UpperLeftCorner.Y + (font2->getDimension(L"9").Height);
     pos_text_traction.UpperLeftCorner.X = pos_bars_outer[0].UpperLeftCorner.X;
-    pos_text_traction.LowerRightCorner.X = pos_text_traction.UpperLeftCorner.X + 2*font->getDimension(L"xx.x%").Width;
+    pos_text_traction.LowerRightCorner.X = pos_text_traction.UpperLeftCorner.X + 2*font2->getDimension(L"xx.x%").Width;
 
-    pos_text_turning.LowerRightCorner.Y = pos_bars_outer[1].UpperLeftCorner.Y - (font->getDimension(L"9").Height/3.0f);
-    pos_text_turning.UpperLeftCorner.Y = pos_text_turning.LowerRightCorner.Y - (font->getDimension(L"9").Height);
+    pos_text_turning.UpperLeftCorner.Y = pos_text_traction.UpperLeftCorner.Y;
+    pos_text_turning.LowerRightCorner.Y = pos_text_traction.LowerRightCorner.Y;
     pos_text_turning.UpperLeftCorner.X = pos_bars_outer[1].UpperLeftCorner.X;
-    pos_text_turning.LowerRightCorner.X = pos_text_turning.UpperLeftCorner.X + 2*font->getDimension(L"xx.x%").Width;
+    pos_text_turning.LowerRightCorner.X = pos_text_turning.UpperLeftCorner.X + 2*font2->getDimension(L"xx.x%").Width;
 
-    pos_text_fuel.LowerRightCorner.Y = pos_bars_outer[2].UpperLeftCorner.Y - (font->getDimension(L"9").Height/3.0f);
-    pos_text_fuel.UpperLeftCorner.Y = pos_text_fuel.LowerRightCorner.Y - (font->getDimension(L"9").Height);
+    pos_text_fuel.UpperLeftCorner.Y = pos_text_turning.UpperLeftCorner.Y;
+    pos_text_fuel.LowerRightCorner.Y = pos_text_turning.LowerRightCorner.Y;
     pos_text_fuel.UpperLeftCorner.X = pos_bars_outer[2].UpperLeftCorner.X;
-    pos_text_fuel.LowerRightCorner.X = pos_text_turning.UpperLeftCorner.X + 2*font->getDimension(L"xx.x%").Width;
+    pos_text_fuel.LowerRightCorner.X = pos_text_turning.UpperLeftCorner.X + 2*font2->getDimension(L"xx.x%").Width;
 
-    font->draw(s_tra.c_str(), pos_text_traction, color_text_3);
-    font->draw(s_tur.c_str(), pos_text_turning, color_text_3);
-    font->draw(s_fuel.c_str(), pos_text_fuel, color_text_3);
+    font2->draw(s_tra.c_str(), pos_text_traction, color_text_3);
+    font2->draw(s_tur.c_str(), pos_text_turning, color_text_3);
+    font2->draw(s_fuel.c_str(), pos_text_fuel, color_text_3);
+
 
     font->setBlackBorder(false);
-
     font->setScale(1.0f);
+    font2->setBlackBorder(false);
+    font2->setScale(1.0f);
 }
 
 //-----------------------------------------------------------------------------
