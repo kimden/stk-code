@@ -726,7 +726,6 @@ void ClientLobby::handleServerInfo(Event* event)
 
     NetworkString &data = event->data();
     // Add server info
-    uint8_t u_data;
     data.decodeStringW(&str);
     str.removeChars(L"\n\r\t");
 
@@ -746,6 +745,7 @@ void ClientLobby::handleServerInfo(Event* event)
 
     RaceManager::get()->setFuelAndQueueInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4], compound_amount[0], compound_amount[1], compound_amount[2]);
 
+    uint8_t u_data;
     u_data = data.getUInt8();
     const core::stringw& difficulty_name =
         RaceManager::get()->getDifficultyName((RaceManager::Difficulty)u_data);

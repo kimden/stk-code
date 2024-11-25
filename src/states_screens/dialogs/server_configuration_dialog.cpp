@@ -170,8 +170,8 @@ GUIEngine::EventPropagation
             change.addUInt8(m_allowed_compounds_2_spinner->getValue()+1);
             change.addUInt8(m_allowed_compounds_3_spinner->getValue()+1);
 
-            RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_regen_spinner->getValue(),
-                                                    m_fuel_rate_spinner->getValue(), m_fuel_weight_spinner->getValue(),
+            RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(),
+                                                    m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue(),
                                                     m_allowed_compounds_1_spinner->getValue(),
                                                     m_allowed_compounds_2_spinner->getValue(),
                                                     m_allowed_compounds_3_spinner->getValue());

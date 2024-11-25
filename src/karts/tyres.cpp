@@ -54,7 +54,7 @@ Tyres::Tyres(Kart *kart) {
     m_c_fuel = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[0];
     m_c_fuel_regen = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[1];
     m_c_fuel_stop = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[2];
-    m_c_fuel_weight = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[3];
+    m_c_fuel_weight = ((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[3])/100.0f;
     m_c_fuel_rate = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[4];
 
     m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
@@ -294,7 +294,7 @@ void Tyres::reset() {
     m_c_fuel = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[0];
     m_c_fuel_regen = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[1];
     m_c_fuel_stop = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[2];
-    m_c_fuel_weight = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[3];
+    m_c_fuel_weight = ((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[3])/100.0f;
     m_c_fuel_rate = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[4];
     irr::core::clamp(m_c_fuel, 1.0f, 1000.0f);
     irr::core::clamp(m_c_fuel_stop, 0.0f, 1000.0f);
