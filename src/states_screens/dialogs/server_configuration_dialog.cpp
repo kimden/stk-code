@@ -161,10 +161,10 @@ GUIEngine::EventPropagation
                 ->getSelection(PLAYER_ID_GAME_MASTER));
 
             change.addFloat(m_fuel_spinner->getValue());
-            change.addFloat(m_fuel_stop_spinner->getValue());
             change.addFloat(m_fuel_regen_spinner->getValue());
-            change.addFloat(m_fuel_rate_spinner->getValue());
+            change.addFloat(m_fuel_stop_spinner->getValue());
             change.addFloat(m_fuel_weight_spinner->getValue());
+            change.addFloat(m_fuel_rate_spinner->getValue());
 
             change.addUInt8(m_allowed_compounds_1_spinner->getValue()+1);
             change.addUInt8(m_allowed_compounds_2_spinner->getValue()+1);
