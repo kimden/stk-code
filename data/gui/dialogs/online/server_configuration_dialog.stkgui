@@ -71,7 +71,7 @@
             <div width="100%" height="fit" layout="horizontal-row">
                 <div width="50%" height="fit" layout="horizontal-row">
                     <div proportion="3" height="fit" layout="horizontal-row">
-                        <spinner id="fuel-weight-spinner" width="100%" min_value="0" max_value="1000" align="center"
+                        <spinner id="fuel-weight-spinner" width="100%" min_value="0" max_value="100" align="center"
                                  wrap_around="true" />
                     </div>
                     <label id="fuel-weight-label" proportion="3" I18N="In the track info screen" text="E weight" text_align="left" />
