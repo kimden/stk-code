@@ -1341,7 +1341,7 @@ void Kart::collectedItem(ItemState *item_state)
             if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
             else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
             system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " C " + std::to_string(item_state->m_compound).c_str() + " " + std::to_string(item_state->m_stop_time).c_str()).c_str());
-            printf("C;%s;%s;%s;%s\n", RaceManager::get()->getTrackName().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(item_state->m_compound).c_str(), std::to_string(item_state->m_stop_time).c_str());
+            printf("C;%s;%s;%s;%s\n", getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(item_state->m_compound).c_str(), std::to_string(item_state->m_stop_time).c_str());
             m_tyres->m_reset_compound = false;
             m_tyres->m_reset_fuel = false;
             m_tyres->reset();
