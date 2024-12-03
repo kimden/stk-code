@@ -563,8 +563,8 @@ void LinearWorld::newLap(unsigned int kart_index)
         lap_message = _C("fastest_lap", "%s was %s%s.%s%s", kart_name, sign ? "+" : "-", diffwhole, difffrac, difffracfrac);
         color = video::SColor(255, 255, 0, 0);
     }*/
-        system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " L " + std::to_string(m_last_local_lap).c_str()).c_str());
-        printf("LAP;%s;%s;%s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_last_local_lap).c_str());
+        //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " L " + std::to_string(m_last_local_lap).c_str()).c_str());
+        //printf("LAP;%s;%s;%s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_last_local_lap).c_str());
 
     if (ticks_per_lap < m_fastest_lap_ticks ) {
         // Store the temporary string because clang would mess this up
