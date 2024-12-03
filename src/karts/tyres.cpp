@@ -24,6 +24,7 @@
 #include "race/race_manager.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
+#include "network/network_config.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -268,7 +269,10 @@ void Tyres::reset() {
             m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
         }
         //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " S " + std::to_string(m_current_compound).c_str() + " " + m_kart->getIdent().c_str()).c_str());
-        //printf("S;%s;%s;%s\n", m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_current_compound).c_str());
+        if (!(NetworkConfig::get()->isServer())){
+            Log::info("[RunRecord]", "S %s %s %s\n", m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_current_compound).c_str());
+        }
+
     } else if (m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1] > -0.5f) {
         const float kart_hue = m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]/100.0f;
         m_kart->setKartColor(kart_hue);

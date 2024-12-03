@@ -564,7 +564,9 @@ void LinearWorld::newLap(unsigned int kart_index)
         color = video::SColor(255, 255, 0, 0);
     }*/
         //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " L " + std::to_string(m_last_local_lap).c_str()).c_str());
-        //printf("LAP;%s;%s;%s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_last_local_lap).c_str());
+        if (!(NetworkConfig::get()->isServer())) {
+            Log::info("[RunRecord]", "L %s %s %s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks_per_lap)).c_str());
+        }
 
     if (ticks_per_lap < m_fastest_lap_ticks ) {
         // Store the temporary string because clang would mess this up
