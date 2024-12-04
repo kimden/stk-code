@@ -2009,11 +2009,13 @@ void Kart::update(int ticks)
         }
         else
         {
-            // If a zipper boost (from the zipper item, texture or a startup boost)
-            // is active, reduce the texture penalty by half
             float terrain_speed_fraction = material->getMaxSpeedFraction();;
-            if (m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)
-                terrain_speed_fraction += (1.0f - terrain_speed_fraction)*0.5f;
+
+            // If a zipper boost (from the zipper item, or a startup boost)
+            // is active, reduce the texture penalty by half
+            //if (m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)
+            //    terrain_speed_fraction += (1.0f - terrain_speed_fraction)*0.5f;
+            // This feature was disabled for STK: Tyre Mod Edition
             
             m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_TERRAIN,
                                      terrain_speed_fraction,
