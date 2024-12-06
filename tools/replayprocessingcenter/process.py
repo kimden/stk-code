@@ -1,5 +1,6 @@
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.colors import hsv_to_rgb
 import numpy as np
 from scanf import scanf
 import sys
@@ -34,7 +35,7 @@ def getColor(n):
         case 5:
             return 'm'
 
-def processFile(fp):
+def processFileOld(fp):
     laps = []
     times = []
     compound_changes = []
@@ -63,6 +64,46 @@ def processFile(fp):
                         else:
                             None
     return (laps, times, compound_changes, count + 1, finished, kart)
+
+def myget_cmap(n, name='hsv'):
+    '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct 
+    RGB color; the keyword argument name must be a standard mpl colormap name.'''
+    return plt.get_cmap(name, n)
+
+def processFile(fp):
+    retval = {}
+    # Dictionary structure:
+    # Key: kart name
+    # Content: List
+    #   Auxiliary current lap variable
+    #   Laps (Integers)
+    #   Laptimes (Integers)
+    #   Compound changes ([new_compound, lap, time_penalty])
+
+    for line in fp:
+        if line[0] != '#':
+            parselist = scanf("S %s %s %d", line)
+            if parselist != None:
+                
+                retval[parselist[0]] = {}
+                retval[parselist[0]]["currlap"] = 1
+                retval[parselist[0]]["laps"] = []
+                retval[parselist[0]]["times"] = []
+                retval[parselist[0]]["changes"] = [[parselist[2], 1, 0]]
+            else:
+                parselist = scanf("L %s %s %f", line)
+                if parselist != None:
+                    retval[parselist[0]]["times"].append(parselist[2])
+                    retval[parselist[0]]["laps"].append(retval[parselist[0]]["currlap"])
+                    retval[parselist[0]]["currlap"] += 1
+                else:
+                    parselist = scanf("C %s %s %d %d", line)
+                    if parselist != None:
+                        retval[parselist[0]]["changes"].append([parselist[2], retval[parselist[0]]["currlap"], parselist[3]]);
+                    else:
+                        pass
+    return retval
+
 
 def iP(s, n):
     for i in range(n):
@@ -205,103 +246,158 @@ def findBestTimeAbsolute(lap_count, times_cumulative_list, memoization_of_best_t
 
 # strategize laps stop_limit [FILES]
 def mainProgram():
+    graphing_constant = 28
+    graphing_positioner = lambda i, s, c: graphing_constant+8*(i-s)+2*c
+    penaltyMode = 0
     first_times = []
     first_times_cumulative = []
     times_cumulative_list = []
-    x = []
-    y = []
-    xticks_array = []
 
     if sys.argv[1] == "strategize":
-        if len(sys.argv) < 7:
-            raise ValueError("Usage: process.py strategize [\"normalize\"/\"nothing\"] [penalty] [amount of laps] [stop limit] [...RUN FILES...]")
-        start_of_runs = 6
+        if len(sys.argv) < 8:
+            raise ValueError("Usage: process.py strategize [\"normalize\"/\"nothing\"] [penaltymode 0/1] [penalty] [amount of laps] [stop limit] [...RUN FILES...]")
+        start_of_runs = 7
     else:
-        start_of_runs = 4
-        if len(sys.argv) < 5:
-            raise ValueError("Usage: process.py [mode] [\"normalize\"/\"nothing\"] [penalty] [...RUN FILES..]")
+        start_of_runs = 5
+        if len(sys.argv) < 6:
+            raise ValueError("Usage: process.py [mode] [\"normalize\"/\"nothing\"] [penaltymode 0/1] [penalty] [...RUN FILES..]")
 
-    penalty = int(sys.argv[3])
+    penaltyMode = (sys.argv[3] == "inlap")
+    penalty = int(sys.argv[4])
+
+    xticks_array_best_length = []
 
     for i in range(start_of_runs, len(sys.argv)):
-        (laps, times, compound_changes, lap_amount, finished, kart) = processFile(open(sys.argv[i]))
-
-        if sys.argv[2] == "normalize":
-            for k in range(len(compound_changes)):
-                times[compound_changes[k][1]-1] -= compound_changes[k][2]
-        times_cumulative = []
-        times_cumulative.append(times[0])
-        for k in range(1, len(times)):
-            times_cumulative.append(times[k] + times_cumulative[k-1])
+        dictOfRuns = processFile(open(sys.argv[i]))
+        times_cumulative = {}
+        for key in dictOfRuns:
+            #print(dictOfRuns[key])
+            if sys.argv[2] == "normalize":
+                    for k in dictOfRuns[key]["changes"]:
+                        if penaltyMode == True:
+                            normi = k[1]-1
+                        else:
+                            normi = k[1]-2
+                        dictOfRuns[key]["times"][normi] -= k[2]
+                        if k[1] != 1:
+                            dictOfRuns[key]["times"][normi] += penalty
+            times_cumulative[key] = []
+            times_cumulative[key].append(dictOfRuns[key]["times"][0])
+            for k in range(1, len(dictOfRuns[key]["times"])):
+                times_cumulative[key].append(dictOfRuns[key]["times"][k] + times_cumulative[key][k-1])
 
         if i == start_of_runs:
-            first_times = times.copy()
-            first_times_cumulative = times_cumulative.copy()
+            first_times = list(dictOfRuns.values())[0]["times"].copy()
+            first_times_cumulative = list(times_cumulative.values())[0].copy()
 
 
-        mycolor = getColor(i-start_of_runs)
         plt.xlabel("Laps from start")
         plt.ylabel("Time from start")
+
+        Xs = []
+        Ys = []
+
+        globalcolors = [hsv_to_rgb([(i * 0.618033988749895) % 1.0, 1, 1]) for i in range(1000)]
+
+        colors = []
+
         match sys.argv[1]:
             case "strategize":
                 times_cumulative_list.append(times_cumulative.copy())
             case "absolute":
-                for j in compound_changes:
-                    plt.axvline(x=j[1], color=mycolor, linestyle = 'dotted')
-                    if j[1] == 1:
-                        plt.text(j[1], 30+(i-start_of_runs), getCompound(j[0]) + " " + kart, fontsize=12, color=mycolor)
-                    else:
-                        plt.text(j[1], 30+(i-start_of_runs), getCompound(j[0]), fontsize=12, color=mycolor)
-                x = np.array(laps)
-                xticks_array = x
-                y = np.array(times)
+                counter = 0
+                for key in dictOfRuns:
+                    currcolor = globalcolors[4*(i-start_of_runs)+counter];
+                    colors.append(currcolor)
+                    for j in dictOfRuns[key]["changes"]:
+                        plt.axvline(x=j[1], c=currcolor, linestyle = 'dotted')
+                        if j[1] == 1:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]) + " " + key, fontsize=12, c=currcolor)
+                        else:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]), fontsize=12, c=currcolor)
+                    if len(dictOfRuns[key]["laps"]) >= len(xticks_array_best_length):
+                        xticks_array_best_length = dictOfRuns[key]["laps"].copy()
+                    Xs.append(dictOfRuns[key]["laps"])
+                    Ys.append(dictOfRuns[key]["times"])
+                    counter += 1
             case "absolute_nopits":
-                for j in compound_changes:
-                    if j[1] != 1:
-                        times[j[1]-1] = None
-                    plt.axvline(x=j[1], color=mycolor, linestyle = 'dotted')
-                    if j[1] == 1:
-                        plt.text(j[1], 30+(i-start_of_runs), getCompound(j[0]) + " " + kart, fontsize=12, color=mycolor)
-                    else:
-                        plt.text(j[1], 30+(i-start_of_runs), getCompound(j[0]), fontsize=12, color=mycolor)
-                x = np.array(laps)
-                xticks_array = x
-                y = np.array(times)
+                counter = 0
+                for key in dictOfRuns:
+                    currcolor = globalcolors[4*(i-start_of_runs)+counter];
+                    colors.append(currcolor)
+                    for j in dictOfRuns[key]["changes"]:
+                        if j[1] != 1:
+                            dictOfRuns[key]["times"][j[1]-1] = None
+                        plt.axvline(x=j[1], c=currcolor, linestyle = 'dotted')
+                        if j[1] == 1:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]) + " " + key, fontsize=12, c=currcolor)
+                        else:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]), fontsize=12, c=currcolor)
+                    if len(dictOfRuns[key]["laps"]) >= len(xticks_array_best_length):
+                        xticks_array_best_length = dictOfRuns[key]["laps"].copy()
+                    Xs.append(dictOfRuns[key]["laps"])
+                    Ys.append(dictOfRuns[key]["times"])
+                    counter += 1
             case "relative_laps":
-                for j in range(min(len(times), len(first_times))):
-                    times[j] = times[j] - first_times[j]
-                for j in compound_changes:
-                    plt.axvline(x=j[1], color=mycolor, linestyle = 'dotted')
-                    if j[1] == 1:
-                        plt.text(j[1], -10+(i-start_of_runs), getCompound(j[0]) + " " + kart, fontsize=12, color=mycolor)
-                    else:
-                        plt.text(j[1], -10+(i-start_of_runs), getCompound(j[0]), fontsize=12, color=mycolor)
-                x = np.array(laps)
-                if len(x) > len(xticks_array):
-                    xticks_array = x
-                y = np.array(times)
+                counter = 0
+                for key in dictOfRuns:
+                    currcolor = globalcolors[4*(i-start_of_runs)+counter];
+                    colors.append(currcolor)
+
+                    jcounter = 0
+                    for j in range(min(len(first_times), len(dictOfRuns[key]["times"]))):
+                        dictOfRuns[key]["times"][j] = dictOfRuns[key]["times"][j] - first_times[j]
+                        jcounter += 1
+                    x = dictOfRuns[key]["laps"][:jcounter].copy()
+                    y = dictOfRuns[key]["times"][:jcounter].copy()
+                    
+                    for j in dictOfRuns[key]["changes"]:
+                        plt.axvline(x=j[1], c=currcolor, linestyle = 'dotted')
+                        if j[1] == 1:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]) + " " + key, fontsize=12, c=currcolor)
+                        else:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]), fontsize=12, c=currcolor)
+                    if len(dictOfRuns[key]["laps"]) >= len(xticks_array_best_length):
+                        xticks_array_best_length = dictOfRuns[key]["laps"].copy()
+                    Xs.append(x)
+                    Ys.append(y)
+                    counter += 1
             case "relative_gaps":
-                for j in range(min(len(times_cumulative), len(first_times_cumulative))):
-                    times_cumulative[j] = times_cumulative[j] - first_times_cumulative[j]
-                for j in compound_changes:
-                    plt.axvline(x=j[1], color=mycolor, linestyle = 'dotted')
-                    if j[1] == 1:
-                        plt.text(j[1], -10+(i-start_of_runs), getCompound(j[0]) + " " + kart, fontsize=12, color=mycolor)
-                    else:
-                        plt.text(j[1], -10+(i-start_of_runs), getCompound(j[0]), fontsize=12, color=mycolor)
-                x = np.array(laps)
-                if len(x) > len(xticks_array):
-                    xticks_array = x
-                y = np.array(times_cumulative)
-        plt.xticks(xticks_array)
-        plt.plot(x, y, color=mycolor, alpha=0.5)
+                counter = 0
+                for key in dictOfRuns:
+                    currcolor = globalcolors[4*(i-start_of_runs)+counter];
+                    colors.append(currcolor)
+
+                    jcounter = 0
+                    for j in range(min(len(times_cumulative[key]), len(first_times_cumulative))):
+                        times_cumulative[key][j] = times_cumulative[key][j] - first_times_cumulative[j]
+                        jcounter += 1
+                    x = dictOfRuns[key]["laps"][:jcounter].copy()
+                    y = times_cumulative[key][:jcounter].copy()
+
+
+                    for j in dictOfRuns[key]["changes"]:
+                        plt.axvline(x=j[1], c=currcolor, linestyle = 'dotted')
+                        if j[1] == 1:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]) + " " + key, fontsize=12, c=currcolor)
+                        else:
+                            plt.text(j[1], graphing_positioner(i, start_of_runs, counter), getCompound(j[0]), fontsize=12, c=currcolor)
+                    if len(dictOfRuns[key]["laps"]) >= len(xticks_array_best_length):
+                        xticks_array_best_length = dictOfRuns[key]["laps"].copy()
+                    Xs.append(x)
+                    Ys.append(y)
+                    counter += 1
+        plt.xticks(xticks_array_best_length)
+        for l in range(len(Xs)):
+            plt.plot(Xs[l], Ys[l], c=colors[l], alpha=0.5)
 
 
     if sys.argv[1] != "strategize":
         plt.show()
     else:
-        lap_num = int(sys.argv[4])
-        stop_limit = int(sys.argv[5])
+        # The strategize mode is currently not ported to the new multiplayer structure.
+        lap_num = int(sys.argv[5])
+        stop_limit = int(sys.argv[6])
 
         can_use_laps_as_limit = True
         for i in times_cumulative_list:

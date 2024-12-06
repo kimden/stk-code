@@ -1,0 +1,49 @@
+# Example run recording with two players on-track at once
+S addon_odin hacienda 2
+L addon_odin hacienda 31.645834
+L addon_odin hacienda 30.725000
+L addon_odin hacienda 32.720833
+L addon_odin hacienda 34.316666
+L addon_odin hacienda 35.000000
+L addon_odin hacienda 37.779167
+L addon_odin hacienda 39.079166
+C addon_odin hacienda 2 10
+L addon_odin hacienda 41.212502
+L addon_odin hacienda 30.520834
+L addon_odin hacienda 32.150002
+L addon_odin hacienda 33.891666
+L addon_odin hacienda 35.120834
+L addon_odin hacienda 37.837502
+L addon_odin hacienda 42.400002
+C addon_odin hacienda 2 10
+L addon_odin hacienda 41.612499
+L addon_odin hacienda 30.083334
+L addon_odin hacienda 31.975000
+L addon_odin hacienda 34.212502
+L addon_odin hacienda 35.516666
+L addon_odin hacienda 36.933334
+#addon_odin 2 0.665670 0.520537 704.687622
+S xue hacienda 4
+L xue hacienda 35.645834
+L xue hacienda 30.725000
+L xue hacienda 30.720833
+L xue hacienda 34.316666
+L xue hacienda 31.000000
+L xue hacienda 33.779167
+L xue hacienda 30.079166
+C xue hacienda 3 10
+L xue hacienda 37.212502
+L xue hacienda 30.520834
+L xue hacienda 22.150002
+L xue hacienda 40.891666
+L xue hacienda 35.120834
+L xue hacienda 37.837502
+L xue hacienda 42.400002
+C xue hacienda 2 10
+L xue hacienda 44.612499
+L xue hacienda 33.083334
+L xue hacienda 30.975000
+L xue hacienda 44.212502
+L xue hacienda 55.516666
+L xue hacienda 26.933334
+#xue 2 0.665670 0.520537 724.687622

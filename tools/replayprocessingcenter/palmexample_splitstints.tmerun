@@ -1,0 +1,79 @@
+# Same run as palmexample.tmerun, except with the stints modified a bit and split as if they were separate players racing each other on-track
+# The reason the hard tyre is moved to be first is that, to best compare relatively, the first run of the first file AKA the reference run should be the longest run
+S gavroche3 palm-mountain 4
+#L gavroche3 palm-mountain 51.650002 REPLACED BY DUPLICATE OF NEXT:
+L gavroche3 palm-mountain 35.279167
+L gavroche3 palm-mountain 35.279167
+L gavroche3 palm-mountain 37.791668
+L gavroche3 palm-mountain 34.608334
+L gavroche3 palm-mountain 35.658333
+L gavroche3 palm-mountain 37.708332
+L gavroche3 palm-mountain 36.333332
+L gavroche3 palm-mountain 34.229168
+L gavroche3 palm-mountain 37.091667
+L gavroche3 palm-mountain 36.508335
+L gavroche3 palm-mountain 38.966667
+L gavroche3 palm-mountain 37.912498
+L gavroche3 palm-mountain 36.308334
+L gavroche3 palm-mountain 36.670834
+L gavroche3 palm-mountain 39.058334
+L gavroche3 palm-mountain 36.270832
+L gavroche3 palm-mountain 38.783333
+L gavroche3 palm-mountain 39.670834
+L gavroche3 palm-mountain 38.970833
+L gavroche3 palm-mountain 39.654167
+L gavroche3 palm-mountain 41.687500
+L gavroche3 palm-mountain 41.420834
+L gavroche3 palm-mountain 42.091667
+L gavroche3 palm-mountain 40.520832
+L gavroche3 palm-mountain 44.962502
+L gavroche3 palm-mountain 42.424999
+L gavroche3 palm-mountain 43.950001
+L gavroche3 palm-mountain 48.308334
+
+S gavroche palm-mountain 2
+#L gavroche palm-mountain 30.595833 REPLACED BY DUPLICATE OF NEXT -3s TO COMPENSATE FOR SOFT TYRE DEG:
+L gavroche palm-mountain 29.958332
+L gavroche palm-mountain 32.958332
+L gavroche palm-mountain 33.174999
+L gavroche palm-mountain 34.299999
+L gavroche palm-mountain 36.250000
+L gavroche palm-mountain 36.654167
+L gavroche palm-mountain 40.041668
+L gavroche palm-mountain 44.233334
+L gavroche palm-mountain 47.712502
+
+S gavroche2 palm-mountain 3
+#L gavroche2 palm-mountain 55.920830 REPLACED BY DUPLICATE OF NEXT:
+L gavroche2 palm-mountain 33.804165
+L gavroche2 palm-mountain 33.804165
+L gavroche2 palm-mountain 32.795834
+L gavroche2 palm-mountain 33.158333
+L gavroche2 palm-mountain 33.637501
+L gavroche2 palm-mountain 35.683334
+L gavroche2 palm-mountain 35.216667
+L gavroche2 palm-mountain 35.304165
+L gavroche2 palm-mountain 36.000000
+L gavroche2 palm-mountain 38.145832
+L gavroche2 palm-mountain 38.537498
+L gavroche2 palm-mountain 43.708332
+L gavroche2 palm-mountain 42.345833
+L gavroche2 palm-mountain 41.708332
+L gavroche2 palm-mountain 43.387501
+L gavroche2 palm-mountain 40.333332
+L gavroche2 palm-mountain 47.562500
+
+S gavroche4 palm-mountain 2
+#L gavroche4 palm-mountain 45.308334 REPLACED BY DUPLICATE OF NEXT -3s TO COMPENSATE FOR SOFT TYRE DEG:
+L gavroche4 palm-mountain 29.620834
+L gavroche4 palm-mountain 32.620834
+L gavroche4 palm-mountain 32.316666
+L gavroche4 palm-mountain 34.158333
+L gavroche4 palm-mountain 36.716667
+L gavroche4 palm-mountain 36.566666
+L gavroche4 palm-mountain 37.125000
+L gavroche4 palm-mountain 37.329166
+L gavroche4 palm-mountain 41.304165
+L gavroche4 palm-mountain 43.974998
+L gavroche4 palm-mountain 49.566666
+L gavroche4 palm-mountain 57.033333
