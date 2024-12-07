@@ -73,6 +73,7 @@ void GameSetup::loadWorld()
         else
             UserConfigParams::m_random_arena_item = m_reverse;
 
+        RaceManager::get()->setRandomItemsIndicator(m_reverse);
         RaceManager::get()->setReverseTrack(false);
         if (RaceManager::get()->isSoccerMode())
         {
@@ -92,6 +93,7 @@ void GameSetup::loadWorld()
     }
     else
     {
+        RaceManager::get()->setRandomItemsIndicator(false);
         RaceManager::get()->setReverseTrack(m_reverse);
         RaceManager::get()->startSingleRace(m_tracks.back(), m_laps,
                                       false/*from_overworld*/);
@@ -136,7 +138,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
     if (ServerConfig::m_owner_less)
     {
         ns->addUInt8(ServerConfig::m_min_start_game_players)
-            .addFloat(ServerConfig::m_start_game_counter);
+            .addFloat(std::max<float>(0.0f, ServerConfig::m_start_game_counter));
     }
     else
         ns->addUInt8(0).addFloat(0.0f);
@@ -191,7 +193,10 @@ void GameSetup::sortPlayersForGame(
         return;
     for (unsigned i = 0; i < players.size(); i++)
     {
+        // The same as ServerLobby::setTeamInLobby, but without server lobby.
+        // Checks for spectate modes are not needed here.
         players[i]->setTeam((KartTeam)(i % 2));
+        players[i]->setTemporaryTeam(TeamUtils::getIndexFromKartTeam(i % 2));
     }
 }   // sortPlayersForGame
 

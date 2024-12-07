@@ -104,8 +104,7 @@ namespace ServerConfig
         "Game mode in server, 0 is normal race (grand prix), "
         "1 is time trial (grand prix), 3 is normal race, "
         "4 time trial, 6 is soccer, 7 is free-for-all and "
-        "8 is capture the flag. Notice: grand prix server doesn't "
-        "allow for players to join and wait for ongoing game."));
+        "8 is capture the flag."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_server_difficulty
         SERVER_CFG_DEFAULT(IntServerConfigParam(0, "server-difficulty",
@@ -214,7 +213,8 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(FloatServerConfigParam(60.0f, "start-game-counter",
         "Time to wait before entering kart selection screen "
         "if satisfied min-start-game-players below for owner less or ranked "
-        "server."));
+        "server. Negative to disable the timer, you will need to use /start "
+        "then instead of the button."));
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_official_karts_threshold
         SERVER_CFG_DEFAULT(FloatServerConfigParam(1.0f,
@@ -229,37 +229,88 @@ namespace ServerConfig
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of official tracks in client / number of "
         "official tracks in server, setting this value too high will prevent "
-        "android players from joining this server, because STK android apk "
+        "android players from playing on this server, because STK android apk "
         "has some official tracks removed."));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_threshold
+    SERVER_CFG_PREFIX FloatServerConfigParam m_official_karts_play_threshold
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(1.0f,
+        "official-karts-play-threshold",
+        "Clients below this value will be rejected from playing on this server. "
+        "It's determined by number of official karts in client / number of "
+        "official karts in server."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_official_tracks_play_threshold
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(0.7f,
+        "official-tracks-play-threshold",
+        "Clients below this value will be rejected from playing on this server. "
+        "It's determined by number of official tracks in client / number of "
+        "official tracks in server, setting this value too high will prevent "
+        "android players from playing on this server, because STK android apk "
+        "has some official tracks removed."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_karts_threshold",
+        "addon-karts-join-threshold",
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of addon karts in client"));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_threshold
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_tracks_threshold",
+        "addon-tracks-join-threshold",
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of addon tracks in client"));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_threshold
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_arenas_threshold",
+        "addon-arenas-join-threshold",
         "Clients below this value will be rejected from joining this server. "
         "It's determined by number of addon arenas in client"));
 
-    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_threshold
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_join_threshold
         SERVER_CFG_DEFAULT(IntServerConfigParam(0,
-        "addon_soccers_threshold",
+        "addon-soccers-join-threshold",
         "Clients below this value will be rejected from joining this server. "
+        "It's determined by number of addon soccer fields in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_karts_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-karts-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon karts in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_tracks_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-tracks-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon tracks in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_arenas_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-arenas-play-threshold",
+        "Clients below this value will be rejected from playing games. "
+        "It's determined by number of addon arenas in client"));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_addon_soccers_play_threshold
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0,
+        "addon-soccers-play-threshold",
+        "Clients below this value will be rejected from playing games. "
         "It's determined by number of addon soccer fields in client"));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_must_have_tracks_string
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
         "must-have-tracks", "Tracks needed to enter the server, "
         "leave empty for no restriction."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_play_requirement_tracks_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+       "play-requirement-tracks", "Tracks needed to be able to play, "
+       "leave empty for no restriction."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_only_played_karts_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "only-played-karts", "List of karts that can be played on a server, "
+        "leave empty for no restriction or put 'not' before the list "
+        "to name tracks that cannot be played. It is not guaranteed to work with addons."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_only_played_tracks_string
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
@@ -270,6 +321,10 @@ namespace ServerConfig
     SERVER_CFG_PREFIX IntServerConfigParam m_fixed_lap_count
         SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "fixed-lap-count",
         "Use fixed lap count, negative or zero to disable."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_fixed_direction
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "fixed-direction",
+        "Use fixed direction (0 for forward or 1 for reverse), -1 to disable."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_official_tracks_needed
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "official-tracks-needed",
@@ -299,7 +354,7 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_troll_max_stop_speed
         SERVER_CFG_DEFAULT(FloatServerConfigParam(5.0f, "troll-max-stop-speed",
-        "A player going slower than this is considered stopping."));
+        "A player going slower than this is considered stopping. Negative speed allows to move with it in any direction."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_show_teammate_hits
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "show-teammate-hits",
@@ -366,6 +421,13 @@ namespace ServerConfig
         "used in server is FFA, CTF or soccer, also official-karts-threshold "
         "will be made 1.0. If false addon karts will use their original "
         "hitbox other than tux, all players having it restriction applies."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_real_addon_karts
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "real-addon-karts",
+        "If true, server will send its addon karts real physics (kart size, "
+        "length, type, etc) to client. If false or client chooses an addon "
+        "kart which server is missing, tux's kart physics and kart type of "
+        "the original addon is sent."));
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_flag_return_timeout
         SERVER_CFG_DEFAULT(FloatServerConfigParam(20.0f, "flag-return-timeout",
@@ -435,6 +497,15 @@ namespace ServerConfig
         "than some seconds during game, unless he has finished the race. "
         "Negative value to disable, and this option will always be disabled "
         "for LAN server."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_kick_idle_lobby_player_seconds
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1,
+        "kick-idle-lobby-player-seconds",
+        "Kick idle player which has no network activity to server for more "
+        "than some seconds, while in the lobby. Duration also includes the "
+        "period after the player finishes and waits for others to finish. "
+        "Be careful using it. Negative value to disable, and this option "
+        "will always be disabled for LAN server."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_state_frequency
         SERVER_CFG_DEFAULT(IntServerConfigParam(10,
@@ -589,18 +660,12 @@ namespace ServerConfig
         "Use ## to hide the category from the player list."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_soccer_tournament_rules
-        SERVER_CFG_DEFAULT(StringServerConfigParam("nochat 10 TTTTG RRBBR;"
+        SERVER_CFG_DEFAULT(StringServerConfigParam("nochat 10 TTTTG RRBBR +++++;"
         ";;not %1;"
         "not %1 "
         "%2;;;",
         "soccer-tournament-rules",
         "A string specifying the match format."));
-
-    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_tournament_enforced_tracks_string
-        SERVER_CFG_DEFAULT(StringServerConfigParam("",
-        "soccer-tournament-enforced-tracks",
-        "List of tracks tournament players should have to enter "
-        "(doesn't apply to spectators)."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_incompatible_advice
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
@@ -623,15 +688,33 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX StringServerConfigParam m_tracks_order
         SERVER_CFG_DEFAULT(StringServerConfigParam("", "tracks-queue",
-        "If non-empty, these tracks are played in the order until "
-        "the list ends. Can be useful for grands prix."));
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order until the list ends."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cyclic_tracks_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "cyclic-tracks-queue",
+        "If non-empty, these tracks (or track filters if enclosed in curly braces) "
+        "are played in the order cyclically, "
+        "except if something is in the regular tracks queue."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_karts_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "karts-queue",
+        "If non-empty, these karts (or kart filters if enclosed in curly braces) "
+        "are played in the order until the list ends."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cyclic_karts_order
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "cyclic-karts-queue",
+        "If non-empty, these karts (or kart filters if enclosed in curly braces) "
+        "are played in the order cyclically, "
+        "except if something is in the regular karts queue."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_gp_scoring
         SERVER_CFG_DEFAULT(StringServerConfigParam(
         "fixed 0 1 10 8 6 5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
         "grand-prix-scoring",
         "A custom Grand Prix scoring system to be used, "
-        "empty for default."));
+        "should have format 'type int int int int ...', where "
+        "type is either 'inc' or 'fixed'."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_white_list
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
@@ -686,6 +769,37 @@ namespace ServerConfig
         "If true, the GP grid is shuffled before each race, not only before "
         "the first one."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_preserve_battle_scores
+            SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "preserve-battle-scores",
+            "If true, when a player leaves and rejoins the battle server, "
+            "the score is preserved (works for distinct names only for now)."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_preserve_on_reset
+            SERVER_CFG_DEFAULT(StringServerConfigParam("", "preserve-on-reset",
+            "Whatever specified here wouldn't be reset when all players leave. "
+            "Possible options are mode, elim, laps, queue, replay, to include several "
+            "separate them by spaces, empty to include nothing."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_map_vote_handling
+            SERVER_CFG_DEFAULT(IntServerConfigParam(0, "map-vote-handling",
+            "Specifies how the server should decide which map vote wins in map "
+            "selection. 0 corresponds to standard system, 1 - to randomly selecting "
+            "one of votes."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_init_available_teams
+            SERVER_CFG_DEFAULT(StringServerConfigParam("rbygopcms", "available-teams",
+            "Codes of teams initially available on the server. Format is any "
+            "subset of rbygopcms (the teams currently available). You can "
+            "change it from the lobby using hammer command(s), and this will "
+            "be overridden during soccer and ctf modes."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_commands_file
+            SERVER_CFG_DEFAULT(StringServerConfigParam("commands.xml", "commands-file",
+            "File with commands used for this server. Default file is commands.xml "
+            "which can be changed with new commits, but you can use any other file "
+            "from data/ folder, or even include contents of one other commands file "
+            "using external-commands-file tag inside your file."));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;
@@ -697,7 +811,7 @@ namespace ServerConfig
     /** Server uid, extracted from server_config.xml file with .xml removed. */
     extern std::string m_server_uid;
     // ========================================================================
-    static bool m_loaded_from_external_config;
+    extern bool m_loaded_from_external_config;
     // ========================================================================
     void loadServerConfig(const std::string& path = "");
     // ------------------------------------------------------------------------

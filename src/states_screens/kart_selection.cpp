@@ -23,7 +23,7 @@
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
 #include "graphics/irr_driver.hpp"
-#include "graphics/render_info.hpp"
+#include <ge_render_info.hpp>
 #include "guiengine/message_queue.hpp"
 #include "guiengine/widgets/bubble_widget.hpp"
 #include "guiengine/widgets/kart_stats_widget.hpp"
@@ -45,8 +45,14 @@
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
+#include <IrrlichtDevice.h>
 #include <IGUIEnvironment.h>
 #include <IGUIButton.h>
+
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_vulkan_driver.hpp>
+#endif
 
 using namespace GUIEngine;
 using irr::core::stringw;
@@ -142,9 +148,7 @@ EventPropagation FocusDispatcher::focused(const int player_id)
             //             ->getIrrlichtElement()->getID() <<
             //             ")" << std::endl;
 
-            m_parent->m_kart_widgets[n].m_player_ident_spinner
-            ->setFocusForPlayer(player_id);
-
+            m_parent->m_kart_widgets[n].m_player_ident_spinner->setFocusForPlayer(player_id);
 
             return GUIEngine::EVENT_BLOCK;
         }
@@ -302,39 +306,47 @@ void KartSelectionScreen::beforeAddingWidget()
         kart_properties_manager->getAllGroups();
     const int group_amount = (int)groups.size();
 
-    // add all group first
+    // Add "All" group first
     if (group_amount > 1)
     {
-        //I18N: name of the tab that will show tracks from all groups
+        //I18N: name of the tab that will show karts from all groups
         tabs->addTextChild( _("All") , ALL_KART_GROUPS_ID);
     }
 
     // Make group names being picked up by gettext
 #define FOR_GETTEXT_ONLY(x)
     //I18N: kart group name
-    FOR_GETTEXT_ONLY( _("standard") )
+    FOR_GETTEXT_ONLY( _("All") )
+    //I18N: kart group name
+    FOR_GETTEXT_ONLY( _("Standard") )
     //I18N: kart group name
     FOR_GETTEXT_ONLY( _("Add-Ons") )
 
 
-    // add others after
+    // Add other groups after
     for (int n=0; n<group_amount; n++)
     {
-        // try to translate group names
-        tabs->addTextChild( _(groups[n].c_str()) , groups[n]);
-    }   // for n<group_amount
+        if (groups[n] == "standard") // Fix capitalization (#4622)
+            tabs->addTextChild( _("Standard") , groups[n]);
+        else // Try to translate group names
+            tabs->addTextChild( _(groups[n].c_str()) , groups[n]);
+    } // for n<group_amount
 
 
     DynamicRibbonWidget* w = getWidget<DynamicRibbonWidget>("karts");
     assert( w != NULL );
 
-    w->setItemCountHint( kart_properties_manager->getNumberOfKarts() );
+    // Avoid too many items shown at the same time
+    w->setItemCountHint(std::min((int)kart_properties_manager->getNumberOfKarts(), 20));
 }   // beforeAddingWidget
 
 // ----------------------------------------------------------------------------
 
 void KartSelectionScreen::init()
 {
+#ifndef SERVER_ONLY
+    GE::getGEConfig()->m_enable_draw_call_cache = true;
+#endif
     m_instance_ptr = this;
     Screen::init();
     m_must_delete_on_back = false;
@@ -424,6 +436,8 @@ void KartSelectionScreen::init()
                 // if kart from config not found, select the first instead
                 w->setSelection(0, 0, true);
             }
+
+            m_dispatcher->setVisible(false);
         }
         else
         {
@@ -441,6 +455,12 @@ void KartSelectionScreen::init()
 
 void KartSelectionScreen::tearDown()
 {
+#ifndef SERVER_ONLY
+    GE::getGEConfig()->m_enable_draw_call_cache = false;
+    GE::GEVulkanDriver* gevk = GE::getVKDriver();
+    if (gevk)
+        gevk->clearDrawCallsCache();
+#endif
 #ifdef MOBILE_STK
     if (m_multiplayer)
         MessageQueue::discardStatic();
@@ -868,9 +888,11 @@ void KartSelectionScreen::updateKartStats(uint8_t widget_id,
 
     const KartProperties *kp =
                     kart_properties_manager->getKart(selection);
+    NetworkConfig* nc = NetworkConfig::get();
     // Adjust for online addon karts
-    if (kp && kp->isAddon() && NetworkConfig::get()->isNetworking() &&
-        NetworkConfig::get()->useTuxHitboxAddon())
+    if (kp && kp->isAddon() && nc->isNetworking() && nc->useTuxHitboxAddon() &&
+        nc->getServerCapabilities().find(
+        "real_addon_karts") == nc->getServerCapabilities().end())
         kp = kart_properties_manager->getKart("tux");
     if (kp != NULL)
     {
@@ -1617,3 +1639,34 @@ bool KartSelectionScreen::useContinueButton() const
 #pragma mark -
 #endif
 
+// ----------------------------------------------------------------------------
+void KartSelectionScreen::onResize()
+{
+    // Remove dispatcher from m_widgets before calculateLayout otherwise a
+    // dummy button is shown in kart screen
+    bool removed_dispatcher = false;
+    if (m_widgets.contains(m_dispatcher))
+    {
+        m_widgets.remove(m_dispatcher);
+        removed_dispatcher = true;
+    }
+    Screen::onResize();
+    if (removed_dispatcher)
+        m_widgets.push_back(m_dispatcher);
+    if (m_multiplayer)
+    {
+        if (m_kart_widgets.size() < 2)
+            addMultiplayerMessage();
+        if (m_kart_widgets.empty())
+            return;
+    }
+    Widget* fullarea = getWidget("playerskarts");
+    int split_width = fullarea->m_w / m_kart_widgets.size();
+    if (m_multiplayer && m_kart_widgets.size() == 1)
+        split_width /= 2;
+    for (unsigned i = 0; i < m_kart_widgets.size(); i++)
+    {
+        m_kart_widgets[i].updateSizeNow(fullarea->m_x + split_width * i,
+            fullarea->m_y, split_width, fullarea->m_h);
+    }
+}   // onResize

@@ -34,6 +34,10 @@
 
 #include <numeric>
 
+#include <ICameraSceneNode.h>
+#include <ISceneManager.h>
+#include <SViewFrustum.h>
+
 // ----------------------------------------------------------------------------
 bool DrawCalls::isCulledPrecise(const scene::ICameraSceneNode *cam,
                                 const scene::ISceneNode* node,
@@ -136,49 +140,59 @@ void DrawCalls::renderBoundingBoxes()
 }   // renderBoundingBoxes
 
 // ----------------------------------------------------------------------------
-void DrawCalls::parseSceneManager(core::list<scene::ISceneNode*> &List,
+void DrawCalls::parseSceneManager(core::array<scene::ISceneNode*> &List,
                                   const scene::ICameraSceneNode *cam)
 {
-    core::list<scene::ISceneNode*>::Iterator I = List.begin(), E = List.end();
-    for (; I != E; ++I)
+    for (unsigned i = 0; i < List.size(); ++i)
     {
-        if (LODNode *node = dynamic_cast<LODNode *>(*I))
-        {
-            node->updateVisibility();
-        }
-        (*I)->updateAbsolutePosition();
-        if (!(*I)->isVisible())
+        if (!List[i]->isVisible())
             continue;
 
-        if (STKParticle *node = dynamic_cast<STKParticle*>(*I))
+        if (List[i]->getType() == ESNT_LOD_NODE)
         {
-            if (!isCulledPrecise(cam, *I, irr_driver->getBoundingBoxesViz()))
+            LODNode *node = static_cast<LODNode *>(List[i]);
+            node->updateVisibility();
+
+            core::array<scene::ISceneNode*> child;
+            if (node->getLevel() >= 0)
+                child.push_back(node->getAllNodes()[node->getLevel()]);
+            for (unsigned int i = 0; i < node->getChildren().size(); i++)
+            {
+                if (node->getNodesSet().find(node->getChildren()[i]) == node->getNodesSet().end())
+                    child.push_back(node->getChildren()[i]);
+            }
+            parseSceneManager(child, cam);
+            continue;
+        }
+        else if (List[i]->getType() == ESNT_ANIMATED_MESH)
+        {
+            SP::SPMeshNode* node = static_cast<SP::SPMeshNode*>(List[i]);
+            SP::addObject(node);
+        }
+        else if (STKParticle *node = dynamic_cast<STKParticle*>(List[i]))
+        {
+            node->updateAbsolutePosition();
+            if (!isCulledPrecise(cam, List[i], irr_driver->getBoundingBoxesViz()))
                 CPUParticleManager::getInstance()->addParticleNode(node);
             continue;
         }
-
-        if (scene::IBillboardSceneNode *node =
-            dynamic_cast<scene::IBillboardSceneNode*>(*I))
+        else if (scene::IBillboardSceneNode *node =
+            dynamic_cast<scene::IBillboardSceneNode*>(List[i]))
         {
-            if (!isCulledPrecise(cam, *I))
+            node->updateAbsolutePosition();
+            if (!isCulledPrecise(cam, List[i]))
                 CPUParticleManager::getInstance()->addBillboardNode(node);
             continue;
         }
-
-        if (STKTextBillboard *tb =
-            dynamic_cast<STKTextBillboard*>(*I))
+        else if (STKTextBillboard *tb =
+            dynamic_cast<STKTextBillboard*>(List[i]))
         {
-            if (!isCulledPrecise(cam, *I, irr_driver->getBoundingBoxesViz()))
+            tb->updateAbsolutePosition();
+            if (!isCulledPrecise(cam, List[i], irr_driver->getBoundingBoxesViz()))
                 TextBillboardDrawer::addTextBillboard(tb);
             continue;
         }
-
-        SP::SPMeshNode* node = dynamic_cast<SP::SPMeshNode*>(*I);
-        if (node)
-        {
-            SP::addObject(node);
-        }
-        parseSceneManager((*I)->getChildren(), cam);
+        parseSceneManager(List[i]->getChildren(), cam);
     }
 }
 

@@ -84,6 +84,8 @@ public class SuperTuxKartActivity extends SDLActivity
     // ------------------------------------------------------------------------
     private native static void addDNSSrvRecords(String name, int weight);
     // ------------------------------------------------------------------------
+    private native static void pauseRenderingJNI();
+    // ------------------------------------------------------------------------
     private void showExtractProgressPrivate()
     {
         WindowManager wm =
@@ -283,6 +285,8 @@ public class SuperTuxKartActivity extends SDLActivity
     {
         super.onPause();
         hideKeyboardNative(false/*clear_text*/);
+        if (SDLActivity.mSDLThread != null)
+            pauseRenderingJNI();
     }
     // ------------------------------------------------------------------------
     /* SDL manually dlopen main to allow unload after main thread exit. */
@@ -520,5 +524,24 @@ public class SuperTuxKartActivity extends SDLActivity
     public int getKeyboardHeight()          { return m_keyboard_height.get(); }
     // ------------------------------------------------------------------------
     public int getMovedHeight()                { return m_moved_height.get(); }
+    // ------------------------------------------------------------------------
+    public String getLocaleString()
+    {
+        String language = "";
+        if (mCurrentLocale != null)
+        {
+            language = mCurrentLocale.getLanguage();
+            if (language == "iw")
+                language = "he";
+            else if (language == "in")
+                language = "id";
+            else if (language == "ji")
+                language = "yi";
+            String country = mCurrentLocale.getCountry();
+            if (country != "")
+                language += "_" + country;
+        }
+        return language;
+    }
 
 }

@@ -1575,7 +1575,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
     {
         auto& stk_peer = p.second;
         // Handle always spectate for peer
-        if (has_always_on_spectators && stk_peer->alwaysSpectate())
+        if (has_always_on_spectators && stk_peer->alwaysSpectateForReal())
         {
             *has_always_on_spectators = true;
             stk_peer->setWaitingForGame(false);

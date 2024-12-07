@@ -22,11 +22,13 @@
 #include "modes/world_with_rank.hpp"
 #include "states_screens/race_gui_base.hpp"
 
-#include <IMesh.h>
+namespace irr
+{
+    namespace scene { class ICameraSceneNode; }
+}
+
 
 #include <string>
-#include <ICameraSceneNode.h>
-
 
 class TrackObject;
 
@@ -36,7 +38,7 @@ class TrackObject;
  */
 class CutsceneWorld : public World
 {
-    scene::ICameraSceneNode* m_camera;
+    irr::scene::ICameraSceneNode* m_camera;
 
     std::map<float, std::vector<TrackObject*> > m_sounds_to_trigger;
     std::map<float, std::vector<TrackObject*> > m_sounds_to_stop;
@@ -113,11 +115,7 @@ public:
     // ------------------------------------------------------------------------
     static void setUseDuration(bool use_duration) { s_use_duration = use_duration; }
     // ------------------------------------------------------------------------
-    void abortCutscene()
-    {
-        if (m_time < m_duration - m_fade_duration) m_duration = m_time + m_fade_duration;
-        m_aborted = true;
-    }
+    void abortCutscene() { m_aborted = true; }
 
 };   // CutsceneWorld
 

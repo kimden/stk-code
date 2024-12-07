@@ -23,7 +23,7 @@
 #include "config/player_manager.hpp"
 #include "config/stk_config.hpp"
 #include "config/user_config.hpp"
-#include "graphics/camera.hpp"
+#include "graphics/camera/camera.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/particle_emitter.hpp"
 #include "graphics/particle_kind.hpp"
@@ -53,6 +53,8 @@
 #include "input/device_manager.hpp"
 #include "input/gamepad_device.hpp"
 #include "input/sdl_controller.hpp"
+
+#include "LinearMath/btTransform.h"
 
 /** The constructor for a loca player kart, i.e. a player that is playing
  *  on this machine (non-local player would be network clients).
@@ -105,9 +107,9 @@ LocalPlayerController::~LocalPlayerController()
 void LocalPlayerController::initParticleEmitter()
 {
     // Attach Particle System
+#ifndef SERVER_ONLY
     m_sky_particles_emitter = nullptr;
     Track *track = Track::getCurrentTrack();
-#ifndef SERVER_ONLY
     if (!GUIEngine::isNoGraphics() &&
         UserConfigParams::m_particles_effects > 1 &&
         track->getSkyParticles() != NULL)
@@ -263,25 +265,23 @@ void LocalPlayerController::update(int ticks)
     {
         if (m_controls->getLookBack() || (UserConfigParams::m_reverse_look_threshold > 0 &&
             m_kart->getSpeed() < -UserConfigParams::m_reverse_look_threshold))
-        {
             camera->setMode(Camera::CM_REVERSE);
-            if (m_sky_particles_emitter)
-            {
-                m_sky_particles_emitter->setPosition(Vec3(0, 30, -100));
-                m_sky_particles_emitter->setRotation(Vec3(0, 180, 0));
-            }
-        }
         else
         {
             if (camera->getMode() == Camera::CM_REVERSE)
-            {
                 camera->setMode(Camera::CM_NORMAL);
-                if (m_sky_particles_emitter)
-                {
-                    m_sky_particles_emitter->setPosition(Vec3(0, 30, 100));
-                    m_sky_particles_emitter->setRotation(Vec3(0, 0, 0));
-                }
+        }
+        if (m_sky_particles_emitter)
+        {
+            // Need to set it every frame to account for heading changes
+            btTransform local_trans(btQuaternion(Vec3(0, 1, 0), 0),
+                Vec3(0, 30, 100));
+            if (camera->getMode() == Camera::CM_REVERSE)
+            {
+                local_trans = btTransform (btQuaternion(Vec3(0, 1, 0),
+                    180.0 * DEGREE_TO_RAD), Vec3(0, 30, -100));
             }
+            setParticleEmitterPosition(local_trans);
         }
     }
 
@@ -299,6 +299,22 @@ void LocalPlayerController::update(int ticks)
         m_kart->playSound(m_bzzt_sound);
     }
 }   // update
+
+//-----------------------------------------------------------------------------
+void LocalPlayerController::setParticleEmitterPosition(const btTransform& t)
+{
+#ifndef SERVER_ONLY
+    btTransform world_trans(btQuaternion(Vec3(0, 1, 0), m_kart->getHeading()),
+        m_kart->getXYZ());
+    world_trans *= t;
+    btTransform inv_kart = m_kart->getTrans().inverse();
+    inv_kart *= world_trans;
+    m_sky_particles_emitter->setPosition(Vec3(inv_kart.getOrigin()));
+    Vec3 rotation;
+    rotation.setHPR(inv_kart.getRotation());
+    m_sky_particles_emitter->setRotation(rotation.toIrrHPR());
+#endif
+}   // setParticleEmitterPosition
 
 //-----------------------------------------------------------------------------
 /** Displays a penalty warning for player controlled karts. Called from

@@ -22,7 +22,6 @@
 #include "karts/controller/ghost_controller.hpp"
 #include "karts/kart_gfx.hpp"
 #include "karts/kart_model.hpp"
-#include "graphics/render_info.hpp"
 #include "modes/easter_egg_hunt.hpp"
 #include "modes/linear_world.hpp"
 #include "modes/world.hpp"
@@ -31,15 +30,19 @@
 
 #include "LinearMath/btQuaternion.h"
 
+#include <ge_render_info.hpp>
+
 GhostKart::GhostKart(const std::string& ident, unsigned int world_kart_id,
                      int position, float color_hue,
                      const ReplayPlay::ReplayData& rd)
           : Kart(ident, world_kart_id,
                  position, btTransform(btQuaternion(0, 0, 0, 1)),
                  HANDICAP_NONE,
-                 std::make_shared<RenderInfo>(color_hue, true/*transparent*/)),
-                 m_replay_data(rd)
+                 std::make_shared<GE::GERenderInfo>(color_hue, true/*transparent*/)),
+                 m_replay_data(rd), m_last_egg_idx(0)
 {
+    m_graphical_y_offset = 0;
+    m_finish_computed = false;
 }   // GhostKart
 
 // ----------------------------------------------------------------------------
@@ -269,7 +272,18 @@ void GhostKart::computeFinishTime()
                             * Track::getCurrentTrack()->getTrackLength();
         m_finish_time = getTimeForDistance(full_distance);
     }
-}
+    m_finish_computed = true;
+}  // computeFinishTime
+
+// ------------------------------------------------------------------------
+/** Returns the finish time for a ghost kart. */
+float GhostKart::getGhostFinishTime()
+{
+    if (!m_finish_computed)
+        computeFinishTime();
+
+    return m_finish_time;
+}  // getGhostFinishTime
 
 // ----------------------------------------------------------------------------
 /** Returns the time at which the kart was at a given distance.

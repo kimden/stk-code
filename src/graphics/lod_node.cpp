@@ -16,7 +16,7 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "graphics/camera.hpp"
+#include "graphics/camera/camera.hpp"
 #include "graphics/central_settings.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/lod_node.hpp"
@@ -35,12 +35,11 @@ LODNode::LODNode(std::string group_name, scene::ISceneNode* parent,
                  scene::ISceneManager* mgr, s32 id)
     : ISceneNode(parent, mgr, id)
 {
+    m_update_box_every_frame = false;
     assert(mgr != NULL);
     assert(parent != NULL);
 
     m_group_name = group_name;
-
-    m_previous_visibility = FIRST_PASS;
 
     // At this stage refcount is two: one because of the object being
     // created, and once because it is a child of the parent. Drop once,
@@ -49,8 +48,11 @@ LODNode::LODNode(std::string group_name, scene::ISceneNode* parent,
     drop();
 
     m_forced_lod = -1;
-    m_last_tick = 0;
     m_area = 0;
+    m_current_level = -1;
+    m_current_level_dirty = true;
+    m_lod_distances_updated = false;
+    m_min_switch_distance = 0;
 }
 
 LODNode::~LODNode()
@@ -71,23 +73,45 @@ int LODNode::getLevel()
         return -1;
 
     // If a level is forced, use it
-    if(m_forced_lod>-1)
+    if (m_forced_lod >- 1)
         return m_forced_lod;
+    
+    if (!m_current_level_dirty)
+        return m_current_level;
+    m_current_level_dirty = false;
 
     Camera* camera = Camera::getActiveCamera();
     if (camera == NULL)
         return (int)m_detail.size() - 1;
     const Vec3 &pos = camera->getCameraSceneNode()->getAbsolutePosition();
 
-    const int dist =
+    const int squared_dist =
         (int)((m_nodes[0]->getAbsolutePosition()).getDistanceFromSQ(pos.toIrrVector() ));
 
-    for (unsigned int n=0; n<m_detail.size(); n++)
+    if (!m_lod_distances_updated)
     {
-        if (dist < m_detail[n])
-            return n;
+        for (unsigned int n=0; n<m_detail.size(); n++)
+        {
+            m_detail[n] = (int)((float)m_detail[n] * irr_driver->getLODMultiplier());
+        }
+        m_lod_distances_updated = true;
     }
 
+    // The LoD levels are ordered from highest quality to lowest
+    for (unsigned int n=0; n<m_detail.size(); n++)
+    {
+        // Display this level if close enough.
+        // If a high-level of detail would only be triggered from too close,
+        // and there are lower levels available, skip it completely.
+        // It's better to display a low level than to have the high-level pop suddenly.
+        if (squared_dist < m_detail[n] &&
+            ((n + 1 >= m_detail.size()) || (m_min_switch_distance < m_detail[n])))
+        {
+            m_current_level = n;
+            return n;
+        }
+    }
+    m_current_level = -1;
     return -1;
 }  // getLevel
 
@@ -108,61 +132,47 @@ void LODNode::OnAnimate(u32 timeMs)
         // update absolute position
         updateAbsolutePosition();
 
-#ifndef SERVER_ONLY
-        if (CVS->isGLSL())
+        for (size_t i = 0; i < m_nodes.size(); i++)
         {
-            for (size_t i = 0; i < m_nodes.size(); i++)
-            {
-                m_nodes[i]->setVisible(true);
-                m_nodes[i]->OnAnimate(timeMs);
-            }
-        }
-        else
-#endif
-        {
-            int level = getLevel();
-            // Assume all the scene node have the same bouding box
-            if(level>=0)
-                m_nodes[level]->OnAnimate(timeMs);
+            m_nodes[i]->setVisible(true);
+            m_nodes[i]->OnAnimate(timeMs);
         }
 
-        Box = m_nodes[m_detail.size()-1]->getBoundingBox();
+        if (m_update_box_every_frame)
+            Box = m_nodes[m_detail.size() - 1]->getBoundingBox();
 
         // If this node has children other than the LOD nodes, animate it
-        core::list<ISceneNode*>::Iterator it;
-        for (it = Children.begin(); it != Children.end(); it++)
+        for (unsigned i = 0; i < Children.size(); ++i)
         {
-            if (m_nodes_set.find(*it) == m_nodes_set.end())
+            if (m_nodes_set.find(Children[i]) == m_nodes_set.end())
             {
-                assert(*it != NULL);
-                if ((*it)->isVisible())
+                assert(Children[i] != NULL);
+                if (Children[i]->isVisible())
                 {
-                    (*it)->OnAnimate(timeMs);
+                    Children[i]->OnAnimate(timeMs);
                 }
             }
         }
-
-    }
+    } // if isVisible() && m_nodes.size() > 0
 }
 
-void LODNode::updateVisibility(bool* shown)
+void LODNode::updateVisibility()
 {
     if (!isVisible()) return;
     if (m_nodes.size() == 0) return;
 
+    m_current_level_dirty = true;
     unsigned int level = getLevel();
+
     for (size_t i = 0; i < m_nodes.size(); i++)
     {
         m_nodes[i]->setVisible(i == level);
-        if (i == level && shown != NULL)
-            *shown = (i > 0);
     }
 }
 
 void LODNode::OnRegisterSceneNode()
 {
-    bool shown = false;
-    updateVisibility(&shown);
+    updateVisibility();
 
 #ifndef SERVER_ONLY
     if (CVS->isGLSL())
@@ -171,54 +181,102 @@ void LODNode::OnRegisterSceneNode()
     }
 #endif
 
-    const u32 now = irr_driver->getDevice()->getTimer()->getTime();
-
-    m_previous_visibility = (shown ? WAS_SHOWN : WAS_HIDDEN);
-    m_last_tick = now;
-#ifndef SERVER_ONLY
-    if (!CVS->isGLSL())
+    if (isVisible() && m_nodes.size() > 0)
     {
-        for (core::list<ISceneNode*>::Iterator it = Children.begin();
-            it != Children.end(); it++)
+        int level = getLevel();
+        
+        if (level >= 0)
         {
-            (*it)->updateAbsolutePosition();
+            m_nodes[level]->OnRegisterSceneNode();
         }
-    }
-#endif
-    scene::ISceneNode::OnRegisterSceneNode();
+        for (unsigned i = 0; i < Children.size(); i++)
+        {
+            if (m_nodes_set.find(Children[i]) == m_nodes_set.end())
+                Children[i]->OnRegisterSceneNode();
+        }
+    } // if isVisible() && m_nodes.size() > 0
 }
 
-
+/* Each model with LoD has specific distances beyond which it is rendered at a lower 
+* detail level. This function compute the distances associated with the various
+* LoD levels for a given model.
+* @param scale The model's scale*/
 void LODNode::autoComputeLevel(float scale)
 {
     m_area *= scale;
 
-    // Amount of details based on user's input
-    float agressivity = 1.0;
-    if(UserConfigParams::m_geometry_level == 0) agressivity = 1.25;
-    if(UserConfigParams::m_geometry_level == 1) agressivity = 1.0;
-    if(UserConfigParams::m_geometry_level == 2) agressivity = 0.75;
+    // We want to determine two things:
+    // 1.) beyond which distance the object should disappear entirely
+    // 2.) at which distances we should switch between a lower-quality model and a higher quality model,
+    //     if these distances are too low we stick to a lower-quality model
+    // To do so, we use a mix between a power 2 (quadratic) formula and a power 4 formula.
 
-    // First we try to estimate how far away we need to draw
-    float max_draw = 0.0;
-    max_draw = sqrtf((0.5 * m_area + 10) * 200) - 10;
-    // If the draw distance is too big we artificially reduce it
-    if(max_draw > 250)
-    {
-        max_draw = 250 + (max_draw * 0.06);
-    }
+    // Step 1a - compute the base formulas
+    float p2_component = 20.0f + 7.0f * sqrtf(m_area + 10);
+    float p4_component = 50.0f + 22.0f * sqrtf(sqrtf(m_area + 2));
 
-    max_draw *= agressivity;
+    // Step 1b - combine them
+    float p4_ratio = p4_component;
+    if (p4_component < 210.0f)
+        p4_ratio = p4_component / 220.0f;
+    else if (p4_component < 230.0f) // Smooth the transition
+        p4_ratio = (105.0f + p4_component * 0.5f) / 220.0f;
+    else
+        p4_ratio = 1.0f;
 
-    int step = (int) (max_draw * max_draw) / m_detail.size();
+    float max_draw = p4_ratio * p4_component + (1.0f - p4_ratio) * p2_component;
 
-    // Then we recompute the level of detail culling distance
+    // Step 2a - Distance multiplier based on the user's input
+    float aggressivity = 1.0;
+    if(     UserConfigParams::m_geometry_level == 2) aggressivity = 1.0; // 2 in the params is the lowest setting
+    else if(UserConfigParams::m_geometry_level == 1) aggressivity = 1.42;
+    else if(UserConfigParams::m_geometry_level == 0) aggressivity = 2.0;
+    else if(UserConfigParams::m_geometry_level == 3) aggressivity = 2.84;
+    else if(UserConfigParams::m_geometry_level == 4) aggressivity = 4.0;
+    else if(UserConfigParams::m_geometry_level == 5) aggressivity = 5.7;
+
+    max_draw *= aggressivity;
+
+    // Step 2b - Determine the minimum distance for a model switch based on user input
+    float temp_switch_dist = max_draw;
+    if(     UserConfigParams::m_geometry_level == 2) temp_switch_dist *= 0.75f; // 2 in the params is the lowest setting
+    else if(UserConfigParams::m_geometry_level == 1) temp_switch_dist *= 0.55f;
+    else if(UserConfigParams::m_geometry_level == 0) temp_switch_dist *= 0.4f;
+    else if(UserConfigParams::m_geometry_level == 3) temp_switch_dist *= 0.3f;
+    else if(UserConfigParams::m_geometry_level == 4) temp_switch_dist *= 0.23f;
+    else if(UserConfigParams::m_geometry_level == 5) temp_switch_dist *= 0.18f;
+
+    temp_switch_dist = (temp_switch_dist + 100.0f) / 2.0f;
+
+    m_min_switch_distance = (int)temp_switch_dist;
+
+    // Step 3 - As it is faster to compute the squared distance than distance, at runtime
+    //          we compare the distance saved in the LoD node with the square of the distance
+    //          between the camera and the object. Therefore, we apply squaring here.
+    max_draw *= max_draw;
+    m_min_switch_distance *= m_min_switch_distance;
+
+    // Step 4 - Then we recompute the level of detail culling distance
+    //          If there are N levels of detail, the highest level
+    //          is displayed when under 1/Nth of the max display distance.
+    //          Other levels are spaced approximately at the geometrical mean points.
+    int step = (int) (max_draw) / m_detail.size();
     int biais = m_detail.size();
+
     for(unsigned i = 0; i < m_detail.size(); i++)
     {
         m_detail[i] = ((step / biais) * (i + 1));
         biais--;
     }
+
+    const size_t max_level = m_detail.size() - 1;
+
+    // Only animated mesh needs to be updated bounding box every frame,
+    // which only affects culling
+    m_update_box_every_frame =
+        m_nodes[max_level]->getType() == scene::ESNT_ANIMATED_MESH ||
+        m_nodes[max_level]->getType() == scene::ESNT_LOD_NODE;
+    Box = m_nodes[max_level]->getBoundingBox();
 }
 
 void LODNode::add(int level, scene::ISceneNode* node, bool reparent)
@@ -245,12 +303,8 @@ void LODNode::add(int level, scene::ISceneNode* node, bool reparent)
     m_nodes_set.insert(node);
     node->setParent(this);
 
-    if (node->getType() == scene::ESNT_ANIMATED_MESH)
-        ((scene::IAnimatedMeshSceneNode *) node)->setReadOnlyMaterials(true);
-    if (node->getType() == scene::ESNT_MESH)
-        ((scene::IMeshSceneNode *) node)->setReadOnlyMaterials(true);
-
     node->drop();
 
     node->updateAbsolutePosition();
+    node->setNeedsUpdateAbsTrans(true);
 }

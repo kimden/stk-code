@@ -20,6 +20,7 @@
 #include "config/user_config.hpp"
 #include "graphics/irr_driver.hpp"
 #include "guiengine/widget.hpp"
+#include "guiengine/widgets/check_box_widget.hpp"
 #include "guiengine/widgets/dynamic_ribbon_widget.hpp"
 #include "guiengine/widgets/icon_button_widget.hpp"
 #include "io/file_manager.hpp"
@@ -57,6 +58,12 @@ void ArenasScreen::loadedFromFile()
 
 void ArenasScreen::beforeAddingWidget()
 {
+    // Add user-defined group to track groups
+    track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
+
+    CheckBoxWidget* favorite_cb = getWidget<CheckBoxWidget>("favorite");
+    assert( favorite_cb != NULL );
+    favorite_cb->setState(false);
 
     // Dynamically add tabs
     RibbonWidget* tabs = this->getWidget<RibbonWidget>("trackgroups");
@@ -76,17 +83,23 @@ void ArenasScreen::beforeAddingWidget()
 
     // Make group names being picked up by gettext
 #define FOR_GETTEXT_ONLY(x)
-    //I18N: arena group name
-    FOR_GETTEXT_ONLY( _("standard") )
-    //I18N: arena group name
+    //I18N: track group name
+    FOR_GETTEXT_ONLY( _("All") )
+    //I18N: track group name
+    FOR_GETTEXT_ONLY( _("Favorites") )
+    //I18N: track group name
+    FOR_GETTEXT_ONLY( _("Standard") )
+    //I18N: track group name
     FOR_GETTEXT_ONLY( _("Add-Ons") )
 
-    // add others after
+    // Add other groups after
     for (int n=0; n<group_amount; n++)
     {
-        // try to translate the group name
-        tabs->addTextChild( _(groups[n].c_str()), groups[n] );
-    }
+        if (groups[n] == "standard") // Fix capitalization (#4622)
+            tabs->addTextChild( _("Standard") , groups[n]);
+        else // Try to translate group names
+            tabs->addTextChild( _(groups[n].c_str()) , groups[n]);
+    } // for n<group_amount
 
     int num_of_arenas=0;
     for (unsigned int n=0; n<track_manager->getNumberOfTracks(); n++) //iterate through tracks to find how many are arenas
@@ -110,7 +123,10 @@ void ArenasScreen::beforeAddingWidget()
 
     DynamicRibbonWidget* tracks_widget = this->getWidget<DynamicRibbonWidget>("tracks");
     assert( tracks_widget != NULL );
-    tracks_widget->setItemCountHint(num_of_arenas+1); //set the item hint to that number to prevent weird formatting
+
+    // Set the item hint to that number to prevent weird formatting
+    // Avoid too many items shown at the same time
+    tracks_widget->setItemCountHint(std::min(num_of_arenas + 1, 30)); 
 }
 
 // -----------------------------------------------------------------------------
@@ -197,8 +213,21 @@ void ArenasScreen::eventCallback(Widget* widget, const std::string& name, const 
             Track* clicked_track = track_manager->getTrack(selection);
             if (clicked_track != NULL)
             {
-                TrackInfoScreen::getInstance()->setTrack(clicked_track);
-                TrackInfoScreen::getInstance()->push();
+                // In favorite edit mode, switch the status of the selected track
+                if (getWidget<CheckBoxWidget>("favorite")->getState())
+                {
+                    if(PlayerManager::getCurrentPlayer()->isFavoriteTrack(clicked_track->getIdent()))
+                        PlayerManager::getCurrentPlayer()->removeFavoriteTrack(clicked_track->getIdent());
+                    else
+                        PlayerManager::getCurrentPlayer()->addFavoriteTrack(clicked_track->getIdent());
+
+                    buildTrackList();
+                }
+                else
+                {
+                    TrackInfoScreen::getInstance()->setTrack(clicked_track);
+                    TrackInfoScreen::getInstance()->push();
+                }
             }   // clickedTrack !=  NULL
         }   // if random_track
 
@@ -218,6 +247,9 @@ void ArenasScreen::eventCallback(Widget* widget, const std::string& name, const 
 
 void ArenasScreen::buildTrackList()
 {
+    // Add user-defined group to track groups
+    track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
+
     DynamicRibbonWidget* w = this->getWidget<DynamicRibbonWidget>("tracks");
     assert( w != NULL );
 
@@ -230,6 +262,7 @@ void ArenasScreen::buildTrackList()
 
     bool soccer_mode = RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER;
     bool arenas_have_navmesh = false;
+    PtrVector<Track, REF> tracks;
 
     if (curr_group_name == ALL_ARENA_GROUPS_ID)
     {
@@ -268,19 +301,8 @@ void ArenasScreen::buildTrackList()
                     continue;
                 }
             }
-
-            if (PlayerManager::getCurrentPlayer()->isLocked(curr->getIdent()))
-            {
-                w->addItem( _("Locked : solve active challenges to gain access to more!"),
-                           "locked", curr->getScreenshotFile(), LOCKED_BADGE );
-            }
-            else
-            {
-                w->addItem(curr->getName(), curr->getIdent(), curr->getScreenshotFile(), 0,
-                           IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE );
-            }
+            tracks.push_back(curr);
         }
-
     }
     else
     {
@@ -320,17 +342,29 @@ void ArenasScreen::buildTrackList()
                     continue;
                 }
             }
+            tracks.push_back(curr);
+        }
+    }
+    tracks.insertionSort();
 
-            if (PlayerManager::getCurrentPlayer()->isLocked(curr->getIdent()))
-            {
-                w->addItem( _("Locked : solve active challenges to gain access to more!"),
-                           "locked", curr->getScreenshotFile(), LOCKED_BADGE );
-            }
-            else
-            {
-                w->addItem(curr->getName(), curr->getIdent(), curr->getScreenshotFile(), 0,
-                           IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE );
-            }
+    for (unsigned int i = 0; i < tracks.size(); i++)
+    {
+        Track *curr = tracks.get(i);
+        if (PlayerManager::getCurrentPlayer()->isLocked(curr->getIdent()))
+        {
+            w->addItem( _("Locked : solve active challenges to gain access to more!"),
+                        "locked", curr->getScreenshotFile(), LOCKED_BADGE );
+        }
+        else if (PlayerManager::getCurrentPlayer()->isFavoriteTrack(curr->getIdent()))
+        {
+            w->addItem(curr->getName(), curr->getIdent(),
+                curr->getScreenshotFile(), HEART_BADGE,
+                IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE);
+        }
+        else
+        {
+            w->addItem(curr->getName(), curr->getIdent(), curr->getScreenshotFile(), 0,
+                        IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE );
         }
     }
     if (arenas_have_navmesh || RaceManager::get()->getNumLocalPlayers() > 1 ||

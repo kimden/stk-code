@@ -128,8 +128,10 @@ KartGFX::KartGFX(const AbstractKart *kart, bool is_day)
     }
     else
     {
+#ifndef SERVER_ONLY
         m_all_emitters.push_back(NULL);
         m_all_emitters.push_back(NULL);
+#endif
     }
 
 }   // KartGFX
@@ -139,13 +141,13 @@ KartGFX::KartGFX(const AbstractKart *kart, bool is_day)
  */
 KartGFX::~KartGFX()
 {
+#ifndef SERVER_ONLY
     for(unsigned int i=0; i<KGFX_COUNT; i++)
     {
         if(m_all_emitters[i])
             delete m_all_emitters[i];
     }   // for i < KGFX_COUNT
 
-#ifndef SERVER_ONLY    
     if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
     {
         m_nitro_light->drop();
@@ -167,7 +169,7 @@ void KartGFX::addEffect(KartGFXType type, const std::string &file_name,
                         const Vec3 &position, bool important)
 {
 #ifndef SERVER_ONLY
-    if (((UserConfigParams::m_particles_effects < 2 || !CVS->isGLSL()) &&
+    if ((UserConfigParams::m_particles_effects < 2 &&
         (!important || m_kart->getType() == RaceManager::KT_AI ||
         m_kart->getType() == RaceManager::KT_SPARE_TIRE)) ||
         UserConfigParams::m_particles_effects < 1 ||
@@ -221,8 +223,6 @@ void KartGFX::addEffect(KartGFXType type, const std::string &file_name,
         m_skid_kind1 = kind;
     else if (type==KGFX_SKID2L || type==KGFX_SKID2R)
         m_skid_kind2 = kind;
-#else
-    m_all_emitters.push_back(NULL);
 #endif
 }   // addEffect
 
@@ -442,11 +442,13 @@ void KartGFX::update(float dt)
 {
     m_wheel_toggle = 1 - m_wheel_toggle;
 
+#ifndef SERVER_ONLY
     for (unsigned int i = 0; i < m_all_emitters.size(); i++)
     {
         if (m_all_emitters[i])
             m_all_emitters[i]->update(dt);
     }
+#endif
 
 }  // update
 

@@ -46,6 +46,7 @@ class AbstractKart;
 class BareNetworkString;
 class btRigidBody;
 class Controller;
+class GameInfo;
 class ItemState;
 class PhysicalObject;
 class STKPeer;
@@ -109,6 +110,9 @@ protected:
     int m_red_ai;
     int m_blue_ai;
     std::map<int, KartTeam> m_kart_team_map;
+
+    /** This is used also in non-team modes, so that GameInfo can obtain
+     * starting positions. */
     std::map<int, unsigned int> m_kart_position_map;
 
     /** The list of all karts. */
@@ -128,6 +132,8 @@ protected:
     bool        m_stop_music_when_dialog_open;
 
     bool        m_unfair_team;
+
+    GameInfo* m_game_info;
 
     /** Whether highscores should be used for this kind of race.
      *  True by default, change to false in a child class to disable.
@@ -202,6 +208,8 @@ protected:
                                         {return getTime(); }
     void updateAchievementDataEndRace();
     void updateAchievementModeCounters(bool start);
+    // ------------------------------------------------------------------------
+    GameInfo* getGameInfo()      { return m_game_info; }
 
 public:
                     World();
@@ -360,7 +368,7 @@ public:
         m_eliminated_players = 0;
     }
     // ------------------------------------------------------------------------
-    virtual void addReservedKart(int kart_id)
+    virtual void addReservedKart(int kart_id, int param = 0)
     {
         if (m_eliminated_karts > 0)
             m_eliminated_karts--;
@@ -418,6 +426,11 @@ public:
     }
     // ------------------------------------------------------------------------
     virtual bool isGoalPhase() const { return false; }
+    // ------------------------------------------------------------------------
+    unsigned getStartPosition(int index) const
+                                      { return m_kart_position_map.at(index); }
+    // ------------------------------------------------------------------------
+    void setGameInfo(GameInfo* ptr)                      { m_game_info = ptr; }
 };   // World
 
 #endif

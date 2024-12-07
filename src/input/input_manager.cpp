@@ -19,7 +19,7 @@
 #include "input/input_manager.hpp"
 
 #include "config/user_config.hpp"
-#include "graphics/camera_fps.hpp"
+#include "graphics/camera/camera_fps.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/shader_based_renderer.hpp"
 #include "graphics/sp/sp_base.hpp"
@@ -35,8 +35,8 @@
 #include "input/multitouch_device.hpp"
 #include "input/sdl_controller.hpp"
 #include "input/wiimote_manager.hpp"
-#include "karts/controller/controller.hpp"
 #include "karts/abstract_kart.hpp"
+#include "karts/controller/controller.hpp"
 #include "modes/demo_world.hpp"
 #include "modes/world.hpp"
 #include "network/network_config.hpp"
@@ -57,16 +57,18 @@
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
+#include <IrrlichtDevice.h>
 #include <ISceneManager.h>
 #include <ICameraSceneNode.h>
 #include <ISceneNode.h>
+#include <ITexture.h>
 
-#include <map>
-#include <vector>
-#include <string>
-#include <iostream>
-#include <sstream>
 #include <algorithm>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #ifndef SERVER_ONLY
 #include <SDL.h>

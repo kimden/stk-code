@@ -39,6 +39,7 @@ struct GFXPreset
     int particles;
     int image_quality;
     bool degraded_ibl;
+    int geometry_detail;
 };
 
 struct BlurPreset
@@ -51,35 +52,6 @@ struct BlurPreset
 struct ScaleRttsCustomPreset
 {
     float value;
-};
-
-struct Resolution
-{
-    int width; 
-    int height;
-    bool fullscreen;
-
-    Resolution()
-    {
-        width = 0;
-        height = 0;
-    }
-
-    Resolution(int w, int h)
-    {
-        width = w;
-        height = h;
-    }
-
-    bool operator< (Resolution r) const
-    {
-        return width < r.width || (width == r.width && height < r.height);
-    }
-
-    float getRatio() const
-    {
-        return (float) width / height;
-    }
 };
 
 /**
@@ -96,13 +68,13 @@ private:
     std::vector<GFXPreset> m_presets;
     std::vector<BlurPreset> m_blur_presets;
     std::vector<ScaleRttsCustomPreset> m_scale_rtts_custom_presets;
-    std::vector<Resolution> m_resolutions;
 
     void updateTooltip();
     void updateBlurTooltip();
-    void updateResolutionsList();
     void initPresets();
     static void onScrollResolutionsList(void* data);
+    /* Returns 1 or 2 if a restart will be done, 0 otherwise */
+    int applySettings();
 public:
     friend class GUIEngine::ScreenSingleton<OptionsScreenVideo>;
 
@@ -121,6 +93,10 @@ public:
 
     /** \brief implement optional callback from parent class GUIEngine::Screen */
     virtual void unloaded() OVERRIDE;
+
+    virtual bool onEscapePressed() OVERRIDE;
+
+    virtual void onResize() OVERRIDE;
 
     void         updateGfxSlider();
     void         updateBlurSlider();

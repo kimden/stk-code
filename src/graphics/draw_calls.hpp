@@ -20,10 +20,21 @@
 
 #ifndef SERVER_ONLY
 #include "graphics/gl_headers.hpp"
-#include <irrlicht.h>
 #include <vector>
 
+#include <irrArray.h>
+#include <plane3d.h>
+#include <vector3d.h>
+
 using namespace irr;
+
+namespace irr
+{
+    namespace scene
+    {
+        class ISceneNode; class ICameraSceneNode;
+    }
+}
 
 class ShadowMatrices;
 
@@ -33,7 +44,7 @@ private:
     GLsync                                m_sync;
     std::vector<float>                    m_bounding_boxes;
 
-    void parseSceneManager(core::list<scene::ISceneNode*> &List,
+    void parseSceneManager(core::array<scene::ISceneNode*> &List,
                            const scene::ICameraSceneNode *cam);
 
     bool isCulledPrecise(const scene::ICameraSceneNode *cam,

@@ -20,6 +20,11 @@
 #include "audio/sfx_manager.hpp"
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
+#include "guiengine/widgets/icon_button_widget.hpp"
+#include "guiengine/widgets/label_widget.hpp"
+#include "guiengine/widgets/ribbon_widget.hpp"
+#include "guiengine/widgets/spinner_widget.hpp"
+#include "guiengine/widgets/text_box_widget.hpp"
 #include "karts/controller/network_ai_controller.hpp"
 #include "network/network_config.hpp"
 #include "network/server.hpp"
@@ -83,6 +88,8 @@ void CreateServerScreen::loadedFromFile()
     assert(m_create_widget != NULL);
     m_cancel_widget = getWidget<IconButtonWidget>("cancel");
     assert(m_cancel_widget != NULL);
+    m_back_widget = getWidget<IconButtonWidget>("back");
+    assert(m_back_widget != NULL);
 }   // loadedFromFile
 
 // ----------------------------------------------------------------------------
@@ -170,6 +177,11 @@ void CreateServerScreen::eventCallback(Widget* widget, const std::string& name,
         const int selection =
             m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER);
         updateMoreOption(selection);
+    }
+    else if (name == m_back_widget->m_properties[PROP_ID])
+    {
+        NetworkConfig::get()->unsetNetworking();
+        StateManager::get()->escapePressed();
     }
 }   // eventCallback
 

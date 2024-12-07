@@ -29,6 +29,12 @@ using namespace irr;
 
 struct CPUParticle;
 
+inline float glslSmoothstep(float edge0, float edge1, float x)
+{
+    float t = core::clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+    return t * t * (3.0f - 2.0f * t);
+}
+
 class STKParticle : public scene::CParticleSystemSceneNode
 {
 private:
@@ -131,7 +137,7 @@ public:
     // ------------------------------------------------------------------------
     void setFlips()                                         { m_flips = true; }
     // ------------------------------------------------------------------------
-    bool getFlips() const                                   { return m_flips; }
+    virtual bool getFlips() const                           { return m_flips; }
     // ------------------------------------------------------------------------
     unsigned getMaxCount() const                        { return m_max_count; }
     // ------------------------------------------------------------------------
@@ -154,6 +160,8 @@ public:
         assert(m_flips_buffer != 0);
         return m_flips_buffer;
     }
+    // ------------------------------------------------------------------------
+    virtual bool isSkyParticle() const                 { return m_hm != NULL; }
 };
 
 #endif

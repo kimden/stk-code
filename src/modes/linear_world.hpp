@@ -71,6 +71,9 @@ private:
     /* if set then the game will auto end after this time for networking */
     float       m_finish_timeout;
 
+    /** Worst finish time that won't cause timeout **/
+    float       m_worst_finish_time;
+
     /** This calculate the time difference between the second kart in the race
      *  (there must be at least two) and the first kart in the race
      *  (who must be a ghost).
@@ -92,6 +95,13 @@ private:
 
         /** Time at start of a new lap. */
         int         m_lap_start_ticks;
+
+        /** Ticks for the fastest lap. */
+        int         m_fastest_lap_ticks;
+
+        /** Ticks for the start time (until the kart crosses
+         *   the start-finish line for the first time). */
+        int         m_start_time;
 
         /** During last lap only: estimated finishing time!   */
         float       m_estimated_finish;
@@ -116,6 +126,8 @@ private:
             m_finished_laps     = -1;
             m_lap_start_ticks   = 0;
             m_ticks_at_last_lap = INT_MAX;
+            m_fastest_lap_ticks = INT_MAX;
+            m_start_time        = INT_MAX;
             m_estimated_finish  = -1.0f;
             m_overall_distance  = 0.0f;
             m_wrong_way_timer   = 0.0f;
@@ -197,6 +209,28 @@ public:
     {
         return m_kart_info[kart_index].m_overall_distance;
     }   // getOverallDistance
+    // ------------------------------------------------------------------------
+    float getStartTimeForKart(unsigned int kart_index) const
+    {
+        if (m_kart_info[kart_index].m_start_time == INT_MAX)
+            return -1.0;
+        return stk_config->ticks2Time(
+                m_kart_info[kart_index].m_start_time);
+    }   // getStartTimeForKart
+    // ------------------------------------------------------------------------
+    float getFastestLapForKart(unsigned int kart_index) const
+    {
+        if (m_kart_info[kart_index].m_fastest_lap_ticks == INT_MAX)
+            return -1.0;
+        return stk_config->ticks2Time(
+                m_kart_info[kart_index].m_fastest_lap_ticks);
+    }   // getFastestLapForKart
+    // ------------------------------------------------------------------------
+    float getWorstFinishTime() const
+    {
+        return m_worst_finish_time;
+    }   // getWorstFinishTime
+    // ------------------------------------------------------------------------
     /** Returns the warn level
      *  \param kart_index World kart id of the kart. */
     int getWarnLevel(unsigned int kart_index)

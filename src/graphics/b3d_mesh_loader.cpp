@@ -5,18 +5,25 @@
 #include "graphics/b3d_mesh_loader.hpp"
 #include "graphics/central_settings.hpp"
 #include "graphics/stk_tex_manager.hpp"
+#include "graphics/material.hpp"
 #include "graphics/material_manager.hpp"
 #include "graphics/mesh_tools.hpp"
-#include "graphics/sp/sp_animation.hpp"
 #include "graphics/sp/sp_mesh.hpp"
 #include "graphics/sp/sp_mesh_buffer.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 
 #include <IVideoDriver.h>
 #include <IFileSystem.h>
 #include "../../lib/irrlicht/source/Irrlicht/os.h"
 
 #include <algorithm>
+#include <ge_animation.hpp>
+
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_spm_buffer.hpp>
+#include <ge_spm.hpp>
+#endif
 
 int B3DMeshLoader::m_straight_frame = 0;
 
@@ -76,7 +83,8 @@ scene::IAnimatedMesh* B3DMeshLoader::createMesh(io::IReadFile* f)
     }
 
 #ifndef SERVER_ONLY
-    if (CVS->isGLSL())
+    bool convert_spm = CVS->isGLSL() || GE::getVKDriver() != NULL;
+    if (convert_spm)
     {
         if (!AnimatedMesh)
         {
@@ -86,8 +94,36 @@ scene::IAnimatedMesh* B3DMeshLoader::createMesh(io::IReadFile* f)
         SP::SPMesh* spm = toSPM(static_cast<scene::CSkinnedMesh*>
             (AnimatedMesh->getMesh(m_straight_frame)));
         m_texture_string.clear();
-        spm->setMinMax(min.toIrrVector(), max.toIrrVector());
-        return spm;
+        if (CVS->isGLSL())
+        {
+            spm->finalize();
+            spm->setMinMax(min.toIrrVector(), max.toIrrVector());
+            return spm;
+        }
+        GE::GESPM* ge_spm = new GE::GESPM();
+        for (unsigned i = 0; i < spm->getMeshBufferCount(); i++)
+        {
+            SP::SPMeshBuffer* spbuf = spm->getSPMeshBuffer(i);
+            GE::GESPMBuffer* gebuf = new GE::GESPMBuffer();
+            gebuf->setHasSkinning(!spm->isStatic());
+            ge_spm->addMeshBuffer(gebuf);
+            std::swap(gebuf->getVerticesVector(), spbuf->getVerticesRef());
+            std::swap(gebuf->getIndicesVector(), spbuf->getIndicesRef());
+            Material* stk_material = spbuf->getSTKMaterial(0);
+            stk_material->setMaterialProperties(&gebuf->getMaterial(), gebuf);
+            gebuf->getMaterial().TextureLayer[0].Texture =
+                stk_material->getTexture();
+            gebuf->recalculateBoundingBox();
+        }
+        ge_spm->m_bind_frame = spm->m_bind_frame;
+        ge_spm->m_total_joints = spm->m_total_joints;
+        ge_spm->m_joint_using = spm->m_joint_using;
+        ge_spm->m_frame_count = spm->m_frame_count;
+        std::swap(ge_spm->m_all_armatures, spm->m_all_armatures);
+        ge_spm->finalize();
+        ge_spm->setMinMax(min.toIrrVector(), max.toIrrVector());
+        spm->drop();
+        return ge_spm;
     }
 #endif
 
@@ -106,13 +142,20 @@ SP::SPMesh* B3DMeshLoader::toSPM(scene::CSkinnedMesh* mesh)
             wi[b].push_back(core::array<JointInfluence>());
 	}
 
-    const bool skinned_mesh = !mesh->RootJoints.empty() &&
+    bool skinned_mesh = !mesh->RootJoints.empty() &&
         mesh->getFrameCount() > 0;
+    unsigned idx = 0;
     if (skinned_mesh)
     {
-        unsigned idx = 0;
         for (unsigned i = 0; i < mesh->RootJoints.size(); i++)
             computeWeightInfluence(mesh->RootJoints[i], idx, wi);
+    }
+    // Some b3d models has incorrect animation data, remove it and treat them
+    // as static mesh
+    if (idx == 0)
+        skinned_mesh = false;
+    if (skinned_mesh)
+    {
         spm->m_total_joints = idx;
         spm->m_joint_using = idx;
         spm->m_bind_frame = m_straight_frame;
@@ -172,7 +215,7 @@ SP::SPMesh* B3DMeshLoader::toSPM(scene::CSkinnedMesh* mesh)
             for (unsigned j = 0; j < 4; j++)
             {
                 JointInfluence influence;
-                influence.joint_idx = -32768;
+                influence.joint_idx = -31768;
                 influence.weight = j == 0 ? 1.0f : 0.0f;
                 this_influence.push_back(influence);
             }
@@ -255,7 +298,6 @@ SP::SPMesh* B3DMeshLoader::toSPM(scene::CSkinnedMesh* mesh)
         }
     }
 
-    spm->finalize();
     mesh->drop();
     return spm;
 }
@@ -1311,7 +1353,27 @@ void B3DMeshLoader::loadTextures(SB3dMaterial& material, scene::IMeshBuffer* mb)
                 full_path = fs->getFileBasename(B3dTexture->TextureName);
 
 #ifndef SERVER_ONLY
-            if (CVS->isGLSL())
+            std::function<void(irr::video::IImage*)> image_mani;
+            if (!CVS->isGLSL())
+            {
+                Material* m = material_manager->getMaterial(B3dTexture->TextureName.c_str(),
+                    /*is_full_path*/false,
+                    /*make_permanent*/false,
+                    /*complain_if_not_found*/true,
+                    /*strip_path*/true, /*install*/true,
+                    /*create_if_not_found*/false);
+                if (m)
+                {
+                    image_mani = m->getMaskImageMani();
+                    if (image_mani)
+                        STKTexManager::getInstance()->getTexture(full_path.c_str(), image_mani);
+                }
+            }
+#endif
+
+#ifndef SERVER_ONLY
+            bool convert_spm = CVS->isGLSL() || GE::getVKDriver() != NULL;
+            if (convert_spm)
             {
                 auto& ret = m_texture_string[mb];
                 if (i == 0)

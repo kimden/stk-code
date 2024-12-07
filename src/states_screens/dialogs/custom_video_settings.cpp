@@ -23,14 +23,16 @@
 #include "guiengine/widgets/spinner_widget.hpp"
 #include "states_screens/options/options_screen_video.hpp"
 #include "states_screens/state_manager.hpp"
-#include "utils/translation.hpp"
 #include "graphics/central_settings.hpp"
 #include "graphics/irr_driver.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
 #include <IGUIEnvironment.h>
-
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_vulkan_driver.hpp>
+#endif
 
 using namespace GUIEngine;
 using namespace irr;
@@ -69,27 +71,41 @@ void CustomVideoSettingsDialog::beforeAddingWidgets()
     particles_effects->setValue(UserConfigParams::m_particles_effects);
 
     SpinnerWidget* geometry_level = getWidget<SpinnerWidget>("geometry_detail");
-    //I18N: Geometry level disabled : lowest level, no details
-    geometry_level->addLabel(_("Disabled"));
-    //I18N: Geometry level low : few details are displayed
+    //I18N: Geometry level disabled : lowest level, Level-of-Details distances are very low
+    geometry_level->addLabel(_("Very Low"));
+    //I18N: Geometry level low : everything is displayed, Level-of-Details distances are low
     geometry_level->addLabel(_("Low"));
-    //I18N: Geometry level high : everything is displayed
+    //I18N: Geometry level medium : everything is displayed, Level-of-Details distances are medium
+    geometry_level->addLabel(_("Medium"));
+    //I18N: Geometry level high : everything is displayed, Level-of-Details distances are high
     geometry_level->addLabel(_("High"));
+    //I18N: Geometry level very high : everything is displayed, Level-of-Details distances are very high
+    geometry_level->addLabel(_("Very High"));
+    //I18N: Geometry level ultra : everything is displayed, Level-of-Details distances are extremely high
+    geometry_level->addLabel(_("Ultra"));
+    // This strange code is needed because a lower geometry level value
+    // used to be better. The values are now from best to worst: 5, 4, 3, 0, 1, 2.
+    // This keeps compatibility with 1.X installs.
+    // FIXME when profile-compatibility is not a concern.
     geometry_level->setValue(
         UserConfigParams::m_geometry_level == 2 ? 0 :
-        UserConfigParams::m_geometry_level == 0 ? 2 : 1);
+        UserConfigParams::m_geometry_level == 0 ? 2 : UserConfigParams::m_geometry_level);
 
     SpinnerWidget* filtering = getWidget<SpinnerWidget>("image_quality");
     filtering->addLabel(_("Very Low"));
     filtering->addLabel(_("Low"));
+    filtering->addLabel(_("Medium"));
     filtering->addLabel(_("High"));
     filtering->setValue(OptionsScreenVideo::getImageQuality());
 
     SpinnerWidget* shadows = getWidget<SpinnerWidget>("shadows");
     shadows->addLabel(_("Disabled"));   // 0
     shadows->addLabel(_("Low"));        // 1
-    shadows->addLabel(_("High"));       // 2
-    shadows->setValue(UserConfigParams::m_shadows_resolution / 512);
+    shadows->addLabel(_("Medium"));     // 2
+    shadows->addLabel(_("High"));       // 3
+    shadows->setValue(UserConfigParams::m_shadows_resolution == 2048 ? 3 :
+                      UserConfigParams::m_shadows_resolution == 1024 ? 2 :
+                      UserConfigParams::m_shadows_resolution ==  512 ? 1 : 0);
 
     getWidget<CheckBoxWidget>("dynamiclight")->setState(UserConfigParams::m_dynamic_lights);
     getWidget<CheckBoxWidget>("lightshaft")->setState(UserConfigParams::m_light_shaft);
@@ -126,6 +142,12 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
         if (selection == "apply")
         {
             bool advanced_pipeline = getWidget<CheckBoxWidget>("dynamiclight")->getState();
+            bool update_needed = false;
+            if (UserConfigParams::m_dynamic_lights != advanced_pipeline)
+            {
+                update_needed = true;
+                GE::getGEConfig()->m_pbr = advanced_pipeline;
+            }
             UserConfigParams::m_dynamic_lights = advanced_pipeline;
 
             UserConfigParams::m_dof =
@@ -137,7 +159,9 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
             if (advanced_pipeline)
             {
                 UserConfigParams::m_shadows_resolution =
-                    getWidget<SpinnerWidget>("shadows")->getValue() * 512;
+                    getWidget<SpinnerWidget>("shadows")->getValue() == 1 ?  512 :
+                    getWidget<SpinnerWidget>("shadows")->getValue() == 2 ? 1024 :
+                    getWidget<SpinnerWidget>("shadows")->getValue() == 3 ? 2048 : 0;
             }
             else
             {
@@ -167,6 +191,9 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
 
             UserConfigParams::m_texture_compression =
                 getWidget<CheckBoxWidget>("texture_compression")->getState();
+#ifndef SERVER_ONLY
+            GE::getGEConfig()->m_texture_compression = UserConfigParams::m_texture_compression;
+#endif
 
             UserConfigParams::m_particles_effects =
                 getWidget<SpinnerWidget>("particles_effects")->getValue();
@@ -176,16 +203,22 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
 
             const int val =
                 getWidget<SpinnerWidget>("geometry_detail")->getValue();
-            UserConfigParams::m_geometry_level = val == 2 ? 0 : val == 0 ? 2 : 1;
-
-            OptionsScreenVideo::setImageQuality(getWidget<SpinnerWidget>
-                ("image_quality")->getValue());
+            // This strange code is needed because a lower geometry level value
+            // used to be better. This keeps compatibility with 1.X installs.
+            UserConfigParams::m_geometry_level = val == 2 ? 0 : 
+                                                 val == 0 ? 2 : val;
+            int quality = getWidget<SpinnerWidget>("image_quality")->getValue();
 
             user_config->saveConfig();
 
             ModalDialog::dismiss();
             OptionsScreenVideo::getInstance()->updateGfxSlider();
             OptionsScreenVideo::getInstance()->updateBlurSlider();
+#ifndef SERVER_ONLY
+            if (update_needed && GE::getDriver()->getDriverType() == video::EDT_VULKAN)
+                GE::getVKDriver()->updateDriver(true);
+#endif
+            OptionsScreenVideo::setImageQuality(quality);
             return GUIEngine::EVENT_BLOCK;
         }
         else if (selection == "cancel")
@@ -208,6 +241,13 @@ void CustomVideoSettingsDialog::updateActivation()
 {
 #ifndef SERVER_ONLY
     bool light = getWidget<CheckBoxWidget>("dynamiclight")->getState();
+    if (!CVS->isGLSL())
+    {
+        getWidget<CheckBoxWidget>("dynamiclight")->setActive(false);
+        light = false;
+    }
+    if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
+        getWidget<CheckBoxWidget>("dynamiclight")->setActive(true);
     getWidget<CheckBoxWidget>("motionblur")->setActive(light);
     getWidget<CheckBoxWidget>("dof")->setActive(light);
     getWidget<SpinnerWidget>("shadows")->setActive(light);

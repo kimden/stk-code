@@ -15,35 +15,18 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "states_screens/options/options_screen_audio.hpp"
+// Manages includes common to all options screens
+#include "states_screens/options/options_common.hpp"
 
 #include "audio/music_manager.hpp"
 #include "audio/sfx_manager.hpp"
 #include "audio/sfx_base.hpp"
-#include "config/user_config.hpp"
-#include "guiengine/screen.hpp"
-#include "guiengine/widgets/check_box_widget.hpp"
-#include "guiengine/widgets/dynamic_ribbon_widget.hpp"
-#include "guiengine/widgets/spinner_widget.hpp"
-#include "guiengine/widget.hpp"
-#include "io/file_manager.hpp"
-#include "states_screens/options/options_screen_general.hpp"
-#include "states_screens/options/options_screen_input.hpp"
-#include "states_screens/options/options_screen_language.hpp"
-#include "states_screens/options/options_screen_ui.hpp"
-#include "states_screens/options/options_screen_video.hpp"
-#include "states_screens/state_manager.hpp"
-#include "states_screens/options/user_screen.hpp"
-#include "utils/translation.hpp"
-
-#include <iostream>
-#include <sstream>
 
 using namespace GUIEngine;
 
 // -----------------------------------------------------------------------------
 
-OptionsScreenAudio::OptionsScreenAudio() : Screen("options_audio.stkgui")
+OptionsScreenAudio::OptionsScreenAudio() : Screen("options/options_audio.stkgui")
 {
 }   // OptionsScreenAudio
 
@@ -66,13 +49,13 @@ void OptionsScreenAudio::init()
     // ---- sfx volume
     SpinnerWidget* gauge = this->getWidget<SpinnerWidget>("sfx_volume");
     assert(gauge != NULL);
-
-    gauge->setValue( (int)(SFXManager::get()->getMasterSFXVolume()*10.0f) );
-
+    gauge->setMax(UserConfigParams::m_volume_denominator);
+    gauge->setValue(UserConfigParams::m_sfx_numerator);
 
     gauge = this->getWidget<SpinnerWidget>("music_volume");
     assert(gauge != NULL);
-    gauge->setValue( (int)(music_manager->getMasterMusicVolume()*10.f) );
+    gauge->setMax(UserConfigParams::m_volume_denominator);
+    gauge->setValue(UserConfigParams::m_music_numerator);
 
     // ---- music volume
     CheckBoxWidget* sfx = this->getWidget<CheckBoxWidget>("sfx_enabled");
@@ -107,23 +90,8 @@ void OptionsScreenAudio::eventCallback(Widget* widget, const std::string& name, 
     {
         std::string selection = ((RibbonWidget*)widget)->getSelectionIDString(PLAYER_ID_GAME_MASTER);
 
-        Screen *screen = NULL;
-        //if (selection == "tab_audio")
-        //    screen = OptionsScreenAudio::getInstance();
-        if (selection == "tab_video")
-            screen = OptionsScreenVideo::getInstance();
-        else if (selection == "tab_players")
-            screen = TabbedUserScreen::getInstance();
-        else if (selection == "tab_controls")
-            screen = OptionsScreenInput::getInstance();
-        else if (selection == "tab_ui")
-            screen = OptionsScreenUI::getInstance();
-        else if (selection == "tab_general")
-            screen = OptionsScreenGeneral::getInstance();
-        else if (selection == "tab_language")
-            screen = OptionsScreenLanguage::getInstance();
-        if(screen)
-            StateManager::get()->replaceTopMostScreen(screen);
+        if (selection != "tab_audio")
+            OptionsCommon::switchTab(selection);
     }
     else if(name == "back")
     {
@@ -134,7 +102,10 @@ void OptionsScreenAudio::eventCallback(Widget* widget, const std::string& name, 
         SpinnerWidget* w = dynamic_cast<SpinnerWidget*>(widget);
         assert(w != NULL);
 
-        music_manager->setMasterMusicVolume( w->getValue()/10.0f );
+        float new_volume = computeVolume(w->getValue(), UserConfigParams::m_volume_denominator);
+
+        UserConfigParams::m_music_numerator = w->getValue(); 
+        music_manager->setMasterMusicVolume(new_volume);
     }
     else if(name == "sfx_volume")
     {
@@ -146,8 +117,10 @@ void OptionsScreenAudio::eventCallback(Widget* widget, const std::string& name, 
         if (sample_sound == NULL) sample_sound = SFXManager::get()->createSoundSource( "pre_start_race" );
         sample_sound->setVolume(1);
 
-        SFXManager::get()->setMasterSFXVolume( w->getValue()/10.0f );
-        UserConfigParams::m_sfx_volume = w->getValue()/10.0f;
+        float new_volume = computeVolume(w->getValue(), UserConfigParams::m_volume_denominator);
+        SFXManager::get()->setMasterSFXVolume(new_volume);
+        UserConfigParams::m_sfx_numerator = w->getValue(); 
+        UserConfigParams::m_sfx_volume = new_volume;
 
         // play a sample sound to show the user what this volume is like
         sample_sound->play();
@@ -188,6 +161,23 @@ void OptionsScreenAudio::eventCallback(Widget* widget, const std::string& name, 
         }
     }
 }   // eventCallback
+
+float OptionsScreenAudio::computeVolume(int numerator, int denominator)
+{
+    if (numerator <= 1)
+    {
+        return 0.025f;
+    }
+    else if (numerator == denominator)
+    {
+        return 1.0f;
+    }
+    else
+    {
+        float num_root = pow(40.0f, 1.0f / (float)(denominator - 1));
+        return 0.025f * pow(num_root, (float)(numerator - 1));
+    }
+}
 
 // -----------------------------------------------------------------------------
 

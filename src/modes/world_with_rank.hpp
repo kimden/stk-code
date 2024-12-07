@@ -54,6 +54,8 @@ protected:
 
     std::string m_custom_scoring_type;
 
+    std::map<int, float> m_race_times;
+
 #ifdef DEBUG
     /** Used for debugging to help detect if the same kart position
      *  is used more than once. */
@@ -95,7 +97,9 @@ public:
      *  \param p Position of the kart. */
     virtual AbstractKart* getKartAtDrawingPosition(unsigned int p) const
                                                { return getKartAtPosition(p); }
+    int           getScoreForPosition(int p, float time);
     virtual int   getScoreForPosition(int p);
+    virtual bool  canGetScoreForPosition(int p);
     virtual unsigned int getRescuePositionIndex(AbstractKart *kart) OVERRIDE;
     // ------------------------------------------------------------------------
     /** Returns the track_sector object for the specified kart.

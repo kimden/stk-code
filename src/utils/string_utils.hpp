@@ -54,6 +54,8 @@ namespace StringUtils
     irr::core::stringw loadingDots(const irr::core::stringw& s);
     std::string                     toUpperCase(const std::string&);
     std::string                     toLowerCase(const std::string&);
+    std::vector<std::string>        splitQuoted(const std::string& s, char c,
+                                        char d, char e, char f);
     std::vector<std::string>        split(const std::string& s, char c,
                                           bool keepSplitChar=false);
     std::vector<std::u32string>     split(const std::u32string& s, char32_t c,
@@ -245,34 +247,32 @@ namespace StringUtils
      *  code. */
     inline irr::core::stringw getCountryFlag(const std::string& country_code)
     {
+        irr::core::stringw result;
         if (country_code.empty() || country_code.size() != 2)
-            return L"";
-        uint32_t flag[3] =
+            return result;
+        uint32_t flag[2] =
         {
             (uint32_t)(country_code[0]) + 127397,
-            (uint32_t)(country_code[1]) + 127397,
-            0
+            (uint32_t)(country_code[1]) + 127397
         };
         if (sizeof(wchar_t) == 4)
         {
-            return (wchar_t*)flag;
+            result.reserve(2);
+            result.append((wchar_t)flag[0]);
+            result.append((wchar_t)flag[1]);
         }
         else if (sizeof(wchar_t) == 2)
         {
             flag[0] -= 0x10000;
             flag[1] -= 0x10000;
-            wchar_t u16[5] =
-            {
-                //make a surrogate pair
-                static_cast<wchar_t>((flag[0] >> 10) + 0xd800),
-                static_cast<wchar_t>((flag[0] & 0x3ff) + 0xdc00),
-                static_cast<wchar_t>((flag[1] >> 10) + 0xd800),
-                static_cast<wchar_t>((flag[1] & 0x3ff) + 0xdc00),
-                0
-            };
-            return u16;
+            result.reserve(4);
+            //make a surrogate pair
+            result.append(static_cast<wchar_t>((flag[0] >> 10) + 0xd800));
+            result.append(static_cast<wchar_t>((flag[0] & 0x3ff) + 0xdc00));
+            result.append(static_cast<wchar_t>((flag[1] >> 10) + 0xd800));
+            result.append(static_cast<wchar_t>((flag[1] & 0x3ff) + 0xdc00));
         }
-        return L"";
+        return result;
     }   // getCountryFlag
 
     // ------------------------------------------------------------------------
@@ -334,6 +334,20 @@ namespace StringUtils
             }
         }
     }
+    // ------------------------------------------------------------------------
+    bool isEqual(char a, char b, char any_char, bool case_sensitive = true);
+    int getEditDistance(const std::string& a, const std::string& b,
+        bool case_sensitive = true, char any_substr = 0, char any_char = 0);
+    // ------------------------------------------------------------------------
+    std::vector<uint8_t> toUInt8Vector(const std::string& s);
+    // ------------------------------------------------------------------------
+    struct Precision
+    {
+        double m_value;
+        int m_precision;
+        Precision(double value, int precision): m_value(value), m_precision(precision) {}
+    };
+    std::ostream& operator << (std::ostream& os, const Precision& item);
 
 } // namespace StringUtils
 

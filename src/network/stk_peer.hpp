@@ -66,6 +66,8 @@ enum AlwaysSpectateMode : uint8_t
     ASM_NONE = 0, //!< Default, not spectating at all
     ASM_COMMAND = 1, //!< Set by player through command
     ASM_FULL = 2, //!< Set by server because too many players joined
+    ASM_COMMAND_ABSENT = 3, //!< Same as ASM_COMMAND but without watching
+    ASM_NO_TEAM = 4 //!< Set when a player's team is reset in soccer/CTF
 };   // AlwaysSpectateMode
 
 /*! \class STKPeer
@@ -94,6 +96,8 @@ protected:
 
     std::atomic<uint8_t> m_always_spectate;
 
+    std::atomic<uint8_t> m_default_always_spectate;
+
     /** Host id of this peer. */
     uint32_t m_host_id;
 
@@ -104,6 +108,8 @@ protected:
     std::vector<std::shared_ptr<NetworkPlayerProfile> > m_players;
 
     uint64_t m_connected_time;
+
+    uint64_t m_rejoin_time;
 
     std::atomic<int64_t> m_last_activity;
 
@@ -312,14 +318,63 @@ public:
     const SocketAddress& getAddress() const { return *m_socket_address.get(); }
     // ------------------------------------------------------------------------
     void setAlwaysSpectate(AlwaysSpectateMode mode)
-                                             { m_always_spectate.store(mode); }
+    {
+        uint8_t previous_mode = m_always_spectate.load();
+        if (previous_mode == ASM_COMMAND || previous_mode == ASM_COMMAND_ABSENT)
+            if (mode == ASM_NONE)
+                m_rejoin_time = StkTime::getMonoTimeMs();
+        m_always_spectate.store(mode);
+    }
+    // ------------------------------------------------------------------------
+    void setDefaultAlwaysSpectate(AlwaysSpectateMode mode)
+    {
+        uint8_t previous_mode = m_default_always_spectate.load();
+        if (previous_mode == ASM_COMMAND || previous_mode == ASM_COMMAND_ABSENT)
+            if (mode == ASM_NONE)
+                m_rejoin_time = StkTime::getMonoTimeMs();
+        m_default_always_spectate.store(mode);
+    }
+    // ------------------------------------------------------------------------
+    AlwaysSpectateMode getAlwaysSpectate() const
+                       { return (AlwaysSpectateMode)m_always_spectate.load(); }
     // ------------------------------------------------------------------------
     bool alwaysSpectate() const
                                { return m_always_spectate.load() != ASM_NONE; }
     // ------------------------------------------------------------------------
+    bool alwaysSpectateForReal() const
+    {
+        uint8_t previous_mode = m_always_spectate.load();
+        return previous_mode != ASM_NONE &&
+               previous_mode != ASM_COMMAND_ABSENT;
+    }
+    // ------------------------------------------------------------------------
+    bool alwaysSpectateButNotNeutral() const
+    {
+        uint8_t previous_mode = m_always_spectate.load();
+        return previous_mode != ASM_NONE &&
+               previous_mode != ASM_NO_TEAM;
+    }
+    // ------------------------------------------------------------------------
+    bool isCommandSpectator() const
+    {
+        uint8_t previous_mode = m_always_spectate.load();
+        return previous_mode == ASM_COMMAND ||
+               previous_mode == ASM_COMMAND_ABSENT;
+    }
+    // ------------------------------------------------------------------------
+    uint64_t getRejoinTime() const                    { return m_rejoin_time; }
+    // ------------------------------------------------------------------------
     void resetAlwaysSpectateFull()
     {
         if (m_always_spectate.load() == ASM_FULL)
+            m_always_spectate.store(ASM_NONE);
+        if (m_always_spectate.load() != m_default_always_spectate.load())
+            m_always_spectate.store(m_default_always_spectate.load());
+    }
+    // ------------------------------------------------------------------------
+    void resetNoTeamSpectate()
+    {
+        if (m_always_spectate.load() == ASM_NO_TEAM)
             m_always_spectate.store(ASM_NONE);
     }
     // ------------------------------------------------------------------------

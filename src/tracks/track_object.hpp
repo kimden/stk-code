@@ -32,9 +32,19 @@
 #include <memory>
 
 class ModelDefinitionLoader;
-class RenderInfo;
+namespace GE { class GERenderInfo; }
 class ThreeDAnimation;
 class XMLNode;
+
+namespace irr
+{
+    namespace scene
+    {
+        class IAnimatedMeshSceneNode;
+    }
+}
+
+using namespace irr;
 
 /**
  * \ingroup tracks
@@ -60,7 +70,7 @@ private:
 
     std::string m_id;
 
-    std::shared_ptr<RenderInfo>    m_render_info;
+    std::shared_ptr<GE::GERenderInfo>    m_render_info;
 
 protected:
 

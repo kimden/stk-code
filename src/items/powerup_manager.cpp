@@ -21,8 +21,6 @@
 #include <cinttypes>
 #include <stdexcept>
 
-#include <irrlicht.h>
-
 #include "config/stk_config.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/sp/sp_base.hpp"
@@ -40,6 +38,8 @@
 #include "race/race_manager.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
+
+#include <IMesh.h>
 
 PowerupManager* powerup_manager=0;
 

@@ -1,14 +1,25 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.6.0)
+
+execute_process(
+  COMMAND git rev-parse --abbrev-ref HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_BRANCH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Get the latest abbreviated commit hash of the working branch
+execute_process(
+  COMMAND git --no-pager describe --tags --always --dirty
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 # root CMakeLists for the SuperTuxKart project
 project(SuperTuxKart)
 set(PROJECT_VERSION "git")
 
 add_definitions( -DSUPERTUXKART_VERSION="${PROJECT_VERSION}" )
-
-if(NOT (CMAKE_MAJOR_VERSION VERSION_LESS 3))
-  cmake_policy(SET CMP0043 OLD)
-endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
@@ -35,10 +46,13 @@ option(USE_SYSTEM_WIIUSE "Use system WiiUse instead of the built-in version, whe
 option(USE_SQLITE3 "Use sqlite to manage server stats and ban list." ON)
 
 option(WEB_SUPPORT "Website integration tools" OFF)
+option(FATAL_WHEN_OLD_RECORDS "Fatal error if the results table is old" ON)
+
 if(APPLE)
     CMAKE_DEPENDENT_OPTION(DLOPEN_MOLTENVK "Use dlopen to load MoltenVK for Apple." ON
         "NOT IOS;NOT SERVER_ONLY" OFF)
 endif()
+
 CMAKE_DEPENDENT_OPTION(USE_CRYPTO_OPENSSL "Use OpenSSL instead of MbedTLS for cryptography in STK." ON
     "NOT USE_SWITCH;NOT WIN32" OFF)
 CMAKE_DEPENDENT_OPTION(BUILD_RECORDER "Build opengl recorder" ON
@@ -89,7 +103,8 @@ endif()
 
 if((UNIX AND NOT APPLE) AND NOT SERVER_ONLY)
     if((${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") OR 
-       (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64"))
+       (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64") OR
+       (${CMAKE_SYSTEM_PROCESSOR} MATCHES "riscv64"))
         option(USE_GLES2 "Use OpenGL ES2 renderer" ON)
     else()
         option(USE_GLES2 "Use OpenGL ES2 renderer" OFF)
@@ -114,6 +129,7 @@ endif()
 if(UNIX AND NOT APPLE)
     option(USE_ASAN   "Build with Leak/Address sanitizer" OFF)
     option(USE_TSAN   "Build with Thread sanitizer" OFF)
+    option(USE_USAN   "Build with Undefined Behaviour sanitizer" OFF)
     option(USE_LIBBFD "Use libbfd for crash reporting and leak check" OFF)
 endif()
 
@@ -124,6 +140,10 @@ endif()
 if(USE_TSAN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=thread -fno-omit-frame-pointer")
+endif()
+if(USE_USAN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fno-omit-frame-pointer")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -fno-omit-frame-pointer")
 endif()
 
 set(STK_SOURCE_DIR "src")
@@ -148,6 +168,8 @@ if (CMAKE_GENERATOR_PLATFORM)
 endif()
 if(arch_lower MATCHES "arm64" OR arch_lower MATCHES "aarch64" OR ${CMAKE_GENERATOR} MATCHES "(ARM64)" OR ${BUILD_ARCH} MATCHES "(ARM64)")
     set(DEPENDENCIES "dependencies-win-aarch64")
+elseif(arch_lower MATCHES "armv7" OR arch_lower MATCHES "armv7" OR ${CMAKE_GENERATOR} MATCHES "(ARM)" OR ${BUILD_ARCH} MATCHES "(ARM)")
+    set(DEPENDENCIES "dependencies-win-armv7")
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(DEPENDENCIES "dependencies-win-x86_64")
 else()
@@ -242,9 +264,43 @@ else()
 endif()
 
 if(NOT SERVER_ONLY)
-    add_subdirectory("${PROJECT_SOURCE_DIR}/lib/graphics_engine")
-    include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/graphics_engine/include")
+    if(USE_SYSTEM_SQUISH)
+        find_library(SQUISH_LIBRARY NAMES squish libsquish)
+        find_path(SQUISH_INCLUDEDIR NAMES squish.h PATHS)
+    endif()
+    if (NOT SQUISH_LIBRARY OR NOT SQUISH_INCLUDEDIR)
+        add_subdirectory("${PROJECT_SOURCE_DIR}/lib/libsquish")
+        include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/libsquish")
+        SET(SQUISH_LIBRARY squish)
+    else()
+        include_directories("${SQUISH_INCLUDEDIR}")
+        MESSAGE(STATUS "Use system libsquish: ${SQUISH_LIBRARY}")
+    endif()
 endif()
+
+if(NOT SERVER_ONLY)
+    if (IOS)
+        find_library(SHADERC_LIBRARY NAMES shaderc_combined libshaderc_combined)
+    else()
+        find_library(SHADERC_LIBRARY NAMES shaderc_shared libshaderc_shared shaderc libshaderc)
+    endif()
+    find_path(SHADERC_INCLUDEDIR NAMES shaderc/shaderc.hpp PATHS)
+    if (NOT SHADERC_LIBRARY OR NOT SHADERC_INCLUDEDIR)
+        if (NOT NO_SHADERC)
+            message(FATAL_ERROR "Please install shaderc from your distribution or disable vulkan support with -DNO_SHADERC=on")
+        endif()
+    else()
+        include_directories("${SHADERC_INCLUDEDIR}")
+        MESSAGE(STATUS "Use system shaderc: ${SHADERC_LIBRARY}")
+    endif()
+    if (NO_SHADERC)
+        add_definitions(-DDISABLE_SHADERC)
+    endif()
+
+    add_subdirectory("${PROJECT_SOURCE_DIR}/lib/graphics_engine")
+endif()
+# MiniGLM is there
+include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/graphics_engine/include")
 
 if (NOT SERVER_ONLY)
     # Add jpeg library
@@ -293,21 +349,6 @@ else()
     MESSAGE(STATUS "Use system libmcpp: ${MCPP_LIBRARY}")
 endif()
 
-if(NOT SERVER_ONLY)
-    if(USE_SYSTEM_SQUISH)
-        find_library(SQUISH_LIBRARY NAMES squish libsquish)
-        find_path(SQUISH_INCLUDEDIR NAMES squish.h PATHS)
-    endif()
-    if (NOT SQUISH_LIBRARY OR NOT SQUISH_INCLUDEDIR)
-        add_subdirectory("${PROJECT_SOURCE_DIR}/lib/libsquish")
-        include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/libsquish")
-        SET(SQUISH_LIBRARY squish)
-    else()
-        include_directories("${SQUISH_INCLUDEDIR}")
-        MESSAGE(STATUS "Use system libsquish: ${SQUISH_LIBRARY}")
-    endif()
-endif()
-
 if (NOT SERVER_ONLY)
     # SDL2
     find_library(SDL2_LIBRARY NAMES SDL2 libSDL2)
@@ -348,7 +389,7 @@ if(USE_WIIUSE)
         if(WIIUSE_BUILD)
             add_subdirectory("${PROJECT_SOURCE_DIR}/lib/wiiuse")
         endif()
-        include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/wiiuse/src")
+        include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/wiiuse/src/include")
         set(WIIUSE_LIBRARIES "wiiuse" "bluetooth")
     endif()
 endif()
@@ -480,6 +521,11 @@ if(WEB_SUPPORT)
     add_definitions(-DENABLE_WEB_SUPPORT)
 endif()
 
+# Error if the records table is too old
+if(FATAL_WHEN_OLD_RECORDS)
+    add_definitions(-DENABLE_FATAL_WHEN_OLD_RECORDS)
+endif()
+
 # Set some compiler options
 if(UNIX OR MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
@@ -506,6 +552,7 @@ endif()
 if(MSVC)
     # VS will automatically add NDEBUG for release mode, but only _DEBUG in debug mode.
     # Since STK uses DEBUG, this is added for debug compilation only:
+    cmake_policy(SET CMP0043 OLD)
     set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS_DEBUG DEBUG)
 else()
     # All non VS generators used create only a single compile mode, so
@@ -552,7 +599,7 @@ if(APPLE AND NOT IOS)
 
     if(CMAKE_GENERATOR MATCHES "Xcode")
         add_custom_command(TARGET supertuxkart POST_BUILD
-            COMMAND ln -f -s ${PROJECT_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/bin/\${CONFIGURATION}/supertuxkart.app/Contents/Resources)
+            COMMAND ln -f -s ${PROJECT_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/\${CONFIGURATION}/supertuxkart.app/Contents/Resources)
     else()
         add_custom_command(TARGET supertuxkart POST_BUILD
             COMMAND ln -f -s ${PROJECT_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/bin/supertuxkart.app/Contents/Resources)
@@ -602,6 +649,9 @@ else()
         target_link_libraries(supertuxkart ${PTHREAD_LIBRARY})
     endif()
 endif()
+
+target_compile_definitions(supertuxkart PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
+target_compile_definitions(supertuxkart PRIVATE "-DGIT_VERSION=\"${GIT_COMMIT_HASH}\"")
 
 # check if linking against libatomic is required
 include(CheckCXXSourceCompiles)
@@ -700,6 +750,10 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 	target_link_libraries(supertuxkart nsl socket vorbisfile)
 endif()
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Haiku")
+	target_link_libraries(supertuxkart be network vorbisfile)
+endif()
+
 if (USE_DNS_C)
     target_link_libraries(supertuxkart dnsc)
 else()
@@ -745,6 +799,9 @@ if(NOT SERVER_ONLY)
         graphics_engine
         ${SDL2_LIBRARY}
         tinygettext)
+    if (NOT NO_SHADERC)
+        target_link_libraries(supertuxkart ${SHADERC_LIBRARY})
+    endif()
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -760,6 +817,9 @@ if(UNIX AND NOT APPLE)
     if(USE_TSAN)
         target_link_libraries(supertuxkart "-fsanitize=thread")
     endif()
+    if(USE_USAN)
+        target_link_libraries(supertuxkart "-fsanitize=undefined")
+    endif()
 endif()
 
 if(BUILD_RECORDER)
@@ -769,6 +829,10 @@ endif()
 # FreeBSD does not search in /usr/local/lib, but at least Freetype is installed there :(
 if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
+endif()
+
+if(HAIKU)
+    target_link_libraries(supertuxkart -lbe -lnetwork)
 endif()
 
 # Wiiuse

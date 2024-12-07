@@ -41,6 +41,8 @@
 
 #include "utils/log.hpp" //TODO: remove after debugging is done
 
+#include <ISceneNode.h>
+
 float RubberBall::m_st_interval;
 float RubberBall::m_st_min_interpolation_distance;
 float RubberBall::m_st_squash_duration;
@@ -89,6 +91,12 @@ void RubberBall::onFireFlyable()
                   new btSphereShape(0.5f*m_extend.getY()), -70.0f,
                   btVector3(.0f,.0f,.0f) /*gravity*/,
                   true /*rotates*/);
+
+    // add no_contact_response flags, so that the ball
+    // will not explode if hitting the track or objects
+    int flag = getBody()->getCollisionFlags();
+    flag |= btCollisionObject::CF_NO_CONTACT_RESPONSE;
+    getBody()->setCollisionFlags(flag);
 
     // Do not adjust the up velocity
     setAdjustUpVelocity(false);

@@ -23,6 +23,7 @@
 #include "utils/translation.hpp"
 
 #include <ctime>
+#include <IrrlichtDevice.h>
 
 irr::ITimer *StkTime::m_timer = NULL;
 std::chrono::steady_clock::time_point
@@ -46,6 +47,13 @@ void StkTime::init()
 /** Get the time in string for game server logging prefix (thread-safe)*/
 std::string StkTime::getLogTime()
 {
+    return getLogTimeFormatted("%a %b %d %H:%M:%S %Y");
+}   // getLogTime
+
+// ----------------------------------------------------------------------------
+/** Get the time in string using a specified format (thread-safe)*/
+std::string StkTime::getLogTimeFormatted(std::string&& format)
+{
     time_t time_now = 0;
     time(&time_now);
     std::tm timeptr = {};
@@ -56,11 +64,11 @@ std::string StkTime::getLogTime()
 #endif
     std::string result;
     result.resize(64);
-    strftime(&result[0], 64, "%a %b %d %H:%M:%S %Y", &timeptr);
+    strftime(&result[0], 64, format.c_str(), &timeptr);
     size_t len = strlen(result.c_str());
     result.resize(len);
     return result;
-}   // getLogTime
+}   // getLogTimeFormatted
 
 // ----------------------------------------------------------------------------
 

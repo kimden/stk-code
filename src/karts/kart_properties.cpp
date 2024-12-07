@@ -47,6 +47,10 @@
 #include <stdexcept>
 #include <string>
 
+#include <IFileSystem.h>
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#endif
 
 float KartProperties::UNDEFINED = -99.9f;
 
@@ -116,12 +120,15 @@ KartProperties::KartProperties(const std::string &filename)
 KartProperties::~KartProperties()
 {
 #ifndef SERVER_ONLY
-    if (CVS->isGLSL() && m_kart_model.use_count() == 1)
+    if (m_kart_model.use_count() == 1)
     {
-        m_kart_model = nullptr;
-        SP::SPShaderManager::get()->removeUnusedShaders();
-        ShaderFilesManager::getInstance()->removeUnusedShaderFiles();
-        SP::SPTextureManager::get()->removeUnusedTextures();
+        if (CVS->isGLSL())
+        {
+            m_kart_model = nullptr;
+            SP::SPShaderManager::get()->removeUnusedShaders();
+            ShaderFilesManager::getInstance()->removeUnusedShaderFiles();
+            SP::SPTextureManager::get()->removeUnusedTextures();
+        }
     }
 #endif
 }   // ~KartProperties
@@ -177,6 +184,33 @@ void KartProperties::copyFrom(const KartProperties *source)
 }   // copyFrom
 
 //-----------------------------------------------------------------------------
+void KartProperties::handleOnDemandLoadTexture()
+{
+#ifndef SERVER_ONLY
+    if (GE::getDriver()->getDriverType() != video::EDT_VULKAN)
+        return;
+    std::set<std::string> files;
+    // Remove the last /
+    m_root_absolute_path = StringUtils::getPath(m_root);
+    m_root_absolute_path = file_manager->getFileSystem()
+        ->getAbsolutePath(m_root_absolute_path.c_str()).c_str();
+
+    file_manager->listFiles(files, m_root_absolute_path,
+        true/*make_full_path*/);
+    std::set<std::string> image_extensions =
+    {
+        "png", "jpg", "jpeg", "jpe", "svg"
+    };
+    for (const std::string& f : files)
+    {
+        if (image_extensions.find(StringUtils::getExtension(f)) !=
+            image_extensions.end())
+            GE::getGEConfig()->m_ondemand_load_texture_paths.insert(f);
+    }
+#endif
+}   // handleOnDemandLoadTexture
+
+//-----------------------------------------------------------------------------
 /** Loads the kart properties from a file.
  *  \param filename Filename to load.
  *  \param node Name of the xml node to load the data from
@@ -220,6 +254,7 @@ void KartProperties::load(const std::string &filename, const std::string &node)
         m_is_addon = true;
     }
 
+    handleOnDemandLoadTexture();
     try
     {
         if(!root || root->getName()!="kart")
@@ -336,6 +371,10 @@ void KartProperties::load(const std::string &filename, const std::string &node)
     file_manager->popTextureSearchPath();
     file_manager->popModelSearchPath();
 
+#ifndef SERVER_ONLY
+    if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
+        GE::getGEConfig()->m_ondemand_load_texture_paths.clear();
+#endif
 }   // load
 
 // ----------------------------------------------------------------------------
@@ -343,7 +382,7 @@ void KartProperties::load(const std::string &filename, const std::string &node)
  *  \param krt The KartRenderType, like default, red, blue or transparent.
  *  see the RenderInfo include for details
  */
-KartModel* KartProperties::getKartModelCopy(std::shared_ptr<RenderInfo> ri) const
+KartModel* KartProperties::getKartModelCopy(std::shared_ptr<GE::GERenderInfo> ri) const
 {
     return m_kart_model->makeCopy(ri);
 }  // getKartModelCopy
@@ -370,6 +409,7 @@ void KartProperties::adjustForOnlineAddonKart(const KartProperties* source)
     m_icon_material = source->m_icon_material;
     m_minimap_icon = source->m_minimap_icon;
     m_engine_sfx_type = source->m_engine_sfx_type;
+    m_skid_sound = source->m_skid_sound;
     m_color = source->m_color;
 }  // adjustForOnlineAddonKart
 
@@ -384,6 +424,14 @@ void KartProperties::combineCharacteristics(HandicapLevel handicap)
             RaceManager::get()->getDifficulty())));
 
     // Try to get the kart type
+    if (!kart_properties_manager->hasKartTypeCharacteristic(m_kart_type))
+    {
+        Log::warn("KartProperties",
+            "Can't find kart type '%s' for kart '%s', defaulting to '%s'.",
+            m_kart_type.c_str(), m_name.c_str(),
+            kart_properties_manager->getDefaultKartType().c_str());
+        m_kart_type = kart_properties_manager->getDefaultKartType();
+    }
     const AbstractCharacteristic *characteristic = kart_properties_manager->
         getKartTypeCharacteristic(m_kart_type, m_name);
 

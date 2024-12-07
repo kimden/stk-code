@@ -70,6 +70,10 @@ protected:
     /** The number of players currently on the server */
     int m_current_players;
 
+    int m_current_ai;
+
+    uint32_t m_bookmark_id;
+
     /** The public ip address and port of this server. */
     std::unique_ptr<SocketAddress> m_address;
 
@@ -210,6 +214,12 @@ public:
                                          { m_reconnect_when_quit_lobby = val; }
     // ------------------------------------------------------------------------
     std::string getBookmarkKey() const;
+    // ------------------------------------------------------------------------
+    const int getCurrentAI() const                     { return m_current_ai; }
+    // ------------------------------------------------------------------------
+    uint32_t getBookmarkID() const                    { return m_bookmark_id; }
+    // ------------------------------------------------------------------------
+    void setBookmarkID(uint32_t id)                     { m_bookmark_id = id; }
 };   // Server
 
 class UserDefinedServer : public Server

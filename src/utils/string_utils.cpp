@@ -38,6 +38,7 @@
 #include <cstring>
 #include <cwchar>
 #include <exception>
+#include <iomanip>
 
 extern std::string g_android_main_user_agent;
 
@@ -142,6 +143,85 @@ namespace StringUtils
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         return name;
     }   // toLowerCase
+
+    //-------------------------------------------------------------------------
+    /** Splits a string into substrings separated by a certain character `c`,
+     *  and returns a std::vector of all those substrings. The only exception
+     *  from that is when a substring is enclosed into `d` and `e` chars,
+     *  `c` chars inside do not split the substring. `d` and `e` chars are
+     *  escaped with `f`, just as `f` chars. E.g.:
+     *  splitQuoted("a b=c <multi word phrase> /<o //", ' ', '<', '>', '/') -->
+     *  ["a", "b=c", "multi word phrase", "<o", "/"]
+     *  Note that a quoted empty string is added to the result, while an
+     *  unqouted empty string (between two `c`s) isn't.
+     *  \param s The string to split.
+     *  \param c The character by which the string is split.
+     *  \param d The character that opens the area where `c` doesn't matter.
+     *  \param e The character that closes the area where `c` doesn't matter.
+     *  \param f The character to escape `d`, `e`, and `f`.
+     */
+    std::vector<std::string> splitQuoted(const std::string& s, char c,
+                                   char d, char e, char f)
+    {
+        std::vector<std::string> result;
+
+        try
+        {
+            if (!s.empty())
+                result.emplace_back();
+            bool quoted = false;
+            bool escaped = false;
+            bool previous_space = true;
+            for (unsigned i = 0; i < s.length(); ++i)
+            {
+                if (s[i] == f)
+                {
+                    if (escaped) {
+                        result.back().push_back(f);
+                        escaped = false;
+                    }
+                    else
+                        escaped = true;
+                }
+                else if (s[i] == d && quoted == 0 && !escaped)
+                {
+                    quoted = 1;
+                }
+                else if (s[i] == e && quoted == 1 && !escaped)
+                {
+                    quoted = 0;
+                }
+                else if (s[i] == c && !quoted && !escaped)
+                {
+                    if (!result.back().empty() || !previous_space) {
+                        result.emplace_back();
+                    }
+                }
+                else
+                {
+                    result.back().push_back(s[i]);
+                    escaped = false;
+                }
+                previous_space = (s[i] == c);
+            }
+            return result;
+        }
+        catch (std::exception& e)
+        {
+            Log::error("StringUtils",
+                       "Error in splitQuoted(std::string) : %s @ line %i : %s.",
+                     __FILE__, __LINE__, e.what());
+            Log::error("StringUtils", "Splitting '%s'.", s.c_str());
+
+            for (int n = 0; n < (int)result.size(); n++)
+            {
+                Log::error("StringUtils", "Split : %s", result[n].c_str());
+            }
+
+            assert(false); // in debug mode, trigger debugger
+            exit(1);
+        }
+    }   // split
 
     //-------------------------------------------------------------------------
     /** Splits a string into substrings separated by a certain character, and
@@ -1253,6 +1333,68 @@ namespace StringUtils
             unit = _("%s KB", 1);
         return unit;
     }   // getReadableFileSize
+    // ------------------------------------------------------------------------
+    bool isEqual(char a, char b, char any_char, bool case_sensitive)
+    {
+        if (a == any_char || b == any_char)
+            return true;
+        if (a == b)
+            return true;
+        return !case_sensitive && toupper(a) == toupper(b);
+    }   // isEqual
+    // ------------------------------------------------------------------------
+    int getEditDistance(const std::string& a, const std::string& b,
+        bool case_sensitive, char any_substr, char any_char)
+    {
+        int n = a.length();
+        int m = b.length();
+        std::vector<std::vector<int>> distance(n + 1,
+            std::vector<int>(m + 1, n + m));
+        distance[0][0] = 0;
+        for (int i = 0; i <= n; ++i) {
+            for (int j = 0; j <= m; ++j) {
+                if (i < n) {
+                    distance[i + 1][j] = std::min(distance[i + 1][j],
+                        distance[i][j] + (a[i] == any_substr || (j < m && b[j] == any_substr) ? 0 : 1));
+                }
+                if (j < m) {
+                    distance[i][j + 1] = std::min(distance[i][j + 1],
+                        distance[i][j] + (b[j] == any_substr || (i < n && a[i] == any_substr) ? 0 : 1));
+                }
+                if (i < n && j < m) {
+                    int value = distance[i][j] + 1;
+                    if (isEqual(a[i], b[j], any_char, case_sensitive))
+                        --value;
+                    else if (a[i] == any_substr || b[j] == any_substr)
+                        --value;
+                    distance[i + 1][j + 1] = std::min(
+                        distance[i + 1][j + 1], value);
+                }
+            }
+        }
+        return distance[n][m];
+    }   // getEditDistance
+    // ------------------------------------------------------------------------
+
+    std::vector<uint8_t> toUInt8Vector(const std::string& s)
+    {
+        std::vector<uint8_t> result;
+        for (const char& c: s)
+            result.push_back((uint8_t)c);
+        return result;
+    }   // toUInt8Vector
+    // ------------------------------------------------------------------------
+
+    /** Prints a double value with a certain precision. Useful for insertValues,
+    *   where operator << is used, and not toString which would be fine for doubles.
+    */
+    std::ostream& operator << (std::ostream& os, const Precision& item)
+    {
+        os << std::setprecision(item.m_precision) << std::fixed << item.m_value;
+        return os;
+    }   // operator << (Precision)
+
+    //-----------------------------------------------------------------------------
 } // namespace StringUtils
 
 /* EOF */

@@ -31,6 +31,7 @@
 #include "modes/soccer_world.hpp"
 #include "modes/linear_world.hpp"
 #include "network/crypto.hpp"
+#include "network/database_connector.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
 #include "network/network.hpp"
@@ -39,6 +40,7 @@
 #include "network/peer_vote.hpp"
 #include "network/protocol_manager.hpp"
 #include "network/protocols/connect_to_peer.hpp"
+#include "network/protocols/command_permissions.hpp"
 #include "network/protocols/game_protocol.hpp"
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/race_event_manager.hpp"
@@ -54,6 +56,7 @@
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/game_info.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
@@ -67,7 +70,7 @@
 #include <sstream>
 #include <iterator>
 
-
+int ServerLobby::m_default_fixed_laps = -1;
 // ========================================================================
 class SubmitRankingRequest : public Online::XMLRequest
 {
@@ -104,69 +107,6 @@ public:
 
 // We use max priority for all server requests to avoid downloading of addons
 // icons blocking the poll request in all-in-one graphical client server
-
-#ifdef ENABLE_SQLITE3
-
-// ----------------------------------------------------------------------------
-static void upperIPv6SQL(sqlite3_context* context, int argc,
-                         sqlite3_value** argv)
-{
-    if (argc != 1)
-    {
-        sqlite3_result_int64(context, 0);
-        return;
-    }
-
-    char* ipv6 = (char*)sqlite3_value_text(argv[0]);
-    if (ipv6 == NULL)
-    {
-        sqlite3_result_int64(context, 0);
-        return;
-    }
-    sqlite3_result_int64(context, upperIPv6(ipv6));
-}
-
-// ----------------------------------------------------------------------------
-void insideIPv6CIDRSQL(sqlite3_context* context, int argc,
-                       sqlite3_value** argv)
-{
-    if (argc != 2)
-    {
-        sqlite3_result_int(context, 0);
-        return;
-    }
-
-    char* ipv6_cidr = (char*)sqlite3_value_text(argv[0]);
-    char* ipv6_in = (char*)sqlite3_value_text(argv[1]);
-    if (ipv6_cidr == NULL || ipv6_in == NULL)
-    {
-        sqlite3_result_int(context, 0);
-        return;
-    }
-    sqlite3_result_int(context, insideIPv6CIDR(ipv6_cidr, ipv6_in));
-}   // insideIPv6CIDRSQL
-
-// ----------------------------------------------------------------------------
-/*
-Copy below code so it can be use as loadable extension to be used in sqlite3
-command interface (together with andIPv6 and insideIPv6CIDR from stk_ipv6)
-
-#include "sqlite3ext.h"
-SQLITE_EXTENSION_INIT1
-// ----------------------------------------------------------------------------
-sqlite3_extension_init(sqlite3* db, char** pzErrMsg,
-                       const sqlite3_api_routines* pApi)
-{
-    SQLITE_EXTENSION_INIT2(pApi)
-    sqlite3_create_function(db, "insideIPv6CIDR", 2, SQLITE_UTF8, NULL,
-        insideIPv6CIDRSQL, NULL, NULL);
-    sqlite3_create_function(db, "upperIPv6", 1, SQLITE_UTF8,  0, upperIPv6SQL,
-        0, 0);
-    return 0;
-}   // sqlite3_extension_init
-*/
-
-#endif
 
 /** This is the central game setup protocol running in the server. It is
  *  mostly a finite state machine. Note that all nodes in ellipses and light
@@ -214,37 +154,18 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_help_message = getGameSetup()->readOrLoadFromFile
         ((std::string) ServerConfig::m_help);
 
-    m_available_commands = "admin ban commands config game gnu go help init "
-        "installaddon kick kickban listlocaladdon listserveraddon "
-        "liststkaddon lobby nognu play playeraddonscore playerhasaddon "
-        "power public record register replay resume role serverhasaddon "
-        "spectate standings start stop teamchat tell to token unban "
-        "uninstalladdon version";
-
-    m_team_name_to_index = {
-           {"red", 1}, {"r", 1}, {StringUtils::utf32ToUtf8({0x1f7e5}), -1},
-        {"orange", 2}, {"o", 2}, {StringUtils::utf32ToUtf8({0x1f7e7}), -2},
-        {"yellow", 3}, {"y", 3}, {StringUtils::utf32ToUtf8({0x1f7e8}), -3},
-         {"green", 4}, {"g", 4}, {StringUtils::utf32ToUtf8({0x1f7e9}), -4},
-          {"blue", 5}, {"b", 5}, {StringUtils::utf32ToUtf8({0x1f7e6}), -5},
-        {"purple", 6}, {"p", 6}, {StringUtils::utf32ToUtf8({0x1f7ea}), -6},
-        {"violet", 6}, {"v", 6}
-    };
-
-    m_team_name = {"No Team",
-        StringUtils::utf32ToUtf8({0x1f7e5}) + "Red",
-        StringUtils::utf32ToUtf8({0x1f7e7}) + "Orange",
-        StringUtils::utf32ToUtf8({0x1f7e8}) + "Yellow",
-        StringUtils::utf32ToUtf8({0x1f7e9}) + "Green",
-        StringUtils::utf32ToUtf8({0x1f7e6}) + "Blue",
-        StringUtils::utf32ToUtf8({0x1f7ea}) + "Purple"
-    };
-
+    m_command_manager = CommandManager(nullptr);
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
-
+    m_current_max_players_in_game.store(ServerConfig::m_max_players_in_game);
     m_consent_on_replays = false;
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
+    // Server config has better priority than --laps
+    // as it is more flexible and was introduced earlier
+    if (m_default_fixed_laps != -1) {
+        m_fixed_lap = m_default_fixed_laps;
+    }
+    m_fixed_direction = ServerConfig::m_fixed_direction;
     m_extra_seconds = 0.0f;
     m_default_lap_multiplier = ServerConfig::m_auto_game_time_ratio;
 
@@ -255,9 +176,13 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_last_teammate_hit_msg = 0;
     m_teammate_swatter_punish.clear();
     m_collecting_teammate_hit_info = false;
+    m_available_teams = ServerConfig::m_init_available_teams;
+
+    m_map_vote_handler.setAlgorithm(ServerConfig::m_map_vote_handling);
 
     initAvailableModes();
 
+    m_current_ai_count.store(0);
     std::vector<int> all_k =
         kart_properties_manager->getKartsInGroup("standard");
     std::vector<int> all_t =
@@ -301,9 +226,10 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
     m_default_vote = new PeerVote();
-    m_player_reports_table_exists = false;
-    initDatabase();
-
+#ifdef ENABLE_SQLITE3
+    m_db_connector = new DatabaseConnector();
+    m_db_connector->initDatabase();
+#endif
     initCategories();
     if (ServerConfig::m_soccer_tournament)
     {
@@ -311,9 +237,12 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         m_tournament_game = 0;
     }
     m_allowed_to_start = true;
+    m_game_info = nullptr;
     loadTracksQueueFromConfig();
-    loadCustomScoring();
+    std::string scoring = ServerConfig::m_gp_scoring;
+    loadCustomScoring(scoring);
     loadWhiteList();
+    loadPreservedSettings();
 #ifdef ENABLE_WEB_SUPPORT
     m_token_generation_tries.store(0);
     loadAllTokens();
@@ -335,326 +264,21 @@ ServerLobby::~ServerLobby()
     if (m_save_server_config)
         ServerConfig::writeServerConfigToDisk();
     delete m_default_vote;
-    destroyDatabase();
+
+#ifdef ENABLE_SQLITE3
+    m_db_connector->destroyDatabase();
+    delete m_db_connector;
+#endif
 }   // ~ServerLobby
 
 //-----------------------------------------------------------------------------
-void ServerLobby::initDatabase()
-{
-#ifdef ENABLE_SQLITE3
-    m_last_poll_db_time = StkTime::getMonoTimeMs();
-    m_db = NULL;
-    m_ip_ban_table_exists = false;
-    m_ipv6_ban_table_exists = false;
-    m_online_id_ban_table_exists = false;
-    m_ip_geolocation_table_exists = false;
-    m_ipv6_geolocation_table_exists = false;
-    if (!ServerConfig::m_sql_management)
-        return;
-    const std::string& path = ServerConfig::getConfigDirectory() + "/" +
-        ServerConfig::m_database_file.c_str();
-    int ret = sqlite3_open_v2(path.c_str(), &m_db,
-        SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_FULLMUTEX |
-        SQLITE_OPEN_READWRITE, NULL);
-    if (ret != SQLITE_OK)
-    {
-        Log::error("ServerLobby", "Cannot open database: %s.",
-            sqlite3_errmsg(m_db));
-        sqlite3_close(m_db);
-        m_db = NULL;
-        return;
-    }
-    sqlite3_busy_handler(m_db, [](void* data, int retry)
-        {
-            int retry_count = ServerConfig::m_database_timeout / 100;
-            if (retry < retry_count)
-            {
-                sqlite3_sleep(100);
-                // Return non-zero to let caller retry again
-                return 1;
-            }
-            // Return zero to let caller return SQLITE_BUSY immediately
-            return 0;
-        }, NULL);
-    sqlite3_create_function(m_db, "insideIPv6CIDR", 2, SQLITE_UTF8, NULL,
-        &insideIPv6CIDRSQL, NULL, NULL);
-    sqlite3_create_function(m_db, "upperIPv6", 1, SQLITE_UTF8, NULL,
-        &upperIPv6SQL, NULL, NULL);
-    checkTableExists(ServerConfig::m_ip_ban_table, m_ip_ban_table_exists);
-    checkTableExists(ServerConfig::m_ipv6_ban_table, m_ipv6_ban_table_exists);
-    checkTableExists(ServerConfig::m_online_id_ban_table,
-        m_online_id_ban_table_exists);
-    checkTableExists(ServerConfig::m_player_reports_table,
-        m_player_reports_table_exists);
-    checkTableExists(ServerConfig::m_ip_geolocation_table,
-        m_ip_geolocation_table_exists);
-    checkTableExists(ServerConfig::m_ipv6_geolocation_table,
-        m_ipv6_geolocation_table_exists);
-#endif
-}   // initDatabase
 
-//-----------------------------------------------------------------------------
 void ServerLobby::initServerStatsTable()
 {
 #ifdef ENABLE_SQLITE3
-    if (!ServerConfig::m_sql_management || !m_db)
-        return;
-    std::string table_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_stats";
-
-    std::ostringstream oss;
-    oss << "CREATE TABLE IF NOT EXISTS " << table_name << " (\n"
-        "    host_id INTEGER UNSIGNED NOT NULL PRIMARY KEY, -- Unique host id in STKHost of each connection session for a STKPeer\n"
-        "    ip INTEGER UNSIGNED NOT NULL, -- IP decimal of host\n";
-    if (ServerConfig::m_ipv6_connection)
-        oss << "    ipv6 TEXT NOT NULL DEFAULT '', -- IPv6 (if exists) in string of host\n";
-    oss << "    port INTEGER UNSIGNED NOT NULL, -- Port of host\n"
-        "    online_id INTEGER UNSIGNED NOT NULL, -- Online if of the host (0 for offline account)\n"
-        "    username TEXT NOT NULL, -- First player name in the host (if the host has splitscreen player)\n"
-        "    player_num INTEGER UNSIGNED NOT NULL, -- Number of player(s) from the host, more than 1 if it has splitscreen player\n"
-        "    country_code TEXT NULL DEFAULT NULL, -- 2-letter country code of the host\n"
-        "    version TEXT NOT NULL, -- SuperTuxKart version of the host\n"
-        "    os TEXT NOT NULL, -- Operating system of the host\n"
-        "    connected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when connected\n"
-        "    disconnected_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time when disconnected (saved when disconnected)\n"
-        "    ping INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Ping of the host\n"
-        "    packet_loss INTEGER NOT NULL DEFAULT 0, -- Mean packet loss count from ENet (saved when disconnected)\n"
-        "    addon_karts_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon karts of the host\n"
-        "    addon_tracks_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon tracks of the host\n"
-        "    addon_arenas_count INTEGER UNSIGNED NOT NULL DEFAULT 0, -- Number of addon arenas of the host\n"
-        "    addon_soccers_count INTEGER UNSIGNED NOT NULL DEFAULT 0 -- Number of addon soccers of the host\n"
-        ") WITHOUT ROWID;";
-    std::string query = oss.str();
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        ret = sqlite3_finalize(stmt);
-        if (ret == SQLITE_OK)
-            m_server_stats_table = table_name;
-        else
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-    }
-    if (m_server_stats_table.empty())
-        return;
-
-    // Extra default table _countries:
-    // Server owner need to initialise this table himself, check NETWORKING.md
-    std::string country_table_name = std::string("v") + StringUtils::toString(
-        ServerConfig::m_server_db_version) + "_countries";
-    query = StringUtils::insertValues(
-        "CREATE TABLE IF NOT EXISTS %s (\n"
-        "    country_code TEXT NOT NULL PRIMARY KEY UNIQUE, -- Unique 2-letter country code\n"
-        "    country_flag TEXT NOT NULL, -- Unicode country flag representation of 2-letter country code\n"
-        "    country_name TEXT NOT NULL -- Readable name of this country\n"
-        ") WITHOUT ROWID;", country_table_name.c_str());
-    easySQLQuery(query);
-
-    // Extra default table _results:
-    // Server owner need to initialise this table himself, check NETWORKING.md
-    m_results_table_name = std::string("v") + StringUtils::toString(
-        ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_results";
-    query = StringUtils::insertValues(
-        "CREATE TABLE IF NOT EXISTS %s (\n"
-        "    time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Timestamp of the result\n"
-        "    username TEXT NOT NULL, -- User who set the result\n"
-        "    venue TEXT NOT NULL, -- Track for a race\n"
-        "    reverse TEXT NOT NULL, -- Direction\n"
-        "    mode TEXT NOT NULL, -- Racing mode\n"
-        "    laps INTEGER NOT NULL, -- Number of laps\n"
-        "    result REAL NOT NULL -- Elapsed time for a race, possibly with autofinish\n"
-        ");", m_results_table_name.c_str());
-    easySQLQuery(query);
-
-    // Default views:
-    // _full_stats
-    // Full stats with ip in human readable format and time played of each
-    // players in minutes
-    std::string full_stats_view_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_full_stats";
-    oss.str("");
-    oss << "CREATE VIEW IF NOT EXISTS " << full_stats_view_name << " AS\n"
-        << "    SELECT host_id, ip,\n"
-        << "    ((ip >> 24) & 255) ||'.'|| ((ip >> 16) & 255) ||'.'|| ((ip >>  8) & 255) ||'.'|| ((ip ) & 255) AS ip_readable,\n";
-    if (ServerConfig::m_ipv6_connection)
-        oss << "    ipv6,";
-    oss << "    port, online_id, username, player_num,\n"
-        << "    " << m_server_stats_table << ".country_code AS country_code, country_flag, country_name, version, os,\n"
-        << "    ROUND((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0, 2) AS time_played,\n"
-        << "    connected_time, disconnected_time, ping, packet_loss, \n"
-        << "    addon_karts_count, addon_tracks_count, addon_arenas_count,\n"
-        << "    addon_soccers_count FROM " << m_server_stats_table << "\n"
-        << "    LEFT JOIN " << country_table_name << " ON "
-        <<      country_table_name << ".country_code = " << m_server_stats_table << ".country_code\n"
-        << "    ORDER BY connected_time DESC;";
-    query = oss.str();
-    easySQLQuery(query);
-
-    // _current_players
-    // Current players in server with ip in human readable format and time
-    // played of each players in minutes
-    std::string current_players_view_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_current_players";
-    oss.str("");
-    oss.clear();
-    oss << "CREATE VIEW IF NOT EXISTS " << current_players_view_name << " AS\n"
-        << "    SELECT host_id, ip,\n"
-        << "    ((ip >> 24) & 255) ||'.'|| ((ip >> 16) & 255) ||'.'|| ((ip >>  8) & 255) ||'.'|| ((ip ) & 255) AS ip_readable,\n";
-    if (ServerConfig::m_ipv6_connection)
-        oss << "    ipv6,";
-    oss << "    port, online_id, username, player_num,\n"
-        << "    " << m_server_stats_table << ".country_code AS country_code, country_flag, country_name, version, os,\n"
-        << "    ROUND((STRFTIME(\"%s\", 'now') - STRFTIME(\"%s\", connected_time)) / 60.0, 2) AS time_played,\n"
-        << "    connected_time, ping, "
-        << "    addon_karts_count, addon_tracks_count, addon_arenas_count,\n"
-        << "    addon_soccers_count FROM " << m_server_stats_table << "\n"
-        << "    LEFT JOIN " << country_table_name << " ON "
-        <<      country_table_name << ".country_code = " << m_server_stats_table << ".country_code\n"
-        << "    WHERE connected_time = disconnected_time;";
-    query = oss.str();
-    easySQLQuery(query);
-
-    // _player_stats
-    // All players with online id and username with their time played stats
-    // in this server since creation of this database
-    // If sqlite supports window functions (since 3.25), it will include last session player info (ip, country, ping...)
-    std::string player_stats_view_name = std::string("v") +
-        StringUtils::toString(ServerConfig::m_server_db_version) + "_" +
-        ServerConfig::m_server_uid + "_player_stats";
-    oss.str("");
-    oss.clear();
-    if (sqlite3_libversion_number() < 3025000)
-    {
-        oss << "CREATE VIEW IF NOT EXISTS " << player_stats_view_name << " AS\n"
-            << "    SELECT online_id, username, COUNT(online_id) AS num_connections,\n"
-            << "    MIN(connected_time) AS first_connected_time,\n"
-            << "    MAX(connected_time) AS last_connected_time,\n"
-            << "    ROUND(SUM((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS total_time_played,\n"
-            << "    ROUND(AVG((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS average_time_played,\n"
-            << "    ROUND(MIN((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS min_time_played,\n"
-            << "    ROUND(MAX((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS max_time_played\n"
-            << "    FROM " << m_server_stats_table << "\n"
-            << "    WHERE online_id != 0 GROUP BY online_id ORDER BY num_connections DESC;";
-    }
-    else
-    {
-        oss << "CREATE VIEW IF NOT EXISTS " << player_stats_view_name << " AS\n"
-            << "    SELECT a.online_id, a.username, a.ip, a.ip_readable,\n";
-        if (ServerConfig::m_ipv6_connection)
-            oss << "    a.ipv6,";
-        oss << "    a.port, a.player_num,\n"
-            << "    a.country_code, a.country_flag, a.country_name, a.version, a.os, a.ping, a.packet_loss,\n"
-            << "    b.num_connections, b.first_connected_time, b.first_disconnected_time,\n"
-            << "    a.connected_time AS last_connected_time, a.disconnected_time AS last_disconnected_time,\n"
-            << "    a.time_played AS last_time_played, b.total_time_played, b.average_time_played,\n"
-            << "    b.min_time_played, b.max_time_played\n"
-            << "    FROM\n"
-            << "    (\n"
-            << "        SELECT *,\n"
-            << "        ROW_NUMBER() OVER\n"
-            << "        (\n"
-            << "            PARTITION BY online_id\n"
-            << "            ORDER BY connected_time DESC\n"
-            << "        ) RowNum\n"
-            << "        FROM " << full_stats_view_name << " where online_id != 0\n"
-            << "    ) as a\n"
-            << "    JOIN\n"
-            << "    (\n"
-            << "        SELECT online_id, COUNT(online_id) AS num_connections,\n"
-            << "        MIN(connected_time) AS first_connected_time,\n"
-            << "        MIN(disconnected_time) AS first_disconnected_time,\n"
-            << "        ROUND(SUM((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS total_time_played,\n"
-            << "        ROUND(AVG((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS average_time_played,\n"
-            << "        ROUND(MIN((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS min_time_played,\n"
-            << "        ROUND(MAX((STRFTIME(\"%s\", disconnected_time) - STRFTIME(\"%s\", connected_time)) / 60.0), 2) AS max_time_played\n"
-            << "        FROM " << m_server_stats_table << " WHERE online_id != 0 GROUP BY online_id\n"
-            << "    ) AS b\n"
-            << "    ON b.online_id = a.online_id\n"
-            << "    WHERE RowNum = 1 ORDER BY num_connections DESC;\n";
-    }
-    query = oss.str();
-    easySQLQuery(query);
-
-    uint32_t last_host_id = 0;
-    query = StringUtils::insertValues("SELECT MAX(host_id) FROM %s;",
-        m_server_stats_table.c_str());
-    ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW && sqlite3_column_type(stmt, 0) != SQLITE_NULL)
-        {
-            last_host_id = (unsigned)sqlite3_column_int64(stmt, 0);
-            Log::info("ServerLobby", "%u was last server session max host id.",
-                last_host_id);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-            m_server_stats_table = "";
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        m_server_stats_table = "";
-    }
-    STKHost::get()->setNextHostId(last_host_id);
-
-    // Update disconnected time (if stk crashed it will not be written)
-    query = StringUtils::insertValues(
-        "UPDATE %s SET disconnected_time = datetime('now') "
-        "WHERE connected_time = disconnected_time;",
-        m_server_stats_table.c_str());
-    easySQLQuery(query);
+    m_db_connector->initServerStatsTable();
 #endif
 }   // initServerStatsTable
-
-//-----------------------------------------------------------------------------
-void ServerLobby::destroyDatabase()
-{
-#ifdef ENABLE_SQLITE3
-    auto peers = STKHost::get()->getPeers();
-    for (auto& peer : peers)
-        writeDisconnectInfoTable(peer.get());
-    if (m_db != NULL)
-        sqlite3_close(m_db);
-#endif
-}   // destroyDatabase
-
-//-----------------------------------------------------------------------------
-void ServerLobby::writeDisconnectInfoTable(STKPeer* peer)
-{
-#ifdef ENABLE_SQLITE3
-    if (m_server_stats_table.empty())
-        return;
-    std::string query = StringUtils::insertValues(
-        "UPDATE %s SET disconnected_time = datetime('now'), "
-        "ping = %d, packet_loss = %d "
-        "WHERE host_id = %u;", m_server_stats_table.c_str(),
-        peer->getAveragePing(), peer->getPacketLoss(),
-        peer->getHostId());
-    easySQLQuery(query);
-#endif
-}   // writeDisconnectInfoTable
 
 //-----------------------------------------------------------------------------
 void ServerLobby::updateAddons()
@@ -847,6 +471,10 @@ void ServerLobby::setup()
     resetPeersReady();
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
+    getCommandManager().onResetServer();
+    if (m_game_info)
+        delete m_game_info;
+    m_game_info = nullptr;
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -918,11 +546,13 @@ void ServerLobby::handleChat(Event* event)
 
     if (message.size() > 0)
     {
+        bool add_red_emoji = false;
+        bool add_blue_emoji = false;
         // Red or blue square emoji
         if (target_team == KART_TEAM_RED)
-            message = StringUtils::utf32ToWide({0x1f7e5, 0x20}) + message;
+            add_red_emoji = true;
         else if (target_team == KART_TEAM_BLUE)
-            message = StringUtils::utf32ToWide({0x1f7e6, 0x20}) + message;
+            add_blue_emoji = true;
 
         NetworkString* chat = getNetworkString();
         chat->setSynchronous(true);
@@ -939,10 +569,28 @@ void ServerLobby::handleChat(Event* event)
         std::set<KartTeam> teams;
         for (auto& profile: sender->getPlayerProfiles())
             teams.insert(profile->getTeam());
+        if (team_speak)
+        {
+            for (auto &team: teams)
+            {
+                if (team == KART_TEAM_RED)
+                    add_red_emoji = true;
+                else if (team == KART_TEAM_BLUE)
+                    add_blue_emoji = true;
+            }
+        }
+        if (add_blue_emoji)
+            message = StringUtils::utf32ToWide({0x1f7e6, 0x20}) + message;
+        if (add_red_emoji)
+            message = StringUtils::utf32ToWide({0x1f7e5, 0x20}) + message;
         bool tournament_limit = false;
         std::set<std::string> important_players;
-        if (ServerConfig::m_soccer_tournament && m_tournament_limited_chat)
+        std::set<std::string> sees_teamchats;
+        if (ServerConfig::m_soccer_tournament)
         {
+            for (const std::string& s: m_tournament_referees) {
+                sees_teamchats.insert(s);
+            }
             tournament_limit = true;
             for (auto& profile: sender->getPlayerProfiles())
             {
@@ -957,12 +605,15 @@ void ServerLobby::handleChat(Event* event)
         // Note that mutealls are still spectators
         if (tournament_limit)
         {
-            for (const std::string& s: m_tournament_referees)
-                important_players.insert(s);
-            for (const std::string& s: m_tournament_red_players)
-                important_players.insert(s);
-            for (const std::string& s: m_tournament_blue_players)
-                important_players.insert(s);
+            if (m_tournament_limited_chat)
+            {
+                for (const std::string& s: m_tournament_referees)
+                    important_players.insert(s);
+                for (const std::string& s: m_tournament_red_players)
+                    important_players.insert(s);
+                for (const std::string& s: m_tournament_blue_players)
+                    important_players.insert(s);
+            }
             for (const std::string& s: m_tournament_mutealls)
                 important_players.insert(s);
         }
@@ -973,7 +624,7 @@ void ServerLobby::handleChat(Event* event)
         STKHost::get()->sendPacketToAllPeersWith(
             [game_started, sender_in_game, target_team, can_receive,
                 sender, team_speak, teams, tournament_limit,
-                important_players, sender_name, this](STKPeer* p)
+                important_players, sender_name, sees_teamchats, this](STKPeer* p)
             {
                 if (sender == p)
                     return true;
@@ -1008,6 +659,10 @@ void ServerLobby::handleChat(Event* event)
                         {
                             if (player->getTeam() == target_team)
                                 someone_good = true;
+                            std::string name = StringUtils::wideToUtf8(
+                                player->getName());
+                            if (sees_teamchats.count(name))
+                                someone_good = true;
                         }
                         if (!someone_good)
                             return false;
@@ -1026,8 +681,14 @@ void ServerLobby::handleChat(Event* event)
                 {
                     bool someone_good = false;
                     for (auto& profile: p->getPlayerProfiles())
+                    {
                         if (teams.count(profile->getTeam()) > 0)
                             someone_good = true;
+                        std::string name = StringUtils::wideToUtf8(
+                            profile->getName());
+                        if (sees_teamchats.count(name))
+                            someone_good = true;
+                    }
                     if (!someone_good)
                         return false;
                 }
@@ -1062,18 +723,23 @@ void ServerLobby::changeTeam(Event* event)
     if (ServerConfig::m_soccer_tournament)
         return; // message here?
 
+    // For now, the change team button will still only work in soccer + CTF.
+    // Further logic might be added later, but now it seems to be complicated
+    // because there's a restriction of 7 for those modes, and unnecessary
+    // because we don't have client changes.
+
     // At most 7 players on each team (for live join)
     if (player->getTeam() == KART_TEAM_BLUE)
     {
         if (red_blue.first >= 7 && !ServerConfig::m_free_teams)
             return;
-        player->setTeam(KART_TEAM_RED);
+        setTeamInLobby(player, KART_TEAM_RED);
     }
     else
     {
         if (red_blue.second >= 7 && !ServerConfig::m_free_teams)
             return;
-        player->setTeam(KART_TEAM_BLUE);
+        setTeamInLobby(player, KART_TEAM_BLUE);
     }
     updatePlayerList();
 }   // changeTeam
@@ -1174,395 +840,105 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
  */
 void ServerLobby::pollDatabase()
 {
-    if (!ServerConfig::m_sql_management || !m_db)
+    if (!ServerConfig::m_sql_management || !m_db_connector->hasDatabase())
         return;
 
-    if (StkTime::getMonoTimeMs() < m_last_poll_db_time + 60000)
+    if (!m_db_connector->isTimeToPoll())
         return;
 
-    m_last_poll_db_time = StkTime::getMonoTimeMs();
+    m_db_connector->updatePollTime();
 
-    if (m_ip_ban_table_exists)
+    std::vector<DatabaseConnector::IpBanTableData> ip_ban_list =
+            m_db_connector->getIpBanTableData();
+    std::vector<DatabaseConnector::Ipv6BanTableData> ipv6_ban_list =
+            m_db_connector->getIpv6BanTableData();
+    std::vector<DatabaseConnector::OnlineIdBanTableData> online_id_ban_list =
+            m_db_connector->getOnlineIdBanTableData();
+
+    for (std::shared_ptr<STKPeer>& p : STKHost::get()->getPeers())
     {
-        std::string query =
-            "SELECT ip_start, ip_end, reason, description FROM ";
-        query += ServerConfig::m_ip_ban_table;
-        query += " WHERE datetime('now') > datetime(starting_time) AND "
-            "(expired_days is NULL OR datetime"
-            "(starting_time, '+'||expired_days||' days') > datetime('now'));";
-        auto peers = STKHost::get()->getPeers();
-        sqlite3_exec(m_db, query.c_str(),
-            [](void* ptr, int count, char** data, char** columns)
+        if (p->isAIPeer())
+            continue;
+        bool is_kicked = false;
+        std::string address = "";
+        std::string reason = "";
+        std::string description = "";
+
+        if (p->getAddress().isIPv6())
+        {
+            address = p->getAddress().toString(false);
+            if (address.empty())
+                continue;
+            for (auto& item: ipv6_ban_list)
             {
-                std::vector<std::shared_ptr<STKPeer> >* peers_ptr =
-                    (std::vector<std::shared_ptr<STKPeer> >*)ptr;
-                for (std::shared_ptr<STKPeer>& p : *peers_ptr)
+                if (insideIPv6CIDR(item.ipv6_cidr.c_str(), address.c_str()) == 1)
                 {
-                    // IPv4 ban list atm
-                    if (p->isAIPeer() || p->getAddress().isIPv6())
-                        continue;
-
-                    uint32_t ip_start = 0;
-                    uint32_t ip_end = 0;
-                    if (!StringUtils::fromString(data[0], ip_start))
-                        continue;
-                    if (!StringUtils::fromString(data[1], ip_end))
-                        continue;
-                    uint32_t peer_addr = p->getAddress().getIP();
-                    if (ip_start <= peer_addr && ip_end >= peer_addr)
-                    {
-                        Log::info("ServerLobby",
-                            "Kick %s, reason: %s, description: %s",
-                            p->getAddress().toString().c_str(),
-                            data[2], data[3]);
-                        p->kick();
-                    }
+                    is_kicked = true;
+                    reason = item.reason;
+                    description = item.description;
+                    break;
                 }
-                return 0;
-            }, &peers, NULL);
-    }
-
-    if (m_ipv6_ban_table_exists)
-    {
-        std::string query =
-            "SELECT ipv6_cidr, reason, description FROM ";
-        query += ServerConfig::m_ipv6_ban_table;
-        query += " WHERE datetime('now') > datetime(starting_time) AND "
-            "(expired_days is NULL OR datetime"
-            "(starting_time, '+'||expired_days||' days') > datetime('now'));";
-        auto peers = STKHost::get()->getPeers();
-        sqlite3_exec(m_db, query.c_str(),
-            [](void* ptr, int count, char** data, char** columns)
+            }
+        }
+        else
+        {
+            uint32_t peer_addr = p->getAddress().getIP();
+            address = p->getAddress().toString();
+            for (auto& item: ip_ban_list)
             {
-                std::vector<std::shared_ptr<STKPeer> >* peers_ptr =
-                    (std::vector<std::shared_ptr<STKPeer> >*)ptr;
-                for (std::shared_ptr<STKPeer>& p : *peers_ptr)
+                if (item.ip_start <= peer_addr && item.ip_end >= peer_addr)
                 {
-                    std::string ipv6;
-                    if (p->getAddress().isIPv6())
-                        ipv6 = p->getAddress().toString(false);
-                    // IPv6 ban list atm
-                    if (p->isAIPeer() || ipv6.empty())
-                        continue;
-
-                    char* ipv6_cidr = data[0];
-                    if (insideIPv6CIDR(ipv6_cidr, ipv6.c_str()) == 1)
-                    {
-                        Log::info("ServerLobby",
-                            "Kick %s, reason: %s, description: %s",
-                            ipv6.c_str(), data[1], data[2]);
-                        p->kick();
-                    }
+                    is_kicked = true;
+                    reason = item.reason;
+                    description = item.description;
+                    break;
                 }
-                return 0;
-            }, &peers, NULL);
-    }
-
-    if (m_online_id_ban_table_exists)
-    {
-        std::string query = "SELECT online_id, reason, description FROM ";
-        query += ServerConfig::m_online_id_ban_table;
-        query += " WHERE datetime('now') > datetime(starting_time) AND "
-            "(expired_days is NULL OR datetime"
-            "(starting_time, '+'||expired_days||' days') > datetime('now'));";
-        auto peers = STKHost::get()->getPeers();
-        sqlite3_exec(m_db, query.c_str(),
-            [](void* ptr, int count, char** data, char** columns)
+            }
+        }
+        if (!is_kicked && !p->getPlayerProfiles().empty())
+        {
+            uint32_t online_id = p->getPlayerProfiles()[0]->getOnlineId();
+            for (auto& item: online_id_ban_list)
             {
-                std::vector<std::shared_ptr<STKPeer> >* peers_ptr =
-                    (std::vector<std::shared_ptr<STKPeer> >*)ptr;
-                for (std::shared_ptr<STKPeer>& p : *peers_ptr)
+                if (item.online_id == online_id)
                 {
-                    if (p->isAIPeer()
-                        || p->getPlayerProfiles().empty())
-                        continue;
-
-                    uint32_t online_id = 0;
-                    if (!StringUtils::fromString(data[0], online_id))
-                        continue;
-                    if (online_id == p->getPlayerProfiles()[0]->getOnlineId())
-                    {
-                        Log::info("ServerLobby",
-                            "Kick %s, reason: %s, description: %s",
-                            p->getAddress().toString().c_str(),
-                            data[1], data[2]);
-                        p->kick();
-                    }
+                    is_kicked = true;
+                    reason = item.reason;
+                    description = item.description;
+                    break;
                 }
-                return 0;
-            }, &peers, NULL);
-    }
+            }
+        }
+        if (is_kicked)
+        {
+            Log::info("ServerLobby", "Kick %s, reason: %s, description: %s",
+                address.c_str(), reason.c_str(), description.c_str());
+            p->kick();
+        }
+    } // for p in peers
 
-    if (m_player_reports_table_exists &&
-        ServerConfig::m_player_reports_expired_days != 0.0f)
-    {
-        std::string query = StringUtils::insertValues(
-            "DELETE FROM %s "
-            "WHERE datetime"
-            "(reported_time, '+%f days') < datetime('now');",
-            ServerConfig::m_player_reports_table.c_str(),
-            ServerConfig::m_player_reports_expired_days);
-        easySQLQuery(query);
-    }
-    if (m_server_stats_table.empty())
-        return;
+    m_db_connector->clearOldReports();
 
-    std::string query;
     auto peers = STKHost::get()->getPeers();
-    std::vector<uint32_t> exist_hosts;
+    std::vector<uint32_t> hosts;
     if (!peers.empty())
     {
         for (auto& peer : peers)
         {
             if (!peer->isValidated())
                 continue;
-            exist_hosts.push_back(peer->getHostId());
+            hosts.push_back(peer->getHostId());
         }
     }
-    if (peers.empty() || exist_hosts.empty())
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET disconnected_time = datetime('now') "
-            "WHERE connected_time = disconnected_time;",
-            m_server_stats_table.c_str());
-    }
-    else
-    {
-        std::ostringstream oss;
-        oss << "UPDATE " << m_server_stats_table
-            << "    SET disconnected_time = datetime('now')"
-            << "    WHERE connected_time = disconnected_time AND"
-            << "    host_id NOT IN (";
-        for (unsigned i = 0; i < exist_hosts.size(); i++)
-        {
-            oss << exist_hosts[i];
-            if (i != (exist_hosts.size() - 1))
-                oss << ",";
-        }
-        oss << ");";
-        query = oss.str();
-    }
-    easySQLQuery(query);
+    m_db_connector->setDisconnectionTimes(hosts);
 }   // pollDatabase
 
-//-----------------------------------------------------------------------------
-/** Run simple query with write lock waiting and optional function, this
- *  function has no callback for the return (if any) by the query.
- *  Return true if no error occurs
- */
-bool ServerLobby::easySQLQuery(const std::string& query,
-                   std::function<void(sqlite3_stmt* stmt)> bind_function) const
-{
-    if (!m_db)
-        return false;
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        if (bind_function)
-            bind_function(stmt);
-        char* actual_query_cstr = sqlite3_expanded_sql(stmt);
-        std::string actual_query(actual_query_cstr);
-        sqlite3_free(actual_query_cstr);
-        ret = sqlite3_step(stmt);
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for easy query %s: %s",
-                actual_query.c_str(), sqlite3_errmsg(m_db));
-            return false;
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby",
-            "Error preparing database for easy query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return false;
-    }
-    return true;
-}   // easySQLQuery
-
-//-----------------------------------------------------------------------------
-std::pair<bool, std::vector<std::vector<std::string>>>
-ServerLobby::vectorSQLQuery(const std::string& query,
-    int columns, std::function<void(sqlite3_stmt* stmt)> bind_function) const
-{
-    std::vector<std::vector<std::string>> ans(columns);
-    if (!m_db)
-        return {false, {}};
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        if (bind_function)
-            bind_function(stmt);
-        char* actual_query_cstr = sqlite3_expanded_sql(stmt);
-        std::string actual_query(actual_query_cstr);
-        sqlite3_free(actual_query_cstr);
-        ret = sqlite3_step(stmt);
-        while (sqlite3_column_text(stmt, 0))
-        {
-            for (int i = 0; i < columns; i++)
-            {
-                ans[i].push_back(std::string(
-                    (char*)sqlite3_column_text(stmt, i)));
-            }
-            ret = sqlite3_step(stmt);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for vector query %s: %s",
-                actual_query.c_str(), sqlite3_errmsg(m_db));
-            return {false, {}};
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby",
-            "Error preparing database for vector query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return {false, {}};
-    }
-    return {true, ans};
-}   // vectorSQLQuery
-
-//-----------------------------------------------------------------------------
-/* Write true to result if table name exists in database. */
-void ServerLobby::checkTableExists(const std::string& table, bool& result)
-{
-    if (!m_db)
-        return;
-    sqlite3_stmt* stmt = NULL;
-    if (!table.empty())
-    {
-        std::string query = StringUtils::insertValues(
-            "SELECT count(type) FROM sqlite_master "
-            "WHERE type='table' AND name='%s';", table.c_str());
-
-        int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-        if (ret == SQLITE_OK)
-        {
-            ret = sqlite3_step(stmt);
-            if (ret == SQLITE_ROW)
-            {
-                int number = sqlite3_column_int(stmt, 0);
-                if (number == 1)
-                {
-                    Log::info("ServerLobby", "Table named %s will used.",
-                        table.c_str());
-                    result = true;
-                }
-            }
-            ret = sqlite3_finalize(stmt);
-            if (ret != SQLITE_OK)
-            {
-                Log::error("ServerLobby",
-                    "Error finalize database for query %s: %s",
-                    query.c_str(), sqlite3_errmsg(m_db));
-            }
-        }
-    }
-    if (!result && !table.empty())
-    {
-        Log::warn("ServerLobby", "Table named %s not found in database.",
-            table.c_str());
-    }
-}   // checkTableExists
-
-//-----------------------------------------------------------------------------
-std::string ServerLobby::ip2Country(const SocketAddress& addr) const
-{
-    if (!m_db || !m_ip_geolocation_table_exists || addr.isLAN())
-        return "";
-
-    std::string cc_code;
-    std::string query = StringUtils::insertValues(
-        "SELECT country_code FROM %s "
-        "WHERE `ip_start` <= %d AND `ip_end` >= %d "
-        "ORDER BY `ip_start` DESC LIMIT 1;",
-        ServerConfig::m_ip_geolocation_table.c_str(), addr.getIP(),
-        addr.getIP());
-
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            const char* country_code = (char*)sqlite3_column_text(stmt, 0);
-            cc_code = country_code;
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return "";
-    }
-    return cc_code;
-}   // ip2Country
-
-//-----------------------------------------------------------------------------
-std::string ServerLobby::ipv62Country(const SocketAddress& addr) const
-{
-    if (!m_db || !m_ipv6_geolocation_table_exists)
-        return "";
-
-    std::string cc_code;
-    const std::string& ipv6 = addr.toString(false/*show_port*/);
-    std::string query = StringUtils::insertValues(
-        "SELECT country_code FROM %s "
-        "WHERE `ip_start` <= upperIPv6(\"%s\") AND `ip_end` >= upperIPv6(\"%s\") "
-        "ORDER BY `ip_start` DESC LIMIT 1;",
-        ServerConfig::m_ipv6_geolocation_table.c_str(), ipv6.c_str(),
-        ipv6.c_str());
-
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
-    {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            const char* country_code = (char*)sqlite3_column_text(stmt, 0);
-            cc_code = country_code;
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return "";
-    }
-    return cc_code;
-}   // ipv62Country
-
 #endif
-
 //-----------------------------------------------------------------------------
 void ServerLobby::writePlayerReport(Event* event)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_player_reports_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasPlayerReportsTable())
         return;
     STKPeer* reporter = event->getPeer();
     if (!reporter->hasPlayerProfiles())
@@ -1580,65 +956,8 @@ void ServerLobby::writePlayerReport(Event* event)
         return;
     auto reporting_npp = reporting_peer->getPlayerProfiles()[0];
 
-    std::string query;
-    if (ServerConfig::m_ipv6_connection)
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_ipv6, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_ipv6, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, \"%s\", %u, ?, ?, %u, \"%s\", %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            !reporter->getAddress().isIPv6() ? reporter->getAddress().getIP() : 0,
-            reporter->getAddress().isIPv6() ? reporter->getAddress().toString(false) : "",
-            reporter_npp->getOnlineId(),
-            !reporting_peer->getAddress().isIPv6() ? reporting_peer->getAddress().getIP() : 0,
-            reporting_peer->getAddress().isIPv6() ? reporting_peer->getAddress().toString(false) : "",
-            reporting_npp->getOnlineId());
-    }
-    else
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, %u, ?, ?, %u, %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            reporter->getAddress().getIP(), reporter_npp->getOnlineId(),
-            reporting_peer->getAddress().getIP(), reporting_npp->getOnlineId());
-    }
-    bool written = easySQLQuery(query,
-        [reporter_npp, reporting_npp, info](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, ServerConfig::m_server_uid.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    ServerConfig::m_server_uid.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 2,
-                StringUtils::wideToUtf8(reporter_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporter_npp->getName()).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 3,
-                StringUtils::wideToUtf8(info).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(info).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 4,
-                StringUtils::wideToUtf8(reporting_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporting_npp->getName()).c_str());
-            }
-        });
+    bool written = m_db_connector->writeReport(reporter, reporter_npp,
+            reporting_peer.get(), reporting_npp, info);
     if (written)
     {
         NetworkString* success = getNetworkString();
@@ -1777,9 +1096,16 @@ void ServerLobby::asynchronousUpdate()
                 m_game_setup->isGrandPrixStarted()) &&
                 m_timeout.load() == std::numeric_limits<int64_t>::max())
             {
-                m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
-                    (int64_t)
-                    (ServerConfig::m_start_game_counter * 1000.0f));
+                if (ServerConfig::m_start_game_counter >= -1e-5)
+                {
+                    m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
+                        (int64_t)
+                        (ServerConfig::m_start_game_counter * 1000.0f));
+                }
+                else
+                {
+                    m_timeout.store(std::numeric_limits<int64_t>::max());
+                }
             }
             else if ((int)players < ServerConfig::m_min_start_game_players &&
                 !m_game_setup->isGrandPrixStarted())
@@ -1791,7 +1117,7 @@ void ServerLobby::asynchronousUpdate()
             }
             if ((!ServerConfig::m_soccer_tournament &&
                 m_timeout.load() < (int64_t)StkTime::getMonoTimeMs()) ||
-                (checkPeersReady(true/*ignore_ai_peer*/) &&
+                (checkPeersReady(true/*ignore_ai_peer*/, true/*before_start*/) &&
                 (int)players >= ServerConfig::m_min_start_game_players))
             {
                 resetPeersReady();
@@ -1871,29 +1197,45 @@ void ServerLobby::asynchronousUpdate()
                 winner_vote.m_num_laps = m_fixed_lap;
                 Log::info("ServerLobby", "Enforcing %d lap race", (int)m_fixed_lap);
             }
+            if (m_fixed_direction >= 0)
+            {
+                winner_vote.m_reverse = (m_fixed_direction == 1);
+                Log::info("ServerLobby", "Enforcing direction %d", (int)m_fixed_direction);
+            }
             *m_default_vote = winner_vote;
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
             m_game_setup->setRace(winner_vote, m_extra_seconds);
+
+            // For spectators that don't have the track, remember their
+            // spectate mode and don't load the track
             std::string track_name = winner_vote.m_track_name;
             if (ServerConfig::m_soccer_tournament)
+            {
+                if (m_tournament_game >= (int)m_tournament_arenas.size())
+                    m_tournament_arenas.resize(m_tournament_game + 1, "");
                 m_tournament_arenas[m_tournament_game] = track_name;
+            }
             auto peers = STKHost::get()->getPeers();
-            std::set<STKPeer*> bad_spectators;
+            std::map<std::shared_ptr<STKPeer>,
+                    AlwaysSpectateMode> previous_spectate_mode;
             for (auto peer : peers)
             {
-                if (peer->alwaysSpectate() &&
-                    peer->getClientAssets().second.count(track_name) == 0)
+                if (peer->alwaysSpectate() && (!peer->alwaysSpectateForReal() ||
+                    peer->getClientAssets().second.count(track_name) == 0))
                 {
+                    previous_spectate_mode[peer] = peer->getAlwaysSpectate();
                     peer->setAlwaysSpectate(ASM_NONE);
                     peer->setWaitingForGame(true);
                     m_peers_ready.erase(peer);
-                    bad_spectators.insert(peer.get());
                 }
             }
             bool has_always_on_spectators = false;
             auto players = STKHost::get()
                 ->getPlayersForNewGame(&has_always_on_spectators);
+            for (auto& p: previous_spectate_mode)
+                if (p.first)
+                    p.first->setAlwaysSpectate(p.second);
             auto ai_instance = m_ai_peer.lock();
             if (supportsAI())
             {
@@ -1936,22 +1278,28 @@ void ServerLobby::asynchronousUpdate()
             // If player chose random / hasn't chose any kart
             for (unsigned i = 0; i < players.size(); i++)
             {
-                if (players[i]->getKartName().empty())
+                std::string current_kart = players[i]->getKartName();
+                if (!players[i]->getPeer().get())
+                    continue;
+                if (areKartFiltersIgnoringKarts())
+                    current_kart = "";
+                std::string name = StringUtils::wideToUtf8(players[i]->getName());
+                // Note 1: setKartName also resets KartData, and should be called
+                // only if current kart name is not suitable.
+                // Note 2: filters only support standard karts for now, so GKFBKC
+                // cannot return an addon; when addons are supported, this part of
+                // code will also have to provide kart data (or setKartName has to
+                // set the correct hitbox itself).
+                std::string new_kart = getKartForBadKartChoice(
+                        players[i]->getPeer().get(), name, current_kart);
+                if (new_kart != current_kart)
                 {
-                    if (m_kart_elimination.isEliminated(
-                        StringUtils::wideToUtf8(players[i]->getName())))
-                    {
-                        players[i]->setKartName(m_kart_elimination.getKart());
-                    }
-                    else
-                    {
-                        RandomGenerator rg;
-                        std::set<std::string>::iterator it =
-                            m_available_kts.first.begin();
-                        std::advance(it,
-                            rg.get((int)m_available_kts.first.size()));
-                        players[i]->setKartName(*it);
-                    }
+                    // Filters only support standard karts for now, but when they
+                    // start supporting addons, probably type should not be empty
+                    players[i]->setKartName(new_kart);
+                    KartData kart_data;
+                    setKartDataProperly(kart_data, new_kart, players[i], "");
+                    players[i]->setKartData(kart_data);
                 }
             }
 
@@ -1978,7 +1326,7 @@ void ServerLobby::asynchronousUpdate()
             sendMessageToPeers(load_world_message);
             // updatePlayerList so the in lobby players (if any) can see always
             // spectators join the game
-            if (has_always_on_spectators || !bad_spectators.empty())
+            if (has_always_on_spectators || !previous_spectate_mode.empty())
                 updatePlayerList();
             delete load_world_message;
 
@@ -1997,6 +1345,40 @@ void ServerLobby::asynchronousUpdate()
                             username.c_str());
                     }
                 }
+            }
+            m_game_info = new GameInfo();
+            for (int i = 0; i < (int)RaceManager::get()->getNumPlayers(); i++)
+            {
+                GameInfo::PlayerInfo info;
+                RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
+                if (!rki.isReserved())
+                {
+                    info = GameInfo::PlayerInfo(false/* reserved */,
+                                                false/* game event*/);
+                    // TODO: I suspected it to be local name, but it's not!
+                    info.m_username = StringUtils::wideToUtf8(rki.getPlayerName());
+                    info.m_kart = rki.getKartName();
+                    //info.m_start_position = i;
+                    info.m_when_joined = 0;
+                    info.m_country_code = rki.getCountryCode();
+                    info.m_online_id = rki.getOnlineId();
+                    info.m_kart_class = rki.getKartData().m_kart_type;
+                    info.m_kart_color = rki.getDefaultKartColor();
+                    info.m_handicap = (uint8_t)rki.getHandicap();
+                    info.m_team = (int8_t)rki.getKartTeam();
+                    if (info.m_team == KartTeam::KART_TEAM_NONE)
+                    {
+                        auto npp = rki.getNetworkPlayerProfile().lock();
+                        if (npp)
+                            info.m_team = npp->getTemporaryTeam() - 1;
+                    }
+                }
+                else
+                {
+                    info = GameInfo::PlayerInfo(true/* reserved */,
+                                                false/* game event*/);
+                }
+                m_game_info->m_player_info.push_back(info);
             }
         }
         break;
@@ -2021,8 +1403,7 @@ void ServerLobby::encodePlayers(BareNetworkString* bns,
             .addUInt32(player->getOnlineId())
             .addUInt8(player->getHandicap())
             .addUInt8(player->getLocalPlayerId())
-            .addUInt8(
-            RaceManager::get()->teamEnabled() ? player->getTeam() : KART_TEAM_NONE)
+            .addUInt8(player->getTeam())
             .encodeString(player->getCountryCode());
         bns->encodeString(player->getKartName());
     }
@@ -2052,6 +1433,8 @@ NetworkString* ServerLobby::getLoadWorldMessage(
             ServerConfig::m_flag_deactivated_time);
         load_world_message->addUInt16(flag_deactivated_time);
     }
+    for (unsigned i = 0; i < players.size(); i++)
+        players[i]->getKartData().encode(load_world_message);
     return load_world_message;
 }   // getLoadWorldMessage
 
@@ -2085,7 +1468,8 @@ bool ServerLobby::canLiveJoinNow() const
         float total_distance =
             Track::getCurrentTrack()->getTrackLength() *
             (float)RaceManager::get()->getNumLaps();
-        float progress = leader_distance / total_distance;
+        // standard version uses (leader_distance / total_distance > 0.9f)
+        // TODO: allow switching
         if (total_distance - leader_distance < 250.0)
             return false;
     }
@@ -2239,7 +1623,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
 /** Decide where to put the live join player depends on his team and game mode.
  */
 int ServerLobby::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
-                               unsigned local_id) const
+                               unsigned local_id)
 {
     const bool is_ffa =
         RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL;
@@ -2288,7 +1672,7 @@ int ServerLobby::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
             {
                 if (rki.getKartTeam() == target_team)
                 {
-                    p->setTeam(target_team);
+                    setTeamInLobby(p, target_team);
                     rki.copyFrom(p, local_id);
                     return i;
                 }
@@ -2349,8 +1733,50 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     bool spectator = false;
     for (const int id : peer->getAvailableKartIDs())
     {
-        World::getWorld()->addReservedKart(id);
         const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
+        std::string name = StringUtils::wideToUtf8(rki.getPlayerName());
+        int points = 0;
+
+        if (m_game_info)
+        {
+
+            if (!m_game_info->m_player_info[id].isReserved())
+            {
+                Log::error("ServerLobby", "While live joining kart %d, "
+                        "player info was not reserved.", id);
+            }
+            auto& info = m_game_info->m_player_info[id];
+            info = GameInfo::PlayerInfo(false/* reserved */,
+                    false/* game event*/);
+            info.m_username = StringUtils::wideToUtf8(rki.getPlayerName());
+            info.m_kart = rki.getKartName();
+            info.m_start_position = w->getStartPosition(id);
+            info.m_when_joined = stk_config->ticks2Time(w->getTicksSinceStart());
+            info.m_country_code = rki.getCountryCode();
+            info.m_online_id = rki.getOnlineId();
+            info.m_kart_class = rki.getKartData().m_kart_type;
+            info.m_kart_color = rki.getDefaultKartColor();
+            info.m_handicap = (uint8_t)rki.getHandicap();
+            info.m_team = (int8_t)rki.getKartTeam();
+            if (info.m_team == KartTeam::KART_TEAM_NONE)
+            {
+                auto npp = rki.getNetworkPlayerProfile().lock();
+                if (npp)
+                    info.m_team = npp->getTemporaryTeam() - 1;
+            }
+            if (RaceManager::get()->isBattleMode())
+            {
+                if (ServerConfig::m_preserve_battle_scores)
+                    points = m_game_info->m_saved_ffa_points[name];
+                info.m_result -= points;
+            }
+        }
+        else
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
+
+        // If the mode is not battle/CTF, points are 0.
+        // I assume it's fine like that for now
+        World::getWorld()->addReservedKart(id, points);
         addLiveJoiningKart(id, rki, m_last_live_join_util_ticks);
         Log::info("ServerLobby", "%s succeeded live-joining with kart id %d.",
             peer->getAddress().toString().c_str(), id);
@@ -2383,6 +1809,8 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
         std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
             getLivePlayers();
         encodePlayers(ns, players);
+        for (unsigned i = 0; i < players.size(); i++)
+            players[i]->getKartData().encode(ns);
     }
 
     m_peers_ready[peer] = false;
@@ -2445,7 +1873,7 @@ void ServerLobby::update(int ticks)
                 if (m_process_type == PT_CHILD &&
                     peer->getHostId() == m_client_server_host_id.load())
                     continue;
-                Log::info("ServerLobby", "%s %s has been idle for more than"
+                Log::info("ServerLobby", "%s %s has been idle ingame for more than"
                     " %d seconds, kick.",
                     peer->getAddress().toString().c_str(),
                     StringUtils::wideToUtf8(rki.getPlayerName()).c_str(), sec);
@@ -2490,6 +1918,30 @@ void ServerLobby::update(int ticks)
                     kart->adjustSpeed(kart->getKartProperties()->getAnvilSpeedFactor());
                 }
                 m_teammate_swatter_punish.clear();
+            }
+        }
+    }
+    if (m_state.load() == WAITING_FOR_START_GAME) {
+        sec = ServerConfig::m_kick_idle_lobby_player_seconds;
+        auto peers = STKHost::get()->getPeers();
+        for (auto peer: peers)
+        {
+            if (!peer->isAIPeer() &&
+                sec > 0 && peer->idleForSeconds() > sec &&
+                !peer->isDisconnected() && NetworkConfig::get()->isWAN())
+            {
+                // Don't kick in game GUI server host so he can idle in the lobby
+                if (m_process_type == PT_CHILD &&
+                    peer->getHostId() == m_client_server_host_id.load())
+                    continue;
+                std::string peer_name = "";
+                if (peer->hasPlayerProfiles())
+                    peer_name = StringUtils::wideToUtf8(
+                            peer->getPlayerProfiles()[0]->getName()).c_str();
+                Log::info("ServerLobby", "%s %s has been idle on the server for "
+                        "more than %d seconds, kick.",
+                        peer->getAddress().toString().c_str(), peer_name.c_str(), sec);
+                peer->kick();
             }
         }
     }
@@ -2813,7 +2265,7 @@ void ServerLobby::startSelection(const Event *event)
     bool need_to_update = false;
     if (event != NULL)
     {
-        if (m_state != WAITING_FOR_START_GAME)
+        if (m_state.load() != WAITING_FOR_START_GAME)
         {
             Log::warn("ServerLobby",
                 "Received startSelection while being in state %d.",
@@ -2855,12 +2307,15 @@ void ServerLobby::startSelection(const Event *event)
             sendStringToPeer(msg, peer);
             return;
         }
-        if (peer != m_server_owner.lock())
+        if (!hasHostRights(peer))
         {
-            Log::warn("ServerLobby",
-                "Client %d is not authorised to start selection.",
-                event->getPeer()->getHostId());
-            return;
+            auto argv = getCommandManager().getCurrentArgv();
+            if (argv.empty() || argv[0] != "start") {
+                Log::warn("ServerLobby",
+                          "Client %d is not authorised to start selection.",
+                          event->getPeer()->getHostId());
+                return;
+            }
         }
     } else {
         if (!m_allowed_to_start)
@@ -2920,11 +2375,11 @@ void ServerLobby::startSelection(const Event *event)
         bool can_race = canRace(peer);
         if (!can_race && !peer->alwaysSpectate())
         {
-            if (ServerConfig::m_soccer_tournament/* || ServerConfig::m_only_host_riding*/)
-                peer->setAlwaysSpectate(ASM_COMMAND);
+            peer->setAlwaysSpectate(ASM_FULL);
             peer->setWaitingForGame(true);
             m_peers_ready.erase(peer);
             need_to_update = true;
+            always_spectate_peers.insert(peer.get());
             continue;
         }
         else if (peer->alwaysSpectate())
@@ -2937,16 +2392,20 @@ void ServerLobby::startSelection(const Event *event)
         if (!peer->isAIPeer())
             has_peer_plays_game = true;
     }
-    // m_default_always_spectate_peers = always_spectate_peers;
 
     // kimden thinks if someone wants to race he should disable spectating
     // // Disable always spectate peers if no players join the game
     if (!has_peer_plays_game)
     {
-        // The always spectating code will probably behave kinda weird with
-        // spectating commands, I'll try to fix it later but beware
-        Log::warn("ServerLobby",
-            "An attempt to start a game while no one is able to play.");
+        if (event)
+        {
+            // inside if to not produce log spam for ownerless
+            Log::warn("ServerLobby",
+                "An attempt to start a game while no one can play.");
+            std::string msg = "No one can play!";
+            sendStringToPeer(msg, event->getPeer());
+        }
+        addWaitingPlayersToGame();
         return;
         // for (STKPeer* peer : always_spectate_peers)
         //     peer->setAlwaysSpectate(ASM_NONE);
@@ -2970,12 +2429,6 @@ void ServerLobby::startSelection(const Event *event)
     {
         m_available_kts.second.erase(track_erase);
     }
-    if (!m_tracks_queue.empty())
-    {
-        m_available_kts.second.clear();
-        m_available_kts.second.insert(m_tracks_queue.front());
-    }
-
 
     max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
@@ -3002,27 +2455,9 @@ void ServerLobby::startSelection(const Event *event)
     else
         m_ai_count = 0;
 
-    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
-    {
-        auto it = m_available_kts.second.begin();
-        while (it != m_available_kts.second.end())
-        {
-            Track* t = track_manager->getTrack(*it);
-            if (t->getMaxArenaPlayers() < max_player)
-            {
-                it = m_available_kts.second.erase(it);
-            }
-            else
-                it++;
-        }
-    }
-    
-    m_global_filter.apply(max_player, m_available_kts.second);
-    if (ServerConfig::m_soccer_tournament)
-    {
-        m_tournament_track_filters[m_tournament_game].apply(
-            max_player, m_available_kts.second, m_tournament_arenas);
-    }
+    std::set<std::string> available_tracks_fallback = m_available_kts.second;
+    applyAllFilters(m_available_kts.second, true);
+
    /* auto iter = m_available_kts.second.begin();
     while (iter != m_available_kts.second.end())
     {
@@ -3037,6 +2472,7 @@ void ServerLobby::startSelection(const Event *event)
     if (m_available_kts.second.empty())
     {
         Log::error("ServerLobby", "No tracks for playing!");
+        m_available_kts.second = available_tracks_fallback;
         return;
     }
 
@@ -3053,7 +2489,17 @@ void ServerLobby::startSelection(const Event *event)
             Track* t = track_manager->getTrack(*it);
             assert(t);
             m_default_vote->m_num_laps = t->getDefaultNumberOfLaps();
+            if (ServerConfig::m_auto_game_time_ratio > 0.0f)
+            {
+                m_default_vote->m_num_laps =
+                    (uint8_t)(fmaxf(1.0f, (float)t->getDefaultNumberOfLaps() *
+                    ServerConfig::m_auto_game_time_ratio));
+            }
+            else if (m_fixed_lap >= 0)
+                m_default_vote->m_num_laps = m_fixed_lap;
             m_default_vote->m_reverse = rg.get(2) == 0;
+            if (m_fixed_direction >= 0)
+                m_default_vote->m_reverse = (m_fixed_direction == 1);
             break;
         }
         case RaceManager::MINOR_MODE_FREE_FOR_ALL:
@@ -3072,7 +2518,7 @@ void ServerLobby::startSelection(const Event *event)
         {
             if (ServerConfig::m_soccer_tournament)
             {
-                m_default_vote->m_num_laps = 10;
+                m_default_vote->m_num_laps = m_tournament_length;
                 m_default_vote->m_reverse = false;
             }
             else
@@ -3111,97 +2557,56 @@ void ServerLobby::startSelection(const Event *event)
     }
 
     startVotingPeriod(ServerConfig::m_voting_timeout);
-    NetworkString *ns = getNetworkString(1);
-    // Start selection - must be synchronous since the receiver pushes
-    // a new screen, which must be done from the main thread.
-    ns->setSynchronous(true);
-    ns->addUInt8(LE_START_SELECTION)
-       .addFloat(ServerConfig::m_voting_timeout)
-       .addUInt8(/*m_game_setup->isGrandPrixStarted() ? 1 : */0)
-       .addUInt8((m_fixed_lap >= 0
-            || m_default_lap_multiplier > 0.0f) ? 1 : 0)
-       .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
 
-    const auto& all_k = m_available_kts.first;
-    const auto& all_t = m_available_kts.second;
-    ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
-    for (const std::string& kart : all_k)
-    {
-        ns->encodeString(kart);
-    }
-    for (const std::string& track : all_t)
-    {
-        ns->encodeString(track);
-    }
+    std::string ignored_choice_string = "The server will ignore your kart choice";
 
-    auto remaining = m_kart_elimination.getRemainingParticipants();
-    if (!remaining.empty())
+    peers = STKHost::get()->getPeers();
+    for (auto& peer: peers)
     {
-        // Seems like I assumed the kart elimination cannot have
-        // preselected tracks. Not sure I really wanted this.
-        STKHost::get()->sendPacketToAllPeersWith(
-            [remaining](STKPeer* p)
-            {
-                for (auto& profile : p->getPlayerProfiles())
-                {
-                    if (remaining.count(
-                        StringUtils::wideToUtf8(profile->getName())) != 0)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }, ns, /*reliable*/true);
-        delete ns;
-        bool has_gnu = false;
-        for (auto it = all_k.begin(); it != all_k.end(); it++)
-        {
-            has_gnu |= (*it == m_kart_elimination.getKart());
-        }
+        if (peer->isDisconnected() && !peer->isValidated())
+            continue;
+        if (!canRace(peer) || peer->isWaitingForGame())
+            continue; // they are handled below
 
-        // The same NetworkString but without any non-elimination karts
         NetworkString *ns = getNetworkString(1);
+        // Start selection - must be synchronous since the receiver pushes
+        // a new screen, which must be done from the main thread.
         ns->setSynchronous(true);
         ns->addUInt8(LE_START_SELECTION)
            .addFloat(ServerConfig::m_voting_timeout)
            .addUInt8(/*m_game_setup->isGrandPrixStarted() ? 1 : */0)
            .addUInt8((m_fixed_lap >= 0
-            || m_default_lap_multiplier > 0.0f) ? 1 : 0)
+                || m_default_lap_multiplier > 0.0f) ? 1 : 0)
            .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
 
-        ns->addUInt16((uint16_t)(has_gnu ? 1 : 0)).addUInt16(
-            (uint16_t)all_t.size());
-        if (has_gnu)
+
+        std::set<std::string> all_k = peer->getClientAssets().first;
+        std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+        // std::string username = StringUtils::wideToUtf8(profile->getName());
+        applyAllKartFilters(username, all_k);
+
+        if (!m_kart_elimination.getRemainingParticipants().empty() && m_kart_elimination.getRemainingParticipants().count(username) == 0)
         {
-            ns->encodeString(std::string(m_kart_elimination.getKart()));
-        }
-        for (const std::string& track : all_t)
-        {
-            ns->encodeString(track);
+            if (all_k.count(m_kart_elimination.getKart()))
+                all_k = {m_kart_elimination.getKart()};
+            else
+                all_k = {};
         }
 
-        STKHost::get()->sendPacketToAllPeersWith(
-            [remaining](STKPeer* p)
-            {
-                for (auto& profile : p->getPlayerProfiles())
-                {
-                    if (remaining.count(
-                        StringUtils::wideToUtf8(profile->getName())) != 0)
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }, ns, /*reliable*/true);
-    }
-    else
-    {
-        STKHost::get()->sendPacketToAllPeersWith(
-            [this](STKPeer* p) -> bool
-            {
-                return canRace(p);
-            }, ns, /*reliable*/true);
+
+        const auto& all_t = m_available_kts.second;
+
+        ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
+        for (const std::string& kart : all_k)
+            ns->encodeString(kart);
+        for (const std::string& track : all_t)
+            ns->encodeString(track);
+
+        peer->sendPacket(ns, /*reliable*/true);
         delete ns;
+
+        if (areKartFiltersIgnoringKarts())
+            sendStringToPeer(ignored_choice_string, peer);
     }
 
     m_state = SELECTING;
@@ -3241,6 +2646,8 @@ void ServerLobby::startSelection(const Event *event)
         m_gp_scores.clear();
         m_gp_team_scores.clear();
     }
+
+    getCommandManager().onStartSelection();
 }   // startSelection
 
 //-----------------------------------------------------------------------------
@@ -3363,6 +2770,7 @@ void ServerLobby::checkIncomingConnectionRequests()
     request->addParameter("address", addr.getIP()  );
     request->addParameter("port",    addr.getPort());
     request->addParameter("current-players", getLobbyPlayers());
+    request->addParameter("current-ai", m_current_ai_count.load());
     request->addParameter("game-started",
         m_state.load() == WAITING_FOR_START_GAME ? 0 : 1);
     std::string current_track = getPlayingTrackIdent();
@@ -3421,12 +2829,14 @@ void ServerLobby::checkRaceFinished()
         std::string fastest_kart = StringUtils::wideToUtf8(fastest_kart_wide);
 
         int points_fl = 0;
-        int points_pole = 0;
+        // Commented until used to remove the warning
+        // int points_pole = 0;
         WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
         if (wwr)
         {
             points_fl = wwr->getFastestLapPoints();
-            points_pole = wwr->getPolePoints();
+            // Commented until used to remove the warning
+            // points_pole = wwr->getPolePoints();
         }
         else
         {
@@ -3502,13 +2912,7 @@ void ServerLobby::checkRaceFinished()
 
     if (ServerConfig::m_store_results)
     {
-        bool racing_mode = false;
-        racing_mode |= RaceManager::get()->getMinorMode() ==
-            RaceManager::MINOR_MODE_NORMAL_RACE;
-        racing_mode |= RaceManager::get()->getMinorMode() ==
-            RaceManager::MINOR_MODE_TIME_TRIAL;
-        if (racing_mode)
-            storeResults();
+        storeResults();
     }
 
     if (ServerConfig::m_ranked)
@@ -3527,12 +2931,31 @@ void ServerLobby::checkRaceFinished()
     }
     m_state.store(WAIT_FOR_RACE_STOPPED);
 
-    if (!m_tracks_queue.empty())
+    m_map_history.push_back(RaceManager::get()->getTrackName());
+
+    if (!m_onetime_tracks_queue.empty())
     {
-        m_tracks_queue.pop_front();
-        // Reload GP tracks if GP ends
-        if (m_tracks_queue.empty() && m_game_setup->isGrandPrix())
-            loadTracksQueueFromConfig();
+        m_onetime_tracks_queue.pop_front();
+    }
+    if (!m_cyclic_tracks_queue.empty())
+    {
+        auto item = m_cyclic_tracks_queue.front().get()->getInitialString();
+        bool is_placeholder = m_cyclic_tracks_queue.front()->isPlaceholder();
+        m_cyclic_tracks_queue.pop_front();
+        if (!is_placeholder)
+            m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(item));
+    }
+    if (!m_onetime_karts_queue.empty())
+    {
+        m_onetime_karts_queue.pop_front();
+    }
+    if (!m_cyclic_karts_queue.empty())
+    {
+        auto item = m_cyclic_karts_queue.front().get()->getInitialString();
+        bool is_placeholder = m_cyclic_karts_queue.front()->isPlaceholder();
+        m_cyclic_karts_queue.pop_front();
+        if (!is_placeholder)
+            m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(item));
     }
 }   // checkRaceFinished
 
@@ -3926,6 +3349,12 @@ void ServerLobby::clientDisconnected(Event* event)
     if (players_on_peer.empty())
         return;
 
+    World* w = World::getWorld();
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
+     // No warnings otherwise, as it could happen during lobby period
+    if (w && m_game_info)
+        saveDisconnectingPeerInfo(peer);
+
     NetworkString* msg = getNetworkString(2);
     const bool waiting_peer_disconnected =
         event->getPeer()->isWaitingForGame();
@@ -3938,6 +3367,7 @@ void ServerLobby::clientDisconnected(Event* event)
         std::string name = StringUtils::wideToUtf8(p->getName());
         msg->encodeString(name);
         Log::info("ServerLobby", "%s disconnected", name.c_str());
+        getCommandManager().deleteUser(name);
     }
 
     unsigned players_number;
@@ -3958,7 +3388,9 @@ void ServerLobby::clientDisconnected(Event* event)
     updatePlayerList();
     delete msg;
 
-    writeDisconnectInfoTable(event->getPeer());
+#ifdef ENABLE_SQLITE3
+    m_db_connector->writeDisconnectInfoTable(event->getPeer());
+#endif
 }   // clientDisconnected
 
 //-----------------------------------------------------------------------------
@@ -4001,14 +3433,7 @@ void ServerLobby::kickPlayerWithReason(STKPeer* peer, const char* reason) const
 void ServerLobby::saveIPBanTable(const SocketAddress& addr)
 {
 #ifdef ENABLE_SQLITE3
-    if (addr.isIPv6() || !m_db || !m_ip_ban_table_exists)
-        return;
-
-    std::string query = StringUtils::insertValues(
-        "INSERT INTO %s (ip_start, ip_end) "
-        "VALUES (%u, %u);",
-        ServerConfig::m_ip_ban_table.c_str(), addr.getIP(), addr.getIP());
-    easySQLQuery(query);
+    m_db_connector->saveAddressToIpBanTable(addr);
 #endif
 }   // saveIPBanTable
 
@@ -4093,12 +3518,16 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
         }
     }
 
-    Log::info("ServerLobby", "Player has the following addons: %d/%d karts,"
-        " %d/%d tracks, %d/%d arenas, %d/%d soccer fields.", addon_karts,
-        (int)ServerConfig::m_addon_karts_threshold, addon_tracks,
-        (int)ServerConfig::m_addon_tracks_threshold, addon_arenas,
-        (int)ServerConfig::m_addon_arenas_threshold, addon_soccers,
-        (int)ServerConfig::m_addon_soccers_threshold);
+    Log::info("ServerLobby", "Player has the following addons: %d/%d(%d) karts,"
+        " %d/%d(%d) tracks, %d/%d(%d) arenas, %d/%d(%d) soccer fields.",
+        addon_karts, (int)ServerConfig::m_addon_karts_join_threshold,
+        (int)ServerConfig::m_addon_karts_play_threshold,
+        addon_tracks, (int)ServerConfig::m_addon_tracks_join_threshold,
+        (int)ServerConfig::m_addon_tracks_play_threshold,
+        addon_arenas, (int)ServerConfig::m_addon_arenas_join_threshold,
+        (int)ServerConfig::m_addon_arenas_play_threshold,
+        addon_soccers, (int)ServerConfig::m_addon_soccers_join_threshold,
+        (int)ServerConfig::m_addon_soccers_play_threshold);
 
     peer->addon_karts_count = addon_karts;
     peer->addon_tracks_count = addon_tracks;
@@ -4113,13 +3542,13 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
         Log::verbose("ServerLobby", "Bad player: bad official kart threshold");
     if (ott < ServerConfig::m_official_tracks_threshold)
         Log::verbose("ServerLobby", "Bad player: bad official track threshold");
-    if (addon_karts < (int)ServerConfig::m_addon_karts_threshold)
+    if (addon_karts < (int)ServerConfig::m_addon_karts_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon karts");
-    if (addon_tracks < (int)ServerConfig::m_addon_tracks_threshold)
+    if (addon_tracks < (int)ServerConfig::m_addon_tracks_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon tracks");
-    if (addon_arenas < (int)ServerConfig::m_addon_arenas_threshold)
+    if (addon_arenas < (int)ServerConfig::m_addon_arenas_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon arenas");
-    if (addon_soccers < (int)ServerConfig::m_addon_soccers_threshold)
+    if (addon_soccers < (int)ServerConfig::m_addon_soccers_join_threshold)
         Log::verbose("ServerLobby", "Bad player: too little addon soccers");
     if (!has_required_tracks)
         Log::verbose("ServerLobby", "Bad player: no required tracks");
@@ -4128,35 +3557,43 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
         tracks_erase.size() == m_entering_kts.second.size() ||
         okt < ServerConfig::m_official_karts_threshold ||
         ott < ServerConfig::m_official_tracks_threshold ||
-        addon_karts < (int)ServerConfig::m_addon_karts_threshold ||
-        addon_tracks < (int)ServerConfig::m_addon_tracks_threshold ||
-        addon_arenas < (int)ServerConfig::m_addon_arenas_threshold ||
-        addon_soccers < (int)ServerConfig::m_addon_soccers_threshold ||
+        addon_karts < (int)ServerConfig::m_addon_karts_join_threshold ||
+        addon_tracks < (int)ServerConfig::m_addon_tracks_join_threshold ||
+        addon_arenas < (int)ServerConfig::m_addon_arenas_join_threshold ||
+        addon_soccers < (int)ServerConfig::m_addon_soccers_join_threshold ||
         !has_required_tracks)
     {
-        NetworkString *message = getNetworkString(2);
-        message->setSynchronous(true);
-        message->addUInt8(LE_CONNECTION_REFUSED)
-            .addUInt8(RR_INCOMPATIBLE_DATA);
-
-        std::string advice = ServerConfig::m_incompatible_advice;
-        if (!advice.empty())
+        if (peer->isValidated())
         {
-            NetworkString* incompatible_reason = getNetworkString();
-            incompatible_reason->addUInt8(LE_CHAT);
-            incompatible_reason->setSynchronous(true);
-            incompatible_reason->encodeString16(
-                StringUtils::utf8ToWide(advice));
-            peer->sendPacket(incompatible_reason,
-                true/*reliable*/, false/*encrypted*/);
-            Log::info("ServerLobby", "Sent advice");
-            delete incompatible_reason;
+            std::string msg = "You deleted some assets that are required to stay on the server";
+            sendStringToPeer(msg, peer);
+            peer->kick();
         }
+        else
+        {
+            NetworkString *message = getNetworkString(2);
+            message->setSynchronous(true);
+            message->addUInt8(LE_CONNECTION_REFUSED)
+                    .addUInt8(RR_INCOMPATIBLE_DATA);
 
-        peer->cleanPlayerProfiles();
-        peer->sendPacket(message, true/*reliable*/, false/*encrypted*/);
-        peer->reset();
-        delete message;
+            std::string advice = ServerConfig::m_incompatible_advice;
+            if (!advice.empty()) {
+                NetworkString *incompatible_reason = getNetworkString();
+                incompatible_reason->addUInt8(LE_CHAT);
+                incompatible_reason->setSynchronous(true);
+                incompatible_reason->encodeString16(
+                        StringUtils::utf8ToWide(advice));
+                peer->sendPacket(incompatible_reason,
+                                 true/*reliable*/, false/*encrypted*/);
+                Log::info("ServerLobby", "Sent advice");
+                delete incompatible_reason;
+            }
+
+            peer->cleanPlayerProfiles();
+            peer->sendPacket(message, true/*reliable*/, false/*encrypted*/);
+            peer->reset();
+            delete message;
+        }
         Log::verbose("ServerLobby", "Player has incompatible karts / tracks.");
         return false;
     }
@@ -4220,6 +3657,7 @@ bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
 
     if (ServerConfig::m_soccer_tournament)
         updateTournamentRole(peer);
+    updatePlayerList();
     return true;
 }   // handleAssets
 
@@ -4302,18 +3740,8 @@ void ServerLobby::connectionRequested(Event* event)
 
     unsigned total_players = 0;
     STKHost::get()->updatePlayers(NULL, NULL, &total_players);
-    unsigned max_players_mode = (unsigned)ServerConfig::m_server_max_players;
-    if (RaceManager::get()->getMinorMode() ==
-        RaceManager::MINOR_MODE_FREE_FOR_ALL)
-        max_players_mode = std::min<unsigned>(10, max_players_mode);
-    if (RaceManager::get()->getMinorMode() ==
-        RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
-        max_players_mode = std::min<unsigned>(14, max_players_mode);
-    if (RaceManager::get()->getMinorMode() ==
-        RaceManager::MINOR_MODE_SOCCER && !ServerConfig::m_soccer_tournament)
-        max_players_mode = std::min<unsigned>(14, max_players_mode);
     if (total_players + player_count + m_ai_profiles.size() >
-        max_players_mode)
+        (unsigned)ServerConfig::m_server_max_players)
     {
         NetworkString *message = getNetworkString(2);
         message->setSynchronous(true);
@@ -4343,8 +3771,7 @@ void ServerLobby::connectionRequested(Event* event)
         (player_count != 1 || online_id == 0 || duplicated_ranked_player)) ||
         (peer->isAIPeer() && !peer->getAddress().isLAN() &&!ServerConfig::m_ai_anywhere) ||
         (peer->isAIPeer() &&
-        ServerConfig::m_ai_handling && !m_ai_peer.expired()) ||
-        (peer->isAIPeer() && m_game_setup->isGrandPrix()))
+        ServerConfig::m_ai_handling && !m_ai_peer.expired()))
     {
         NetworkString* message = getNetworkString(2);
         message->setSynchronous(true);
@@ -4461,9 +3888,9 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 
 #ifdef ENABLE_SQLITE3
     if (country_code.empty() && !peer->getAddress().isIPv6())
-        country_code = ip2Country(peer->getAddress());
+        country_code = m_db_connector->ip2Country(peer->getAddress());
     if (country_code.empty() && peer->getAddress().isIPv6())
-        country_code = ipv62Country(peer->getAddress());
+        country_code = m_db_connector->ipv62Country(peer->getAddress());
 #endif
 
     auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
@@ -4487,36 +3914,48 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             peer->getHostId(), default_kart_color, i == 0 ? online_id : 0,
             handicap, (uint8_t)i, KART_TEAM_NONE,
             country_code);
+
+        int previous_team = -1;
+        std::string username = StringUtils::wideToUtf8(player->getName());
+        auto it2 = m_team_for_player.find(username);
+        if (it2 != m_team_for_player.end())
+            previous_team = it2->second;
+
         if (ServerConfig::m_team_choosing && !ServerConfig::m_soccer_tournament)
         {
             KartTeam cur_team = KART_TEAM_NONE;
-            if (red_blue.first > red_blue.second)
+
+            if (RaceManager::get()->teamEnabled())
             {
-                cur_team = KART_TEAM_BLUE;
-                red_blue.second++;
+                if (red_blue.first > red_blue.second)
+                {
+                    cur_team = KART_TEAM_BLUE;
+                    red_blue.second++;
+                }
+                else
+                {
+                    cur_team = KART_TEAM_RED;
+                    red_blue.first++;
+                }
             }
-            else
-            {
-                cur_team = KART_TEAM_RED;
-                red_blue.first++;
-            }
-            player->setTeam(cur_team);
+            if (cur_team != KART_TEAM_NONE)
+                setTeamInLobby(player, cur_team);
         }
         if (ServerConfig::m_soccer_tournament)
         {
             if (m_tournament_red_players.count(utf8_online_name))
-                player->setTeam(KART_TEAM_RED);
+                setTeamInLobby(player, KART_TEAM_RED);
             else if (m_tournament_blue_players.count(utf8_online_name))
-                player->setTeam(KART_TEAM_BLUE);
+                setTeamInLobby(player, KART_TEAM_BLUE);
             if (tournamentColorsSwapped(m_tournament_game))
             {
                 if (player->getTeam() == KART_TEAM_BLUE)
-                    player->setTeam(KART_TEAM_RED);
+                    setTeamInLobby(player, KART_TEAM_RED);
                 else if (player->getTeam() == KART_TEAM_RED)
-                    player->setTeam(KART_TEAM_BLUE);
+                    setTeamInLobby(player, KART_TEAM_BLUE);
             }
         }
-        std::string username = StringUtils::wideToUtf8(player->getName());
+        getCommandManager().addUser(username);
         if (m_game_setup->isGrandPrix())
         {
             auto it = m_gp_scores.find(username);
@@ -4526,12 +3965,18 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                 player->setOverallTime(it->second.time);
             }
         }
-        auto it2 = m_team_for_player.find(username);
-        if (it2 != m_team_for_player.end())
+        if (!RaceManager::get()->teamEnabled())
         {
-            player->setTemporaryTeam(it2->second - 1);
+            if (previous_team != -1)
+            {
+                setTemporaryTeamInLobby(player, previous_team);
+            }
         }
         peer->addPlayer(player);
+
+        // As it sets spectating mode for peer based on which players it has,
+        // we need to set the team once again to the same thing
+        setTemporaryTeamInLobby(player, player->getTemporaryTeam());
     }
 
     peer->setValidated(true);
@@ -4567,7 +4012,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     message_ack->addFloat(auto_start_timer)
         .addUInt32(ServerConfig::m_state_frequency)
         .addUInt8(ServerConfig::m_chat ? 1 : 0)
-        .addUInt8(m_player_reports_table_exists ? 1 : 0);
+        .addUInt8(playerReportsTableExists() ? 1 : 0);
 
     peer->setSpectator(false);
 
@@ -4578,7 +4023,12 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         unsigned max_players = ServerConfig::m_server_max_players;
         // We need to reserve at least 1 slot for new player
         if (player_count + ai_add + 1 > max_players)
-            ai_add = max_players - player_count - 1;
+        {
+            if (max_players >= player_count + 1)
+                ai_add = max_players - player_count - 1;
+            else
+                ai_add = 0;
+        }
         for (unsigned i = 0; i < ai_add; i++)
         {
 #ifdef SERVER_ONLY
@@ -4586,8 +4036,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 #else
             core::stringw name = _("Bot");
 #endif
-            if (i > 0)
-                name += core::stringw(" ") + StringUtils::toWString(i);
+            name += core::stringw(" ") + StringUtils::toWString(i + 1);
+            
             m_ai_profiles.push_back(std::make_shared<NetworkPlayerProfile>
                 (peer, name, peer->getHostId(), 0.0f, 0, HANDICAP_NONE,
                 player_count + i, KART_TEAM_NONE, ""));
@@ -4628,87 +4078,25 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     }
 
 #ifdef ENABLE_SQLITE3
-    if (m_server_stats_table.empty() || peer->isAIPeer())
-        return;
-    std::string query;
-    if (ServerConfig::m_ipv6_connection && peer->getAddress().isIPv6())
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(host_id, ip, ipv6 ,port, online_id, username, player_num, "
-            "country_code, version, os, ping, addon_karts_count, addon_tracks_count, "
-            "addon_arenas_count, addon_soccers_count) "
-            "VALUES (%u, 0, \"%s\" ,%u, %u, ?, %u, ?, ?, ?, %u, %d, %d, %d, %d);",
-            m_server_stats_table.c_str(), peer->getHostId(),
-            peer->getAddress().toString(false), peer->getAddress().getPort(),
-            online_id, player_count, peer->getAveragePing(), peer->addon_karts_count,
-            peer->addon_tracks_count, peer->addon_arenas_count,
-            peer->addon_soccers_count);
-    }
-    else
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(host_id, ip, port, online_id, username, player_num, "
-            "country_code, version, os, ping, addon_karts_count, addon_tracks_count, "
-            "addon_arenas_count, addon_soccers_count) "
-            "VALUES (%u, %u, %u, %u, ?, %u, ?, ?, ?, %u, %d, %d, %d, %d);",
-            m_server_stats_table.c_str(), peer->getHostId(),
-            peer->getAddress().getIP(), peer->getAddress().getPort(),
-            online_id, player_count, peer->getAveragePing(), peer->addon_karts_count,
-            peer->addon_tracks_count, peer->addon_arenas_count,
-            peer->addon_soccers_count);
-    }
-    easySQLQuery(query, [peer, country_code](sqlite3_stmt* stmt)
-        {
-            if (sqlite3_bind_text(stmt, 1, StringUtils::wideToUtf8(
-                peer->getPlayerProfiles()[0]->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(
-                    peer->getPlayerProfiles()[0]->getName()).c_str());
-            }
-            if (country_code.empty())
-            {
-                if (sqlite3_bind_null(stmt, 2) != SQLITE_OK)
-                {
-                    Log::error("easySQLQuery",
-                        "Failed to bind NULL for country code.");
-                }
-            }
-            else
-            {
-                if (sqlite3_bind_text(stmt, 2, country_code.c_str(),
-                    -1, SQLITE_TRANSIENT) != SQLITE_OK)
-                {
-                    Log::error("easySQLQuery", "Failed to bind country: %s.",
-                        country_code.c_str());
-                }
-            }
-            auto version_os =
-                StringUtils::extractVersionOS(peer->getUserVersion());
-            if (sqlite3_bind_text(stmt, 3, version_os.first.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    version_os.first.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 4, version_os.second.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    version_os.second.c_str());
-            }
-        }
-    );
+    m_db_connector->onPlayerJoinQueries(peer, online_id, player_count, country_code);
 #endif
     if (m_kart_elimination.isEnabled())
     {
+        bool hasEliminatedPlayer = false;
+        for (unsigned i = 0; i < peer->getPlayerProfiles().size(); ++i)
+        {
+            std::string name = StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[i]->getName());
+            if (m_kart_elimination.isEliminated(name))
+            {
+                hasEliminatedPlayer = true;
+                break;
+            }
+        }
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
-        std::string warning = m_kart_elimination.getWarningMessage();
+        std::string warning = m_kart_elimination.getWarningMessage(hasEliminatedPlayer);
         chat->encodeString16(StringUtils::utf8ToWide(warning));
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
@@ -4745,23 +4133,6 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
     const bool game_started = m_state.load() != WAITING_FOR_START_GAME &&
         !update_when_reset_server;
 
-    if (update_when_reset_server)
-    {
-        if (!ServerConfig::m_soccer_tournament)
-        {
-            for (auto& peer : m_default_always_spectate_peers)
-                peer->setAlwaysSpectate(ASM_COMMAND);
-        }
-        else
-        {
-            auto peers = STKHost::get()->getPeers();
-            for (auto& peer: peers)
-            {
-                peer->setAlwaysSpectate(ASM_NONE);
-            }
-        }
-    }
-
     auto all_profiles = STKHost::get()->getAllPlayerProfiles();
     size_t all_profiles_size = all_profiles.size();
     for (auto& profile : all_profiles)
@@ -4797,13 +4168,18 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             }
             all_profiles.insert(all_profiles.end(), ai_profiles.begin(),
                 ai_profiles.end());
+            m_current_ai_count.store((int)ai_profiles.size());
         }
         else if (!m_ai_profiles.empty())
         {
             all_profiles.insert(all_profiles.end(), m_ai_profiles.begin(),
                 m_ai_profiles.end());
+            m_current_ai_count.store((int)m_ai_profiles.size());
         }
     }
+    else
+        m_current_ai_count.store(0);
+
     m_lobby_players.store((int)all_profiles.size());
 
     // No need to update player list (for started grand prix currently)
@@ -4849,6 +4225,10 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             prefix.resize((int)prefix.size() - 2);
             prefix = "[" + prefix + "] ";
         }
+        int team = profile->getTemporaryTeam();
+        if (team != 0 && !RaceManager::get()->teamEnabled()) {
+            prefix = TeamUtils::getTeamByIndex(team).getEmoji() + " " + prefix;
+        }
 
         profile_name = StringUtils::utf8ToWide(prefix) + profile_name;
 
@@ -4862,7 +4242,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= 1;
         if (p && (p->isSpectator() ||
             ((m_state.load() == WAITING_FOR_START_GAME ||
-            update_when_reset_server) && p->alwaysSpectate())))
+            update_when_reset_server) && p->alwaysSpectateButNotNeutral())))
             boolean_combine |= (1 << 1);
         if (p && m_server_owner_id.load() == p->getHostId())
             boolean_combine |= (1 << 2);
@@ -4874,8 +4254,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= (1 << 4);
         pl->addUInt8(boolean_combine);
         pl->addUInt8(profile->getHandicap());
-        if (ServerConfig::m_team_choosing &&
-            RaceManager::get()->teamEnabled())
+        if (ServerConfig::m_team_choosing)
             pl->addUInt8(profile->getTeam());
         else
             pl->addUInt8(KART_TEAM_NONE);
@@ -4896,13 +4275,13 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
 }   // updatePlayerList
 
 //-----------------------------------------------------------------------------
-void ServerLobby::updateServerOwner()
+void ServerLobby::updateServerOwner(bool force)
 {
     if (m_state.load() < WAITING_FOR_START_GAME ||
         m_state.load() > RESULT_DISPLAY ||
         ServerConfig::m_owner_less)
         return;
-    if (!m_server_owner.expired())
+    if (!force && !m_server_owner.expired())
         return;
     auto peers = STKHost::get()->getPeers();
     if (peers.empty())
@@ -4910,7 +4289,9 @@ void ServerLobby::updateServerOwner()
     std::sort(peers.begin(), peers.end(), [](const std::shared_ptr<STKPeer> a,
         const std::shared_ptr<STKPeer> b)->bool
         {
-            return a->getHostId() < b->getHostId();
+            if (a->isCommandSpectator() ^ b->isCommandSpectator())
+                return b->isCommandSpectator();
+            return a->getRejoinTime() < b->getRejoinTime();
         });
 
     std::shared_ptr<STKPeer> owner;
@@ -4928,11 +4309,14 @@ void ServerLobby::updateServerOwner()
     }
     if (owner)
     {
-        NetworkString* ns = getNetworkString();
-        ns->setSynchronous(true);
-        ns->addUInt8(LE_SERVER_OWNERSHIP);
-        owner->sendPacket(ns);
-        delete ns;
+        if (m_server_owner.expired() || m_server_owner.lock() != owner)
+        {
+            NetworkString* ns = getNetworkString();
+            ns->setSynchronous(true);
+            ns->addUInt8(LE_SERVER_OWNERSHIP);
+            owner->sendPacket(ns);
+            delete ns;
+        }
         m_server_owner = owner;
         m_server_owner_id.store(owner->getHostId());
         updatePlayerList();
@@ -4981,6 +4365,8 @@ void ServerLobby::handlePlayerVote(Event* event)
         return;
 
     if (isVotingOver())  return;
+
+    if (!canVote(event->getPeer())) return;
 
     NetworkString& data = event->data();
     PeerVote vote(data);
@@ -5053,6 +4439,8 @@ void ServerLobby::handlePlayerVote(Event* event)
     {
         vote.m_num_laps = m_fixed_lap;
     }
+    if (m_fixed_direction >= 0)
+        vote.m_reverse = (m_fixed_direction == 1);
 
     // Store vote:
     vote.m_player_name = event->getPeer()->getPlayerProfiles()[0]->getName();
@@ -5077,13 +4465,6 @@ void ServerLobby::handlePlayerVote(Event* event)
 bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
                                  uint32_t* winner_peer_id)
 {
-    // Determine majority agreement when 35% of voting time remains,
-    // reserve some time for kart selection so it's not 50%
-    if (getRemainingVotingTime() / getMaxVotingTime() > 0.35f)
-    {
-        return false;
-    }
-
     // First remove all votes from disconnected hosts
     auto it = m_peers_votes.begin();
     while (it != m_peers_votes.end())
@@ -5097,157 +4478,28 @@ bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
             it++;
     }
 
-    if (m_peers_votes.empty())
-    {
-        if (isVotingOver())
-        {
-            *winner_vote = *m_default_vote;
-            return true;
-        }
-        return false;
-    }
-
-    // Count number of players 
-    float cur_players = 0.0f;
+    // Count number of players
+    unsigned cur_players = 0;
     auto peers = STKHost::get()->getPeers();
     for (auto peer : peers)
     {
         if (peer->isAIPeer())
             continue;
+        if (!canVote(peer))
+            continue;
         if (peer->hasPlayerProfiles() && !peer->isWaitingForGame())
-            cur_players += 1.0f;
+            cur_players++;
     }
 
-    std::string top_track = m_default_vote->m_track_name;
-    int top_laps = m_default_vote->m_num_laps;
-    bool top_reverse = m_default_vote->m_reverse;
-
-    std::map<std::string, unsigned> tracks;
-    std::map<unsigned, unsigned> laps;
-    std::map<bool, unsigned> reverses;
-
-    // Ratio to determine majority agreement
-    float tracks_rate = 0.0f;
-    float laps_rate = 0.0f;
-    float reverses_rate = 0.0f;
-    RandomGenerator rg;
-
-    for (auto& p : m_peers_votes)
-    {
-        auto track_vote = tracks.find(p.second.m_track_name);
-        if (track_vote == tracks.end())
-            tracks[p.second.m_track_name] = 1;
-        else
-            track_vote->second++;
-        auto lap_vote = laps.find(p.second.m_num_laps);
-        if (lap_vote == laps.end())
-            laps[p.second.m_num_laps] = 1;
-        else
-            lap_vote->second++;
-        auto reverse_vote = reverses.find(p.second.m_reverse);
-        if (reverse_vote == reverses.end())
-            reverses[p.second.m_reverse] = 1;
-        else
-            reverse_vote->second++;
-    }
-
-    unsigned vote = 0;
-    auto track_vote = tracks.begin();
-    // rg.get(2) == 0 will allow not always the "less" in map get picked
-    for (auto c_vote = tracks.begin(); c_vote != tracks.end(); c_vote++)
-    {
-        if (c_vote->second > vote ||
-            (c_vote->second >= vote && rg.get(2) == 0))
-        {
-            vote = c_vote->second;
-            track_vote = c_vote;
-        }
-    }
-    if (track_vote != tracks.end())
-    {
-        top_track = track_vote->first;
-        tracks_rate = float(track_vote->second) / cur_players;
-    }
-
-    vote = 0;
-    auto lap_vote = laps.begin();
-    for (auto c_vote = laps.begin(); c_vote != laps.end(); c_vote++)
-    {
-        if (c_vote->second > vote ||
-            (c_vote->second >= vote && rg.get(2) == 0))
-        {
-            vote = c_vote->second;
-            lap_vote = c_vote;
-        }
-    }
-    if (lap_vote != laps.end())
-    {
-        top_laps = lap_vote->first;
-        laps_rate = float(lap_vote->second) / cur_players;
-    }
-
-    vote = 0;
-    auto reverse_vote = reverses.begin();
-    for (auto c_vote = reverses.begin(); c_vote != reverses.end(); c_vote++)
-    {
-        if (c_vote->second > vote ||
-            (c_vote->second >= vote && rg.get(2) == 0))
-        {
-            vote = c_vote->second;
-            reverse_vote = c_vote;
-        }
-    }
-    if (reverse_vote != reverses.end())
-    {
-        top_reverse = reverse_vote->first;
-        reverses_rate = float(reverse_vote->second) / cur_players;
-    }
-
-    // End early if there is majority agreement which is all entries rate > 0.5
-    it = m_peers_votes.begin();
-    if (tracks_rate > 0.5f && laps_rate > 0.5f && reverses_rate > 0.5f)
-    {
-        while (it != m_peers_votes.end())
-        {
-            if (it->second.m_track_name == top_track &&
-                it->second.m_num_laps == top_laps &&
-                it->second.m_reverse == top_reverse)
-                break;
-            else
-                it++;
-        }
-        if (it == m_peers_votes.end())
-        {
-            Log::warn("ServerLobby",
-                "Missing track %s from majority.", top_track.c_str());
-            it = m_peers_votes.begin();
-        }
-        *winner_peer_id = it->first;
-        *winner_vote = it->second;
-        return true;
-    }
-    else if (isVotingOver())
-    {
-        // Pick the best lap (or soccer goal / time) from only the top track
-        // if no majority agreement from all
-        int diff = std::numeric_limits<int>::max();
-        auto closest_lap = m_peers_votes.begin();
-        while (it != m_peers_votes.end())
-        {
-            if (it->second.m_track_name == top_track &&
-                std::abs((int)it->second.m_num_laps - top_laps) < diff)
-            {
-                closest_lap = it;
-                diff = std::abs((int)it->second.m_num_laps - top_laps);
-            }
-            else
-                it++;
-        }
-        *winner_peer_id = closest_lap->first;
-        *winner_vote = closest_lap->second;
-        return true;
-    }
-    return false;
+    return m_map_vote_handler.handleAllVotes(
+        m_peers_votes,
+        getRemainingVotingTime(),
+        getMaxVotingTime(),
+        isVotingOver(),
+        cur_players,
+        m_default_vote,
+        winner_vote, winner_peer_id
+    );
 }   // handleAllVotes
 
 // ----------------------------------------------------------------------------
@@ -5617,121 +4869,51 @@ void ServerLobby::resetServer()
 void ServerLobby::testBannedForIP(STKPeer* peer) const
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_ip_ban_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasIpBanTable())
         return;
 
     // Test for IPv4
     if (peer->getAddress().isIPv6())
         return;
 
-    int row_id = -1;
-    unsigned ip_start = 0;
-    unsigned ip_end = 0;
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, ip_start, ip_end, reason, description FROM %s "
-        "WHERE ip_start <= %u AND ip_end >= %u "
-        "AND datetime('now') > datetime(starting_time) AND "
-        "(expired_days is NULL OR datetime"
-        "(starting_time, '+'||expired_days||' days') > datetime('now')) "
-        "LIMIT 1;",
-        ServerConfig::m_ip_ban_table.c_str(),
-        peer->getAddress().getIP(), peer->getAddress().getIP());
+    bool is_banned = false;
+    uint32_t ip_start = 0;
+    uint32_t ip_end = 0;
 
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    std::vector<DatabaseConnector::IpBanTableData> ip_ban_list =
+            m_db_connector->getIpBanTableData(peer->getAddress().getIP());
+    if (!ip_ban_list.empty())
     {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            ip_start = (unsigned)sqlite3_column_int64(stmt, 1);
-            ip_end = (unsigned)sqlite3_column_int64(stmt, 2);
-            const char* reason = (char*)sqlite3_column_text(stmt, 3);
-            const char* desc = (char*)sqlite3_column_text(stmt, 4);
-            Log::info("ServerLobby", "%s banned by IP: %s "
+        is_banned = true;
+        ip_start = ip_ban_list[0].ip_start;
+        ip_end = ip_ban_list[0].ip_end;
+        int row_id = ip_ban_list[0].row_id;
+        std::string reason = ip_ban_list[0].reason;
+        std::string description = ip_ban_list[0].description;
+        Log::info("ServerLobby", "%s banned by IP: %s "
                 "(rowid: %d, description: %s).",
-                peer->getAddress().toString().c_str(), reason, row_id, desc);
-            kickPlayerWithReason(peer, reason);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
+                peer->getAddress().toString().c_str(), reason.c_str(), row_id, description.c_str());
+        kickPlayerWithReason(peer, reason.c_str());
     }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET trigger_count = trigger_count + 1, "
-            "last_trigger = datetime('now') "
-            "WHERE ip_start = %u AND ip_end = %u;",
-            ServerConfig::m_ip_ban_table.c_str(), ip_start, ip_end);
-        easySQLQuery(query);
-    }
+    if (is_banned)
+        m_db_connector->increaseIpBanTriggerCount(ip_start, ip_end);
 #endif
 }   // testBannedForIP
 
 //-----------------------------------------------------------------------------
-void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id) const
+void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_player_reports_table_exists || online_id == 0)
-        return;
-
-    int row_id;
-    // At most one message for now, sorry
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, reported_time, info FROM \"%s\" "
-        "WHERE reporter_online_id = %u "
-        "AND reporting_online_id = -1 "
-        "AND (server_uid = \"\" OR server_uid = \"%s\") LIMIT 1;",
-        ServerConfig::m_player_reports_table.c_str(),
-        online_id, ServerConfig::m_server_uid.c_str());
-
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    std::vector<DatabaseConnector::ServerMessage> messages =
+            m_db_connector->getServerMessages(online_id);
+    // in case there will be more than one later
+    for (const auto& message: messages)
     {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            const char* timestamp = (char*)sqlite3_column_text(stmt, 1);
-            const char* info = (char*)sqlite3_column_text(stmt, 2);
-            Log::info("ServerLobby", "A message from server was delivered");
-            std::string msg = "A message from the server (" +
-                std::string(timestamp) + "):\n" + std::string(info);
-            sendStringToPeer(msg, peer);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
-    }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "DELETE FROM \"%s\" WHERE rowid = %u;",
-            ServerConfig::m_player_reports_table.c_str(), row_id);
-        easySQLQuery(query);
+        Log::info("ServerLobby", "A message from server was delivered");
+        std::string msg = "A message from the server (" +
+            std::string(message.timestamp) + "):\n" + std::string(message.message);
+        sendStringToPeer(msg, peer);
+        m_db_connector->deleteServerMessage(message.row_id);
     }
 #endif
 }   // getMessagesFromHost
@@ -5740,78 +4922,33 @@ void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id) const
 void ServerLobby::testBannedForIPv6(STKPeer* peer) const
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_ipv6_ban_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasIpv6BanTable())
         return;
 
     // Test for IPv6
     if (!peer->getAddress().isIPv6())
         return;
 
-    int row_id = -1;
-    std::string ipv6_cidr;
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, ipv6_cidr, reason, description FROM %s "
-        "WHERE insideIPv6CIDR(ipv6_cidr, ?) = 1 "
-        "AND datetime('now') > datetime(starting_time) AND "
-        "(expired_days is NULL OR datetime"
-        "(starting_time, '+'||expired_days||' days') > datetime('now')) "
-        "LIMIT 1;",
-        ServerConfig::m_ipv6_ban_table.c_str());
+    bool is_banned = false;
+    std::string ipv6_cidr = "";
 
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    std::vector<DatabaseConnector::Ipv6BanTableData> ipv6_ban_list =
+            m_db_connector->getIpv6BanTableData(peer->getAddress().toString(false));
+
+    if (!ipv6_ban_list.empty())
     {
-        if (sqlite3_bind_text(stmt, 1,
-            peer->getAddress().toString(false).c_str(), -1, SQLITE_TRANSIENT)
-            != SQLITE_OK)
-        {
-            Log::error("ServerLobby", "Error binding ipv6 addr for query: %s",
-                sqlite3_errmsg(m_db));
-        }
-
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            ipv6_cidr = (char*)sqlite3_column_text(stmt, 1);
-            const char* reason = (char*)sqlite3_column_text(stmt, 2);
-            const char* desc = (char*)sqlite3_column_text(stmt, 3);
-            Log::info("ServerLobby", "%s banned by IP: %s "
+        is_banned = true;
+        ipv6_cidr = ipv6_ban_list[0].ipv6_cidr;
+        int row_id = ipv6_ban_list[0].row_id;
+        std::string reason = ipv6_ban_list[0].reason;
+        std::string description = ipv6_ban_list[0].description;
+        Log::info("ServerLobby", "%s banned by IPv6: %s "
                 "(rowid: %d, description: %s).",
-                peer->getAddress().toString().c_str(), reason, row_id, desc);
-            kickPlayerWithReason(peer, reason);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error finalize database for query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-        }
+                peer->getAddress().toString(false).c_str(), reason.c_str(), row_id, description.c_str());
+        kickPlayerWithReason(peer, reason.c_str());
     }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database for query %s: %s",
-            query.c_str(), sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET trigger_count = trigger_count + 1, "
-            "last_trigger = datetime('now') "
-            "WHERE ipv6_cidr = ?;", ServerConfig::m_ipv6_ban_table.c_str());
-        easySQLQuery(query, [ipv6_cidr](sqlite3_stmt* stmt)
-            {
-                if (sqlite3_bind_text(stmt, 1, ipv6_cidr.c_str(),
-                    -1, SQLITE_TRANSIENT) != SQLITE_OK)
-                {
-                    Log::error("easySQLQuery", "Failed to bind %s.",
-                        ipv6_cidr.c_str());
-                }
-            });
-    }
+    if (is_banned)
+        m_db_connector->increaseIpv6BanTriggerCount(ipv6_cidr);
 #endif
 }   // testBannedForIPv6
 
@@ -5820,57 +4957,26 @@ void ServerLobby::testBannedForOnlineId(STKPeer* peer,
                                         uint32_t online_id) const
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_online_id_ban_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasOnlineIdBanTable())
         return;
 
-    int row_id = -1;
-    std::string query = StringUtils::insertValues(
-        "SELECT rowid, reason, description FROM %s "
-        "WHERE online_id = %u "
-        "AND datetime('now') > datetime(starting_time) AND "
-        "(expired_days is NULL OR datetime"
-        "(starting_time, '+'||expired_days||' days') > datetime('now')) "
-        "LIMIT 1;",
-        ServerConfig::m_online_id_ban_table.c_str(), online_id);
+    bool is_banned = false;
+    std::vector<DatabaseConnector::OnlineIdBanTableData> online_id_ban_list =
+            m_db_connector->getOnlineIdBanTableData(online_id);
 
-    sqlite3_stmt* stmt = NULL;
-    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-    if (ret == SQLITE_OK)
+    if (!online_id_ban_list.empty())
     {
-        ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-        {
-            row_id = sqlite3_column_int(stmt, 0);
-            const char* reason = (char*)sqlite3_column_text(stmt, 1);
-            const char* desc = (char*)sqlite3_column_text(stmt, 2);
-            Log::info("ServerLobby", "%s banned by online id: %s "
-                "(online id: %u rowid: %d, description: %s).",
-                peer->getAddress().toString().c_str(), reason, online_id,
-                row_id, desc);
-            kickPlayerWithReason(peer, reason);
-        }
-        ret = sqlite3_finalize(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby", "Error finalize database: %s",
-                sqlite3_errmsg(m_db));
-        }
+        is_banned = true;
+        int row_id = online_id_ban_list[0].row_id;
+        std::string reason = online_id_ban_list[0].reason;
+        std::string description = online_id_ban_list[0].description;
+        Log::info("ServerLobby", "%s banned by online id: %s "
+                "(online id: %u, rowid: %d, description: %s).",
+                peer->getAddress().toString().c_str(), reason.c_str(), online_id, row_id, description.c_str());
+        kickPlayerWithReason(peer, reason.c_str());
     }
-    else
-    {
-        Log::error("ServerLobby", "Error preparing database: %s",
-            sqlite3_errmsg(m_db));
-        return;
-    }
-    if (row_id != -1)
-    {
-        query = StringUtils::insertValues(
-            "UPDATE %s SET trigger_count = trigger_count + 1, "
-            "last_trigger = datetime('now') "
-            "WHERE online_id = %u;",
-            ServerConfig::m_online_id_ban_table.c_str(), online_id);
-        easySQLQuery(query);
-    }
+    if (is_banned)
+        m_db_connector->increaseOnlineIdBanTriggerCount(online_id);
 #endif
 }   // testBannedForOnlineId
 
@@ -5878,34 +4984,7 @@ void ServerLobby::testBannedForOnlineId(STKPeer* peer,
 void ServerLobby::listBanTable()
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db)
-        return;
-    auto printer = [](void* data, int argc, char** argv, char** name)
-        {
-            for (int i = 0; i < argc; i++)
-            {
-                std::cout << name[i] << " = " << (argv[i] ? argv[i] : "NULL")
-                    << "\n";
-            }
-            std::cout << "\n";
-            return 0;
-        };
-    if (m_ip_ban_table_exists)
-    {
-        std::string query = "SELECT * FROM ";
-        query += ServerConfig::m_ip_ban_table;
-        query += ";";
-        std::cout << "IP ban list:\n";
-        sqlite3_exec(m_db, query.c_str(), printer, NULL, NULL);
-    }
-    if (m_online_id_ban_table_exists)
-    {
-        std::string query = "SELECT * FROM ";
-        query += ServerConfig::m_online_id_ban_table;
-        query += ";";
-        std::cout << "Online Id ban list:\n";
-        sqlite3_exec(m_db, query.c_str(), printer, NULL, NULL);
-    }
+    m_db_connector->listBanTable();
 #endif
 }   // listBanTable
 
@@ -5950,24 +5029,24 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         Log::warn("ServerLobby", "server-configurable is not enabled.");
         return;
     }
+    bool teams_before = RaceManager::get()->teamEnabled();
     unsigned total_players = 0;
     STKHost::get()->updatePlayers(NULL, NULL, &total_players);
-    if ((mode == 6 && total_players > 14) ||
-        (mode == 7 && total_players > 10) ||
-        (mode == 8 && total_players > 14))
+    bool bad_mode = (m_available_modes.count(mode) == 0);
+    bool bad_difficulty = (m_available_difficulties.count(difficulty) == 0);
+    if (bad_mode || bad_difficulty)
     {
-        Log::error("ServerLobby", "Too many players (%d) to change mode to %d.",
-            total_players, mode);
-        std::string msg = "Too many players present to activate this mode. "
-            "Soccer and CTF require at most 14, and FFA requires at most 10.";
-        sendStringToPeer(msg, peer);
-        return;
-    }
-    if ((m_available_difficulties.count(difficulty) == 0 || 
-        m_available_modes.count(mode) == 0))
-    {
-        Log::error("ServerLobby", "Mode %d and/or difficulty %d are not permitted.");
-        std::string msg = "Mode or difficulty are not permitted on this server";
+        // It remains just in case, but kimden thinks that
+        // this is already covered in command manager (?)
+        Log::error("ServerLobby", "Mode %d and/or difficulty %d are not permitted.",
+                   difficulty, mode);
+        std::string msg = "";
+        if (bad_mode && bad_difficulty)
+            msg = "Both mode and difficulty are not permitted on this server";
+        else if (bad_mode)
+            msg = "This mode is not permitted on this server";
+        else
+            msg = "This difficulty is not permitted on this server";
         sendStringToPeer(msg, peer);
         return;
     }
@@ -5984,6 +5063,8 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     m_game_setup->resetExtraServerInfo();
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
         m_game_setup->setSoccerGoalTarget(soccer_goal_target);
+
+    bool teams_after = RaceManager::get()->teamEnabled();
 
     if (NetworkConfig::get()->isWAN() &&
         (m_difficulty.load() != difficulty ||
@@ -6034,6 +5115,31 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
                 "Player has incompatible tracks for new game mode.");
         }
     }
+
+    if (teams_before ^ teams_after)
+    {
+        if (teams_after)
+        {
+            int final_number, players_number;
+            m_team_for_player.clear();
+            m_command_manager.assignRandomTeams(2, &final_number, &players_number);
+        }
+        else
+        {
+            clearTemporaryTeams();
+        }
+        for (auto& peer : STKHost::get()->getPeers())
+        {
+            if (teams_before)
+                peer->resetNoTeamSpectate();
+            for (auto &profile: peer->getPlayerProfiles())
+            {
+                // updates KartTeam
+                setTemporaryTeamInLobby(profile, profile->getTemporaryTeam());
+            }
+        }
+    }
+
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
@@ -6158,8 +5264,15 @@ void ServerLobby::handlePlayerDisconnection() const
             total++;
             continue;
         }
+
+        if (!m_game_info)
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
         else
-            rki.makeReserved();
+        {
+            saveDisconnectingIdInfo(i);
+        }
+
+        rki.makeReserved();
 
         AbstractKart* k = World::getWorld()->getKart(i);
         if (!k->isEliminated() && !k->hasFinishedRace())
@@ -6268,21 +5381,28 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
             peer->getPlayerProfiles()[i]->setKartName(m_kart_elimination.getKart());
             continue;
         }
+        std::string current_kart = kart;
         if (kart.find("randomkart") != std::string::npos ||
-            (kart.find("addon_") == std::string::npos &&
-            m_available_kts.first.find(kart) == m_available_kts.first.end()))
+                (kart.find("addon_") == std::string::npos &&
+                m_available_kts.first.find(kart) == m_available_kts.first.end()))
         {
-            RandomGenerator rg;
-            std::set<std::string>::iterator it =
-                m_available_kts.first.begin();
-            std::advance(it,
-                rg.get((int)m_available_kts.first.size()));
-            peer->getPlayerProfiles()[i]->setKartName(*it);
+            current_kart = "";
         }
-        else
-        {
-            peer->getPlayerProfiles()[i]->setKartName(kart);
-        }
+        if (areKartFiltersIgnoringKarts())
+            current_kart = "";
+        std::string name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName());
+        peer->getPlayerProfiles()[i]->setKartName(getKartForBadKartChoice(peer, name, current_kart));
+    }
+    if (peer->getClientCapabilities().find("real_addon_karts") ==
+        peer->getClientCapabilities().end() || ns.size() == 0)
+        return;
+    for (unsigned i = 0; i < player_count; i++)
+    {
+        KartData kart_data(ns);
+        std::string type = kart_data.m_kart_type;
+        auto& player = peer->getPlayerProfiles()[i];
+        const std::string& kart_id = player->getKartName();
+        setKartDataProperly(kart_data, kart_id, player, type);
     }
 }   // setPlayerKarts
 
@@ -6315,8 +5435,16 @@ void ServerLobby::handleKartInfo(Event* event)
         .addUInt32(rki.getOnlineId()).addUInt8(rki.getHandicap())
         .addUInt8((uint8_t)rki.getLocalPlayerId())
         .encodeString(rki.getKartName()).encodeString(rki.getCountryCode());
+    if (peer->getClientCapabilities().find("real_addon_karts") !=
+        peer->getClientCapabilities().end())
+        rki.getKartData().encode(ns);
     peer->sendPacket(ns, true/*reliable*/);
     delete ns;
+
+
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    if (ffa_world)
+        ffa_world->notifyAboutScoreIfNonzero(kart_id);
 }   // handleKartInfo
 
 //-----------------------------------------------------------------------------
@@ -6365,6 +5493,11 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
         m_rs_state.store(RS_ASYNC_RESET);
         return;
     }
+
+    if (!m_game_info)
+        Log::warn("ServerLobby", "GameInfo is not accessible??");
+    else
+        saveDisconnectingPeerInfo(peer);
 
     for (const int id : peer->getAvailableKartIDs())
     {
@@ -6458,11 +5591,12 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
     if (!update)
         return m_spectators_by_limit;
 
+    m_why_peer_cannot_play.clear();
     m_spectators_by_limit.clear();
 
     auto peers = STKHost::get()->getPeers();
 
-    unsigned player_limit = ServerConfig::m_max_players_in_game;
+    unsigned player_limit = m_current_max_players_in_game.load();
     // only 10 players allowed for FFA and 14 for CTF and soccer
     if (RaceManager::get()->getMinorMode() ==
             RaceManager::MINOR_MODE_FREE_FOR_ALL)
@@ -6478,41 +5612,56 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
 
     unsigned ingame_players = 0, waiting_players = 0, total_players = 0;
     STKHost::get()->updatePlayers(&ingame_players, &waiting_players, &total_players);
-    if (total_players <= player_limit)
-        return m_spectators_by_limit;
+
+    for (int i = 0; i < (int)peers.size(); ++i)
+    {
+        if (!peers[i]->isValidated())
+        {
+            swap(peers[i], peers.back());
+            peers.pop_back();
+            --i;
+        }
+    }
 
     std::sort(peers.begin(), peers.end(),
         [](const std::shared_ptr<STKPeer>& a,
             const std::shared_ptr<STKPeer>& b)
-        { return a->getHostId() < b->getHostId(); });
+        { return a->getRejoinTime() < b->getRejoinTime(); });
 
+    unsigned player_count = 0;
     if (m_state.load() >= RACING)
     {
         for (auto &peer : peers)
             if (peer->isSpectator())
                 ingame_players -= (int)peer->getPlayerProfiles().size();
+        player_count = ingame_players;
     }
 
-    unsigned player_count = 0;
     for (unsigned i = 0; i < peers.size(); i++)
     {
         auto& peer = peers[i];
         if (!peer->isValidated())
             continue;
+        bool ignore = false;
         if (m_state.load() < RACING)
         {
             if (peer->alwaysSpectate() || peer->isWaitingForGame())
-                continue;
-            player_count += (unsigned)peer->getPlayerProfiles().size();
-            if (player_count > player_limit)
+                ignore = true;
+            else if (!canRace(peer))
+            {
                 m_spectators_by_limit.insert(peer.get());
+                ignore = true;
+            }
         }
         else
         {
-            if (peer->isSpectator())
-                continue;
+            if (!peer->isWaitingForGame())
+                ignore = true; // we already counted them properly in ingame_players
+        }
+        if (!ignore)
+        {
             player_count += (unsigned)peer->getPlayerProfiles().size();
-            if (peer->isWaitingForGame() && (player_count > player_limit || ingame_players >= player_limit))
+            if (player_count > player_limit)
                 m_spectators_by_limit.insert(peer.get());
         }
     }
@@ -6534,7 +5683,7 @@ bool ServerLobby::supportsAI()
 }   // supportsAI
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
+bool ServerLobby::checkPeersReady(bool ignore_ai_peer, bool before_start)
 {
     bool all_ready = true;
     bool someone_races = false;
@@ -6543,9 +5692,11 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
         auto peer = p.first.lock();
         if (!peer)
             continue;
-        if (!canRace(peer))
+        if (peer->alwaysSpectate())
             continue;
         if (ignore_ai_peer && peer->isAIPeer())
+            continue;
+        if (before_start && !canRace(peer))
             continue;
         someone_races = true;
         all_ready = all_ready && p.second;
@@ -6559,1768 +5710,9 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
 void ServerLobby::handleServerCommand(Event* event,
                                       std::shared_ptr<STKPeer> peer)
 {
-    NetworkString& data = event->data();
-    std::string language;
-    data.decodeString(&language);
-    std::string cmd;
-    data.decodeString(&cmd);
-    auto argv = StringUtils::split(cmd, ' ');
-    if (argv.size() == 0)
-        return;
-    if (argv[0] == "replay")
-    {
-        if (!ServerConfig::m_owner_less && !hasHostRights(peer))
-        {
-            std::string msg = "You are not server owner";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (ServerConfig::m_record_replays)
-        {
-            if (argv.size() >= 2 && argv[1] == "0")
-                m_consent_on_replays = false;
-            else if (argv.size() >= 2 && argv[1] == "1")
-                m_consent_on_replays = true;
-            else
-                m_consent_on_replays ^= 1;
-
-            std::string msg = "Recording ghost replays is now ";
-            msg += (m_consent_on_replays ? "on" : "off");
-            sendStringToAllPeers(msg);
-        }
-        else
-        {
-            std::string msg = "This server doesn't allow recording replays";
-            sendStringToPeer(msg, peer);
-        }
-    }
-    else if (argv[0] == "start")
-    {
-        if (!ServerConfig::m_owner_less && !hasHostRights(peer))
-        {
-            std::string msg = "You are not server owner";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        startSelection(event);
-    }
-    else if (argv[0] == "config")
-    {
-        if (!hasHostRights(peer))
-        {
-            std::string msg = "You are not server owner";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        int difficulty = getDifficulty();
-        int mode = getGameMode();
-        bool goal_target = m_game_setup->isSoccerGoalTarget();
-        bool gp = false;
-        for (unsigned i = 1; i < argv.size(); i++)
-        {
-            if (argv[i] == "tt" || argv[i] == "time-trial"||
-                argv[i] == "trial" || argv[i] == "m4")
-                mode = 4;
-            if (argv[i] == "normal" || argv[i] == "normal-race" ||
-                argv[i] == "race" || argv[i] == "m3")
-                mode = 3;
-            if (argv[i] == "soccer" || argv[i] == "football" ||
-                argv[i] == "m6")
-                mode = 6;
-            if (argv[i] == "ffa" || argv[i] == "free-for-all" ||
-                argv[i] == "free" || argv[i] == "for" ||
-                argv[i] == "all" || argv[i] == "m7")
-                mode = 7;
-            if (argv[i] == "ctf" || argv[i] == "capture-the-flag"
-                || argv[i] == "capture" || argv[i] == "the" ||
-                argv[i] == "flag" || argv[i] == "m8")
-                mode = 8;
-            // if (argv[i] == "gp" || argv[i] == "grand-prix")
-            //     gp = true;
-            if (argv[i] == "d0" || argv[i] == "novice" || argv[i] == "easy")
-                difficulty = 0;
-            if (argv[i] == "d1" || argv[i] == "intermediate" || argv[i] == "medium")
-                difficulty = 1;
-            if (argv[i] == "d2" || argv[i] == "expert" || argv[i] == "hard")
-                difficulty = 2;
-            if (argv[i] == "d3" || argv[i] == "supertux" || argv[i] == "super" || argv[i] == "best")
-                difficulty = 3;
-            if (argv[i] == "goal-limit" || argv[i] == "gl" || argv[i] == "goal" || argv[i] == "goals")
-                goal_target = true;
-            if (argv[i] == "time-limit" || argv[i] == "tl" || argv[i] == "time" || argv[i] == "minutes")
-                goal_target = false;
-        }
-        // if (gp && (mode == 3 || mode == 4))
-        //     mode -= 3;
-        handleServerConfiguration(peer, difficulty, mode, goal_target);
-    }
-    else if (argv[0] == "spectate")
-    {
-        if (ServerConfig::m_soccer_tournament /*|| ServerConfig::m_only_host_riding*/)
-        {
-            std::string msg = "All spectators already have auto spectate ability";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (/*m_game_setup->isGrandPrix() || */!ServerConfig::m_live_players)
-        {
-            std::string msg = "Server doesn't support spectate";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv.size() == 1)
-        {
-            if (m_state.load() != WAITING_FOR_START_GAME)
-            {
-                std::string username = StringUtils::wideToUtf8(
-                    peer->getPlayerProfiles()[0]->getName());
-                if (m_default_always_spectate_peers.count(peer.get()))
-                    argv.push_back("0");
-                else
-                    argv.push_back("1");
-            }
-            else
-            {
-                if (peer->alwaysSpectate())
-                    argv.push_back("0");
-                else
-                    argv.push_back("1");
-            }
-        }
-
-        if (argv.size() != 2 || (argv[1] != "0" && argv[1] != "1"))
-        {
-            std::string msg = "Usage: /spectate [empty or 0 or 1], sets or resets (or changes) the spectating mode.";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-
-        if (m_state.load() != WAITING_FOR_START_GAME)
-        {
-            std::string username = StringUtils::wideToUtf8(
-                peer->getPlayerProfiles()[0]->getName());
-            if (argv[1] == "1")
-                m_default_always_spectate_peers.insert(peer.get());
-            else
-                m_default_always_spectate_peers.erase(peer.get());
-            return;
-        }
-
-        if (argv[1] == "1")
-        {
-            if (m_process_type == PT_CHILD &&
-                peer->getHostId() == m_client_server_host_id.load())
-            {
-                std::string msg = "Graphical client server cannot spectate";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            peer->setAlwaysSpectate(ASM_COMMAND);
-        }
-        else
-            peer->setAlwaysSpectate(ASM_NONE);
-        updatePlayerList();
-    }
-    else if (argv[0] == "addons" || argv[0] == "moreaddons")
-    {
-        bool more = (argv[0] == "moreaddons");
-        if (argv.size() == 1)
-        {
-            argv.push_back("");
-            switch (m_game_mode.load())
-            {
-                case 0:
-                case 1:
-                case 3:
-                case 4:
-                    argv[1] = "track";
-                    break;
-                case 6:
-                    argv[1] = "soccer";
-                    break;
-                case 7:
-                case 8:
-                    argv[1] = "arena";
-                    break;
-            }
-        }
-        const std::set<std::string>& from =
-            (argv[1] == "kart" ? m_addon_kts.first :
-            (argv[1] == "track" ? m_addon_kts.second :
-            (argv[1] == "arena" ? m_addon_arenas :
-            /*argv[1] == "soccer" ?*/ m_addon_soccers
-        )));
-        std::vector<std::pair<std::string, std::vector<std::string>>> result;
-        for (const std::string& s: from)
-            result.push_back({s, {}});
-
-        auto peers = STKHost::get()->getPeers();
-        int num_players = 0;
-        for (auto peer : peers)
-        {
-            if (!peer || !peer->isValidated() || peer->isWaitingForGame() || !canRace(peer))
-                continue;
-            ++num_players;
-            std::string username = StringUtils::wideToUtf8(
-                    peer->getPlayerProfiles()[0]->getName());
-            const auto& kt = peer->getClientAssets();
-            const auto& container = (argv[1] == "kart" ? kt.first : kt.second);
-            for (auto& p: result)
-                if (container.find(p.first) == container.end())
-                    p.second.push_back(username);
-        }
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(result.begin(), result.end(), g);
-        std::stable_sort(result.begin(), result.end(),
-            [](const std::pair<std::string, std::vector<std::string>>& a,
-                const std::pair<std::string, std::vector<std::string>>& b) -> bool {
-                if (a.second.size() != b.second.size())
-                    return a.second.size() > b.second.size();
-                return false;
-            });
-        std::string response;
-        const int NEXT_ADDONS = 5;
-        std::vector<std::string> all_have;
-        while (!result.empty() && (int)result.back().second.size() == 0)
-        {
-            all_have.push_back(result.back().first);
-            result.pop_back();
-        }
-        if (num_players > 0) {
-            response = "Found " + std::to_string(all_have.size()) + " asset(s)";
-            std::reverse(result.begin(), result.end());
-            if (result.size() > NEXT_ADDONS)
-                result.resize(NEXT_ADDONS);
-            if (!more)
-            {
-                bool nothing = true;
-                for (const std::string& s: all_have)
-                {
-                    if (s.length() < 6 || s.substr(0, 6) != "addon_")
-                        continue;
-                    response.push_back(nothing ? ':' : ',');
-                    nothing = false;
-                    response.push_back(' ');
-                    response += s.substr(6);
-                }
-                if (response.length() > 100)
-                    response += "\nTotal: " + std::to_string(all_have.size());
-            }
-            else
-            {
-                if (result.empty())
-                    response += "\nNothing more to install!";
-                else
-                {
-                    response += ". More addons to install:";
-                    for (unsigned i = 0; i < result.size(); ++i)
-                    {
-                        response += "\n" + result[i].first + ", missing for "
-                            + std::to_string(result[i].second.size())
-                            + " player(s):";
-                        std::sort(result[i].second.begin(), result[i].second.end());
-                        for (unsigned j = 0; j < result[i].second.size(); ++j)
-                        {
-                            response += " " + result[i].second[j];
-                        }
-                    }
-                }
-            }
-        } else {
-            response = "No one in the lobby can play. Found "
-                + std::to_string(all_have.size()) + " assets on the server.";
-        }
-        sendStringToPeer(response, peer);
-    }
-    else if (argv[0] == "listserveraddon")
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        bool has_options = argv.size() > 1 &&
-            (argv[1].compare("-track") == 0 ||
-            argv[1].compare("-arena") == 0 ||
-            argv[1].compare("-kart") == 0 ||
-            argv[1].compare("-soccer") == 0);
-        if (argv.size() == 1 || argv.size() > 3 || argv[1].size() < 3 ||
-            (argv.size() == 2 && (argv[1].size() < 3 || has_options)) ||
-            (argv.size() == 3 && (!has_options || argv[2].size() < 3)))
-        {
-            chat->encodeString16(
-                L"Usage: /listserveraddon [option][addon string to find "
-                "(at least 3 characters)]. Available options: "
-                "-track, -arena, -kart, -soccer.");
-        }
-        else
-        {
-            std::string type = "";
-            std::string text = "";
-            if(argv.size() > 1)
-            {
-                if(argv[1].compare("-track") == 0 ||
-                   argv[1].compare("-arena") == 0 ||
-                   argv[1].compare("-kart" ) == 0 ||
-                   argv[1].compare("-soccer" ) == 0)
-                    type = argv[1].substr(1);
-                if((argv.size() == 2 && type.empty()) || argv.size() == 3)
-                    text = argv[argv.size()-1];
-            }
-
-            std::set<std::string> total_addons;
-            if (type.empty() || // not specify addon type
-               (!type.empty() && type.compare("kart") == 0)) // list kart addon
-            {
-                total_addons.insert(m_addon_kts.first.begin(), m_addon_kts.first.end());
-            }
-            if (type.empty() || // not specify addon type
-               (!type.empty() && type.compare("track") == 0))
-            {
-                total_addons.insert(m_addon_kts.second.begin(), m_addon_kts.second.end());
-            }
-            if (type.empty() || // not specify addon type
-               (!type.empty() && type.compare("arena") == 0))
-            {
-                total_addons.insert(m_addon_arenas.begin(), m_addon_arenas.end());
-            }
-            if (type.empty() || // not specify addon type
-               (!type.empty() && type.compare("soccer") == 0))
-            {
-                total_addons.insert(m_addon_soccers.begin(), m_addon_soccers.end());
-            }
-            std::string msg = "";
-            for (auto& addon : total_addons)
-            {
-                // addon_ (6 letters)
-                if (!text.empty() && addon.find(text, 6) == std::string::npos)
-                    continue;
-
-                msg += addon.substr(6);
-                msg += ", ";
-            }
-            if (msg.empty())
-                chat->encodeString16(L"Addon not found");
-            else
-            {
-                msg = msg.substr(0, msg.size() - 2);
-                chat->encodeString16(StringUtils::utf8ToWide(
-                    std::string("Server addon: ") + msg));
-            }
-        }
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (StringUtils::startsWith(cmd, "playerhasaddon"))
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        std::string part;
-        if (cmd.length() > 15)
-            part = cmd.substr(15);
-        std::string addon_id = part.substr(0, part.find(' '));
-        std::string player_name;
-        if (part.length() > addon_id.length() + 1)
-            player_name = part.substr(addon_id.length() + 1);
-        std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            StringUtils::utf8ToWide(player_name));
-        if (player_name.empty() || !player_peer || addon_id.empty())
-        {
-            chat->encodeString16(
-                L"Usage: /playerhasaddon [addon_identity] [player name]");
-        }
-        else
-        {
-            std::string addon_id_test = Addon::createAddonId(addon_id);
-            bool found = false;
-            const auto& kt = player_peer->getClientAssets();
-            for (auto& kart : kt.first)
-            {
-                if (kart == addon_id_test)
-                {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-            {
-                for (auto& track : kt.second)
-                {
-                    if (track == addon_id_test)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if (found)
-            {
-                chat->encodeString16(StringUtils::utf8ToWide
-                    (player_name + " has addon " + addon_id));
-            }
-            else
-            {
-                chat->encodeString16(StringUtils::utf8ToWide
-                    (player_name + " has no addon " + addon_id));
-            }
-        }
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (StringUtils::startsWith(cmd, "kick"))
-    {
-        if (!hasHostRights(peer))
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(L"You are not server owner");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-            return;
-        }
-        std::string player_name;
-        if (StringUtils::startsWith(cmd, "kickban"))
-        {
-            if (cmd.length() > 8)
-                player_name = cmd.substr(8);
-        }
-        else if (cmd.length() > 5)
-        {
-            player_name = cmd.substr(5);
-        }
-        std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            StringUtils::utf8ToWide(player_name));
-        if (player_name.empty() || !player_peer || player_peer->isAIPeer())
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(
-                L"Usage: /kick [player name]");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-        }
-        else if (player_peer->isAngryHost())
-        {
-            std::string msg = "This player is the owner of this server, "
-                "and is protected from your actions now";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        else
-        {
-            if (!peer->isAngryHost() && !ServerConfig::m_kicks_allowed)
-            {
-                std::string msg = "Kicking players is not allowed on this server";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            Log::info("ServerLobby", "Crown player kicks %s", player_name.c_str());
-            player_peer->kick();
-            if (ServerConfig::m_track_kicks)
-            {
-                std::string auto_report = "[ Auto report caused by kick ]";
-                writeOwnReport(player_peer.get(), peer.get(), auto_report);
-            }
-            if (StringUtils::startsWith(cmd, "kickban"))
-            {
-                if (peer->isAngryHost() || ServerConfig::m_soccer_tournament)
-                {
-                    Log::info("ServerLobby", "%s is now banned", player_name.c_str());
-                    m_temp_banned.insert(player_name);
-                    std::string msg = StringUtils::insertValues(
-                        "%s is now banned", player_name.c_str());
-                    sendStringToPeer(msg, peer);
-                }
-                else
-                {
-                    std::string msg = "You cannot ban players";
-                    sendStringToPeer(msg, peer);
-                }
-            }
-        }
-    }
-    else if (StringUtils::startsWith(cmd, "unban"))
-    {
-        if (!hasHostRights(peer) || !(peer->isAngryHost() || ServerConfig::m_soccer_tournament))
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(L"You cannot unban players");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-            return;
-        }
-        std::string player_name;
-        if (cmd.length() > 6)
-        {
-            player_name = cmd.substr(6);
-        }
-        if (player_name.empty())
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(
-                L"Usage: /unban [player name]");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-        }
-        else
-        {
-            std::string msg = StringUtils::insertValues(
-                "%s is now unbanned", player_name.c_str());
-            Log::info("ServerLobby", "%s is now unbanned", player_name.c_str());
-            m_temp_banned.erase(player_name);
-            sendStringToPeer(msg, peer);
-        }
-    }
-    else if (StringUtils::startsWith(cmd, "ban"))
-    {
-        if (!hasHostRights(peer) || !(peer->isAngryHost() || ServerConfig::m_soccer_tournament))
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(L"You cannot ban players");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-            return;
-        }
-        std::string player_name;
-        if (cmd.length() > 4)
-        {
-            player_name = cmd.substr(4);
-        }
-        if (player_name.empty())
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(
-                L"Usage: /ban [player name]");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-        }
-        else
-        {
-            Log::info("ServerLobby", "%s is now banned", player_name.c_str());
-            m_temp_banned.insert(player_name);
-            std::string msg = StringUtils::insertValues(
-                "%s is now banned", player_name.c_str());
-            sendStringToPeer(msg, peer);
-        }
-    }
-    else if (StringUtils::startsWith(cmd, "playeraddonscore"))
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        std::string player_name;
-        if (cmd.length() > 17)
-            player_name = cmd.substr(17);
-        std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            StringUtils::utf8ToWide(player_name));
-        if (player_name.empty() || !player_peer)
-        {
-            chat->encodeString16(
-                L"Usage: /playeraddonscore [player name] "
-                "(returns the number of addons, not a percentage)");
-        }
-        else
-        {
-            auto& scores = player_peer->getAddonsScores();
-            if (scores[AS_KART] == -1 && scores[AS_TRACK] == -1 &&
-                scores[AS_ARENA] == -1 && scores[AS_SOCCER] == -1)
-            {
-                chat->encodeString16(StringUtils::utf8ToWide
-                    (player_name + " has no addons"));
-            }
-            else
-            {
-                std::string msg = player_name;
-                msg += " addons:";
-                if (scores[AS_KART] != -1)
-                    msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
-                if (scores[AS_TRACK] != -1)
-                    msg += " tracks: " + StringUtils::toString(scores[AS_TRACK]) + ",";
-                if (scores[AS_ARENA] != -1)
-                    msg += " arenas: " + StringUtils::toString(scores[AS_ARENA]) + ",";
-                if (scores[AS_SOCCER] != -1)
-                    msg += " fields: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
-                msg.pop_back();
-                chat->encodeString16(StringUtils::utf8ToWide(msg));
-            }
-        }
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (argv[0] == "serverhasaddon")
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        if (argv.size() != 2)
-        {
-            chat->encodeString16(
-                L"Usage: /serverhasaddon [addon_identity]");
-        }
-        else
-        {
-            std::set<std::string> total_addons;
-            total_addons.insert(m_addon_kts.first.begin(), m_addon_kts.first.end());
-            total_addons.insert(m_addon_kts.second.begin(), m_addon_kts.second.end());
-            total_addons.insert(m_addon_arenas.begin(), m_addon_arenas.end());
-            total_addons.insert(m_addon_soccers.begin(), m_addon_soccers.end());
-            std::string addon_id_test = Addon::createAddonId(argv[1]);
-            bool found = total_addons.find(addon_id_test) != total_addons.end();
-            if (found)
-            {
-                chat->encodeString16(StringUtils::utf8ToWide(std::string
-                    ("Server has addon ") + argv[1]));
-            }
-            else
-            {
-                chat->encodeString16(StringUtils::utf8ToWide(std::string
-                    ("Server has no addon ") + argv[1]));
-            }
-        }
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (argv[0] == "mute")
-    {
-        std::shared_ptr<STKPeer> player_peer;
-        std::string result_msg;
-        core::stringw player_name;
-        NetworkString* result = NULL;
-
-        if (argv.size() != 2 || argv[1].empty())
-            goto mute_error;
-
-        player_name = StringUtils::utf8ToWide(argv[1]);
-        player_peer = STKHost::get()->findPeerByName(player_name);
-
-        if (!player_peer || player_peer == peer)
-            goto mute_error;
-
-        m_peers_muted_players[peer].insert(player_name);
-        result = getNetworkString();
-        result->addUInt8(LE_CHAT);
-        result->setSynchronous(true);
-        result_msg = "Muted player ";
-        result_msg += argv[1];
-        result->encodeString16(StringUtils::utf8ToWide(result_msg));
-        peer->sendPacket(result, true/*reliable*/);
-        delete result;
-        return;
-
-mute_error:
-        NetworkString* error = getNetworkString();
-        error->addUInt8(LE_CHAT);
-        error->setSynchronous(true);
-        std::string msg = "Usage: /mute player_name (not including yourself)";
-        error->encodeString16(StringUtils::utf8ToWide(msg));
-        peer->sendPacket(error, true/*reliable*/);
-        delete error;
-    }
-    else if (argv[0] == "unmute")
-    {
-        std::shared_ptr<STKPeer> player_peer;
-        std::string result_msg;
-        core::stringw player_name;
-        NetworkString* result = NULL;
-
-        if (argv.size() != 2 || argv[1].empty())
-            goto unmute_error;
-
-        player_name = StringUtils::utf8ToWide(argv[1]);
-        for (auto it = m_peers_muted_players[peer].begin();
-            it != m_peers_muted_players[peer].end();)
-        {
-            if (*it == player_name)
-            {
-                it = m_peers_muted_players[peer].erase(it);
-                goto unmute_found;
-            }
-            else
-            {
-                it++;
-            }
-        }
-        goto unmute_error;
-
-unmute_found:
-        result = getNetworkString();
-        result->addUInt8(LE_CHAT);
-        result->setSynchronous(true);
-        result_msg = "Unmuted player ";
-        result_msg += argv[1];
-        result->encodeString16(StringUtils::utf8ToWide(result_msg));
-        peer->sendPacket(result, true/*reliable*/);
-        delete result;
-        return;
-
-unmute_error:
-        NetworkString* error = getNetworkString();
-        error->addUInt8(LE_CHAT);
-        error->setSynchronous(true);
-        std::string msg = "Usage: /unmute player_name";
-        error->encodeString16(StringUtils::utf8ToWide(msg));
-        peer->sendPacket(error, true/*reliable*/);
-        delete error;
-    }
-    else if (argv[0] == "listmute")
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        core::stringw total;
-        for (auto& name : m_peers_muted_players[peer])
-        {
-            total += name;
-            total += " ";
-        }
-        if (total.empty())
-            chat->encodeString16("No player has been muted by you");
-        else
-        {
-            total += "muted";
-            chat->encodeString16(total);
-        }
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (argv[0] == "help")
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        chat->encodeString16(m_help_message);
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (argv[0] == "commands")
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);chat->encodeString16
-            (StringUtils::utf8ToWide(m_available_commands));
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (argv[0] == "gnu")
-    {
-        if (m_server_owner.lock() != peer)
-        {
-            std::string msg = "You are not server owner";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        else if (m_kart_elimination.isEnabled())
-        {
-            std::string msg = "Gnu Elimination mode was already enabled!";
-            sendStringToPeer(msg, peer);
-        }
-        else if (
-            RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_NORMAL_RACE &&
-            RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
-        {
-            std::string msg = "Gnu Elimination is available only with racing modes";
-            sendStringToPeer(msg, peer);
-        }
-        else
-        {
-            if (argv.size() > 1 && m_available_kts.first.count(argv[1]) > 0)
-            {
-                m_kart_elimination.enable(argv[1]);
-            } else {
-                m_kart_elimination.enable("gnu");
-            }
-            std::string msg = m_kart_elimination.getStartingMessage();
-            sendStringToAllPeers(msg);
-        }
-    }
-    else if (argv[0] == "nognu")
-    {        
-        if (m_server_owner.lock() != peer)
-        {
-            std::string msg = "You are not server owner";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        else if (!m_kart_elimination.isEnabled())
-        {
-            std::string msg = "Gnu Elimination mode was already off!";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        else
-        {
-            m_kart_elimination.disable();
-            std::string msg = "Gnu Elimination is now off";
-            sendStringToAllPeers(msg);
-        }
-    }
-    else if (argv[0] == "tell")
-    {        
-        if (argv.size() == 1)
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(L"Tell something non-empty");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-            return;
-        }
-        else
-        {
-            std::string ans;
-            for (unsigned i = 1; i < argv.size(); ++i)
-            {
-                if (i > 1)
-                    ans.push_back(' ');
-                ans += argv[i];
-            }
-            writeOwnReport(peer.get(), peer.get(), ans);
-        }
-    }
-    else if (argv[0] == "standings")
-    {
-        std::string msg;
-        if (argv.size() > 1)
-        {
-            if (argv[1] == "gp")
-                msg = getGrandPrixStandings();
-            else if (argv[1] == "gnu")
-                msg = m_kart_elimination.getStandings();
-            else
-                msg = "Usage: /standings [gp | gnu]";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (m_game_setup->isGrandPrix())
-            msg = getGrandPrixStandings();
-        else
-            msg = m_kart_elimination.getStandings();
-        sendStringToPeer(msg, peer);
-    }
-    else if (argv[0] == "teamchat")
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        m_team_speakers.insert(peer.get());
-        chat->encodeString16(L"Your messages are now addressed to team only");        
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (argv[0] == "to")
-    {
-        if (argv.size() == 1)
-        {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(L"Usage: /to (username1) ... (usernameN)");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-        } else {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            m_message_receivers[peer.get()].clear();
-            for (unsigned i = 1; i < argv.size(); ++i)
-            {
-                m_message_receivers[peer.get()].insert(
-                    StringUtils::utf8ToWide(argv[i]));
-            }
-            chat->encodeString16(L"Successfully changed chat settings");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
-        }
-    }
-    else if (argv[0] == "public")
-    {
-        m_message_receivers[peer.get()].clear();
-        m_team_speakers.erase(peer.get());
-        std::string s = "Your messages are now public";
-        sendStringToPeer(s, peer);
-    }
-    else if (argv[0] == "record")
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-#ifdef ENABLE_SQLITE3
-        if (argv.size() < 5)
-        {
-            chat->encodeString16(L"Usage: /record (track id) "
-                "(normal/time-trial) (normal/reverse) (laps)\n"
-                "Receives the server record for the race settings if any");
-        } else {
-            bool error = false;
-            std::string track_name = argv[1];
-            std::string mode_name = (argv[2] == "t" || argv[2] == "tt"
-                || argv[2] == "time-trial" || argv[2] == "timetrial" ?
-                "time-trial" : "normal");
-            std::string reverse_name = (argv[3] == "r" ||
-                argv[3] == "rev" || argv[3] == "reverse" ? "reverse" : 
-                "normal");
-            int laps_count = -1;
-            if (!StringUtils::parseString<int>(argv[4], &laps_count))
-                error = true;
-            if (!error && laps_count < 0)
-                error = true;
-            if (error)
-            {
-                chat->encodeString16(L"Invalid lap count");
-            }
-            else
-            {
-                std::string result = getRecord(track_name, mode_name, reverse_name, laps_count);
-                chat->encodeString16(StringUtils::utf8ToWide(result));
-            }
-        }
-#else
-        chat->encodeString16(L"This command is not supported.");
-#endif
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
-    else if (argv[0] == "power")
-    {
-        if (peer->isAngryHost())
-        {
-            peer->setAngryHost(false);
-            std::string msg = "You are now a normal player";
-            sendStringToPeer(msg, peer);
-            updatePlayerList();
-            return;
-        }
-        std::string password = ServerConfig::m_power_password;
-        if (password.empty() || argv.size() <= 1 || argv[1] != password)
-        {
-            std::string msg = "You need to provide the password to have the power";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        peer->setAngryHost(true);
-        std::string msg = "Now you finally have the power!";
-        sendStringToPeer(msg, peer);
-        updatePlayerList();
-        return;
-    }
-    else if (argv[0] == "admin")
-    {
-        std::string msg;
-        bool can = (peer->isAngryHost() || (ServerConfig::m_soccer_tournament && hasHostRights(peer)));
-        bool weak_abilities = (ServerConfig::m_only_host_riding && hasHostRights(peer));
-        if (!can && !weak_abilities) {
-            msg = "You cannot control this server";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv.size() == 1)
-        {
-            msg = "Usage: /admin command arg1 arg2 ...";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "length")
-        {
-            if (argv.size() < 3)
-            {
-                msg = "Usage: /admin length (x (float) | = (int) | check | clear)";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "check")
-            {
-                if (m_default_lap_multiplier < 0 && m_fixed_lap < 0)
-                    msg = "Game length is currently chosen by players";
-                else if (m_default_lap_multiplier > 0)
-                    msg = StringUtils::insertValues(
-                        "Game length is %f x default",
-                        m_default_lap_multiplier);
-                else if (m_fixed_lap > 0)
-                    msg = StringUtils::insertValues(
-                        "Game length is %d", m_fixed_lap);
-                else
-                    msg = StringUtils::insertValues(
-                        "An error: game length is both %f x default and %d",
-                        m_default_lap_multiplier, m_fixed_lap);
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "clear")
-            {
-                m_default_lap_multiplier = -1.0;
-                m_fixed_lap = -1;
-                msg = "Game length will be chosen by players";
-                sendStringToAllPeers(msg);
-                return;
-            }
-            double temp_double = -1.0;
-            int temp_int = -1;
-            if (argv[2] == "x" && argv.size() >= 4 &&
-                StringUtils::parseString<double>(argv[3], &temp_double))
-            {
-                m_default_lap_multiplier = std::max<double>(0.0, temp_double);
-                m_fixed_lap = -1;
-                msg = StringUtils::insertValues(
-                    "Game length is now %f x default",
-                    m_default_lap_multiplier);
-                sendStringToAllPeers(msg);
-                return;
-            }
-            if (argv[2] == "=" && argv.size() >= 4 &&
-                StringUtils::parseString<int>(argv[3], &temp_int))
-            {
-                m_fixed_lap = std::max<int>(0, temp_int);
-                m_default_lap_multiplier = -1.0;
-                msg = StringUtils::insertValues(
-                        "Game length is now %d", m_fixed_lap);
-                sendStringToAllPeers(msg);
-                return;
-            }
-            msg = "Usage: /admin length (x (float) | = (int) | check | clear)";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "queue")
-        {
-            std::string format_string = "Format: /admin queue (show | push[_front] (track) | pop[_back])";
-            if (argv.size() < 3)
-            {
-                sendStringToPeer(format_string, peer);
-                return;
-            }
-            if (argv[2] == "show")
-            {
-                std::string msg = "Queue:";
-                for (const std::string& s: m_tracks_queue) {
-                    msg += " " + s;
-                }
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "push" || argv[2] == "push_back")
-            {
-                if (argv.size() < 4)
-                {
-                    sendStringToPeer(format_string, peer);
-                    return;
-                }
-                m_tracks_queue.push_back(argv[3]);
-                std::string msg = "Pushed " + argv[3]
-                    + " to the back of queue, current queue size: "
-                    + std::to_string(m_tracks_queue.size());
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "push_front")
-            {
-                if (argv.size() < 4)
-                {
-                    sendStringToPeer(format_string, peer);
-                    return;
-                }
-                m_tracks_queue.push_front(argv[3]);
-                std::string msg = "Pushed " + argv[3]
-                    + " to the front of queue, current queue size: "
-                    + std::to_string(m_tracks_queue.size());
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "pop" || argv[2] == "pop_back")
-            {
-                std::string msg = "";
-                if (m_tracks_queue.empty()) {
-                    msg = "Queue was empty before.";
-                }
-                else
-                {
-                    std::string msg = "Popped " + m_tracks_queue.front()
-                        + "from the queue,";
-                    m_tracks_queue.pop_front();
-                    msg += " current queue size: "
-                        + std::to_string(m_tracks_queue.size());
-                }
-                sendStringToPeer(msg, peer);
-            }
-            else if (argv[2] == "pop_back")
-            {
-                std::string msg = "";
-                if (m_tracks_queue.empty()) {
-                    msg = "Queue was empty before.";
-                }
-                else
-                {
-                    std::string msg = "Popped " + m_tracks_queue.back()
-                        + "from the queue,";
-                    m_tracks_queue.pop_back();
-                    msg += " current queue size: "
-                        + std::to_string(m_tracks_queue.size());
-                }
-                sendStringToPeer(msg, peer);
-            }
-            return;
-        }
-        if (!can) {
-            msg = "You cannot control this server. As you are the crowned player, "
-                "you can invoke /admin length and /admin queue commands.";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "seconds")
-        {
-            float seconds = 0.0f;
-            std::string msg = "Usage: /admin seconds [how many seconds to subtract from time]";
-            if (argv.size() >= 3 && StringUtils::parseString<float>(argv[2], &seconds))
-            {
-                m_extra_seconds = seconds;
-                std::string msg = StringUtils::toString(seconds) +
-                    " second(s) will be subtracted from the time";
-            }
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "start")
-        {
-            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
-            {
-                msg = "Usage: /admin start [0/1] - allow or forbid starting a race";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "0")
-            {
-                m_allowed_to_start = false;
-                msg = "Now starting a race is forbidden";
-            }
-            else
-            {
-                m_allowed_to_start = true;
-                msg = "Now starting a race is allowed";
-            }
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "shuffle")
-        {
-            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
-            {
-                msg = "Usage: /admin shuffle [0/1] - make the GP grid shuffled all the time, or make it result-based";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "0")
-            {
-                m_shuffle_gp = false;
-                msg = "Now the GP grid is sorted by score";
-            } else {
-                m_shuffle_gp = true;
-                msg = "Now the GP grid is shuffled";
-            }
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "timeout")
-        {
-            int seconds;
-            if (argv.size() < 3 || !StringUtils::parseString(argv[2], &seconds) || seconds <= 0)
-            {
-                msg = "Usage: /admin timeout [positive int x] - set timeout to x seconds";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
-                    (int64_t)(seconds * 1000.0f));
-            updatePlayerList();
-            return;
-        }
-        if (argv[1] == "team")
-        {
-            if (argv.size() != 4) {
-                msg = "Usage: /admin team (color/0..6) (player) - move a player "
-                    "to a team, or remove from teams (none/0)";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            auto it = m_team_name_to_index.find(argv[2]);
-            int index = (it == m_team_name_to_index.end() ? 0 : it->second);
-            std::string player;
-            auto wide_player_name = StringUtils::utf8ToWide(argv[3]);
-            std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByWildcard(
-                wide_player_name, player);
-            // if player not found
-            if (!player_peer)
-            {
-                // don't use if wildcard
-                if (wide_player_name.find("*") != -1 || wide_player_name.find("?") != -1)
-                {
-                    msg = "Player not found or not unique";
-                    sendStringToPeer(msg, peer);
-                    return;
-                }
-                else
-                {
-                    // if no wildcard, reset player name to use for absent players
-                    player = argv[3];
-                }
-            }
-            for (const auto& pair: m_team_name_to_index)
-            {
-                if (pair.second < 0)
-                {
-                    if (pair.second == -index)
-                    {
-                        m_player_categories[pair.first].insert(player);
-                        m_categories_for_player[player].insert(pair.first);
-                    }
-                    else
-                    {
-                        m_player_categories[pair.first].erase(player);
-                        m_categories_for_player[player].erase(pair.first);
-                    }
-                }
-            }
-            index = abs(index);
-            m_team_for_player[player] = index;
-            wide_player_name = StringUtils::utf8ToWide(player);
-            if (player_peer)
-            {
-                for (auto& profile : player_peer.get()->getPlayerProfiles())
-                {
-                    if (profile->getName() == wide_player_name)
-                    {
-                        profile->setTemporaryTeam(index - 1);
-                        break;
-                    }
-                }
-            }
-            updatePlayerList();
-            return;
-        }
-        if (argv[1] == "cat+")
-        {
-            if (argv.size() != 4) {
-                msg = "Usage: /admin cat+ (category) (player) - add a player to a category";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            std::string category = argv[2];
-            std::string player = argv[3];
-            m_player_categories[category].insert(player);
-            m_categories_for_player[player].insert(category);
-            updatePlayerList();
-            return;
-        }
-        if (argv[1] == "cat-")
-        {
-            if (argv.size() != 4) {
-                msg = "Usage: /admin cat- (category) (player) - remove a player from a category";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            std::string category = argv[2];
-            std::string player = argv[3];
-            m_player_categories[category].erase(player);
-            m_categories_for_player[player].erase(category);
-            updatePlayerList();
-            return;
-        }
-        if (argv[1] == "cat*")
-        {
-            int displayed;
-            if (argv.size() != 4 || !StringUtils::parseString(argv[3], &displayed)
-                    || displayed < 0 || displayed > 1) {
-                msg = "Usage: /admin cat* (category) (0|1) - make category displayed or not";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            std::string category = argv[2];
-            if (displayed) {
-                m_hidden_categories.erase(category);
-            } else {
-                m_hidden_categories.insert(category);
-            }
-            updatePlayerList();
-            return;
-        }
-        if (argv[1] == "troll")
-        {
-            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
-            {
-                msg = "Usage: /admin troll [0/1] - disable or enable anti troll system";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "0")
-            {
-                m_troll_active = false;
-                msg = "Trolls can stay";
-            } else {
-                m_troll_active = true;
-                msg = "Trolls will be kicked";
-            }
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[1] == "hitmsg")
-        {
-            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
-            {
-                msg = "Usage: /admin hitmsg [0/1] - disable or enable messages if a player makes a teammate explode";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "0")
-            {
-                m_show_teammate_hits = false;
-                msg = "Teammate hits will not be sent";
-            } else {
-                m_show_teammate_hits = true;
-                msg = "Teammate hits will be sent to all players";
-            }
-            sendStringToAllPeers(msg);
-            return;
-        }
-        if (argv[1] == "teamhit")
-        {
-            if (argv.size() == 2 || !(argv[2] == "0" || argv[2] == "1"))
-            {
-                msg = "Usage: /admin teamhit [0/1] - disable or enable punish mode when hitting team mates";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (argv[2] == "0")
-            {
-                m_teammate_hit_mode = false;
-                msg = "Teammate hits are not punished now";
-            }
-            else
-            {
-                m_teammate_hit_mode = true;
-                msg = "Teammate hits are punished now";
-            }
-            sendStringToAllPeers(msg);
-            return;
-        }
-    }
-    else if (argv[0] == "version")
-    {
-        std::string msg = "1.3-rc1 k 210903 beta";
-        sendStringToPeer(msg, peer);
-    }
-    else if (argv[0] == "clear")
-    {
-        std::string msg(30, '\n');
-        sendStringToPeer(msg, peer);
-    }
-    else if (argv[0] == "register")
-    {
-        int online_id = peer->getPlayerProfiles()[0]->getOnlineId();
-        if (online_id <= 0)
-        {
-            std::string msg = "Please join with a valid online STK account.";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        std::string ans = "";
-        for (unsigned i = 1; i < argv.size(); ++i)
-        {
-            if (i > 1)
-                ans.push_back(' ');
-            ans += argv[i];
-        }
-        std::string message_ok = "Your registration request is being processed";
-        std::string message_wrong = "Sorry, an error occurred. Please try again.";
-        if (writeOnePlayerReport(peer.get(), ServerConfig::m_register_table_name,
-            ans))
-            sendStringToPeer(message_ok, peer);
-        else
-            sendStringToPeer(message_wrong, peer);
-    }
-#ifdef ENABLE_WEB_SUPPORT
-    else if (argv[0] == "token")
-    {
-        int online_id = peer->getPlayerProfiles()[0]->getOnlineId();
-        if (online_id <= 0)
-        {
-            std::string msg = "Please join with a valid online STK account.";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        std::string username = StringUtils::wideToUtf8(
-            peer->getPlayerProfiles()[0]->getName());
-        std::string token = getToken();
-        while (m_web_tokens.count(token))
-            token = getToken();
-        m_web_tokens.insert(token);
-        std::string msg = "Your token is " + token;
-#ifdef ENABLE_SQLITE3
-        std::string tokens_table_name = ServerConfig::m_tokens_table;
-        std::string query = StringUtils::insertValues(
-            "INSERT INTO %s (username, token) "
-            "VALUES (\"%s\", \"%s\");",
-            tokens_table_name.c_str(), username.c_str(), token.c_str()
-        );
-        if (easySQLQuery(query))
-            msg += "\nRetype it on the website to connect your STK account. ";
-        else
-            msg = "An error occurred, please try again.";
-#else
-        msg += "\nThough it is useless...";
-#endif
-        sendStringToPeer(msg, peer);
-    }
-#endif
-    else if (ServerConfig::m_soccer_tournament)
-    {
-        std::string peer_username = StringUtils::wideToUtf8(
-            peer->getPlayerProfiles()[0]->getName());
-
-        if (m_tournament_limited_chat && argv[0] == "muteall")
-        {
-            if (argv.size() >= 2 && argv[1] == "0")
-            {
-                m_tournament_mutealls.erase(peer_username);
-            }
-            else if (argv.size() >= 2 && argv[1] == "1")
-            {
-                m_tournament_mutealls.insert(peer_username);
-            }
-            else
-            {
-                if (m_tournament_mutealls.count(peer_username))
-                    m_tournament_mutealls.erase(peer_username);
-                else
-                    m_tournament_mutealls.insert(peer_username);
-            }
-            std::string msg;
-            if (m_tournament_mutealls.count(peer_username))
-                msg = "You are now receiving messages only from players and referees";
-            else
-                msg = "You are now receiving messages from spectators too";
-            sendStringToPeer(msg, peer);
-        }
-
-        // Referee-only commands
-
-        if (m_tournament_referees.count(peer_username) == 0)
-        {
-            std::string msg = "You are not a referee";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (argv[0] == "game")
-        {
-            int old_game = m_tournament_game;
-            int addition = 0;
-            if (argv.size() < 2)
-            {
-                ++m_tournament_game;
-                if (m_tournament_game == m_tournament_max_games)
-                    m_tournament_game = 0;
-                m_fixed_lap = ServerConfig::m_fixed_lap_count;
-            } else {
-                if (!StringUtils::parseString(argv[1], &m_tournament_game)
-                    || m_tournament_game < 0
-                    || m_tournament_game >= m_tournament_max_games)
-                { 
-                    std::string msg = "Please specify a correct number. "
-                        "Format: /game [number 0.."
-                        + std::to_string(m_tournament_max_games - 1) + "] [length]";
-                    sendStringToPeer(msg, peer);
-                    return;
-                }
-                int length = 10;
-                if (argv.size() >= 3)
-                {
-                    bool ok = StringUtils::parseString(argv[2], &length);
-                    if (!ok || length < 0)
-                    {
-                        std::string msg = "Please specify a correct number. "
-                            "Format: /game [number] [length]";
-                        sendStringToPeer(msg, peer);
-                        return;
-                    }
-                }
-                m_fixed_lap = length;
-                if (argv.size() >= 4)
-                {
-                    bool ok = StringUtils::parseString(argv[3], &addition);
-                    if (!ok || addition < 0 || addition > 59)
-                    {
-                        std::string msg = "Please specify a correct number. "
-                            "Format: /game [number] [length] [0..59 additional seconds]";
-                        sendStringToPeer(msg, peer);
-                        return;
-                    }
-                    m_extra_seconds = 0.0f;
-                    if (addition > 0) {
-                        m_extra_seconds = 60.0f - addition;
-                    }
-                } else {
-                    m_extra_seconds = 0.0f;
-                }
-            }
-            if (tournamentColorsSwapped(m_tournament_game) ^ tournamentColorsSwapped(old_game))
-                changeColors();
-            if (tournamentGoalsLimit(m_tournament_game) ^ tournamentGoalsLimit(old_game))
-                changeLimitForTournament(tournamentGoalsLimit(m_tournament_game));
-            std::string msg = StringUtils::insertValues(
-                "Ready to start game %d for %d ", m_tournament_game, m_fixed_lap)
-                + (tournamentGoalsLimit(m_tournament_game) ? "goals" : "minutes");
-            if (!tournamentGoalsLimit(m_tournament_game) && addition > 0)
-            {
-                msg += " " + std::to_string(addition) + " seconds";
-                ++m_fixed_lap;
-            }
-            sendStringToAllPeers(msg);
-            Log::info("ServerLobby", "SoccerMatchLog: Game number changed from %d to %d",
-                old_game, m_tournament_game);
-        }
-        else if (argv[0] == "role")
-        {
-            if (argv.size() < 3)
-            {
-                std::string msg = "Format: /role (R|B|J|S) username";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            std::string role = argv[1];
-            std::string username = argv[2];
-            bool permanent = (argv.size() >= 4 &&
-                (argv[3] == "p" || argv[3] == "permanent"));
-            if (role.length() != 1)
-                std::swap(role, username);
-            if (role.length() != 1)
-            {
-                std::string msg = "Please specify one-letter role (R/B/J/S) and player";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            if (role[0] >= 'A' && role[0] <= 'Z')
-                role[0] += 'a' - 'A';
-            std::vector<std::string> changed_usernames;
-            if (!username.empty())
-            {
-                if (username[0] == '#')
-                {
-                    std::string category = username.substr(1);
-                    auto it = m_player_categories.find(category);
-                    if (it != m_player_categories.end())
-                    {
-                        for (const std::string& s: it->second)
-                        {
-                            changed_usernames.push_back(s);
-                        }
-                    }
-                }
-                else
-                {
-                    changed_usernames.push_back(username);
-                }
-            }
-            for (const std::string& username: changed_usernames)
-            {
-                Log::info("ServerLobby", "SoccerMatchLog: Role of %s changed to %s",
-                     username.c_str(), role.c_str());
-                m_tournament_red_players.erase(username);
-                m_tournament_blue_players.erase(username);
-                m_tournament_referees.erase(username);
-                if (permanent)
-                {
-                    m_tournament_init_red.erase(username);
-                    m_tournament_init_blue.erase(username);
-                    m_tournament_init_ref.erase(username);
-                }
-                std::string role_changed = "The referee has updated your role - you are now %s";
-                std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-                    StringUtils::utf8ToWide(username));
-                std::vector<std::string> missing_assets;
-                if (player_peer)
-                    missing_assets = getMissingTournamentAssets(player_peer);
-                bool fail = false;
-                switch (role[0])
-                {
-                    case 'R':
-                    case 'r':
-                    {
-                        if (!missing_assets.empty())
-                        {
-                            fail = true;
-                            break;
-                        }
-                        if (tournamentColorsSwapped(m_tournament_game))
-                        {
-                            m_tournament_blue_players.insert(username);
-                            if (permanent)
-                                m_tournament_init_blue.insert(username);
-                        }
-                        else
-                        {
-                            m_tournament_red_players.insert(username);
-                            if (permanent)
-                                m_tournament_init_red.insert(username);
-                        }
-                        if (player_peer)
-                        {
-                            role_changed = StringUtils::insertValues(role_changed, "red player");
-                            player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_RED);
-                            sendStringToPeer(role_changed, player_peer);
-                        }
-                        break;
-                    }
-                    case 'B':
-                    case 'b':
-                    {
-                        if (!missing_assets.empty())
-                        {
-                            fail = true;
-                            break;
-                        }
-                        if (tournamentColorsSwapped(m_tournament_game))
-                        {
-                            m_tournament_red_players.insert(username);
-                            if (permanent)
-                                m_tournament_init_red.insert(username);
-                        }
-                        else
-                        {
-                            m_tournament_blue_players.insert(username);
-                            if (permanent)
-                                m_tournament_init_blue.insert(username);
-                        }
-                        if (player_peer)
-                        {
-                            role_changed = StringUtils::insertValues(role_changed, "blue player");
-                            player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_BLUE);
-                            sendStringToPeer(role_changed, player_peer);
-                        }
-                        break;
-                    }
-                    case 'J':
-                    case 'j':
-                    {
-                        if (!missing_assets.empty())
-                        {
-                            fail = true;
-                            break;
-                        }
-                        m_tournament_referees.insert(username);
-                        if (permanent)
-                            m_tournament_init_ref.insert(username);
-                        if (player_peer)
-                        {
-                            role_changed = StringUtils::insertValues(role_changed, "referee");
-                            player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
-                            sendStringToPeer(role_changed, player_peer);
-                        }
-                        break;
-                    }
-                    case 'S':
-                    case 's':
-                    {
-                        if (player_peer)
-                        {
-                            role_changed = StringUtils::insertValues(role_changed, "spectator");
-                            player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
-                            sendStringToPeer(role_changed, player_peer);
-                        }
-                        break;
-                    }
-                }
-                std::string msg;
-                if (!fail)
-                    msg = StringUtils::insertValues(
-                        "Successfully changed role to %s for %s", role, username);
-                else
-                {
-                    msg = StringUtils::insertValues(
-                        "Failed to change role to %s for %s - missing assets:", role, username);
-                    for (unsigned i = 0; i < missing_assets.size(); i++)
-                    {
-                        if (i)
-                            msg.push_back(',');
-                        msg += " " + missing_assets[i];
-                    }
-                }
-                sendStringToPeer(msg, peer);
-            }
-            updatePlayerList();
-        }
-        else if (argv[0] == "stop")
-        {
-            World* w = World::getWorld();
-            if (!w)
-                return;
-            SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-            sw->stop();
-            std::string msg = "The game is stopped.";
-            sendStringToAllPeers(msg);
-            Log::info("ServerLobby", "SoccerMatchLog: The game is stopped");
-        }
-        else if (argv[0] == "go" || argv[0] == "play" || argv[0] == "resume")
-        {
-            World* w = World::getWorld();
-            if (!w)
-                return;
-            SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-            sw->resume();
-            std::string msg = "The game is resumed.";
-            sendStringToAllPeers(msg);
-            Log::info("ServerLobby", "SoccerMatchLog: The game is resumed");
-        }
-        else if (argv[0] == "lobby")
-        {
-            World* w = World::getWorld();
-            if (!w)
-                return;
-            SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-            sw->allToLobby();
-            std::string msg = "The game will be restarted.";
-            sendStringToAllPeers(msg);
-        }
-        else if (argv[0] == "init")
-        {
-            int red, blue;
-            if (argv.size() < 3 ||
-                !StringUtils::parseString<int>(argv[1], &red) ||
-                !StringUtils::parseString<int>(argv[2], &blue))
-            {
-                std::string msg = "Usage: /init [red_count] [blue_count]";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            World* w = World::getWorld();
-            if (!w)
-            {
-                std::string msg = "Please set the count when the karts "
-                    "are ready. Setting the initial count in lobby is "
-                    "not implemented yet, sorry.";
-                sendStringToPeer(msg, peer);
-                return;
-            }
-            SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-            sw->setInitialCount(red, blue);
-            sw->tellCount();
-        }
-    }
-    else
-    {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        std::string msg = "Unknown command: ";
-        msg += cmd;
-        chat->encodeString16(StringUtils::utf8ToWide(msg));
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
-    }
+    if (peer.get())
+        peer->updateLastActivity();
+    getCommandManager().handleCommand(event, peer);
 }   // handleServerCommand
 //-----------------------------------------------------------------------------
 void ServerLobby::updateGnuElimination()
@@ -8346,82 +5738,225 @@ void ServerLobby::storeResults()
 {
 #ifdef ENABLE_SQLITE3
     World* w = World::getWorld();
-    assert(w);
-    std::string records_table_name = ServerConfig::m_records_table_name;
-    std::string mode_name = RaceManager::get()->getMinorModeName();
-    int player_count = RaceManager::get()->getNumPlayers();
-    int laps_number = RaceManager::get()->getNumLaps();
-    std::string track_name = RaceManager::get()->getTrackName();
-    std::string reverse_string = 
-        (RaceManager::get()->getReverseTrack() ? "reverse" : "normal");
+    if (!w)
+        return;
+    if (!m_game_info)
+    {
+        Log::warn("ServerLobby", "GameInfo is not accessible??");
+        return;
+    }
+
+    RaceManager* rm = RaceManager::get();
+    m_game_info->m_timestamp = StkTime::getLogTimeFormatted("%Y-%m-%d %H:%M:%S");
+    m_game_info->m_venue = rm->getTrackName();
+    m_game_info->m_reverse = (rm->getReverseTrack() ||
+            rm->getRandomItemsIndicator() ? "reverse" : "normal");
+    m_game_info->m_mode = rm->getMinorModeName();
+    m_game_info->m_value_limit = 0;
+    m_game_info->m_time_limit = rm->getTimeTarget();
+    m_game_info->m_difficulty = getDifficulty();
+    m_game_info->setPowerupString(powerup_manager->getFileName());
+    m_game_info->setKartCharString(kart_properties_manager->getFileName());
+
+    if (rm->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+    {
+        m_game_info->m_value_limit = rm->getHitCaptureLimit();
+        m_game_info->m_flag_return_timeout = ServerConfig::m_flag_return_timeout;
+        m_game_info->m_flag_deactivated_time = ServerConfig::m_flag_deactivated_time;
+    }
+    else if (rm->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
+    {
+        m_game_info->m_value_limit = rm->getHitCaptureLimit(); // TODO doesn't work
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+    else if (rm->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
+    {
+        m_game_info->m_value_limit = rm->getMaxGoal(); // TODO doesn't work
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+    else
+    {
+        m_game_info->m_value_limit = rm->getNumLaps();
+        m_game_info->m_flag_return_timeout = 0;
+        m_game_info->m_flag_deactivated_time = 0;
+    }
+
+    // m_game_info->m_timestamp = TODO;
+    bool racing_mode = false;
+    bool soccer = false;
+    bool ffa = false;
+    bool ctf = false;
+    auto minor_mode = RaceManager::get()->getMinorMode();
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_NORMAL_RACE;
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_TIME_TRIAL;
+    racing_mode |= minor_mode == RaceManager::MINOR_MODE_LAP_TRIAL;
+    ffa |= minor_mode == RaceManager::MINOR_MODE_FREE_FOR_ALL;
+    ctf |= minor_mode == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG;
+    soccer |= minor_mode == RaceManager::MINOR_MODE_SOCCER;
+
+    // Kart class for standard karts
+    // Goal scoring policy?
+    // Do we really need round()/int for ingame timestamps?
+
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(World::getWorld());
+    LinearWorld* linear_world = dynamic_cast<LinearWorld*>(World::getWorld());
 
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
     std::string best_user = "";
 
-    if (!records_table_name.empty())
+    if (racing_mode)
     {
-        std::string get_query = StringUtils::insertValues("SELECT username, "
-            "result FROM '%s' WHERE venue = '%s' and reverse = '%s' "
-            "and mode = '%s' and laps = %d order by result asc, time asc limit 1;",
-            records_table_name.c_str(), track_name.c_str(), reverse_string.c_str(), mode_name.c_str(),
-            laps_number);
-        auto ret = vectorSQLQuery(get_query, 2);
-        record_fetched = ret.first;
-        if (record_fetched && ret.second[0].size() > 0)
-        {
-            record_exists = true;
-            best_user = ret.second[0][0];
-            if (!StringUtils::parseString<double>(ret.second[1][0], &best_result))
-                record_fetched = false;
-        }
+        record_fetched = m_db_connector->getBestResult(*m_game_info, &record_exists, &best_user, &best_result);
     }
 
     int best_cur_player_idx = -1;
     std::string best_cur_player_name = "";
     double best_cur_time = 1e18;
-    for (int i = 0; i < player_count; i++)
+
+    double current_game_timestamp = stk_config->ticks2Time(w->getTicksSinceStart());
+
+    auto& vec = m_game_info->m_player_info;
+
+    // Set game duration for all items, including game events
+    // and reserved PlayerInfos (even if those will be removed)
+    for (unsigned i = 0; i < vec.size(); i++)
     {
-        if (w->getKart(i)->isEliminated())
-            continue;
-        std::string username = StringUtils::wideToUtf8(
-            RaceManager::get()->getKartInfo(i).getPlayerName());
-        auto profile = RaceManager::get()->getKartInfo(i).getNetworkPlayerProfile().lock();
-        // TODO fix this properly.
-        if (profile && profile->getOnlineId() == 0)
-            username = "* " + username;
-        double elapsed_time = RaceManager::get()->getKartRaceTime(i);
-        std::stringstream elapsed_string;
-        elapsed_string << std::setprecision(4) << std::fixed << elapsed_time;
-        if (best_cur_player_idx == -1 || elapsed_time < best_cur_time)
+        auto& info = vec[i];
+        info.m_game_duration = current_game_timestamp;
+        if (!info.isReserved() && info.m_kart_class.empty())
         {
-            best_cur_player_idx = i;
-            best_cur_time = elapsed_time;
-            best_cur_player_name = username;
+            float width, height, length;
+            Vec3 gravity_shift;
+            const KartProperties* kp = OfficialKarts::getKartByIdent(info.m_kart,
+                    &width, &height, &length, &gravity_shift);
+            if (kp)
+                info.m_kart_class = kp->getKartType();
         }
-        std::string query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(username, venue, reverse, mode, laps, result) "
-            "VALUES (?, '%s', '%s', '%s', %d, '%s');",
-            m_results_table_name.c_str(), track_name.c_str(),
-            reverse_string.c_str(), mode_name.c_str(), laps_number, elapsed_string.str()
-        );
-        bool written = easySQLQuery(query, [username](sqlite3_stmt* stmt)
-        {
-            if (sqlite3_bind_text(stmt, 1, username.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    username.c_str());
-            }
-        });
     }
-    if (record_fetched && best_cur_player_idx != -1)
+    // For those players inside the game, set some variables
+    for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
     {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
+        auto& info = vec[i];
+        if (info.isReserved())
+            continue;
+        info.m_when_left = current_game_timestamp;
+        info.m_start_position = w->getStartPosition(i);
+        if (ffa || ctf)
+        {
+            int points = 0;
+            if (ffa_world)
+                points = ffa_world->getKartScore(i);
+            else
+                Log::error("ServerLobby", "storeResults: battle mode but FFAWorld is not found");
+            info.m_result += points;
+            // I thought it would make sense to set m_autofinish to 1 if
+            // someone wins before time expires. However, it's not hard
+            // to check after reading the database I suppose...
+            info.m_autofinish = 0;
+        }
+        else if (racing_mode)
+        {
+            info.m_fastest_lap = -1;
+            info.m_sog_time = -1;
+            info.m_autofinish = -1;
+            info.m_result = rm->getKartRaceTime(i);
+            float finish_timeout = std::numeric_limits<float>::max();
+            if (linear_world)
+            {
+                info.m_fastest_lap = (double)linear_world->getFastestLapForKart(i);
+                finish_timeout = linear_world->getWorstFinishTime();
+                info.m_sog_time = linear_world->getStartTimeForKart(i);
+                info.m_autofinish = (info.m_result < finish_timeout ? 0 : 1);
+            }
+            else
+                Log::error("ServerLobby", "storeResults: racing mode but LinearWorld is not found");
+            info.m_not_full = 0;
+        }
+        else if (soccer)
+        {
+            // Soccer's m_result is handled in SoccerWorld
+            info.m_autofinish = 0;
+        }
+    }
+    // If the mode is not racing (in which case we set it separately),
+    // set m_not_full to false iff he was present all the time
+    if (!racing_mode)
+    {
+        for (unsigned i = 0; i < vec.size(); i++)
+        {
+            if (vec[i].m_reserved == 0 && vec[i].m_game_event == 0)
+                vec[i].m_not_full = (vec[i].m_when_joined == 0 &&
+                        vec[i].m_when_left == current_game_timestamp ? 0 : 1);
+        }
+    }
+    // Remove reserved PlayerInfos. Note that the first getNumPlayers() items
+    // no longer correspond to same ID in RaceManager (if they exist even)
+    for (int i = 0; i < (int)vec.size(); i++)
+    {
+        if (vec[i].isReserved())
+        {
+            std::swap(vec[i], vec.back());
+            vec.pop_back();
+            --i;
+        }
+    }
+    bool sort_asc = !racing_mode;
+    std::sort(vec.begin(), vec.end(), [sort_asc]
+            (GameInfo::PlayerInfo& lhs, GameInfo::PlayerInfo& rhs) -> bool {
+        if (lhs.m_game_event != rhs.m_game_event)
+            return lhs.m_game_event < rhs.m_game_event;
+        if (lhs.m_when_joined != rhs.m_when_joined)
+            return lhs.m_when_joined < rhs.m_when_joined;
+        if (lhs.m_result != rhs.m_result)
+            return (lhs.m_result > rhs.m_result) ^ sort_asc;
+        return false;
+    });
+    if (soccer || ctf)
+    {
+        for (unsigned i = 1; i < vec.size(); i++)
+        {
+            if (vec[i].m_game_event == 1)
+            {
+                double previous = 0;
+                if (vec[i - 1].m_game_event == 1)
+                    previous = vec[i - 1].m_when_joined;
+                vec[i].m_sog_time = vec[i].m_when_joined - previous;
+            }
+        }
+    }
+    // For racing, find who won and possibly beaten the record
+    if (racing_mode)
+    {
+        for (unsigned i = 0; i < vec.size(); i++)
+        {
+            if (vec[i].m_reserved == 0 && vec[i].m_game_event == 0 &&
+                    vec[i].m_not_full == 0 &&
+                    (best_cur_player_idx == -1 || vec[i].m_result < best_cur_time))
+            {
+                best_cur_player_idx = i;
+                best_cur_time = vec[i].m_result;
+                best_cur_player_name = vec[i].m_username;
+            }
+        }
+    }
+
+    // Note that before, when online_id was 0, "* " was added to the beginning
+    // of the name. I'm not sure it's really needed now that online_id is saved.
+
+    // Note that before, string was used to write the result to take into
+    // account increased precision for racing. Examples:
+    // racing: elapsed_string << std::setprecision(4) << std::fixed << score;
+    // ffa: elapsed_string << std::setprecision(0) << std::fixed << score;
+
+    m_game_info->m_saved_ffa_points.clear();
+    m_db_connector->insertManyResults(*m_game_info);
+    // end of insertions
+    if (record_fetched && best_cur_player_idx != -1) // implies racing_mode
+    {
         std::string message;
         if (!record_exists)
         {
@@ -8435,13 +5970,9 @@ void ServerLobby::storeResults()
                 "%s has just beaten a server record: %s\nPrevious record: %s by %s",
                 best_cur_player_name, StringUtils::timeToString(best_cur_time),
                 StringUtils::timeToString(best_result), best_user);
-        } else {
-            delete chat;
-            return;
         }
-        chat->encodeString16(StringUtils::utf8ToWide(message));
-        sendMessageToPeers(chat);
-        delete chat;
+        if (!message.empty())
+            sendStringToAllPeers(message);
     }
 #endif
 }  // storeResults
@@ -8475,86 +6006,58 @@ void ServerLobby::initAvailableModes()
 //-----------------------------------------------------------------------------
 void ServerLobby::resetToDefaultSettings()
 {
-    if (ServerConfig::m_server_configurable)
+    if (ServerConfig::m_server_configurable && !m_preserve.count("mode"))
         handleServerConfiguration(NULL);
-    m_kart_elimination.disable();
+
+    if (!m_preserve.count("elim"))
+        m_kart_elimination.disable();
+
+    if (!m_preserve.count("laps"))
+    {
+        m_default_lap_multiplier = -1.0;
+        m_fixed_lap = -1;
+    }
+
+    if (!m_preserve.count("direction"))
+        m_fixed_direction = ServerConfig::m_fixed_direction;
+
+    if (!m_preserve.count("queue"))
+        m_onetime_tracks_queue.clear();
+
+    if (!m_preserve.count("qcyclic"))
+        m_cyclic_tracks_queue.clear();
+
+    if (!m_preserve.count("kqueue"))
+        m_onetime_karts_queue.clear();
+
+    if (!m_preserve.count("kcyclic"))
+        m_cyclic_karts_queue.clear();
+
+    if (!m_preserve.count("replay"))
+        setConsentOnReplays(false);
 }  // resetToDefaultSettings
 //-----------------------------------------------------------------------------
 void ServerLobby::writeOwnReport(STKPeer* reporter, STKPeer* reporting, const std::string& info)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db || !m_player_reports_table_exists)
+    if (!m_db_connector->hasDatabase() || !m_db_connector->hasPlayerReportsTable())
         return;
+    if (!reporting)
+        reporting = reporter;
     if (!reporter->hasPlayerProfiles())
         return;
     auto reporter_npp = reporter->getPlayerProfiles()[0];
 
     if (info.empty())
         return;
+    auto info_w = StringUtils::utf8ToWide(info);
 
     if (!reporting->hasPlayerProfiles())
         return;
     auto reporting_npp = reporting->getPlayerProfiles()[0];
 
-    std::string query;
-    if (ServerConfig::m_ipv6_connection)
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_ipv6, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_ipv6, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, \"%s\", %u, ?, ?, %u, \"%s\", %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            !reporter->getAddress().isIPv6() ? reporter->getAddress().getIP() : 0,
-            reporter->getAddress().isIPv6() ? reporter->getAddress().toString(false) : "",
-            reporter_npp->getOnlineId(),
-            !reporting->getAddress().isIPv6() ? reporting->getAddress().getIP() : 0,
-            reporting->getAddress().isIPv6() ? reporting->getAddress().toString(false) : "",
-            reporting_npp->getOnlineId());
-    }
-    else
-    {
-        query = StringUtils::insertValues(
-            "INSERT INTO %s "
-            "(server_uid, reporter_ip, reporter_online_id, reporter_username, "
-            "info, reporting_ip, reporting_online_id, reporting_username) "
-            "VALUES (?, %u, %u, ?, ?, %u, %u, ?);",
-            ServerConfig::m_player_reports_table.c_str(),
-            reporter->getAddress().getIP(), reporter_npp->getOnlineId(),
-            reporting->getAddress().getIP(), reporting_npp->getOnlineId());
-    }
-    bool written = easySQLQuery(query,
-        [reporter_npp, reporting_npp, info](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, ServerConfig::m_server_uid.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    ServerConfig::m_server_uid.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 2,
-                StringUtils::wideToUtf8(reporter_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporter_npp->getName()).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 3,
-                info.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    info.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 4,
-                StringUtils::wideToUtf8(reporting_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporting_npp->getName()).c_str());
-            }
-        });
+    bool written = m_db_connector->writeReport(reporter, reporter_npp,
+            reporting, reporting_npp, info_w);
     if (written)
     {
         NetworkString* success = getNetworkString();
@@ -8606,36 +6109,6 @@ void ServerLobby::initCategories()
             else
             {
                 m_team_for_player[s] = category[0] - '0' + 1;
-            }
-        }
-    }
-    /*
-    Temporary team indexing:
-    network_player_profile.hpp: -1 for none, [0..5] for teams
-    server config: (-1 for none,) [0..5] for teams
-    server lobby command: 0 for none, [1..6] for teams
-    m_team_for_player: 0 for none, [1..6] for teams
-    Sorry for the confusion.
-    */
-    // change categories according to the teams
-    for (const auto& who: m_team_for_player)
-    {
-        int idx = who.second;
-        std::string player = who.first;
-        for (const auto& pair: m_team_name_to_index)
-        {
-            if (pair.second < 0)
-            {
-                if (pair.second == -idx)
-                {
-                    m_player_categories[pair.first].insert(player);
-                    m_categories_for_player[player].insert(pair.first);
-                }
-                else
-                {
-                    m_player_categories[pair.first].erase(player);
-                    m_categories_for_player[player].erase(pair.first);
-                }
             }
         }
     }
@@ -8698,17 +6171,18 @@ void ServerLobby::initTournamentPlayers()
     if (!fallback)
     {
         general = StringUtils::split(tokens[0], ' ');
-        if (general.size() < 4)
+        if (general.size() < 5)
             fallback = true;
     }
     if (fallback)
     {
-        Log::warn("ServerLobby", "Tournament rules not complete, fallback to default");
+        Log::warn("ServerLobby", "Tournament rules are not complete, fallback to default");
         general.clear();
         general.push_back("nochat");
         general.push_back("10");
         general.push_back("GGGGT");
         general.push_back("RRBBR");
+        general.push_back("+++++");
         tokens.clear();
         tokens.push_back("nochat 10 GGGT RRBBR");
         tokens.push_back("");
@@ -8716,7 +6190,7 @@ void ServerLobby::initTournamentPlayers()
         tokens.push_back("not %0");
         tokens.push_back("not %0" " %1");
         tokens.push_back("");
-        ServerConfig::m_soccer_tournament_rules = "nochat 10 TTTTG RRBBR;"
+        ServerConfig::m_soccer_tournament_rules = "nochat 10 TTTTG RRBBR +++++;"
             ";;not %1;"
             "not %1 "
             "%2;;;";
@@ -8740,13 +6214,15 @@ void ServerLobby::initTournamentPlayers()
     m_tournament_colors = general[3];
     m_tournament_max_games = std::min(general[2].length(), general[3].length());
     m_tournament_max_games = std::min(m_tournament_max_games, (int)tokens.size() - 1);
-    m_tournament_arenas.resize(m_tournament_max_games, "");
+    m_tournament_votability = general[4];
     for (int i = 0; i < m_tournament_max_games; i++)
         m_tournament_track_filters.emplace_back(tokens[i + 1]);
 }   // initTournamentPlayers
 //-----------------------------------------------------------------------------
 void ServerLobby::changeColors()
 {
+    // We assume here that it's soccer, as it's only called
+    // from tournament command
     auto peers = STKHost::get()->getPeers();
     for (auto peer : peers)
     {
@@ -8754,18 +6230,25 @@ void ServerLobby::changeColors()
         {
             auto pp = peer->getPlayerProfiles()[0];
             if (pp->getTeam() == KART_TEAM_RED)
-                pp->setTeam(KART_TEAM_BLUE);
+            {
+                setTeamInLobby(pp, KART_TEAM_BLUE);
+            }
             else if (pp->getTeam() == KART_TEAM_BLUE)
-                pp->setTeam(KART_TEAM_RED);
+            {
+                setTeamInLobby(pp, KART_TEAM_RED);
+            }
         }
     }
     updatePlayerList();
 }   // changeColors
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const
+void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer)
 {
     if (!peer)
+    {
+        sendStringToAllPeers(s);
         return;
+    }
     NetworkString* chat = getNetworkString();
     chat->addUInt8(LE_CHAT);
     chat->setSynchronous(true);
@@ -8774,10 +6257,13 @@ void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& pee
     delete chat;
 }   // sendStringToPeer
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, STKPeer* peer) const
+void ServerLobby::sendStringToPeer(std::string& s, STKPeer* peer)
 {
     if (!peer)
+    {
+        sendStringToAllPeers(s);
         return;
+    }
     NetworkString* chat = getNetworkString();
     chat->addUInt8(LE_CHAT);
     chat->setSynchronous(true);
@@ -8796,28 +6282,139 @@ void ServerLobby::sendStringToAllPeers(std::string& s)
     delete chat;
 }   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
-bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer) const
+bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer)
 {
     return canRace(peer.get());
 }   // canRace
 //-----------------------------------------------------------------------------
-bool ServerLobby::canRace(STKPeer* peer) const
+bool ServerLobby::canRace(STKPeer* peer)
 {
+    auto it = m_why_peer_cannot_play.find(peer);
+    if (it != m_why_peer_cannot_play.end())
+        return it->second == 0;
+
+    if (!peer || peer->getPlayerProfiles().empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_ABSENT_PEER;
+        return false;
+    }
     std::string username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
     if (ServerConfig::m_soccer_tournament)
-        return m_tournament_red_players.count(username) > 0 || 
-            m_tournament_blue_players.count(username) > 0;
+    {
+        if (m_tournament_red_players.count(username) == 0 &&
+            m_tournament_blue_players.count(username) == 0)
+        {
+            m_why_peer_cannot_play[peer] = HR_NOT_A_TOURNAMENT_PLAYER;
+            return false;
+        }
+    }
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
+    {
+        m_why_peer_cannot_play[peer] = HR_SPECTATOR_BY_LIMIT;
         return false;
-    // else if (ServerConfig::m_only_host_riding)
-    //     return peer == m_server_owner.lock().get();
-    else if (!m_tracks_queue.empty())
-        return peer->getClientAssets().second.count(m_tracks_queue.front());
-    else
-        return true;
-}   // canRace
+    }
 
+    std::set<std::string> maps = peer->getClientAssets().second;
+    std::set<std::string> karts = peer->getClientAssets().first;
+
+    applyAllFilters(maps, true);
+    applyAllKartFilters(username, karts, false);
+
+    if (karts.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_KARTS_AFTER_FILTER;
+        return false;
+    }
+    if (maps.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_MAPS_AFTER_FILTER;
+        return false;
+    }
+
+    if (!m_play_requirement_tracks.empty())
+        for (const std::string& track: m_play_requirement_tracks)
+            if (peer->getClientAssets().second.count(track) == 0)
+            {
+                m_why_peer_cannot_play[peer] = HR_LACKING_REQUIRED_MAPS;
+                return false;
+            }
+
+    if (peer->addon_karts_count < ServerConfig::m_addon_karts_play_threshold)
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_KARTS_PLAY_THRESHOLD;
+        return false;
+    }
+    if (peer->addon_tracks_count < ServerConfig::m_addon_tracks_play_threshold)
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_TRACKS_PLAY_THRESHOLD;
+        return false;
+    }
+    if (peer->addon_arenas_count < ServerConfig::m_addon_arenas_play_threshold)
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_ARENAS_PLAY_THRESHOLD;
+        return false;
+    }
+    if (peer->addon_soccers_count < ServerConfig::m_addon_soccers_play_threshold)
+    {
+        m_why_peer_cannot_play[peer] = HR_ADDON_FIELDS_PLAY_THRESHOLD;
+        return false;
+    }
+
+    float karts_fraction = 0.0f;
+    float maps_fraction = 0.0f;
+    for (auto& kart : karts)
+    {
+        if (m_official_kts.first.find(kart) !=
+            m_official_kts.first.end())
+            karts_fraction += 1.0f;
+    }
+    for (auto& map : maps)
+    {
+        if (m_official_kts.second.find(map) !=
+            m_official_kts.second.end())
+            maps_fraction += 1.0f;
+    }
+    karts_fraction /= (float)m_official_kts.first.size();
+    maps_fraction /= (float)m_official_kts.second.size();
+
+    if (karts_fraction < ServerConfig::m_official_karts_play_threshold)
+    {
+        m_why_peer_cannot_play[peer] = HR_OFFICIAL_KARTS_PLAY_THRESHOLD;
+        return false;
+    }
+    if (maps_fraction < ServerConfig::m_official_tracks_play_threshold)
+    {
+        m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
+        return false;
+    }
+    m_why_peer_cannot_play[peer] = 0;
+    return true;
+}   // canRace
+//-----------------------------------------------------------------------------
+bool ServerLobby::canVote(std::shared_ptr<STKPeer>& peer) const
+{
+    return canVote(peer.get());
+}   // canVote
+//-----------------------------------------------------------------------------
+bool ServerLobby::canVote(STKPeer* peer) const
+{
+    if (!peer || peer->getPlayerProfiles().empty())
+        return false;
+    std::string username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
+    if (ServerConfig::m_soccer_tournament) {
+        bool first = m_tournament_red_players.count(username) > 0;
+        bool second = m_tournament_blue_players.count(username) > 0;
+        if (!first && !second)
+            return false;
+        char votable = m_tournament_votability[m_tournament_game];
+        if (votable == '+')
+            return true;
+        return (votable == 'F' && first) || (votable == 'S' && second);
+    }
+    return true;
+}   // canVote
 //-----------------------------------------------------------------------------
 bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer>& peer) const
 {
@@ -8826,6 +6423,8 @@ bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer>& peer) const
 //-----------------------------------------------------------------------------
 bool ServerLobby::hasHostRights(STKPeer* peer) const
 {
+    if (!peer || peer->getPlayerProfiles().empty())
+        return false;
     if (peer == m_server_owner.lock().get())
         return true;
     if (peer->isAngryHost())
@@ -8839,78 +6438,182 @@ bool ServerLobby::hasHostRights(STKPeer* peer) const
     return false;
 }   // hasHostRights
 //-----------------------------------------------------------------------------
+int ServerLobby::getPermissions(std::shared_ptr<STKPeer>& peer) const
+{
+    return getPermissions(peer.get());
+}   // getPermissions
+//-----------------------------------------------------------------------------
+int ServerLobby::getPermissions(STKPeer* peer) const
+{
+    int mask = 0;
+    if (!peer)
+        return mask;
+    bool isSpectator = (peer->alwaysSpectate());
+    if (isSpectator)
+    {
+        mask |= CommandPermissions::PE_SPECTATOR;
+        mask |= CommandPermissions::PE_VOTED_SPECTATOR;
+    }
+    else
+    {
+        mask |= CommandPermissions::PE_USUAL;
+        mask |= CommandPermissions::PE_VOTED_NORMAL;
+    }
+    if (peer == m_server_owner.lock().get())
+    {
+        mask |= CommandPermissions::PE_CROWNED;
+        if (ServerConfig::m_only_host_riding)
+            mask |= CommandPermissions::PE_SINGLE;
+    }
+    if (peer->isAngryHost())
+    {
+        mask |= CommandPermissions::PE_HAMMER;
+    }
+    else if (ServerConfig::m_soccer_tournament)
+    {
+        std::string username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
+        if (m_tournament_referees.count(username) > 0)
+            mask |= CommandPermissions::PE_HAMMER;
+    }
+    return mask;
+}   // getPermissions
+//-----------------------------------------------------------------------------
 void ServerLobby::loadTracksQueueFromConfig()
 {
-    std::vector<std::string> tokens = StringUtils::split(
-        ServerConfig::m_tracks_order, ' ');
-    m_tracks_queue.clear();
+    std::vector<std::string> tokens;
+    m_onetime_tracks_queue.clear();
+    m_cyclic_tracks_queue.clear();
+    m_onetime_karts_queue.clear();
+    m_cyclic_karts_queue.clear();
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_tracks_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
-        m_tracks_queue.push_back(s);
+    {
+        m_onetime_tracks_queue.push_back(std::make_shared<TrackFilter>(s));
+        m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(TrackFilter::PLACEHOLDER_STRING));
+    }
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_cyclic_tracks_order, ' ', '{', '}', '\\');
+    for (std::string& s: tokens)
+        m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(s));
+
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_karts_order, ' ', '{', '}', '\\');
+    for (std::string& s: tokens)
+    {
+        m_onetime_karts_queue.push_back(std::make_shared<KartFilter>(s));
+        m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(KartFilter::PLACEHOLDER_STRING));
+    }
+
+    tokens = StringUtils::splitQuoted(ServerConfig::m_cyclic_karts_order, ' ', '{', '}', '\\');
+    for (std::string& s: tokens)
+        m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(s));
 }   // loadTracksQueueFromConfig
 //-----------------------------------------------------------------------------
-std::string ServerLobby::getGrandPrixStandings() const
+std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTeam) const
 {
-    std::vector<std::pair<GPScore, std::string>> results;
-    for (auto& p: m_gp_scores)
-        results.emplace_back(p.second, p.first);
-    std::stable_sort(results.rbegin(), results.rend());
     std::stringstream response;
-    response << "Grand Prix standings\n";
-    for (unsigned i = 0; i < results.size(); i++)
-    {
-        response << (i + 1) << ". ";
-        response << "  " << results[i].second;
-        response << "  " << results[i].first.score;
-        response << "  " << "(" << StringUtils::timeToString(results[i].first.time) << ")";
-        response << "\n";
-    }
-    results.clear();
+    response << "Grand Prix standings";
 
-    if (!m_gp_team_scores.empty())
+    if (!showIndividual && !showTeam)
     {
-        std::vector<std::pair<GPScore, int>> results2;
-        response << "\n";
-        for (auto& p: m_gp_team_scores)
-            results2.emplace_back(p.second, p.first);
-        std::stable_sort(results2.rbegin(), results2.rend());
-        for (unsigned i = 0; i < results2.size(); i++)
+        if (m_gp_team_scores.empty())
+            showIndividual = true;
+        else
+            showTeam = true;
+    }
+
+    uint8_t passed = (uint8_t)m_game_setup->getAllTracks().size();
+    uint8_t total = m_game_setup->getExtraServerInfo();
+    if (passed != 0)
+        response << " after " << (int)passed << " of " << (int)total << " games:\n";
+    else
+        response << ", " << (int)total << " games:\n";
+
+    if (showIndividual)
+    {
+        std::vector<std::pair<GPScore, std::string>> results;
+        for (auto &p: m_gp_scores)
+            results.emplace_back(p.second, p.first);
+        std::stable_sort(results.rbegin(), results.rend());
+        for (unsigned i = 0; i < results.size(); i++)
         {
             response << (i + 1) << ". ";
-            response << "  " << m_team_name[results2[i].second];
-            response << "  " << results2[i].first.score;
-            response << "  " << "(" << StringUtils::timeToString(results2[i].first.time) << ")";
+            response << "  " << results[i].second;
+            response << "  " << results[i].first.score;
+            response << "  " << "(" << StringUtils::timeToString(results[i].first.time) << ")";
             response << "\n";
+        }
+    }
+
+    if (showTeam)
+    {
+        if (!m_gp_team_scores.empty())
+        {
+            std::vector<std::pair<GPScore, int>> results2;
+            if (showIndividual)
+                response << "\n";
+            for (auto &p: m_gp_team_scores)
+                results2.emplace_back(p.second, p.first);
+            std::stable_sort(results2.rbegin(), results2.rend());
+            for (unsigned i = 0; i < results2.size(); i++)
+            {
+                response << (i + 1) << ". ";
+                response << "  " << TeamUtils::getTeamByIndex(results2[i].second).getNameWithEmoji();
+                response << "  " << results2[i].first.score;
+                response << "  " << "(" << StringUtils::timeToString(results2[i].first.time) << ")";
+                response << "\n";
+            }
         }
     }
     return response.str();
 }   // getGrandPrixStandings
 //-----------------------------------------------------------------------------
-void ServerLobby::loadCustomScoring()
+bool ServerLobby::loadCustomScoring(std::string& scoring)
 {
+    std::set<std::string> available_scoring_types = {
+            "standard", "default", "", "inc", "fixed", "linear-gap", "exp-gap"
+    };
+    auto previous_params = m_scoring_int_params;
+    auto previous_type = m_scoring_type;
     m_scoring_int_params.clear();
     m_scoring_type = "";
-    std::string scoring = ServerConfig::m_gp_scoring;
     if (!scoring.empty())
     {
         std::vector<std::string> params = StringUtils::split(scoring, ' ');
         if (params.empty())
-            return;    
+        {
+            m_scoring_type = "";
+            return true;
+        }
         m_scoring_type = params[0];
+        if (available_scoring_types.count(m_scoring_type) == 0)
+        {
+            Log::warn("ServerLobby", "Unknown scoring type %s, fallback.", m_scoring_type.c_str());
+            m_scoring_int_params = previous_params;
+            m_scoring_type = previous_type;
+            return false;
+        }
         for (unsigned i = 1; i < params.size(); i++)
         {
             int param;
             if (!StringUtils::fromString(params[i], param))
             {
-                Log::warn("ServerLobby", "Unable to parse integer from custom scoring data");
-                return;
+                Log::warn("ServerLobby", "Unable to parse integer from custom scoring data, fallback.");
+                m_scoring_int_params = previous_params;
+                m_scoring_type = previous_type;
+                return false;
             }
             m_scoring_int_params.push_back(param);
         }
     }
+    return true;
 }   // loadCustomScoring
 //-----------------------------------------------------------------------------   
 void ServerLobby::updateWorldSettings()
 {
+    World::getWorld()->setGameInfo(m_game_info);
     WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
     if (wwr)
     {
@@ -8938,50 +6641,30 @@ void ServerLobby::loadWhiteList()
     for (std::string& s: tokens)
         m_usernames_white_list.insert(s);
 }   // loadWhiteList
+//-----------------------------------------------------------------------------
+void ServerLobby::loadPreservedSettings()
+{
+    std::vector<std::string> what_to_preserve =
+            StringUtils::split(std::string(ServerConfig::m_preserve_on_reset), ' ');
+    for (std::string& str: what_to_preserve)
+        m_preserve.insert(str);
+}   // loadWhiteList
 //-----------------------------------------------------------------------------  
 bool ServerLobby::writeOnePlayerReport(STKPeer* reporter,
     const std::string& table, const std::string& info)
 {
 #ifdef ENABLE_SQLITE3
-    if (!m_db)
+    if (!m_db_connector->hasDatabase())
+        return false;
+    if (!m_db_connector->hasPlayerReportsTable())
         return false;
     if (!reporter->hasPlayerProfiles())
         return false;
     auto reporter_npp = reporter->getPlayerProfiles()[0];
+    auto info_w = StringUtils::utf8ToWide(info);
 
-    std::string query = StringUtils::insertValues(
-        "INSERT INTO %s "
-        "(server_uid, reporter_online_id, reporter_username, "
-        "info) "
-        "VALUES (?, %u, ?, ?);",
-        table.c_str(),
-        reporter_npp->getOnlineId());
-
-    bool written = easySQLQuery(query,
-        [reporter_npp, info](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, ServerConfig::m_server_uid.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    ServerConfig::m_server_uid.c_str());
-            }
-            if (sqlite3_bind_text(stmt, 2,
-                StringUtils::wideToUtf8(reporter_npp->getName()).c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    StringUtils::wideToUtf8(reporter_npp->getName()).c_str());
-            }
-            if (sqlite3_bind_text(stmt, 3,
-                info.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("easySQLQuery", "Failed to bind %s.",
-                    info.c_str());
-            }
-        });
+    bool written = m_db_connector->writeReport(reporter, reporter_npp,
+            reporter, reporter_npp, info_w);
     return written;
 #endif
 }   // writeOnePlayerReport
@@ -9011,25 +6694,26 @@ bool ServerLobby::tournamentColorsSwapped(int game) const
 void ServerLobby::initAvailableTracks()
 {
     m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
+    m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
     m_must_have_tracks = StringUtils::split(
         ServerConfig::m_must_have_tracks_string, ' ', false);
-    m_tournament_must_have_tracks = StringUtils::split(
-        ServerConfig::m_soccer_tournament_enforced_tracks_string, ' ', false);
+    m_play_requirement_tracks = StringUtils::split(
+            ServerConfig::m_play_requirement_tracks_string, ' ', false);
 }   // initAvailableTracks
 //-----------------------------------------------------------------------------
-std::vector<std::string> ServerLobby::getMissingTournamentAssets(std::shared_ptr<STKPeer>& peer) const
+std::vector<std::string> ServerLobby::getMissingAssets(std::shared_ptr<STKPeer>& peer) const
 {
-    return getMissingTournamentAssets(peer.get());
-}   // getMissingTournamentAssets
+    return getMissingAssets(peer.get());
+}   // getMissingAssets
 //-----------------------------------------------------------------------------
-std::vector<std::string> ServerLobby::getMissingTournamentAssets(STKPeer* peer) const
+std::vector<std::string> ServerLobby::getMissingAssets(STKPeer* peer) const
 {
     std::vector<std::string> ans;
-    for (const std::string& required_track : m_tournament_must_have_tracks)
+    for (const std::string& required_track : m_play_requirement_tracks)
         if (peer->getClientAssets().second.count(required_track) == 0)
             ans.push_back(required_track);
     return ans;
-}   // getMissingTournamentAssets
+}   // getMissingAssets
 //-----------------------------------------------------------------------------
 void ServerLobby::updateTournamentRole(STKPeer* peer)
 {
@@ -9041,38 +6725,38 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
         peer->getPlayerProfiles()[0]->getName());
     bool erased_from_tournament_roles = false;
     std::vector<std::string> missing_assets;
-    missing_assets = getMissingTournamentAssets(peer);
-    if (!missing_assets.empty())
-    {
-        erased_from_tournament_roles |= m_tournament_red_players.count(utf8_online_name) > 0;
-        erased_from_tournament_roles |= m_tournament_blue_players.count(utf8_online_name) > 0;
-        erased_from_tournament_roles |= m_tournament_referees.count(utf8_online_name) > 0;
-        m_tournament_red_players.erase(utf8_online_name);
-        m_tournament_blue_players.erase(utf8_online_name);
-        m_tournament_referees.erase(utf8_online_name);
-    }
+    missing_assets = getMissingAssets(peer);
+//    if (!missing_assets.empty())
+//    {
+//        erased_from_tournament_roles |= m_tournament_red_players.count(utf8_online_name) > 0;
+//        erased_from_tournament_roles |= m_tournament_blue_players.count(utf8_online_name) > 0;
+//        erased_from_tournament_roles |= m_tournament_referees.count(utf8_online_name) > 0;
+//        m_tournament_red_players.erase(utf8_online_name);
+//        m_tournament_blue_players.erase(utf8_online_name);
+//        m_tournament_referees.erase(utf8_online_name);
+//    }
     for (unsigned i = 0; i < peer->getPlayerProfiles().size(); i++)
     {
         auto player = peer->getPlayerProfiles()[i];
         core::stringw name = player->getName();
         std::string utf8_name = StringUtils::wideToUtf8(name);
         if (m_tournament_red_players.count(utf8_online_name))
-            player->setTeam(KART_TEAM_RED);
+            setTeamInLobby(player, KART_TEAM_RED);
         else if (m_tournament_blue_players.count(utf8_online_name))
-            player->setTeam(KART_TEAM_BLUE);
+            setTeamInLobby(player, KART_TEAM_BLUE);
         else
-            player->setTeam(KART_TEAM_NONE);
+            setTeamInLobby(player, KART_TEAM_NONE);
         if (tournamentColorsSwapped(m_tournament_game))
         {
             if (player->getTeam() == KART_TEAM_BLUE)
-                player->setTeam(KART_TEAM_RED);
+                setTeamInLobby(player, KART_TEAM_RED);
             else if (player->getTeam() == KART_TEAM_RED)
-                player->setTeam(KART_TEAM_BLUE);
+                setTeamInLobby(player, KART_TEAM_BLUE);
         }
     }
     if (erased_from_tournament_roles)
     {
-        std::string msg = "You are now spectator because you lack the following assets:";
+        std::string msg = "You lack the following assets:";
         for (unsigned i = 0; i < missing_assets.size(); i++)
         {
             if (i)
@@ -9084,61 +6768,50 @@ void ServerLobby::updateTournamentRole(STKPeer* peer)
     }
 }   // updateTournamentRole
 //-----------------------------------------------------------------------------
+
+CommandManager& ServerLobby::getCommandManager()
+{
+    if (!m_command_manager.isInitialized())
+    {
+        m_command_manager = CommandManager(this);
+    }
+    return m_command_manager;
+}   // getCommandManager
+//-----------------------------------------------------------------------------
+
 #ifdef ENABLE_SQLITE3
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     std::string& direction, int laps)
 {
-    std::string records_table_name = ServerConfig::m_records_table_name;
-    if (!records_table_name.empty())
-    {
-        std::string get_query = StringUtils::insertValues("SELECT username, "
-            "result FROM '%s' WHERE venue = ? and reverse = '%s' "
-            "and mode = '%s' and laps = %d order by result asc, time asc limit 1;",
-            records_table_name.c_str(), direction.c_str(), mode.c_str(),
-            laps);
-        auto ret = vectorSQLQuery(get_query, 2,
-        [track](sqlite3_stmt* stmt)
-        {
-            // SQLITE_TRANSIENT to copy string
-            if (sqlite3_bind_text(stmt, 1, track.c_str(),
-                -1, SQLITE_TRANSIENT) != SQLITE_OK)
-            {
-                Log::error("vectorSQLQuery", "Failed to bind %s.",
-                    track.c_str());
-            }
-        });
-        if (!ret.first)
-        {
-            return "Failed to make a query";
-        }
-        else if (ret.second[0].size() > 0)
-        {
-            double best_result = 1e18;
-            if (!StringUtils::parseString<double>(
-                ret.second[1][0], &best_result))
-            {
-                return "A strange error occured, "
-                    "please take a screenshot "
-                    "and contact the server owner.";
-            }
-            else
-            {
-                std::string message = StringUtils::insertValues(
-                    "The record is %s by %s",
-                    StringUtils::timeToString(best_result),
-                    ret.second[0][0]);
-                return message;
-            }
-        }
-        else
-        {
-            return "No time set yet. Or there is a typo.";
-        }
-    }
-    else
-    {
-        return "No table storing records!";
-    }
+    std::string powerup_string = powerup_manager->getFileName();
+    std::string kc_string = kart_properties_manager->getFileName();
+    GameInfo temp_info;
+    temp_info.m_venue = track;
+    temp_info.m_reverse = direction;
+    temp_info.m_mode = mode;
+    temp_info.m_value_limit = laps;
+    temp_info.m_time_limit = 0;
+    temp_info.m_difficulty = getDifficulty();
+    temp_info.setPowerupString(powerup_manager->getFileName());
+    temp_info.setKartCharString(kart_properties_manager->getFileName());
+
+    bool record_fetched = false;
+    bool record_exists = false;
+    double best_result = 0.0;
+    std::string best_user = "";
+
+    record_fetched = m_db_connector->getBestResult(temp_info, &record_exists, &best_user, &best_result);
+
+    if (!record_fetched)
+        return "Failed to make a query";
+    if (!record_exists)
+        return "No time set yet. Or there is a typo.";
+
+    std::string message = StringUtils::insertValues(
+        "The record is %s by %s",
+        StringUtils::timeToString(best_result),
+        best_user);
+    return message;
 }   // getRecord
 #endif
 //-----------------------------------------------------------------------------
@@ -9148,19 +6821,15 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
 void ServerLobby::loadAllTokens()
 {
 #ifdef ENABLE_SQLITE3
-    std::string tokens_table_name = ServerConfig::m_tokens_table;
-    std::string get_query = StringUtils::insertValues(
-        "SELECT distinct tokens from %s;",
-        tokens_table_name.c_str());
-    auto ret = vectorSQLQuery(get_query, 1);
-    if (!ret.first)
+    std::vector<std::string> tokens;
+    if (!m_db_connector->getAllTokens(tokens))
     {
         Log::warn("ServerLobby", "Could not make a query to retrieve tokens.");
     }
-    else if (ret.second[0].size() > 0)
+    else
     {
-        Log::info("ServerLobby", "Successfully loaded %d tokens.", (int)ret.second[0].size());
-        for (std::string& s: ret.second[0])
+        Log::info("ServerLobby", "Successfully loaded %d tokens.", (int)tokens.size());
+        for (std::string& s: tokens)
             m_web_tokens.insert(s);
     }
 #endif
@@ -9198,21 +6867,24 @@ void ServerLobby::setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since
     m_teammate_karts_hit.clear();
     m_teammate_karts_exploded.clear();
     m_collecting_teammate_hit_info = true;
-}
+}   // setTeamMateHitOwner
+//-----------------------------------------------------------------------------
 
 void ServerLobby::registerTeamMateHit(unsigned int kartID)
 {
     // only register if we know the item owner and victim is still racing
     if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
         m_teammate_karts_hit.push_back(kartID);
-}
+}   // registerTeamMateHit
+//-----------------------------------------------------------------------------
 
 void ServerLobby::registerTeamMateExplode(unsigned int kartID)
 {
     // only register if we know the item owner and victim is still racing
     if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
         m_teammate_karts_exploded.push_back(kartID);
-}
+}   // registerTeamMateExplode
+//-----------------------------------------------------------------------------
 
 void ServerLobby::sendTeamMateHitMsg(std::string& s)
 {
@@ -9225,7 +6897,8 @@ void ServerLobby::sendTeamMateHitMsg(std::string& s)
             sendStringToAllPeers(s);
         }
     }
-}
+}   // sendTeamMateHitMsg
+//-----------------------------------------------------------------------------
 
 void ServerLobby::handleTeamMateHits()
 {
@@ -9355,7 +7028,8 @@ void ServerLobby::handleTeamMateHits()
             }
         }
     }
-}
+}   // handleTeamMateHits
+//-----------------------------------------------------------------------------
 
 void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
     bool success, bool has_hit_kart, uint16_t ticks_active)
@@ -9392,7 +7066,8 @@ void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
             // we cannot do this here, will be done in update()
             m_teammate_swatter_punish.push_back(owner);
     }
-}
+}   // handleSwatterHit
+//-----------------------------------------------------------------------------
 
 void ServerLobby::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
 {
@@ -9450,4 +7125,378 @@ void ServerLobby::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
             owner->adjustSpeed(owner->getKartProperties()->getAnvilSpeedFactor() * 0.5f);
         }
     }
-}
+}   // handleAnvilHit
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::isSoccerGoalTarget() const
+{
+    return m_game_setup->isSoccerGoalTarget();
+}   // isSoccerGoalTarget
+//-----------------------------------------------------------------------------
+
+// This should be moved later to another unit.
+void ServerLobby::setTemporaryTeamInLobby(const std::string& username, int team)
+{
+    irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
+            wide_player_name);
+    if (player_peer)
+    {
+        for (auto& profile : player_peer.get()->getPlayerProfiles())
+        {
+            if (profile->getName() == wide_player_name)
+            {
+                setTemporaryTeamInLobby(profile, team);
+                break;
+            }
+        }
+    }
+}   // setTemporaryTeamInLobby (username)
+//-----------------------------------------------------------------------------
+
+// todo This should be moved later to another unit.
+void ServerLobby::clearTemporaryTeams()
+{
+    m_team_for_player.clear();
+
+    for (auto& peer : STKHost::get()->getPeers())
+    {
+        for (auto& profile : peer->getPlayerProfiles())
+        {
+            setTemporaryTeamInLobby(profile, TeamUtils::NO_TEAM);
+        }
+    }
+}   // clearTemporaryTeams
+//-----------------------------------------------------------------------------
+
+// todo This should be moved later to another unit.
+void ServerLobby::shuffleTemporaryTeams(const std::map<int, int>& permutation)
+{
+    for (auto& p: m_team_for_player)
+    {
+        auto it = permutation.find(p.second);
+        if (it != permutation.end())
+            p.second = it->second;
+    }
+    for (auto& peer : STKHost::get()->getPeers())
+    {
+        for (auto &profile: peer->getPlayerProfiles())
+        {
+            auto it = permutation.find(profile->getTemporaryTeam());
+            if (it != permutation.end())
+            {
+                setTemporaryTeamInLobby(profile, it->second);
+            }
+        }
+    }
+    auto old_scores = m_gp_team_scores;
+    m_gp_team_scores.clear();
+    for (auto& p: old_scores)
+    {
+        auto it = permutation.find(p.first);
+        if (it != permutation.end())
+            m_gp_team_scores[it->second] = p.second;
+        else
+            m_gp_team_scores[p.first] = p.second;
+    }
+}   // shuffleTemporaryTeams
+//-----------------------------------------------------------------------------
+
+void ServerLobby::resetGrandPrix()
+{
+    m_gp_scores.clear();
+    m_gp_team_scores.clear();
+    m_game_setup->stopGrandPrix();
+
+    NetworkString* server_info = getNetworkString();
+    server_info->setSynchronous(true);
+    server_info->addUInt8(LE_SERVER_INFO);
+    m_game_setup->addServerInfo(server_info);
+    sendMessageToPeers(server_info);
+    delete server_info;
+    updatePlayerList();
+}   // resetGrandPrix
+//-----------------------------------------------------------------------------
+
+void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history) const
+{
+    unsigned max_player = 0;
+    STKHost::get()->updatePlayers(&max_player);
+    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
+    {
+        auto it = maps.begin();
+        while (it != maps.end())
+        {
+            Track* t = track_manager->getTrack(*it);
+            if (t && t->getMaxArenaPlayers() < max_player)
+            {
+                it = maps.erase(it);
+            }
+            else
+                it++;
+        }
+    }
+
+    // Please note that use_history refers to using queue filters too -
+    // calls with false only get map sets, etc
+    FilterContext track_context;
+    track_context.username = ""; // unused
+    track_context.num_players = max_player;
+    track_context.wildcards = m_map_history;
+    track_context.applied_at_selection_start = true;
+    track_context.elements = maps;
+    m_global_filter.apply(track_context);
+    if (use_history)
+    {
+        track_context.wildcards = m_tournament_arenas;
+        if (ServerConfig::m_soccer_tournament)
+        {
+            m_tournament_track_filters[m_tournament_game].apply(track_context);
+        }
+        track_context.wildcards = m_map_history;
+        if (!m_onetime_tracks_queue.empty())
+        {
+            m_onetime_tracks_queue.front()->apply(track_context);
+        }
+        if (!m_cyclic_tracks_queue.empty())
+        {
+            m_cyclic_tracks_queue.front()->apply(track_context);
+        }
+    }
+    swap(maps, track_context.elements);
+}   // applyAllFilters
+//-----------------------------------------------------------------------------
+
+void ServerLobby::applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection) const
+{
+
+    FilterContext kart_context;
+    kart_context.username = username;
+    kart_context.num_players = 0; // unused
+    kart_context.wildcards = {}; // unused
+    kart_context.applied_at_selection_start = !afterSelection;
+    kart_context.elements = karts;
+
+    m_global_karts_filter.apply(kart_context);
+    if (!m_onetime_karts_queue.empty())
+    {
+        m_onetime_karts_queue.front()->apply(kart_context);
+    }
+    if (!m_cyclic_karts_queue.empty())
+    {
+        m_cyclic_karts_queue.front()->apply(kart_context);
+    }
+    swap(karts, kart_context.elements);
+}   // applyAllKartFilters
+//-----------------------------------------------------------------------------
+bool ServerLobby::areKartFiltersIgnoringKarts() const
+{
+    if (!m_onetime_karts_queue.empty() && m_onetime_karts_queue.front()->ignoresPlayersInput())
+        return true;
+    if (!m_cyclic_karts_queue.empty() && m_cyclic_karts_queue.front()->ignoresPlayersInput())
+        return true;
+    return false;
+}   // applyAllKartFilters
+//-----------------------------------------------------------------------------
+std::string ServerLobby::getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const
+{
+    std::set<std::string> karts = (peer->isAIPeer() ? m_available_kts.first : peer->getClientAssets().first);
+    applyAllKartFilters(username, karts, true);
+    if (m_kart_elimination.isEliminated(username)
+        && karts.count(m_kart_elimination.getKart()))
+    {
+        return m_kart_elimination.getKart();
+    }
+    if (!check_choice.empty() && karts.count(check_choice)) // valid choice
+        return check_choice;
+    // choice is invalid, roll the random
+    RandomGenerator rg;
+    std::set<std::string>::iterator it = karts.begin();
+    std::advance(it, rg.get((int)karts.size()));
+    return *it;
+}   // getKartForRandomKartChoice
+//-----------------------------------------------------------------------------
+void ServerLobby::setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+         std::shared_ptr<NetworkPlayerProfile> player,
+         const std::string& type) const
+{
+    // This should set kart data for kart name at least in the following cases:
+    // 1. useTuxHitboxAddon() is true
+    // 2. kart_name is installed on the server
+    // (for addons; standard karts are not processed here it seems)
+    // 3. kart type is fine
+    // Maybe I'm mistaken and then it should be fixed.
+    // I extracted this into a separate function because if kart_name is set
+    // by the server (for random addon kart, or due to a filter), kart data
+    // has to be set in another place than default one.
+    if (NetworkConfig::get()->useTuxHitboxAddon() &&
+        StringUtils::startsWith(kart_name, "addon_") &&
+        kart_properties_manager->hasKartTypeCharacteristic(type))
+    {
+        const KartProperties* real_addon =
+            kart_properties_manager->getKart(kart_name);
+        if (ServerConfig::m_real_addon_karts && real_addon)
+        {
+            kart_data = KartData(real_addon);
+        }
+        else
+        {
+            const KartProperties* tux_kp =
+                kart_properties_manager->getKart("tux");
+            kart_data = KartData(tux_kp);
+            kart_data.m_kart_type = type;
+        }
+        player->setKartData(kart_data);
+    }
+}   // setKartDataProperly
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::playerReportsTableExists() const
+{
+#ifdef ENABLE_SQLITE3
+    return m_db_connector->hasPlayerReportsTable();
+#else
+    return false;
+#endif
+}   // playerReportsTableExists
+
+//-----------------------------------------------------------------------------
+void ServerLobby::saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const
+{
+    if (worldIsActive() && !peer->isWaitingForGame())
+    {
+        for (const int id : peer->getAvailableKartIDs())
+        {
+            saveDisconnectingIdInfo(id);
+        }
+    }
+}   // saveDisconnectingPeerInfo
+
+//-----------------------------------------------------------------------------
+void ServerLobby::saveDisconnectingIdInfo(int id) const
+{
+    World* w = World::getWorld();
+    FreeForAll* ffa_world = dynamic_cast<FreeForAll*>(w);
+    LinearWorld* linear_world = dynamic_cast<LinearWorld*>(w);
+    RemoteKartInfo& rki = RaceManager::get()->getKartInfo(id);
+    int points = 0;
+    m_game_info->m_player_info.emplace_back(true/* reserved */,
+                                            false/* game event*/);
+    std::swap(m_game_info->m_player_info.back(), m_game_info->m_player_info[id]);
+    auto& info = m_game_info->m_player_info.back();
+    if (RaceManager::get()->isBattleMode())
+    {
+        if (ffa_world)
+            points = ffa_world->getKartScore(id);
+        info.m_result += points;
+        if (ServerConfig::m_preserve_battle_scores)
+            m_game_info->m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())] = points;
+    }
+    info.m_when_left = stk_config->ticks2Time(w->getTicksSinceStart());
+    info.m_start_position = w->getStartPosition(id);
+    if (RaceManager::get()->isLinearRaceMode())
+    {
+        info.m_autofinish = 0;
+        info.m_fastest_lap = -1;
+        info.m_sog_time = -1;
+        if (linear_world)
+        {
+            info.m_fastest_lap = (double)linear_world->getFastestLapForKart(id);
+            info.m_sog_time = linear_world->getStartTimeForKart(id);
+        }
+        info.m_not_full = 1;
+        // If a player disconnects before the final screen but finished,
+        // don't set him as "quitting"
+        if (w->getKart(id)->hasFinishedRace())
+            info.m_not_full = 0;
+        if (info.m_not_full == 1)
+            info.m_result = info.m_when_left;
+        else
+            info.m_result = RaceManager::get()->getKartRaceTime(id);
+    }
+}   // saveDisconnectingIdInfo
+
+//-----------------------------------------------------------------------------
+std::string ServerLobby::getAvailableTeams() const
+{
+    if (RaceManager::get()->teamEnabled())
+        return "rb";
+
+    return m_available_teams;
+}   // getAvailableTeams
+
+//-----------------------------------------------------------------------------
+void ServerLobby::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team)
+{
+    // Used for soccer+CTF, where everything can be defined by KartTeam
+    profile->setTeam(team);
+    profile->setTemporaryTeam(TeamUtils::getIndexFromKartTeam(team));
+    m_team_for_player[StringUtils::wideToUtf8(profile->getName())] = profile->getTemporaryTeam();
+
+    checkNoTeamSpectator(profile->getPeer());
+}   // setTeamInLobby
+
+//-----------------------------------------------------------------------------
+void ServerLobby::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team)
+{
+    // Used for racing+FFA, where everything can be defined by a temporary team
+    profile->setTemporaryTeam(team);
+    if (RaceManager::get()->teamEnabled())
+        profile->setTeam((KartTeam)(TeamUtils::getKartTeamFromIndex(team)));
+    else
+        profile->setTeam(KART_TEAM_NONE);
+    m_team_for_player[StringUtils::wideToUtf8(profile->getName())] = profile->getTemporaryTeam();
+
+    checkNoTeamSpectator(profile->getPeer());
+}   // setTemporaryTeamInLobby
+
+//-----------------------------------------------------------------------------
+
+void ServerLobby::checkNoTeamSpectator(std::shared_ptr<STKPeer> peer)
+{
+    if (!peer)
+        return;
+    if (RaceManager::get()->teamEnabled())
+    {
+        bool has_teamed = false;
+        for (auto& other: peer->getPlayerProfiles())
+        {
+            if (other->getTeam() != KART_TEAM_NONE)
+            {
+                has_teamed = true;
+                break;
+            }
+        }
+
+        if (!has_teamed && peer->getAlwaysSpectate() == ASM_NONE)
+        {
+            setSpectateModeProperly(peer, ASM_NO_TEAM);
+        }
+        if (has_teamed && peer->getAlwaysSpectate() == ASM_NO_TEAM)
+        {
+            setSpectateModeProperly(peer, ASM_NONE);
+        }
+    }
+}   // checkNoTeamSpectator
+
+//-----------------------------------------------------------------------------
+void ServerLobby::setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode)
+{
+    auto state = m_state.load();
+    bool selection_started = (state >= ServerLobby::SELECTING);
+    bool no_racing_yet = (state < ServerLobby::RACING);
+
+    peer->setDefaultAlwaysSpectate(mode);
+    if (!selection_started || !no_racing_yet)
+        peer->setAlwaysSpectate(mode);
+    else
+    {
+        erasePeerReady(peer);
+        peer->setAlwaysSpectate(mode);
+        peer->setWaitingForGame(true);
+    }
+    if (mode == ASM_NONE)
+        checkNoTeamSpectator(peer);
+}   // setSpectateModeProperly
+
+//-----------------------------------------------------------------------------

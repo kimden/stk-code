@@ -23,7 +23,6 @@
 #include "states_screens/race_gui_base.hpp"
 #include "karts/abstract_kart.hpp"
 
-#include <IMesh.h>
 #include <string>
 
 class AbstractKart;
@@ -289,7 +288,11 @@ public:
     // ------------------------------------------------------------------------
     void setInitialCount(int red, int blue);
     // ------------------------------------------------------------------------
-    void tellCount() const;
+    std::pair<int, int> getCount() const;
+    // ------------------------------------------------------------------------
+    void tellCountToEveryoneInGame() const;
+    // ------------------------------------------------------------------------
+    void tellCount(std::shared_ptr<STKPeer> peer) const;
     // ------------------------------------------------------------------------
     void tellCountIfDiffers() const;
     // ------------------------------------------------------------------------

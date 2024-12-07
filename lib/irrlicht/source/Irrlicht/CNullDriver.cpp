@@ -947,8 +947,9 @@ const SLight& CNullDriver::getDynamicLight(u32 idx) const
 {
 	if ( idx < Lights.size() )
 		return Lights[idx];
-	else
-		return *((SLight*)0);
+        static const SLight defaultLight;
+        os::Printer::log("Error: CNullDriver::getDynamicLight was invoked with an invalid index.", ELL_ERROR);
+        return defaultLight;
 }
 
 
@@ -1298,15 +1299,19 @@ IImage* CNullDriver::createImageFromFile(io::IReadFile* file, video::IImageLoade
 	{
 		if (SurfaceLoader[i]->isALoadableFileExtension(file->getFileName()))
 		{
-			if (loader)
-			{
-				*loader = SurfaceLoader[i];
-				return 0;
-			}
-			// pass screen size to ImageLoaderSVG. For other formats (BMP,JPG,PNG), setScreenSize() does nothing
-			SurfaceLoader[i]->setScreenSize(getCurrentRenderTargetSize());
 			// reset file position which might have changed due to previous loadImage calls
 			file->seek(0);
+			if (loader)
+			{
+				if (SurfaceLoader[i]->isALoadableFileFormat(file))
+				{
+					file->seek(0);
+					*loader = SurfaceLoader[i];
+					return 0;
+				}
+				else
+					continue;
+			}
 			image = SurfaceLoader[i]->loadImage(file);
 			if (image)
 				return image;
@@ -1320,14 +1325,12 @@ IImage* CNullDriver::createImageFromFile(io::IReadFile* file, video::IImageLoade
 		file->seek(0);
 		if (SurfaceLoader[i]->isALoadableFileFormat(file))
 		{
+			file->seek(0);
 			if (loader)
 			{
 				*loader = SurfaceLoader[i];
 				return 0;
 			}
-			// pass screen size to ImageLoaderSVG. For other formats (BMP,JPG,PNG), setScreenSize() does nothing
-			SurfaceLoader[i]->setScreenSize(getCurrentRenderTargetSize());
-			file->seek(0);
 			image = SurfaceLoader[i]->loadImage(file);
 			if (image)
 				return image;
@@ -1358,7 +1361,7 @@ video::IImageLoader* CNullDriver::getImageLoaderForFile(const io::path& filename
 
 
 //! Writes the provided image to disk file
-bool CNullDriver::writeImageToFile(IImage* image, const io::path& filename,u32 param)
+bool CNullDriver::writeImageToFile(IImage* image, const io::path& filename, u32 param)
 {
 	io::IWriteFile* file = FileSystem->createAndWriteFile(filename);
 	if(!file)
@@ -1371,7 +1374,7 @@ bool CNullDriver::writeImageToFile(IImage* image, const io::path& filename,u32 p
 }
 
 //! Writes the provided image to a file.
-bool CNullDriver::writeImageToFile(IImage* image, io::IWriteFile * file, u32 param)
+bool CNullDriver::writeImageToFile(IImage* image, io::IWriteFile* file, u32 param)
 {
 	if(!file)
 		return false;
@@ -1392,7 +1395,7 @@ bool CNullDriver::writeImageToFile(IImage* image, io::IWriteFile * file, u32 par
 //! Creates a software image from a byte array.
 IImage* CNullDriver::createImageFromData(ECOLOR_FORMAT format,
 					const core::dimension2d<u32>& size,
-					void *data, bool ownForeignMemory,
+					void* data, bool ownForeignMemory,
 					bool deleteMemory)
 {
 	if(IImage::isRenderTargetOnlyFormat(format))
@@ -1419,7 +1422,7 @@ IImage* CNullDriver::createImage(ECOLOR_FORMAT format, const core::dimension2d<u
 
 
 //! Creates a software image from another image.
-IImage* CNullDriver::createImage(ECOLOR_FORMAT format, IImage *imageToCopy)
+IImage* CNullDriver::createImage(ECOLOR_FORMAT format, IImage* imageToCopy)
 {
 	os::Printer::log("Deprecated method, please create an empty image instead and use copyTo().", ELL_WARNING);
 	if(IImage::isRenderTargetOnlyFormat(format))

@@ -47,12 +47,15 @@ static std::vector<UserConfigParam*> g_server_params;
 
 #include <fstream>
 
+#include <IFileSystem.h>
+
 namespace ServerConfig
 {
 // ============================================================================
 std::string g_server_config_path[2];
 int m_server_config_level = 0;
 std::string m_server_uid;
+bool m_loaded_from_external_config = false;
 // ============================================================================
 FloatServerConfigParam::FloatServerConfigParam(float default_value,
                                                const char* param_name,
@@ -210,10 +213,13 @@ void writeServerConfigToDisk()
     const std::string& config_xml = getServerConfigXML();
     try
     {
+        // Save to a new file and rename later to avoid disk space problem, see #4709
         std::ofstream configfile(FileUtils::getPortableWritingPath(
-            g_server_config_path[0]), std::ofstream::out);
+            g_server_config_path[0] + "new"), std::ofstream::out);
         configfile << config_xml;
         configfile.close();
+        file_manager->removeFile(g_server_config_path[0]);
+        FileUtils::renameU8Path(g_server_config_path[0] + "new", g_server_config_path[0]);
     }
     catch (std::runtime_error& e)
     {
@@ -386,10 +392,10 @@ void loadServerLobbyFromConfig()
         // m_owner_less = false;
         m_official_karts_threshold = 1.0f;
         m_official_tracks_threshold = 0.0f;
-        m_addon_karts_threshold = 0;
-        m_addon_tracks_threshold = 0;
-        m_addon_arenas_threshold = 0;
-        m_addon_soccers_threshold = 0; // maybe 1 ?
+        m_addon_karts_join_threshold = 0;
+        m_addon_tracks_join_threshold = 0;
+        m_addon_arenas_join_threshold = 0;
+        m_addon_soccers_join_threshold = 0; // maybe 1 ?
         m_team_choosing = true;
         m_ranked = false;
         m_server_configurable = false;
@@ -401,7 +407,6 @@ void loadServerLobbyFromConfig()
         if (m_owner_less)
         {
             m_min_start_game_players = 1;
-            m_start_game_counter = 1000001;
         }
         else
         {
@@ -467,6 +472,7 @@ void loadServerLobbyFromConfig()
             m_time_limit_ctf.revertToDefaults();
         }
     }
+
     // The extra server info has to be set before the server lobby is started
     if (server_lobby)
         server_lobby->requestStart();

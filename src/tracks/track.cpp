@@ -23,10 +23,11 @@
 #include "audio/music_manager.hpp"
 #include "challenges/challenge_status.hpp"
 #include "challenges/unlock_manager.hpp"
+#include "config/favorite_track_status.hpp"
 #include "config/player_manager.hpp"
 #include "config/stk_config.hpp"
 #include "config/user_config.hpp"
-#include "graphics/camera_end.hpp"
+#include "graphics/camera/camera_end.hpp"
 #include "graphics/CBatchingMesh.hpp"
 #include "graphics/central_settings.hpp"
 #include "graphics/cpu_particle_manager.hpp"
@@ -79,18 +80,21 @@
 #include "tracks/track_object_manager.hpp"
 #include "utils/constants.hpp"
 #include "utils/log.hpp"
-#include "utils/mini_glm.hpp"
+#include "mini_glm.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
 #include <IBillboardTextSceneNode.h>
+#include <IFileSystem.h>
 #include <ILightSceneNode.h>
 #include <IMeshCache.h>
 #include <IMeshManipulator.h>
 #include <IMeshSceneNode.h>
 #include <ISceneManager.h>
+#include <IVideoDriver.h>
 #include <SMeshBuffer.h>
 
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
 #include <sstream>
@@ -139,6 +143,7 @@ Track::Track(const std::string &filename)
     m_screenshot            = "";
     m_version               = 0;
     m_track_mesh            = NULL;
+    m_height_map_mesh       = NULL;
     m_gfx_effect_mesh       = NULL;
     m_internal              = false;
     m_enable_auto_rescue    = true;  // Below set to false in arenas
@@ -176,6 +181,7 @@ Track::Track(const std::string &filename)
     m_minimap_y_scale       = 1.0f;
     m_force_disable_fog     = false;
     m_startup_run           = false;
+    m_music_idx             = 0;
     m_red_flag = m_blue_flag =
         btTransform(btQuaternion(0.0f, 0.0f, 0.0f, 1.0f));
     m_default_number_of_laps = 3;
@@ -207,12 +213,15 @@ bool Track::operator<(const Track &other) const
     PlayerProfile *p = PlayerManager::getCurrentPlayer();
     bool this_is_locked = p->isLocked(getIdent());
     bool other_is_locked = p->isLocked(other.getIdent());
-    if(this_is_locked == other_is_locked)
-    {
-        return getSortName() < other.getSortName();
-    }
-    else
+    bool this_is_favorite = p->isFavoriteTrack(getIdent());
+    bool other_is_favorite = p->isFavoriteTrack(other.getIdent());
+    // Locked tracks cannot be favorite, so favorites < normal < locked
+    if (this_is_favorite != other_is_favorite)
+        return this_is_favorite;
+    else if(this_is_locked != other_is_locked)
         return other_is_locked;
+    else
+        return getSortName() < other.getSortName();
 }   // operator<
 
 //-----------------------------------------------------------------------------
@@ -372,6 +381,9 @@ void Track::cleanup()
 #endif
     delete m_track_mesh;
     m_track_mesh = NULL;
+
+    delete m_height_map_mesh;
+    m_height_map_mesh = NULL;
 
     delete m_gfx_effect_mesh;
     m_gfx_effect_mesh = NULL;
@@ -604,16 +616,14 @@ void Track::loadTrackInfo()
         m_all_modes.push_back(tm);
     }
 
-    if(m_groups.size()==0) m_groups.push_back(DEFAULT_GROUP_NAME);
+    if(m_groups.size()==0) m_groups.push_back(FavoriteTrackStatus::DEFAULT_FAVORITE_GROUP_NAME);
     const XMLNode *xml_node = root->getNode("curves");
 
     if(xml_node) loadCurves(*xml_node);
 
     // Set the correct paths
     if (m_screenshot.length() > 0)
-    {
         m_screenshot = m_root+m_screenshot;
-    }
     delete root;
 
     std::string dir = StringUtils::getPath(m_filename);
@@ -709,6 +719,8 @@ void Track::getMusicInformation(std::vector<std::string>&       filenames,
             "Music information for track '%s' replaced by default music.\n",
             m_name.c_str());
     }
+    if (!m_music.empty())
+        m_music_idx = rand() % m_music.size();
 
 }   // getMusicInformation
 
@@ -719,7 +731,7 @@ void Track::startMusic() const
 {
     // In case that the music wasn't found (a warning was already printed)
     if(m_music.size()>0)
-        music_manager->startMusic(m_music[rand()% m_music.size()], false);
+        music_manager->startMusic(m_music[m_music_idx], false);
     else
         music_manager->clearCurrentMusic();
 }   // startMusic
@@ -841,8 +853,11 @@ void Track::mapPoint2MiniMap(const Vec3 &xyz, Vec3 *draw_at) const
  *  \param main_track_count The number of meshes that are already converted
  *         when the main track was converted. Only the additional meshes
  *         added later still need to be converted.
+ *  \param for_height_map Ignore physics only objects which can affect
+ *         height map calculation.
  */
-void Track::createPhysicsModel(unsigned int main_track_count)
+void Track::createPhysicsModel(unsigned int main_track_count,
+                               bool for_height_map)
 {
     // Remove the temporary track rigid body, and then convert all objects
     // (i.e. the track and all additional objects) into a new rigid body
@@ -862,44 +877,48 @@ void Track::createPhysicsModel(unsigned int main_track_count)
 
     // Now convert all objects that are only used for the physics
     // (like invisible walls).
-    for (unsigned int i = 0; i<m_static_physics_only_nodes.size(); i++)
+    if (!for_height_map)
     {
-        main_loop->renderGUI(5550, i, m_static_physics_only_nodes.size());
-
-        convertTrackToBullet(m_static_physics_only_nodes[i]);
-        if (UserConfigParams::m_physics_debug &&
-            m_static_physics_only_nodes[i]->getType() == scene::ESNT_MESH)
+        for (unsigned int i = 0; i<m_static_physics_only_nodes.size(); i++)
         {
-            const video::SColor color(255, 255, 105, 180);
+            main_loop->renderGUI(5550, i, m_static_physics_only_nodes.size());
 
-            scene::IMesh *mesh = ((scene::IMeshSceneNode*)m_static_physics_only_nodes[i])->getMesh();
-            scene::IMeshBuffer *mb = mesh->getMeshBuffer(0);
-            mb->getMaterial().BackfaceCulling = false;
-            video::S3DVertex * const verts = (video::S3DVertex *) mb->getVertices();
-            const u32 max = mb->getVertexCount();
-            for (i = 0; i < max; i++)
+            convertTrackToBullet(m_static_physics_only_nodes[i]);
+            if (UserConfigParams::m_physics_debug &&
+                m_static_physics_only_nodes[i]->getType() == scene::ESNT_MESH)
             {
-                verts[i].Color = color;
-            }
-        }
-        else
-            irr_driver->removeNode(m_static_physics_only_nodes[i]);
-    }
-    main_loop->renderGUI(5560);
-    if (!UserConfigParams::m_physics_debug)
-        m_static_physics_only_nodes.clear();
+                const video::SColor color(255, 255, 105, 180);
 
-    for (unsigned int i = 0; i<m_object_physics_only_nodes.size(); i++)
-    {
-        main_loop->renderGUI(5565, i, m_static_physics_only_nodes.size());
-        convertTrackToBullet(m_object_physics_only_nodes[i]);
-        m_object_physics_only_nodes[i]->setVisible(false);
-        m_object_physics_only_nodes[i]->grab();
-        irr_driver->removeNode(m_object_physics_only_nodes[i]);
+                scene::IMesh *mesh = ((scene::IMeshSceneNode*)m_static_physics_only_nodes[i])->getMesh();
+                scene::IMeshBuffer *mb = mesh->getMeshBuffer(0);
+                mb->getMaterial().BackfaceCulling = false;
+                video::S3DVertex * const verts = (video::S3DVertex *) mb->getVertices();
+                const u32 max = mb->getVertexCount();
+                for (i = 0; i < max; i++)
+                {
+                    verts[i].Color = color;
+                }
+            }
+            else
+                irr_driver->removeNode(m_static_physics_only_nodes[i]);
+        }
+        main_loop->renderGUI(5560);
+        if (!UserConfigParams::m_physics_debug)
+            m_static_physics_only_nodes.clear();
+
+        for (unsigned int i = 0; i<m_object_physics_only_nodes.size(); i++)
+        {
+            main_loop->renderGUI(5565, i, m_static_physics_only_nodes.size());
+            convertTrackToBullet(m_object_physics_only_nodes[i]);
+            m_object_physics_only_nodes[i]->setVisible(false);
+            m_object_physics_only_nodes[i]->grab();
+            irr_driver->removeNode(m_object_physics_only_nodes[i]);
+        }
     }
 
     m_track_mesh->removeAll();
-    m_gfx_effect_mesh->removeAll();
+    if (m_gfx_effect_mesh)
+        m_gfx_effect_mesh->removeAll();
     for(unsigned int i=main_track_count; i<m_all_nodes.size(); i++)
     {
         main_loop->renderGUI(5570, i, m_all_nodes.size());
@@ -907,9 +926,13 @@ void Track::createPhysicsModel(unsigned int main_track_count)
         uploadNodeVertexBuffer(m_all_nodes[i]);
     }
     main_loop->renderGUI(5580);
-    m_track_mesh->createPhysicalBody(m_friction);
+    if (for_height_map)
+        m_track_mesh->createCollisionShape();
+    else
+        m_track_mesh->createPhysicalBody(m_friction);
     main_loop->renderGUI(5585);
-    m_gfx_effect_mesh->createCollisionShape();
+    if (m_gfx_effect_mesh)
+        m_gfx_effect_mesh->createCollisionShape();
     main_loop->renderGUI(5590);
 
 }   // createPhysicsModel
@@ -917,7 +940,7 @@ void Track::createPhysicsModel(unsigned int main_track_count)
 // -----------------------------------------------------------------------------
 
 
-/** Convert the graohics track into its physics equivalents.
+/** Convert the graphics track into its physics equivalents.
  *  \param mesh The mesh to convert.
  *  \param node The scene node.
  */
@@ -1141,6 +1164,32 @@ void Track::convertTrackToBullet(scene::ISceneNode *node)
                     }   // for j
                 } // for matrix_index
             }
+            else if (mb->getVertexType() == video::EVT_SKINNED_MESH)
+            {
+                video::S3DVertexSkinnedMesh* mbVertices = (video::S3DVertexSkinnedMesh*)mb->getVertices();
+                for (unsigned int matrix_index = 0; matrix_index < matrices.size(); matrix_index++)
+                {
+                    for (unsigned int j = 0; j < mb->getIndexCount(); j += 3)
+                    {
+                        for (unsigned int k = 0; k < 3; k++)
+                        {
+                            int indx = mbIndices[j + k];
+                            core::vector3df v = mbVertices[indx].m_position;
+                            matrices[matrix_index].transformVect(v);
+                            vertices[k] = v;
+                            normals[k] = MiniGLM::decompressVector3(mbVertices[indx].m_normal);
+                        }   // for k
+
+                        if (tmesh)
+                        {
+                            tmesh->addTriangle(vertices[0], vertices[1],
+                                vertices[2], normals[0],
+                                normals[1], normals[2],
+                                material);
+                        }
+                    }   // for j
+                } // for matrix_index
+            }
         }
     }   // for i<getMeshBufferCount
 
@@ -1197,8 +1246,8 @@ void Track::updateMiniMapScale()
 bool Track::loadMainTrack(const XMLNode &root)
 {
     assert(m_track_mesh==NULL);
+    assert(m_height_map_mesh==NULL);
     assert(m_gfx_effect_mesh==NULL);
-
     m_challenges.clear();
 
     m_track_mesh      = new TriangleMesh(/*can_be_transformed*/false);
@@ -1216,13 +1265,18 @@ bool Track::loadMainTrack(const XMLNode &root)
                    "Main track model '%s' in '%s' not found, aborting.\n",
                    track_node->getName().c_str(), model_name.c_str());
     }
+    scene::IAnimatedMesh* an_mesh = dynamic_cast<scene::IAnimatedMesh*>(mesh);
+    bool ge_spm = false;
+    if (an_mesh && an_mesh->getMeshType() == scene::EAMT_SPM)
+        ge_spm = true;
 
     scene::ISceneNode* scene_node = NULL;
     scene::IMesh* tangent_mesh = NULL;
 #ifdef SERVER_ONLY
     if (false)
 #else
-    if (m_version < 7 && !CVS->isGLSL() && !GUIEngine::isNoGraphics())
+    if (m_version < 7 && !CVS->isGLSL() && !GUIEngine::isNoGraphics() &&
+        !ge_spm)
 #endif
     {
         // The mesh as returned does not have all mesh buffers with the same
@@ -1747,11 +1801,8 @@ static void recursiveUpdatePosition(scene::ISceneNode *node)
 {
     node->updateAbsolutePosition();
 
-    scene::ISceneNodeList::ConstIterator it = node->getChildren().begin();
-    for (; it != node->getChildren().end(); ++it)
-    {
-        recursiveUpdatePosition(*it);
-    }
+    for (unsigned i = 0; i < node->getChildren().size(); i++)
+        recursiveUpdatePosition(node->getChildren()[i]);
 }   // recursiveUpdatePosition
 
 // ----------------------------------------------------------------------------
@@ -2043,7 +2094,28 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
     loadObjects(root, path, model_def_loader, true, NULL, NULL);
     main_loop->renderGUI(5000);
 
-    Log::info("Track", "Overall scene complexity estimated at %d", irr_driver->getSceneComplexity());
+    // If the track is low complexity, increase distances for LoD nodes
+    // Scene complexity is not computed before LoD nodes are loaded, so
+    // instead we set a variable that will be used to update the distances
+    // later on.
+    float squared_multiplier = 1.0f;
+    if (irr_driver->getSceneComplexity() < 1500)
+    {
+        float ratio = 1.0f;
+        // Cap the potential effect
+        if (irr_driver->getSceneComplexity() < 100)
+            ratio = 15.0f;
+        else
+            ratio = 1500.0f / (float)(irr_driver->getSceneComplexity());
+
+        squared_multiplier = 0.3f + 0.7f * ratio;
+    }
+    irr_driver->setLODMultiplier(squared_multiplier);
+    // The LoD distances are stored squared in the node, therefore the real multiplier
+    // is the square root of the one that gets applied
+    Log::info("Track", "Overall scene complexity estimated at %d, Auto-LoD multiplier is %f",
+              irr_driver->getSceneComplexity(), sqrtf(squared_multiplier));
+
     // Correct the parenting of meta library
     for (auto& p : m_meta_library)
     {
@@ -2177,7 +2249,20 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
     for (auto* obj : objs_removing)
         m_track_object_manager->removeObject(obj);
 
-    createPhysicsModel(main_track_count);
+    if (!GUIEngine::isNoGraphics())
+    {
+        m_height_map_mesh = new TriangleMesh(/*can_be_transformed*/false);
+        m_height_map_mesh->copyFrom(*m_track_mesh);
+        TriangleMesh* gfx_effect_mesh = m_gfx_effect_mesh;
+        std::swap(m_track_mesh, m_height_map_mesh);
+        m_gfx_effect_mesh = NULL;
+        createPhysicsModel(main_track_count, true/*for_height_map*/);
+
+        std::swap(m_track_mesh, m_height_map_mesh);
+        std::swap(m_gfx_effect_mesh, gfx_effect_mesh);
+    }
+    createPhysicsModel(main_track_count, false/*for_height_map*/);
+
     main_loop->renderGUI(5600);
 
     freeCachedMeshVertexBuffer();
@@ -2295,11 +2380,6 @@ void Track::loadObjects(const XMLNode* root, const std::string& path,
         if (name == "track" || name == "default-start") continue;
         if (name == "object" || name == "library")
         {
-            int geo_level = 0;
-            node->get("geometry-level", &geo_level);
-            if (UserConfigParams::m_geometry_level + geo_level - 2 > 0 &&
-                !NetworkConfig::get()->isNetworking())
-                continue;
             m_track_object_manager->add(*node, parent, model_def_loader, parent_library);
         }
         else if (name == "water")
@@ -2446,6 +2526,19 @@ void Track::handleSky(const XMLNode &xml_node, const std::string &filename)
             else
 #endif   // !SERVER_ONLY
             {
+#ifndef SERVER_ONLY
+                if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
+                {
+                    io::path p = file_manager->searchTexture(v[i]).c_str();
+                    if (!p.empty())
+                    {
+                        io::path fullpath = file_manager->getFileSystem()
+                            ->getAbsolutePath(p).c_str();
+                        GE::getGEConfig()->m_ondemand_load_texture_paths.
+                            insert(fullpath.c_str());
+                    }
+                }
+#endif
                 video::ITexture* t = irr_driver->getTexture(v[i]);
                 if (t)
                 {
@@ -2682,6 +2775,7 @@ void Track::itemCommand(const XMLNode *node)
 
 std::vector< std::vector<float> > Track::buildHeightMap()
 {
+    assert(m_height_map_mesh != NULL);
     std::vector< std::vector<float> > out(HEIGHT_MAP_RESOLUTION);
 
     float x = m_aabb_min.getX();
@@ -2706,7 +2800,7 @@ std::vector< std::vector<float> > Track::buildHeightMap()
             btVector3 to = pos;
             to.setY(-100000.f);
 
-            m_track_mesh->castRay(pos, to, &hitpoint, &material, &normal);
+            m_height_map_mesh->castRay(pos, to, &hitpoint, &material, &normal);
             z += z_step;
 
             out[i][j] = hitpoint.getY();
@@ -2894,6 +2988,7 @@ void Track::copyFromMainProcess()
     }
 
     m_track_mesh = new TriangleMesh(/*can_be_transformed*/false);
+    m_height_map_mesh = NULL;
     m_gfx_effect_mesh = new TriangleMesh(/*can_be_transformed*/false);
     m_track_mesh->copyFrom(*main_track->m_track_mesh);
     m_gfx_effect_mesh->copyFrom(*main_track->m_gfx_effect_mesh);
@@ -2965,6 +3060,7 @@ video::IImage* Track::getSkyTexture(std::string path) const
         path = file_manager->getFileSystem()->getAbsolutePath(relative_path)
             .c_str();
     }
-    return GE::getResizedImage(path);
+    return GE::getResizedImage(path, irr_driver->getVideoDriver()
+        ->getDriverAttributes().getAttributeAsDimension2d("MAX_TEXTURE_SIZE"));
 #endif
 }   // getSkyTexture

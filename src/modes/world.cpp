@@ -24,12 +24,12 @@
 #include "config/player_manager.hpp"
 #include "challenges/unlock_manager.hpp"
 #include "config/user_config.hpp"
-#include "graphics/camera.hpp"
+#include "graphics/camera/camera.hpp"
 #include "graphics/central_settings.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/material.hpp"
 #include "graphics/material_manager.hpp"
-#include "graphics/render_info.hpp"
+#include <ge_render_info.hpp>
 #include "guiengine/modaldialog.hpp"
 #include "guiengine/screen_keyboard.hpp"
 #include "io/file_manager.hpp"
@@ -52,6 +52,7 @@
 #include "karts/kart_rewinder.hpp"
 #include "main_loop.hpp"
 #include "modes/overworld.hpp"
+#include "modes/tutorial_utils.hpp"
 #include "network/child_loop.hpp"
 #include "network/protocols/client_lobby.hpp"
 #include "network/network_config.hpp"
@@ -82,12 +83,8 @@
 #include "utils/translation.hpp"
 #include "utils/string_utils.hpp"
 
-#include <algorithm>
-#include <assert.h>
-#include <ctime>
-#include <sstream>
-#include <stdexcept>
-
+#include <IrrlichtDevice.h>
+#include <ISceneManager.h>
 
 World* World::m_world[PT_COUNT];
 
@@ -127,8 +124,6 @@ World* World::m_world[PT_COUNT];
  */
 World::World() : WorldStatus()
 {
-    if (m_process_type == PT_MAIN)
-        GUIEngine::getDevice()->setResizable(true);
     RewindManager::setEnable(NetworkConfig::get()->isNetworking());
 #ifdef DEBUG
     m_magic_number = 0xB01D6543;
@@ -322,7 +317,7 @@ void World::initTeamArrows(AbstractKart* k)
 
     KartModel* km = k->getKartModel();
     // Color of karts can be changed using shaders if the model supports
-    if (km->supportColorization() && CVS->isGLSL())
+    if (km->supportColorization() && CVS->supportsColorization())
         return;
 
     float arrow_pos_height = km->getHeight() + 0.5f;
@@ -463,7 +458,7 @@ std::shared_ptr<AbstractKart> World::createKart
     if (RaceManager::get()->hasGhostKarts())
         gk = ReplayPlay::get()->getNumGhostKart();
 
-    std::shared_ptr<RenderInfo> ri = std::make_shared<RenderInfo>();
+    std::shared_ptr<GE::GERenderInfo> ri = std::make_shared<GE::GERenderInfo>();
     core::stringw online_name;
     if (global_player_id > -1)
     {
@@ -474,7 +469,13 @@ std::shared_ptr<AbstractKart> World::createKart
     }
 
     int position           = index+1;
+
+    if (index - gk < 0)
+        Log::error("World",
+            "Attempt to create a kart with a ghost_kart index.");
+
     btTransform init_pos   = getStartTransform(index - gk);
+    m_kart_position_map[index] = (unsigned)(index - gk);
     std::shared_ptr<AbstractKart> new_kart;
     if (RewindManager::get()->isEnabled())
     {
@@ -607,7 +608,6 @@ World::~World()
 {
     if (m_process_type == PT_MAIN)
     {
-        GUIEngine::getDevice()->setResizable(false);
         material_manager->unloadAllTextures();
     }
 
@@ -945,19 +945,27 @@ void World::moveKartTo(AbstractKart* kart, const btTransform &transform)
 // ----------------------------------------------------------------------------
 void World::updateTimeTargetSound()
 {
-    if (RaceManager::get()->hasTimeTarget() && !RewindManager::get()->isRewinding())
+    if (RewindManager::get()->isRewinding())
+        return;
+
+    float time_left = getTime();;
+    if (RaceManager::get()->hasTimeTarget())
     {
-        float time_left = getTime();
         float time_target = RaceManager::get()->getTimeTarget();
         // In linear mode, the internal time still counts up even when displayed down.
         if (RaceManager::get()->isLinearRaceMode())
             time_left = time_target - time_left;
+    }
+    else if (!RaceManager::get()->isFollowMode())
+    {
+        return; // No Time Target and no FTL
+    }
 
-        if (time_left <= 5 && getTimeTicks() % stk_config->time2Ticks(1.0f) == 0 &&
-                !World::getWorld()->isRaceOver() && time_left > 0)
-        {
-                SFXManager::get()->quickSound("pre_start_race");
-        }
+    if (time_left <= (RaceManager::get()->isFollowMode() ? 3 : 5) &&
+            getTimeTicks() % stk_config->time2Ticks(1.0f) == 0 &&
+            !World::getWorld()->isRaceOver() && time_left > 0)
+    {
+        SFXManager::get()->quickSound("pre_start_race");
     }
 }  // updateTimeTargetSound
 
@@ -1004,7 +1012,6 @@ void World::updateWorld(int ticks)
     assert(m_magic_number == 0xB01D6543);
 #endif
 
-
     if (m_schedule_pause)
     {
         pause(m_scheduled_pause_phase);
@@ -1017,9 +1024,11 @@ void World::updateWorld(int ticks)
     }
 
     // Don't update world if a menu is shown or the race is over.
-    if (getPhase() == FINISH_PHASE ||
-        (!NetworkConfig::get()->isNetworking() &&
-        getPhase() == IN_GAME_MENU_PHASE))
+    // Exceptions : - Networking (local pause doesn't affect the server or other players)
+    //              - Benchmarking (a pause would mess up measurements)
+    if ((getPhase() == FINISH_PHASE) ||
+        ((getPhase() == IN_GAME_MENU_PHASE) &&
+        (!NetworkConfig::get()->isNetworking() || !RaceManager::get()->isBenchmarking())))
         return;
 
     try
@@ -1053,41 +1062,8 @@ void World::updateWorld(int ticks)
             if (m_schedule_tutorial)
             {
                 m_schedule_tutorial = false;
-                RaceManager::get()->setNumPlayers(1);
-                RaceManager::get()->setMajorMode (RaceManager::MAJOR_MODE_SINGLE);
-                RaceManager::get()->setMinorMode (RaceManager::MINOR_MODE_TUTORIAL);
-                RaceManager::get()->setNumKarts( 1 );
-                RaceManager::get()->setTrack( "tutorial" );
-                RaceManager::get()->setDifficulty(RaceManager::DIFFICULTY_EASY);
-                RaceManager::get()->setReverseTrack(false);
-
-                // Use keyboard 0 by default (FIXME: let player choose?)
-                InputDevice* device = input_manager->getDeviceManager()->getKeyboard(0);
-
-                // Create player and associate player with keyboard
-                StateManager::get()->createActivePlayer(PlayerManager::getCurrentPlayer(),
-                                                        device);
-
-                if (!kart_properties_manager->getKart(UserConfigParams::m_default_kart))
-                {
-                    Log::warn("[World]",
-                              "Cannot find kart '%s', will revert to default.",
-                              UserConfigParams::m_default_kart.c_str());
-                    UserConfigParams::m_default_kart.revertToDefaults();
-                }
-                RaceManager::get()->setPlayerKart(0, UserConfigParams::m_default_kart);
-
-                // ASSIGN should make sure that only input from assigned devices
-                // is read.
-                input_manager->getDeviceManager()->setAssignMode(ASSIGN);
-                input_manager->getDeviceManager()
-                    ->setSinglePlayer( StateManager::get()->getActivePlayer(0) );
-
                 delete this;
-
-                StateManager::get()->enterGameState();
-                RaceManager::get()->setupPlayerKartInfo();
-                RaceManager::get()->startNew(true);
+                TutorialUtils::startTutorial(true /*from overworld*/);
             }
             else
             {
@@ -1596,9 +1572,9 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     btTransform init_pos = getStartTransform(pos_index - 1);
     m_kart_position_map[index] = (unsigned)(pos_index - 1);
 
-    std::shared_ptr<RenderInfo> ri = std::make_shared<RenderInfo>();
-    ri = (team == KART_TEAM_BLUE ? std::make_shared<RenderInfo>(0.66f) :
-        std::make_shared<RenderInfo>(1.0f));
+    std::shared_ptr<GE::GERenderInfo> ri = std::make_shared<GE::GERenderInfo>();
+    ri = (team == KART_TEAM_BLUE ? std::make_shared<GE::GERenderInfo>(0.66f) :
+        std::make_shared<GE::GERenderInfo>(1.0f));
 
     std::shared_ptr<AbstractKart> new_kart;
     if (RewindManager::get()->isEnabled())

@@ -24,7 +24,7 @@
 #include "challenges/unlock_manager.hpp"
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
-#include "graphics/camera.hpp"
+#include "graphics/camera/camera.hpp"
 #include "graphics/2dutils.hpp"
 #ifndef SERVER_ONLY
 #include "graphics/glwrap.hpp"
@@ -55,6 +55,7 @@
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
+#include <IrrlichtDevice.h>
 #include <ISceneCollisionManager.h>
 #include <ISceneManager.h>
 using namespace irr;

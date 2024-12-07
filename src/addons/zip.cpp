@@ -24,6 +24,9 @@
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
 
+#include <IrrlichtDevice.h>
+#include <IFileSystem.h>
+#include <IReadFile.h>
 #include <IWriteFile.h>
 using namespace irr;
 using namespace io;

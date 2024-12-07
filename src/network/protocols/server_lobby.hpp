@@ -21,10 +21,14 @@
 
 #include "network/protocols/lobby_protocol.hpp"
 #include "utils/cpp2011.hpp"
+#include "utils/kart_elimination.hpp"
+#include "utils/team_utils.hpp"
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
-#include "utils/kart_elimination.hpp"
+#include "utils/map_vote_handler.hpp"
+#include "utils/hourglass_reason.hpp"
 #include "karts/controller/player_controller.hpp"
+#include "network/protocols/command_manager.hpp"
 
 #include "irrString.h"
 
@@ -38,16 +42,15 @@
 #include <set>
 #include <deque>
 
-#ifdef ENABLE_SQLITE3
-#include <sqlite3.h>
-#endif
-
 class BareNetworkString;
+class DatabaseConnector;
+class GameInfo;
 class NetworkItemManager;
 class NetworkString;
 class NetworkPlayerProfile;
 class STKPeer;
 class SocketAddress;
+enum AlwaysSpectateMode: uint8_t;
 
 namespace Online
 {
@@ -99,45 +102,12 @@ private:
         std::string m_country_code;
         bool m_tried = false;
     };
-    bool m_player_reports_table_exists;
 
 #ifdef ENABLE_SQLITE3
-    sqlite3* m_db;
-
-    std::string m_server_stats_table;
-
-    std::string m_results_table_name;
-
-    bool m_ip_ban_table_exists;
-
-    bool m_ipv6_ban_table_exists;
-
-    bool m_online_id_ban_table_exists;
-
-    bool m_ip_geolocation_table_exists;
-
-    bool m_ipv6_geolocation_table_exists;
-
-    uint64_t m_last_poll_db_time;
+    DatabaseConnector* m_db_connector;
 
     void pollDatabase();
-
-    bool easySQLQuery(const std::string& query,
-        std::function<void(sqlite3_stmt* stmt)> bind_function = nullptr) const;
-
-    std::pair<bool, std::vector<std::vector<std::string>>>
-        vectorSQLQuery(const std::string& query, int columns,
-        std::function<void(sqlite3_stmt* stmt)> bind_function = nullptr) const;
-
-    void checkTableExists(const std::string& table, bool& result);
-
-    std::string ip2Country(const SocketAddress& addr) const;
-
-    std::string ipv62Country(const SocketAddress& addr) const;
 #endif
-    void initDatabase();
-
-    void destroyDatabase();
 
     std::atomic<ServerState> m_state;
 
@@ -265,6 +235,8 @@ private:
 
     std::atomic<int> m_lobby_players;
 
+    std::atomic<int> m_current_ai_count;
+
     std::atomic<uint64_t> m_last_success_poll_time;
 
     uint64_t m_last_unsuccess_poll_time, m_server_started_at, m_server_delay;
@@ -290,6 +262,8 @@ private:
 
     std::vector<std::string> m_must_have_tracks;
 
+    std::vector<std::string> m_play_requirement_tracks;
+
     std::vector<std::string> m_tournament_must_have_tracks;
 
     bool m_restricting_config;
@@ -302,13 +276,15 @@ private:
 
     irr::core::stringw m_help_message;
 
-    std::string m_available_commands;
-
     std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;
 
     std::set<STKPeer*> m_team_speakers;
 
+    std::map<STKPeer*, int> m_why_peer_cannot_play;
+
     KartElimination m_kart_elimination;
+
+    MapVoteHandler m_map_vote_handler;
 
     std::set<int> m_available_difficulties;
 
@@ -348,25 +324,37 @@ private:
 
     std::string m_tournament_colors;
 
+    std::string m_tournament_votability;
+
     std::vector<std::string> m_tournament_arenas;
 
     std::vector<TrackFilter> m_tournament_track_filters;
 
     TrackFilter m_global_filter;
 
+    KartFilter m_global_karts_filter;
+
     std::set<std::string> m_temp_banned;
 
-    std::deque<std::string> m_tracks_queue;
+    std::deque<std::shared_ptr<Filter>> m_onetime_tracks_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_cyclic_tracks_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_onetime_karts_queue;
+
+    std::deque<std::shared_ptr<Filter>> m_cyclic_karts_queue;
+
+    std::vector<std::string> m_map_history;
 
     std::map<std::string, GPScore> m_gp_scores;
 
     std::map<int, GPScore> m_gp_team_scores;
 
-    std::vector<std::string> m_team_name;
-
     int m_tournament_game;
 
     int m_fixed_lap;
+
+    int m_fixed_direction;
 
     float m_extra_seconds;
 
@@ -376,17 +364,21 @@ private:
 
     std::string m_scoring_type;
 
-    std::set<STKPeer*> m_default_always_spectate_peers;
-
     std::set<std::string> m_usernames_white_list;
+
+    std::set<std::string> m_preserve;
 
     bool m_allowed_to_start;
 
     bool m_consent_on_replays;
-    
-    std::map<std::string, int> m_team_name_to_index;
 
     bool m_shuffle_gp;
+
+    std::string m_available_teams;
+
+    std::atomic<unsigned> m_current_max_players_in_game;
+
+    GameInfo* m_game_info;
 
 #ifdef ENABLE_WEB_SUPPORT
     std::set<std::string> m_web_tokens;
@@ -422,6 +414,9 @@ private:
     // trigger teammate hits anymore
     const float MAX_BOWL_TEAMMATE_HIT_TIME = 2.0f;
 
+    friend CommandManager;
+    CommandManager m_command_manager;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);
@@ -439,12 +434,12 @@ private:
     void unregisterServer(bool now,
         std::weak_ptr<ServerLobby> sl = std::weak_ptr<ServerLobby>());
     void updatePlayerList(bool update_when_reset_server = false);
-    void updateServerOwner();
+    void updateServerOwner(bool force = false);
     void handleServerConfiguration(Event* event);
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
     void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer) const;
+    bool checkPeersReady(bool ignore_ai_peer, bool before_start = false);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
@@ -533,7 +528,7 @@ private:
     bool canLiveJoinNow() const;
     bool worldIsActive() const;
     int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
-                      unsigned local_id) const;
+                      unsigned local_id);
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
@@ -542,29 +537,32 @@ private:
     void testBannedForIP(STKPeer* peer) const;
     void testBannedForIPv6(STKPeer* peer) const;
     void testBannedForOnlineId(STKPeer* peer, uint32_t online_id) const;
-    void getMessagesFromHost(STKPeer* peer, int online_id) const;
-    void writeDisconnectInfoTable(STKPeer* peer);
+    void getMessagesFromHost(STKPeer* peer, int online_id);
     void writePlayerReport(Event* event);
     bool supportsAI();
     void updateAddons();
     void initCategories();
     void initTournamentPlayers();
     void changeColors();
-    bool canRace(std::shared_ptr<STKPeer>& peer) const;
-    bool canRace(STKPeer* peer) const;
+    bool canRace(std::shared_ptr<STKPeer>& peer);
+    bool canRace(STKPeer* peer);
+    bool canVote(std::shared_ptr<STKPeer>& peer) const;
+    bool canVote(STKPeer* peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer>& peer) const;
     bool hasHostRights(STKPeer* peer) const;
-    std::vector<std::string> getMissingTournamentAssets(std::shared_ptr<STKPeer>& peer) const;
-    std::vector<std::string> getMissingTournamentAssets(STKPeer* peer) const;
+    std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer>& peer) const;
+    std::vector<std::string> getMissingAssets(STKPeer* peer) const;
     void loadTracksQueueFromConfig();
-    std::string getGrandPrixStandings() const;
-    void loadCustomScoring();
+    std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
+    bool loadCustomScoring(std::string& scoring);
     void updateWorldSettings();
     void loadWhiteList();
+    void loadPreservedSettings();
     void changeLimitForTournament(bool goal_target);
     bool tournamentGoalsLimit(int game) const;
     bool tournamentColorsSwapped(int game) const;
     void updateTournamentRole(STKPeer* peer);
+    CommandManager& getCommandManager();
 
     // bool tournamentHasIcy(int game) const;
 #ifdef ENABLE_WEB_SUPPORT
@@ -617,9 +615,15 @@ public:
         const std::string& info);
     // int getTrackMaxPlayers(std::string& name) const;
     void updateGnuElimination();
-    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const;
-    void sendStringToPeer(std::string& s, STKPeer* peer) const;
+    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer);
+    void sendStringToPeer(std::string& s, STKPeer* peer);
     void sendStringToAllPeers(std::string& s);
+    int getPermissions(std::shared_ptr<STKPeer>& peer) const;
+    int getPermissions(STKPeer* peer) const;
+    bool hasConsentOnReplays() const           { return m_consent_on_replays; }
+    void setConsentOnReplays(bool value)      { m_consent_on_replays = value; }
+    bool isSoccerGoalTarget() const;
+
 #ifdef ENABLE_SQLITE3
     std::string getRecord(std::string& track, std::string& mode,
         std::string& direction, int laps);
@@ -637,8 +641,42 @@ public:
     void handleAnvilHit(unsigned int ownerID, unsigned int victimID);
 
     void sendTeamMateHitMsg(std::string& s);
-    bool showTeamMateHits() const    { return m_show_teammate_hits; }
-    bool useTeamMateHitMode() const { return m_teammate_hit_mode; }
+    bool showTeamMateHits() const              { return m_show_teammate_hits; }
+    bool useTeamMateHitMode() const             { return m_teammate_hit_mode; }
+    bool isDifficultyAvailable(int difficulty) const
+                     { return m_available_difficulties.count(difficulty) > 0; }
+    bool isModeAvailable(int mode) const
+                                  { return m_available_modes.count(mode) > 0; }
+    void setTemporaryTeamInLobby(const std::string& username, int team);
+    void clearTemporaryTeams();
+    void shuffleTemporaryTeams(const std::map<int, int>& permutation);
+    void resetGrandPrix();
+    void erasePeerReady(std::shared_ptr<STKPeer> peer)
+                                                 { m_peers_ready.erase(peer); }
+    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
+    void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
+    bool areKartFiltersIgnoringKarts() const;
+    std::string getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const;
+    void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+                             std::shared_ptr<NetworkPlayerProfile> player,
+                             const std::string& type) const;
+
+    static int m_default_fixed_laps;
+    static int m_fixed_laps;
+    bool playerReportsTableExists() const;
+
+    void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
+    void saveDisconnectingIdInfo(int id) const;
+    std::string getInternalAvailableTeams() const { return m_available_teams; }
+    std::string getAvailableTeams() const;
+    void setInternalAvailableTeams(std::string& s)   { m_available_teams = s; }
+
+    // The functions below set *both* KartTeam and temporary team,
+    // depending on game mode; also reset/set ASM_NO_TEAM if needed.
+    void setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team);
+    void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
+    void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
+    void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

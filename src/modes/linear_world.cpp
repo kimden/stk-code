@@ -108,6 +108,7 @@ void LinearWorld::reset(bool restart)
 {
     WorldWithRank::reset(restart);
     m_finish_timeout = std::numeric_limits<float>::max();
+    m_worst_finish_time = std::numeric_limits<float>::max();
     m_last_lap_sfx_played  = false;
     m_last_lap_sfx_playing = false;
     m_fastest_lap_ticks    = INT_MAX;
@@ -421,17 +422,20 @@ void LinearWorld::newLap(unsigned int kart_index)
         }
         if(!m_last_lap_sfx_played && lap_count > 1)
         {
-            if (UserConfigParams::m_music)
+            if (UserConfigParams::m_sfx)
             {
                 m_last_lap_sfx->play();
                 m_last_lap_sfx_played = true;
                 m_last_lap_sfx_playing = true;
 
-                // In case that no music is defined
-                if(music_manager->getCurrentMusic() &&
-                    music_manager->getMasterMusicVolume() > 0.2f)
+                // Temporarily reduce the volume of the main music
+                // So that the last lap SFX can be heard
+                if(UserConfigParams::m_music &&
+                    music_manager->getCurrentMusic())
                 {
-                    music_manager->setTemporaryVolume(0.2f);
+                    // The parameter taken by SetTemporaryVolume is a factor
+                    // that gets multiplied with the master volume
+                    music_manager->setTemporaryVolume(0.5f);
                 }
             }
             else
@@ -508,7 +512,9 @@ void LinearWorld::newLap(unsigned int kart_index)
                 ServerConfig::m_auto_end &&
                 m_finish_timeout == std::numeric_limits<float>::max())
             {
-                m_finish_timeout = finish_time * 0.25f + 15.0f;
+                m_worst_finish_time = finish_time * 0.25f + 15.0f;
+                m_finish_timeout = m_worst_finish_time;
+                m_worst_finish_time += finish_time;
             }
             kart->finishedRace(finish_time);
         }
@@ -529,6 +535,14 @@ void LinearWorld::newLap(unsigned int kart_index)
             ticks_per_lap = kart_info.m_lap_start_ticks - getTimeTicks();
         else
             ticks_per_lap = getTimeTicks() - kart_info.m_lap_start_ticks;
+    }
+
+    if (raceHasLaps())
+    {
+        if (kart_info.m_finished_laps == 0)
+            kart_info.m_start_time = ticks_per_lap;
+        else if (kart_info.m_finished_laps > 0 && ticks_per_lap < kart_info.m_fastest_lap_ticks)
+            kart_info.m_fastest_lap_ticks = ticks_per_lap;
     }
 
     // if new fastest lap
@@ -1139,6 +1153,7 @@ void LinearWorld::serverCheckForWrongDirection(unsigned int i, float dt)
     if ((angle_diff > DEGREE_TO_RAD * 120.0f ||
         angle_diff < -DEGREE_TO_RAD * 120.0f) &&
         kart->getVelocityLC().getY() > 0.0f &&
+        std::fabs(kart->getSpeed()) > -ServerConfig::m_troll_max_stop_speed &&
         !kart->hasFinishedRace())
     {
         ki.m_wrong_way_timer += dt;

@@ -27,6 +27,7 @@
 #include "graphics/irr_driver.hpp"
 #include "guiengine/dialog_queue.hpp"
 #include "guiengine/scalable_font.hpp"
+#include "guiengine/widgets/button_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
 #include "guiengine/widgets/list_widget.hpp"
 #include "guiengine/widgets/ribbon_widget.hpp"
@@ -37,15 +38,16 @@
 #include "karts/kart_properties_manager.hpp"
 #include "main_loop.hpp"
 #include "modes/cutscene_world.hpp"
-#include "modes/overworld.hpp"
 #include "modes/demo_world.hpp"
+#include "modes/overworld.hpp"
+#include "modes/tutorial_utils.hpp"
 #include "network/network_config.hpp"
 #include "online/request_manager.hpp"
 #include "states_screens/addons_screen.hpp"
 #include "states_screens/credits.hpp"
 #include "states_screens/cutscene_general.hpp"
 #include "states_screens/grand_prix_editor_screen.hpp"
-#include "states_screens/help_screen_1.hpp"
+#include "states_screens/help/help_screen_1.hpp"
 #include "states_screens/high_score_selection.hpp"
 #include "states_screens/offline_kart_selection.hpp"
 #include "states_screens/online/online_profile_achievements.hpp"
@@ -68,6 +70,7 @@
 
 #include <string>
 
+#include <IrrlichtDevice.h>
 
 using namespace GUIEngine;
 using namespace Online;
@@ -76,7 +79,6 @@ using namespace Online;
 
 MainMenuScreen::MainMenuScreen() : Screen("main_menu.stkgui")
 {
-    m_resizable = true;
 }   // MainMenuScreen
 
 // ----------------------------------------------------------------------------
@@ -84,7 +86,7 @@ MainMenuScreen::MainMenuScreen() : Screen("main_menu.stkgui")
 void MainMenuScreen::loadedFromFile()
 {
     LabelWidget* w = getWidget<LabelWidget>("info_addons");
-    w->setScrollSpeed(GUIEngine::getFontHeight() / 2);
+    w->setScrollSpeed(0.5f);
     
     RibbonWidget* rw_top = getWidget<RibbonWidget>("menu_toprow");
     assert(rw_top != NULL);
@@ -123,7 +125,6 @@ void MainMenuScreen::beforeAddingWidget()
 //
 void MainMenuScreen::init()
 {
-    GUIEngine::getDevice()->setResizable(true);
     Screen::init();
 
     m_user_id = getWidget<ButtonWidget>("user-id");
@@ -158,9 +159,66 @@ void MainMenuScreen::init()
         w->setBadge(LOADING_BADGE);
     }
 
+    // Initialize news iteration, show dialog when there's important news
+    NewsManager::get()->resetNewsPtr(NewsManager::NTYPE_MAINMENU);
+
+    core::stringw important_message = L"";
+    int news_len = NewsManager::get()->getNewsCount(NewsManager::NTYPE_MAINMENU);
+    int chosen_id = -1;
+
+    // Iterate through every news
+    // Find the unread important message with smallest id
+    while (news_len--)
+    {
+        int id = NewsManager::get()->getNextNewsID(NewsManager::NTYPE_MAINMENU);
+
+        if (NewsManager::get()->isCurrentNewsImportant(NewsManager::NTYPE_MAINMENU)
+            && (id < chosen_id || chosen_id == -1)
+            && id > UserConfigParams::m_last_important_message_id)
+        {
+            chosen_id = id;
+            important_message = 
+                NewsManager::get()->getCurrentNewsMessage(NewsManager::NTYPE_MAINMENU);
+        }
+    }
+    if (chosen_id != -1)
+    {
+        UserConfigParams::m_last_important_message_id = chosen_id;
+        new MessageDialog(important_message,
+                        MessageDialog::MESSAGE_DIALOG_OK,
+                        NULL, true);
+    }   // if important_message
+
+    // Back to the first news
+    NewsManager::get()->getNextNewsID(NewsManager::NTYPE_MAINMENU);
+
+    // Check if there's new news
+
+    IconButtonWidget* online_icon = getWidget<IconButtonWidget>("online");
+    if (online_icon != NULL)
+    {
+        NewsManager::get()->resetNewsPtr(NewsManager::NTYPE_LIST);
+        online_icon->resetAllBadges();
+
+        int news_list_len = NewsManager::get()->getNewsCount(NewsManager::NTYPE_LIST);
+
+        while (news_list_len--)
+        {
+            int id = NewsManager::get()->getNextNewsID(NewsManager::NTYPE_LIST);
+
+            if (UserConfigParams::m_news_list_shown_id < id)
+            {
+                online_icon->setBadge(REDDOT_BADGE);
+            }
+        }
+        
+        // Back to the first news
+        NewsManager::get()->getNextNewsID(NewsManager::NTYPE_LIST);
+    }
+
+    m_news_text = L"";
     LabelWidget* w = getWidget<LabelWidget>("info_addons");
-    const core::stringw &news_text = NewsManager::get()->getNextNewsMessage();
-    w->setText(news_text, true);
+    w->setText(m_news_text, true);
     w->update(0.01f);
 #endif
 
@@ -217,12 +275,35 @@ void MainMenuScreen::onUpdate(float delta)
     }
 
     LabelWidget* w = getWidget<LabelWidget>("info_addons");
-    w->update(delta);
-    if(w->scrolledOff())
+    
+    if (w->getText().empty() || w->scrolledOff())
     {
-        const core::stringw &news_text = NewsManager::get()->getNextNewsMessage();
-        w->setText(news_text, true);
+        // Show important messages seperately
+        // Concatrate adjacent unimportant messages together
+        m_news_text = L"";
+        
+        int news_count = NewsManager::get()->getNewsCount(NewsManager::NTYPE_MAINMENU);
+
+        while (news_count--)
+        {
+            bool important = NewsManager::get()->isCurrentNewsImportant(NewsManager::NTYPE_MAINMENU);
+            if (!m_news_text.empty())
+            {
+                m_news_text += "  +++  ";
+            }
+            m_news_text += NewsManager::get()->getCurrentNewsMessage(NewsManager::NTYPE_MAINMENU);
+
+            NewsManager::get()->getNextNewsID(NewsManager::NTYPE_MAINMENU);
+
+            if (important || NewsManager::get()->isCurrentNewsImportant(NewsManager::NTYPE_MAINMENU))
+            {
+                break;
+            }
+        }
+
+        w->setText(m_news_text, true);
     }
+    w->update(delta);
 
     PlayerProfile *player = PlayerManager::getCurrentPlayer();
     if (!player)
@@ -254,7 +335,7 @@ void MainMenuScreen::onUpdate(float delta)
         virtual void onConfirm()
         {
             GUIEngine::ModalDialog::dismiss();
-            MainMenuScreen::getInstance()->startTutorial();
+            TutorialUtils::startTutorial();
         }   // onConfirm
     };   // PlayTutorial
 
@@ -266,41 +347,6 @@ void MainMenuScreen::onUpdate(float delta)
         false/*closes_any_dialog*/);
 #endif
 }   // onUpdate
-
-// ----------------------------------------------------------------------------
-void MainMenuScreen::startTutorial()
-{
-    RaceManager::get()->setNumPlayers(1);
-    RaceManager::get()->setMajorMode (RaceManager::MAJOR_MODE_SINGLE);
-    RaceManager::get()->setMinorMode (RaceManager::MINOR_MODE_TUTORIAL);
-    RaceManager::get()->setNumKarts( 1 );
-    RaceManager::get()->setTrack("tutorial");
-    RaceManager::get()->setDifficulty(RaceManager::DIFFICULTY_EASY);
-    RaceManager::get()->setReverseTrack(false);
-
-    // Use the last used device
-    InputDevice* device = input_manager->getDeviceManager()->getLatestUsedDevice();
-
-    // Create player and associate player with device
-    StateManager::get()->createActivePlayer(PlayerManager::getCurrentPlayer(), device);
-
-    if (kart_properties_manager->getKart(UserConfigParams::m_default_kart) == NULL)
-    {
-        Log::warn("MainMenuScreen", "Cannot find kart '%s', will revert to default",
-            UserConfigParams::m_default_kart.c_str());
-        UserConfigParams::m_default_kart.revertToDefaults();
-    }
-    RaceManager::get()->setPlayerKart(0, UserConfigParams::m_default_kart);
-
-    // ASSIGN should make sure that only input from assigned devices is read
-    input_manager->getDeviceManager()->setAssignMode(ASSIGN);
-    input_manager->getDeviceManager()
-        ->setSinglePlayer( StateManager::get()->getActivePlayer(0) );
-
-    StateManager::get()->enterGameState();
-    RaceManager::get()->setupPlayerKartInfo();
-    RaceManager::get()->startNew(false);
-}   // startTutorial
 
 // ----------------------------------------------------------------------------
 
@@ -505,7 +551,7 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
     }
     else if (selection == "startTutorial")
     {
-        startTutorial();
+        TutorialUtils::startTutorial();
     }
     else if (selection == "story")
     {
@@ -606,7 +652,6 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
 
 void MainMenuScreen::tearDown()
 {
-    GUIEngine::getDevice()->setResizable(false);
 }   // tearDown
 
 // ----------------------------------------------------------------------------

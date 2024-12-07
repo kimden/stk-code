@@ -27,6 +27,7 @@
 #include "io/xml_node.hpp"
 #include "online/online_player_profile.hpp"
 #include "race/race_manager.hpp"
+#include "utils/file_utils.hpp"
 #include "utils/log.hpp"
 #include "utils/translation.hpp"
 
@@ -250,7 +251,8 @@ void PlayerManager::save()
     std::string filename = file_manager->getUserConfigFile("players.xml");
     try
     {
-        UTFWriter players_file(filename.c_str(), false);
+        // Save to a new file and rename later to avoid disk space problem, see #4709
+        UTFWriter players_file((filename + "new").c_str(), false);
 
         players_file << "<?xml version=\"1.0\"?>\n";
         players_file << "<players version=\"1\" >\n";
@@ -269,6 +271,8 @@ void PlayerManager::save()
         }
         players_file << "</players>\n";
         players_file.close();
+        file_manager->removeFile(filename);
+        FileUtils::renameU8Path(filename + "new", filename);
     }
     catch (std::runtime_error& e)
     {
@@ -476,7 +480,9 @@ void PlayerManager::setCurrentPlayer(PlayerProfile *player)
 
     m_current_player = player;
     if(m_current_player)
+    {
         m_current_player->computeActive();
+    }
 
     if (player_has_changed)
         story_mode_timer->playerHasChanged();
