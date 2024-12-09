@@ -7,11 +7,9 @@ This repository contains a **modified** version of SuperTuxKart (STK), mainly in
 
 ## Important branches
 
-* [master](https://github.com/kimden/stk-code/): contains an old but stable version, which cannot be suddenly broken by recent commits (as almost all of them are currently in `command-manager-prototype` branch).
+* [master](https://github.com/kimden/stk-code/): contains the latest version. For a few years, it contained old commits, while new commits were on `command-manager-prototype` branch. Use this branch if you want to deploy your own server.
 
-* [command-manager-prototype](https://github.com/kimden/stk-code/tree/command-manager-prototype): contains all the latest commits, starting from introduction of command manager. As there are too many commits already, it will be merged into `master` branch soon, but not before the long-term database structure and similar important things are defined.
-
-* [command-manager-2x](https://github.com/kimden/stk-code/tree/command-manager-2x): the branch combining `command-manager-prototype` and [BalanceSTK2](https://github.com/Alayan-stk-2/stk-code/tree/BalanceSTK2), which is currently the source code of 2.X development version. This branch might not have the latest commits, its purpose is to store game results while testing 2.X version.
+* [command-manager-2x](https://github.com/kimden/stk-code/tree/command-manager-2x): the branch combining `command-manager-prototype` and [BalanceSTK2](https://github.com/Alayan-stk-2/stk-code/tree/BalanceSTK2), which is currently the source code of 2.X development version. This branch might not have the latest commits, its purpose is to store game results while testing 2.X version. It will be changed to have commits from `master` instead of `command-manager-prototype`, which is now deprecated.
 
 * [local-client](https://github.com/kimden/stk-code/tree/local-client): the version of client with some optimizations and edits, used by kimden. For now, this is the only branch of this repo that is really intended for client-side usage.
 
