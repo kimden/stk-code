@@ -329,11 +329,11 @@ public:
         m_default_always_spectate.store(mode);
     }
     // ------------------------------------------------------------------------
-    bool alwaysSpectate() const
-                               { return m_always_spectate.load() != ASM_NONE; }
-    // ------------------------------------------------------------------------
     AlwaysSpectateMode getAlwaysSpectate() const
                        { return (AlwaysSpectateMode)m_always_spectate.load(); }
+    // ------------------------------------------------------------------------
+    bool alwaysSpectate() const
+                               { return m_always_spectate.load() != ASM_NONE; }
     // ------------------------------------------------------------------------
     bool isCommandSpectator() const
                             { return m_always_spectate.load() == ASM_COMMAND; }

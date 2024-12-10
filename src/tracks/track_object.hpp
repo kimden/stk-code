@@ -66,7 +66,7 @@ private:
 
     TrackObjectPresentation* m_presentation;
 
-	std::string m_name;
+    std::string m_name;
 
     std::string m_id;
 
@@ -164,13 +164,13 @@ public:
     // ------------------------------------------------------------------------
     const std::string& getType() const { return m_type; }
     // ------------------------------------------------------------------------
-	const std::string getName() const { return m_name; }
+    const std::string getName() const { return m_name; }
     // ------------------------------------------------------------------------
     const std::string getID() const { return m_id; }
     // ------------------------------------------------------------------------
     const std::string getInteraction() const { return m_interaction; }
     // ------------------------------------------------------------------------
-	bool isEnabled() const { return m_enabled; }
+    bool isEnabled() const { return m_enabled; }
     // ------------------------------------------------------------------------
     bool isSoccerBall() const { return m_soccer_ball; }
     // ------------------------------------------------------------------------

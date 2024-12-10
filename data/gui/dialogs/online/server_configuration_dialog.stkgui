@@ -42,6 +42,79 @@
 
             <spacer height="1%" width="20"/>
 
+            <div width="100%" height="fit" layout="horizontal-row">
+                <div proportion="1" height="fit" layout="horizontal-row">
+                    <spinner id="fuel-spinner" width="100%" min_value="1" max_value="1000" align="center"
+                             wrap_around="true" />
+                </div>
+                <label id="fuel-label" proportion="3" I18N="In the track info screen" text="Starting E" text_align="left" />
+            </div>
+
+            <div width="100%" height="fit" layout="horizontal-row">
+                <div width="50%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="fuel-regen-spinner" width="100%" min_value="0" max_value="1000" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="fuel-regen-label" proportion="3" I18N="In the track info screen" text="Regen E" text_align="left" />
+                </div>
+
+                <div width="50%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="fuel-stop-spinner" width="100%" min_value="0" max_value="1000" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="fuel-stop-label" proportion="3" I18N="In the track info screen" text="Pitstop E" text_align="left" />
+                </div>
+            </div>
+
+            <div width="100%" height="fit" layout="horizontal-row">
+                <div width="50%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="fuel-weight-spinner" width="100%" min_value="0" max_value="100" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="fuel-weight-label" proportion="3" I18N="In the track info screen" text="E weight" text_align="left" />
+                </div>
+
+                <div width="50%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="fuel-rate-spinner" width="100%" min_value="0" max_value="1000" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="fuel-rate-label" proportion="3" I18N="In the track info screen" text="E Rate" text_align="left" />
+                </div>
+            </div>
+
+            <div width="100%" height="fit" layout="horizontal-row">
+                <div width="33%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="allowed-compound-1-spinner" width="100%" min_value="-1" max_value="50" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="allowed-compound-1-label" proportion="3" I18N="In the track info screen" text="S alloc:" text_align="left" />
+                </div>
+
+                <div width="33%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="allowed-compound-2-spinner" width="100%" min_value="-1" max_value="50" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="allowed-compound-2-label" proportion="3" I18N="In the track info screen" text="M alloc:" text_align="left" />
+                </div>
+
+                <div width="33%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="allowed-compound-3-spinner" width="100%" min_value="-1" max_value="50" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="allowed-compound-3-label" proportion="3" I18N="In the track info screen" text="H alloc:" text_align="left" />
+                </div>
+            </div>
+
+            <spacer height="1%" width="20"/>
+
+
             <buttonbar id="options" x="0" y="0" width="40%" height="18%" align="center">
                 <icon-button id="cancel" width="64" height="64" icon="gui/icons/red_x.png"
                              I18N="In the server configuration screen" text="Cancel" label_location="bottom"/>

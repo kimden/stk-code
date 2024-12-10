@@ -666,12 +666,18 @@ bool KartProperties::operator<(const KartProperties &other) const
     PlayerProfile *p = PlayerManager::getCurrentPlayer();
     bool this_is_locked = p->isLocked(getIdent());
     bool other_is_locked = p->isLocked(other.getIdent());
-    if (this_is_locked == other_is_locked)
+    bool this_is_favorite = p->isFavoriteKart(getNonTranslatedName());
+    bool other_is_favorite = p->isFavoriteKart(other.getNonTranslatedName());
+
+    if (this_is_locked != other_is_locked)
     {
-        return getName() < other.getName();
-    }
-    else
         return other_is_locked;
+    }
+    else if (this_is_favorite != other_is_favorite)
+    {
+        return this_is_favorite;
+    }
+    else return getName() < other.getName();
 
     return true;
 }  // operator<
@@ -1276,19 +1282,25 @@ InterpolationArray KartProperties::getTyresResponseCurveTopspeed() const
 }  // getTyresResponseCurveTopspeed
 
 // ----------------------------------------------------------------------------
-bool KartProperties::getTyresDoSubstractiveTurning() const
+std::vector<float> KartProperties::getTyresDoGripBasedTurning() const
+{
+    return m_cached_characteristic->getTyresDoGripBasedTurning();
+}  // getTyresDoGripBasedTurning
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresDoSubstractiveTurning() const
 {
     return m_cached_characteristic->getTyresDoSubstractiveTurning();
 }  // getTyresDoSubstractiveTurning
 
 // ----------------------------------------------------------------------------
-bool KartProperties::getTyresDoSubstractiveTraction() const
+std::vector<float> KartProperties::getTyresDoSubstractiveTraction() const
 {
     return m_cached_characteristic->getTyresDoSubstractiveTraction();
 }  // getTyresDoSubstractiveTraction
 
 // ----------------------------------------------------------------------------
-bool KartProperties::getTyresDoSubstractiveTopspeed() const
+std::vector<float> KartProperties::getTyresDoSubstractiveTopspeed() const
 {
     return m_cached_characteristic->getTyresDoSubstractiveTopspeed();
 }  // getTyresDoSubstractiveTopspeed
@@ -1340,6 +1352,12 @@ std::vector<float> KartProperties::getTyresCrashPenalty() const
 {
     return m_cached_characteristic->getTyresCrashPenalty();
 }  // getTyresCrashPenalty
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresDefaultColor() const
+{
+    return m_cached_characteristic->getTyresDefaultColor();
+}  // getTyresDefaultColor
 
 // ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getStartupTime() const

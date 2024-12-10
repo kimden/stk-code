@@ -333,13 +333,13 @@ void NetworkItemManager::restoreState(BareNetworkString *buffer, int count)
 
     // 1) Apply all events to current confirmed state:
     // -----------------------------------------------
-	World *world = World::getWorld();
+    World *world = World::getWorld();
 
-	// The world clock was set by the RewindManager to be the time
-	// of the state we are rewinding to. But the confirmed state of
+    // The world clock was set by the RewindManager to be the time
+    // of the state we are rewinding to. But the confirmed state of
     // the network manager is before this (we are replaying item events
     // since the last confirmed state in order to get a new confirmed state).
-	// So we need to reset the clock to the time of the confirmed state,
+    // So we need to reset the clock to the time of the confirmed state,
     // and then forward this time accordingly. Getting the world time right
     // during forwarding the item state is important since e.g. the bubble
     // gum torque depends on the time. If the world time would be incorrect

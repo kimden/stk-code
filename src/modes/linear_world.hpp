@@ -43,6 +43,10 @@ private:
 
     bool         m_last_lap_sfx_playing;
 
+    int m_last_local_index;
+    float m_last_local_lap;
+    int m_last_local_position;
+
     /** True if clients and server has the same check structure. */
     bool         m_check_structure_compatible;
 

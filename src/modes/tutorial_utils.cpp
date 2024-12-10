@@ -27,8 +27,8 @@
 
 namespace TutorialUtils
 {
-	void startTutorial(bool from_overworld)
-	{
+    void startTutorial(bool from_overworld)
+    {
         RaceManager::get()->setNumPlayers(1);
         RaceManager::get()->setMajorMode (RaceManager::MAJOR_MODE_SINGLE);
         RaceManager::get()->setMinorMode (RaceManager::MINOR_MODE_TUTORIAL);
@@ -37,11 +37,11 @@ namespace TutorialUtils
         RaceManager::get()->setDifficulty(RaceManager::DIFFICULTY_EASY);
         RaceManager::get()->setReverseTrack(false);
 
-    	// Use the last used device
-    	InputDevice* device = input_manager->getDeviceManager()->getLatestUsedDevice();
+        // Use the last used device
+        InputDevice* device = input_manager->getDeviceManager()->getLatestUsedDevice();
 
-    	// Create player and associate player with device
-    	StateManager::get()->createActivePlayer(PlayerManager::getCurrentPlayer(), device);
+        // Create player and associate player with device
+        StateManager::get()->createActivePlayer(PlayerManager::getCurrentPlayer(), device);
 
         if (kart_properties_manager->getKart(UserConfigParams::m_default_kart) == NULL)
         {
@@ -58,5 +58,5 @@ namespace TutorialUtils
         StateManager::get()->enterGameState();
         RaceManager::get()->setupPlayerKartInfo();
         RaceManager::get()->startNew(from_overworld);
-	}
+    }
 }

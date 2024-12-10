@@ -22,6 +22,8 @@
                         I18N="Tab in help menu" text="Kart classes"/>
                 <icon-button id="page7" width="128" height="128" icon="gui/icons/options_input.png"
                         I18N="Tab in help menu" text="Multiplayer"/>
+                <icon-button id="page8" width="128" height="128" icon="gui/icons/options_general.png"
+                        I18N="Tab in help menu" text="Tyres"/>
             </vertical-tabs>
 
             <spacer width="2%" height="100%"/>

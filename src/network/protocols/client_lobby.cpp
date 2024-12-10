@@ -62,6 +62,7 @@
 #include "online/xml_request.hpp"
 #include "states_screens/dialogs/addons_pack.hpp"
 #include "states_screens/dialogs/message_dialog.hpp"
+#include "states_screens/dialogs/kart_color_slider_dialog.hpp"
 #include "states_screens/online/networking_lobby.hpp"
 #include "states_screens/online/network_kart_selection.hpp"
 #include "states_screens/online/tracks_screen.hpp"
@@ -725,12 +726,26 @@ void ClientLobby::handleServerInfo(Event* event)
 
     NetworkString &data = event->data();
     // Add server info
-    uint8_t u_data;
     data.decodeStringW(&str);
     str.removeChars(L"\n\r\t");
 
     NetworkingLobby::getInstance()->setHeader(str);
 
+    float fuel_info[5];
+    fuel_info[0] = data.getFloat();
+    fuel_info[1] = data.getFloat();
+    fuel_info[2] = data.getFloat();
+    fuel_info[3] = data.getFloat();
+    fuel_info[4] = data.getFloat();
+
+    int compound_amount[3];
+    compound_amount[0] = data.getUInt8()-1;
+    compound_amount[1] = data.getUInt8()-1;
+    compound_amount[2] = data.getUInt8()-1;
+
+    RaceManager::get()->setFuelAndQueueInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4], compound_amount[0], compound_amount[1], compound_amount[2]);
+
+    uint8_t u_data;
     u_data = data.getUInt8();
     const core::stringw& difficulty_name =
         RaceManager::get()->getDifficultyName((RaceManager::Difficulty)u_data);
@@ -1681,6 +1696,13 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         }
         if (m_background_download.joinable())
             m_background_download.join();
+    }
+    else if (argv[0] == "changecolor" && argv.size() == 2) {
+        float new_hue = std::stof(argv[1])/100.0f;
+        PlayerManager::getCurrentPlayer()->setDefaultKartColor(new_hue);
+        NetworkString change_color(PROTOCOL_LOBBY_ROOM);
+        change_color.addUInt8(LobbyProtocol::LE_CHANGE_COLOR).addUInt8(/*PlayerManager::getCurrentPlayer()->getLocalPlayerId()*/0).addFloat(new_hue);
+        STKHost::get()->sendToServer(&change_color, true/*reliable*/);
     }
     else if (argv[0] == "installaddon" && argv.size() == 2)
         AddonsPack::install(argv[1]);

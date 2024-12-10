@@ -2,6 +2,7 @@
 //  SuperTuxKart - a fun racing game with go-kart
 //  Copyright (C) 2004-2015 Steve Baker <sjbaker1@airmail.net>
 //  Copyright (C) 2006-2015 SuperTuxKart-Team, Joerg Henrichs, Steve Baker
+//  Copyright (C) 2024 Nomagno
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,9 +29,11 @@
 
 #include <memory>
 #include <SColor.h>
+#include <ge_render_info.hpp>
 
 #include "items/powerup_manager.hpp"    // For PowerupType
 #include "karts/controller/kart_control.hpp"
+#include "karts/kart_model.hpp"
 #include "karts/moveable.hpp"
 #include "LinearMath/btTransform.h"
 #include "race/race_manager.hpp"
@@ -408,7 +411,18 @@ public:
     /** Handles speed increase and capping due to powerup, terrain, ... */
     MaxSpeed *m_max_speed;
 
+
+    bool m_is_refueling;
+    float m_target_refuel;
     Tyres *m_tyres;
+    /** Format of each tuple: age in laps, life turning, life traction, temperature
+        There can be multiple in the queue, and there's a queue for each compound*/
+    std::vector<int> m_tyres_queue;
+    bool m_is_under_tme_ruleset;
+    bool m_is_disqualified;
+    float m_initial_color;
+
+    
     const core::stringw& getName() const { return m_name; }
 
     /** Returns the index of this kart in world. */
@@ -659,6 +673,10 @@ public:
     // ------------------------------------------------------------------------
     /** Returns this kart's kart model. */
     KartModel* getKartModel() const { return m_kart_model.get();      }
+
+    /** Returns this kart's kart model. */
+    void setKartColor(float f) { return m_kart_model.get()->getRenderInfo()->setHue(f) ;      }
+
     // ------------------------------------------------------------------------
     /** Returns the length of the kart. */
     float getKartLength() const { return m_kart_length; }
@@ -693,6 +711,7 @@ public:
 
     // ========================================================================================
     // NITRO related functions.
+    float getMass() const;
     // ----------------------------------------------------------------------------------------
     /** Returns the remaining collected energy. */
     virtual float getEnergy() const { return m_collected_energy; }

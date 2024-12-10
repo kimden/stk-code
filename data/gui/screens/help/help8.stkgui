@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stkgui>
+    <icon-button id="back" x="1%" y="0" height="9%" icon="gui/icons/back.png"/>
+    <div x="1%" y="1%" width="98%" height="98%" layout="vertical-row" >
+        <header width="80%" height="8%" align="center" text="SuperTuxKart Help" text_align="center"/>
+        <spacer height="1%" width="100%"/>
+
+        <div width="100%" height="91%" layout="horizontal-row" >
+
+            <vertical-tabs id="category" height="100%" width="20%">
+                <icon-button id="page1" width="128" height="128" icon="gui/icons/options_general.png"
+                        I18N="Tab in help menu" text="General"/>
+                <icon-button id="page2" width="128" height="128" icon="gui/icons/mode_ftl.png"
+                        I18N="Tab in help menu" text="Game Modes"/>
+                <icon-button id="page3" width="128" height="128" icon="gui/icons/gift.png"
+                        I18N="Tab in help menu" text="Powerups"/>
+                <icon-button id="page4" width="128" height="128" icon="gui/icons/banana.png"
+                        I18N="Tab in help menu" text="Bananas"/>
+                <icon-button id="page5" width="128" height="128" icon="gui/icons/story_mode_book.png"
+                        I18N="Tab in help menu" text="Story Mode"/>
+                <icon-button id="page6" width="128" height="128" icon="gui/icons/mass.png"
+                        I18N="Tab in help menu" text="Kart classes"/>
+                <icon-button id="page7" width="128" height="128" icon="gui/icons/options_input.png"
+                        I18N="Tab in help menu" text="Multiplayer"/>
+                <icon-button id="page8" width="128" height="128" icon="gui/icons/options_general.png"
+                        I18N="Tab in help menu" text="Tyres"/>
+            </vertical-tabs>
+
+            <spacer width="2%" height="100%"/>
+
+            <box width="78%" height="100%" layout="vertical-row">
+                <label align="center" I18N="In the help menu" text="Tyres explanation for STK Tyre Mod Edition, click each box to see the full text!"/>
+                <div width="100%" proportion="2" layout="vertical-row">
+
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Starting tyre choice and tyre changing: (the ones you have when you start the race) are configured by changing the player colour. For soft, use color 1, for medium color 12, for hard color 63, for flat color 29. More precisely: Color 10 is compound 1, color 19 is compound 10, and at color 20 it loops back to compound 1 again, and so on. Colors are 1-100). Tyre changers can be used mid-race, and have the model of an easter egg, but they must be supporeted by the track. The pre-packaged tracks that have tyre changers are: Hacienda, Inuksuk, Palm Mountain, and RT4 Crowded Stadium"
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Tyre degradation and saving tyres: The heavier the kart (including fuel), the less the tyres last. Each set of tyres has a traction life (left bar) that impacts topspeed and acceleration, and a turning life (middle bar) that impacts turning. To save tyres, prefer wide skids over tight skids, prefer skid hopping over long skids, avoid going offroad, and try to minimize changes in speed (don't brake, use nitro and skid taking turns instead of at the same time, etc.)."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Main tyre types (compounds): Soft (ID 2): Starts out VERY fast, but also degrades very fast, *specially* by high-speed turning (in Hacienda, one of the least demanding tracks on tyre degradation, it can be useful for around 5 laps only if you don't manage it).
+Medium (ID 3): Starts out at the kart's normal speed, and degrades at a normal rate.
+Hard (ID 4): Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly.
+Flat (ID 10): It does degrade but it has no effect in the kart's speed, meaning it effectively is the same as disabling tyre degradation.
+The rest of the tyre IDs will be used in the future."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Race UI: the tyre compound code (or PIT if pitting) is shown on the leaderboard on the top left, inside the kart icon. The tyre lifes in bar form and the fuel are shown in the bottom right in this order: traction,  turning,  fuel. These bars/meters will show their 0 position as the configured minimum in kart_characteristics.xml, and will not go below their 0 position. However, know the tyres can and do degrade more even when the bars don't show it! However, if both degradation bars are empty, it's very likely you should pit for new tyres if possible. The fuel is replaced by desired fuel to refill during fuel pit stops."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Fuel parameters: Max fuel: The maximum fuel is always 1000. Starting fuel: 1-1000L ...
+Fuel consumption: How many liters the engine consumes each kilometer. Fuel consumption will be half when you release the throttle.
+Fuel weight: Tux weights 262kg, for scale. At weight 1, 1000L = 10kgs. At weight 100, 1000L=1000kg.
+Fuel stop time: 0 means there is no penalty for putting 1000 liters into the tank. At pump speed 1, 1000 liters will take 1 second. At pump speed 1000, 1000 liters will take around 20 minutes.
+Fuel regeneration: When the throttle is released, deceleration will make the engine regenerate fuel/energy. If the fuel weight is 0, this is equivalent to an electric system."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Tyre allocation: During a race, the current tyre allocation will be showed as a table of compounds `S M H` and numbers `XXX XXX XXX`, above the tyre life and fuel bars. It can be configured before the race. The allocation has the following meaning for each compound: `-1` is the same as infinite. `0` means that no tyres of that type can be used anymore for the remainder of the race. Any other number `X` means the compound type can be used X more times. When you use a tyre changer, the allocation of the compound will be reduced by 1. If you try to pit when 0, you will receive a penalty!"
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Fuel and tyre allocation can be configured offline from the race setup menu, and online from the wrench icon in the server lobby."
+/>
+                </div>
+                <spacer width="50" height="25" />
+            </box>
+
+        </div>
+    </div>
+</stkgui>

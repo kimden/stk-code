@@ -235,12 +235,14 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_INTERPOLATION_ARRAY;
     case TYRES_RESPONSE_CURVE_TOPSPEED:
         return TYPE_INTERPOLATION_ARRAY;
+    case TYRES_DO_GRIP_BASED_TURNING:
+        return TYPE_FLOAT_VECTOR;
     case TYRES_DO_SUBSTRACTIVE_TURNING:
-        return TYPE_BOOL;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_DO_SUBSTRACTIVE_TRACTION:
-        return TYPE_BOOL;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_DO_SUBSTRACTIVE_TOPSPEED:
-        return TYPE_BOOL;
+        return TYPE_FLOAT_VECTOR;
     case TYRES_TRACTION_CONSTANT:
         return TYPE_FLOAT_VECTOR;
     case TYRES_TURNING_CONSTANT:
@@ -256,6 +258,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
     case TYRES_BRAKE_THRESHOLD:
         return TYPE_FLOAT_VECTOR;
     case TYRES_CRASH_PENALTY:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_DEFAULT_COLOR:
         return TYPE_FLOAT_VECTOR;
     case STARTUP_TIME:
         return TYPE_FLOAT_VECTOR;
@@ -559,6 +563,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_RESPONSE_CURVE_TRACTION";
     case TYRES_RESPONSE_CURVE_TOPSPEED:
         return "TYRES_RESPONSE_CURVE_TOPSPEED";
+    case TYRES_DO_GRIP_BASED_TURNING:
+        return "TYRES_DO_GRIP_BASED_TURNING";
     case TYRES_DO_SUBSTRACTIVE_TURNING:
         return "TYRES_DO_SUBSTRACTIVE_TURNING";
     case TYRES_DO_SUBSTRACTIVE_TRACTION:
@@ -581,6 +587,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_BRAKE_THRESHOLD";
     case TYRES_CRASH_PENALTY:
         return "TYRES_CRASH_PENALTY";
+    case TYRES_DEFAULT_COLOR:
+        return "TYRES_DEFAULT_COLOR";
     case STARTUP_TIME:
         return "STARTUP_TIME";
     case STARTUP_BOOST:
@@ -1776,9 +1784,21 @@ InterpolationArray AbstractCharacteristic::getTyresResponseCurveTopspeed() const
 }  // getTyresResponseCurveTopspeed
 
 // ----------------------------------------------------------------------------
-bool AbstractCharacteristic::getTyresDoSubstractiveTurning() const
+std::vector<float> AbstractCharacteristic::getTyresDoGripBasedTurning() const
 {
-    bool result;
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_DO_GRIP_BASED_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_DO_GRIP_BASED_TURNING).c_str());
+    return result;
+}  // getTyresDoGripBasedTurning
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresDoSubstractiveTurning() const
+{
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_DO_SUBSTRACTIVE_TURNING, &result, &is_set);
     if (!is_set)
@@ -1788,9 +1808,9 @@ bool AbstractCharacteristic::getTyresDoSubstractiveTurning() const
 }  // getTyresDoSubstractiveTurning
 
 // ----------------------------------------------------------------------------
-bool AbstractCharacteristic::getTyresDoSubstractiveTraction() const
+std::vector<float> AbstractCharacteristic::getTyresDoSubstractiveTraction() const
 {
-    bool result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_DO_SUBSTRACTIVE_TRACTION, &result, &is_set);
     if (!is_set)
@@ -1800,9 +1820,9 @@ bool AbstractCharacteristic::getTyresDoSubstractiveTraction() const
 }  // getTyresDoSubstractiveTraction
 
 // ----------------------------------------------------------------------------
-bool AbstractCharacteristic::getTyresDoSubstractiveTopspeed() const
+std::vector<float> AbstractCharacteristic::getTyresDoSubstractiveTopspeed() const
 {
-    bool result;
+    std::vector<float> result;
     bool is_set = false;
     process(TYRES_DO_SUBSTRACTIVE_TOPSPEED, &result, &is_set);
     if (!is_set)
@@ -1906,6 +1926,18 @@ std::vector<float> AbstractCharacteristic::getTyresCrashPenalty() const
                     getName(TYRES_CRASH_PENALTY).c_str());
     return result;
 }  // getTyresCrashPenalty
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresDefaultColor() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_DEFAULT_COLOR, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_DEFAULT_COLOR).c_str());
+    return result;
+}  // getTyresDefaultColor
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getStartupTime() const

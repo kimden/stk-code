@@ -23,7 +23,7 @@
 #include "audio/music_manager.hpp"
 #include "challenges/challenge_status.hpp"
 #include "challenges/unlock_manager.hpp"
-#include "config/favorite_track_status.hpp"
+#include "config/favorite_status.hpp"
 #include "config/player_manager.hpp"
 #include "config/stk_config.hpp"
 #include "config/user_config.hpp"
@@ -616,7 +616,7 @@ void Track::loadTrackInfo()
         m_all_modes.push_back(tm);
     }
 
-    if(m_groups.size()==0) m_groups.push_back(FavoriteTrackStatus::DEFAULT_FAVORITE_GROUP_NAME);
+    if(m_groups.size()==0) m_groups.push_back(FavoriteStatus::DEFAULT_FAVORITE_GROUP_NAME);
     const XMLNode *xml_node = root->getNode("curves");
 
     if(xml_node) loadCurves(*xml_node);
@@ -2769,16 +2769,16 @@ void Track::itemCommand(const XMLNode *node)
 #endif
     }
 
-	int compound = 0;
-	int stop_time = 0;
-	
-	if (!node->get("compound", &compound)) {
-		compound = -1;
-	}
+    int compound = 0;
+    int stop_time = 0;
+    
+    if (!node->get("compound", &compound)) {
+        compound = -1;
+    }
 
-	if (!node->get("stop-time", &stop_time)) {
-		stop_time = 0;
-	}
+    if (!node->get("stop-time", &stop_time)) {
+        stop_time = 0;
+    }
 
     m_item_manager->placeItem(type, drop ? hit_point : loc, normal, compound, stop_time);
 }   // itemCommand

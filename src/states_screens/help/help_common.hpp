@@ -33,13 +33,14 @@
 #include "states_screens/help/help_screen_5.hpp"
 #include "states_screens/help/help_screen_6.hpp"
 #include "states_screens/help/help_screen_7.hpp"
+#include "states_screens/help/help_screen_8.hpp"
 
 // GUI management
 #include "states_screens/state_manager.hpp"
 
 namespace HelpCommon
 {
-	void switchTab(std::string selected_tab);
+    void switchTab(std::string selected_tab);
 }
 
 #endif

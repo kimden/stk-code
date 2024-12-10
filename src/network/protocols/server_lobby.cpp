@@ -809,6 +809,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
         case LE_CHAT: handleChat(event);                          break;
         case LE_CONFIG_SERVER: handleServerConfiguration(event);  break;
         case LE_CHANGE_HANDICAP: changeHandicap(event);           break;
+        case LE_CHANGE_COLOR: changeColor(event);           break;
         case LE_CLIENT_BACK_LOBBY:
             clientSelectingAssetsWantsToBackLobby(event);         break;
         case LE_REPORT_PLAYER: writePlayerReport(event);          break;
@@ -3995,7 +3996,12 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         unsigned max_players = ServerConfig::m_server_max_players;
         // We need to reserve at least 1 slot for new player
         if (player_count + ai_add + 1 > max_players)
-            ai_add = max_players - player_count - 1;
+        {
+            if (max_players >= player_count + 1)
+                ai_add = max_players - player_count - 1;
+            else
+                ai_add = 0;
+        }
         for (unsigned i = 0; i < ai_add; i++)
         {
 #ifdef SERVER_ONLY
@@ -4364,7 +4370,7 @@ void ServerLobby::handlePlayerVote(Event* event)
                 (uint8_t)(fmaxf(1.0f, (float)t->getDefaultNumberOfLaps() *
                 m_default_lap_multiplier));
         }
-        else if (vote.m_num_laps == 0 || vote.m_num_laps > 20)
+        else if (vote.m_num_laps == 0 || vote.m_num_laps > 100)
             vote.m_num_laps = (uint8_t)3;
         if (!t->reverseAvailable() && vote.m_reverse)
             vote.m_reverse = false;
@@ -5021,7 +5027,10 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         sendStringToPeer(msg, peer);
         return;
     }
+
+    // Kimden version:
     auto modes = ServerConfig::getLocalGameMode(mode);
+
     if (modes.second == RaceManager::MAJOR_MODE_GRAND_PRIX)
     {
         Log::warn("ServerLobby", "Grand prix is used for new mode.");
@@ -5133,9 +5142,27 @@ void ServerLobby::handleServerConfiguration(Event* event)
     if (event != NULL)
     {
         NetworkString& data = event->data();
-        new_difficulty = data.getUInt8();
-        new_game_mode = data.getUInt8();
-        new_soccer_goal_target = data.getUInt8() == 1;
+
+        int new_difficulty = data.getUInt8();
+
+        float fuel_info[5];
+        fuel_info[0] = data.getFloat();
+        fuel_info[1] = data.getFloat();
+        fuel_info[2] = data.getFloat();
+        fuel_info[3] = data.getFloat();
+        fuel_info[4] = data.getFloat();
+
+        int compound_amount[3];
+        compound_amount[0] = data.getUInt8()-1;
+        compound_amount[1] = data.getUInt8()-1;
+        compound_amount[2] = data.getUInt8()-1;
+
+        RaceManager::get()->setFuelAndQueueInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4], compound_amount[0], compound_amount[1], compound_amount[2]);
+
+        int new_game_mode = data.getUInt8();
+        bool new_soccer_goal_target = data.getUInt8() == 1;
+        // TME version:
+        auto modes = ServerConfig::getLocalGameMode(new_game_mode);
     }
     handleServerConfiguration(
         (event ? event->getPeerSP() : std::shared_ptr<STKPeer>()),
@@ -5172,6 +5199,23 @@ void ServerLobby::changeHandicap(Event* event)
     }
     HandicapLevel h = (HandicapLevel)handicap_id;
     player->setHandicap(h);
+    updatePlayerList();
+}   // changeHandicap
+
+void ServerLobby::changeColor(Event* event)
+{
+    NetworkString& data = event->data();
+    if (m_state.load() != WAITING_FOR_START_GAME &&
+        !event->getPeer()->isWaitingForGame())
+    {
+        Log::warn("ServerLobby", "Set color at wrong time.");
+        return;
+    }
+    uint8_t local_id = data.getUInt8();
+    auto& player = event->getPeer()->getPlayerProfiles().at(local_id);
+    float hue = data.getFloat();
+
+    player->setDefaultKartColor(hue);
     updatePlayerList();
 }   // changeHandicap
 

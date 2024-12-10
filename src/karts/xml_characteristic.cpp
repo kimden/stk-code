@@ -251,7 +251,7 @@ void XmlCharacteristic::processFloat(const std::string &processor, float *value,
     else
     {
         float val;
-    	if (!StringUtils::fromString(parts[index], val))
+        if (!StringUtils::fromString(parts[index], val))
         {
             Log::fatal("XmlCharacteristic::processFloat",
                 "Can't parse %s: Not a float", parts[index].c_str());
@@ -366,6 +366,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_RESPONSE_CURVE_TRACTION]);
         sub_node->get("response-curve-topspeed",
             &m_values[TYRES_RESPONSE_CURVE_TOPSPEED]);
+        sub_node->get("do-grip-based-turning",
+            &m_values[TYRES_DO_GRIP_BASED_TURNING]);
         sub_node->get("do-substractive-turning",
             &m_values[TYRES_DO_SUBSTRACTIVE_TURNING]);
         sub_node->get("do-substractive-traction",
@@ -389,6 +391,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_BRAKE_THRESHOLD]);
         sub_node->get("crash-penalty",
             &m_values[TYRES_CRASH_PENALTY]);
+        sub_node->get("default-color",
+            &m_values[TYRES_DEFAULT_COLOR]);
 
     }
 

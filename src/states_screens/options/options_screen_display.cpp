@@ -343,7 +343,7 @@ void OptionsScreenDisplay::eventCallback(Widget* widget, const std::string& name
         std::string selection = ((RibbonWidget*)widget)->getSelectionIDString(PLAYER_ID_GAME_MASTER);
 
         if (selection != "tab_display")
-			OptionsCommon::switchTab(selection);
+            OptionsCommon::switchTab(selection);
     }
     else if(name == "back")
     {

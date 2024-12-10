@@ -1231,13 +1231,13 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
     bool pit = kart->m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP);
     if (!kart->hasFinishedRace())
     {
-	    {
-	        gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-	        const core::rect<s32> posNumber(x, y, x + w/4, y + w/4);
-	        font->setScale(2.0f*((float) w)/(4.f*(float)font->getDimension(L"X").Height));
-	        if (pit) font->draw(L"PIT", posNumber, video::SColor(255, 0, 255, 255));
-	        else font->draw(StringUtils::toWString(compound), posNumber, video::SColor(255, 0, 255, 255));
-	        font->setScale(1.0f);
+        {
+            gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+            const core::rect<s32> posNumber(x, y, x + w/4, y + w/4);
+            font->setScale(2.0f*((float) w)/(4.f*(float)font->getDimension(L"X").Height));
+            if (pit) font->draw(L"PIT", posNumber, video::SColor(255, 0, 255, 255));
+            else font->draw(StringUtils::toWString(compound), posNumber, video::SColor(255, 0, 255, 255));
+            font->setScale(1.0f);
         }
     }
 

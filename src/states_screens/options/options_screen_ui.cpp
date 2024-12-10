@@ -24,6 +24,7 @@
 #include "config/player_manager.hpp"
 #include "font/font_manager.hpp"
 #include "graphics/irr_driver.hpp"
+#include "items/attachment_manager.hpp"
 #include "items/powerup_manager.hpp"
 #include "modes/world.hpp"
 #include "states_screens/dialogs/custom_camera_settings.hpp"
@@ -460,14 +461,14 @@ void OptionsScreenUI::eventCallback(Widget* widget, const std::string& name, con
         m_active_base_skin = m_base_skin_selector->getStringValue();
         loadCurrentSkinVariants();
         UserConfigParams::m_skin_file = getCurrentSpinnerSkin();
-        onSkinChange();
+        onSkinChange(false);
         m_reload_option->m_focus_name = "base_skinchoice";
         m_reload_option->m_focus_right = m_base_skin_selector->isButtonSelected(true/*right*/);
     }
     else if (name == "variant_skinchoice")
     {
         UserConfigParams::m_skin_file = getCurrentSpinnerSkin();
-        onSkinChange();
+        onSkinChange(true);
         m_reload_option->m_focus_name = "variant_skinchoice";
         m_reload_option->m_focus_right = m_variant_skin_selector->isButtonSelected(true/*right*/);
     }
@@ -640,22 +641,30 @@ void OptionsScreenUI::reloadGUIEngine()
     if (reload_skin)
     {
         irr_driver->setMaxTextureSize();
+
         delete powerup_manager;
         powerup_manager = new PowerupManager();
         powerup_manager->loadPowerupsModels();
+
+        delete attachment_manager;
+        attachment_manager = new AttachmentManager();
+        attachment_manager->loadModels();
     }
     OptionsScreenUI::getInstance()->m_reload_option = nullptr;
 }   // reloadGUIEngine
 
 // -----------------------------------------------------------------------------
-void OptionsScreenUI::onSkinChange()
+void OptionsScreenUI::onSkinChange(bool is_variant)
 {
-    bool prev_font = GUIEngine::getSkin()->hasFont();
+    bool change_font = GUIEngine::getSkin()->hasFont();
     irr_driver->unsetMaxTextureSize();
     GUIEngine::reloadSkin();
     // Reload GUIEngine will clear widgets and set max texture Size so we don't do that here
     m_reload_option = std::unique_ptr<ReloadOption>(new ReloadOption);
-    m_reload_option->m_reload_font = prev_font != GUIEngine::getSkin()->hasFont();
+    // Check either old or new skin use custom_font
+    change_font |= GUIEngine::getSkin()->hasFont();
+    // Assume skin variants use the same font set
+    m_reload_option->m_reload_font = change_font && !is_variant;
     m_reload_option->m_reload_skin = true;
 } // onSkinChange
 

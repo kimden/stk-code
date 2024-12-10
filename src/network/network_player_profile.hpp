@@ -148,12 +148,14 @@ public:
     /** Returns the name of this player. */
     const irr::core::stringw& getName() const         { return m_player_name; }
     // ------------------------------------------------------------------------
-    float getDefaultKartColor() const
+    float getDefaultKartColor(bool real=false) const
     {
-        if (m_temporary_team == 0)
+        if (m_temporary_team == 0 || real == true)
             return m_default_kart_color;
         return TeamUtils::getTeamByIndex(m_temporary_team).getColor();
     }
+    void setDefaultKartColor(float m) { m_default_kart_color = m; }
+
     // ------------------------------------------------------------------------
     uint32_t getOnlineId() const                        { return m_online_id; }
     // ------------------------------------------------------------------------
