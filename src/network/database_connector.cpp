@@ -1272,7 +1272,7 @@ bool DatabaseConnector::getAllTokens(std::vector<std::string>& result)
         return false;
     std::vector<std::vector<std::string>> output;
     std::string query = StringUtils::insertValues(
-        "SELECT distinct tokens FROM %s;",
+        "SELECT distinct token FROM %s;",
         ServerConfig::m_tokens_table.c_str());
     if (!easySQLQuery(query, &output))
         return false;

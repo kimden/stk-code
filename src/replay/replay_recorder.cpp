@@ -412,7 +412,7 @@ void ReplayRecorder::save()
     fprintf(fd, "version: %d\n", getCurrentReplayVersion());
     fprintf(fd, "stk_version: %s\n", STK_VERSION);
 
-    unsigned int player_count = 0;
+    // unsigned int player_count = 0;
     for (unsigned int real_karts = 0; real_karts < num_karts; real_karts++)
     {
         const Kart *kart = world->getKart(real_karts);

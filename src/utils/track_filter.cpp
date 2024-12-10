@@ -116,7 +116,7 @@ TrackFilter::TrackFilter(std::string input)
         else
         {
             int separator = tokens[i].find(':');
-            if (separator != std::string::npos)
+            if (separator != (int)std::string::npos)
             {
                 std::string track = tokens[i].substr(0, separator);
                 std::string params_str = tokens[i].substr(separator + 1);
@@ -142,10 +142,12 @@ TrackFilter::TrackFilter(std::string input)
         }
     }
     if (unknown_others)
+    {
         if (!allowed.empty() || !w_allowed.empty())
             others = false;
         else
             others = true;
+    }
 }   // TrackFilter
 //-----------------------------------------------------------------------------
 
@@ -200,7 +202,7 @@ std::vector<SplitArgument> prepareAssetNames<TrackFilter>(std::string& input)
         else
         {
             int separator = tokens[i].find(':');
-            if (separator != std::string::npos)
+            if (separator != (int)std::string::npos)
             {
                 std::string track = tokens[i].substr(0, separator);
                 std::string rest = tokens[i].substr(separator);
@@ -219,7 +221,7 @@ std::vector<SplitArgument> prepareAssetNames<TrackFilter>(std::string& input)
 
 std::string TrackFilter::get(const std::vector<std::string>& vec, int index)
 {
-    if (index >= 0 && index < vec.size())
+    if (index >= 0 && index < (int)vec.size())
         return vec[index];
     if (index < 0 && index >= -(int)vec.size())
         return vec[(int)vec.size() + index];
@@ -276,14 +278,16 @@ void TrackFilter::apply(FilterContext& context) const
             no = false;
         }
         if (!yes && !no)
+        {
             if (others)
                 yes = true;
             else
                 no = true;
+        }
         if (yes)
             context.elements.insert(s);
     }
-    if (m_pick_random && context.elements.size() > m_random_count)
+    if (m_pick_random && (int)context.elements.size() > m_random_count)
     {
         RandomGenerator rg;
         std::vector<int> take(m_random_count, 1);
@@ -398,10 +402,12 @@ KartFilter::KartFilter(std::string input)
     // }
 
     if (unknown_unspecified)
+    {
         if (!m_allowed_karts.empty() || !m_random_stuff.empty())
             m_allow_unspecified_karts = false;
         else
             m_allow_unspecified_karts = true;
+    }
 }   // KartFilter(1)
 //-----------------------------------------------------------------------------
 

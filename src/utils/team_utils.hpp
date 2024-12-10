@@ -89,6 +89,7 @@ public:
 class TeamUtils: public Singleton<TeamManager>
 {
 public:
+    static const int NO_TEAM = 0;
     static const CustomTeam& getTeamByIndex(int idx)
                                               { return (*getInstance())[idx]; }
     static int getIndexByCode(const std::string& code)
@@ -97,6 +98,9 @@ public:
                                 { return getInstance()->getIndexByName(name); }
     static int getNumberOfTeams()
                              { return (int)getInstance()->getNumberOfTeams(); }
+    static int getIndexFromKartTeam(int8_t team)           { return team + 1; }
+    static int8_t getKartTeamFromIndex(int team)
+                           { return (team >= 0 && team <= 2 ? team - 1 : -1); }
 };
 
 

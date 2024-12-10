@@ -75,7 +75,7 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
             return a.second < b.second;
         return a.first < b.first;
     });
-    if (ans.size() > count)
+    if ((int)ans.size() > count)
         ans.resize(count);
     return ans;
 } // getClosest

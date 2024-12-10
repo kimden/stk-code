@@ -197,15 +197,41 @@ CommandManager::Command::Command(std::string name,
 } // Command::Command(5)
 // ========================================================================
 
+// From the result perspective, it works in the same way as
+// ServerConfig - just as there, there can be two files, one of them
+// overriding another. However, I'm right now lazy to make them use the
+// same "abstract mechanism" for that, which could be good in case other
+// settings can be generalized that way. Also I don't exclude the
+// possibility that commands.xml and ServerConfig could be united (apart
+// from the fact there are default commands and no default config).
+// (Also commands.xml has nested things and config doesn't)
+
+// So the implementation is different from ServerConfig for simplicity.
+// The *custom* config is loaded first, and then a generic one if the
+// custom one includes it. If a generic one tries to load a *top-level*
+// command already defined in *custom* one, it's ignored. It means that
+// to override command's behaviour, you need to specify its full block.
+
 void CommandManager::initCommandsInfo()
 {
-    const std::string file_name = file_manager->getAsset("commands.xml");
+    // "commands.xml"
+    const std::string file_name = file_manager->getAsset(ServerConfig::m_commands_file);
     const XMLNode *root = file_manager->createXMLTree(file_name);
-    unsigned int num_nodes = root->getNumNodes();
     uint32_t version = 1;
     root->get("version", &version);
     if (version != 1)
         Log::warn("CommandManager", "command.xml has version %d which is not supported", version);
+    std::string external_commands;
+
+    XMLNode* root2 = nullptr;
+    auto external_node = root->getNode("external-commands-file");
+    if (external_node && external_node->get("value", &external_commands))
+    {
+        const std::string file_name_2 = file_manager->getAsset(external_commands);
+        root2 = file_manager->createXMLTree(file_name_2);
+    }
+
+    std::set<std::string> used_commands;
 
     std::function<void(const XMLNode* current, std::shared_ptr<Command> command)> dfs =
             [&](const XMLNode* current, const std::shared_ptr<Command>& command) {
@@ -213,6 +239,8 @@ void CommandManager::initCommandsInfo()
         {
             const XMLNode *node = current->getNode(i);
             std::string node_name = node->getName();
+            if (node_name == "external-commands-file")
+                continue;
             // here the commands go
             std::string name = "";
             std::string text = ""; // for text-command
@@ -232,6 +260,21 @@ void CommandManager::initCommandsInfo()
             std::string secret = ""; // for auth-command
             std::string link_format = ""; // for auth-command
             std::string server = ""; // for auth-command
+
+            // Name is read before enabled/disabled property, because we want
+            // to disable commands in "default" config that are present in
+            // "custom" config, regardless of server name
+            node->get("name", &name);
+            if (current == root2 && command == m_root_command
+                    && used_commands.find(name) != used_commands.end())
+            {
+                continue;
+            }
+            else if (current == root)
+            {
+                used_commands.insert(name);
+            }
+
             // If enabled is not empty, command is added iff the server name is in enabled
             // Otherwise it is added iff the server name is not in disabled
             std::string enabled = "";
@@ -258,7 +301,6 @@ void CommandManager::initCommandsInfo()
             if (!ok)
                 continue;
 
-            node->get("name", &name);
             node->get("usage", &usage);
             node->get("permissions", &permissions_s);
             permissions = CommandManager::permission_reader.parse(permissions_s);
@@ -312,7 +354,10 @@ void CommandManager::initCommandsInfo()
         }
     };
     dfs(root, m_root_command);
+    if (root2)
+        dfs(root2, m_root_command);
     delete root;
+    delete root2;
 } // initCommandsInfo
 // ========================================================================
 
@@ -382,7 +427,7 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("length x", &CM::process_length_multi);
     applyFunctionIfPossible("direction", &CM::process_direction);
     applyFunctionIfPossible("direction =", &CM::process_direction_assign);
-    for (int i = 0; i < QUEUE_NAMES.size(); i++)
+    for (int i = 0; i < (int)QUEUE_NAMES.size(); i++)
     {
         const std::string& name = QUEUE_NAMES[i];
         if (name.empty())
@@ -458,6 +503,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("voting", &CM::process_voting);
     applyFunctionIfPossible("voting =", &CM::process_voting_assign);
     applyFunctionIfPossible("whyhourglass", &CM::process_why_hourglass);
+    applyFunctionIfPossible("availableteams", &CM::process_available_teams);
+    applyFunctionIfPossible("availableteams =", &CM::process_available_teams_assign);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
     applyFunctionIfPossible("stopaddondownload", &CM::special);
@@ -487,6 +534,7 @@ void CommandManager::initCommands()
     m_votables.emplace("kick", 0.81);
     m_votables.emplace("kickban", 0.81);
     m_votables.emplace("gnu", 0.81);
+    m_votables.emplace("randomteams", 0.6);
     m_votables.emplace("slots", CommandVoting::DEFAULT_THRESHOLD);
     m_votables["gnu"].setCustomThreshold("gnu kart", 1.1);
     m_votables["config"].setMerge(7);
@@ -679,7 +727,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         if (one_omittable_subcommand)
             --idx;
         current_command = command;
-        if (idx + 1 == argv.size() || command->m_subcommands.empty()) {
+        if (idx + 1 == (int)argv.size() || command->m_subcommands.empty()) {
             executed_command = command;
             execute(command, context);
             break;
@@ -767,7 +815,6 @@ void CommandManager::vote(Context& context, std::string category, std::string va
         error(context, true);
         return;
     }
-    auto& argv = context.m_argv;
     if (!peer->hasPlayerProfiles())
         return;
     std::string username = StringUtils::wideToUtf8(
@@ -856,7 +903,7 @@ void CommandManager::process_help(Context& context)
         return;
     }
     std::shared_ptr<Command> command = m_root_command;
-    for (int i = 1; i < argv.size(); ++i) {
+    for (int i = 1; i < (int)argv.size(); ++i) {
         if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
             return;
         auto ptr = command->m_name_to_subcommand[argv[i]].lock();
@@ -958,7 +1005,7 @@ void CommandManager::process_commands(Context& context)
     auto& argv = context.m_argv;
     std::shared_ptr<Command> command = m_root_command;
     bool valid_prefix = true;
-    for (int i = 1; i < argv.size(); ++i) {
+    for (int i = 1; i < (int)argv.size(); ++i) {
         if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
             return;
         auto ptr = command->m_name_to_subcommand[argv[i]].lock();
@@ -1194,17 +1241,14 @@ void CommandManager::process_spectate(Context& context)
             argv.push_back("1");
     }
 
-    if (argv.size() < 2 || (argv[1] != "0" && argv[1] != "1"))
+    int value = -1;
+    if (argv.size() < 2 || !StringUtils::fromString(argv[1], value)
+            || value < 0 || value > 2)
     {
         error(context);
         return;
     }
-
-    bool selection_started = (m_lobby->m_state.load() >= ServerLobby::SELECTING);
-    bool no_racing_yet = (m_lobby->m_state.load() < ServerLobby::RACING);
-//    if (selection_started)
-//        m_lobby->erasePeerReady(peer);
-    if (argv[1] == "1")
+    if (value >= 1)
     {
         if (m_lobby->m_process_type == PT_CHILD &&
             peer->getHostId() == m_lobby->m_client_server_host_id.load())
@@ -1213,21 +1257,12 @@ void CommandManager::process_spectate(Context& context)
             m_lobby->sendStringToPeer(msg, peer);
             return;
         }
-        peer->setDefaultAlwaysSpectate(ASM_COMMAND);
-        if (!selection_started || !no_racing_yet)
-            peer->setAlwaysSpectate(ASM_COMMAND);
+        AlwaysSpectateMode type = (value == 2 ? ASM_COMMAND_ABSENT : ASM_COMMAND);
+        m_lobby->setSpectateModeProperly(peer, type);
     }
     else
     {
-        peer->setDefaultAlwaysSpectate(ASM_NONE);
-        if (!selection_started || !no_racing_yet)
-            peer->setAlwaysSpectate(ASM_NONE);
-        else
-        {
-            m_lobby->erasePeerReady(peer);
-            peer->setAlwaysSpectate(ASM_NONE);
-            peer->setWaitingForGame(true);
-        }
+        m_lobby->setSpectateModeProperly(peer, ASM_NONE);
     }
     m_lobby->updateServerOwner(true);
     m_lobby->updatePlayerList();
@@ -2827,7 +2862,24 @@ void CommandManager::process_team(Context& context)
                 2, m_stf_present_users, 3, false, true))
         return;
     std::string player = argv[2];
-    m_lobby->setTemporaryTeam(player, argv[1]);
+
+    bool allowed_color = false;
+    if (!argv[1].empty())
+    {
+        std::string temp(1, argv[1][0]);
+        if (m_lobby->getAvailableTeams().find(temp) != std::string::npos)
+            allowed_color = true;
+    }
+    int team = TeamUtils::getIndexByCode(argv[1]);
+    // Resetting should be allowed anyway
+    if (!allowed_color && team != TeamUtils::NO_TEAM)
+    {
+        std::string msg = StringUtils::insertValues("Color %s is not allowed",
+                argv[1].c_str());
+        m_lobby->sendStringToPeer(msg, peer);
+        return;
+    }
+    m_lobby->setTemporaryTeamInLobby(player, team);
 
     m_lobby->updatePlayerList();
 } // process_team
@@ -2912,72 +2964,31 @@ void CommandManager::process_randomteams(Context& context)
 {
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
-    if (!peer)
+    int teams_number = -1;
+    int final_number = -1;
+    int players_number = -1;
+    if (argv.size() >= 2)
+        StringUtils::parseString(argv[1], &teams_number);
+    if (context.m_voting)
     {
-        error(context, true);
+        if (argv.size() > 1)
+            vote(context, "randomteams", argv[1]);
+        else
+            vote(context, "randomteams", "");
         return;
     }
-    int players_number = 0;
-    for (auto& p : STKHost::get()->getPeers())
+    if (!assignRandomTeams(teams_number, &final_number, &players_number))
     {
-        if (!m_lobby->canRace(p))
-            continue;
-        if (p->alwaysSpectate())
-            continue;
-        players_number += p->getPlayerProfiles().size();
-        for (auto& profile : p->getPlayerProfiles())
-            profile->setTemporaryTeam(0);
-    }
-    if (players_number == 0) {
-        std::string msg = "No one can play!";
+        std::string msg;
+        if (players_number == 0)
+            msg = "No one can play!";
+        else
+            msg = "Teams are currently not allowed";
         m_lobby->sendStringToPeer(msg, peer);
         return;
     }
-    int teams_number = -1;
-    int max_number_of_teams = TeamUtils::getNumberOfTeams();
-    if (argv.size() < 2 || !StringUtils::parseString(argv[1], &teams_number)
-        || teams_number < 1 || teams_number > max_number_of_teams)
-    {
-        teams_number = (int)round(sqrt(players_number));
-        if (teams_number > max_number_of_teams)
-            teams_number = max_number_of_teams;
-        if (players_number > 1 && teams_number <= 1)
-            teams_number = 2;
-    }
-
     std::string msg = StringUtils::insertValues(
-            "Created %d teams for %d players", teams_number, players_number);
-    std::vector<int> available_colors;
-    std::vector<int> profile_colors;
-    for (int i = 1; i <= max_number_of_teams; ++i)
-        available_colors.push_back(i);
-
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(available_colors.begin(), available_colors.end(), g);
-    available_colors.resize(teams_number);
-
-    for (int i = 0; i < players_number; ++i)
-        profile_colors.push_back(available_colors[i % teams_number]);
-
-    std::shuffle(profile_colors.begin(), profile_colors.end(), g);
-
-    m_lobby->clearTemporaryTeams();
-    for (auto& p : STKHost::get()->getPeers())
-    {
-        if (!m_lobby->canRace(p))
-            continue;
-        if (p->alwaysSpectate())
-            continue;
-        for (auto& profile : p->getPlayerProfiles()) {
-            std::string name = StringUtils::wideToUtf8(profile->getName());
-            std::string color = TeamUtils::getTeamByIndex(profile_colors.back()).getPrimaryCode();
-            m_lobby->setTemporaryTeam(name, color);
-            if (profile_colors.size() > 1) // prevent crash just in case
-                profile_colors.pop_back();
-        }
-    }
-
+            "Created %d teams for %d players", final_number, players_number);
     m_lobby->sendStringToPeer(msg, peer);
     m_lobby->updatePlayerList();
 } // process_randomteams
@@ -3518,7 +3529,9 @@ void CommandManager::process_role(Context& context)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "red player");
                     if (player_peer->hasPlayerProfiles())
-                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_RED);
+                    {
+                        m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_RED);
+                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -3547,7 +3560,9 @@ void CommandManager::process_role(Context& context)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "blue player");
                     if (player_peer->hasPlayerProfiles())
-                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_BLUE);
+                    {
+                        m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_BLUE);
+                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -3567,7 +3582,9 @@ void CommandManager::process_role(Context& context)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "referee");
                     if (player_peer->hasPlayerProfiles())
-                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
+                    {
+                        m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
+                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -3579,7 +3596,9 @@ void CommandManager::process_role(Context& context)
                 {
                     role_changed = StringUtils::insertValues(role_changed, "spectator");
                     if (player_peer->hasPlayerProfiles())
-                        player_peer->getPlayerProfiles()[0]->setTeam(KART_TEAM_NONE);
+                    {
+                        m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
+                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -3909,7 +3928,7 @@ void CommandManager::process_history_assign(Context& context)
         2, m_stf_all_maps, 3, false, false))
         return;
     std::string id = argv[2];
-    if (index >= m_lobby->m_tournament_arenas.size())
+    if (index >= (int)m_lobby->m_tournament_arenas.size())
         m_lobby->m_tournament_arenas.resize(index + 1, "");
     m_lobby->m_tournament_arenas[index] = id;
 
@@ -3929,7 +3948,7 @@ void CommandManager::process_voting(Context& context)
     std::string msg = StringUtils::insertValues("Voting method: %d",
             m_lobby->m_map_vote_handler.getAlgorithm());
     m_lobby->sendStringToPeer(msg, peer);
-} // process_history
+} // process_voting
 // ========================================================================
 
 void CommandManager::process_voting_assign(Context& context)
@@ -3956,7 +3975,7 @@ void CommandManager::process_voting_assign(Context& context)
     m_lobby->m_map_vote_handler.setAlgorithm(value);
     msg = StringUtils::insertValues("Set voting method to %s", value);
     m_lobby->sendStringToPeer(msg, peer);
-} // process_history_assign
+} // process_voting_assign
 // ========================================================================
 
 void CommandManager::process_why_hourglass(Context& context)
@@ -4053,6 +4072,68 @@ void CommandManager::process_why_hourglass(Context& context)
 } // process_why_hourglass
 // ========================================================================
 
+void CommandManager::process_available_teams(Context& context)
+{
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    std::string msg = StringUtils::insertValues("Currently available teams: \"%s\"",
+            m_lobby->getInternalAvailableTeams().c_str());
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_available_teams
+// ========================================================================
+
+void CommandManager::process_available_teams_assign(Context& context)
+{
+    auto& argv = context.m_argv;
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    std::string value = "";
+    std::set<char> value_set;
+    std::string ignored = "";
+    std::set<char> ignored_set;
+    std::string msg = "";
+    if (argv[1] == "all")
+    {
+        for (int i = 1; i <= TeamUtils::getNumberOfTeams(); i++)
+            value_set.insert(TeamUtils::getTeamByIndex(i).getPrimaryCode()[0]);
+    }
+    else
+    {
+        for (char& c: argv[1])
+        {
+            std::string temp(1, c);
+            if (TeamUtils::getIndexByCode(temp) == TeamUtils::NO_TEAM)
+                ignored_set.insert(c);
+            else
+                value_set.insert(c);
+        }
+    }
+    for (char c: ignored_set)
+        ignored.push_back(c);
+    for (char c: value_set)
+        value.push_back(c);
+    m_lobby->setInternalAvailableTeams(value);
+    msg = StringUtils::insertValues("Set available teams to \"%s\"", value);
+    if (!ignored.empty())
+        msg += StringUtils::insertValues(
+                ", but teams \"%s\" were not recognized", ignored);
+    m_lobby->sendStringToPeer(msg, peer);
+} // process_available_teams_assign
+// ========================================================================
+
 void CommandManager::special(Context& context)
 {
     auto peer = context.m_peer.lock();
@@ -4077,6 +4158,74 @@ void CommandManager::special(Context& context)
     msg = StringUtils::insertValues(msg, command->getFullName(), cmd);
     m_lobby->sendStringToPeer(msg, peer);
 } // special
+// ========================================================================
+
+bool CommandManager::assignRandomTeams(int intended_number,
+        int* final_number, int* final_player_number)
+{
+    int teams_number = intended_number;
+    *final_number = teams_number;
+    int player_number = 0;
+    for (auto& p : STKHost::get()->getPeers())
+    {
+        if (!m_lobby->canRace(p))
+            continue;
+        if (p->alwaysSpectateButNotNeutral())
+            continue;
+        player_number += p->getPlayerProfiles().size();
+    }
+    if (player_number == 0) {
+        *final_number = teams_number;
+        *final_player_number = player_number;
+        return false;
+    }
+    int max_number_of_teams = TeamUtils::getNumberOfTeams();
+    std::string available_colors_string = m_lobby->getAvailableTeams();
+    if (available_colors_string.empty())
+        return false;
+    if (max_number_of_teams > (int)available_colors_string.length())
+        max_number_of_teams = (int)available_colors_string.length();
+    if (teams_number == -1 || teams_number < 1 || teams_number > max_number_of_teams)
+    {
+        teams_number = (int)round(sqrt(player_number));
+        if (teams_number > max_number_of_teams)
+            teams_number = max_number_of_teams;
+        if (player_number > 1 && teams_number <= 1 && max_number_of_teams >= 2)
+            teams_number = 2;
+    }
+
+    *final_number = teams_number;
+    *final_player_number = player_number;
+    std::vector<int> available_colors;
+    std::vector<int> profile_colors;
+    for (const char& c: available_colors_string)
+        available_colors.push_back(TeamUtils::getIndexByCode(std::string(1, c)));
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(available_colors.begin(), available_colors.end(), g);
+    available_colors.resize(teams_number);
+
+    for (int i = 0; i < player_number; ++i)
+        profile_colors.push_back(available_colors[i % teams_number]);
+
+    std::shuffle(profile_colors.begin(), profile_colors.end(), g);
+
+    m_lobby->clearTemporaryTeams();
+    for (auto& p : STKHost::get()->getPeers())
+    {
+        if (!m_lobby->canRace(p))
+            continue;
+        if (p->alwaysSpectateButNotNeutral())
+            continue;
+        for (auto& profile : p->getPlayerProfiles()) {
+            m_lobby->setTemporaryTeamInLobby(profile, profile_colors.back());
+            if (profile_colors.size() > 1) // prevent crash just in case
+                profile_colors.pop_back();
+        }
+    }
+    return true;
+} // assignRandomTeams
 // ========================================================================
 
 std::string CommandManager::getRandomMap() const
@@ -4140,7 +4289,7 @@ void CommandManager::restoreCmdByArgv(std::string& cmd,
         int from)
 {
     cmd.clear();
-    for (unsigned i = from; i < argv.size(); ++i) {
+    for (int i = from; i < (int)argv.size(); ++i) {
         bool quoted = false;
         if (argv[i].find(c) != std::string::npos || argv[i].empty()) {
             quoted = true;
@@ -4254,6 +4403,7 @@ void CommandManager::onStartSelection()
     m_votables["config"].resetAllVotes();
     m_votables["gnu"].resetAllVotes();
     m_votables["slots"].resetAllVotes();
+    m_votables["randomteams"].resetAllVotes();
     update();
 } // onStartSelection
 // ========================================================================
@@ -4298,7 +4448,7 @@ std::string CommandManager::getAddonPreferredType() const
 
 int CommandManager::get_queue_mask(std::string a)
 {
-    for (int i = 0; i < QUEUE_NAMES.size(); i++)
+    for (int i = 0; i < (int)QUEUE_NAMES.size(); i++)
         if (a == QUEUE_NAMES[i])
             return i;
     return QM_NONE;
