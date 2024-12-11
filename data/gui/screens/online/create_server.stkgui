@@ -69,6 +69,12 @@
                 <spinner id="more-options-spinner" proportion="1" wrap_around="true"/>
             </div>
 
+            <div width="100%" height="fit" layout="horizontal-row" >
+                <label id="gp-text"  proportion="1" text_align="left"/>
+                <spinner id="gp-spinner" proportion="1" wrap_around="true" min_value="0" max_value="20"/>
+            </div>
+
+
             <label id="info" proportion="1" width="100%" align="center" text_align="center" word_wrap="true" text=""/>
 
             <buttonbar id="options" x="0" y="0" width="40%" height="15%" align="center">

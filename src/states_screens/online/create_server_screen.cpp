@@ -23,6 +23,7 @@
 #include "guiengine/widgets/icon_button_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
 #include "guiengine/widgets/ribbon_widget.hpp"
+#include "guiengine/widgets/check_box_widget.hpp"
 #include "guiengine/widgets/spinner_widget.hpp"
 #include "guiengine/widgets/text_box_widget.hpp"
 #include "karts/controller/network_ai_controller.hpp"
@@ -79,6 +80,12 @@ void CreateServerScreen::loadedFromFile()
     assert(m_more_options_text != NULL);
     m_more_options_spinner = getWidget<SpinnerWidget>("more-options-spinner");
     assert(m_more_options_spinner != NULL);
+
+    m_gp_text = getWidget<LabelWidget>("gp-text");
+    assert(m_gp_text != NULL);
+    m_gp_spinner = getWidget<SpinnerWidget>("gp-spinner");
+    assert(m_gp_spinner != NULL);
+
 
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
@@ -164,9 +171,10 @@ void CreateServerScreen::eventCallback(Widget* widget, const std::string& name,
     }
     else if (name == m_game_mode_widget->m_properties[PROP_ID])
     {
-        const int selection =
+        int selection =
             m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER);
         m_prev_value = 0;
+        
         updateMoreOption(selection);
         m_prev_mode = selection;
     }
@@ -193,11 +201,11 @@ void CreateServerScreen::updateMoreOption(int game_mode)
         case 0:
         case 1:
         {
-            m_more_options_text->setVisible(true);
-            m_more_options_spinner->setVisible(true);
             m_more_options_spinner->clearLabels();
             if (m_supports_ai)
             {
+                m_more_options_text->setVisible(true);
+                m_more_options_spinner->setVisible(true);
                 m_more_options_text->setText(_("Number of AI karts"),
                     false);
                 for (int i = 0; i <= m_max_players_widget->getValue() - 2; i++)
@@ -214,19 +222,20 @@ void CreateServerScreen::updateMoreOption(int game_mode)
                     m_more_options_spinner->setValue(m_prev_value);
 
             }
-            else
+
+            m_gp_text->setVisible(true);
+            m_gp_spinner->setVisible(true);
+            //I18N: In the create server screen
+            m_gp_text->setText(_("No. of grand prix track(s)"),
+                false);
+            m_gp_spinner->addLabel(_("Disabled"));
+            for (int i = 1; i <= 20; i++)
             {
-                //I18N: In the create server screen
-                m_more_options_text->setText(_("No. of grand prix track(s)"),
-                    false);
-                m_more_options_spinner->addLabel(_("Disabled"));
-                for (int i = 1; i <= 20; i++)
-                {
-                    m_more_options_spinner->addLabel(
-                        StringUtils::toWString(i));
-                }
-                m_more_options_spinner->setValue(m_prev_value);
+                m_gp_spinner->addLabel(
+                    StringUtils::toWString(i));
             }
+            m_gp_spinner->setValue(m_prev_value);
+
             break;
         }
         case 2:
@@ -263,6 +272,8 @@ void CreateServerScreen::updateMoreOption(int game_mode)
         }
         default:
         {
+            m_gp_text->setVisible(false);
+            m_gp_spinner->setVisible(false);
             m_more_options_text->setVisible(false);
             m_more_options_spinner->setVisible(false);
             break;
@@ -390,6 +401,7 @@ void CreateServerScreen::createServer()
     if (m_more_options_spinner->isVisible())
     {
         int esi = m_more_options_spinner->getValue();
+        int esi_gp = m_gp_spinner->getValue();
         if (gamemode_widget->getSelection(PLAYER_ID_GAME_MASTER) ==
             3/*is soccer*/)
         {
@@ -416,17 +428,14 @@ void CreateServerScreen::createServer()
                     NetworkAIController::setAIFrequency(10);
                 }
             }
-            else
+            // Grand prix track count
+            if (esi_gp > 0)
             {
-                // Grand prix track count
-                if (esi > 0)
-                {
-                    ServerConfig::m_gp_track_count = esi;
-                    if (ServerConfig::m_server_mode == 3)
-                        ServerConfig::m_server_mode = 0;
-                    else
-                        ServerConfig::m_server_mode = 1;
-                }
+                ServerConfig::m_gp_track_count = esi_gp;
+                if (ServerConfig::m_server_mode == 3)
+                    ServerConfig::m_server_mode = 0;
+                else if (ServerConfig::m_server_mode == 4)
+                    ServerConfig::m_server_mode = 1;
             }
         }
         m_prev_mode = gamemode_widget->getSelection(PLAYER_ID_GAME_MASTER);
