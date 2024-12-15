@@ -55,6 +55,7 @@ protected:
 
     virtual void update(int ticks);
     virtual unsigned int getNextSector(unsigned int index);
+    virtual unsigned int getNextSectorIndex(unsigned int index);
     virtual void  newLap(int lap);
     //virtual void setControllerName(const std::string &name);
 

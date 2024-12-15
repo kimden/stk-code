@@ -20,6 +20,7 @@
 #define HEADER_QUAD_HPP
 
 #include <SColor.h>
+#include <array>
 
 #include "utils/leak_check.hpp"
 #include "utils/no_copy.hpp"
@@ -66,6 +67,9 @@ private:
 
 public:
     LEAK_CHECK()
+
+    std::array<Vec3, 4> getQuadPoints() const { return {m_p[0], m_p[1], m_p[2], m_p[3]}; };
+
     // ------------------------------------------------------------------------
     Quad(const Vec3 &p0, const Vec3 &p1, const Vec3 &p2, const Vec3 &p3,
          const Vec3 & normal = Vec3(0, 1, 0), int index = -1,

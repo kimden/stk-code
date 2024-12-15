@@ -132,6 +132,7 @@ protected:
     // ------------------------------------------------------------------------
     // Some convenient functions for the AI only
     friend class SkiddingAI;
+    friend class TyreModAI;
     friend class TestAI;
     /** Returns true if the specified line segment would come close enough
      *  to this item so that this item would be collected.

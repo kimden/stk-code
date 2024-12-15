@@ -42,6 +42,7 @@
 #include "karts/controller/local_player_controller.hpp"
 #include "karts/controller/skidding_ai.hpp"
 #include "karts/controller/soccer_ai.hpp"
+#include "karts/controller/race_ai_tme.hpp"
 #include "karts/controller/spare_tire_ai.hpp"
 #include "karts/controller/test_ai.hpp"
 #include "karts/controller/network_ai_controller.hpp"
@@ -515,7 +516,7 @@ std::shared_ptr<Kart> World::createKart
             if (RaceManager::get()->isBattleMode())
                 ai = new BattleAI(new_kart.get());
             else
-                ai = new SkiddingAI(new_kart.get());
+                ai = new TyreModAI(new_kart.get());
             controller = new NetworkAIController(new_kart.get(),
                 local_player_id, ai);
         }
@@ -579,6 +580,8 @@ Controller* World::loadAIController(Kart* kart)
         turn=1;
     else if(RaceManager::get()->getMinorMode()==RaceManager::MINOR_MODE_SOCCER)
         turn=2;
+    else // For now, always load the TyreModAI for races
+        turn=3;
     // If different AIs should be used, adjust turn (or switch randomly
     // or dependent on difficulty)
     switch(turn)
@@ -596,6 +599,9 @@ Controller* World::loadAIController(Kart* kart)
             break;
         case 2:
             controller = new SoccerAI(kart);
+            break;
+        case 3:
+            controller = new TyreModAI(kart);
             break;
         default:
             Log::warn("[World]", "Unknown AI, using default.");

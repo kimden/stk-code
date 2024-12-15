@@ -238,6 +238,20 @@ unsigned int AIBaseLapController::getNextSector(unsigned int index)
     return successors[0];
 }   // getNextSector
 
+
+//-----------------------------------------------------------------------------
+/** Returns the next sector index of the given sector index. This is used
+ *  for branches in the quad graph to select which way the AI kart should
+ *  go. This is a very simple implementation that always returns the first
+ *  successor, but it can be overridden to allow a better selection.
+ *  \param index Index of the graph node for which the successor is searched.
+ *  \return Returns the successor of this graph node.
+ */
+unsigned int AIBaseLapController::getNextSectorIndex(unsigned int index)
+{
+    return 0;
+}   // getNextSectorIndex
+
 //-----------------------------------------------------------------------------
 /** This function steers towards a given angle. It also takes a plunger
  ** attached to this kart into account by modifying the actual steer angle
