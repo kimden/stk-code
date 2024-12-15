@@ -117,14 +117,14 @@ void RaceGUI::initSize()
     // Determine maximum length of the rank/lap text, in order to
     // align those texts properly on the right side of the viewport.
     gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-    core::dimension2du area = font->getDimension(L"99:99.999");
+    core::dimension2du area = font->getDimension(L"99:99:99.999");
     m_timer_width = area.Width;
     m_font_height = area.Height;
 
-    area = font->getDimension(L"99.999");
+    area = font->getDimension(L"99:99:99.999");
     m_small_precise_timer_width = area.Width;
 
-    area = font->getDimension(L"99:99.999");
+    area = font->getDimension(L"99:99:99.999");
     m_big_precise_timer_width = area.Width;
 
     area = font->getDimension(L"-");
