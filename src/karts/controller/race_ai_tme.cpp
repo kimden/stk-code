@@ -112,29 +112,21 @@ bool TyreModAI::vec3Compare(Vec3 a, Vec3 b) {
 }
 
 
-void TyreModAI::computeRacingLine(unsigned int current_node) {
-    std::array<Vec3, 4> quad_curr = DriveGraph::get()->getNode(current_node)->getQuadPoints();
-    Vec3 quad_curr_normal = (quad_curr[0] - quad_curr[2]).cross(quad_curr[1] - quad_curr[3]);
-
-    unsigned int next_node_index = getNextSectorIndex(current_node); // The successor index
-    unsigned int next_node = getNextSector(current_node);
-    std::array<Vec3, 4> quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
-    Vec3 quad_next_normal = (quad_next[0] - quad_next[2]).cross(quad_next[1] - quad_next[3]);
-    float angle = quad_curr_normal.angle(quad_next_normal);
-
-
-    bool initialized_1 = false, initialized_2 = false;
-    Vec3 intersection1, intersection2;
+std::array<std::array<Vec3, 3>, 2> TyreModAI::formTriangles(std::array<Vec3, 4> quad_curr, std::array<Vec3, 4> quad_prev, std::array<Vec3, 4> quad_next){
+    bool initialized_1, initialized_2;
     unsigned int intersection_index_1_curr, intersection_index_1_next, intersection_index_2_curr, intersection_index_2_next;
+    std::array<std::array<Vec3, 3>, 2> retval;
+    unsigned int different_index_curr_first, different_index_curr_second, different_index_next_first, different_index_next_second;
+
+    initialized_1 = false;
+    initialized_2 = false;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (vec3Compare(quad_curr[i], quad_next[j])) {
+            if (vec3Compare(quad_prev[i], quad_curr[j])) {
                 if(initialized_1 == false) {
-                    intersection1 = quad_curr[i];
                     intersection_index_1_curr = i;
                     intersection_index_1_next = j;
                 } else if (initialized_2 == false) {
-                    intersection2 = quad_curr[i];
                     intersection_index_2_curr = i;
                     intersection_index_2_next = j;
                     break;
@@ -144,59 +136,67 @@ void TyreModAI::computeRacingLine(unsigned int current_node) {
             }
         }
     }
-    // We have the two first quads and the edge they share, now we must
-    // detemine the vertical angle between them in order to get them on
-    // the same plane for 2D racing line calculations.
-    // Once we do this, we keep following the same process recursively
-    // to get all quads on the same plane until one of the following occur:
-    // 1- We reached a quad with index equal to the original, AKA we completely mapped the lap (unlikely)
-    // 2- We reached a point where, if we were to make the next quad coplanary to the rest, it would overlap with some of them.
-    // 3- We reached the predetermined limit of quads to use for the calculation.
 
-    Vec3 edgeVector = intersection1 - intersection2;
+    // We have the two first quads and the edge they share, we form a triangle containing this edge with the latter quad's points
+    retval[0][0] = intersection_index_1_next;
+    retval[0][1] = intersection_index_2_next;
 
-    // This is to get the index of the two points of each quad that aren't part of the shared edge.
-    unsigned int different_index_curr_first = (intersection_index_1_curr^intersection_index_2_curr) % 4;
-    unsigned int different_index_curr_second = (0 + 1 + 2 + 3 - intersection_index_1_curr - intersection_index_2_curr - different_index_curr_first) % 4;
 
-    unsigned int different_index_next_first = (intersection_index_1_next^intersection_index_2_next) % 4;
-    unsigned int different_index_next_second = (0 + 1 + 2 + 3 - intersection_index_1_next - intersection_index_2_next - different_index_next_first) % 4;
-
-    std::array<Vec3, 4> flattened_next;
+    initialized_1 = false;
+    initialized_2 = false;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (vec3Compare(quad_curr[i], quad_next[j])) {
+                if(initialized_1 == false) {
+                    intersection_index_1_curr = i;
+                    intersection_index_1_next = j;
+                } else if (initialized_2 == false) {
+                    intersection_index_2_curr = i;
+                    intersection_index_2_next = j;
+                    break;
+                } else {
+                    assert(false);
+                }
+            }
+        }
+    }
     /*
-        One edge of the quad is the rotation axis. I want to rotate the other two points around it.
-        So what I do is take the vectors from the two vertices of the quad that are in the axis, to the other two points, and rotate THESE.
-        And then I add them back to the coordinates of the original axis vertices.
+    // This is to get the index of the two points of each quad that aren't part of the shared edge.
+    different_index_curr_first = (intersection_index_1_curr^intersection_index_2_curr) % 4;
+    different_index_curr_second = (0 + 1 + 2 + 3 - intersection_index_1_curr - intersection_index_2_curr - different_index_curr_first) % 4;
 
-        Unrelated but this proves the non-necessity of a stack:
-         Ok so, what you say is calculate relative angle with unrotated version,
-         move points so that it's connected again, and re-rotate to match old angle?
-         AHHH, you are have genius.
-         (Thanks kimden for helping me with the math for this whole thing lmao)
+    different_index_next_first = (intersection_index_1_next^intersection_index_2_next) % 4;
+    different_index_next_second = (0 + 1 + 2 + 3 - intersection_index_1_next - intersection_index_2_next - different_index_next_first) % 4;
+
     */
 
-    // Don't change the points on the rotation axis
-    flattened_next[intersection_index_1_next] = quad_next[intersection_index_1_next];
-    flattened_next[intersection_index_2_next] = quad_next[intersection_index_2_next];
+    // Shifted the window forward by one
+    // We have the two first quads and the edge they share, we form a triangle containing this edge with the latter quad's points
+    retval[1][0] = intersection_index_1_curr;
+    retval[1][1] = intersection_index_2_curr;
 
-    //rotate around axis
-    flattened_next[different_index_next_first] = quad_next[different_index_next_first]+(quad_next[intersection_index_1_next] - quad_next[different_index_next_first]).rotate(edgeVector, -angle);
-    flattened_next[different_index_next_second] = quad_next[different_index_next_second] + (quad_next[intersection_index_2_next] - quad_next[different_index_next_second]).rotate(edgeVector, -angle);
+    //All quads are connected to their successors and predecessors at opposite ends. This is incredibly useful.
+    //So basically, we need to look for a diagonal. That is, take one of the edges, and from the other side, look for the smallest angle.
+    if ((retval[0][1]-retval[0][0]).angle(retval[1][0]-retval[0][0]) < (retval[0][1]-retval[0][0]).angle(retval[1][1]-retval[0][0])){
+        retval[0][2] = retval[1][0];
+        retval[1][2] = retval[0][0];
+    } else {
+        retval[0][2] = retval[1][1];
+        retval[1][2] = retval[0][0];
+    }
+}
 
-    
-    // Once this has happened, we have obtained our 2D surface, which we will now use to compute the ideal racing line.
+void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
+    std::array<Vec3, 4> quad_curr = DriveGraph::get()->getNode(current_node)->getQuadPoints();
+    std::array<Vec3, 4> quad_prev;
+    quad_prev[0] = Vec3(0,0,0);
+    quad_prev[1] = Vec3(1,0,0) * (quad_curr[1] - quad_curr[0]).length();
+    quad_prev[2] = quad_prev[1].rotate(Vec3(0,0,1), PI/2.0f) ;
+    quad_prev[3] = quad_prev[1]+quad_prev[2];
 
-    // The racing line will be composed exclusively of circumference arcs (the straight line being a
-    // degenerate case with radius=infinity), which will have their length maximized within the possibilities
-    // of the minimization of the racing line length, which must always take priority.
-    // These arcs will then be mapped onto each quad.
-    // After the circumference arcs have been successfully split and re-defined in function
-    // of the quads they go through, we can re-apply the entire rotation chain backwards to obtain our 3D quad surface that contains the racing line.
-    // When a kart is going over a quad, we can then simply observe whether we need to increase, decrease or maintain the steering and speed,
-    // to follow the plan. Skidding is, of course, an option that is also very good, though it must be released periodically to keep the speed boost.
-    // Skidding does also impose a maximum turn radius, though. In general, it must be said that it is preferrable to impose the maximum turn radius
-    // of the skid into the optimization algorithm, in order to successfully encode STK "snaking" mechanics. Another option is to simply overlay at 
-    // every point the widest possible drifting arc in order to check if it's possible to do it instead of going in a straight line. Only reserved for zones entirely composed of straight lines, which will have their own marker since "infinity radius" isn't a real number. It should also have checks to see if it should go to the appropiate part of the track to take a turn, so it doesn't enter corners suboptimally.
+    unsigned int next_node = getNextSector(current_node);
+    std::array<Vec3, 4> quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
+
 }
  
 //-----------------------------------------------------------------------------
@@ -207,7 +207,7 @@ void TyreModAI::computeRacingLine(unsigned int current_node) {
 void TyreModAI::update(int ticks)
 {
     float dt = stk_config->ticks2Time(ticks);
-    computeRacingLine(m_track_node);
+    computeRacingLine(m_track_node, 100);
 
     m_controls->setLookBack(false);
     m_controls->setSteer(0.0f);

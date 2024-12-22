@@ -42,7 +42,9 @@ class TyreModAI : public AIBaseLapController
 private:
     ItemManager* m_item_manager;
     bool vec3Compare(Vec3 a, Vec3 b);
-    void computeRacingLine(unsigned int current_node);
+    void computeRacingLine(unsigned int current_node, unsigned int max);
+std::array<std::array<Vec3, 3>, 2> formTriangles(std::array<Vec3, 4> quad_curr, std::array<Vec3, 4> quad_prev, std::array<Vec3, 4> quad_next);
+
 protected:
     int placeholder2;
 public:
