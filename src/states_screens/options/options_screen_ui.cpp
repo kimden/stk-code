@@ -250,6 +250,11 @@ void OptionsScreenUI::init()
     assert(karts_powerup_gui != NULL);
     karts_powerup_gui->setState(UserConfigParams::m_karts_powerup_gui);
 
+    CheckBoxWidget* use_tyre_ai = getWidget<CheckBoxWidget>("use_tyre_ai");
+    assert(use_tyre_ai != NULL);
+    use_tyre_ai->setState(UserConfigParams::m_use_tyre_ai);
+
+
     CheckBoxWidget* fps = getWidget<CheckBoxWidget>("showfps");
     assert( fps != NULL );
     fps->setState( UserConfigParams::m_display_fps );
@@ -498,6 +503,12 @@ void OptionsScreenUI::eventCallback(Widget* widget, const std::string& name, con
         CheckBoxWidget* karts_powerup_gui = getWidget<CheckBoxWidget>("karts_powerup_gui");
         assert(karts_powerup_gui != NULL);
         UserConfigParams::m_karts_powerup_gui = karts_powerup_gui->getState();
+    }
+    else if (name == "use_tyre_ai")
+    {
+        CheckBoxWidget* use_tyre_ai = getWidget<CheckBoxWidget>("use_tyre_ai");
+        assert(use_tyre_ai != NULL);
+        UserConfigParams::m_use_tyre_ai = use_tyre_ai->getState();
     }
     else if (name == "showfps")
     {

@@ -515,8 +515,12 @@ std::shared_ptr<Kart> World::createKart
             AIBaseController* ai = NULL;
             if (RaceManager::get()->isBattleMode())
                 ai = new BattleAI(new_kart.get());
-            else
-                ai = new TyreModAI(new_kart.get());
+            else {
+                if (UserConfigParams::m_use_tyre_ai)
+                    ai = new TyreModAI(new_kart.get());
+                else
+                    ai = new SkiddingAI(new_kart.get());
+            }
             controller = new NetworkAIController(new_kart.get(),
                 local_player_id, ai);
         }
@@ -580,8 +584,12 @@ Controller* World::loadAIController(Kart* kart)
         turn=1;
     else if(RaceManager::get()->getMinorMode()==RaceManager::MINOR_MODE_SOCCER)
         turn=2;
-    else // For now, always load the TyreModAI for races
-        turn=3;
+    else {
+        if (UserConfigParams::m_use_tyre_ai)
+            turn=3;
+        else
+            turn=0;
+    }
     // If different AIs should be used, adjust turn (or switch randomly
     // or dependent on difficulty)
     switch(turn)
