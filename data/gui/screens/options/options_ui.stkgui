@@ -81,6 +81,14 @@
                 <spacer width="5" height="2%"/>
 
                 <div layout="horizontal-row" width="100%" height="fit">
+                    <checkbox id="use_tyre_ai"/>
+                    <spacer width="1%" height="100%" />
+                    <label height="100%" I18N="In the ui settings" text="Use experimental Tyre Mod AI" word_wrap="true"/>
+                </div>
+
+                <spacer width="5" height="2%"/>
+
+                <div layout="horizontal-row" width="100%" height="fit">
                     <checkbox id="karts_powerup_gui"/>
                     <spacer width="1%" height="100%" />
                     <label height="100%" I18N="In the ui settings" text="Show other karts' held powerups" word_wrap="true"/>
