@@ -436,8 +436,9 @@ void loadServerLobbyFromConfig()
             m_team_choosing = false;
         m_server_configurable = false;
     }
-    if (modes.second == RaceManager::MAJOR_MODE_GRAND_PRIX)
-        m_server_configurable = false;
+    if (modes.second == RaceManager::MAJOR_MODE_GRAND_PRIX) {
+        //m_server_configurable = false;
+    }
 
     const bool is_soccer =
         RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER;

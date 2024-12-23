@@ -5019,7 +5019,7 @@ uint8_t ServerLobby::getStartupBoostOrPenaltyForKart(uint32_t ping,
 //-----------------------------------------------------------------------------
 
 void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
-    int difficulty, int mode, bool soccer_goal_target)
+    int difficulty, int mode, bool soccer_goal_target, int gp_track_count)
 {
     if (m_state != WAITING_FOR_START_GAME)
     {
@@ -5058,15 +5058,17 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     // Kimden version:
     auto modes = ServerConfig::getLocalGameMode(mode);
 
-    if (modes.second == RaceManager::MAJOR_MODE_GRAND_PRIX)
+    if (gp_track_count > 0)
     {
+        ServerConfig::m_gp_track_count = gp_track_count;
         Log::warn("ServerLobby", "Grand prix is used for new mode.");
-        return;
+        //return;
     }
 
     RaceManager::get()->setMinorMode(modes.first);
     RaceManager::get()->setMajorMode(modes.second);
     RaceManager::get()->setDifficulty(RaceManager::Difficulty(difficulty));
+    ServerConfig::m_gp_track_count = gp_track_count;
     m_game_setup->resetExtraServerInfo();
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
         m_game_setup->setSoccerGoalTarget(soccer_goal_target);
@@ -5168,6 +5170,11 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         sendMessageToPeers(chat);
         delete chat;
     }
+    if (gp_track_count > 0) {
+        getGameSetup()->setGrandPrixTrack(gp_track_count);
+        resetGrandPrix();
+    }
+
 }   // handleServerConfiguration
 //-----------------------------------------------------------------------------
 /*! \brief Called when the server owner request to change game mode or
@@ -5190,15 +5197,23 @@ void ServerLobby::handleServerConfiguration(Event* event)
             event->getPeer()->getHostId());
         return;
     }
+    bool change_config = false;
+    
     int new_difficulty = ServerConfig::m_server_difficulty;
     int new_game_mode = ServerConfig::m_server_mode;
+    int new_gp_track_count = ServerConfig::m_gp_track_count;
     bool new_soccer_goal_target = ServerConfig::m_soccer_goal_target;
     if (event != NULL)
     {
         NetworkString& data = event->data();
 
-        new_difficulty = data.getUInt8();
+        int received_new_difficulty = data.getUInt8();
+        if (received_new_difficulty != new_difficulty) {
+            change_config = true;
+            new_difficulty = received_new_difficulty;
+        }
 
+        
         float fuel_info[5];
         fuel_info[0] = data.getFloat();
         fuel_info[1] = data.getFloat();
@@ -5213,12 +5228,29 @@ void ServerLobby::handleServerConfiguration(Event* event)
 
         RaceManager::get()->setFuelAndQueueInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4], compound_amount[0], compound_amount[1], compound_amount[2]);
 
-        new_game_mode = data.getUInt8();
-        new_soccer_goal_target = data.getUInt8() == 1;
+        int received_new_game_mode = data.getUInt8();
+        if (received_new_game_mode != new_game_mode) {
+            change_config = true;
+            new_game_mode = received_new_game_mode;
+        }
+
+        int received_new_soccer_goal_target = data.getUInt8() == 1;
+        if (received_new_soccer_goal_target != new_soccer_goal_target) {
+            change_config = true;
+            new_soccer_goal_target = received_new_soccer_goal_target;
+        }
+
+        int received_gp_track_count = data.getUInt8();
+        if (received_gp_track_count != new_gp_track_count) {
+            change_config = true;
+            new_gp_track_count = received_gp_track_count;
+        }
     }
-    handleServerConfiguration(
-        (event ? event->getPeerSP() : std::shared_ptr<STKPeer>()),
-        new_difficulty, new_game_mode, new_soccer_goal_target);
+    if (change_config) {
+        handleServerConfiguration(
+            (event ? event->getPeerSP() : std::shared_ptr<STKPeer>()),
+            new_difficulty, new_game_mode, new_soccer_goal_target, new_gp_track_count);
+    }
 }   // handleServerConfiguration
 
 //-----------------------------------------------------------------------------

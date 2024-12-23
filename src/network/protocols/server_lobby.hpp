@@ -437,7 +437,7 @@ private:
     void updateServerOwner(bool force = false);
     void handleServerConfiguration(Event* event);
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
-        int difficulty, int mode, bool soccer_goal_target);
+        int difficulty, int mode, bool soccer_goal_target, int gp_track_count);
     void updateTracksForMode();
     bool checkPeersReady(bool ignore_ai_peer, bool before_start = false);
     void resetPeersReady()

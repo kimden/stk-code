@@ -1209,7 +1209,7 @@ void CommandManager::process_config_assign(Context& context)
             vote(context, "config target", m_aux_goal_aliases[goal_target ? 1 : 0][0]);
         return;
     }
-    m_lobby->handleServerConfiguration(peer, difficulty, mode, goal_target);
+    m_lobby->handleServerConfiguration(peer, difficulty, mode, goal_target, ServerConfig::m_gp_track_count);
 } // process_config_assign
 // ========================================================================
 

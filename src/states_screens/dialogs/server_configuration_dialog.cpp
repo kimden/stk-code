@@ -47,6 +47,13 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_fuel_spinner->setValue(1000);
     m_fuel_text->setVisible(true);
 
+    m_gp_tracks_text = getWidget<LabelWidget>("gp-label");
+    assert(m_gp_tracks_text != NULL);
+    m_gp_tracks_spinner = getWidget<SpinnerWidget>("gp-spinner");
+    assert(m_gp_tracks_spinner != NULL);
+    m_gp_tracks_spinner->setVisible(false);
+    m_gp_tracks_spinner->setValue(0);
+    m_gp_tracks_text->setVisible(false);
 
     m_fuel_stop_text = getWidget<LabelWidget>("fuel-stop-label");
     assert(m_fuel_stop_text != NULL);
@@ -179,28 +186,38 @@ GUIEngine::EventPropagation
             switch (m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER))
             {
                 case 0:
-                {
-                    change.addUInt8(3).addUInt8(0);
+                {  
+                    unsigned v = m_gp_tracks_spinner->getValue();
+                    if (v > 0)
+                        change.addUInt8(0).addUInt8(0).addUInt8(v);
+                    else
+                        change.addUInt8(3).addUInt8(0).addUInt8(v);
                     break;
                 }
                 case 1:
                 {
-                    change.addUInt8(4).addUInt8(0);
+                    unsigned v = m_gp_tracks_spinner->getValue();
+                    if (v > 0)
+                        change.addUInt8(1).addUInt8(0).addUInt8(v);
+                    else
+                        change.addUInt8(4).addUInt8(0).addUInt8(v);
                     break;
                 }
                 case 2:
                 {
-                    int v = m_more_options_spinner->getValue();
+                    unsigned v = m_more_options_spinner->getValue();
+                    unsigned v2 = m_gp_tracks_spinner->getValue();
                     if (v == 0)
-                        change.addUInt8(7).addUInt8(0);
+                        change.addUInt8(7).addUInt8(0).addUInt8(v2);
                     else
-                        change.addUInt8(8).addUInt8(0);
+                        change.addUInt8(8).addUInt8(0).addUInt8(v2);
                     break;
                 }
                 case 3:
                 {
                     int v = m_more_options_spinner->getValue();
-                    change.addUInt8(6).addUInt8((uint8_t)v);
+                    unsigned v2 = m_gp_tracks_spinner->getValue();
+                    change.addUInt8(6).addUInt8((uint8_t)v).addUInt8(v2);
                     break;
                 }
                 default:
@@ -227,6 +244,9 @@ GUIEngine::EventPropagation
 // ----------------------------------------------------------------------------
 void ServerConfigurationDialog::updateMoreOption(int game_mode)
 {
+    // Disable for some modes? not sure yet
+    m_gp_tracks_text->setVisible(true);
+    m_gp_tracks_spinner->setVisible(true);
     switch (game_mode)
     {
         case 0:

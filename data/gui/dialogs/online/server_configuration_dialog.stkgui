@@ -43,11 +43,21 @@
             <spacer height="1%" width="20"/>
 
             <div width="100%" height="fit" layout="horizontal-row">
-                <div proportion="1" height="fit" layout="horizontal-row">
-                    <spinner id="fuel-spinner" width="100%" min_value="1" max_value="1000" align="center"
-                             wrap_around="true" />
+                <div width="50%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="fuel-spinner" width="100%" min_value="1" max_value="1000" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="fuel-label" proportion="3" I18N="In the track info screen" text="Starting E" text_align="left" />
                 </div>
-                <label id="fuel-label" proportion="3" I18N="In the track info screen" text="Starting E" text_align="left" />
+
+                <div width="50%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="gp-spinner" width="100%" min_value="0" max_value="20" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="gp-label" proportion="3" I18N="In the track info screen" text="GP track count" text_align="left" />
+                </div>
             </div>
 
             <div width="100%" height="fit" layout="horizontal-row">

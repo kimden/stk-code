@@ -85,7 +85,7 @@ void CreateServerScreen::loadedFromFile()
     assert(m_gp_text != NULL);
     m_gp_spinner = getWidget<SpinnerWidget>("gp-spinner");
     assert(m_gp_spinner != NULL);
-
+    m_gp_spinner->setValue(0);
 
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
@@ -221,6 +221,9 @@ void CreateServerScreen::updateMoreOption(int game_mode)
                 else
                     m_more_options_spinner->setValue(m_prev_value);
 
+            } else {
+                m_more_options_text->setVisible(false);
+                m_more_options_spinner->setVisible(false);
             }
 
             m_gp_text->setVisible(true);
@@ -228,13 +231,17 @@ void CreateServerScreen::updateMoreOption(int game_mode)
             //I18N: In the create server screen
             m_gp_text->setText(_("No. of grand prix track(s)"),
                 false);
-            m_gp_spinner->addLabel(_("Disabled"));
-            for (int i = 1; i <= 20; i++)
-            {
-                m_gp_spinner->addLabel(
-                    StringUtils::toWString(i));
-            }
-            m_gp_spinner->setValue(m_prev_value);
+
+//            int tmp_val = m_gp_spinner->getValue();
+//            m_gp_spinner->addLabel(_("Disabled"));
+//            for (int i = 1; i <= 20; i++)
+//            {
+//                m_gp_spinner->addLabel(
+//                    StringUtils::toWString(i));
+//            }
+//            m_gp_spinner->setValue(tmp_val);
+//            if (m_gp_spinner->getValue() > 20)
+//                m_gp_spinner->setValue(20);
 
             break;
         }
@@ -398,10 +405,21 @@ void CreateServerScreen::createServer()
         difficulty_widget->getSelection(PLAYER_ID_GAME_MASTER);
     ServerConfig::m_server_max_players = max_players;
 
+    int esi_gp = m_gp_spinner->getValue();
+    ServerConfig::m_gp_track_count = esi_gp;
+    // Grand prix track count
+    if (esi_gp > 0)
+    {
+        if (ServerConfig::m_server_mode == 3)
+            ServerConfig::m_server_mode = 0;
+        else if (ServerConfig::m_server_mode == 4)
+            ServerConfig::m_server_mode = 1;
+    }
+
+
     if (m_more_options_spinner->isVisible())
     {
         int esi = m_more_options_spinner->getValue();
-        int esi_gp = m_gp_spinner->getValue();
         if (gamemode_widget->getSelection(PLAYER_ID_GAME_MASTER) ==
             3/*is soccer*/)
         {
@@ -428,15 +446,6 @@ void CreateServerScreen::createServer()
                     NetworkAIController::setAIFrequency(10);
                 }
             }
-            // Grand prix track count
-            if (esi_gp > 0)
-            {
-                ServerConfig::m_gp_track_count = esi_gp;
-                if (ServerConfig::m_server_mode == 3)
-                    ServerConfig::m_server_mode = 0;
-                else if (ServerConfig::m_server_mode == 4)
-                    ServerConfig::m_server_mode = 1;
-            }
         }
         m_prev_mode = gamemode_widget->getSelection(PLAYER_ID_GAME_MASTER);
         m_prev_value = esi;
@@ -449,6 +458,7 @@ void CreateServerScreen::createServer()
     ChildLoop* cl = new ChildLoop(clc);
     STKHost::create(cl);
     NetworkingLobby::getInstance()->setJoinedServer(server);
+    NetworkingLobby::getInstance();
 #endif
 }   // createServer
 

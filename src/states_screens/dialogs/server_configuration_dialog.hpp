@@ -42,6 +42,8 @@ private:
     GUIEngine::LabelWidget* m_more_options_text;
 
 
+    GUIEngine::SpinnerWidget* m_gp_tracks_spinner;
+    GUIEngine::LabelWidget* m_gp_tracks_text;
 
     GUIEngine::SpinnerWidget* m_fuel_spinner;
     GUIEngine::LabelWidget* m_fuel_text;

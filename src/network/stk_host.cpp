@@ -88,6 +88,10 @@ std::shared_ptr<LobbyProtocol> STKHost::create(ChildLoop* cl)
         m_stk_host[pt] = new STKHost(true/*server*/);
         sl->initServerStatsTable();
         lp = sl;
+        if (ServerConfig::m_gp_track_count > 0) {
+            sl->getGameSetup()->setGrandPrixTrack(ServerConfig::m_gp_track_count);
+            sl->resetGrandPrix();
+        }
     }
     else
     {

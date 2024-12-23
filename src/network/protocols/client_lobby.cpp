@@ -778,6 +778,8 @@ void ClientLobby::handleServerInfo(Event* event)
     switch (extra_server_info)
     {
         case 0:
+            total_lines += _("No extra info");
+            total_lines += L"\n";
             break;
         case 1:
         {
