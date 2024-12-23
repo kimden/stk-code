@@ -1,11 +1,14 @@
-# SuperTuxKart 2.0 alpha: Tyre Mod Edition (STK TME) by Nomagno
-
+# SuperTuxKart Tyre Mod Edition by Nomagno, based on STK 2.X Alpha
+### + Command Manager (CM) by Kimden
+## Or in short, STK 2.Xue TME + CM :P
 SuperTuxKart is a free kart racing game.
 
 The SuperTuxKart homepage can be found at <https://supertuxkart.net/>.
 
 ## License
 The software is released under the GNU General Public License (GPL) which can be found in the file [`COPYING`](/COPYING) in the same directory as this file.
+
+![STK Tyre Mod Edition](/tme_banner.png)
 
 ## Building from source
 
