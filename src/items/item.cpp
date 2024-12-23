@@ -424,8 +424,8 @@ void Item::handleNewMesh(ItemType type)
     hpr.setHPR(getOriginalRotation());
     m_node->setRotation(hpr.toIrrHPR());
 
-    if (m_icon_node)
-        m_node->removeChild(m_icon_node);
+    //if (m_icon_node)
+    //    m_appear_anime_node->removeChild(m_icon_node);
     m_icon_node = NULL;
     auto icon = ItemManager::getIcon(type);
 

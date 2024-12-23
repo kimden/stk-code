@@ -279,12 +279,12 @@ void KartSelectionScreen::beforeAddingWidget()
     );
     if (useContinueButton())
     {
-        getWidget("kartlist")->m_properties[GUIEngine::PROP_WIDTH] = "85%";
+        getWidget("karts")->m_properties[GUIEngine::PROP_WIDTH] = "85%";
         getWidget("continue")->setVisible(true);
     }
     else
     {
-        getWidget("kartlist")->m_properties[GUIEngine::PROP_WIDTH] = "100%";
+        getWidget("karts")->m_properties[GUIEngine::PROP_WIDTH] = "100%";
         getWidget("continue")->setVisible(false);
     }
     // Remove dispatcher from m_widgets before calculateLayout otherwise a
@@ -323,7 +323,7 @@ void KartSelectionScreen::beforeAddingWidget()
 
     // Make group names being picked up by gettext
 #define FOR_GETTEXT_ONLY(x)
-    //I18N: kart group name
+    //I18N: kart group/class name
     FOR_GETTEXT_ONLY( _("All") )
     //I18N: kart group name
     FOR_GETTEXT_ONLY( _("Favorite") )
@@ -332,11 +332,11 @@ void KartSelectionScreen::beforeAddingWidget()
     //I18N: kart group name
     FOR_GETTEXT_ONLY( _("Add-Ons") )
     //I18N: kart class name
-    FOR_GETTEXT_ONLY( _("light") )
+    FOR_GETTEXT_ONLY( _("Light") )
     //I18N: kart class name
-    FOR_GETTEXT_ONLY( _("medium") )
+    FOR_GETTEXT_ONLY( _("Medium") )
     //I18N: kart class name
-    FOR_GETTEXT_ONLY( _("heavy") )
+    FOR_GETTEXT_ONLY( _("Heavy") )
 
 
     // Add other groups after
@@ -354,9 +354,16 @@ void KartSelectionScreen::beforeAddingWidget()
     kart_class->m_properties[GUIEngine::PROP_MIN_VALUE] = "0";
     kart_class->m_properties[GUIEngine::PROP_MAX_VALUE] = StringUtils::toString(classes.size());
     
-    for (int i = 0; i < classes.size(); i++)
+    for (unsigned int i = 0; i < classes.size(); i++)
     {
-        kart_class->addLabel(_(classes[i].c_str()));
+        // Make the first letter upper-case
+        std::string class_str = classes[i];
+
+        if (class_str.size() && class_str[0] >= 'a' && class_str[0] <= 'z')
+        {
+            class_str[0] += 'A' - 'a';
+        }
+        kart_class->addLabel(_(class_str.c_str()));
     }
     kart_class->addLabel(_("All"));
 
@@ -411,9 +418,6 @@ void KartSelectionScreen::init()
 
     DynamicRibbonWidget* w = getWidget<DynamicRibbonWidget>("karts");
     assert( w != NULL );
-    // Only allow keyboard and gamepad to choose kart without continue button in
-    // multitouch GUI, so mouse (touch) clicking can be used as previewing karts
-    w->setEventCallbackActive(Input::IT_MOUSEBUTTON, !useContinueButton());
 
     KartHoverListener* karthoverListener = new KartHoverListener(this);
     w->registerHoverListener(karthoverListener);
@@ -1210,9 +1214,9 @@ void KartSelectionScreen::eventCallback(Widget* widget,
         assert(w != NULL);
         const std::string selection = w->getSelectionIDString(player_id);
 
-        if (getWidget<CheckBoxWidget>("favorite")->getState()
-         && player_id == PLAYER_ID_GAME_MASTER
-         && selection != RANDOM_KART_ID)
+        if (getWidget<CheckBoxWidget>("favorite")->getState() &&
+            player_id == PLAYER_ID_GAME_MASTER &&
+            selection != RANDOM_KART_ID && !selection.empty())
         {
             const KartProperties *kp = kart_properties_manager->getKart(selection);
 
@@ -1226,7 +1230,7 @@ void KartSelectionScreen::eventCallback(Widget* widget,
             }
             setKartsFromCurrentGroup();
         }
-        else if (m_kart_widgets.size() > unsigned(player_id))
+        else if (m_kart_widgets.size() > unsigned(player_id) && !useContinueButton())
             playerConfirm(player_id);
     }
     else if (name == "kart_class")
@@ -1626,7 +1630,7 @@ PtrVector<const KartProperties, REF> KartSelectionScreen::getUsableKarts(
             prop->getName().make_lower().find(search_text.c_str()) == -1)
             continue;
         
-        if (kart_class->getValue() != classes.size() &&
+        if (kart_class->getValue() != (int)classes.size() &&
             classes[kart_class->getValue()] != prop->getKartType())
             continue;
 
