@@ -6063,7 +6063,6 @@ bool ServerLobby::canRace(STKPeer* peer)
     }
     if (maps_fraction < ServerConfig::m_official_tracks_play_threshold)
     {
-        Log::info("[TheStrangeServerLobby]", "Nomagno typed this %lf / %lf", maps_fraction, ServerConfig::m_official_tracks_play_threshold);
         m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
         return false;
     }
