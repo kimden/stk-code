@@ -112,11 +112,24 @@ bool TyreModAI::vec3Compare(Vec3 a, Vec3 b) {
 }
 
 
-std::array<std::array<Vec3, 3>, 2> TyreModAI::formTriangles(std::array<Vec3, 4> quad_curr, std::array<Vec3, 4> quad_prev, std::array<Vec3, 4> quad_next){
+
+//Return value structure:
+// Note that the points on index 2 of each triangle define the shared edge of the triangles. Or they should define it, at least
+//First triangle (connected to predecessor):
+//  0- Point 1 of shared edge, equivalent index in predecessor
+//  1- Point 2 of shared edge, equivalent index in predecessor
+//  2- Point not on shared edge, equivalent index in predecessor (-1 since there will be no equivalent index)
+//Second triangle (connected to successor):
+//  0- Point 1 of shared edge, equivalent index in successor
+//  1- Point 2 of shared edge, equivalent index in successor
+//  2- Point not on shared edge, equivalent index in successor (-1 since there will be no equivalent index)
+
+
+std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::array<Vec3, 4> quad_curr, std::array<Vec3, 4> quad_prev, std::array<Vec3, 4> quad_next){
     bool initialized_1, initialized_2;
-    unsigned int intersection_index_1_curr, intersection_index_1_next, intersection_index_2_curr, intersection_index_2_next;
-    std::array<std::array<Vec3, 3>, 2> retval;
-    unsigned int different_index_curr_first, different_index_curr_second, different_index_next_first, different_index_next_second;
+    unsigned int intersection_index_1_curr = 0, intersection_index_1_next = 0, intersection_index_2_curr = 0, intersection_index_2_next = 0;
+    std::array<std::array<std::array<int, 2>, 3>, 2> retval;
+    //unsigned int different_index_curr_first, different_index_curr_second, different_index_next_first, different_index_next_second;
 
     initialized_1 = false;
     initialized_2 = false;
@@ -138,8 +151,11 @@ std::array<std::array<Vec3, 3>, 2> TyreModAI::formTriangles(std::array<Vec3, 4> 
     }
 
     // We have the two first quads and the edge they share, we form a triangle containing this edge with the latter quad's points
-    retval[0][0] = intersection_index_1_next;
-    retval[0][1] = intersection_index_2_next;
+    retval[0][0][0] = intersection_index_1_next;
+    retval[0][1][0] = intersection_index_2_next;
+
+    retval[0][0][1] = intersection_index_1_curr;
+    retval[0][1][1] = intersection_index_2_curr;
 
 
     initialized_1 = false;
@@ -172,20 +188,27 @@ std::array<std::array<Vec3, 3>, 2> TyreModAI::formTriangles(std::array<Vec3, 4> 
 
     // Shifted the window forward by one
     // We have the two first quads and the edge they share, we form a triangle containing this edge with the latter quad's points
-    retval[1][0] = intersection_index_1_curr;
-    retval[1][1] = intersection_index_2_curr;
+    retval[1][0][0] = intersection_index_1_curr;
+    retval[1][1][0] = intersection_index_2_curr;
+
+    retval[1][0][1] = intersection_index_1_next;
+    retval[1][1][1] = intersection_index_2_next;
 
     //All quads are connected to their successors and predecessors at opposite ends. This is incredibly useful.
     //So basically, we need to look for a diagonal. That is, take one of the edges, and from the other side, look for the smallest angle.
-    if ((retval[0][1]-retval[0][0]).angle(retval[1][0]-retval[0][0]) < (retval[0][1]-retval[0][0]).angle(retval[1][1]-retval[0][0])){
-        retval[0][2] = retval[1][0];
-        retval[1][2] = retval[0][0];
+    if ((quad_curr[retval[0][1][0]]-quad_curr[retval[0][0][0]]).angle(quad_curr[retval[1][0][0]]-quad_curr[retval[0][0][0]]) < (quad_curr[retval[0][1][0]]-quad_curr[retval[0][0][0]]).angle(quad_curr[retval[1][1][0]]-quad_curr[retval[0][0][0]])){
+        retval[0][2][0] = retval[1][0][0];
+        retval[1][2][0] = retval[0][0][0];
     } else {
-        retval[0][2] = retval[1][1];
-        retval[1][2] = retval[0][0];
+        retval[0][2][0] = retval[1][1][0];
+        retval[1][2][0] = retval[0][0][0];
     }
+    retval[0][2][1] = -1;
+    retval[1][2][1] = -1;
+    return retval;
 }
 
+#include <iostream>
 void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
     std::array<Vec3, 4> quad_curr = DriveGraph::get()->getNode(current_node)->getQuadPoints();
     std::array<Vec3, 4> quad_prev;
@@ -196,6 +219,83 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
 
     unsigned int next_node = getNextSector(current_node);
     std::array<Vec3, 4> quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
+
+    std::vector<std::array<Vec3, 4>> flattened_nodes;
+    flattened_nodes.push_back(quad_prev);
+
+    //std::cout << "[flat] START OF COMPUTED SURFACE" << std::endl;
+    for(int i = 1; i < max; i++) {
+        std::array<std::array<std::array<int, 2>, 3>, 2> aux_indexes = formTriangles(quad_prev, quad_curr, quad_next);
+        unsigned triangle_diagonal_p1 = aux_indexes[0][2][0];
+        unsigned triangle_diagonal_p2 = aux_indexes[1][2][0];
+        assert(triangle_diagonal_p1 != triangle_diagonal_p2);
+        unsigned triangle1_tip = (triangle_diagonal_p1^triangle_diagonal_p2) % 4;
+        unsigned triangle2_tip = (0 + 1 + 2 + 3 - triangle_diagonal_p1 - triangle_diagonal_p2 - triangle1_tip) % 4;
+        Vec3 triangle_common_axis = quad_curr[triangle_diagonal_p2] - quad_curr[triangle_diagonal_p1];
+        Vec3 triangle1_normal = triangle_common_axis.cross(quad_curr[triangle1_tip] - quad_curr[triangle_diagonal_p1]);
+        Vec3 triangle2_normal = triangle_common_axis.cross(quad_curr[triangle2_tip] - quad_curr[triangle_diagonal_p1]);
+        float angle_between_tris = triangle1_normal.angle(triangle2_normal);
+
+        std::array<Vec3, 4> quad_flattened;
+        quad_flattened[triangle_diagonal_p1] = quad_curr[triangle_diagonal_p1];
+        quad_flattened[triangle_diagonal_p2] = quad_curr[triangle_diagonal_p2];
+        quad_flattened[triangle1_tip] = quad_curr[triangle1_tip];
+        quad_flattened[triangle2_tip] = quad_curr[triangle_diagonal_p1] + ((quad_curr[triangle2_tip] - quad_curr[triangle_diagonal_p1]).rotate(triangle_common_axis, -angle_between_tris));
+
+        unsigned quad_shared_p1_curr = aux_indexes[0][0][0];
+        unsigned quad_shared_p1_prev = aux_indexes[0][0][1];
+        unsigned quad_shared_p2_curr = aux_indexes[0][1][0];
+        unsigned quad_shared_p2_prev = aux_indexes[0][1][1];
+
+        //The edge that is not shared with the predecessor. It's shared with the successor though, of course
+        unsigned quad_nonshared_p1_curr = aux_indexes[1][0][0];
+        unsigned quad_nonshared_p1_prev = aux_indexes[1][0][1];
+        unsigned quad_nonshared_p2_curr = aux_indexes[1][1][0];
+        unsigned quad_nonshared_p2_prev = aux_indexes[1][1][1];
+
+        //Now we move point 1 of this flattened quad to its equivalent index in the predecessor, rotate the point 2 to be connected.
+        Vec3 displacement_vector = (flattened_nodes.back())[quad_shared_p1_prev] - quad_flattened[quad_shared_p1_curr];
+
+        quad_flattened[0] += displacement_vector;
+        quad_flattened[1] += displacement_vector;
+        quad_flattened[2] += displacement_vector;
+        quad_flattened[3] += displacement_vector;
+
+        Vec3 rotation_axis_initial_alignment = (quad_flattened[quad_shared_p2_curr] - quad_flattened[quad_shared_p1_curr]).cross((flattened_nodes.back())[quad_shared_p2_prev] - (flattened_nodes.back())[quad_shared_p1_prev]);
+        float angle_between_edges = (quad_flattened[quad_shared_p2_curr] - quad_flattened[quad_shared_p1_curr]).angle((flattened_nodes.back())[quad_shared_p2_prev] - (flattened_nodes.back())[quad_shared_p1_prev]);
+
+        quad_flattened[quad_shared_p1_curr] = quad_flattened[quad_shared_p1_curr];
+        quad_flattened[quad_shared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_shared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment, -angle_between_edges);
+        quad_flattened[quad_nonshared_p1_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p1_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment, -angle_between_edges);
+        quad_flattened[quad_nonshared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment, -angle_between_edges);
+
+        //Now rotate the other two points so that the quads' normal vectors are aligned.
+        //Or rather, simply align everything to the vector (0, 0, 1) since we're ensuring this by making the first quad forcibly be in the canonical 2D base.
+        //This is a useful simplification.
+        Vec3 quad_normal = (quad_flattened[quad_shared_p2_curr]-quad_flattened[quad_shared_p1_curr]).cross(quad_flattened[quad_nonshared_p1_curr]-quad_flattened[quad_shared_p1_curr]);
+        Vec3 rotation_axis_final = (quad_flattened[quad_shared_p2_curr]-quad_flattened[quad_shared_p1_curr]);
+        float angle_between_quads = quad_normal.angle(Vec3(0,0,1));
+        quad_flattened[quad_nonshared_p1_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p1_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final, -angle_between_quads);
+        quad_flattened[quad_nonshared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final, -angle_between_quads);
+
+        /*
+        std::cout << "[flat] ";
+        for (int i = 0; i < 4; i++) {
+            std::cout << "(" << quad_flattened[i].x() << ", " << quad_flattened[i].y() << ", " << quad_flattened[i].z() << ")-";
+        }
+        std::cout << ";";
+        std::cout << std::endl;
+        */
+
+        flattened_nodes.push_back(quad_flattened);
+
+        quad_prev = quad_curr;
+        quad_curr = quad_next;
+
+        next_node = getNextSector(current_node);
+        quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
+    }
+    //std::cout << "[flat] END OF COMPUTED SURFACE" << std::endl;
 
 }
  
