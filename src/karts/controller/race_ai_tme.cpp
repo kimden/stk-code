@@ -40,6 +40,8 @@
 
 #include "karts/controller/race_ai_tme.hpp"
 
+//#include <iostream>
+
 //-----------------------------------------------------------------------------
 /** Constructor.
  */
@@ -111,6 +113,15 @@ bool TyreModAI::vec3Compare(Vec3 a, Vec3 b) {
            (std::fabs(a.z()-b.z()) < 0.001) ;
 }
 
+std::array<unsigned, 2> oddTwoOut(unsigned a, unsigned b) {
+	a = a % 4;
+	b = b % 4;
+	std::vector<unsigned> vec = {0, 1, 2, 3};
+	vec.erase(std::find(vec.begin(),vec.end(),a));
+	vec.erase(std::find(vec.begin(),vec.end(),b));
+	return {vec[0], vec[1]};
+}
+
 
 
 //Return value structure:
@@ -125,7 +136,7 @@ bool TyreModAI::vec3Compare(Vec3 a, Vec3 b) {
 //  2- Point not on shared edge, equivalent index in successor (-1 since there will be no equivalent index)
 
 
-std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::array<Vec3, 4> quad_curr, std::array<Vec3, 4> quad_prev, std::array<Vec3, 4> quad_next){
+std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::array<Vec3, 4> quad_prev, std::array<Vec3, 4> quad_curr, std::array<Vec3, 4> quad_next){
     bool initialized_1, initialized_2;
     unsigned int intersection_index_1_curr = 0, intersection_index_1_next = 0, intersection_index_2_curr = 0, intersection_index_2_next = 0;
     std::array<std::array<std::array<int, 2>, 3>, 2> retval;
@@ -139,9 +150,11 @@ std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::a
                 if(initialized_1 == false) {
                     intersection_index_1_curr = i;
                     intersection_index_1_next = j;
+                    initialized_1 = true;
                 } else if (initialized_2 == false) {
                     intersection_index_2_curr = i;
                     intersection_index_2_next = j;
+                    initialized_2 = true;
                     break;
                 } else {
                     assert(false);
@@ -149,6 +162,7 @@ std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::a
             }
         }
     }
+    assert(initialized_1 && initialized_2);
 
     // We have the two first quads and the edge they share, we form a triangle containing this edge with the latter quad's points
     retval[0][0][0] = intersection_index_1_next;
@@ -166,9 +180,11 @@ std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::a
                 if(initialized_1 == false) {
                     intersection_index_1_curr = i;
                     intersection_index_1_next = j;
+                    initialized_1 = true;
                 } else if (initialized_2 == false) {
                     intersection_index_2_curr = i;
                     intersection_index_2_next = j;
+                    initialized_2 = true;
                     break;
                 } else {
                     assert(false);
@@ -176,6 +192,7 @@ std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::a
             }
         }
     }
+    assert(initialized_1 && initialized_2);
     /*
     // This is to get the index of the two points of each quad that aren't part of the shared edge.
     different_index_curr_first = (intersection_index_1_curr^intersection_index_2_curr) % 4;
@@ -208,29 +225,41 @@ std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::a
     return retval;
 }
 
-#include <iostream>
+//#include <cfenv>
 void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
+    std::vector<std::array<Vec3, 4>> flattened_nodes;
+
+
     std::array<Vec3, 4> quad_curr = DriveGraph::get()->getNode(current_node)->getQuadPoints();
+
+	//This ensures we get a dummy first flattened quad that is on the XY plane... maybe
+    std::array<Vec3, 4> quad_prev_flat;
+    quad_prev_flat[0] = Vec3(0,0,0);
+    quad_prev_flat[1] = Vec3(1,0,0) * (quad_curr[1] - quad_curr[0]).length();
+    quad_prev_flat[2] = quad_prev_flat[1].rotate(Vec3(0,0,1), PI/2.0f) ;
+    quad_prev_flat[3] = quad_prev_flat[1]+quad_prev_flat[2];
+    flattened_nodes.push_back(quad_prev_flat);
+
+	//This ensures we get a dummy first quad that plays nice
     std::array<Vec3, 4> quad_prev;
-    quad_prev[0] = Vec3(0,0,0);
-    quad_prev[1] = Vec3(1,0,0) * (quad_curr[1] - quad_curr[0]).length();
-    quad_prev[2] = quad_prev[1].rotate(Vec3(0,0,1), PI/2.0f) ;
-    quad_prev[3] = quad_prev[1]+quad_prev[2];
+    quad_prev[2] = quad_curr[0];
+    quad_prev[3] = quad_curr[1];
+    quad_prev[0] = quad_prev[2]-(quad_curr[2]-quad_curr[0]);
+    quad_prev[1] = quad_prev[3]-(quad_curr[3]-quad_curr[0]);
+
 
     unsigned int next_node = getNextSector(current_node);
     std::array<Vec3, 4> quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
 
-    std::vector<std::array<Vec3, 4>> flattened_nodes;
-    flattened_nodes.push_back(quad_prev);
 
     //std::cout << "[flat] START OF COMPUTED SURFACE" << std::endl;
-    for(int i = 1; i < max; i++) {
+    for(unsigned i = 1; i < max; i++) {
         std::array<std::array<std::array<int, 2>, 3>, 2> aux_indexes = formTriangles(quad_prev, quad_curr, quad_next);
         unsigned triangle_diagonal_p1 = aux_indexes[0][2][0];
         unsigned triangle_diagonal_p2 = aux_indexes[1][2][0];
         assert(triangle_diagonal_p1 != triangle_diagonal_p2);
-        unsigned triangle1_tip = (triangle_diagonal_p1^triangle_diagonal_p2) % 4;
-        unsigned triangle2_tip = (0 + 1 + 2 + 3 - triangle_diagonal_p1 - triangle_diagonal_p2 - triangle1_tip) % 4;
+        unsigned triangle1_tip = oddTwoOut(triangle_diagonal_p1, triangle_diagonal_p2)[0];
+        unsigned triangle2_tip = oddTwoOut(triangle_diagonal_p1, triangle_diagonal_p2)[1];
         Vec3 triangle_common_axis = quad_curr[triangle_diagonal_p2] - quad_curr[triangle_diagonal_p1];
         Vec3 triangle1_normal = triangle_common_axis.cross(quad_curr[triangle1_tip] - quad_curr[triangle_diagonal_p1]);
         Vec3 triangle2_normal = triangle_common_axis.cross(quad_curr[triangle2_tip] - quad_curr[triangle_diagonal_p1]);
@@ -278,7 +307,7 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
         quad_flattened[quad_nonshared_p1_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p1_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final, -angle_between_quads);
         quad_flattened[quad_nonshared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final, -angle_between_quads);
 
-        /*
+		/*
         std::cout << "[flat] ";
         for (int i = 0; i < 4; i++) {
             std::cout << "(" << quad_flattened[i].x() << ", " << quad_flattened[i].y() << ", " << quad_flattened[i].z() << ")-";
@@ -292,7 +321,7 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
         quad_prev = quad_curr;
         quad_curr = quad_next;
 
-        next_node = getNextSector(current_node);
+        next_node = getNextSector(next_node);
         quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
     }
     //std::cout << "[flat] END OF COMPUTED SURFACE" << std::endl;
@@ -306,6 +335,7 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
  */
 void TyreModAI::update(int ticks)
 {
+    //feenableexcept(FE_INVALID | FE_OVERFLOW);
     float dt = stk_config->ticks2Time(ticks);
     computeRacingLine(m_track_node, 100);
 
@@ -317,6 +347,7 @@ void TyreModAI::update(int ticks)
     m_controls->setBrake(false);
     m_controls->setRescue(false);
 
+    //fedisableexcept(FE_INVALID | FE_OVERFLOW);
     /*And obviously general kart stuff*/
     AIBaseLapController::update(ticks);
 }
