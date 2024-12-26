@@ -1,6 +1,6 @@
 # Online networking games for STK
 
-A reminder: you are looking at NETWORKING.md of the fork, not the one of the standard code.
+A reminder: you are looking at NETWORKING.md of kimden's Command Manager fork (in this case, as part of Nomagno's Tyre Mod Edition), not the one of the standard code.
 
 ## Hosting server
 You **should** compile STK with `-DSERVER_ONLY=ON`. This option produces a GUI-less STK binary optimized for size and memory usage, useful for situation like in VPS. As this fork is server-side (at least for now), this option is enabled **always** during the testing. You can compile the code without this option, and most likely nothing bad will happen, but it's not an intended way to run this fork.

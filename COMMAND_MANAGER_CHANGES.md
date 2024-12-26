@@ -1,4 +1,6 @@
-This page lists the major changes of this repository compared to standard STK code, as of April 2024. Most changes (sadly, not all of them) here are implemented as options, that is, you can disable them and return to standard behaviour.
+All of this still holds, but remember you are looking at Nomagno's Tyre Mod Edition, which includes but is not limited to kimden's server fork. There are tons of gameplay and network changes apart from what is listed here.
+
+This page lists the major changes of kimden's server fork compared to standard STK code, as of December 2024. Most changes (sadly, not all of them) here are implemented as options, that is, you can disable them and return to standard behaviour.
 
 You can find more information such as explanations and minor details in [wiki](https://github.com/kimden/stk-code/wiki/). It will be probably filled with even more data in the future.
 
