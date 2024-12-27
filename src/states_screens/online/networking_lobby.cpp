@@ -835,7 +835,7 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
         new NetworkPlayerDialog(host_online_local_ids[0],
             host_online_local_ids[1], host_online_local_ids[2],
             lp.m_user_name, lp.m_country_code, lp.m_kart_team != KART_TEAM_NONE,
-            lp.m_handicap);
+            lp.m_handicap, lp.m_starting_tyre);
     }   // click on a user
     else if (name == m_send_button->m_properties[PROP_ID])
     {
@@ -910,7 +910,7 @@ void NetworkingLobby::tearDown()
         NetworkConfig::get()->cleanNetworkPlayers();
         NetworkConfig::get()->addNetworkPlayer(
             input_manager->getDeviceManager()->getLatestUsedDevice(),
-            PlayerManager::getCurrentPlayer(), HANDICAP_NONE);
+            PlayerManager::getCurrentPlayer(), HANDICAP_NONE, 2);
         NetworkConfig::get()->doneAddingNetworkPlayers();
     }
 

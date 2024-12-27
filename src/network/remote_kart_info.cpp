@@ -27,6 +27,7 @@ void RemoteKartInfo::copyFrom(std::shared_ptr<NetworkPlayerProfile> p,
     m_local_player_id    = local_id;
     m_host_id            = p->getHostId();
     m_handicap           = p->getHandicap();
+    m_starting_tyre      = p->getStartingTyre();
     m_default_kart_color = p->getDefaultKartColor();
     m_online_id          = p->getOnlineId();
     m_country_code       = p->getCountryCode();

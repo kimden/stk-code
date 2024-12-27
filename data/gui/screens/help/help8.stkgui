@@ -34,7 +34,7 @@
 
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
-text="Starting tyre choice and tyre changing: (the ones you have when you start the race) are configured by changing the player colour. For soft, use color 1, for medium color 12, for hard color 63, for flat color 29. More precisely: Color 10 is compound 1, color 19 is compound 10, and at color 20 it loops back to compound 1 again, and so on. Colors are 1-100). Tyre changers can be used mid-race, and have the model of an easter egg, but they must be supporeted by the track. The pre-packaged tracks that have tyre changers are: Hacienda, Inuksuk, Palm Mountain, and RT4 Crowded Stadium"
+text="Starting tyre choice and tyre changing: (the ones you have when you start the race) are configured by changing the tyre id in kart selection (when online, instead double click your username in the lobby to configure). For soft, use ID 2, for medium ID 3, for hard ID 4, for hard ID 9. Tyre changers can be used mid-race, and have the model of an easter egg, but they must be supporeted by the track. The pre-packaged TME category of tracks has default tyre changer support"
 />
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
@@ -45,6 +45,7 @@ I18N="In the help menu"
 text="Main tyre types (compounds): Soft (ID 2): Starts out VERY fast, but also degrades very fast, *specially* by high-speed turning (in Hacienda, one of the least demanding tracks on tyre degradation, it can be useful for around 5 laps only if you don't manage it).
 Medium (ID 3): Starts out at the kart's normal speed, and degrades at a normal rate.
 Hard (ID 4): Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly.
+SuperHard (ID 5): The old hard tyre. Absurdly slow tyre, absurdly low degradation. Do not use it unless you want to lose :P
 Flat (ID 10): It does degrade but it has no effect in the kart's speed, meaning it effectively is the same as disabling tyre degradation.
 The rest of the tyre IDs will be used in the future."
 />

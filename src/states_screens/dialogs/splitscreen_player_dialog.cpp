@@ -58,6 +58,13 @@ void SplitscreenPlayerDialog::beforeAddingWidgets()
     assert(m_message != NULL);
     m_handicap = getWidget<CheckBoxWidget>("handicap");
     assert(m_handicap != NULL);
+
+    m_starting_tyre_label = getWidget<LabelWidget>("starting-tyre");
+    assert(m_starting_tyre_label != NULL);
+    m_starting_tyre = getWidget<SpinnerWidget>("starting-tyre");
+    assert(m_starting_tyre != NULL);
+    m_starting_tyre->setValue(0);
+
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
     m_add = getWidget<IconButtonWidget>("add");
@@ -114,7 +121,8 @@ GUIEngine::EventPropagation
             PlayerProfile* p = m_available_players[pid];
             const HandicapLevel h = m_handicap->getState() ?
                 HANDICAP_4 : HANDICAP_NONE;
-            if (NetworkConfig::get()->addNetworkPlayer(m_device, p, h))
+            const unsigned t = m_starting_tyre->getValue();
+            if (NetworkConfig::get()->addNetworkPlayer(m_device, p, h, t))
             {
                 core::stringw name = p->getName();
                 if (h != HANDICAP_NONE)

@@ -607,6 +607,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                     info.m_team = npp->getTemporaryTeam() - 1;
             }
             info.m_handicap = (uint8_t)rki.getHandicap();
+            info.m_starting_tyre = (uint8_t)rki.getStartingTyre();
             info.m_start_position = getStartPosition(sd.m_id);
             info.m_online_id = rki.getOnlineId();
             info.m_country_code = rki.getCountryCode();

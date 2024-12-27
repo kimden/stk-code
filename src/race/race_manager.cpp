@@ -251,6 +251,17 @@ void RaceManager::setPlayerHandicap(unsigned int player_id, HandicapLevel handic
 }   // setPlayerHandicap
 
 //---------------------------------------------------------------------------------------------
+/** Sets the tyre for a player.
+ */
+void RaceManager::setPlayerStartingTyre(unsigned int player_id, unsigned starting_tyre)
+{
+    assert(player_id < m_player_karts.size());
+
+    printf("Race Manager set, tyre: %u\n", starting_tyre);
+    m_player_karts[player_id].setStartingTyre(starting_tyre);
+}   // setPlayerStartingTyre
+
+//---------------------------------------------------------------------------------------------
 /** Returns a pointer to the kart which has a given GP rank.
  *  \param n The rank (1 to number of karts) to look for.
  */
@@ -525,7 +536,7 @@ void RaceManager::startNew(bool from_overworld)
         for(unsigned int i = 0; i < m_num_ghost_karts; i++)
         {
             m_kart_status.push_back(KartStatus(ReplayPlay::get()->getGhostKartName(i),
-                i, -1, -1, init_gp_rank, KT_GHOST, HANDICAP_NONE));
+                i, -1, -1, init_gp_rank, KT_GHOST, HANDICAP_NONE, 2));
             init_gp_rank ++;
         }
     }
@@ -536,7 +547,7 @@ void RaceManager::startNew(bool from_overworld)
     for(unsigned int i = 0; i < ai_kart_count; i++)
     {
         m_kart_status.push_back(KartStatus(m_ai_kart_list[i], i, -1, -1,
-            init_gp_rank, KT_AI, HANDICAP_NONE));
+            init_gp_rank, KT_AI, HANDICAP_NONE, 2));
         init_gp_rank ++;
         if(UserConfigParams::m_ftl_debug)
         {
@@ -555,7 +566,7 @@ void RaceManager::startNew(bool from_overworld)
                                            m_player_karts[i].getLocalPlayerId(),
                                            m_player_karts[i].getGlobalPlayerId(),
                                            init_gp_rank, kt,
-                                           m_player_karts[i].getHandicap()));
+                                           m_player_karts[i].getHandicap(), m_player_karts[i].getStartingTyre()));
         if(UserConfigParams::m_ftl_debug)
         {
             Log::debug("RaceManager", "[ftl] rank %d kart %s", init_gp_rank,
@@ -1285,7 +1296,7 @@ void RaceManager::startWatchingReplay(const std::string &track_ident,
     for(int i = 0; i < m_num_karts; i++)
     {
         m_kart_status.push_back(KartStatus(ReplayPlay::get()->getGhostKartName(i),
-            i, -1, -1, init_gp_rank, KT_GHOST, HANDICAP_NONE));
+            i, -1, -1, init_gp_rank, KT_GHOST, HANDICAP_NONE, 2));
         init_gp_rank ++;
     }
 

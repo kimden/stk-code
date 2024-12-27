@@ -57,6 +57,9 @@ private:
     /** Handicap level of this player. */
     std::atomic<HandicapLevel> m_handicap;
 
+    /** Handicap level of this player. */
+    std::atomic<unsigned> m_starting_tyre;
+
     /** The selected kart id. */
     std::string m_kart_name; 
 
@@ -94,6 +97,7 @@ public:
         m_default_kart_color    = 0.0f;
         m_online_id             = 0;
         m_handicap.store((HandicapLevel)0);
+        m_starting_tyre.store(2);
         m_local_player_id       = 0;
         m_team.store(team);
         m_temporary_team        = TeamUtils::getIndexFromKartTeam(team);
@@ -103,7 +107,7 @@ public:
     NetworkPlayerProfile(std::shared_ptr<STKPeer> peer,
                          const irr::core::stringw &name, uint32_t host_id,
                          float default_kart_color, uint32_t online_id,
-                         HandicapLevel handicap,
+                         HandicapLevel handicap, unsigned starting_tyre,
                          uint8_t local_player_id, KartTeam team,
                          const std::string& country_code)
     {
@@ -113,6 +117,7 @@ public:
         m_default_kart_color    = default_kart_color;
         m_online_id             = online_id;
         m_handicap.store(handicap);
+        m_starting_tyre.store(starting_tyre);
         m_local_player_id       = local_player_id;
         m_team.store(team);
         m_country_code          = country_code;
@@ -144,6 +149,16 @@ public:
     HandicapLevel getHandicap() const { return m_handicap.load(); }
     // ------------------------------------------------------------------------
     void setHandicap(HandicapLevel h) { m_handicap.store(h); }
+    // ------------------------------------------------------------------------
+    unsigned getStartingTyre() const {
+        printf("NPP get, tyre: %u\n", m_starting_tyre.load());
+        return m_starting_tyre.load();
+    }
+    // ------------------------------------------------------------------------
+    void setStartingTyre(unsigned t) {
+        m_starting_tyre.store(t);
+        printf("NPP set, tyre: %u\n", t);
+    };
     // ------------------------------------------------------------------------
     /** Returns the name of this player. */
     const irr::core::stringw& getName() const         { return m_player_name; }

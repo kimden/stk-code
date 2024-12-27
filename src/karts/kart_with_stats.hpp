@@ -75,7 +75,7 @@ public:
                                unsigned int world_kart_id,
                                int position,
                                const btTransform& init_transform,
-                               HandicapLevel handicap);
+                               HandicapLevel handicap, unsigned starting_tyre);
     virtual void update(int ticks) OVERRIDE;
     virtual void reset() OVERRIDE;
     virtual void collectedItem(ItemState *item_state) OVERRIDE;

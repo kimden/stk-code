@@ -145,8 +145,9 @@ namespace Scripting
         {
             ::Kart* kart = World::getWorld()->getKart(idKart);
             HandicapLevel hl = kart->getHandicap();
+            unsigned tl = kart->getStartingTyre();
             auto ri = kart->getKartModel()->getRenderInfo();
-            kart->changeKart(*new_id, hl, ri);
+            kart->changeKart(*new_id, hl, tl, ri);
         }
 
         /** @}*/

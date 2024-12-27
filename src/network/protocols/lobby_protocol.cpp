@@ -149,6 +149,7 @@ void LobbyProtocol::configRemoteKart(
         rki.setGlobalPlayerId(i);
         rki.setDefaultKartColor(profile->getDefaultKartColor());
         rki.setHandicap(profile->getHandicap());
+        rki.setStartingTyre(profile->getStartingTyre());
         rki.setOnlineId(profile->getOnlineId());
         if (RaceManager::get()->teamEnabled())
             rki.setKartTeam(profile->getTeam());
@@ -232,7 +233,7 @@ void LobbyProtocol::addLiveJoiningKart(int kart_id, const RemoteKartInfo& rki,
                                        int live_join_util_ticks) const
 {
     Kart* k = World::getWorld()->getKart(kart_id);
-    k->changeKart(rki.getKartName(), rki.getHandicap(),
+    k->changeKart(rki.getKartName(), rki.getHandicap(), rki.getStartingTyre(),
         rki.getKartTeam() == KART_TEAM_RED ?
         std::make_shared<GE::GERenderInfo>(1.0f) :
         rki.getKartTeam() == KART_TEAM_BLUE ?

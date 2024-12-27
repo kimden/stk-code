@@ -114,7 +114,7 @@ private:
     int m_network_confirmed_finish_ticks;
 
     void loadKartProperties(const std::string& new_ident,
-                            HandicapLevel handicap,
+                            HandicapLevel handicap, unsigned starting_tyre,
                             std::shared_ptr<GE::GERenderInfo> ri,
                             const KartData& kart_data = KartData());
 protected:
@@ -127,6 +127,8 @@ protected:
 
     /** The handicap level of this kart. */
     HandicapLevel m_handicap;
+
+    unsigned m_starting_tyre;
 
     /** This stores a copy of the kart model. It has to be a copy
      *  since otherwise incosistencies can happen if the same kart
@@ -403,7 +405,7 @@ protected:
 public:
                    Kart(const std::string& ident, unsigned int world_kart_id,
                         int position, const btTransform& init_transform,
-                        HandicapLevel handicap,
+                        HandicapLevel handicap, unsigned starting_tyre,
                         std::shared_ptr<GE::GERenderInfo> ri);
     virtual       ~Kart();
     /** Returns a name to be displayed for this kart. */
@@ -452,7 +454,7 @@ public:
     // ========================================================================
     /** Change to new kart instancely (used in network live join). */
     virtual void changeKart(const std::string& new_ident,
-                            HandicapLevel handicap,
+                            HandicapLevel handicap, unsigned starting_tyre,
                             std::shared_ptr<GE::GERenderInfo> ri,
                             const KartData& kart_data = KartData());
     // ========================================================================
@@ -461,8 +463,12 @@ public:
     /** Returns the handicap of this kart. */
     const HandicapLevel getHandicap() const { return m_handicap; }
     // ------------------------------------------------------------------------
+    /** Returns the tyre of this kart. */
+    const unsigned getStartingTyre() const { return m_starting_tyre; }
     /** Sets the handicap. */
     void setHandicap(const HandicapLevel h) { m_handicap=h; }
+    /** Sets the tyre. */
+    void setStartingTyre(const unsigned t) { m_starting_tyre=t; }
     // ------------------------------------------------------------------------
     /** Returns a unique identifier for this kart (name of the directory the
      *  kart was loaded from). */

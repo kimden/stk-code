@@ -62,6 +62,7 @@ class RemoteKartInfo
         KartTeam            m_kart_team;
         bool                m_network_player;
         HandicapLevel       m_handicap;
+        unsigned            m_starting_tyre;
         float               m_default_kart_color;
         uint32_t            m_online_id;
         std::string         m_country_code;
@@ -76,6 +77,7 @@ public:
                     m_host_id(host_id), m_kart_team(KART_TEAM_NONE),
                     m_network_player(network),
                     m_handicap(HANDICAP_NONE),
+                    m_starting_tyre(2),
                     m_default_kart_color(0.0f), m_online_id(0)
      {}
      RemoteKartInfo(const std::string& kart_name) : m_kart_name(kart_name),
@@ -84,6 +86,7 @@ public:
                     m_host_id(std::numeric_limits<uint32_t>::max()),
                     m_kart_team(KART_TEAM_NONE), m_network_player(false),
                     m_handicap(HANDICAP_NONE),
+                    m_starting_tyre(2),
                     m_default_kart_color(0.0f), m_online_id(0)
      {}
      RemoteKartInfo() : m_kart_name(""), m_user_name(""),
@@ -91,6 +94,7 @@ public:
                     m_host_id(std::numeric_limits<uint32_t>::max()),
                     m_kart_team(KART_TEAM_NONE), m_network_player(false),
                     m_handicap(HANDICAP_NONE),
+                    m_starting_tyre(2),
                     m_default_kart_color(0.0f), m_online_id(0)
      {}
     void setKartName(const std::string& n)   { m_kart_name = n;           }
@@ -102,6 +106,9 @@ public:
     void setNetworkPlayer(bool value)        { m_network_player = value;  }
     void setDefaultKartColor(float value) { m_default_kart_color = value; }
     void setHandicap(HandicapLevel value)    { m_handicap = value;        }
+    void setStartingTyre(unsigned value)    { m_starting_tyre = value;
+                                              printf("RKI set, tyre: %u\n", value);
+                                            }
     void setOnlineId(uint32_t id)            { m_online_id = id;          }
     uint32_t getHostId() const               { return m_host_id;          }
     int  getLocalPlayerId() const            { return m_local_player_id;  }
@@ -111,6 +118,7 @@ public:
     const irr::core::stringw& getPlayerName() const { return m_user_name; }
     KartTeam getKartTeam() const               { return m_kart_team;      }
     HandicapLevel getHandicap() const        { return m_handicap;         }
+    unsigned getStartingTyre() const        { return m_starting_tyre;         }
     float getDefaultKartColor() const      { return m_default_kart_color; }
     uint32_t getOnlineId() const           { return m_online_id;          }
     void setCountryCode(const std::string& id) { m_country_code = id;     }

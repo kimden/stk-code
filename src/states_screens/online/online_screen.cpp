@@ -137,7 +137,7 @@ void OnlineScreen::init()
     {
         NetworkConfig::get()->addNetworkPlayer(
             input_manager->getDeviceManager()->getLatestUsedDevice(),
-            PlayerManager::getCurrentPlayer(), HANDICAP_NONE);
+            PlayerManager::getCurrentPlayer(), HANDICAP_NONE, 2);
         NetworkConfig::get()->doneAddingNetworkPlayers();
     }
     loadList();
@@ -286,7 +286,7 @@ void OnlineScreen::eventCallback(Widget* widget, const std::string& name,
             NetworkConfig::get()->cleanNetworkPlayers();
             NetworkConfig::get()->addNetworkPlayer(
                 input_manager->getDeviceManager()->getLatestUsedDevice(),
-                PlayerManager::getCurrentPlayer(), HANDICAP_NONE);
+                PlayerManager::getCurrentPlayer(), HANDICAP_NONE, 2);
             NetworkConfig::get()->doneAddingNetworkPlayers();
         }
         else

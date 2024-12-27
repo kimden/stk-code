@@ -384,6 +384,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
         float kart_color = data.getFloat();
         uint32_t online_id = data.getUInt32();
         HandicapLevel handicap = (HandicapLevel)data.getUInt8();
+        unsigned starting_tyre = data.getUInt8();
         uint8_t local_id = data.getUInt8();
         KartTeam team = (KartTeam)data.getUInt8();
         std::string country_code;
@@ -391,7 +392,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
         if (is_spectator && host_id == STKHost::get()->getMyHostId())
             *is_spectator = false;
         auto player = std::make_shared<NetworkPlayerProfile>(peer, player_name,
-            host_id, kart_color, online_id, handicap, local_id, team, country_code);
+            host_id, kart_color, online_id, handicap, starting_tyre, local_id, team, country_code);
         std::string kart_name;
         data.decodeString(&kart_name);
         player->setKartName(kart_name);
@@ -470,6 +471,7 @@ void ClientLobby::update(int ticks)
                 addFloat(player->getDefaultKartColor());
             // Per-player handicap
             rest->addUInt8(std::get<2>(p));
+            rest->addUInt8(std::get<3>(p));
         }
 
         finalizeConnectionRequest(ns, rest, encryption);
@@ -859,6 +861,7 @@ void ClientLobby::updatePlayerList(Event* event)
         lp.m_online_id = data.getUInt32();
         uint8_t local_id = data.getUInt8();
         lp.m_handicap = HANDICAP_NONE;
+        lp.m_starting_tyre = 2;
         lp.m_local_player_id = local_id;
         data.decodeStringW(&lp.m_user_name);
         total_players += lp.m_user_name;
@@ -884,6 +887,7 @@ void ClientLobby::updatePlayerList(Event* event)
         {
             lp.m_user_name = _("%s (handicapped)", lp.m_user_name);
         }
+        lp.m_starting_tyre = data.getUInt8();
         KartTeam team = (KartTeam)data.getUInt8();
         if (is_spectator)
             lp.m_kart_team = KART_TEAM_NONE;
@@ -1418,6 +1422,7 @@ void ClientLobby::handleKartInfo(Event* event)
     float kart_color = data.getFloat();
     uint32_t online_id = data.getUInt32();
     HandicapLevel h = (HandicapLevel)data.getUInt8();
+    unsigned t = data.getUInt8();
     uint8_t local_id = data.getUInt8();
     std::string kart_name;
     data.decodeString(&kart_name);
@@ -1436,6 +1441,8 @@ void ClientLobby::handleKartInfo(Event* event)
     rki.setDefaultKartColor(kart_color);
     rki.setOnlineId(online_id);
     rki.setHandicap(h);
+    printf("Client received this, tyre: %u\n", t);
+    rki.setStartingTyre(t);
     rki.setLocalPlayerId(local_id);
     rki.setKartName(kart_name);
     rki.setCountryCode(country_code);

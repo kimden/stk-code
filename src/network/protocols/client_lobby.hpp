@@ -49,6 +49,7 @@ struct LobbyPlayer
     uint32_t m_host_id;
     KartTeam m_kart_team;
     HandicapLevel m_handicap;
+    unsigned m_starting_tyre;
     uint32_t m_online_id;
     /* Icon used in networking lobby, see NetworkingLobby::loadedFromFile. */
     int m_icon_id;

@@ -250,13 +250,13 @@ void World::init()
         {
             new_kart = createKartWithTeam(kart_ident, i, local_player_id,
                 global_player_id, RaceManager::get()->getKartType(i),
-                RaceManager::get()->getPlayerHandicap(i));
+                RaceManager::get()->getPlayerHandicap(i), RaceManager::get()->getPlayerStartingTyre(i));
         }
         else
         {
             new_kart = createKart(kart_ident, i, local_player_id,
                 global_player_id, RaceManager::get()->getKartType(i),
-                RaceManager::get()->getPlayerHandicap(i));
+                RaceManager::get()->getPlayerHandicap(i), RaceManager::get()->getPlayerStartingTyre(i));
         }
         new_kart->setBoostAI(RaceManager::get()->hasBoostedAI(i));
         m_karts.push_back(new_kart);
@@ -456,7 +456,7 @@ void World::createRaceGUI()
 std::shared_ptr<Kart> World::createKart
     (const std::string &kart_ident, int index, int local_player_id,
     int global_player_id, RaceManager::KartType kart_type,
-    HandicapLevel handicap)
+    HandicapLevel handicap, unsigned starting_tyre)
 {
     unsigned int gk = 0;
     if (RaceManager::get()->hasGhostKarts())
@@ -484,14 +484,14 @@ std::shared_ptr<Kart> World::createKart
     if (RewindManager::get()->isEnabled())
     {
         auto kr = std::make_shared<KartRewinder>(kart_ident, index, position,
-            init_pos, handicap, ri);
+            init_pos, handicap, starting_tyre, ri);
         kr->rewinderAdd();
         new_kart = kr;
     }
     else
     {
         new_kart = std::make_shared<Kart>(kart_ident, index, position,
-            init_pos, handicap, ri);
+            init_pos, handicap, starting_tyre, ri);
     }
 
     new_kart->init(RaceManager::get()->getKartType(index));
@@ -1537,7 +1537,7 @@ unsigned int World::getNumberOfRescuePositions() const
 std::shared_ptr<Kart> World::createKartWithTeam
     (const std::string &kart_ident, int index, int local_player_id,
     int global_player_id, RaceManager::KartType kart_type,
-    HandicapLevel handicap)
+    HandicapLevel handicap, unsigned starting_tyre)
 {
     int cur_red = getTeamNum(KART_TEAM_RED);
     int cur_blue = getTeamNum(KART_TEAM_BLUE);
@@ -1597,14 +1597,14 @@ std::shared_ptr<Kart> World::createKartWithTeam
     if (RewindManager::get()->isEnabled())
     {
         auto kr = std::make_shared<KartRewinder>(kart_ident, index, position,
-            init_pos, handicap, ri);
+            init_pos, handicap, starting_tyre, ri);
         kr->rewinderAdd();
         new_kart = kr;
     }
     else
     {
         new_kart = std::make_shared<Kart>(kart_ident, index, position,
-            init_pos, handicap, ri);
+            init_pos, handicap, starting_tyre, ri);
     }
 
     new_kart->init(RaceManager::get()->getKartType(index));

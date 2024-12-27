@@ -110,7 +110,7 @@
 #endif
 
 void Kart::loadKartProperties(const std::string& new_ident,
-                                      HandicapLevel handicap,
+                                      HandicapLevel handicap, unsigned starting_tyre,
                                       std::shared_ptr<GE::GERenderInfo> ri,
                                       const KartData& kart_data)
 {
@@ -179,6 +179,7 @@ void Kart::loadKartProperties(const std::string& new_ident,
     }
     m_name = m_kart_properties->getName();
     m_handicap = handicap;
+    m_starting_tyre = starting_tyre;
     m_kart_animation  = NULL;
     assert(m_kart_properties);
 
@@ -213,7 +214,7 @@ void Kart::loadKartProperties(const std::string& new_ident,
  */
 Kart::Kart (const std::string& ident, unsigned int world_kart_id,
             int position, const btTransform& init_transform,
-            HandicapLevel handicap, std::shared_ptr<GE::GERenderInfo> ri)
+            HandicapLevel handicap, unsigned starting_tyre, std::shared_ptr<GE::GERenderInfo> ri)
      : Moveable()
 {
     m_world_kart_id   = world_kart_id;
@@ -221,10 +222,10 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     {
         const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(
             m_world_kart_id);
-        loadKartProperties(ident, handicap, ri, rki.getKartData());
+        loadKartProperties(ident, handicap, starting_tyre, ri, rki.getKartData());
     }
     else
-        loadKartProperties(ident, handicap, ri);
+        loadKartProperties(ident, handicap, starting_tyre, ri);
 #if defined(WIN32) && !defined(__CYGWIN__) && !defined(__MINGW32__)
 #  pragma warning(1:4355)
 #endif
@@ -354,7 +355,7 @@ void Kart::initSound()
 
 // ----------------------------------------------------------------------------
 void Kart::changeKart(const std::string& new_ident,
-                      HandicapLevel handicap,
+                      HandicapLevel handicap, unsigned starting_tyre,
                       std::shared_ptr<GE::GERenderInfo> ri,
                       const KartData& kart_data)
 {
@@ -362,7 +363,7 @@ void Kart::changeKart(const std::string& new_ident,
     reset();
     // Remove kart body
     Physics::get()->removeKart(this);
-    loadKartProperties(new_ident, handicap, ri, kart_data);
+    loadKartProperties(new_ident, handicap, starting_tyre, ri, kart_data);
 
     m_kart_model->setKart(this);
 

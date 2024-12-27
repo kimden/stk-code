@@ -25,6 +25,7 @@
 #include "guiengine/widgets/label_widget.hpp"
 #include "guiengine/widgets/ribbon_widget.hpp"
 #include "guiengine/widgets/text_box_widget.hpp"
+#include "guiengine/widgets/spinner_widget.hpp"
 #include "online/online_profile.hpp"
 #include "network/network_string.hpp"
 #include "network/protocols/client_lobby.hpp"
@@ -129,22 +130,27 @@ void NetworkPlayerDialog::beforeAddingWidgets()
         getWidget<IconButtonWidget>("accept")->setVisible(false);
 
     m_handicap_widget = NULL;
+    m_tyre_widget = NULL;
+    m_tyre_label = NULL;
+    m_handicap_label = NULL;
+    m_accept_widget = NULL;
     if (m_host_id == STKHost::get()->getMyHostId())
     {
-        m_handicap_widget = getWidget<IconButtonWidget>("remove");
+        m_tyre_widget = getWidget<SpinnerWidget>("starting-tyre");
+        m_tyre_label = getWidget<LabelWidget>("starting-tyre-label");
+
+        m_accept_widget = getWidget<IconButtonWidget>("accept-2");
+        m_handicap_widget = getWidget<SpinnerWidget>("handicap");
+        m_handicap_label = getWidget<LabelWidget>("handicap-label");
         m_handicap_widget->setVisible(true);
-        if (m_handicap == HANDICAP_NONE)
-        {
-            //I18N: In the network player dialog
-            m_handicap_widget->setText(_("Enable handicap"));
-        }
-        else
-        {
-            //I18N: In the network player dialog
-            m_handicap_widget->setText(_("Disable handicap"));
-        }
-        m_handicap_widget->setImage(irr_driver->getTexture(FileManager::GUI_ICON,
-            "anchor-icon.png"));
+        m_handicap_label->setVisible(true);
+        m_accept_widget->setVisible(true);
+        m_tyre_widget->setVisible(true);
+
+        m_accept_widget->setText(_("Confirm handi+tyre"));
+        //m_accept_widget->setImage(irr_driver->getTexture(FileManager::GUI_ICON,
+        //    "anchor-icon.png"));
+
     }
     else
         getWidget<IconButtonWidget>("remove")->setVisible(false);
@@ -261,18 +267,12 @@ GUIEngine::EventPropagation
             STKHost::get()->sendToServer(&change_team, true/*reliable*/);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
-        }
-        else if (m_handicap_widget &&
-            selection == m_handicap_widget->m_properties[PROP_ID])
-        {
-            HandicapLevel new_handicap = HANDICAP_NONE;
-            if (m_handicap == HANDICAP_NONE)
-            {
-                new_handicap = HANDICAP_4;
-            }
+        } else if (m_accept_widget && selection == m_accept_widget->m_properties[PROP_ID]) {
+            unsigned new_tyre = m_tyre_widget->getValue();
+            unsigned new_handicap = (HandicapLevel)(m_handicap_widget->getValue() % HANDICAP_COUNT);
             NetworkString change_handicap(PROTOCOL_LOBBY_ROOM);
-            change_handicap.addUInt8(LobbyProtocol::LE_CHANGE_HANDICAP)
-                .addUInt8(m_local_id).addUInt8(new_handicap);
+            change_handicap.addUInt8(LobbyProtocol::LE_CHANGE_HANDICAP_AND_TYRE)
+                .addUInt8(m_local_id).addUInt8(new_handicap).addUInt8(new_tyre);
             STKHost::get()->sendToServer(&change_handicap, true/*reliable*/);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;

@@ -37,7 +37,7 @@ GhostKart::GhostKart(const std::string& ident, unsigned int world_kart_id,
                      const ReplayPlay::ReplayData& rd)
           : Kart(ident, world_kart_id,
                  position, btTransform(btQuaternion(0, 0, 0, 1)),
-                 HANDICAP_NONE,
+                 HANDICAP_NONE, 2,
                  std::make_shared<GE::GERenderInfo>(color_hue, true/*transparent*/)),
                  m_replay_data(rd), m_last_egg_idx(0)
 {

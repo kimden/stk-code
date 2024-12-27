@@ -478,7 +478,7 @@ private:
     void configPeersStartTime();
     void resetServer();
     void addWaitingPlayersToGame();
-    void changeHandicap(Event* event);
+    void changeHandicapAndTyre(Event* event);
     void changeColor(Event* event);
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(

@@ -30,6 +30,16 @@
                 <label id="handicap-text" text_align="left" I18N="Splitscreen player in network" text="Handicap"/>
                 <spacer proportion="1" height="10"/>
             </div>
+            <spacer width="5%" height="10"/>
+            <div proportion="1" align="center" layout="horizontal-row" height="fit" >
+                <spacer proportion="1" height="10"/>
+                <spinner id="starting-tyre" min="1" max="20" align="center" />
+            </div>
+            <spacer width="5%" height="10"/>
+            <div proportion="1" align="center" layout="horizontal-row" height="fit" >
+                <label id="starting-tyre-label" text_align="left" I18N="Splitscreen player in network" text="Tyre"/>
+                <spacer proportion="1" height="10"/>
+            </div>            
         </div>
 
         <spacer proportion="2" width="10"/>

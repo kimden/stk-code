@@ -18,6 +18,12 @@
 
         <spacer height="3%" width="50"/>
 
+        <label id="handicap-label" proportion="1" width="90%" align="center" text_align="center" word_wrap="true" text="Handicap"/>
+        <spinner id="handicap" min_value="0" max_value="10" width="90%" align="center">
+
+        <label id="starting-tyre-label" proportion="1" width="90%" align="center" text_align="center" word_wrap="true" text="Tyre"/>
+        <spinner id="starting-tyre" min_value="0" max_value="10" width="90%" align="center">
+
         <buttonbar id="options" width="90%" height="20%" align="center">
             <icon-button id="cancel" width="64" height="64" icon="gui/icons/back.png"
                          I18N="User info dialog" text="Close" label_location="bottom"/>
@@ -27,6 +33,8 @@
                          I18N="User info dialog"  text="Add Friend" label_location="bottom"/>
             <icon-button id="accept" width="64" height="64" icon="gui/icons/green_check.png"
                          I18N="User info dialog"  text="Accept Invite" label_location="bottom"/>
+            <icon-button id="accept-2" width="64" height="64" icon="gui/icons/green_check.png"
+                         I18N="User info dialog"  text="Confirm handi" label_location="bottom"/>
             <icon-button id="decline" width="64" height="64" icon="gui/icons/red_x.png"
                          I18N="User info dialog"  text="Decline Invite" label_location="bottom"/>
             <icon-button id="enter" width="64" height="64" icon="gui/icons/player_view.png"

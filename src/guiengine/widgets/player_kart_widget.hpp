@@ -44,6 +44,7 @@ namespace GUIEngine
         bool m_ready;
         /** If the player is handicapped. */
         HandicapLevel m_handicap;
+        unsigned m_starting_tyre;
 
         /** widget coordinates */
         int player_name_x, player_name_y, player_name_w, player_name_h;
@@ -68,6 +69,7 @@ namespace GUIEngine
          *  which contain the name of the activated object */
         std::string playerSpinnerID;
         std::string handicapSpinnerID;
+        std::string startingTyreSpinnerID;
 
 #ifdef DEBUG
         long m_magic_number;
@@ -82,6 +84,7 @@ namespace GUIEngine
         /** Sub-widgets created by this widget */
         PlayerNameSpinner* m_player_ident_spinner;
         SpinnerWidget* m_handicap_spinner;
+        SpinnerWidget* m_starting_tyre_spinner;
         KartStatsWidget* m_kart_stats;
         ModelViewWidget* m_model_view;
         LabelWidget* m_kart_name;
@@ -138,6 +141,7 @@ namespace GUIEngine
         // ------------------------------------------------------------------------
         /** \return handicap */
         HandicapLevel getHandicap();
+        unsigned getStartingTyre();
 
         // -------------------------------------------------------------------------
         /** Updates the animation (moving/shrinking/etc.) */
@@ -169,7 +173,8 @@ namespace GUIEngine
         /** \brief Event callback from ISpinnerConfirmListener */
         virtual GUIEngine::EventPropagation onSpinnerConfirmed();
         // -------------------------------------------------------------------------
-        void enableHandicapForNetwork();
+        void setHandicapForNetwork(HandicapLevel x);
+        void setTyreForNetwork(unsigned x);
         // -------------------------------------------------------------------------
         void updateSizeNow(int x, int y, int w, int h)
         {

@@ -279,18 +279,20 @@ public:
         bool        m_boosted_ai;
         /** The handicap for this player. */
         HandicapLevel m_handicap;
+
+        unsigned m_starting_tyre;
         /** Kart color of player (used in gp win / lose screen). */
         float       m_color;
         KartStatus(const std::string& ident, const int& prev_finish_pos,
                    int local_player_id, int global_player_id,
                    int init_gp_rank, KartType kt,
-                   HandicapLevel handicap) :
+                   HandicapLevel handicap, unsigned starting_tyre) :
                    m_ident(ident), m_score(0), m_last_score(0),
                    m_overall_time(0.0f), m_last_time(0.0f),
                    m_kart_type(kt),
                    m_local_player_id(local_player_id),
                    m_global_player_id(global_player_id),
-                   m_gp_rank(init_gp_rank), m_handicap(handicap)
+                   m_gp_rank(init_gp_rank), m_handicap(handicap), m_starting_tyre(starting_tyre)
                 { m_boosted_ai = false; m_color = 0.0f; }
 
     };   // KartStatus
@@ -418,6 +420,12 @@ public:
     /** Sets the handicap for a player.
      */
     void setPlayerHandicap(unsigned int player_id, HandicapLevel handicap);
+
+    void setPlayerStartingTyre(unsigned int player_id, unsigned starting_tyre);
+
+    /** Sets the tyre for a player.
+     */
+    void setStartingTyre(unsigned int player_id, unsigned starting_tyre);
 
     /** In case of non GP mode set the track to use.
      *  \param track Pointer to the track to use.
@@ -712,6 +720,11 @@ public:
         return m_kart_status[kart].m_handicap;
     }   // getPlayerHandicap
     // ----------------------------------------------------------------------------------------
+    unsigned getPlayerStartingTyre(int kart) const
+    {
+        return m_kart_status[kart].m_starting_tyre;
+    }   // getPlayerHandicap
+    // ----------------------------------------------------------------------------------------
     bool hasBoostedAI(int kart) const
     {
         return m_kart_status[kart].m_boosted_ai;
@@ -919,7 +932,7 @@ public:
     void addSpareTireKart(const std::string& name)
     {
         m_kart_status.push_back(KartStatus(name, 0, -1, -1,
-            -1, KT_SPARE_TIRE, HANDICAP_NONE));
+            -1, KT_SPARE_TIRE, HANDICAP_NONE, 2));
         m_num_spare_tire_karts++;
         m_num_karts++;
     }   // addSpareTireKart

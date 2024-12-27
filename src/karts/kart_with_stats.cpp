@@ -26,9 +26,9 @@
 KartWithStats::KartWithStats(const std::string& ident,
                              unsigned int world_kart_id,
                              int position, const btTransform& init_transform,
-                             HandicapLevel handicap)
+                             HandicapLevel handicap, unsigned starting_tyre)
              : Kart(ident, world_kart_id, position,
-                    init_transform, handicap, nullptr)
+                    init_transform, handicap, starting_tyre, nullptr)
 {
 }   // KartWithStats
 

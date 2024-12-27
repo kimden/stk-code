@@ -1430,14 +1430,14 @@ int handleCmdLine(bool has_server_config, bool has_parent_process)
             {
                 NetworkConfig::get()->addNetworkPlayer(
                     NULL, PlayerManager::get()->getPlayer(i),
-                    HANDICAP_NONE);
+                    HANDICAP_NONE, 2);
             }
         }
         else
         {
             NetworkConfig::get()->addNetworkPlayer(
                 input_manager->getDeviceManager()->getLatestUsedDevice(),
-                PlayerManager::getCurrentPlayer(), HANDICAP_NONE);
+                PlayerManager::getCurrentPlayer(), HANDICAP_NONE, 2);
         }
         SocketAddress server_addr(addr);
         if (server_addr.getIP() == 0 && !server_addr.isIPv6())

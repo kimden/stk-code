@@ -107,13 +107,13 @@ void ProfileWorld::setProfileModeLaps(int laps)
 std::shared_ptr<Kart> ProfileWorld::createKart
     (const std::string &kart_ident, int index, int local_player_id,
     int global_player_id, RaceManager::KartType kart_type,
-    HandicapLevel handicap)
+    HandicapLevel handicap, unsigned starting_tyre)
 {
     btTransform init_pos   = getStartTransform(index);
 
     std::shared_ptr<KartWithStats> new_kart =
         std::make_shared<KartWithStats>(kart_ident, /*world kart id*/ index,
-        /*position*/ index + 1, init_pos, handicap);
+        /*position*/ index + 1, init_pos, handicap, starting_tyre);
     new_kart->init(RaceManager::KT_AI);
     Controller *controller = loadAIController(new_kart.get());
     new_kart->setController(controller);

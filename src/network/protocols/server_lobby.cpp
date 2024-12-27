@@ -814,7 +814,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
         case LE_REQUEST_BEGIN: startSelection(event);             break;
         case LE_CHAT: handleChat(event);                          break;
         case LE_CONFIG_SERVER: handleServerConfiguration(event);  break;
-        case LE_CHANGE_HANDICAP: changeHandicap(event);           break;
+        case LE_CHANGE_HANDICAP_AND_TYRE: changeHandicapAndTyre(event);           break;
         case LE_CHANGE_COLOR: changeColor(event);           break;
         case LE_CLIENT_BACK_LOBBY:
             clientSelectingAssetsWantsToBackLobby(event);         break;
@@ -1370,6 +1370,7 @@ void ServerLobby::asynchronousUpdate()
                     info.m_kart_class = rki.getKartData().m_kart_type;
                     info.m_kart_color = rki.getDefaultKartColor();
                     info.m_handicap = (uint8_t)rki.getHandicap();
+                    info.m_starting_tyre = (uint8_t)rki.getStartingTyre();
                     info.m_team = (int8_t)rki.getKartTeam();
                     if (info.m_team == KartTeam::KART_TEAM_NONE)
                     {
@@ -1407,6 +1408,7 @@ void ServerLobby::encodePlayers(BareNetworkString* bns,
             .addFloat(player->getDefaultKartColor())
             .addUInt32(player->getOnlineId())
             .addUInt8(player->getHandicap())
+            .addUInt8(player->getStartingTyre())
             .addUInt8(player->getLocalPlayerId())
             .addUInt8(player->getTeam())
             .encodeString(player->getCountryCode());
@@ -1606,7 +1608,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
                     nullptr, rki.getPlayerName(),
                     std::numeric_limits<uint32_t>::max(),
                     rki.getDefaultKartColor(),
-                    rki.getOnlineId(), rki.getHandicap(),
+                    rki.getOnlineId(), rki.getHandicap(), rki.getStartingTyre(),
                     rki.getLocalPlayerId(), KART_TEAM_NONE,
                     rki.getCountryCode());
                 player->setKartName(rki.getKartName());
@@ -1762,6 +1764,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
             info.m_kart_class = rki.getKartData().m_kart_type;
             info.m_kart_color = rki.getDefaultKartColor();
             info.m_handicap = (uint8_t)rki.getHandicap();
+            info.m_starting_tyre = rki.getStartingTyre();
             info.m_team = (int8_t)rki.getKartTeam();
             if (info.m_team == KartTeam::KART_TEAM_NONE)
             {
@@ -3560,11 +3563,12 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         std::string utf8_name = StringUtils::wideToUtf8(name);
         float default_kart_color = data.getFloat();
         HandicapLevel handicap = (HandicapLevel)data.getUInt8();
+        unsigned starting_tyre = data.getUInt8();
         auto player = std::make_shared<NetworkPlayerProfile>
             (peer, i == 0 && !online_name.empty() && !peer->isAIPeer() ?
             online_name : name,
             peer->getHostId(), default_kart_color, i == 0 ? online_id : 0,
-            handicap, (uint8_t)i, KART_TEAM_NONE,
+            handicap, starting_tyre, (uint8_t)i, KART_TEAM_NONE,
             country_code);
 
         int previous_team = -1;
@@ -3691,7 +3695,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             name += core::stringw(" ") + StringUtils::toWString(i + 1);
             
             m_ai_profiles.push_back(std::make_shared<NetworkPlayerProfile>
-                (peer, name, peer->getHostId(), 0.0f, 0, HANDICAP_NONE,
+                (peer, name, peer->getHostId(), 0.0f, 0, HANDICAP_NONE, 2,
                 player_count + i, KART_TEAM_NONE, ""));
         }
     }
@@ -3906,6 +3910,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= (1 << 4);
         pl->addUInt8(boolean_combine);
         pl->addUInt8(profile->getHandicap());
+        pl->addUInt8(profile->getStartingTyre());
         if (ServerConfig::m_team_choosing)
             pl->addUInt8(profile->getTeam());
         else
@@ -4870,17 +4875,17 @@ void ServerLobby::handleServerConfiguration(Event* event)
 }   // handleServerConfiguration
 
 //-----------------------------------------------------------------------------
-/*! \brief Called when a player want to change his handicap
+/*! \brief Called when a player want to change his handicap and starting rtyre
  *  \param event : Event providing the information.
  *
  *  Format of the data :
  *  Byte 0                 1
- *       ----------------------------------
- *  Size |       1         |       1      |
- *  Data | local player id | new handicap |
- *       ----------------------------------
+ *       -------------------------------------------------
+ *  Size |       1         |       1      |       1      |
+ *  Data | local player id | new handicap | new tyre     |
+ *       -------------------------------------------------
  */
-void ServerLobby::changeHandicap(Event* event)
+void ServerLobby::changeHandicapAndTyre(Event* event)
 {
     NetworkString& data = event->data();
     if (m_state.load() != WAITING_FOR_START_GAME &&
@@ -4899,6 +4904,12 @@ void ServerLobby::changeHandicap(Event* event)
     }
     HandicapLevel h = (HandicapLevel)handicap_id;
     player->setHandicap(h);
+
+    uint8_t tyre_id = data.getUInt8();
+    unsigned t = tyre_id;
+    player->setStartingTyre(t);
+    printf("Server received this, handicap, tyre: %u, %u\n", handicap_id, t);
+
     updatePlayerList();
 }   // changeHandicap
 
@@ -4917,7 +4928,7 @@ void ServerLobby::changeColor(Event* event)
 
     player->setDefaultKartColor(hue);
     updatePlayerList();
-}   // changeHandicap
+}   // changeColor
 
 //-----------------------------------------------------------------------------
 /** Update and see if any player disconnects, if so eliminate the kart in
@@ -5118,7 +5129,7 @@ void ServerLobby::handleKartInfo(Event* event)
         .addUInt8(kart_id) .encodeString(rki.getPlayerName())
         .addUInt32(rki.getHostId()).addFloat(rki.getDefaultKartColor())
         .addUInt32(rki.getOnlineId()).addUInt8(rki.getHandicap())
-        .addUInt8((uint8_t)rki.getLocalPlayerId())
+        .addUInt8(rki.getStartingTyre()).addUInt8((uint8_t)rki.getLocalPlayerId())
         .encodeString(rki.getKartName()).encodeString(rki.getCountryCode());
     if (peer->getClientCapabilities().find("real_addon_karts") !=
         peer->getClientCapabilities().end())

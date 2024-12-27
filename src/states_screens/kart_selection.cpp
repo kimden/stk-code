@@ -1404,6 +1404,7 @@ void KartSelectionScreen::allPlayersDone()
         // Set handicap if needed
         if (UserConfigParams::m_per_player_difficulty)
             RaceManager::get()->setPlayerHandicap(n, m_kart_widgets[n].getHandicap());
+        RaceManager::get()->setPlayerStartingTyre(n, m_kart_widgets[n].getStartingTyre());
     }
 
     // ---- Switch to assign mode

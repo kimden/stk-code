@@ -50,6 +50,7 @@ struct GameInfo
         int m_start_position = -1;
         double m_game_duration = -1;
         int m_handicap = 0;
+        unsigned m_starting_tyre = 0;
         std::string m_country_code = "";
 
         std::string m_other_info = "";

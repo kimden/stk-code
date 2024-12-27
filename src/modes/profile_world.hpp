@@ -71,7 +71,7 @@ protected:
     virtual std::shared_ptr<Kart> createKart
         (const std::string &kart_ident, int index, int local_player_id,
         int global_player_id, RaceManager::KartType type,
-        HandicapLevel handicap);
+        HandicapLevel handicap, unsigned starting_tyre);
 
 public:
                           ProfileWorld();

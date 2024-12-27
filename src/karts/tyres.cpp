@@ -262,11 +262,11 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 void Tyres::reset() {
 
     if (m_reset_compound) {
-        const float kart_hue = RaceManager::get()->getKartColor(m_kart->getWorldKartId()) * 100.0f;
-        if (kart_hue < 0.5f) { /*Color 0 -> random kart color*/
+        const unsigned c = m_kart->getStartingTyre();
+        if (c == 0) { /*Color 0 -> random kart color*/
             m_current_compound = ((int)rand() % 3) + 2; /*Should be modulo the compound number, but at the moment some compounds are not finished*/
         } else {
-            m_current_compound = ((int)kart_hue % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
+            m_current_compound = ((int)(c-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
         }
         //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " S " + std::to_string(m_current_compound).c_str() + " " + m_kart->getIdent().c_str()).c_str());
         if (!(NetworkConfig::get()->isServer())){
@@ -275,8 +275,11 @@ void Tyres::reset() {
 
     } else if (m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1] > -0.5f) {
         const float kart_hue = m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]/100.0f;
-        m_kart->setKartColor(kart_hue);
-        printf("Setting color to %f\n", m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]);
+        bool change_color = false; //TODO: Add a user config for this parameter
+        if (change_color) {
+            m_kart->setKartColor(kart_hue);
+            printf("Setting color to %f\n", m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]);
+        }
     }
     if (m_reset_fuel) {
         m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());

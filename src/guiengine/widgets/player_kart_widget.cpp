@@ -55,6 +55,7 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
     x_speed = y_speed = w_speed = h_speed = 1.0f;
     m_ready = false;
     m_handicap = HANDICAP_NONE;
+    m_starting_tyre = 2;
     m_not_updated_yet = true;
 
     m_irrlicht_widget_id = irrlicht_widget_id;
@@ -107,6 +108,16 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
         label = _("Handicap (24%)");
         m_handicap_spinner->addLabel(label);
     }
+
+    m_starting_tyre_spinner = NULL;
+
+    m_starting_tyre_spinner = new SpinnerWidget(/* gauge */ false);
+    m_starting_tyre_spinner->m_w = player_name_w;
+    m_starting_tyre_spinner->m_h = player_name_h;
+
+    m_starting_tyre_spinner->setPlayerID(m_player_id);
+    m_starting_tyre_spinner->setPlayerIDSupport(true);
+    m_starting_tyre_spinner->setValue(m_starting_tyre);
 
     // ---- KartStatsWidget
     m_kart_stats = NULL;
@@ -170,6 +181,7 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
     //m_player_ident_spinner->m_event_handler = this;
     m_children.push_back(m_player_ident_spinner);
     m_children.push_back(m_handicap_spinner);
+    m_children.push_back(m_starting_tyre_spinner);
 
     // ----- Kart model view
     m_model_view = new ModelViewWidget();
@@ -309,6 +321,14 @@ PlayerKartWidget::~PlayerKartWidget()
             m_handicap_spinner->getIrrlichtElement()->remove();
     }
 
+    if (m_starting_tyre_spinner != NULL)
+    {
+        m_starting_tyre_spinner->setListener(NULL);
+
+        if (m_starting_tyre_spinner->getIrrlichtElement() != NULL)
+            m_starting_tyre_spinner->getIrrlichtElement()->remove();
+    }
+
     if (m_model_view->getIrrlichtElement() != NULL)
         m_model_view->getIrrlichtElement()->remove();
 
@@ -403,6 +423,9 @@ void PlayerKartWidget::add()
     m_handicap_spinner->add();
     m_handicap_spinner->getIrrlichtElement()->setTabStop(false);
     m_handicap_spinner->setListener(this);
+    m_starting_tyre_spinner->add();
+    m_starting_tyre_spinner->getIrrlichtElement()->setTabStop(false);
+    m_starting_tyre_spinner->setListener(this);
     m_kart_stats->add();
     m_model_view->add();
     m_kart_name->add();
@@ -493,6 +516,7 @@ void PlayerKartWidget::markAsReady()
     m_player_ident_spinner = NULL;
 
     m_handicap_spinner->setActive(false);
+    m_starting_tyre_spinner->setActive(false);
 
     SFXManager::get()->quickSound( "wee" );
 
@@ -518,6 +542,14 @@ HandicapLevel PlayerKartWidget::getHandicap()
     assert(m_magic_number == 0x33445566);
     return m_handicap;
 }   // getHandicap
+
+// ------------------------------------------------------------------------
+/** \return Handicap */
+unsigned PlayerKartWidget::getStartingTyre()
+{
+    assert(m_magic_number == 0x33445566);
+    return m_starting_tyre;
+}   // getStartingTyre
 
 // -------------------------------------------------------------------------
 /** Updates the animation (moving/shrinking/etc.) */
@@ -613,6 +645,13 @@ void PlayerKartWidget::updateSize()
                                  player_name_w,
                                  player_name_h );
     }
+    if (m_starting_tyre_spinner != NULL)
+    {
+        m_starting_tyre_spinner->move(player_name_x,
+                                 player_name_y + player_name_h*2.0 + 10,
+                                 player_name_w,
+                                 player_name_h );
+    }
     if (m_ready_text != NULL)
     {
         m_ready_text->setRelativePosition(
@@ -680,6 +719,8 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
                 m_associated_player->getConstProfile()->getDefaultKartColor());
         }
     } // playerSpinnerID
+
+    m_starting_tyre = m_starting_tyre_spinner->getValue();
 
     if (UserConfigParams::m_per_player_difficulty &&
         originator == handicapSpinnerID)
@@ -823,14 +864,21 @@ EventPropagation PlayerKartWidget::onSpinnerConfirmed()
 }   // onSpinnerConfirmed
 
 // -------------------------------------------------------------------------
-void PlayerKartWidget::enableHandicapForNetwork()
+void PlayerKartWidget::setHandicapForNetwork(HandicapLevel x)
 {
-    m_handicap = HANDICAP_4;
-    m_model_view->setBadge(ANCHOR_BADGE);
+    m_handicap = x;
+    if (x != HANDICAP_NONE) m_model_view->setBadge(ANCHOR_BADGE);
     m_kart_stats->setValues(
         kart_properties_manager->getKart(m_kart_internal_name),
-        HANDICAP_4);
-    core::stringw label = _("%s (handicapped)",
-        m_player_ident_spinner->getCustomText());
+        x);
+    core::stringw label;
+    if (x != HANDICAP_NONE) label = _("%s (handicapped)", m_player_ident_spinner->getCustomText());
+    else label = _("%s", m_player_ident_spinner->getCustomText());
     m_player_ident_spinner->setCustomText(label);
+}   // enableHandicapForNetwork
+
+void PlayerKartWidget::setTyreForNetwork(unsigned x)
+{
+    m_starting_tyre = x;
+    m_starting_tyre_spinner->setValue(x);
 }   // enableHandicapForNetwork

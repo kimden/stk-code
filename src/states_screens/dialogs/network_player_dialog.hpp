@@ -31,6 +31,7 @@ namespace GUIEngine
     class IconButtonWidget;
     class LabelWidget;
     class RibbonWidget;
+    class SpinnerWidget;
 }
 
 class RankingCallback;
@@ -50,6 +51,8 @@ private:
     const uint8_t m_local_id;
 
     HandicapLevel m_handicap;
+
+    unsigned m_starting_tyre_scalar;
 
     const core::stringw m_name;
 
@@ -75,16 +78,24 @@ private:
 
     GUIEngine::IconButtonWidget* m_cancel_widget;
 
-    GUIEngine::IconButtonWidget* m_handicap_widget;
+    GUIEngine::SpinnerWidget* m_handicap_widget;
+
+    GUIEngine::LabelWidget* m_handicap_label;
+
+    GUIEngine::IconButtonWidget* m_accept_widget;
+
+    GUIEngine::SpinnerWidget* m_tyre_widget;
+    GUIEngine::LabelWidget* m_tyre_label;
+
 
     GUIEngine::IconButtonWidget* m_report_widget;
 public:
     NetworkPlayerDialog(uint32_t host_id, uint32_t online_id, uint8_t local_id,
                         const core::stringw& name,
                         const std::string& country_code,
-                        bool allow_change_team, HandicapLevel h)
+                        bool allow_change_team, HandicapLevel h, unsigned t)
         : ModalDialog(0.8f,0.8f), m_host_id(host_id), m_online_id(online_id),
-          m_local_id(local_id), m_handicap(h),
+          m_local_id(local_id), m_handicap(h), m_starting_tyre_scalar(t),
           m_name(name), m_country_code(country_code),
           m_allow_change_team(allow_change_team), m_self_destroy(false),
           m_open_report_textbox(false)

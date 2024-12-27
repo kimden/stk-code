@@ -72,7 +72,7 @@ public:
         LE_BAD_TEAM, // Tell server owner that the team is unbalanced
         LE_BAD_CONNECTION, // High ping or too many packets loss
         LE_CONFIG_SERVER, // Server owner config server game mode or difficulty
-        LE_CHANGE_HANDICAP, // Client changes handicap
+        LE_CHANGE_HANDICAP_AND_TYRE, // Client changes handicap
         LE_CHANGE_COLOR, // Client changes color
         LE_LIVE_JOIN, // Client live join or spectate
         LE_LIVE_JOIN_ACK, // Server tell client live join or spectate succeed
