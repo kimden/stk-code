@@ -40,7 +40,8 @@
 
 #include "karts/controller/race_ai_tme.hpp"
 
-//#include <iostream>
+// #include <iostream>
+//#include <cfenv>
 
 //-----------------------------------------------------------------------------
 /** Constructor.
@@ -225,7 +226,6 @@ std::array<std::array<std::array<int, 2>, 3>, 2> TyreModAI::formTriangles(std::a
     return retval;
 }
 
-//#include <cfenv>
 void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
     std::vector<std::array<Vec3, 4>> flattened_nodes;
 
@@ -252,7 +252,7 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
     std::array<Vec3, 4> quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
 
 
-    //std::cout << "[flat] START OF COMPUTED SURFACE" << std::endl;
+    // std::cout << "[flat] START OF COMPUTED SURFACE" << std::endl;
     for(unsigned i = 1; i < max; i++) {
         std::array<std::array<std::array<int, 2>, 3>, 2> aux_indexes = formTriangles(quad_prev, quad_curr, quad_next);
         unsigned triangle_diagonal_p1 = aux_indexes[0][2][0];
@@ -269,7 +269,11 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
         quad_flattened[triangle_diagonal_p1] = quad_curr[triangle_diagonal_p1];
         quad_flattened[triangle_diagonal_p2] = quad_curr[triangle_diagonal_p2];
         quad_flattened[triangle1_tip] = quad_curr[triangle1_tip];
-        quad_flattened[triangle2_tip] = quad_curr[triangle_diagonal_p1] + ((quad_curr[triangle2_tip] - quad_curr[triangle_diagonal_p1]).rotate(triangle_common_axis, -angle_between_tris));
+        if (std::fabs(angle_between_tris-PI) < 0.001){
+            quad_flattened[triangle2_tip] = quad_curr[triangle2_tip];
+        } else{
+            quad_flattened[triangle2_tip] = quad_curr[triangle_diagonal_p1] + ((quad_curr[triangle2_tip] - quad_curr[triangle_diagonal_p1]).rotate(triangle_common_axis/(triangle_common_axis.length()), -angle_between_tris));
+        }
 
         unsigned quad_shared_p1_curr = aux_indexes[0][0][0];
         unsigned quad_shared_p1_prev = aux_indexes[0][0][1];
@@ -294,9 +298,9 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
         float angle_between_edges = (quad_flattened[quad_shared_p2_curr] - quad_flattened[quad_shared_p1_curr]).angle((flattened_nodes.back())[quad_shared_p2_prev] - (flattened_nodes.back())[quad_shared_p1_prev]);
 
         quad_flattened[quad_shared_p1_curr] = quad_flattened[quad_shared_p1_curr];
-        quad_flattened[quad_shared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_shared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment, -angle_between_edges);
-        quad_flattened[quad_nonshared_p1_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p1_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment, -angle_between_edges);
-        quad_flattened[quad_nonshared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment, -angle_between_edges);
+        quad_flattened[quad_shared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_shared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment/(rotation_axis_initial_alignment.length()), -angle_between_edges);
+        quad_flattened[quad_nonshared_p1_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p1_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment/(rotation_axis_initial_alignment.length()), -angle_between_edges);
+        quad_flattened[quad_nonshared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_initial_alignment/(rotation_axis_initial_alignment.length()), -angle_between_edges);
 
         //Now rotate the other two points so that the quads' normal vectors are aligned.
         //Or rather, simply align everything to the vector (0, 0, 1) since we're ensuring this by making the first quad forcibly be in the canonical 2D base.
@@ -304,17 +308,17 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
         Vec3 quad_normal = (quad_flattened[quad_shared_p2_curr]-quad_flattened[quad_shared_p1_curr]).cross(quad_flattened[quad_nonshared_p1_curr]-quad_flattened[quad_shared_p1_curr]);
         Vec3 rotation_axis_final = (quad_flattened[quad_shared_p2_curr]-quad_flattened[quad_shared_p1_curr]);
         float angle_between_quads = quad_normal.angle(Vec3(0,0,1));
-        quad_flattened[quad_nonshared_p1_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p1_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final, -angle_between_quads);
-        quad_flattened[quad_nonshared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final, -angle_between_quads);
+        quad_flattened[quad_nonshared_p1_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p1_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final/(rotation_axis_final.length()), -angle_between_quads);
+        quad_flattened[quad_nonshared_p2_curr] = quad_flattened[quad_shared_p1_curr] + (quad_flattened[quad_nonshared_p2_curr] - quad_flattened[quad_shared_p1_curr]).rotate(rotation_axis_final/(rotation_axis_final.length()), -angle_between_quads);
 
-		/*
-        std::cout << "[flat] ";
-        for (int i = 0; i < 4; i++) {
-            std::cout << "(" << quad_flattened[i].x() << ", " << quad_flattened[i].y() << ", " << quad_flattened[i].z() << ")-";
-        }
-        std::cout << ";";
-        std::cout << std::endl;
-        */
+
+        // std::cout << "[flat] ";
+        // for (int i = 0; i < 4; i++) {
+            // std::cout << "(" << quad_flattened[i].x() << ", " << quad_flattened[i].y() << ", " << quad_flattened[i].z() << ")-";
+        // }
+        // std::cout << ";";
+        // std::cout << std::endl;
+
 
         flattened_nodes.push_back(quad_flattened);
 
@@ -324,7 +328,7 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
         next_node = getNextSector(next_node);
         quad_next = DriveGraph::get()->getNode(next_node)->getQuadPoints();
     }
-    //std::cout << "[flat] END OF COMPUTED SURFACE" << std::endl;
+    // std::cout << "[flat] END OF COMPUTED SURFACE" << std::endl;
 
 }
  
@@ -347,7 +351,7 @@ void TyreModAI::update(int ticks)
     m_controls->setBrake(false);
     m_controls->setRescue(false);
 
-    //fedisableexcept(FE_INVALID | FE_OVERFLOW);
+    // fedisableexcept(FE_INVALID | FE_OVERFLOW);
     /*And obviously general kart stuff*/
     AIBaseLapController::update(ticks);
 }
