@@ -523,7 +523,10 @@ void GPInfoScreen::updateHighscores()
         int icon = -1;
         if(i < count)
         {
-            highscores->getEntry(i, kart, name, &time);
+            std::vector<std::tuple<unsigned, unsigned>> stints;
+            highscores->getEntry(i, kart, name, &time, stints);
+
+            std::string stint_string = StringUtils::stintsToString(stints);
 
             std::string highscore_string;
             if (RaceManager::get()->isLapTrialMode())
@@ -540,7 +543,7 @@ void GPInfoScreen::updateHighscores()
                     break;
                 }
             }
-            line = name + "    " + irr::core::stringw(highscore_string.c_str());
+            line = name + "    " + irr::core::stringw(highscore_string.c_str()) + "    " + irr::core::stringw(stint_string.c_str());
         }
         else
         {

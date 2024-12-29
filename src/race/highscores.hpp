@@ -51,7 +51,9 @@ public:
         SO_REV                  // Sorted by if using reverse mode
     };
 
+
     typedef std::string HighscoreType;
+    typedef std::vector<std::tuple<unsigned, unsigned>> StintsType;
 
     enum {HIGHSCORE_LEN = 5};       // It's a top 5 list
     std::string         m_track;
@@ -67,6 +69,9 @@ private:
     std::array<std::string, HIGHSCORE_LEN> m_kart_name;
     std::array<stringw, HIGHSCORE_LEN>     m_name;
     std::array<float, HIGHSCORE_LEN>       m_time;
+
+    //Tyre stints, composed of the compound IDs and the amount of laps
+    std::array<StintsType, HIGHSCORE_LEN> m_stint;
 
     static SortOrder m_sort_order;
 
@@ -106,14 +111,14 @@ public:
                 const GrandPrixData::GPReverseType reverse_type, RaceManager::MinorRaceModeType minor_mode);
     // ------------------------------------------------------------------------
     int  addData   (const std::string& kart_name,
-                    const irr::core::stringw& name, const float time);
+                    const irr::core::stringw& name, const float time, StintsType stints);
     int addGPData  (const std::string& kart_name,
                     const irr::core::stringw& name, std::string gp_name, const float time);
     // ------------------------------------------------------------------------
     int  getNumberEntries() const;
     // ------------------------------------------------------------------------
     void getEntry  (int number, std::string &kart_name,
-                    irr::core::stringw &name, float *const time) const;
+                    irr::core::stringw &name, float *const time, StintsType& stints) const;
     // ------------------------------------------------------------------------
     static void setSortOrder(SortOrder so)  { m_sort_order = so; }
 };  // Highscores

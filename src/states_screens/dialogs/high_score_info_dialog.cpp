@@ -179,6 +179,7 @@ void HighScoreInfoDialog::updateHighscoreEntries()
     std::string kart_name;
     core::stringw name;
     float time;
+    std::vector<std::tuple<unsigned, unsigned>> stints;
 
     int time_precision = RaceManager::get()->currentModeTimePrecision();
 
@@ -191,7 +192,9 @@ void HighScoreInfoDialog::updateHighscoreEntries()
         // Check if this entry is filled or still empty
         if (n < amount)
         {
-            m_hs->getEntry(n, kart_name, name, &time);
+            m_hs->getEntry(n, kart_name, name, &time, stints);
+
+            std::string stint_string = StringUtils::stintsToString(stints);
 
             std::string highscore_string;
             if (m_minor_mode == RaceManager::MINOR_MODE_LAP_TRIAL)
@@ -221,7 +224,7 @@ void HighScoreInfoDialog::updateHighscoreEntries()
                 }
             }
 
-            line = name + "    " + core::stringw(highscore_string.c_str());
+            line = name + "    " + core::stringw(highscore_string.c_str()) + "    " + core::stringw(stint_string.c_str());
         }
         else
         {

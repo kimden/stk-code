@@ -50,6 +50,10 @@ namespace StringUtils
     std::string ticksTimeToString(int time);
     std::string timeToString(float time, unsigned int precision = 3,
                              bool display_minutes_if_zero = true, bool display_hours = true);
+
+    std::vector<std::tuple<unsigned, unsigned>> stringToStints(std::string x);
+    std::string stintsToString(std::vector<std::tuple<unsigned, unsigned>> x);
+
     irr::core::stringw loadingDots(float interval = 0.5f, int max_dots = 3);
     irr::core::stringw loadingDots(const irr::core::stringw& s);
     std::string                     toUpperCase(const std::string&);

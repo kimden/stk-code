@@ -1339,13 +1339,15 @@ void World::updateHighscores(int* best_highscore_rank)
         {
             highscore_rank = highscores->addData(k->getIdent(),
                                                  k->getController()->getName(),
-                                                 static_cast<float>(getFinishedLapsOfKart(index[pos])));
+                                                 static_cast<float>(getFinishedLapsOfKart(index[pos])),
+                                                 k->getStints());
         }
         else
         {
             highscore_rank = highscores->addData(k->getIdent(),
                                                  k->getController()->getName(),
-                                                 k->getFinishTime()    );
+                                                 k->getFinishTime(),
+                                                 k->getStints());
         }
         
 

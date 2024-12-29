@@ -578,6 +578,7 @@ void LinearWorld::newLap(unsigned int kart_index)
         if (!(NetworkConfig::get()->isServer())) {
             Log::info("[RunRecord]", "L %s %s %s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks_per_lap)).c_str());
         }
+        kart->m_current_tyre_age += 1;
 
     if (ticks_per_lap < m_fastest_lap_ticks ) {
         // Store the temporary string because clang would mess this up

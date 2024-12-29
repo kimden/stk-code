@@ -530,6 +530,8 @@ void Kart::reset()
     m_finished_race        = false;
     m_eliminated           = false;
     m_finish_time          = 0.0f;
+    m_stint                = {{0, 0}};
+    m_current_tyre_age     = 0;
     m_bubblegum_ticks      = 0;
     m_bubblegum_torque_sign = true;
     m_invulnerable_ticks   = 0;
@@ -1121,6 +1123,17 @@ void Kart::finishedRace(float time, bool from_server)
     if (!(NetworkConfig::get()->isServer())){
         Log::info("[RunRecord]", "E %s %s\n", getIdent().c_str(), RaceManager::get()->getTrackName().c_str());
     }
+
+    if ((std::get<0>(m_stint[0]) == 0) && (std::get<1>(m_stint[0]) == 0)) {
+        m_stint.erase(m_stint.begin());
+    }
+    //In theory, the lap age will be incremented after
+    //we need it to be incremented because of the position
+    // in the call tree of the linear_world.cpp module,
+    // so just add one here
+    m_stint.push_back({m_tyres->m_current_compound, m_current_tyre_age+1});
+    m_current_tyre_age = 0;
+
     const bool is_linear_race = RaceManager::get()->isLinearRaceMode();
 
     if (NetworkConfig::get()->isNetworking() && !from_server)
@@ -1340,12 +1353,19 @@ void Kart::collectedItem(ItemState *item_state)
             m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(item_state->m_stop_time));
             m_is_refueling = true;
         } else {
+            if ((std::get<0>(m_stint[0]) == 0) && (std::get<1>(m_stint[0]) == 0)) {
+                m_stint.erase(m_stint.begin());
+            }
+            m_stint.push_back({m_tyres->m_current_compound, m_current_tyre_age});
+            m_current_tyre_age = 0;
+
             if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
             else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
             //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " C " + std::to_string(item_state->m_compound).c_str() + " " + std::to_string(item_state->m_stop_time).c_str()).c_str());
             if (!(NetworkConfig::get()->isServer())){
                 Log::info("[RunRecord]", "C %s %s %s %s\n", getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(item_state->m_compound).c_str(), std::to_string(item_state->m_stop_time).c_str());
             }
+
             m_tyres->m_reset_compound = false;
             m_tyres->m_reset_fuel = false;
             m_tyres->reset();

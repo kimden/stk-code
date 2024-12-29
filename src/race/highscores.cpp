@@ -52,6 +52,9 @@ Highscores::Highscores(const HighscoreType &highscore_type,
         m_name[i]      = "";
         m_kart_name[i] = "";
         m_time[i]      = -9.9f;
+
+        m_stint[i].clear();
+        m_stint[i].push_back(std::make_tuple(0, 0));
     }
 }
 // ----------------------------------------------------------------------------
@@ -73,6 +76,9 @@ Highscores::Highscores(int num_karts, const RaceManager::Difficulty &difficulty,
         m_name[i]      = "";
         m_kart_name[i] = "";
         m_time[i]      = -9.9f;
+
+        m_stint[i].clear();
+        m_stint[i].push_back(std::make_tuple(0, 0));
     }
 }
 // -----------------------------------------------------------------------------
@@ -92,6 +98,9 @@ Highscores::Highscores(const XMLNode &node)
         m_name[i]      = "";
         m_kart_name[i] = "";
         m_time[i]      = -9.9f;
+
+        m_stint[i].clear();
+        m_stint[i].push_back(std::make_tuple(0, 0));
     }
 
     readEntry(node);
@@ -128,6 +137,16 @@ void Highscores::readEntry(const XMLNode &node)
         entry->get("time",     &m_time[i]            );
         entry->getAndDecode("name",     &m_name[i]            );
         entry->get("kartname", &m_kart_name[i]       );
+
+        std::string stintstr;
+        entry->get("stints", &stintstr);
+        if (stintstr.size() == 0) {
+            //backwards compatibility with old format, most replays don't have stint data for now :P
+            m_stint[i].clear();
+            m_stint[i].push_back(std::make_tuple(0, 0));
+        } else {
+            m_stint[i] = StringUtils::stringToStints(stintstr);
+        }
 
         // a non-empty entry needs a non-empty kart name.
         if (!(m_time[i] <= 0.0f || m_kart_name[i].size() > 0))
@@ -176,8 +195,9 @@ void Highscores::writeEntry(UTFWriter &writer)
             assert(m_kart_name[i].size() > 0);
             writer << "             <entry time    =\"" << m_time[i] << L"\"\n";
             writer << "                    name    =\"" << StringUtils::xmlEncode(m_name[i]) << L"\"\n";
-            writer << "                    kartname=\"" << m_kart_name[i]
-                   << "\"/>\n";
+            writer << "                    kartname=\"" << m_kart_name[i] << L"\"\n";
+            writer << "                    stints=\"" << StringUtils::stintsToString(m_stint[i]) << L"\"\n";
+            writer << "/>\n";
         }
     }   // for i
     writer << "  </highscore>\n";
@@ -246,7 +266,7 @@ int Highscores::findHighscorePosition(const float time)
  *  otherwise a 0.
  */
 int Highscores::addData(const std::string& kart_name,
-                        const core::stringw& name, const float time)
+                        const core::stringw& name, const float time, StintsType stints)
 {
     int position = findHighscorePosition(time);
     if(position>=0)
@@ -262,6 +282,7 @@ int Highscores::addData(const std::string& kart_name,
         m_name[position]      = name;
         m_time[position]      = time;
         m_kart_name[position] = kart_name;
+        m_stint[position] = stints;
     }
 
     return position+1;
@@ -302,7 +323,7 @@ int Highscores::getNumberEntries() const
 
 // -----------------------------------------------------------------------------
 void Highscores::getEntry(int number, std::string &kart_name,
-                          core::stringw &name, float *const time) const
+                          core::stringw &name, float *const time, StintsType& stints) const
 {
     if(number<0 || number>getNumberEntries())
     {
@@ -315,6 +336,7 @@ void Highscores::getEntry(int number, std::string &kart_name,
     kart_name = m_kart_name[number];
     name      = m_name[number];
     *time     = m_time[number];
+    stints     = m_stint[number];
 
 }   // getEntry
 

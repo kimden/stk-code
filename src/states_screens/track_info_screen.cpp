@@ -585,7 +585,10 @@ void TrackInfoScreen::updateHighScores()
         // Check if this entry is filled or still empty
         if (n < amount)
         {
-            highscores->getEntry(n, kart_name, name, &time);
+            std::vector<std::tuple<unsigned, unsigned>> stints;
+            highscores->getEntry(n, kart_name, name, &time, stints);
+
+            std::string stints_string = StringUtils::stintsToString(stints);
 
             std::string highscore_string;
             if (RaceManager::get()->isLapTrialMode())
@@ -603,7 +606,7 @@ void TrackInfoScreen::updateHighScores()
                 }
             }
         
-            line = name + "    " + core::stringw(highscore_string.c_str());
+            line = name + "    " + core::stringw(highscore_string.c_str()) + "    " + core::stringw(stints_string.c_str());
         }
         else
         {

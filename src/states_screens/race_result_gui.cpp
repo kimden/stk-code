@@ -1989,9 +1989,10 @@ int RaceResultGUI::displayHighscores(int x, int y, bool increase_density)
     int width_icon_adjusted = increase_density ? m_width_icon * 0.8f : m_width_icon;
 
     float time;
+    std::vector<std::tuple<unsigned, unsigned>> stints;
     for (int i = 0; i < scores->getNumberEntries(); i++)
     {
-        scores->getEntry(i, kart_name, player_name, &time);
+        scores->getEntry(i, kart_name, player_name, &time, stints);
         if (player_name.size() > max_characters)
         {
             int begin = (int(m_timer / 0.4f)) % (player_name.size() - max_characters);
@@ -2037,6 +2038,8 @@ int RaceResultGUI::displayHighscores(int x, int y, bool increase_density)
 
         current_x = (int)(UserConfigParams::m_width * 0.85f);
 
+        std::string stint_string = StringUtils::stintsToString(stints);
+
         // Finally draw the time
         std::string highscore_string;
         if (RaceManager::get()->isLapTrialMode())
@@ -2046,6 +2049,14 @@ int RaceResultGUI::displayHighscores(int x, int y, bool increase_density)
         GUIEngine::getSmallFont()->draw(highscore_string.c_str(),
             core::recti(current_x, current_y, current_x + 100, current_y + 10),
                 text_color, false, false, NULL, true /* ignoreRTL */);
+
+        //Disabled this part because it straight up doesn't fit
+        //std::wstring widestr = std::wstring(highscore_string.begin(), highscore_string.end());
+        //const wchar_t* widecstr = widestr.c_str();
+        //unsigned dim = (GUIEngine::getSmallFont()->getDimension(widecstr).Width*12)/10;
+        //GUIEngine::getSmallFont()->draw(stint_string.c_str(),
+        //    core::recti(current_x, current_y, current_x + 100 + dim, current_y + 10),
+        //        text_color, false, false, NULL, true /* ignoreRTL */);
     } // for highscore entries
 
     return current_y;

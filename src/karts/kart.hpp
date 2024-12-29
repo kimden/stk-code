@@ -303,6 +303,8 @@ protected:
 
     float           m_finish_time;
 
+    std::vector<std::tuple<unsigned, unsigned>> m_stint;
+
      /** The amount of energy collected with nitro cans. Note that it
       *  must be float, since dt is subtraced in each timestep. */
     float         m_collected_energy;
@@ -417,6 +419,9 @@ public:
     bool m_is_refueling;
     float m_target_refuel;
     Tyres *m_tyres;
+    //This variable in incremented in linear world.
+    //Todo: handle rewinds gracefully
+    unsigned m_current_tyre_age;
     /** Format of each tuple: age in laps, life turning, life traction, temperature
         There can be multiple in the queue, and there's a queue for each compound*/
     std::vector<int> m_tyres_queue;
@@ -895,6 +900,7 @@ public:
     /** Returns the finished time for a kart. */
     virtual float getFinishTime () const { return m_finish_time; }
     // ----------------------------------------------------------------------------------------
+    virtual std::vector<std::tuple<unsigned, unsigned>> getStints () const { return m_stint; }    
     /** Returns true if this kart has finished the race. */
     virtual bool hasFinishedRace () const { return m_finished_race; }
     // -----------------------------------------------------------------------------------------
