@@ -230,6 +230,8 @@ void OptionsScreenVideo::loadedFromFile()
 void OptionsScreenVideo::init()
 {
     Screen::init();
+    OptionsCommon::setTabStatus();
+
     m_prev_adv_pipline = UserConfigParams::m_dynamic_lights;
     m_prev_img_quality = getImageQuality();
     RibbonWidget* ribbon = getWidget<RibbonWidget>("options_choice");
@@ -673,10 +675,10 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
             RaceManager::get()->scheduleBenchmark();
 #endif
     } // benchmarkCurrent
-    else if (name == "benchmarkRecommend")
+    /*else if (name == "benchmarkRecommend")
     {
         new RecommendVideoSettingsDialog(0.8f, 0.9f);
-    } // benchmarkRecommend
+    }*/ // benchmarkRecommend
 }   // eventCallback
 
 // --------------------------------------------------------------------------------------------

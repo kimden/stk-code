@@ -834,6 +834,10 @@ namespace UserConfigParams
 
     PARAM_PREFIX bool m_race_now          PARAM_DEFAULT( false );
 
+    PARAM_PREFIX int m_default_keyboard   PARAM_DEFAULT( -1 );
+
+    PARAM_PREFIX int m_default_gamepad    PARAM_DEFAULT( -1 );
+
     PARAM_PREFIX bool m_enforce_current_player PARAM_DEFAULT( false );
 
     PARAM_PREFIX bool m_enable_sound PARAM_DEFAULT( true );
@@ -848,6 +852,8 @@ namespace UserConfigParams
     PARAM_PREFIX bool m_disable_addon_karts  PARAM_DEFAULT( false );
 
     PARAM_PREFIX bool m_disable_addon_tracks  PARAM_DEFAULT( false );
+
+    PARAM_PREFIX bool m_benchmark  PARAM_DEFAULT( false );
 
     // ---- Networking
     PARAM_PREFIX StringToUIntUserConfigParam    m_server_bookmarks
