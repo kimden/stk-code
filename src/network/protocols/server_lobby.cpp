@@ -1094,8 +1094,9 @@ void ServerLobby::asynchronousUpdate()
         {
             // Ensure that a game can auto-start if the server meets the config's starting limit or if it's already full.
             int starting_limit = std::min((int)ServerConfig::m_min_start_game_players, (int)ServerConfig::m_server_max_players);
-            if (ServerConfig::m_max_players_in_game > 0) // 0 here means it's not the limit
-                starting_limit = std::min(starting_limit, (int)ServerConfig::m_max_players_in_game);
+            unsigned current_max_players_in_game = m_current_max_players_in_game.load();
+            if (current_max_players_in_game > 0) // 0 here means it's not the limit
+                starting_limit = std::min(starting_limit, (int)current_max_players_in_game);
 
             unsigned players = 0;
             STKHost::get()->updatePlayers(&players);
@@ -1125,7 +1126,7 @@ void ServerLobby::asynchronousUpdate()
             if ((!ServerConfig::m_soccer_tournament &&
                 m_timeout.load() < (int64_t)StkTime::getMonoTimeMs()) ||
                 (checkPeersReady(true/*ignore_ai_peer*/, true/*before_start*/) &&
-                (int)players >= ServerConfig::m_min_start_game_players))
+                (int)players >= starting_limit))
             {
                 resetPeersReady();
                 startSelection();
@@ -5295,11 +5296,13 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
     unsigned player_limit = ServerConfig::m_server_max_players;
     // If the server has an in-game player limit lower than the lobby limit, apply it,
     // A value of 0 for this parameter means no limit.
-    if (ServerConfig::m_max_players_in_game > 0)
-        player_limit = std::min(player_limit, (unsigned)ServerConfig::m_max_players_in_game);
+    unsigned current_max_players_in_game = m_current_max_players_in_game.load();
+    if (current_max_players_in_game > 0)
+        player_limit = std::min(player_limit, (unsigned)current_max_players_in_game);
 
-    // only 10 players allowed for battle or soccer
-    if (RaceManager::get()->isBattleMode() || RaceManager::get()->isSoccerMode())
+    // only 10 players allowed for FFA and 14 for CTF and soccer
+    if (RaceManager::get()->getMinorMode() ==
+            RaceManager::MINOR_MODE_FREE_FOR_ALL)
         player_limit = std::min(player_limit, 10u);
 
     if (RaceManager::get()->getMinorMode() ==
@@ -6077,7 +6080,11 @@ bool ServerLobby::canRace(STKPeer* peer)
         m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
         return false;
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> kimden/master
     applyAllFilters(maps, true);
     applyAllKartFilters(username, karts, false);
 
