@@ -6080,11 +6080,7 @@ bool ServerLobby::canRace(STKPeer* peer)
         m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
         return false;
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> kimden/master
     applyAllFilters(maps, true);
     applyAllKartFilters(username, karts, false);
 
