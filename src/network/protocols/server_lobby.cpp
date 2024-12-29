@@ -6318,20 +6318,6 @@ bool ServerLobby::canRace(STKPeer* peer)
     std::set<std::string> maps = peer->getClientAssets().second;
     std::set<std::string> karts = peer->getClientAssets().first;
 
-    applyAllFilters(maps, true);
-    applyAllKartFilters(username, karts, false);
-
-    if (karts.empty())
-    {
-        m_why_peer_cannot_play[peer] = HR_NO_KARTS_AFTER_FILTER;
-        return false;
-    }
-    if (maps.empty())
-    {
-        m_why_peer_cannot_play[peer] = HR_NO_MAPS_AFTER_FILTER;
-        return false;
-    }
-
     if (!m_play_requirement_tracks.empty())
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
@@ -6388,6 +6374,21 @@ bool ServerLobby::canRace(STKPeer* peer)
         m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
         return false;
     }
+    
+    applyAllFilters(maps, true);
+    applyAllKartFilters(username, karts, false);
+
+    if (karts.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_KARTS_AFTER_FILTER;
+        return false;
+    }
+    if (maps.empty())
+    {
+        m_why_peer_cannot_play[peer] = HR_NO_MAPS_AFTER_FILTER;
+        return false;
+    }
+
     m_why_peer_cannot_play[peer] = 0;
     return true;
 }   // canRace
