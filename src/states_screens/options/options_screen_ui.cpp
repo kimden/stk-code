@@ -255,6 +255,10 @@ void OptionsScreenUI::init()
     assert(use_tyre_ai != NULL);
     use_tyre_ai->setState(UserConfigParams::m_use_tyre_ai);
 
+    CheckBoxWidget* override_kart_color_with_tyre = getWidget<CheckBoxWidget>("override_kart_color_with_tyre");
+    assert(override_kart_color_with_tyre != NULL);
+    override_kart_color_with_tyre->setState(UserConfigParams::m_override_kart_color_with_tyre);
+
 
     CheckBoxWidget* fps = getWidget<CheckBoxWidget>("showfps");
     assert( fps != NULL );
@@ -510,6 +514,12 @@ void OptionsScreenUI::eventCallback(Widget* widget, const std::string& name, con
         CheckBoxWidget* use_tyre_ai = getWidget<CheckBoxWidget>("use_tyre_ai");
         assert(use_tyre_ai != NULL);
         UserConfigParams::m_use_tyre_ai = use_tyre_ai->getState();
+    }
+    else if (name == "override_kart_color_with_tyre")
+    {
+        CheckBoxWidget* override_kart_color_with_tyre = getWidget<CheckBoxWidget>("override_kart_color_with_tyre");
+        assert(override_kart_color_with_tyre != NULL);
+        UserConfigParams::m_override_kart_color_with_tyre = override_kart_color_with_tyre->getState();
     }
     else if (name == "showfps")
     {

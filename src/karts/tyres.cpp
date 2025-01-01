@@ -24,6 +24,7 @@
 #include "race/race_manager.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
+#include "config/user_config.hpp"
 #include "network/network_config.hpp"
 #include <iostream>
 #include <algorithm>
@@ -260,7 +261,6 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 
 
 void Tyres::reset() {
-
     if (m_reset_compound) {
         const unsigned c = m_kart->getStartingTyre();
         if (c == 0) { /*Color 0 -> random kart color*/
@@ -273,14 +273,15 @@ void Tyres::reset() {
             Log::info("[RunRecord]", "S %s %s %s\n", m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_current_compound).c_str());
         }
 
-    } else if (m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1] > -0.5f) {
-        const float kart_hue = m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]/100.0f;
-        bool change_color = false; //TODO: Add a user config for this parameter
-        if (change_color) {
-            m_kart->setKartColor(kart_hue);
-            printf("Setting color to %f\n", m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]);
-        }
     }
+
+    bool change_color = UserConfigParams::m_override_kart_color_with_tyre;
+    if (change_color && m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1] > -0.5f) {
+        const float tyre_hue = m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]/100.0f;
+        m_kart->setKartColor(tyre_hue);
+        //printf("Setting color to %f\n", m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]);
+    }
+
     if (m_reset_fuel) {
         m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
         m_current_fuel = m_c_fuel;

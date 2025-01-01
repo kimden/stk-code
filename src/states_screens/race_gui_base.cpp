@@ -1234,9 +1234,17 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
         {
             gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
             const core::rect<s32> posNumber(x, y, x + w/4, y + w/4);
-            font->setScale(2.0f*((float) w)/(4.f*(float)font->getDimension(L"X").Height));
-            if (pit) font->draw(L"PIT", posNumber, video::SColor(255, 0, 255, 255));
-            else font->draw(StringUtils::toWString(compound), posNumber, video::SColor(255, 0, 255, 255));
+            font->setScale(2.0f*((float) w)/(4.f*(float)font->getDimension(L"XX").Height));
+
+            // convert Hue to SColor
+            float tyre_hue = kart->getKartProperties()->getTyresDefaultColor()[kart->m_tyres->m_current_compound-1]/100.0f;
+            const video::SColorHSL tyre_colorHSL(tyre_hue * 360.0, 80.0, 50.0);
+            video::SColorf tyre_colorf;
+            tyre_colorHSL.toRGB(tyre_colorf);
+            video::SColor tyre_color = tyre_colorf.toSColor();
+
+            if (pit) font->draw(L"PIT", posNumber, tyre_color);
+            else font->draw(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(kart->m_tyres->m_current_compound, true)), posNumber, tyre_color);
             font->setScale(1.0f);
         }
     }

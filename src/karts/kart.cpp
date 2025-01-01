@@ -4045,7 +4045,6 @@ void Kart::setOnScreenText(const core::stringw& text)
 #ifndef SERVER_ONLY
     if (GUIEngine::isNoGraphics())
         return;
-        
     BoldFace* bold_face = font_manager->getFont<BoldFace>();
     STKTextBillboard* tb =
         new STKTextBillboard(

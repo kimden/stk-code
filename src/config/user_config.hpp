@@ -501,8 +501,11 @@ namespace UserConfigParams
             PARAM_DEFAULT(  BoolUserConfigParam(false, "karts-powerup-gui",
             &m_race_setup_group, "Show other karts' held powerups in race gui.") );
     PARAM_PREFIX BoolUserConfigParam          m_use_tyre_ai
-            PARAM_DEFAULT(  BoolUserConfigParam(false, "karts-powerup-gui",
+            PARAM_DEFAULT(  BoolUserConfigParam(false, "use-tyre-ai",
             &m_race_setup_group, "Use the new experimental AI for Tyre Mod Edition.") );
+    PARAM_PREFIX BoolUserConfigParam          m_override_kart_color_with_tyre
+            PARAM_DEFAULT(  BoolUserConfigParam(false, "override-kart-color",
+            &m_race_setup_group, "Make kart color depend on tyre compound.") );
     PARAM_PREFIX BoolUserConfigParam          m_soccer_player_list
             PARAM_DEFAULT(  BoolUserConfigParam(false, "soccer-player-list",
             &m_race_setup_group, "Show player list icon in soccer mode.") );

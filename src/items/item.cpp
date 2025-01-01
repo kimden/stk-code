@@ -24,6 +24,7 @@
 #include "graphics/lod_node.hpp"
 #include "graphics/sp/sp_mesh.hpp"
 #include "graphics/sp/sp_mesh_node.hpp"
+#include "graphics/stk_text_billboard.hpp"
 #include "guiengine/engine.hpp"
 #include "items/item_manager.hpp"
 #include "karts/kart.hpp"
@@ -35,6 +36,8 @@
 #include "tracks/drive_node.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
+#include "font/bold_face.hpp"
+#include "font/font_manager.hpp"
 
 #include <IBillboardSceneNode.h>
 #include <IMeshSceneNode.h>
@@ -427,6 +430,27 @@ void Item::handleNewMesh(ItemType type)
     Vec3 hpr;
     hpr.setHPR(getOriginalRotation());
     m_node->setRotation(hpr.toIrrHPR());
+
+    if (type == ItemType::ITEM_TYRE_CHANGE) {
+        if (GUIEngine::isNoGraphics())
+            return;
+        BoldFace* bold_face = font_manager->getFont<BoldFace>();
+        STKTextBillboard* tb =
+            new STKTextBillboard(
+            GUIEngine::getSkin()->getColor("font::bottom"),
+            GUIEngine::getSkin()->getColor("font::top"),
+            m_node, irr_driver->getSceneManager(), -1,
+            core::vector3df(0.0f, 2.0f, 0.0f),
+            core::vector3df(0.5f, 0.5f, 0.5f));
+        //if (CVS->isGLSL())
+            tb->init(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(m_compound, false)), bold_face);
+        //else
+            //tb->initLegacy(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(m_compound, false)), bold_face);
+        tb->drop();
+        // No need to store the reference to the billboard scene node:
+        // It has one reference to the parent, and will get deleted
+        // when the parent is deleted.
+    }
 
     if (m_icon_node)
         m_appear_anime_node->removeChild(m_icon_node);

@@ -51,6 +51,8 @@ namespace StringUtils
     std::string timeToString(float time, unsigned int precision = 3,
                              bool display_minutes_if_zero = true, bool display_hours = true);
 
+    std::string getStringFromCompound(unsigned c, bool shortver);
+
     std::vector<std::tuple<unsigned, unsigned>> stringToStints(std::string x);
     std::string stintsToString(std::vector<std::tuple<unsigned, unsigned>> x);
 

@@ -766,6 +766,30 @@ namespace StringUtils
         return result;
     }
     
+
+    std::string getStringFromCompound(unsigned c, bool shortver) {
+        switch(c) {
+            case 0:
+                return shortver ? "?" : "INVALID";
+            case 1:
+                return shortver ? "S+" : "SOFT+";
+            case 2:
+                return shortver ? "S" : "SOFT";
+            case 3:
+                return shortver ? "M" : "MEDIUM";
+            case 4:
+                return shortver ? "H" : "HARD";
+            case 5:
+                return shortver ? "H+" : "HARD+";
+            case 9:
+                return shortver ? "FL" : "FLAT";
+            case 123:
+                return shortver ? "FU" : "FUEL";
+            default:
+                return shortver ? ("C" + std::to_string(c)) : ("COMP " + std::to_string(c));
+        }
+    };
+
     //Compound, length
     std::vector<std::tuple<unsigned, unsigned>> stringToStints(std::string x) {
         std::vector<std::tuple<unsigned, unsigned>> retval;
