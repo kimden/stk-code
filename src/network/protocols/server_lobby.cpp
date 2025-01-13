@@ -1123,7 +1123,7 @@ void ServerLobby::asynchronousUpdate()
             }
             if ((!ServerConfig::m_soccer_tournament &&
                 m_timeout.load() < (int64_t)StkTime::getMonoTimeMs()) ||
-                (checkPeersReady(true/*ignore_ai_peer*/, true/*before_start*/) &&
+                (checkPeersReady(true/*ignore_ai_peer*/, BEFORE_SELECTION) &&
                 (int)players >= starting_limit))
             {
                 resetPeersReady();
@@ -1166,7 +1166,7 @@ void ServerLobby::asynchronousUpdate()
         if (m_server_has_loaded_world.load() == false)
             return;
         if (!checkPeersReady(
-            ServerConfig::m_ai_handling && m_ai_count == 0/*ignore_ai_peer*/))
+            ServerConfig::m_ai_handling && m_ai_count == 0/*ignore_ai_peer*/, LOADING_WORLD))
             return;
         // Reset for next state usage
         resetPeersReady();
@@ -2083,7 +2083,7 @@ void ServerLobby::update(int ticks)
         Log::info("ServerLobby", "End of game message sent");
         break;
     case RESULT_DISPLAY:
-        if (checkPeersReady(true/*ignore_ai_peer*/) ||
+        if (checkPeersReady(true/*ignore_ai_peer*/, AFTER_GAME) ||
             (int64_t)StkTime::getMonoTimeMs() > m_timeout.load())
         {
             // Send a notification to all clients to exit
@@ -5304,7 +5304,7 @@ bool ServerLobby::supportsAI()
 }   // supportsAI
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::checkPeersReady(bool ignore_ai_peer, bool before_start)
+bool ServerLobby::checkPeersReady(bool ignore_ai_peer, SelectionPhase phase)
 {
     bool all_ready = true;
     bool someone_races = false;
@@ -5313,11 +5313,13 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer, bool before_start)
         auto peer = p.first.lock();
         if (!peer)
             continue;
-        if (peer->alwaysSpectate())
+        if (phase == BEFORE_SELECTION && peer->alwaysSpectate())
+            continue;
+        if (phase == AFTER_GAME && peer->isSpectator())
             continue;
         if (ignore_ai_peer && peer->isAIPeer())
             continue;
-        if (before_start && !canRace(peer))
+        if (phase == BEFORE_SELECTION && !canRace(peer))
             continue;
         someone_races = true;
         all_ready = all_ready && p.second;
