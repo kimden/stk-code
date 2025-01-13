@@ -94,6 +94,13 @@ public:
         ERROR_LEAVE,              // shutting down server
         EXITING
     };
+
+    enum SelectionPhase: unsigned int
+    {
+        BEFORE_SELECTION = 0,
+        LOADING_WORLD = 1,
+        AFTER_GAME = 2,
+    };
 private:
     struct KeyData
     {
@@ -408,7 +415,7 @@ private:
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
     void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer, bool before_start = false);
+    bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
