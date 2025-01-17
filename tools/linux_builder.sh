@@ -395,13 +395,17 @@ build_stk()
     # Shaderc
     if [ ! -f "$DEPENDENCIES_DIR/shaderc.stamp" ]; then
         echo "Compiling shaderc"
-        
-        "$DEPENDENCIES_DIR/../lib/shaderc/utils/git-sync-deps"
-        
         mkdir -p "$DEPENDENCIES_DIR/shaderc"
         cp -a -f "$DEPENDENCIES_DIR/../lib/shaderc/"* "$DEPENDENCIES_DIR/shaderc"
-
+        
         cd "$DEPENDENCIES_DIR/shaderc"
+
+        if [ ! -f "$DEPENDENCIES_DIR/shaderc-deps.stamp" ]; then
+            ./utils/git-sync-deps
+            check_error
+            touch "$DEPENDENCIES_DIR/shaderc-deps.stamp"
+        fi
+
         cmake . -DCMAKE_FIND_ROOT_PATH="$INSTALL_DIR" \
                 -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
                 -DCMAKE_C_FLAGS="-fpic -O3"           \
@@ -465,10 +469,9 @@ build_stk()
         cp -a -f "$DEPENDENCIES_DIR/../lib/wayland/"* "$DEPENDENCIES_DIR/wayland"
     
         cd "$DEPENDENCIES_DIR/wayland"
-        ./autogen.sh
-        ./configure --prefix="$INSTALL_DIR" --disable-documentation &&
-        make -j$THREADS_NUMBER &&
-        make install
+        meson --prefix="$INSTALL_DIR" -Ddocumentation=false build &&
+        ninja -C build -j$THREADS_NUMBER &&
+        ninja -C build install
         check_error
         touch "$DEPENDENCIES_DIR/wayland.stamp"
     fi
