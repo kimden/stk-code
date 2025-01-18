@@ -1521,7 +1521,7 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
                 name = core::stringw(L"\u200E") + name;
         }
 #endif
-        chat->encodeString16(name + L": " + text, 1000/*max_len*/);
+        chat->encodeString16(RaceManager::getName(name) + L": " + text, 1000/*max_len*/);
 
         if (team != KART_TEAM_NONE)
             chat->addUInt8(team);
@@ -1664,7 +1664,17 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
     auto argv = StringUtils::split(cmd, ' ');
     if (argv.size() == 0)
         return;
-    if (argv[0] == "addondownloadprogress")
+    if (argv[0] == "fake")
+    {
+        std::string new_name = "";
+        if (argv.size() > 1)
+            new_name = argv[1];
+        RaceManager::setName(new_name);
+        core::stringw msg = L"Changed name to ";
+        msg += StringUtils::utf8ToWide(new_name);
+        NetworkingLobby::getInstance()->addMoreServerInfo(msg);
+    }
+    else if (argv[0] == "addondownloadprogress")
     {
         float progress = 0.0f;
         if (m_download_request)

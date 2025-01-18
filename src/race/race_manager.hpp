@@ -35,6 +35,7 @@
 #include "race/grand_prix_data.hpp"
 #include "utils/vec3.hpp"
 #include "utils/types.hpp"
+#include "utils/string_utils.hpp"
 
 class AbstractKart;
 class NetworkString;
@@ -87,6 +88,16 @@ static const std::string IDENT_LAP_TRIAL("LAP_TRIAL"       );
  */
 class RaceManager
 {
+private:
+    static std::string m_name;
+public:
+    static void setName(const std::string& str) { m_name = str; }
+    static irr::core::stringw getName(const irr::core::stringw& source) {
+        if (m_name.empty())
+            return source;
+        return StringUtils::utf8ToWide(m_name);
+    }
+
 public:
     /** The major types or races supported in STK
     */
