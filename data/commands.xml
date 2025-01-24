@@ -39,9 +39,9 @@ here later. For now, please refer to the code for the strings being used. -->
         />
     </command>
     <command name="spectate"
-             usage="/spectate [0 | 1]"
+             usage="/spectate [0 | 1 | 2]"
              permissions-verbose="everyone"
-             description="Toggles autospectate mode."
+             description="Toggles autospectate mode. 0 corresponds to normal mode, 1 - to spectating mode, 2 - to staying permanently in the lobby and not watching."
     />
     <command name="addons"
              usage="/addons [type]"
@@ -1129,6 +1129,21 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions="UP_EVERYONE"
              state-scope="SS_LOBBY"
     />
+    <command name="availableteams"
+             usage="/availableteams"
+             permissions-verbose="everyone"
+             description="Shows which teams are available on the server. When the mode is soccer or CTF, there are always red and blue teams; in that case, the command shows what will be available in case the mode is changed."
+             permissions="UP_EVERYONE"
+             state-scope="SS_LOBBY"
+    >
+        <command name="="
+                 usage="/availableteams (all, or string of chars rbygopcms which can be empty if quoted)"
+                 omit-name="true"
+                 permissions-verbose="hammers"
+                 description="Allows to set which teams will be available (when the mode is soccer or CTF, acts for the next time when the mode changes to something else)."
+                 permissions="UP_HAMMER"
+        />
+    </command>
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions-verbose="everyone (client command)"

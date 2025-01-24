@@ -125,7 +125,7 @@ CommandVoting::process(std::multiset<std::string>& all_users)
 
 std::string CommandVoting::getAnyBest(std::string category)
 {
-    int best = 0;
+    unsigned int best = 0;
     std::vector<std::string> best_options;
     for (auto& vote_to_set: m_votes_by_poll[category])
     {

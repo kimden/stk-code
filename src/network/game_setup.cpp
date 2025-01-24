@@ -193,7 +193,10 @@ void GameSetup::sortPlayersForGame(
         return;
     for (unsigned i = 0; i < players.size(); i++)
     {
+        // The same as ServerLobby::setTeamInLobby, but without server lobby.
+        // Checks for spectate modes are not needed here.
         players[i]->setTeam((KartTeam)(i % 2));
+        players[i]->setTemporaryTeam(TeamUtils::getIndexFromKartTeam(i % 2));
     }
 }   // sortPlayersForGame
 

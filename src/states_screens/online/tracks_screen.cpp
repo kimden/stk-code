@@ -343,7 +343,7 @@ void TracksScreen::beforeAddingWidget()
 
     RibbonWidget* tabs = getWidget<RibbonWidget>("trackgroups");
     tabs->clearAllChildren();
-    
+
     RaceManager::MinorRaceModeType minor_mode = RaceManager::get()->getMinorMode();
     bool is_soccer = minor_mode == RaceManager::MINOR_MODE_SOCCER;
     bool is_arena = is_soccer || RaceManager::get()->isBattleMode();
@@ -631,6 +631,8 @@ void TracksScreen::buildTrackList()
 
         curr_tracks.insert(curr_tracks.end(), curr_arenas.begin(), curr_arenas.end());
         curr_tracks.insert(curr_tracks.end(), curr_soccers.begin(), curr_soccers.end());
+        std::sort(curr_tracks.begin(), curr_tracks.end());
+        curr_tracks.resize(std::unique(curr_tracks.begin(), curr_tracks.end()) - curr_tracks.begin());
         
         const int track_amount = (int)curr_tracks.size();
 

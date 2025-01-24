@@ -52,6 +52,7 @@ if(APPLE)
     CMAKE_DEPENDENT_OPTION(DLOPEN_MOLTENVK "Use dlopen to load MoltenVK for Apple." ON
         "NOT IOS;NOT SERVER_ONLY" OFF)
 endif()
+
 CMAKE_DEPENDENT_OPTION(USE_CRYPTO_OPENSSL "Use OpenSSL instead of MbedTLS for cryptography in STK." ON
     "NOT USE_SWITCH;NOT WIN32" OFF)
 CMAKE_DEPENDENT_OPTION(BUILD_RECORDER "Build opengl recorder" ON
@@ -863,6 +864,20 @@ if(MSVC OR MINGW)
   add_custom_target(stkshaders SOURCES ${STK_SHADERS})
 endif()
 
+if(MSVC)
+  SET(CMAKE_SHARED_LINKER_FLAGS /MANIFEST:NO)
+  add_custom_command(
+    TARGET supertuxkart POST_BUILD COMMAND "mt.exe" 
+    -manifest \"${PROJECT_SOURCE_DIR}\\windows\\dpi_aware.manifest\" 
+    -inputresource:\"$<TARGET_FILE:supertuxkart>\"\;\#1
+    -outputresource:\"$<TARGET_FILE:supertuxkart>\"\;\#1)
+endif()
+
+if(MINGW)
+  SET(CMAKE_SHARED_LINKER_FLAGS /MANIFEST:NO)
+  target_sources(supertuxkart PRIVATE windows/windows_config.rc)
+endif()
+
 if(MINGW)
     target_link_libraries(supertuxkart -ldxguid -ldnsapi)
     if (NOT CMAKE_BUILD_TYPE MATCHES Debug)
@@ -940,7 +955,7 @@ install(FILES data/supertuxkart_128.png DESTINATION share/icons/hicolor/128x128/
 install(FILES data/supertuxkart_256.png DESTINATION share/icons/hicolor/256x256/apps RENAME supertuxkart.png)
 install(FILES data/supertuxkart_512.png DESTINATION share/icons/hicolor/512x512/apps RENAME supertuxkart.png)
 install(FILES data/supertuxkart_1024.png DESTINATION share/icons/hicolor/1024x1024/apps RENAME supertuxkart.png)
-install(FILES data/supertuxkart.appdata.xml DESTINATION share/metainfo)
+install(FILES data/net.supertuxkart.SuperTuxKart.metainfo.xml DESTINATION share/metainfo)
 
 if(MINGW)
     install(DIRECTORY ${CMAKE_BINARY_DIR}/bin/ DESTINATION ${STK_INSTALL_BINARY_DIR}

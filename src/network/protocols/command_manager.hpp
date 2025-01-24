@@ -82,23 +82,7 @@ class CommandManager
     static EnumExtendedReader mode_scope_reader;
     static EnumExtendedReader state_scope_reader;
 
-    enum QueueMask: int {
-        QM_NONE = -1,
-        QM_MAP_ONETIME = 1,
-        QM_MAP_CYCLIC = 2,
-        QM_KART_ONETIME = 4,
-        QM_KART_CYCLIC = 8,
-        QM_ALL_MAP_QUEUES = QM_MAP_ONETIME | QM_MAP_CYCLIC,
-        QM_ALL_KART_QUEUES = QM_KART_ONETIME | QM_KART_CYCLIC,
-        QM_START = 1,
-        QM_END = 16
-    };
-
-    static std::vector<std::string> QUEUE_NAMES;
-    static int get_queue_mask(std::string a);
     std::deque<std::shared_ptr<Filter>>& get_queue(int x) const;
-    static std::string get_queue_name(int x);
-    static int another_cyclic_queue(int x);
 
     template<typename T>
     void add_to_queue(int x, int mask, bool to_front, std::string& s) const;
@@ -171,9 +155,9 @@ class CommandManager
 
         std::string m_prefix_name;
 
-        int m_permissions;
-
         void (CommandManager::*m_action)(Context& context);
+
+        int m_permissions;
 
         int m_mode_scope;
 
@@ -361,6 +345,8 @@ private:
     void process_voting(Context& context);
     void process_voting_assign(Context& context);
     void process_why_hourglass(Context& context);
+    void process_available_teams(Context& context);
+    void process_available_teams_assign(Context& context);
     void special(Context& context);
 
     std::string getRandomMap() const;
@@ -409,6 +395,8 @@ public:
 
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
+
+    bool assignRandomTeams(int intended_number, int* final_number, int* player_number);
 
 };
 

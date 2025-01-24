@@ -55,6 +55,7 @@ namespace ServerConfig
 std::string g_server_config_path[2];
 int m_server_config_level = 0;
 std::string m_server_uid;
+bool m_loaded_from_external_config = false;
 // ============================================================================
 FloatServerConfigParam::FloatServerConfigParam(float default_value,
                                                const char* param_name,
@@ -365,8 +366,10 @@ void loadServerLobbyFromConfig()
         m_server_max_players > 10 && !m_server_configurable)
         m_server_max_players = 10;
 
-    m_max_players_in_game = (m_max_players_in_game <= 0) ? m_server_max_players :
-        std::min(m_max_players_in_game, m_server_max_players);
+    // Parameters should only be sanity checked, not modified for interpretation (see #5173).
+    // A parameter of 0 here means no limit is to be applied.
+    if (m_max_players_in_game < 0)
+        m_max_players_in_game = 0;
 
     if (m_ipv6_connection)
     {

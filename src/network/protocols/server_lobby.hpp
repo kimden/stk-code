@@ -50,6 +50,8 @@ class NetworkString;
 class NetworkPlayerProfile;
 class STKPeer;
 class SocketAddress;
+enum AlwaysSpectateMode: uint8_t;
+class Ranking;
 
 namespace Online
 {
@@ -91,6 +93,13 @@ public:
         RESULT_DISPLAY,           // Show result screen
         ERROR_LEAVE,              // shutting down server
         EXITING
+    };
+
+    enum SelectionPhase: unsigned int
+    {
+        BEFORE_SELECTION = 0,
+        LOADING_WORLD = 1,
+        AFTER_GAME = 2,
     };
 private:
     struct KeyData
@@ -184,39 +193,7 @@ private:
 
     std::map<std::string, uint64_t> m_pending_peer_connection;
 
-    /* Ranking related variables */
-    // If updating the base points, update the base points distribution in DB
-    const double BASE_RANKING_POINTS    = 4000.0; // Given to a new player on 1st connection to a ranked server
-    const double BASE_RATING_DEVIATION  = 1000.0; // Given to a new player on 1st connection to a ranked server
-    const double MIN_RATING_DEVIATION   = 100.0; // A server cron job makes RD go up if a player is inactive
-    const double BASE_RD_PER_DISCONNECT = 15.0;
-    const double VAR_RD_PER_DISCONNECT  = 3.0;
-    const double MAX_SCALING_TIME       = 360.0;
-    const double BASE_POINTS_PER_SECOND = 0.18;
-    const double HANDICAP_OFFSET        = 2000.0;
-
-    /** Online id to profile map, handling disconnection in ranked server */
-    std::map<uint32_t, std::weak_ptr<NetworkPlayerProfile> > m_ranked_players;
-
-    /** Multi-session rating for each current player */
-    std::map<uint32_t, double> m_raw_scores;
-
-    /** The rating uncertainty for each current player */
-    std::map<uint32_t, double> m_rating_deviations;
-
-    /** A single number compounding "raw score" and RD,
-      * for rating display to players and rankings */
-    std::map<uint32_t, double> m_scores;
-
-    /** The maximum rating obtained for each current player.
-      * This is based on m_scores, not m_raw_scores */
-    std::map<uint32_t, double> m_max_scores;
-
-    /** Number of disconnects in the previous 64 ranked races for each current players */
-    std::map<uint32_t, uint64_t> m_num_ranked_disconnects;
-
-    /** Number of ranked races done for each current players */
-    std::map<uint32_t, unsigned> m_num_ranked_races;
+    std::shared_ptr<Ranking> m_ranking;
 
     /* Saved the last game result */
     NetworkString* m_result_ns;
@@ -373,6 +350,8 @@ private:
 
     bool m_shuffle_gp;
 
+    std::string m_available_teams;
+
     std::atomic<unsigned> m_current_max_players_in_game;
 
     GameInfo* m_game_info;
@@ -436,7 +415,7 @@ private:
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
     void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer, bool before_start = false);
+    bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
@@ -492,15 +471,6 @@ private:
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
     void computeNewRankings();
-    void clearDisconnectedRankedPlayer();
-    double getModeFactor();
-    double getModeSpread();
-    double getTimeSpread(double time);
-    double scalingValueForTime(double time);
-    double computeH2HResult(double player1_time, double player2_time);
-    double computeDataAccuracy(double player1_rd, double player2_rd,
-                               double player1_scores, double player2_scores,
-                               int player_count, bool handicap_used);
     void checkRaceFinished();
     void getHitCaptureLimit();
     void configPeersStartTime();
@@ -524,7 +494,7 @@ private:
     bool canLiveJoinNow() const;
     bool worldIsActive() const;
     int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
-                      unsigned local_id) const;
+                      unsigned local_id);
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
@@ -643,7 +613,7 @@ public:
                      { return m_available_difficulties.count(difficulty) > 0; }
     bool isModeAvailable(int mode) const
                                   { return m_available_modes.count(mode) > 0; }
-    void setTemporaryTeam(const std::string& username, std::string& arg);
+    void setTemporaryTeamInLobby(const std::string& username, int team);
     void clearTemporaryTeams();
     void shuffleTemporaryTeams(const std::map<int, int>& permutation);
     void resetGrandPrix();
@@ -663,6 +633,16 @@ public:
 
     void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
     void saveDisconnectingIdInfo(int id) const;
+    std::string getInternalAvailableTeams() const { return m_available_teams; }
+    std::string getAvailableTeams() const;
+    void setInternalAvailableTeams(std::string& s)   { m_available_teams = s; }
+
+    // The functions below set *both* KartTeam and temporary team,
+    // depending on game mode; also reset/set ASM_NO_TEAM if needed.
+    void setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team);
+    void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
+    void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
+    void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

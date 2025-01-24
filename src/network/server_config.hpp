@@ -784,8 +784,21 @@ namespace ServerConfig
             SERVER_CFG_DEFAULT(IntServerConfigParam(0, "map-vote-handling",
             "Specifies how the server should decide which map vote wins in map "
             "selection. 0 corresponds to standard system, 1 - to randomly selecting "
-            "one of votes."
-            ));
+            "one of votes."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_init_available_teams
+            SERVER_CFG_DEFAULT(StringServerConfigParam("rbygopcms", "available-teams",
+            "Codes of teams initially available on the server. Format is any "
+            "subset of rbygopcms (the teams currently available). You can "
+            "change it from the lobby using hammer command(s), and this will "
+            "be overridden during soccer and ctf modes."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_commands_file
+            SERVER_CFG_DEFAULT(StringServerConfigParam("commands.xml", "commands-file",
+            "File with commands used for this server. Default file is commands.xml "
+            "which can be changed with new commits, but you can use any other file "
+            "from data/ folder, or even include contents of one other commands file "
+            "using external-commands-file tag inside your file."));
 
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
@@ -798,7 +811,7 @@ namespace ServerConfig
     /** Server uid, extracted from server_config.xml file with .xml removed. */
     extern std::string m_server_uid;
     // ========================================================================
-    static bool m_loaded_from_external_config;
+    extern bool m_loaded_from_external_config;
     // ========================================================================
     void loadServerConfig(const std::string& path = "");
     // ------------------------------------------------------------------------

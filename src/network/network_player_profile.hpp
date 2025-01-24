@@ -96,7 +96,7 @@ public:
         m_handicap.store((HandicapLevel)0);
         m_local_player_id       = 0;
         m_team.store(team);
-        m_temporary_team        = 0;
+        m_temporary_team        = TeamUtils::getIndexFromKartTeam(team);
         resetGrandPrixData();
     }
     // ------------------------------------------------------------------------
@@ -116,7 +116,7 @@ public:
         m_local_player_id       = local_player_id;
         m_team.store(team);
         m_country_code          = country_code;
-        m_temporary_team        = 0;
+        m_temporary_team        = TeamUtils::getIndexFromKartTeam(team);
         resetGrandPrixData();
     }
     // ------------------------------------------------------------------------
@@ -150,7 +150,7 @@ public:
     // ------------------------------------------------------------------------
     float getDefaultKartColor() const
     {
-        if (m_temporary_team == 0)
+        if (m_temporary_team == TeamUtils::NO_TEAM)
             return m_default_kart_color;
         return TeamUtils::getTeamByIndex(m_temporary_team).getColor();
     }
