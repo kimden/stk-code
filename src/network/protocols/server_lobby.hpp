@@ -94,6 +94,13 @@ public:
         ERROR_LEAVE,              // shutting down server
         EXITING
     };
+
+    enum SelectionPhase: unsigned int
+    {
+        BEFORE_SELECTION = 0,
+        LOADING_WORLD = 1,
+        AFTER_GAME = 2,
+    };
 private:
     struct KeyData
     {
@@ -408,7 +415,7 @@ private:
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target, int gp_track_count);
     void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer, bool before_start = false);
+    bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
@@ -464,15 +471,6 @@ private:
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
     void computeNewRankings();
-    void clearDisconnectedRankedPlayer();
-    double getModeFactor();
-    double getModeSpread();
-    double getTimeSpread(double time);
-    double scalingValueForTime(double time);
-    double computeH2HResult(double player1_time, double player2_time);
-    double computeDataAccuracy(double player1_rd, double player2_rd,
-                               double player1_scores, double player2_scores,
-                               int player_count, bool handicap_used);
     void checkRaceFinished();
     void getHitCaptureLimit();
     void configPeersStartTime();

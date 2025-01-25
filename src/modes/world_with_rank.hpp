@@ -87,7 +87,7 @@ public:
     virtual bool  shouldDrawSpeedometerDigit() const OVERRIDE 
                                                     { return m_display_rank; }
     virtual std::pair<int, video::SColor> 
-                  getSpeedometerDigit(const Kart *kart) const OVERRIDE;
+                          getSpeedometerDigit(const Kart *kart) const OVERRIDE;
 
     void          beginSetKartPositions();
     bool          setKartPosition(unsigned int kart_id,

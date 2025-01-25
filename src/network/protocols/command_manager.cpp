@@ -19,44 +19,17 @@
 #include "network/protocols/command_manager.hpp"
 
 #include "addons/addon.hpp"
-// #include "config/user_config.hpp"
 #include "io/file_manager.hpp"
-// #include "items/network_item_manager.hpp"
-// #include "items/powerup_manager.hpp"
-// #include "items/attachment.hpp"
-// #include "karts/controller/player_controller.hpp"
-// #include "karts/kart_properties.hpp"
-// #include "karts/kart_properties_manager.hpp"
-// #include "karts/official_karts.hpp"
-// #include "modes/capture_the_flag.hpp"
 #include "modes/soccer_world.hpp"
-// #include "modes/linear_world.hpp"
 #include "network/crypto.hpp"
 #include "network/database_connector.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
-// #include "network/network.hpp"
-// #include "network/network_config.hpp"
 #include "network/network_player_profile.hpp"
-// #include "network/peer_vote.hpp"
-// #include "network/protocol_manager.hpp"
-// #include "network/protocols/connect_to_peer.hpp"
-#include "network/protocols/command_permissions.hpp"
-// #include "network/protocols/command_voting.hpp"
-// #include "network/protocols/game_protocol.hpp"
-// #include "network/protocols/game_events_protocol.hpp"
 #include "network/protocols/server_lobby.hpp"
-// #include "network/race_event_manager.hpp"
 #include "network/server_config.hpp"
-// #include "network/socket_address.hpp"
 #include "network/stk_host.hpp"
-// #include "network/stk_ipv6.hpp"
 #include "network/stk_peer.hpp"
-// #include "online/online_profile.hpp"
-// #include "online/request_manager.hpp"
-// #include "online/xml_request.hpp"
-// #include "race/race_manager.hpp"
-// #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/file_utils.hpp"
@@ -64,8 +37,6 @@
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
-// #include "utils/time.hpp"
-// #include "utils/translation.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -75,23 +46,74 @@
 #include <iterator>
 #include <utility>
 
-std::vector<std::string> CommandManager::QUEUE_NAMES = {
-    "", "mqueue", "mcyclic", "mboth",
-    "kqueue", "qregular", "", "",
-    "kcyclic", "", "qcyclic", "",
-    "kboth", "", "", "qboth"
-};
+namespace
+{
+    const std::vector<std::string> g_queue_names = {
+        "", "mqueue", "mcyclic", "mboth",
+        "kqueue", "qregular", "", "",
+        "kcyclic", "", "qcyclic", "",
+        "kboth", "", "", "qboth"
+    };
 
-// ========================================================================
+    enum QueueMask: int {
+        QM_NONE = -1,
+        QM_MAP_ONETIME = 1,
+        QM_MAP_CYCLIC = 2,
+        QM_KART_ONETIME = 4,
+        QM_KART_CYCLIC = 8,
+        QM_ALL_MAP_QUEUES = QM_MAP_ONETIME | QM_MAP_CYCLIC,
+        QM_ALL_KART_QUEUES = QM_KART_ONETIME | QM_KART_CYCLIC,
+        QM_START = 1,
+        QM_END = 16
+    }; // enum QueueMask
+
+    int get_queue_mask(std::string a)
+    {
+        for (int i = 0; i < (int)g_queue_names.size(); i++)
+            if (a == g_queue_names[i])
+                return i;
+        return QueueMask::QM_NONE;
+    } // get_queue_mask
+    // ====================================================================
+
+    std::string get_queue_name(int x)
+    {
+        if (x == QM_MAP_ONETIME)
+            return "regular map queue";
+        if (x == QM_MAP_CYCLIC)
+            return "cyclic map queue";
+        if (x == QM_KART_ONETIME)
+            return "regular kart queue";
+        if (x == QM_KART_CYCLIC)
+            return "cyclic kart queue";
+        return StringUtils::insertValues(
+            "[Error QN%d: please report with /tell about it] queue", x);
+    } // get_queue_name
+    // ====================================================================
+
+    int another_cyclic_queue(int x)
+    {
+        if (x == QM_MAP_ONETIME)
+            return QM_MAP_CYCLIC;
+        // if (x == QM_KART_ONETIME)
+        //    return QM_KART_CYCLIC;
+        return QM_NONE;
+    } // another_cyclic_queue
+    // ====================================================================
+    
+} // namespace
+
 EnumExtendedReader CommandManager::mode_scope_reader({
     {"MS_DEFAULT", MS_DEFAULT},
     {"MS_SOCCER_TOURNAMENT", MS_SOCCER_TOURNAMENT}
 });
+
 EnumExtendedReader CommandManager::state_scope_reader({
     {"SS_LOBBY", SS_LOBBY},
     {"SS_INGAME", SS_INGAME},
     {"SS_ALWAYS", SS_ALWAYS}
 });
+
 EnumExtendedReader CommandManager::permission_reader({
     {"PE_NONE", PE_NONE},
     {"PE_SPECTATOR", PE_SPECTATOR},
@@ -427,9 +449,9 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("length x", &CM::process_length_multi);
     applyFunctionIfPossible("direction", &CM::process_direction);
     applyFunctionIfPossible("direction =", &CM::process_direction_assign);
-    for (int i = 0; i < (int)QUEUE_NAMES.size(); i++)
+    for (int i = 0; i < (int)g_queue_names.size(); i++)
     {
-        const std::string& name = QUEUE_NAMES[i];
+        const std::string& name = g_queue_names[i];
         if (name.empty())
             continue;
         applyFunctionIfPossible(name + "", &CM::process_queue);
@@ -4446,15 +4468,6 @@ std::string CommandManager::getAddonPreferredType() const
 } // getAddonPreferredType
 // ========================================================================
 
-int CommandManager::get_queue_mask(std::string a)
-{
-    for (int i = 0; i < (int)QUEUE_NAMES.size(); i++)
-        if (a == QUEUE_NAMES[i])
-            return i;
-    return QM_NONE;
-} // getAddonPreferredType
-// ========================================================================
-
 std::deque<std::shared_ptr<Filter>>& CommandManager::get_queue(int x) const
 {
     if (x == QM_MAP_ONETIME)
@@ -4470,31 +4483,6 @@ std::deque<std::shared_ptr<Filter>>& CommandManager::get_queue(int x) const
     return m_lobby->m_onetime_tracks_queue;
 
 } // get_queue
-// ========================================================================
-
-std::string CommandManager::get_queue_name(int x)
-{
-    if (x == QM_MAP_ONETIME)
-        return "regular map queue";
-    if (x == QM_MAP_CYCLIC)
-        return "cyclic map queue";
-    if (x == QM_KART_ONETIME)
-       return "regular kart queue";
-    if (x == QM_KART_CYCLIC)
-       return "cyclic kart queue";
-    return StringUtils::insertValues(
-        "[Error QN%d: please report with /tell about it] queue", x);
-} // get_queue_name
-// ========================================================================
-
-int CommandManager::another_cyclic_queue(int x)
-{
-    if (x == QM_MAP_ONETIME)
-        return QM_MAP_CYCLIC;
-    // if (x == QM_KART_ONETIME)
-    //    return QM_KART_CYCLIC;
-    return QM_NONE;
-} // get_queue_name
 // ========================================================================
 
 template<typename T>

@@ -540,7 +540,7 @@ void ThreeStrikesBattle::getKartsDisplayInfo(
 
 //-----------------------------------------------------------------------------
 std::pair<int, video::SColor> ThreeStrikesBattle::getSpeedometerDigit(
-                                                const Kart *kart) const
+                                                        const Kart *kart) const
 {
     video::SColor color = video::SColor(255, 255, 255, 255);
     int id = kart->getWorldKartId();
