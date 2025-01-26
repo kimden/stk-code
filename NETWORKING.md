@@ -397,6 +397,9 @@ A typical current server configuration xml that fits the current code version is
     <!-- File with commands used for this server. Default file is commands.xml which can be changed with new commits, but you can use any other file from data/ folder, or even include contents of one other commands file using external-commands-file tag inside your file. -->
     <commands-file value="commands.xml" />
 
+    <!-- Whether the game can be started immediately when the server is opened. -->
+    <start-allowed value="true" />
+
 </server-config>
 ```
 
