@@ -486,7 +486,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     pos_bars_inner[2].LowerRightCorner.Y = pos_bars_outer[2].LowerRightCorner.Y - (pos_bars_outer[2].LowerRightCorner.Y - pos_bars_outer[2].UpperLeftCorner.Y)*inner_width_divisor;
     pos_bars_inner[2].UpperLeftCorner.Y = pos_bars_inner[2].LowerRightCorner.Y - (float)(heights_inner[2]*height_inner_base);
     
-
+#ifndef SERVER_ONLY
     GL32_draw2DRectangle(color_base, pos_bars_outer[0]);
     GL32_draw2DRectangle(color_base, pos_bars_outer[1]);
     GL32_draw2DRectangle(color_base, pos_bars_outer[2]);
@@ -494,7 +494,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     GL32_draw2DRectangle(color_traction, pos_bars_inner[0]);
     GL32_draw2DRectangle(color_turning, pos_bars_inner[1]);
     GL32_draw2DRectangle(color_fuel, pos_bars_inner[2]);
-
+#endif
 
     std::stringstream stream;
     auto tyres_queue = kart->m_tyres_queue;
