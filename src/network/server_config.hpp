@@ -800,6 +800,10 @@ namespace ServerConfig
             "from data/ folder, or even include contents of one other commands file "
             "using external-commands-file tag inside your file."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allowed_to_start
+            SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "start-allowed",
+            "Whether the game can be started immediately when the server is opened."));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;

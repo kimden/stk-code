@@ -236,7 +236,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         initTournamentPlayers();
         m_tournament_game = 0;
     }
-    m_allowed_to_start = true;
+    m_allowed_to_start = ServerConfig::m_allowed_to_start;
     m_game_info = nullptr;
     loadTracksQueueFromConfig();
     std::string scoring = ServerConfig::m_gp_scoring;
