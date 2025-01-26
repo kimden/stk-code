@@ -134,26 +134,34 @@ void NetworkPlayerDialog::beforeAddingWidgets()
     m_tyre_label = NULL;
     m_handicap_label = NULL;
     m_accept_widget = NULL;
+
+    m_tyre_widget = getWidget<SpinnerWidget>("starting-tyre");
+    m_tyre_label = getWidget<LabelWidget>("starting-tyre-label");
+    m_accept_widget = getWidget<IconButtonWidget>("accept-2");
+    m_handicap_widget = getWidget<SpinnerWidget>("handicap");
+    m_handicap_label = getWidget<LabelWidget>("handicap-label");
+
+    getWidget<IconButtonWidget>("remove")->setVisible(false);
+
     if (m_host_id == STKHost::get()->getMyHostId())
     {
-        m_tyre_widget = getWidget<SpinnerWidget>("starting-tyre");
-        m_tyre_label = getWidget<LabelWidget>("starting-tyre-label");
-
-        m_accept_widget = getWidget<IconButtonWidget>("accept-2");
-        m_handicap_widget = getWidget<SpinnerWidget>("handicap");
-        m_handicap_label = getWidget<LabelWidget>("handicap-label");
         m_handicap_widget->setVisible(true);
         m_handicap_label->setVisible(true);
         m_accept_widget->setVisible(true);
         m_tyre_widget->setVisible(true);
+        m_tyre_label->setVisible(true);
 
         m_accept_widget->setText(_("Confirm handi+tyre"));
         //m_accept_widget->setImage(irr_driver->getTexture(FileManager::GUI_ICON,
         //    "anchor-icon.png"));
-
     }
-    else
-        getWidget<IconButtonWidget>("remove")->setVisible(false);
+    else {
+        m_handicap_widget->setVisible(false);
+        m_handicap_label->setVisible(false);
+        m_accept_widget->setVisible(false);
+        m_tyre_widget->setVisible(false);
+        m_tyre_label->setVisible(false);
+    }
     m_report_widget = getWidget<IconButtonWidget>("enter");
     assert(m_report_widget != NULL);
     auto cl = LobbyProtocol::get<ClientLobby>();

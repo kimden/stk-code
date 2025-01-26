@@ -22,6 +22,7 @@
 #include "guiengine/engine.hpp"
 #include "guiengine/widgets/icon_button_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
+#include "guiengine/widgets/spinner_widget.hpp"
 #include "guiengine/widgets/ribbon_widget.hpp"
 #include "io/xml_node.hpp"
 #include "online/online_profile.hpp"
@@ -97,6 +98,12 @@ void UserInfoDialog::beforeAddingWidgets()
     m_cancel_widget = getWidget<IconButtonWidget>("cancel");
     assert(m_cancel_widget != NULL);
     m_options_widget->setFocusForPlayer(PLAYER_ID_GAME_MASTER);
+
+    getWidget<SpinnerWidget>("starting-tyre")->setVisible(false);
+    getWidget<LabelWidget>("starting-tyre-label")->setVisible(false);
+    getWidget<IconButtonWidget>("accept-2")->setVisible(false);
+    getWidget<SpinnerWidget>("handicap")->setVisible(false);
+    getWidget<LabelWidget>("handicap-label")->setVisible(false);
 
     m_accept_widget->setVisible(false);
     m_decline_widget->setVisible(false);
