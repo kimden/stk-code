@@ -150,10 +150,10 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     //Doesn't make much sense to degrade the tyres midair or in reverse or at ridiculously low speeds, now does it?
     if (!is_on_ground || speed < 1.0f) goto LOG_ZONE;
 
-    if (throttle_amount > 0.3f) {
+    if (throttle_amount > 0.45f) {
         m_current_fuel -= std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
     } else {
-        m_current_fuel -= 0.5f*std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
+        m_current_fuel -= 0.5f*std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.0025 units of fuel, 100 meters -> 1 unit of fuel*/
     }
 
     if(m_center_of_gravity_x < 0.0f && throttle_amount < 0.3f) {

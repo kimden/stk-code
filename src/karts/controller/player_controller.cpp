@@ -205,15 +205,23 @@ bool PlayerController::action(PlayerAction action, int value, bool dry_run)
         {
             SET_OR_TEST_GETTER(Brake, false);
             SET_OR_TEST_GETTER(Accel, m_prev_accel/32768.0f);
-            // Nitro still depends on whether we're accelerating
+            // Nitro does not depend on wether we are accelerating in TME
+            // If we are accelerating, and accel is less than 40%, set it to 40%.
+            // This is because above 45%, fuel usage increases by 200%
             SET_OR_TEST_GETTER(Nitro, m_prev_nitro);
         }
         break;
     case PA_NITRO:
         // This basically keeps track whether the button still is being pressed
         SET_OR_TEST(m_prev_nitro, value != 0 );
-        // Enable nitro only when also accelerating
+
+        // Nitro does not depend on wether we are accelerating in TME
+        // If we are accelerating, and accel is less than 40%, set it to 40%.
+        // This is because above 45%, fuel usage increases by 200%
         SET_OR_TEST_GETTER(Nitro, ((value!=0)) );
+        if (value!=0) {
+            if (m_prev_accel/32768.0f < 0.4f) SET_OR_TEST_GETTER(Accel, 0.4f);
+        }
         break;
     case PA_RESCUE:
         SET_OR_TEST_GETTER(Rescue, value!=0);
