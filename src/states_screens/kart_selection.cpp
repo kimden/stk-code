@@ -934,6 +934,13 @@ void KartSelectionScreen::updateKartStats(uint8_t widget_id,
     const KartProperties *kp =
                     kart_properties_manager->getKart(selection);
     NetworkConfig* nc = NetworkConfig::get();
+    if (nc->isNetworking()) {
+        m_kart_widgets[widget_id].m_handicap_spinner->setVisible(false);
+        m_kart_widgets[widget_id].m_starting_tyre_spinner->setVisible(false);
+    } else {
+        m_kart_widgets[widget_id].m_handicap_spinner->setVisible(true);
+        m_kart_widgets[widget_id].m_starting_tyre_spinner->setVisible(true);
+    }
     // Adjust for online addon karts
     if (kp && kp->isAddon() && nc->isNetworking() && nc->useTuxHitboxAddon() &&
         nc->getServerCapabilities().find(
