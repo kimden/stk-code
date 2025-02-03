@@ -136,9 +136,13 @@ void NetworkPlayerDialog::beforeAddingWidgets()
     m_accept_widget = NULL;
 
     m_tyre_widget = getWidget<SpinnerWidget>("starting-tyre");
+    m_tyre_widget->setValue(3);
     m_tyre_label = getWidget<LabelWidget>("starting-tyre-label");
+
     m_accept_widget = getWidget<IconButtonWidget>("accept-2");
+
     m_handicap_widget = getWidget<SpinnerWidget>("handicap");
+    m_handicap_widget->setValue(0);
     m_handicap_label = getWidget<LabelWidget>("handicap-label");
 
     getWidget<IconButtonWidget>("remove")->setVisible(false);
