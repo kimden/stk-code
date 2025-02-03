@@ -687,6 +687,7 @@ public:
 
     /** Returns this kart's kart model. */
     void setKartColor(float f) { return m_kart_model.get()->getRenderInfo()->setHue(f) ;      }
+    float getKartColor() { return m_kart_model.get()->getRenderInfo()->getHue() ;      }
 
     // ------------------------------------------------------------------------
     /** Returns the length of the kart. */

@@ -1076,15 +1076,26 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
     // standard color of a kart of same type, we have to check if the user
     // (or network manager) changed it. In that case we have to use
     // hue value instead.
-    video::SColor kart_color = kart->getKartProperties()->getColor();
-    const float kart_hue = RaceManager::get()->getKartColor(kart->getWorldKartId());
-    if (kart_hue > 0.0)
-    {
-        // convert Hue to SColor
+    video::SColor kart_color;
+    float kart_hue;
+
+    if (UserConfigParams::m_override_kart_color_with_tyre) {
+        kart_hue = kart->getKartColor();
         const video::SColorHSL kart_colorHSL(kart_hue * 360.0, 80.0, 50.0);
         video::SColorf kart_colorf;
         kart_colorHSL.toRGB(kart_colorf);
         kart_color = kart_colorf.toSColor();
+    } else { /*Untouched regular STK behaviour*/
+        kart_color = kart->getKartProperties()->getColor();
+        kart_hue = RaceManager::get()->getKartColor(kart->getWorldKartId());
+        if (kart_hue > 0.0)
+        {
+            // convert Hue to SColor
+            const video::SColorHSL kart_colorHSL(kart_hue * 360.0, 80.0, 50.0);
+            video::SColorf kart_colorf;
+            kart_colorHSL.toRGB(kart_colorf);
+            kart_color = kart_colorf.toSColor();
+        }
     }
 
     //to bring to light the player's icon: add a background
