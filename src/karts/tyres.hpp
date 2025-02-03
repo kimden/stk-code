@@ -57,7 +57,6 @@ private:
     InterpolationArray m_c_heat_cycle_hardness_curve;
     InterpolationArray m_c_hardness_penalty_curve;
 
-    float m_c_max_fuel;
     float m_c_fuel;
     float m_c_fuel_regen;
     float m_c_fuel_stop;
@@ -66,8 +65,6 @@ private:
 
     float m_c_mass;
     float m_c_ideal_temp;
-    float m_c_max_life_traction;
-    float m_c_max_life_turning;
     float m_c_min_life_traction;
     float m_c_min_life_turning;
     float m_c_limiting_transfer_traction;
@@ -99,8 +96,14 @@ private:
 
 public:
     float m_current_life_traction;
+    float m_c_max_life_traction;
+
     float m_current_life_turning;
+    float m_c_max_life_turning;
+
     float m_current_fuel;
+    float m_c_max_fuel;
+
     unsigned m_current_compound;
     bool m_reset_compound;
     bool m_reset_fuel;

@@ -1359,8 +1359,15 @@ void Kart::collectedItem(ItemState *item_state)
             m_stint.push_back({m_tyres->m_current_compound, m_current_tyre_age});
             m_current_tyre_age = 0;
 
-            if (item_state->m_compound >= 1) m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1 ;
-            else m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
+            unsigned prev_compound = m_tyres->m_current_compound;
+            float prev_trac = m_tyres->m_current_life_traction/m_tyres->m_c_max_life_traction;
+            float prev_tur = m_tyres->m_current_life_turning/m_tyres->m_c_max_life_turning;
+            
+            if (item_state->m_compound >= 1) {
+                m_tyres->m_current_compound = ((item_state->m_compound-1) % (int)m_kart_properties->getTyresCompoundNumber())+1;
+            } else {
+                m_tyres->m_current_compound = rand() % (int)m_kart_properties->getTyresCompoundNumber();
+            }
             //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " C " + std::to_string(item_state->m_compound).c_str() + " " + std::to_string(item_state->m_stop_time).c_str()).c_str());
             if (!(NetworkConfig::get()->isServer())){
                 Log::info("[RunRecord]", "C %s %s %s %s\n", getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(item_state->m_compound).c_str(), std::to_string(item_state->m_stop_time).c_str());
@@ -1371,9 +1378,18 @@ void Kart::collectedItem(ItemState *item_state)
             m_tyres->reset();
 
             if (m_is_under_tme_ruleset) {
-                if (!m_tyres_queue.empty()) { /*Empty queue just means it wasn't initialized*/
-                    if (m_tyres_queue.size() < m_tyres->m_current_compound ||
-                          m_tyres_queue[m_tyres->m_current_compound-1] == 0){
+                if (!m_tyres_queue.empty() && !(m_tyres_queue.size() < m_tyres->m_current_compound)) { /*Empty queue just means it wasn't initialized*/
+                    bool a = !(m_tyres_queue.size() < prev_compound);
+                    bool b = m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP) && !m_is_refueling;
+                    bool c = prev_trac > 0.98f && prev_tur > 0.98f;
+
+                    if (a && (b || c)) {
+                        // If we come from another stop, and the penalty still didn't wear off, just return the previous compound, as we probably made a mistake.
+                        if (m_tyres_queue[prev_compound-1] > -1) { /*-1 marks infinite*/
+                            m_tyres_queue[prev_compound-1] += 1;
+                        }
+                    }
+                    if (m_tyres_queue[m_tyres->m_current_compound-1] == 0){
                         /*Penalty for pitting with no available compound*/
                         m_is_disqualified = true;
                         m_tyres->m_current_life_turning *= 0.2;
