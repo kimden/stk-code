@@ -101,6 +101,10 @@ public:
     /** Returns the collect distance squared for an item. */
     static float getCollectDistanceSquared(ItemState::ItemType type)
                                       { return m_collect_distance_squared[type]; }
+    // ------------------------------------------------------------------------
+    /** Returns the grace percentage (0-1) for an item. */
+    static float getGracePercentage(ItemState::ItemType type)
+                                      { return m_grace_percentage[type]; }
 
     // ========================================================================
 protected:
@@ -128,6 +132,9 @@ private:
 
     /** Stores all item collect distance */
     static std::vector<float> m_collect_distance_squared;
+
+    /** Stores all item grace percentages */
+    static std::vector<float> m_grace_percentage;
 
 protected:
     /** Remaining time that items should remain switched. If the

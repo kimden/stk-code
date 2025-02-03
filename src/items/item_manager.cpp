@@ -49,6 +49,7 @@
 std::vector<scene::IMesh *>  ItemManager::m_item_mesh;
 std::vector<scene::IMesh *>  ItemManager::m_item_lowres_mesh;
 std::vector<float>           ItemManager::m_collect_distance_squared;
+std::vector<float>           ItemManager::m_grace_percentage;
 std::vector<video::SColorf>  ItemManager::m_glow_color;
 std::vector<std::string>     ItemManager::m_icon;
 bool                         ItemManager::m_disable_item_collection = false;
@@ -63,12 +64,14 @@ void ItemManager::loadDefaultItemMeshes()
     m_item_mesh.clear();
     m_item_lowres_mesh.clear();
     m_collect_distance_squared.clear();
+    m_grace_percentage.clear();
     m_glow_color.clear();
     m_icon.clear();
 
     m_item_mesh.resize(ItemState::ITEM_LAST-ItemState::ITEM_FIRST+1, NULL);
     m_item_lowres_mesh.resize(ItemState::ITEM_LAST-ItemState::ITEM_FIRST+1, NULL);
     m_collect_distance_squared.resize(ItemState::ITEM_LAST-ItemState::ITEM_FIRST+1, 0.0f);
+    m_grace_percentage.resize(ItemState::ITEM_LAST-ItemState::ITEM_FIRST+1, 1.0f);
     m_glow_color.resize(ItemState::ITEM_LAST-ItemState::ITEM_FIRST+1,
                         video::SColorf(255.0f, 255.0f, 255.0f) );
     m_icon.resize(ItemState::ITEM_LAST-ItemState::ITEM_FIRST+1, "");
@@ -127,6 +130,9 @@ void ItemManager::loadDefaultItemMeshes()
         }
         // Load the collect distance information for this item
         node->get("collect-distance-squared", &m_collect_distance_squared[i]);
+
+        // Load the grace percentage information for this item
+        node->get("grace-percentage", &m_grace_percentage[i]);
 
         // Load icons (?? where are these icons used ??)
         std::string icon = "icon-" + item_names[(ItemState::ItemType)i] + ".png";

@@ -359,6 +359,9 @@ private:
     /** square distance at which item is collected */
     float m_distance_2;
 
+    /** How much of a grace percentage of kart dimensions to leave*/
+    float m_grace_percent;
+
     /** The graph node this item is on. */
     int m_graph_node;
 

@@ -243,7 +243,8 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
     m_was_available_previously = true;
     // Prevent appear animation at start
     m_animation_start_ticks = -9999;
-    m_distance_2        = 1.2f;
+    m_distance_2        = ItemManager::getCollectDistanceSquared(type);
+    m_grace_percent     = ItemManager::getGracePercentage(type);
     initItem(type, xyz, normal, compound, stop_time);
     m_graphical_type    = getGraphicalType();
 
@@ -631,12 +632,12 @@ bool Item::hitKart(const Vec3 &xyz, const Kart *kart) const
     if (lc.getZ() < 0.0f)
         lc.setZ(-lc.getZ());
 
-    // Substract half the kart width from the sideways component
-    lc.setX(lc.getX() - kart->getKartWidth() * 0.5f);
+    // Substract half the kart width, multiplied by the grace percentage, the from the sideways component
+    lc.setX(lc.getX() - kart->getKartWidth() * m_grace_percent * 0.5f);
     if (lc.getX() < 0.0f)
         lc.setX(0.0f);
-    // Substract half the kart length from the forward component
-    lc.setZ(lc.getZ() - kart->getKartLength() * 0.5f);
+    // Substract half the kart height, multiplied by the grace percentage, the from the forward component
+    lc.setZ(lc.getZ() - kart->getKartLength()* m_grace_percent * 0.5f);
     if (lc.getZ() < 0.0f)
         lc.setZ(0.0f);
 
