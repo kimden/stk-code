@@ -423,7 +423,9 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     //ARGB
     video::SColor color_traction = video::SColor(180, 200, 20, 20);
     video::SColor color_turning = video::SColor(180, 20, 20, 200);
-    video::SColor color_fuel = video::SColor(180, 100, 0, 115);
+    video::SColor color_fuel = (kart->m_tyres->m_high_fuel_demand) ?
+                                  video::SColor(180, 100, 0, 115)  : // Purple
+                                  video::SColor(180, 168, 65, 184); // Lighter shade of purple
     video::SColor color_base = video::SColor(150, 100, 100, 100);
 
     float maxLives[2] = {kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1], kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1]};

@@ -33,6 +33,7 @@ Tyres::Tyres(Kart *kart) {
     m_kart = kart;
     m_current_compound = 1; // Placeholder value
     m_current_fuel = 1; // Placeholder value
+    m_high_fuel_demand = false;
     m_lap_count = 0;
     m_reset_compound = false;
     m_reset_fuel = false;
@@ -148,11 +149,16 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     m_center_of_gravity_y = ((speed*speed)/turn_radius)*m_kart->getMass();
 
     //Doesn't make much sense to degrade the tyres midair or in reverse or at ridiculously low speeds, now does it?
-    if (!is_on_ground || speed < 1.0f) goto LOG_ZONE;
+    if (!is_on_ground || speed < 1.0f) {
+        m_high_fuel_demand = false;
+        goto LOG_ZONE;
+    }
 
     if (throttle_amount > 0.45f) {
+        m_high_fuel_demand = true;
         m_current_fuel -= std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
     } else {
+        m_high_fuel_demand = false;
         m_current_fuel -= 0.5f*std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.0025 units of fuel, 100 meters -> 1 unit of fuel*/
     }
 
@@ -285,6 +291,7 @@ void Tyres::reset() {
     if (m_reset_fuel) {
         m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
         m_current_fuel = m_c_fuel;
+        m_high_fuel_demand = false;
     }
 
     m_lap_count = 0;
