@@ -42,6 +42,10 @@ text="Tyre degradation and saving tyres: The heavier the kart (including fuel), 
 />
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
+text="Fuel saving: Cruise mode is enabled by releasing the accelerator and tapping the nitro button. It will be disabled if the brake or the accelerator are pressed again. It will set the throttle to 40%, the maximum amount before the engine's consumption doubles. It is meant to be used to consume less fuel during corners, and is a better alternative than pressing and releasing the accelerator button very fast, both in terms of fuel waste and of ease of use."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
 text="Main tyre types (compounds): Soft (ID 2): Starts out VERY fast, but also degrades very fast, *specially* by high-speed turning (in Hacienda, one of the least demanding tracks on tyre degradation, it can be useful for around 5 laps only if you don't manage it).
 Medium (ID 3): Starts out at the kart's normal speed, and degrades at a normal rate.
 Hard (ID 4): Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly.
