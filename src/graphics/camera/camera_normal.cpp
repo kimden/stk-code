@@ -44,7 +44,7 @@
  */
 CameraNormal::CameraNormal(Camera::CameraType type,  int camera_index, 
                            Kart* kart)
-            : Camera(type, camera_index, kart), m_camera_offset(0, 0, -15.0f)
+            : Camera(type, camera_index, kart), m_camera_offset(0., 1., -15.0f)
 {
     m_distance = kart ? UserConfigParams::m_camera_distance : 1000.0f;
     m_ambient_light = Track::getCurrentTrack()->getDefaultAmbientColor();
@@ -65,9 +65,7 @@ CameraNormal::CameraNormal(Camera::CameraType type,  int camera_index,
 
     if (kart)
     {
-        btTransform btt = kart->getSmoothedTrans();
-        m_kart_position = btt.getOrigin();
-        m_kart_rotation = btt.getRotation();
+        snapToPosition(true);
     }
 }   // Camera
 
@@ -121,7 +119,7 @@ void CameraNormal::moveCamera(float dt, bool smooth, float cam_angle, float dist
         camera_distance * cosf(skid_angle / 2));
 
     float delta = 1;
-    float delta2 = 1;
+    float delta2 = 0.5;
     if (smooth)
     {
         delta = (dt*5.0f);
@@ -175,9 +173,23 @@ void CameraNormal::moveCamera(float dt, bool smooth, float cam_angle, float dist
 }   // moveCamera
 
 //-----------------------------------------------------------------------------
-void CameraNormal::snapToPosition()
+void CameraNormal::snapToPosition(bool reset_distance)
 {
-    moveCamera(1.0f, false, 0, 0);
+    btTransform btt = m_kart->getSmoothedTrans();
+    const Vec3& up = btt.getBasis().getColumn(1);
+    m_camera->setUpVector(up.toIrrVector());
+
+    if (reset_distance)
+    {
+        m_kart_position = btt.getOrigin();
+        m_kart_rotation = btt.getRotation();
+        m_camera_offset = irr::core::vector3df(0., 1., -15.);
+    }
+    else
+    {
+        float angle = UserConfigParams::m_camera_forward_up_angle * DEGREE_TO_RAD;
+        moveCamera(1.0f, false, angle, -m_distance);
+    }
 }   // snapToPosition
 
 //-----------------------------------------------------------------------------

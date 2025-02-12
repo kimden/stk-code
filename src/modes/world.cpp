@@ -138,6 +138,7 @@ World::World() : WorldStatus()
     m_schedule_exit_race = false;
     m_schedule_tutorial  = false;
     m_is_network_world   = false;
+    m_snap_camera        = false;
 
     m_stop_music_when_dialog_open = true;
 
@@ -404,6 +405,11 @@ void World::reset(bool restart)
     // explosion animation will be created
     ProjectileManager::get()->cleanup();
     resetAllKarts();
+
+    if (restart)
+    {
+        m_snap_camera = true;
+    }
     // Note: track reset must be called after all karts exist, since check
     // objects need to allocate data structures depending on the number
     // of karts.
@@ -956,7 +962,6 @@ void World::moveKartTo(Kart* kart, const btTransform &transform)
     // This will set the physics transform
     Track::getCurrentTrack()->findGround(kart);
     Track::getCurrentTrack()->getCheckManager()->resetAfterKartMove(kart);
-
 }   // moveKartTo
 
 // ----------------------------------------------------------------------------
@@ -1174,6 +1179,15 @@ void World::update(int ticks)
         printf("%i\n",irr_driver->getVideoDriver()->getFPS());
     }
 #endif
+
+    if (m_snap_camera)
+    {
+        m_snap_camera = false;
+        for(unsigned int i=0; i<Camera::getNumCameras(); i++)
+        {
+            //Camera::getCamera(i)->snapToPosition(true);
+        }
+    }
 
     PROFILER_PUSH_CPU_MARKER("World::update (sub-updates)", 0x20, 0x7F, 0x00);
     WorldStatus::update(ticks);
