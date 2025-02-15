@@ -1370,14 +1370,14 @@ void STKHost::sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode re
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketExcept(STKPeer* peer, NetworkString *data,
+void STKHost::sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
                                PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
-    for (auto p : m_peers)
+    for (const auto& p : m_peers)
     {
         STKPeer* stk_peer = p.second.get();
-        if (!stk_peer->isSamePeer(peer) && p.second->isValidated() &&
+        if (!stk_peer->isSamePeer(peer.get()) && p.second->isValidated() &&
             !p.second->isWaitingForGame())
         {
             stk_peer->sendPacket(data, reliable);
@@ -1391,13 +1391,13 @@ void STKHost::sendPacketExcept(STKPeer* peer, NetworkString *data,
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketToAllPeersWith(std::function<bool(STKPeer*)> predicate,
+void STKHost::sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
                                        NetworkString* data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
     {
-        STKPeer* stk_peer = p.second.get();
+        std::shared_ptr<STKPeer> stk_peer = p.second;
         if (!stk_peer->isValidated())
             continue;
         if (predicate(stk_peer))

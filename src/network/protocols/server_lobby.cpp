@@ -62,7 +62,7 @@
 // #include "utils/random_generator.hpp"
 // #include "utils/string_utils.hpp"
 // #include "utils/time.hpp"
-// #include "utils/translation.hpp"
+#include "utils/translation.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -574,7 +574,7 @@ void ServerLobby::handleChat(Event* event)
         NetworkString* chat = getNetworkString();
         chat->setSynchronous(true);
         const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
-        STKPeer* sender = event->getPeer();
+        std::shared_ptr<STKPeer> sender = event->getPeerSP();
         auto can_receive = m_message_receivers[sender];
         if (!can_receive.empty())
             message = StringUtils::utf32ToWide({0x1f512, 0x20}) + message;
@@ -641,7 +641,7 @@ void ServerLobby::handleChat(Event* event)
         STKHost::get()->sendPacketToAllPeersWith(
             [game_started, sender_in_game, target_team, can_receive,
                 sender, team_speak, teams, tournament_limit,
-                important_players, sender_name, sees_teamchats, this](STKPeer* p)
+                important_players, sender_name, sees_teamchats, this](std::shared_ptr<STKPeer> p)
             {
                 if (sender == p)
                     return true;
@@ -689,7 +689,7 @@ void ServerLobby::handleChat(Event* event)
                 {
                     if (auto peer_sp = peer.first.lock())
                     {
-                        if (peer_sp.get() == p &&
+                        if (peer_sp == p &&
                             peer.second.find(sender_name) != peer.second.end())
                             return false;
                     }
@@ -802,7 +802,7 @@ void ServerLobby::kickHost(Event* event)
         if (ServerConfig::m_track_kicks)
         {
             std::string auto_report = "[ Auto report caused by kick ]";
-            writeOwnReport(peer.get(), event->getPeerSP().get(), auto_report);
+            writeOwnReport(peer, event->getPeerSP(), auto_report);
         }
     }
 }   // kickHost
@@ -835,7 +835,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
             clientSelectingAssetsWantsToBackLobby(event);         break;
         case LE_REPORT_PLAYER: writePlayerReport(event);          break;
         case LE_ASSETS_UPDATE:
-            handleAssets(event->data(), event->getPeer());        break;
+            handleAssets(event->data(), event->getPeerSP());      break;
         case LE_COMMAND:
             handleServerCommand(event, event->getPeerSP());       break;
         default:                                                  break;
@@ -872,7 +872,7 @@ void ServerLobby::pollDatabase()
     std::vector<DatabaseConnector::OnlineIdBanTableData> online_id_ban_list =
             m_db_connector->getOnlineIdBanTableData();
 
-    for (std::shared_ptr<STKPeer>& p : STKHost::get()->getPeers())
+    for (std::shared_ptr<STKPeer> p : STKHost::get()->getPeers())
     {
         if (p->isAIPeer())
             continue;
@@ -957,7 +957,7 @@ void ServerLobby::writePlayerReport(Event* event)
 #ifdef ENABLE_SQLITE3
     if (!m_db_connector->hasDatabase() || !m_db_connector->hasPlayerReportsTable())
         return;
-    STKPeer* reporter = event->getPeer();
+    std::shared_ptr<STKPeer> reporter = event->getPeerSP();
     if (!reporter->hasPlayerProfiles())
         return;
     auto reporter_npp = reporter->getPlayerProfiles()[0];
@@ -974,7 +974,7 @@ void ServerLobby::writePlayerReport(Event* event)
     auto reporting_npp = reporting_peer->getPlayerProfiles()[0];
 
     bool written = m_db_connector->writeReport(reporter, reporter_npp,
-            reporting_peer.get(), reporting_npp, info);
+            reporting_peer, reporting_npp, info);
     if (written)
     {
         NetworkString* success = getNetworkString();
@@ -1314,7 +1314,7 @@ void ServerLobby::asynchronousUpdate()
                 // code will also have to provide kart data (or setKartName has to
                 // set the correct hitbox itself).
                 std::string new_kart = getKartForBadKartChoice(
-                        players[i]->getPeer().get(), name, current_kart);
+                        players[i]->getPeer(), name, current_kart);
                 if (new_kart != current_kart)
                 {
                     // Filters only support standard karts for now, but when they
@@ -1514,7 +1514,7 @@ bool ServerLobby::worldIsActive() const
 /** \ref STKPeer peer will be reset back to the lobby with reason
  *  \ref BackLobbyReason blr
  */
-void ServerLobby::rejectLiveJoin(STKPeer* peer, BackLobbyReason blr)
+void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr)
 {
     NetworkString* reset = getNetworkString(2);
     reset->setSynchronous(true);
@@ -1536,7 +1536,7 @@ void ServerLobby::rejectLiveJoin(STKPeer* peer, BackLobbyReason blr)
  */
 void ServerLobby::liveJoinRequest(Event* event)
 {
-    STKPeer* peer = event->getPeer();
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
     const NetworkString& data = event->data();
 
     if (!canLiveJoinNow())
@@ -1567,7 +1567,7 @@ void ServerLobby::liveJoinRequest(Event* event)
             used_id.push_back(id);
         }
         if ((used_id.size() != peer->getPlayerProfiles().size()) ||
-            (spectators_by_limit.find(event->getPeerSP().get()) != spectators_by_limit.end()))
+            (spectators_by_limit.find(event->getPeerSP()) != spectators_by_limit.end()))
         {
             for (unsigned i = 0; i < peer->getPlayerProfiles().size(); i++)
                 peer->getPlayerProfiles()[i]->setKartName("");
@@ -1714,7 +1714,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
     if (!canLiveJoinNow())
     {
-        rejectLiveJoin(peer.get(), BLR_NO_GAME_FOR_LIVE_JOIN);
+        rejectLiveJoin(peer, BLR_NO_GAME_FOR_LIVE_JOIN);
         return;
     }
     bool live_joined_in_time = true;
@@ -1731,7 +1731,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     {
         Log::warn("ServerLobby", "%s can't live-join in time.",
             peer->getAddress().toString().c_str());
-        rejectLiveJoin(peer.get(), BLR_NO_GAME_FOR_LIVE_JOIN);
+        rejectLiveJoin(peer, BLR_NO_GAME_FOR_LIVE_JOIN);
         return;
     }
     World* w = World::getWorld();
@@ -1824,7 +1824,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     nim->saveCompleteState(ns);
     nim->addLiveJoinPeer(peer);
 
-    w->saveCompleteState(ns, peer.get());
+    w->saveCompleteState(ns, peer);
     if (RaceManager::get()->supportsLiveJoining())
     {
         // Only needed in non-racing mode as no need players can added after
@@ -2371,7 +2371,7 @@ void ServerLobby::startSelection(const Event *event)
     unsigned max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
     auto peers = STKHost::get()->getPeers();
-    std::set<STKPeer*> always_spectate_peers;
+    std::set<std::shared_ptr<STKPeer>> always_spectate_peers;
 
     // Set late coming player to spectate if too many players
     auto& spectators_by_limit = getSpectatorsByLimit();
@@ -2402,12 +2402,12 @@ void ServerLobby::startSelection(const Event *event)
             peer->setWaitingForGame(true);
             m_peers_ready.erase(peer);
             need_to_update = true;
-            always_spectate_peers.insert(peer.get());
+            always_spectate_peers.insert(peer);
             continue;
         }
         else if (peer->alwaysSpectate())
         {
-            always_spectate_peers.insert(peer.get());
+            always_spectate_peers.insert(peer);
             continue;
         }
         peer->eraseServerKarts(m_available_kts.first, karts_erase);
@@ -2426,11 +2426,11 @@ void ServerLobby::startSelection(const Event *event)
             Log::warn("ServerLobby",
                 "An attempt to start a game while no one can play.");
             std::string msg = "No one can play!";
-            sendStringToPeer(msg, event->getPeer());
+            sendStringToPeer(msg, event->getPeerSP());
         }
         addWaitingPlayersToGame();
         return;
-        // for (STKPeer* peer : always_spectate_peers)
+        // for (std::shared_ptr<STKPeer> peer : always_spectate_peers)
         //     peer->setAlwaysSpectate(ASM_NONE);
         // always_spectate_peers.clear();
     }
@@ -2440,7 +2440,7 @@ void ServerLobby::startSelection(const Event *event)
         // be able to vote, this will be reset in STKHost::getPlayersForNewGame
         // This will also allow a correct number of in game players for max
         // arena players handling
-        for (STKPeer* peer : always_spectate_peers)
+        for (std::shared_ptr<STKPeer> peer : always_spectate_peers)
             peer->setWaitingForGame(true);
     }
 
@@ -2639,7 +2639,7 @@ void ServerLobby::startSelection(const Event *event)
         back_lobby->setSynchronous(true);
         back_lobby->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_SPECTATING_NEXT_GAME);
         STKHost::get()->sendPacketToAllPeersWith(
-            [always_spectate_peers](STKPeer* peer)
+            [always_spectate_peers](std::shared_ptr<STKPeer> peer)
             {
                 return always_spectate_peers.find(peer) !=
                 always_spectate_peers.end();
@@ -3070,7 +3070,7 @@ void ServerLobby::clientDisconnected(Event* event)
 
     // Don't show waiting peer disconnect message to in game player
     STKHost::get()->sendPacketToAllPeersWith([waiting_peer_disconnected]
-        (STKPeer* p)
+        (std::shared_ptr<STKPeer> p)
         {
             if (!p->isValidated())
                 return false;
@@ -3082,12 +3082,12 @@ void ServerLobby::clientDisconnected(Event* event)
     delete msg;
 
 #ifdef ENABLE_SQLITE3
-    m_db_connector->writeDisconnectInfoTable(event->getPeer());
+    m_db_connector->writeDisconnectInfoTable(event->getPeerSP());
 #endif
 }   // clientDisconnected
 
 //-----------------------------------------------------------------------------
-void ServerLobby::kickPlayerWithReason(STKPeer* peer, const char* reason) const
+void ServerLobby::kickPlayerWithReason(std::shared_ptr<STKPeer> peer, const char* reason) const
 {
     NetworkString *message = getNetworkString(2);
     message->setSynchronous(true);
@@ -3108,7 +3108,7 @@ void ServerLobby::saveIPBanTable(const SocketAddress& addr)
 }   // saveIPBanTable
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::handleAssets(const NetworkString& ns, STKPeer* peer)
+bool ServerLobby::handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer> peer)
 {
     std::set<std::string> client_karts, client_tracks;
     const unsigned kart_num = ns.getUInt16();
@@ -3384,7 +3384,7 @@ void ServerLobby::connectionRequested(Event* event)
         caps.insert(cap);
     }
     event->getPeer()->setClientCapabilities(caps);
-    if (!handleAssets(data, event->getPeer()))
+    if (!handleAssets(data, event->getPeerSP()))
         return;
 
     unsigned player_count = data.getUInt8();
@@ -3394,16 +3394,16 @@ void ServerLobby::connectionRequested(Event* event)
     encrypted_size = data.getUInt32();
 
     // Will be disconnected if banned by IP
-    testBannedForIP(peer.get());
+    testBannedForIP(peer);
     if (peer->isDisconnected())
         return;
 
-    testBannedForIPv6(peer.get());
+    testBannedForIPv6(peer);
     if (peer->isDisconnected())
         return;
 
     if (online_id != 0)
-        testBannedForOnlineId(peer.get(), online_id);
+        testBannedForOnlineId(peer, online_id);
     // Will be disconnected if banned by online id
     if (peer->isDisconnected())
         return;
@@ -3785,10 +3785,10 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                 "using /replay 0 (to disable) or /replay 1 (to enable). ";
         sendStringToPeer(msg, peer);
     }
-    getMessagesFromHost(peer.get(), online_id);
+    getMessagesFromHost(peer, online_id);
 
     if (ServerConfig::m_soccer_tournament)
-        updateTournamentRole(peer.get());
+        updateTournamentRole(peer);
 }   // handleUnencryptedConnection
 
 //-----------------------------------------------------------------------------
@@ -3877,7 +3877,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             profile_name = StringUtils::utf32ToWide({0x1F4F1}) + profile_name;
 
         // Add an hourglass emoji for players waiting because of the player limit
-        if (spectators_by_limit.find(profile->getPeer().get()) != spectators_by_limit.end())
+        if (spectators_by_limit.find(profile->getPeer()) != spectators_by_limit.end())
             profile_name = StringUtils::utf32ToWide({ 0x231B }) + profile_name;
 
         // Add a hammer emoji for angry host
@@ -3933,7 +3933,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
 
     // Don't send this message to in-game players
     STKHost::get()->sendPacketToAllPeersWith([game_started]
-        (STKPeer* p)
+        (std::shared_ptr<STKPeer> p)
         {
             if (!p->isValidated())
                 return false;
@@ -4011,7 +4011,7 @@ void ServerLobby::kartSelectionRequested(Event* event)
         return;
 
     const NetworkString& data = event->data();
-    STKPeer* peer = event->getPeer();
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
     setPlayerKarts(data, peer);
 }   // kartSelectionRequested
 
@@ -4036,7 +4036,7 @@ void ServerLobby::handlePlayerVote(Event* event)
 
     if (isVotingOver())  return;
 
-    if (!canVote(event->getPeer())) return;
+    if (!canVote(event->getPeerSP())) return;
 
     NetworkString& data = event->data();
     PeerVote vote(data);
@@ -4500,7 +4500,7 @@ void ServerLobby::resetServer()
 }   // resetServer
 
 //-----------------------------------------------------------------------------
-void ServerLobby::testBannedForIP(STKPeer* peer) const
+void ServerLobby::testBannedForIP(std::shared_ptr<STKPeer> peer) const
 {
 #ifdef ENABLE_SQLITE3
     if (!m_db_connector->hasDatabase() || !m_db_connector->hasIpBanTable())
@@ -4535,7 +4535,7 @@ void ServerLobby::testBannedForIP(STKPeer* peer) const
 }   // testBannedForIP
 
 //-----------------------------------------------------------------------------
-void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id)
+void ServerLobby::getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_id)
 {
 #ifdef ENABLE_SQLITE3
     std::vector<DatabaseConnector::ServerMessage> messages =
@@ -4553,7 +4553,7 @@ void ServerLobby::getMessagesFromHost(STKPeer* peer, int online_id)
 }   // getMessagesFromHost
 
 //-----------------------------------------------------------------------------
-void ServerLobby::testBannedForIPv6(STKPeer* peer) const
+void ServerLobby::testBannedForIPv6(std::shared_ptr<STKPeer> peer) const
 {
 #ifdef ENABLE_SQLITE3
     if (!m_db_connector->hasDatabase() || !m_db_connector->hasIpv6BanTable())
@@ -4587,7 +4587,7 @@ void ServerLobby::testBannedForIPv6(STKPeer* peer) const
 }   // testBannedForIPv6
 
 //-----------------------------------------------------------------------------
-void ServerLobby::testBannedForOnlineId(STKPeer* peer,
+void ServerLobby::testBannedForOnlineId(std::shared_ptr<STKPeer> peer,
                                         uint32_t online_id) const
 {
 #ifdef ENABLE_SQLITE3
@@ -4997,7 +4997,7 @@ void ServerLobby::addLiveJoinPlaceholder(
 }   // addLiveJoinPlaceholder
 
 //-----------------------------------------------------------------------------
-void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
+void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const
 {
     unsigned player_count = ns.getUInt8();
     player_count = std::min(player_count, (unsigned)peer->getPlayerProfiles().size());
@@ -5047,7 +5047,7 @@ void ServerLobby::handleKartInfo(Event* event)
     if (!w)
         return;
 
-    STKPeer* peer = event->getPeer();
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
     const NetworkString& data = event->data();
     uint8_t kart_id = data.getUInt8();
     if (kart_id > RaceManager::get()->getNumPlayers())
@@ -5217,7 +5217,7 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
 }   // clientSelectingAssetsWantsToBackLobby
 
 //-----------------------------------------------------------------------------
-std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
+std::set<std::shared_ptr<STKPeer>>& ServerLobby::getSpectatorsByLimit(bool update)
 {
     if (!update)
         return m_spectators_by_limit;
@@ -5287,7 +5287,7 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
                 ignore = true;
             else if (!canRace(peer))
             {
-                m_spectators_by_limit.insert(peer.get());
+                m_spectators_by_limit.insert(peer);
                 ignore = true;
             }
         }
@@ -5300,7 +5300,7 @@ std::set<STKPeer*>& ServerLobby::getSpectatorsByLimit(bool update)
         {
             player_count += (unsigned)peer->getPlayerProfiles().size();
             if (player_count > player_limit)
-                m_spectators_by_limit.insert(peer.get());
+                m_spectators_by_limit.insert(peer);
         }
     }
     return m_spectators_by_limit;
@@ -5677,7 +5677,7 @@ void ServerLobby::resetToDefaultSettings()
         setConsentOnReplays(false);
 }  // resetToDefaultSettings
 //-----------------------------------------------------------------------------
-void ServerLobby::writeOwnReport(STKPeer* reporter, STKPeer* reporting, const std::string& info)
+void ServerLobby::writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_ptr<STKPeer> reporting, const std::string& info)
 {
 #ifdef ENABLE_SQLITE3
     if (!m_db_connector->hasDatabase() || !m_db_connector->hasPlayerReportsTable())
@@ -5882,22 +5882,7 @@ void ServerLobby::changeColors()
     updatePlayerList();
 }   // changeColors
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer)
-{
-    if (!peer)
-    {
-        sendStringToAllPeers(s);
-        return;
-    }
-    NetworkString* chat = getNetworkString();
-    chat->addUInt8(LE_CHAT);
-    chat->setSynchronous(true);
-    chat->encodeString16(StringUtils::utf8ToWide(s));
-    peer->sendPacket(chat, PRM_RELIABLE);
-    delete chat;
-}   // sendStringToPeer
-//-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, STKPeer* peer)
+void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer> peer)
 {
     if (!peer)
     {
@@ -5922,12 +5907,7 @@ void ServerLobby::sendStringToAllPeers(std::string& s)
     delete chat;
 }   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
-bool ServerLobby::canRace(std::shared_ptr<STKPeer>& peer)
-{
-    return canRace(peer.get());
-}   // canRace
-//-----------------------------------------------------------------------------
-bool ServerLobby::canRace(STKPeer* peer)
+bool ServerLobby::canRace(std::shared_ptr<STKPeer> peer)
 {
     auto it = m_why_peer_cannot_play.find(peer);
     if (it != m_why_peer_cannot_play.end())
@@ -6033,12 +6013,7 @@ bool ServerLobby::canRace(STKPeer* peer)
     return true;
 }   // canRace
 //-----------------------------------------------------------------------------
-bool ServerLobby::canVote(std::shared_ptr<STKPeer>& peer) const
-{
-    return canVote(peer.get());
-}   // canVote
-//-----------------------------------------------------------------------------
-bool ServerLobby::canVote(STKPeer* peer) const
+bool ServerLobby::canVote(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
         return false;
@@ -6057,16 +6032,11 @@ bool ServerLobby::canVote(STKPeer* peer) const
     return true;
 }   // canVote
 //-----------------------------------------------------------------------------
-bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer>& peer) const
-{
-    return hasHostRights(peer.get());
-}   // hasHostRights
-//-----------------------------------------------------------------------------
-bool ServerLobby::hasHostRights(STKPeer* peer) const
+bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
         return false;
-    if (peer == m_server_owner.lock().get())
+    if (peer == m_server_owner.lock())
         return true;
     if (peer->isAngryHost())
         return true;
@@ -6079,12 +6049,7 @@ bool ServerLobby::hasHostRights(STKPeer* peer) const
     return false;
 }   // hasHostRights
 //-----------------------------------------------------------------------------
-int ServerLobby::getPermissions(std::shared_ptr<STKPeer>& peer) const
-{
-    return getPermissions(peer.get());
-}   // getPermissions
-//-----------------------------------------------------------------------------
-int ServerLobby::getPermissions(STKPeer* peer) const
+int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
 {
     int mask = 0;
     if (!peer)
@@ -6100,7 +6065,7 @@ int ServerLobby::getPermissions(STKPeer* peer) const
         mask |= CommandPermissions::PE_USUAL;
         mask |= CommandPermissions::PE_VOTED_NORMAL;
     }
-    if (peer == m_server_owner.lock().get())
+    if (peer == m_server_owner.lock())
     {
         mask |= CommandPermissions::PE_CROWNED;
         if (ServerConfig::m_only_host_riding)
@@ -6291,7 +6256,7 @@ void ServerLobby::loadPreservedSettings()
         m_preserve.insert(str);
 }   // loadWhiteList
 //-----------------------------------------------------------------------------  
-bool ServerLobby::writeOnePlayerReport(STKPeer* reporter,
+bool ServerLobby::writeOnePlayerReport(std::shared_ptr<STKPeer> reporter,
     const std::string& table, const std::string& info)
 {
 #ifdef ENABLE_SQLITE3
@@ -6342,12 +6307,7 @@ void ServerLobby::initAvailableTracks()
             ServerConfig::m_play_requirement_tracks_string, ' ', false);
 }   // initAvailableTracks
 //-----------------------------------------------------------------------------
-std::vector<std::string> ServerLobby::getMissingAssets(std::shared_ptr<STKPeer>& peer) const
-{
-    return getMissingAssets(peer.get());
-}   // getMissingAssets
-//-----------------------------------------------------------------------------
-std::vector<std::string> ServerLobby::getMissingAssets(STKPeer* peer) const
+std::vector<std::string> ServerLobby::getMissingAssets(std::shared_ptr<STKPeer> peer) const
 {
     std::vector<std::string> ans;
     for (const std::string& required_track : m_play_requirement_tracks)
@@ -6356,7 +6316,7 @@ std::vector<std::string> ServerLobby::getMissingAssets(STKPeer* peer) const
     return ans;
 }   // getMissingAssets
 //-----------------------------------------------------------------------------
-void ServerLobby::updateTournamentRole(STKPeer* peer)
+void ServerLobby::updateTournamentRole(std::shared_ptr<STKPeer> peer)
 {
     if (!ServerConfig::m_soccer_tournament)
         return;
@@ -6939,7 +6899,7 @@ bool ServerLobby::areKartFiltersIgnoringKarts() const
     return false;
 }   // applyAllKartFilters
 //-----------------------------------------------------------------------------
-std::string ServerLobby::getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const
+std::string ServerLobby::getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, const std::string& username, const std::string& check_choice) const
 {
     std::set<std::string> karts = (peer->isAIPeer() ? m_available_kts.first : peer->getClientAssets().first);
     applyAllKartFilters(username, karts, true);

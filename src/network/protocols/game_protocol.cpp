@@ -184,7 +184,7 @@ void GameProtocol::controllerAction(int kart_id, PlayerAction action,
  */
 void GameProtocol::handleControllerAction(Event *event)
 {
-    STKPeer* peer = event->getPeer();
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
     if (NetworkConfig::get()->isServer() && (peer->isWaitingForGame() ||
         peer->getAvailableKartIDs().empty()))
         return;

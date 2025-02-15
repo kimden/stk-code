@@ -174,11 +174,11 @@ public:
                                                          sqlite3_value** argv);
     static void insideIPv6CIDRSQL(sqlite3_context* context, int argc,
                                                          sqlite3_value** argv);
-    void writeDisconnectInfoTable(STKPeer* peer);
+    void writeDisconnectInfoTable(std::shared_ptr<STKPeer> peer);
     void initServerStatsTable();
     bool writeReport(
-         STKPeer* reporter, std::shared_ptr<NetworkPlayerProfile> reporter_npp,
-       STKPeer* reporting, std::shared_ptr<NetworkPlayerProfile> reporting_npp,
+         std::shared_ptr<STKPeer> reporter, std::shared_ptr<NetworkPlayerProfile> reporter_npp,
+       std::shared_ptr<STKPeer> reporting, std::shared_ptr<NetworkPlayerProfile> reporting_npp,
                                                      irr::core::stringw& info);
     bool hasDatabase() const                        { return m_db != nullptr; }
     bool hasServerStatsTable() const  { return !m_server_stats_table.empty(); }

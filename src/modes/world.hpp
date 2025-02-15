@@ -376,7 +376,7 @@ public:
             m_eliminated_karts--;
     }
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns, STKPeer* peer) {}
+    virtual void saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer) {}
     // ------------------------------------------------------------------------
     virtual void restoreCompleteState(const BareNetworkString& buffer) {}
     // ------------------------------------------------------------------------

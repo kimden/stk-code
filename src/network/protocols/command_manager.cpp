@@ -1762,7 +1762,7 @@ void CommandManager::process_kick(Context& context)
     if (ServerConfig::m_track_kicks)
     {
         std::string auto_report = "[ Auto report caused by kick ]";
-        m_lobby->writeOwnReport(player_peer.get(), peer.get(), auto_report);
+        m_lobby->writeOwnReport(player_peer, peer, auto_report);
     }
     if (argv[0] == "kickban")
     {
@@ -2219,7 +2219,7 @@ void CommandManager::process_tell(Context& context)
             ans.push_back(' ');
         ans += argv[i];
     }
-    m_lobby->writeOwnReport(peer.get(), peer.get(), ans);
+    m_lobby->writeOwnReport(peer, peer, ans);
 } // process_tell
 // ========================================================================
 
@@ -2277,7 +2277,7 @@ void CommandManager::process_teamchat(Context& context)
         error(context, true);
         return;
     }
-    m_lobby->m_team_speakers.insert(peer.get());
+    m_lobby->m_team_speakers.insert(peer);
     std::string msg = "Your messages are now addressed to team only";
     m_lobby->sendStringToPeer(msg, peer);
 } // process_teamchat
@@ -2297,13 +2297,13 @@ void CommandManager::process_to(Context& context)
         error(context);
         return;
     }
-    m_lobby->m_message_receivers[peer.get()].clear();
+    m_lobby->m_message_receivers[peer].clear();
     for (unsigned i = 1; i < argv.size(); ++i)
     {
         if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
             i, m_stf_present_users, 3, false, true))
             return;
-        m_lobby->m_message_receivers[peer.get()].insert(
+        m_lobby->m_message_receivers[peer].insert(
             StringUtils::utf8ToWide(argv[i]));
     }
     std::string msg = "Successfully changed chat settings";
@@ -2319,8 +2319,8 @@ void CommandManager::process_public(Context& context)
         error(context, true);
         return;
     }
-    m_lobby->m_message_receivers[peer.get()].clear();
-    m_lobby->m_team_speakers.erase(peer.get());
+    m_lobby->m_message_receivers[peer].clear();
+    m_lobby->m_team_speakers.erase(peer);
     std::string s = "Your messages are now public";
     m_lobby->sendStringToPeer(s, peer);
 } // process_public
@@ -3285,7 +3285,7 @@ void CommandManager::process_register(Context& context)
     }
     std::string message_ok = "Your registration request is being processed";
     std::string message_wrong = "Sorry, an error occurred. Please try again.";
-    if (m_lobby->writeOnePlayerReport(peer.get(), ServerConfig::m_register_table_name,
+    if (m_lobby->writeOnePlayerReport(peer, ServerConfig::m_register_table_name,
         ans))
         m_lobby->sendStringToPeer(message_ok, peer);
     else
@@ -4036,7 +4036,7 @@ void CommandManager::process_why_hourglass(Context& context)
         error(context);
         return;
     }
-    auto it = m_lobby->m_why_peer_cannot_play.find(player_peer.get());
+    auto it = m_lobby->m_why_peer_cannot_play.find(player_peer);
     if (it == m_lobby->m_why_peer_cannot_play.end())
     {
         response = "For some reason, server doesn't know about the hourglass status of this player.";
