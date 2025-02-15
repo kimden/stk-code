@@ -348,7 +348,7 @@ void CaptureTheFlag::checkScoring(FlagColor color)
                     .addUInt16((int16_t)new_kart_score)
                     .addUInt8((uint8_t)new_red_score)
                     .addUInt8((uint8_t)new_blue_score);
-                STKHost::get()->sendPacketToAllPeers(&p, true);
+                STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
             }
             ctfScored(active_holder, (red_active) ? false : true /*red_team_scored*/,
                 new_kart_score, new_red_score, new_blue_score); 

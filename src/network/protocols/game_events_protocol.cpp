@@ -118,7 +118,7 @@ bool GameEventsProtocol::notifyEvent(Event* event)
             NetworkString *ns = getNetworkString();
             ns->setSynchronous(true);
             ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id).addFloat(f);
-            sendMessageToPeers(ns, true);
+            sendMessageToPeers(ns, PRM_RELIABLE);
             delete ns;
         }
         else
@@ -164,7 +164,7 @@ void GameEventsProtocol::kartFinishedRace(AbstractKart *kart, float time)
     ns->setSynchronous(true);
     ns->addUInt8(GE_KART_FINISHED_RACE).addUInt8(kart->getWorldKartId())
        .addFloat(time);
-    sendMessageToPeers(ns, /*reliable*/true);
+    sendMessageToPeers(ns, PRM_RELIABLE);
     delete ns;
 }   // kartFinishedRace
 
@@ -198,6 +198,6 @@ void GameEventsProtocol::sendStartupBoost(uint8_t kart_id)
     NetworkString *ns = getNetworkString();
     ns->setSynchronous(true);
     ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id);
-    sendToServer(ns, /*reliable*/true);
+    sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // sendStartupBoost

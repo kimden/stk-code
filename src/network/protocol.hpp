@@ -24,7 +24,7 @@
 #define PROTOCOL_HPP
 
 #include "utils/no_copy.hpp"
-#include "utils/types.hpp"
+#include "utils/constants.hpp"
 
 #include <memory>
 #include <stddef.h>
@@ -119,10 +119,10 @@ public:
     /// functions to check incoming data easily
     NetworkString* getNetworkString(size_t capacity = 16) const;
     bool checkDataSize(Event* event, unsigned int minimum_size);
-    void sendMessageToPeers(NetworkString *message, bool reliable = true);
+    void sendMessageToPeers(NetworkString *message, PacketReliabilityMode reliable = PRM_RELIABLE);
     void sendMessageToPeersInServer(NetworkString *message,
-                                    bool reliable = true);
-    void sendToServer(NetworkString *message, bool reliable = true);
+                                    PacketReliabilityMode reliable = PRM_RELIABLE);
+    void sendToServer(NetworkString *message, PacketReliabilityMode reliable = PRM_RELIABLE);
     virtual void requestStart();
     virtual void requestTerminate();
     // ------------------------------------------------------------------------

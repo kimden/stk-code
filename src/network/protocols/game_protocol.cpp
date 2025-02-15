@@ -109,7 +109,7 @@ void GameProtocol::sendActions()
     }   // for a in m_all_actions
 
     // FIXME: for now send reliable
-    sendToServer(m_data_to_send, /*reliable*/ true);
+    sendToServer(m_data_to_send, PRM_RELIABLE);
     m_all_actions.clear();
 }   // sendActions
 
@@ -244,7 +244,7 @@ void GameProtocol::handleControllerAction(Event *event)
         // is after the server time
         peer->updateLastActivity();
         if (!will_trigger_rewind)
-            STKHost::get()->sendPacketExcept(peer, &data, false);
+            STKHost::get()->sendPacketExcept(peer, &data, PRM_UNRELIABLE);
     }   // if server
 
 }   // handleControllerAction
@@ -261,7 +261,7 @@ void GameProtocol::sendItemEventConfirmation(int ticks)
     ns->addUInt8(GP_ITEM_CONFIRMATION).addUInt32(ticks);
     // This message can be sent unreliable, it's not critical if it doesn't
     // get delivered, a future update will come through
-    sendToServer(ns, /*reliable*/false);
+    sendToServer(ns, PRM_UNRELIABLE);
     delete ns;
 }   // sendItemEventConfirmation
 
@@ -333,7 +333,7 @@ void GameProtocol::finalizeState(std::vector<std::string>& cur_rewinder)
 void GameProtocol::sendState()
 {
     assert(NetworkConfig::get()->isServer());
-    sendMessageToPeers(m_data_to_send, /*reliable*/false);
+    sendMessageToPeers(m_data_to_send, PRM_UNRELIABLE);
 }   // sendState
 
 // ----------------------------------------------------------------------------

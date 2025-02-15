@@ -25,6 +25,7 @@
 #include "utils/stk_process.hpp"
 #include "utils/synchronised.hpp"
 #include "utils/time.hpp"
+#include "utils/constants.hpp"
 
 #include "irrString.h"
 
@@ -244,12 +245,12 @@ public:
     void shutdown();
     //-------------------------------------------------------------------------
     void sendPacketToAllPeersInServer(NetworkString *data,
-                                      bool reliable = true);
+                                      PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
-    void sendPacketToAllPeers(NetworkString *data, bool reliable = true);
+    void sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     void sendPacketToAllPeersWith(std::function<bool(STKPeer*)> predicate,
-                                  NetworkString* data, bool reliable = true);
+                                  NetworkString* data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     /** Returns true if this client instance is allowed to control the server.
      *  It will auto transfer ownership if previous server owner disconnected.
@@ -271,7 +272,7 @@ public:
     std::shared_ptr<STKPeer> findPeerByWildcard(const core::stringw& name_pattern, std::string &name_found) const;
     // ------------------------------------------------------------------------
     void sendPacketExcept(STKPeer* peer, NetworkString *data,
-                          bool reliable = true);
+                          PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     void setupClient(int peer_count, int channel_limit,
                      uint32_t max_incoming_bandwidth,
@@ -344,7 +345,7 @@ public:
     /** Returns the host id of this host. */
     uint32_t getMyHostId() const                          { return m_host_id; }
     // ------------------------------------------------------------------------
-    void sendToServer(NetworkString *data, bool reliable = true);
+    void sendToServer(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     bool isClientServer() const;
     // ------------------------------------------------------------------------

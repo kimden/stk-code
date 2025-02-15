@@ -757,7 +757,7 @@ void TracksScreen::voteForPlayer()
         PeerVote pvote(vote);
         lp->addVote(STKHost::get()->getMyHostId(), pvote);
     }
-    STKHost::get()->sendToServer(&vote, true);
+    STKHost::get()->sendToServer(&vote, PRM_RELIABLE);
 }   // voteForPlayer
 
 // -----------------------------------------------------------------------------

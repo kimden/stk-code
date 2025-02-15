@@ -96,7 +96,7 @@ void Protocol::requestTerminate()
  *  type) followed by the actual message.
  *  \param message The actual message content.
 */
-void Protocol::sendMessageToPeers(NetworkString *message, bool reliable)
+void Protocol::sendMessageToPeers(NetworkString *message, PacketReliabilityMode reliable)
 {
     STKHost::get()->sendPacketToAllPeers(message, reliable);
 }   // sendMessageToPeers
@@ -108,7 +108,7 @@ void Protocol::sendMessageToPeers(NetworkString *message, bool reliable)
  *  \param message The actual message content.
 */
 void Protocol::sendMessageToPeersInServer(NetworkString* message,
-                                          bool reliable)
+                                          PacketReliabilityMode reliable)
 {
     STKHost::get()->sendPacketToAllPeersInServer(message, reliable);
 }   // sendMessageToPeersInServer
@@ -116,7 +116,7 @@ void Protocol::sendMessageToPeersInServer(NetworkString* message,
 // ----------------------------------------------------------------------------
 /** Sends a message from a client to the server.
  */
-void Protocol::sendToServer(NetworkString *message, bool reliable)
+void Protocol::sendToServer(NetworkString *message, PacketReliabilityMode reliable)
 {
     STKHost::get()->sendToServer(message, reliable);
 }   // sendMessage
