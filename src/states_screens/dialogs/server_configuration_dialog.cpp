@@ -122,7 +122,7 @@ GUIEngine::EventPropagation
                     break;
                 }
             }
-            STKHost::get()->sendToServer(&change, true);
+            STKHost::get()->sendToServer(&change, PRM_RELIABLE);
             return GUIEngine::EVENT_BLOCK;
         }
     }

@@ -926,7 +926,7 @@ void STKHost::mainLoop(ProcessType pt)
                             NetworkString msg(PROTOCOL_LOBBY_ROOM);
                             msg.setSynchronous(true);
                             msg.addUInt8(LobbyProtocol::LE_BAD_CONNECTION);
-                            p.second->sendPacket(&msg, /*reliable*/true);
+                            p.second->sendPacket(&msg, PRM_RELIABLE);
                         }
                     }
                 }
@@ -1339,7 +1339,7 @@ std::shared_ptr<STKPeer> STKHost::getServerPeerForClient() const
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketToAllPeersInServer(NetworkString *data, bool reliable)
+void STKHost::sendPacketToAllPeersInServer(NetworkString *data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1354,7 +1354,7 @@ void STKHost::sendPacketToAllPeersInServer(NetworkString *data, bool reliable)
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketToAllPeers(NetworkString *data, bool reliable)
+void STKHost::sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1371,7 +1371,7 @@ void STKHost::sendPacketToAllPeers(NetworkString *data, bool reliable)
  *  \param reliable If the data should be sent reliable or now.
  */
 void STKHost::sendPacketExcept(STKPeer* peer, NetworkString *data,
-                               bool reliable)
+                               PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1392,7 +1392,7 @@ void STKHost::sendPacketExcept(STKPeer* peer, NetworkString *data,
  *  \param reliable If the data should be sent reliable or now.
  */
 void STKHost::sendPacketToAllPeersWith(std::function<bool(STKPeer*)> predicate,
-                                       NetworkString* data, bool reliable)
+                                       NetworkString* data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1407,7 +1407,7 @@ void STKHost::sendPacketToAllPeersWith(std::function<bool(STKPeer*)> predicate,
 
 //-----------------------------------------------------------------------------
 /** Sends a message from a client to the server. */
-void STKHost::sendToServer(NetworkString *data, bool reliable)
+void STKHost::sendToServer(NetworkString *data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     if (m_peers.empty())

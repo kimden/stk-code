@@ -23,7 +23,7 @@
 #define HEADER_NETWORK_HPP
 
 #include "utils/synchronised.hpp"
-#include "utils/types.hpp"
+#include "utils/constants.hpp"
 
 // enet.h includes win32.h, which without lean_and_mean includes
 // winspool.h, which defines MAX_PRIORITY as a macro, which then
@@ -72,7 +72,7 @@ public:
     int receiveRawPacket(char *buffer, int buf_len,
                          SocketAddress* sender, int max_tries = -1);
     void     broadcastPacket(NetworkString *data,
-                             bool reliable = true);
+                             PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     uint16_t getPort() const { return m_port; }
     // ------------------------------------------------------------------------

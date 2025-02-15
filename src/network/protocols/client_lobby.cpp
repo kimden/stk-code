@@ -178,7 +178,7 @@ void ClientLobby::doneWithResults()
     NetworkString* done = getNetworkString(1);
     done->setSynchronous(true);
     done->addUInt8(LE_RACE_FINISHED_ACK);
-    sendToServer(done, /*reliable*/true);
+    sendToServer(done, PRM_RELIABLE);
     delete done;
 }   // doneWithResults
 
@@ -514,7 +514,7 @@ void ClientLobby::update(int ticks)
             m_auto_started = true;
             NetworkString start(PROTOCOL_LOBBY_ROOM);
             start.addUInt8(LobbyProtocol::LE_REQUEST_BEGIN);
-            STKHost::get()->sendToServer(&start, true);
+            STKHost::get()->sendToServer(&start, PRM_RELIABLE);
         }
         if (m_background_download.joinable())
         {
@@ -1282,7 +1282,7 @@ void ClientLobby::finishedLoadingWorld()
     NetworkString* ns = getNetworkString(1);
     ns->setSynchronous(m_server_send_live_load_world);
     ns->addUInt8(LE_CLIENT_LOADED_WORLD);
-    sendToServer(ns, true);
+    sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // finishedLoadingWorld
 
@@ -1381,7 +1381,7 @@ void ClientLobby::requestKartInfo(uint8_t kart_id)
     NetworkString* ns = getNetworkString(1);
     ns->setSynchronous(true);
     ns->addUInt8(LE_KART_INFO).addUInt8(kart_id);
-    sendToServer(ns, true/*reliable*/);
+    sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // requestKartInfo
 
@@ -1525,7 +1525,7 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
         if (team != KART_TEAM_NONE)
             chat->addUInt8(team);
 
-        STKHost::get()->sendToServer(chat, true);
+        STKHost::get()->sendToServer(chat, PRM_RELIABLE);
         delete chat;
     }
 }   // sendChat
@@ -1870,7 +1870,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         NetworkString* cmd_ns = getNetworkString(1);
         const std::string& language = UserConfigParams::m_language;
         cmd_ns->addUInt8(LE_COMMAND).encodeString(language).encodeString(cmd);
-        sendToServer(cmd_ns, /*reliable*/true);
+        sendToServer(cmd_ns, PRM_RELIABLE);
         delete cmd_ns;
     }
 #endif
@@ -1912,7 +1912,7 @@ void ClientLobby::updateAssetsToServer()
     NetworkString* ns = getNetworkString(1);
     ns->addUInt8(LE_ASSETS_UPDATE);
     getKartsTracksNetworkString(ns);
-    sendToServer(ns, /*reliable*/true);
+    sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // updateAssetsToServer
 

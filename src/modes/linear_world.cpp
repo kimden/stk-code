@@ -1326,7 +1326,7 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
     for (unsigned i = 0; i < cc; i++)
         cm->getCheckStructure(i)->saveIsActive(kart_id, &cl);
 
-    STKHost::get()->sendPacketToAllPeers(&cl, true);
+    STKHost::get()->sendPacketToAllPeers(&cl, PRM_RELIABLE);
 }   // updateCheckLinesServer
 
 // ----------------------------------------------------------------------------
