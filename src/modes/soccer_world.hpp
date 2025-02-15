@@ -264,7 +264,7 @@ public:
     }
     // ------------------------------------------------------------------------
     virtual void saveCompleteState(BareNetworkString* bns,
-                                   STKPeer* peer) OVERRIDE;
+                                   std::shared_ptr<STKPeer> peer) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
     // ------------------------------------------------------------------------

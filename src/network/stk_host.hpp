@@ -249,7 +249,7 @@ public:
     // ------------------------------------------------------------------------
     void sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
-    void sendPacketToAllPeersWith(std::function<bool(STKPeer*)> predicate,
+    void sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
                                   NetworkString* data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     /** Returns true if this client instance is allowed to control the server.
@@ -271,7 +271,7 @@ public:
     std::shared_ptr<STKPeer> findPeerByName(const core::stringw& name) const;
     std::shared_ptr<STKPeer> findPeerByWildcard(const core::stringw& name_pattern, std::string &name_found) const;
     // ------------------------------------------------------------------------
-    void sendPacketExcept(STKPeer* peer, NetworkString *data,
+    void sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
                           PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     void setupClient(int peer_count, int channel_limit,

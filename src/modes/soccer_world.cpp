@@ -1203,7 +1203,7 @@ void SoccerWorld::enterRaceOverState()
 }   // enterRaceOverState
 
 // ----------------------------------------------------------------------------
-void SoccerWorld::saveCompleteState(BareNetworkString* bns, STKPeer* peer)
+void SoccerWorld::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
 {
     const unsigned red_scorers = (unsigned)m_red_scorers.size();
     bns->addUInt32(red_scorers);

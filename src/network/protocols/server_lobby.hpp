@@ -234,7 +234,7 @@ private:
     // Calculated before each game started
     unsigned m_ai_count;
 
-    std::set<STKPeer*> m_spectators_by_limit;
+    std::set<std::shared_ptr<STKPeer>> m_spectators_by_limit;
 
     std::vector<std::string> m_must_have_tracks;
 
@@ -252,11 +252,11 @@ private:
 
     irr::core::stringw m_help_message;
 
-    std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;
+    std::map<std::shared_ptr<STKPeer>, std::set<irr::core::stringw>> m_message_receivers;
 
-    std::set<STKPeer*> m_team_speakers;
+    std::set<std::shared_ptr<STKPeer>> m_team_speakers;
 
-    std::map<STKPeer*, int> m_why_peer_cannot_play;
+    std::map<std::shared_ptr<STKPeer>, int> m_why_peer_cannot_play;
 
     KartElimination m_kart_elimination;
 
@@ -486,11 +486,11 @@ private:
     void encodePlayers(BareNetworkString* bns,
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
     std::vector<std::shared_ptr<NetworkPlayerProfile> > getLivePlayers() const;
-    void setPlayerKarts(const NetworkString& ns, STKPeer* peer) const;
-    bool handleAssets(const NetworkString& ns, STKPeer* peer);
+    void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
+    bool handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer> peer);
     void handleServerCommand(Event* event, std::shared_ptr<STKPeer> peer);
     void liveJoinRequest(Event* event);
-    void rejectLiveJoin(STKPeer* peer, BackLobbyReason blr);
+    void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
     bool canLiveJoinNow() const;
     bool worldIsActive() const;
     int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
@@ -498,26 +498,22 @@ private:
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
-    std::set<STKPeer*>& getSpectatorsByLimit(bool update = false);
-    void kickPlayerWithReason(STKPeer* peer, const char* reason) const;
-    void testBannedForIP(STKPeer* peer) const;
-    void testBannedForIPv6(STKPeer* peer) const;
-    void testBannedForOnlineId(STKPeer* peer, uint32_t online_id) const;
-    void getMessagesFromHost(STKPeer* peer, int online_id);
+    std::set<std::shared_ptr<STKPeer>>& getSpectatorsByLimit(bool update = false);
+    void kickPlayerWithReason(std::shared_ptr<STKPeer> peer, const char* reason) const;
+    void testBannedForIP(std::shared_ptr<STKPeer> peer) const;
+    void testBannedForIPv6(std::shared_ptr<STKPeer> peer) const;
+    void testBannedForOnlineId(std::shared_ptr<STKPeer> peer, uint32_t online_id) const;
+    void getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_id);
     void writePlayerReport(Event* event);
     bool supportsAI();
     void updateAddons();
     void initCategories();
     void initTournamentPlayers();
     void changeColors();
-    bool canRace(std::shared_ptr<STKPeer>& peer);
-    bool canRace(STKPeer* peer);
-    bool canVote(std::shared_ptr<STKPeer>& peer) const;
-    bool canVote(STKPeer* peer) const;
-    bool hasHostRights(std::shared_ptr<STKPeer>& peer) const;
-    bool hasHostRights(STKPeer* peer) const;
-    std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer>& peer) const;
-    std::vector<std::string> getMissingAssets(STKPeer* peer) const;
+    bool canRace(std::shared_ptr<STKPeer> peer);
+    bool canVote(std::shared_ptr<STKPeer> peer) const;
+    bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
+    std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer> peer) const;
     void loadTracksQueueFromConfig();
     std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
     bool loadCustomScoring(std::string& scoring);
@@ -527,7 +523,7 @@ private:
     void changeLimitForTournament(bool goal_target);
     bool tournamentGoalsLimit(int game) const;
     bool tournamentColorsSwapped(int game) const;
-    void updateTournamentRole(STKPeer* peer);
+    void updateTournamentRole(std::shared_ptr<STKPeer> peer);
     CommandManager& getCommandManager();
 
     // bool tournamentHasIcy(int game) const;
@@ -575,17 +571,15 @@ public:
     void initAvailableTracks();
     void initAvailableModes();
     void resetToDefaultSettings();
-    void writeOwnReport(STKPeer* reporter, STKPeer* reporting,
+    void writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_ptr<STKPeer> reporting,
         const std::string& info);
-    bool writeOnePlayerReport(STKPeer* reporter, const std::string& table,
+    bool writeOnePlayerReport(std::shared_ptr<STKPeer> reporter, const std::string& table,
         const std::string& info);
     // int getTrackMaxPlayers(std::string& name) const;
     void updateGnuElimination();
-    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer);
-    void sendStringToPeer(std::string& s, STKPeer* peer);
+    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer> peer);
     void sendStringToAllPeers(std::string& s);
-    int getPermissions(std::shared_ptr<STKPeer>& peer) const;
-    int getPermissions(STKPeer* peer) const;
+    int getPermissions(std::shared_ptr<STKPeer> peer) const;
     bool hasConsentOnReplays() const           { return m_consent_on_replays; }
     void setConsentOnReplays(bool value)      { m_consent_on_replays = value; }
     bool isSoccerGoalTarget() const;
@@ -622,7 +616,7 @@ public:
     void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
     void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
     bool areKartFiltersIgnoringKarts() const;
-    std::string getKartForBadKartChoice(STKPeer* peer, const std::string& username, const std::string& check_choice) const;
+    std::string getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, const std::string& username, const std::string& check_choice) const;
     void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
                              std::shared_ptr<NetworkPlayerProfile> player,
                              const std::string& type) const;

@@ -151,7 +151,7 @@ void DatabaseConnector::destroyDatabase()
 {
     auto peers = STKHost::get()->getPeers();
     for (auto& peer : peers)
-        writeDisconnectInfoTable(peer.get());
+        writeDisconnectInfoTable(peer);
     if (m_db != NULL)
         sqlite3_close(m_db);
 }   // destroyDatabase
@@ -380,7 +380,7 @@ sqlite3_extension_init(sqlite3* db, char** pzErrMsg,
  *   database peer's disconnection time and statistics (ping and packet loss).
  *  \param peer Disconnecting peer.
  */
-void DatabaseConnector::writeDisconnectInfoTable(STKPeer* peer)
+void DatabaseConnector::writeDisconnectInfoTable(std::shared_ptr<STKPeer> peer)
 {
     if (m_server_stats_table.empty())
         return;
@@ -676,8 +676,8 @@ void DatabaseConnector::initServerStatsTable()
  *  \return True if the database query succeeded.
  */
 bool DatabaseConnector::writeReport(
-       STKPeer* reporter, std::shared_ptr<NetworkPlayerProfile> reporter_npp,
-       STKPeer* reporting, std::shared_ptr<NetworkPlayerProfile> reporting_npp,
+       std::shared_ptr<STKPeer> reporter, std::shared_ptr<NetworkPlayerProfile> reporter_npp,
+       std::shared_ptr<STKPeer> reporting, std::shared_ptr<NetworkPlayerProfile> reporting_npp,
        irr::core::stringw& info)
 {
     std::string query;
