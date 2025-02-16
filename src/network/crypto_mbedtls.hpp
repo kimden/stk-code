@@ -22,6 +22,7 @@
 #define HEADER_CRYPTO_MBEDTLS_HPP
 
 #include "utils/log.hpp"
+#include "utils/constants.hpp"
 
 #include <enet/enet.h>
 #include <mbedtls/ctr_drbg.h>
