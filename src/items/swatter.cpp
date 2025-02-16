@@ -43,6 +43,7 @@
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include "network/protocols/server_lobby.hpp"
+#include "utils/hit_processor.hpp"
 #include <IAnimatedMeshSceneNode.h>
 
 #define SWAT_POS_OFFSET        core::vector3df(0.0, 0.2f, -0.4f)
@@ -412,7 +413,7 @@ void Swatter::squashThingsAround()
         // check if we are in team gp and hit a teammate and should punish attacker
         auto sl = LobbyProtocol::get<ServerLobby>();
         if (sl && !m_closest_kart->hasFinishedRace())
-            sl->handleSwatterHit(m_kart->getWorldKartId(),
+            sl->getHitProcessor()->handleSwatterHit(m_kart->getWorldKartId(),
                 m_closest_kart->getWorldKartId(), success, m_has_hit_kart,
                 World::getWorld()->getTicksSinceStart() - m_created_ticks);
     }

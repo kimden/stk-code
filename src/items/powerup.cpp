@@ -35,6 +35,7 @@
 #include "network/rewind_manager.hpp"
 #include "physics/triangle_mesh.hpp"
 #include "tracks/track.hpp"
+#include "utils/hit_processor.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/log.hpp" //TODO: remove after debugging is done
 
@@ -405,7 +406,7 @@ void Powerup::use()
                 // check if we are in team gp and hit a teammate and should punish the attacker
                 auto sl = LobbyProtocol::get<ServerLobby>();
                 if(sl && !kart->hasFinishedRace())
-                    sl->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
+                    sl->getHitProcessor()->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
 
                 kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
                                            stk_config->
