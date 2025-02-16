@@ -58,6 +58,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/game_info.hpp"
+#include "utils/hit_processor.hpp"
 // #include "utils/log.hpp"
 // #include "utils/random_generator.hpp"
 // #include "utils/string_utils.hpp"
@@ -169,11 +170,9 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     m_troll_active = ServerConfig::m_troll_active;
 
-    m_show_teammate_hits = ServerConfig::m_show_teammate_hits;
-    m_teammate_hit_mode = ServerConfig::m_teammate_hit_mode;
-    m_last_teammate_hit_msg = 0;
-    m_teammate_swatter_punish.clear();
-    m_collecting_teammate_hit_info = false;
+    m_hit_processor = std::make_shared<HitProcessor>(this);
+    // feb16 remove this
+
     m_available_teams = ServerConfig::m_init_available_teams;
 
     m_map_vote_handler.setAlgorithm(ServerConfig::m_map_vote_handling);
@@ -432,7 +431,7 @@ void ServerLobby::setup()
     m_winner_peer_id = 0;
     m_client_starting_time = 0;
     m_ai_count = 0;
-    m_collecting_teammate_hit_info = false;
+    getHitProcessor()->m_collecting_teammate_hit_info = false;
     auto players = STKHost::get()->getPlayersForNewGame();
     if (m_game_setup->isGrandPrix() && !m_game_setup->isGrandPrixStarted())
     {
@@ -1164,7 +1163,7 @@ void ServerLobby::asynchronousUpdate()
         // reset
 
         // maybe this is not the best place for this?
-        m_last_teammate_hit_msg = 0;
+        getHitProcessor()->m_last_teammate_hit_msg = 0;
 
         if (m_end_voting_period.load() == 0)
             return;
@@ -1911,9 +1910,9 @@ void ServerLobby::update(int ticks)
                     // check warn level for each player
                     switch(lin_world->getWarnLevel(i))
                     {
-                        case 0: // fine
+                        case 0:
                             break;
-                        case 1: // print WARNING
+                        case 1:
                         {
                             std::string msg = ServerConfig::m_troll_warn_msg;
                             sendStringToPeer(msg, peer);
@@ -1921,7 +1920,7 @@ void ServerLobby::update(int ticks)
                             Log::info("ServerLobby-AntiTroll", "Sent WARNING to %s", player_name.c_str());
                             break;
                         }
-                        default: // kick !!
+                        default:
                         {
                             std::string player_name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
                             Log::info("ServerLobby-AntiTroll", "KICKING %s", player_name.c_str());
@@ -1931,16 +1930,16 @@ void ServerLobby::update(int ticks)
                     }
                 }
             }
-            if (m_teammate_swatter_punish.size() > 0)
+            if (getHitProcessor()->m_teammate_swatter_punish.size() > 0)
             {
                 // punish players who swattered teammates
-                for (auto& kart : m_teammate_swatter_punish)
+                for (auto& kart : getHitProcessor()->m_teammate_swatter_punish)
                 {
                     kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
                         stk_config->time2Ticks(kart->getKartProperties()->getAnvilDuration()));
                     kart->adjustSpeed(kart->getKartProperties()->getAnvilSpeedFactor());
                 }
-                m_teammate_swatter_punish.clear();
+                getHitProcessor()->m_teammate_swatter_punish.clear();
             }
         }
     }
@@ -6459,276 +6458,6 @@ std::string ServerLobby::getToken()
 }   // getToken
 //-----------------------------------------------------------------------------
 #endif // ENABLE_WEB_SUPPORT
-
-// this is called when collisions of an item are handled
-// so we keep track of hits caused by that item
-void ServerLobby::setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown)
-{
-    m_teammate_current_item_ownerID = ownerID;
-    m_teammate_ticks_since_thrown = ticks_since_thrown;
-    m_teammate_karts_hit.clear();
-    m_teammate_karts_exploded.clear();
-    m_collecting_teammate_hit_info = true;
-}   // setTeamMateHitOwner
-//-----------------------------------------------------------------------------
-
-void ServerLobby::registerTeamMateHit(unsigned int kartID)
-{
-    // only register if we know the item owner and victim is still racing
-    if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
-        m_teammate_karts_hit.push_back(kartID);
-}   // registerTeamMateHit
-//-----------------------------------------------------------------------------
-
-void ServerLobby::registerTeamMateExplode(unsigned int kartID)
-{
-    // only register if we know the item owner and victim is still racing
-    if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
-        m_teammate_karts_exploded.push_back(kartID);
-}   // registerTeamMateExplode
-//-----------------------------------------------------------------------------
-
-void ServerLobby::sendTeamMateHitMsg(std::string& s)
-{
-    if (World* w = World::getWorld())
-    {
-        int ticks = w->getTicksSinceStart();
-        if (ticks - m_last_teammate_hit_msg > stk_config->time2Ticks(1.5f))
-        {
-            m_last_teammate_hit_msg = ticks;
-            sendStringToAllPeers(s);
-        }
-    }
-}   // sendTeamMateHitMsg
-//-----------------------------------------------------------------------------
-
-void ServerLobby::handleTeamMateHits()
-{
-    m_collecting_teammate_hit_info = false;
-    // get team of owner of item
-    const std::string ownername = StringUtils::wideToUtf8(
-        RaceManager::get()->getKartInfo(m_teammate_current_item_ownerID).getPlayerName());
-    const int ownerTeam = m_team_for_player[ownername];
-
-    if (ownerTeam == 0) // no team, no punishment
-        return;
-
-    AbstractKart *owner = World::getWorld()->getKart(m_teammate_current_item_ownerID);
-
-    // if item is too old, it doesn't count
-    // currently only bowling balls have their creation time registered
-    // so cakes will always count
-
-    if (m_teammate_ticks_since_thrown > stk_config->time2Ticks(MAX_BOWL_TEAMMATE_HIT_TIME))
-        return;
-
-    // Show message?
-    if (showTeamMateHits())
-    {
-        // prepare string
-        int num_victims = 0;
-        std::string msg = ServerConfig::m_teammate_hit_msg_prefix;
-        std::string victims;
-        msg += ownername;
-        msg += " just shot ";
-
-        for (unsigned int i = 0; i < m_teammate_karts_exploded.size(); i++)
-        {
-            const std::string playername = StringUtils::wideToUtf8(
-                RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
-            const int playerTeam = m_team_for_player[playername];
-            if (ownerTeam == playerTeam)
-            {
-                // hit teammate
-                if (num_victims > 0)
-                    victims += " and ";
-                victims += StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
-                num_victims++;
-            }
-        }
-        if (num_victims > 0) // we found victims, so send message
-        {
-            msg += (num_victims > 1) ? "teammates " : "teammate ";
-            msg += victims;
-            sendTeamMateHitMsg(msg);
-        }
-    }
-
-    if (useTeamMateHitMode())
-    {
-        bool punished = false;
-        // first check if we exploded at least one teammate
-        for (unsigned int i=0; i < m_teammate_karts_exploded.size() && !punished; i++)
-        {
-            const std::string playername = StringUtils::wideToUtf8(
-                RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
-            const int playerTeam = m_team_for_player[playername];
-            if (ownerTeam == playerTeam)
-            {
-                // we did, so punish
-                punished = true;
-                if(owner->getAttachment()->getType() == Attachment::ATTACH_BOMB)
-                {
-                    // make bomb explode
-                    owner->getAttachment()->update(10000);
-                }
-                else if (owner->isShielded())
-                {
-                    // if owner is shielded, take away shield
-                    owner->decreaseShieldTime();
-                }
-                else
-                {
-                    int left_over_ticks = 0;
-                    // if owner already has an anvil or a parachute, make new anvil last longer
-                    if (owner->getAttachment()->getType() == Attachment::ATTACH_ANVIL
-                        || owner->getAttachment()->getType() == Attachment::ATTACH_PARACHUTE)
-                    {
-                        left_over_ticks = owner->getAttachment()->getTicksLeft();
-                    }
-                    owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
-                        stk_config->time2Ticks(owner->getKartProperties()->getAnvilDuration()) + left_over_ticks);
-                    owner->adjustSpeed(owner->getKartProperties()->getAnvilSpeedFactor());
-                }
-            }
-        }
-
-        // now check for deshielding teammates
-        for (unsigned int i = 0; i < m_teammate_karts_hit.size() && !punished; i++)
-        {
-            const std::string playername = StringUtils::wideToUtf8(
-                RaceManager::get()->getKartInfo(m_teammate_karts_hit[i]).getPlayerName());
-            const int playerTeam = m_team_for_player[playername];
-            if (ownerTeam == playerTeam)
-            {
-                // we did, so punish
-                punished = true;
-                if (owner->getAttachment()->getType() == Attachment::ATTACH_BOMB)
-                {
-                    // make bomb explode
-                    owner->getAttachment()->update(10000);
-                }
-                else if (owner->isShielded())
-                {
-                    // if owner is shielded, take away shield
-                    owner->decreaseShieldTime();
-                }
-                else
-                {
-                    // since teammate didn't explode, make anvil less severe
-                    int left_over_ticks = 0;
-                    // if owner already has an anvil or a parachute, make new anvil last longer
-                    if (owner->getAttachment()->getType() == Attachment::ATTACH_ANVIL
-                        || owner->getAttachment()->getType() == Attachment::ATTACH_PARACHUTE)
-                    {
-                        left_over_ticks = owner->getAttachment()->getTicksLeft();
-                    }
-                    owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
-                        stk_config->time2Ticks(owner->getKartProperties()->getAnvilDuration()) / 2 + left_over_ticks);
-                    owner->adjustSpeed(owner->getKartProperties()->getAnvilSpeedFactor() * 2.0f);
-                }
-            }
-        }
-    }
-}   // handleTeamMateHits
-//-----------------------------------------------------------------------------
-
-void ServerLobby::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
-    bool success, bool has_hit_kart, uint16_t ticks_active)
-{
-    const std::string ownername = StringUtils::wideToUtf8(
-        RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int ownerTeam = m_team_for_player[ownername];
-    if (ownerTeam == 0)
-        return;
-
-    const std::string victimname = StringUtils::wideToUtf8(
-        RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victimTeam = m_team_for_player[victimname];
-    if (victimTeam != ownerTeam)
-        return;
-
-    // should we tell the world?
-    if (showTeamMateHits() && success)
-    {
-        std::string msg = ServerConfig::m_teammate_hit_msg_prefix;
-        msg += ownername;
-        msg += " just swattered teammate ";
-        msg += victimname;
-        sendTeamMateHitMsg(msg);
-    }
-    if (useTeamMateHitMode())
-    {
-        // remove swatter
-        AbstractKart *owner = World::getWorld()->getKart(ownerID);
-        owner->getAttachment()->setTicksLeft(0);
-        // if this is the first kart hit and the swatter is in use for less than 3s
-        // the attacker also gets an anvil
-        if (!has_hit_kart && ticks_active < stk_config->time2Ticks(3.0f) && success)
-            // we cannot do this here, will be done in update()
-            m_teammate_swatter_punish.push_back(owner);
-    }
-}   // handleSwatterHit
-//-----------------------------------------------------------------------------
-
-void ServerLobby::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
-{
-    const std::string ownername = StringUtils::wideToUtf8(
-        RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int ownerTeam = m_team_for_player[ownername];
-    if (ownerTeam == 0)
-        return;
-
-    const std::string victimname = StringUtils::wideToUtf8(
-        RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victimTeam = m_team_for_player[victimname];
-    if (victimTeam != ownerTeam)
-        return;
-
-    AbstractKart *owner = World::getWorld()->getKart(ownerID);
-
-    // should we tell the world?
-    if (showTeamMateHits())
-    {
-        std::string msg = ServerConfig::m_teammate_hit_msg_prefix;
-        msg += ownername;
-        msg += " just gave an anchor to teammate ";
-        msg += victimname;
-        sendTeamMateHitMsg(msg);
-    }
-    if (useTeamMateHitMode())
-    {
-        if (owner->getAttachment()->getType() == Attachment::ATTACH_BOMB)
-        {
-            // make bomb explode
-            owner->getAttachment()->update(10000);
-        }
-        else
-        {
-            if (owner->isShielded())
-            {
-                // if owner is shielded, take away shield
-                // since the anvil will also destroy the shield of the victim
-                // we also punish this severely
-                owner->decreaseShieldTime();
-            }
-
-            // now give anvil to owner
-            int left_over_ticks = 0;
-            // if owner already has an anvil or a parachute, make new anvil last longer
-            if (owner->getAttachment()->getType() == Attachment::ATTACH_ANVIL
-                || owner->getAttachment()->getType() == Attachment::ATTACH_PARACHUTE)
-            {
-                left_over_ticks = owner->getAttachment()->getTicksLeft();
-            }
-            owner->getAttachment()->set(Attachment::ATTACH_ANVIL,
-                                        stk_config->time2Ticks(owner->getKartProperties()->getAnvilDuration()) + left_over_ticks);
-            // the powerup anvil is very strong, copy these values (from powerup.cpp)
-            owner->adjustSpeed(owner->getKartProperties()->getAnvilSpeedFactor() * 0.5f);
-        }
-    }
-}   // handleAnvilHit
-//-----------------------------------------------------------------------------
 
 bool ServerLobby::isSoccerGoalTarget() const
 {

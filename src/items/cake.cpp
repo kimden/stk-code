@@ -24,6 +24,7 @@
 #include "io/xml_node.hpp"
 #include "karts/abstract_kart.hpp"
 #include "utils/constants.hpp"
+#include "utils/hit_processor.hpp"
 #include "utils/random_generator.hpp"
 
 #include "network/protocols/server_lobby.hpp"
@@ -65,7 +66,7 @@ bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
 {
     auto sl = LobbyProtocol::get<ServerLobby>();
     if (sl)
-        sl->setTeamMateHitOwner(getOwnerId());
+        sl->getHitProcessor()->setTeamMateHitOwner(getOwnerId());
 
     bool was_real_hit = Flyable::hit(kart, obj);
     if (was_real_hit)
@@ -75,8 +76,8 @@ bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
             kart->decreaseShieldTime();
             if (sl)
             {
-                sl->registerTeamMateHit(kart->getWorldKartId());
-                sl->handleTeamMateHits();
+                sl->getHitProcessor()->registerTeamMateHit(kart->getWorldKartId());
+                sl->getHitProcessor()->handleTeamMateHits();
             }
             return false; //Not sure if a shield hit is a real hit.
         }
@@ -84,7 +85,7 @@ bool Cake::hit(AbstractKart* kart, PhysicalObject* obj)
     }
 
     if (sl)
-        sl->handleTeamMateHits();
+        sl->getHitProcessor()->handleTeamMateHits();
     return was_real_hit;
 }   // hit
 

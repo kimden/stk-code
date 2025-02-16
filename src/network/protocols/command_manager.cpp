@@ -33,6 +33,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/file_utils.hpp"
+#include "utils/hit_processor.hpp"
 #include "utils/hourglass_reason.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
@@ -3148,7 +3149,7 @@ void CommandManager::process_hitmsg(Context& context)
         error(context, true);
         return;
     }
-    if (m_lobby->m_show_teammate_hits)
+    if (m_lobby->getHitProcessor()->m_show_teammate_hits)
         msg = "Teammate hits are sent to all players";
     else
         msg = "Teammate hits are not sent";
@@ -3167,10 +3168,10 @@ void CommandManager::process_hitmsg_assign(Context& context)
     }
     if (argv[1] == "0")
     {
-        m_lobby->m_show_teammate_hits = false;
+        m_lobby->getHitProcessor()->m_show_teammate_hits = false;
         msg = "Teammate hits will not be sent";
     } else {
-        m_lobby->m_show_teammate_hits = true;
+        m_lobby->getHitProcessor()->m_show_teammate_hits = true;
         msg = "Teammate hits will be sent to all players";
     }
     m_lobby->sendStringToAllPeers(msg);
@@ -3186,7 +3187,7 @@ void CommandManager::process_teamhit(Context& context)
         error(context, true);
         return;
     }
-    if (m_lobby->m_teammate_hit_mode)
+    if (m_lobby->getHitProcessor()->m_teammate_hit_mode)
         msg = "Teammate hits are punished";
     else
         msg = "Teammate hits are not punished";
@@ -3205,12 +3206,12 @@ void CommandManager::process_teamhit_assign(Context& context)
     }
     if (argv[1] == "0")
     {
-        m_lobby->m_teammate_hit_mode = false;
+        m_lobby->getHitProcessor()->m_teammate_hit_mode = false;
         msg = "Teammate hits are not punished now";
     }
     else
     {
-        m_lobby->m_teammate_hit_mode = true;
+        m_lobby->getHitProcessor()->m_teammate_hit_mode = true;
         msg = "Teammate hits are punished now";
     }
     m_lobby->sendStringToAllPeers(msg);

@@ -52,6 +52,7 @@ class STKPeer;
 class SocketAddress;
 enum AlwaysSpectateMode: uint8_t;
 class Ranking;
+class HitProcessor;
 
 namespace Online
 {
@@ -194,6 +195,8 @@ private:
     std::map<std::string, uint64_t> m_pending_peer_connection;
 
     std::shared_ptr<Ranking> m_ranking;
+
+    std::shared_ptr<HitProcessor> m_hit_processor;
 
     /* Saved the last game result */
     NetworkString* m_result_ns;
@@ -364,31 +367,6 @@ private:
 
     // config for troll system
     bool  m_troll_active;
-
-    // teammate hits
-    // show messages about team hits?
-    bool m_show_teammate_hits;
-    // give anvils to attackers?
-    bool m_teammate_hit_mode;
-    // time index of last team mate hit
-    // make sure not to send too many of them
-    int m_last_teammate_hit_msg;
-    // we have to keep track of the karts affected by a hit
-    // we store IDs, because we need to find the team by name (by ID)
-    // m_collecting_teammate_hit_info is set to true if we are processing a
-    // cake or bowl hit, so we make sure we never fill the vectors with
-    // unneeded data.
-    bool m_collecting_teammate_hit_info;
-    unsigned int m_teammate_current_item_ownerID;
-    uint16_t m_teammate_ticks_since_thrown;
-    std::vector<unsigned int> m_teammate_karts_hit;
-    std::vector<unsigned int> m_teammate_karts_exploded;
-    // store karts to punish for swattering a teammate
-    std::vector<AbstractKart*> m_teammate_swatter_punish;
-
-    // after a certain time a bowl can be avoided and doesn't
-    // trigger teammate hits anymore
-    const float MAX_BOWL_TEAMMATE_HIT_TIME = 2.0f;
 
     friend CommandManager;
     CommandManager m_command_manager;
@@ -589,20 +567,6 @@ public:
         std::string& direction, int laps);
 #endif
 
-    // handle cakes and bowls
-    void setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown = 0);
-    void registerTeamMateHit(unsigned int kartID);
-    void registerTeamMateExplode(unsigned int kartID);
-    void handleTeamMateHits();
-
-    // handle swatters
-    void handleSwatterHit(unsigned int ownerID, unsigned int victimID, bool success, bool has_hit_kart, uint16_t ticks_active);
-    // handle anvil
-    void handleAnvilHit(unsigned int ownerID, unsigned int victimID);
-
-    void sendTeamMateHitMsg(std::string& s);
-    bool showTeamMateHits() const              { return m_show_teammate_hits; }
-    bool useTeamMateHitMode() const             { return m_teammate_hit_mode; }
     bool isDifficultyAvailable(int difficulty) const
                      { return m_available_difficulties.count(difficulty) > 0; }
     bool isModeAvailable(int mode) const
@@ -637,6 +601,8 @@ public:
     void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
+    int getTeamForUsername(const std::string& name) { return m_team_for_player[name]; }
+    std::shared_ptr<HitProcessor> getHitProcessor() const { return m_hit_processor; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP
