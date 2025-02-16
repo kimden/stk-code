@@ -3044,6 +3044,7 @@ void ServerLobby::clientDisconnected(Event* event)
 
     World* w = World::getWorld();
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
+    m_message_receivers.erase(peer);
      // No warnings otherwise, as it could happen during lobby period
     if (w && m_game_info)
         saveDisconnectingPeerInfo(peer);
