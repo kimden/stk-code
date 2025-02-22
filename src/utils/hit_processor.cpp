@@ -32,6 +32,9 @@ HitProcessor::HitProcessor(ServerLobby* lobby): m_lobby(lobby)
     m_teammate_hit_mode = ServerConfig::m_teammate_hit_mode;
     m_last_teammate_hit_msg = 0;
     m_teammate_swatter_punish.clear();
+
+    // This was also present in ServerLobby::setup(), I'm not sure why.
+    // Return back if there are problems.
     m_collecting_teammate_hit_info = false;
 } // HitProcessor
 // ========================================================================
@@ -100,7 +103,7 @@ void HitProcessor::handleTeamMateHits()
         return;
 
     // Show message?
-    if (showTeamMateHits())
+    if (showTeammateHits())
     {
         // prepare string
         int num_victims = 0;
@@ -131,7 +134,7 @@ void HitProcessor::handleTeamMateHits()
         }
     }
 
-    if (useTeamMateHitMode())
+    if (isTeammateHitMode())
     {
         bool punished = false;
         // first check if we exploded at least one teammate
@@ -226,7 +229,7 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
         return;
 
     // should we tell the world?
-    if (showTeamMateHits() && success)
+    if (showTeammateHits() && success)
     {
         std::string msg = StringUtils::insertValues(
             "%s%s just swattered teammate %s",
@@ -236,7 +239,7 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
         );
         sendTeamMateHitMsg(msg);
     }
-    if (useTeamMateHitMode())
+    if (isTeammateHitMode())
     {
         // remove swatter
         AbstractKart *owner = World::getWorld()->getKart(ownerID);
@@ -267,7 +270,7 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
     AbstractKart *owner = World::getWorld()->getKart(ownerID);
 
     // should we tell the world?
-    if (showTeamMateHits())
+    if (showTeammateHits())
     {
         std::string msg = StringUtils::insertValues(
             "%s%s just gave an anchor to teammate %s",
@@ -277,7 +280,7 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
         );
         sendTeamMateHitMsg(msg);
     }
-    if (useTeamMateHitMode())
+    if (isTeammateHitMode())
     {
         if (owner->getAttachment()->getType() == Attachment::ATTACH_BOMB)
         {
@@ -309,4 +312,20 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
         }
     }
 }   // handleAnvilHit
+//-----------------------------------------------------------------------------
+
+void HitProcessor::punishSwatterHits()
+{
+    if (m_teammate_swatter_punish.size() > 0)
+    {
+        // punish players who swattered teammates
+        for (auto& kart : m_teammate_swatter_punish)
+        {
+            kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                stk_config->time2Ticks(kart->getKartProperties()->getAnvilDuration()));
+            kart->adjustSpeed(kart->getKartProperties()->getAnvilSpeedFactor());
+        }
+        m_teammate_swatter_punish.clear();
+    }
+}   // punishSwatterHits
 //-----------------------------------------------------------------------------

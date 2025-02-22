@@ -35,8 +35,7 @@ class HitProcessor
 public:
     HitProcessor(ServerLobby* lobby);
 
-public: // feb16 remove todo revert to private
-    // feb16 remove
+private:
     ServerLobby* m_lobby = nullptr;
 
     bool m_show_teammate_hits; // Whether to show messages about team hits.
@@ -63,6 +62,10 @@ public: // feb16 remove todo revert to private
     
 public:
     // handle cakes and bowls
+    bool isTeammateHitMode() const { return m_teammate_hit_mode; }
+    bool showTeammateHits() const { return m_show_teammate_hits; }
+    void setTeammateHitMode(bool value) { m_teammate_hit_mode = value; }
+    void setShowTeammateHits(bool value) { m_show_teammate_hits = value; }
     void setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown = 0);
     void registerTeamMateHit(unsigned int kartID);
     void registerTeamMateExplode(unsigned int kartID);
@@ -74,8 +77,8 @@ public:
     void handleAnvilHit(unsigned int ownerID, unsigned int victimID);
 
     void sendTeamMateHitMsg(std::string& s);
-    bool showTeamMateHits() const              { return m_show_teammate_hits; }
-    bool useTeamMateHitMode() const             { return m_teammate_hit_mode; }
+    void punishSwatterHits();
+    void resetLastHits() { m_last_teammate_hit_msg = 0; }
 };
 
 

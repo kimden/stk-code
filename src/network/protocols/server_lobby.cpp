@@ -18,12 +18,8 @@
 
 #include "network/protocols/server_lobby.hpp"
 
-// #include "addons/addon.hpp"
-// #include "config/user_config.hpp"
 #include "items/network_item_manager.hpp"
-// #include "items/powerup_manager.hpp"
 #include "items/attachment.hpp"
-// #include "karts/controller/player_controller.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "karts/official_karts.hpp"
@@ -34,35 +30,25 @@
 #include "network/database_connector.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
-// #include "network/network.hpp"
 #include "network/network_config.hpp"
 #include "network/network_player_profile.hpp"
-// #include "network/peer_vote.hpp"
 #include "network/protocol_manager.hpp"
 #include "network/protocols/connect_to_peer.hpp"
-// #include "network/protocols/command_permissions.hpp"
 #include "network/protocols/game_protocol.hpp"
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/protocols/ranking.hpp"
 #include "network/race_event_manager.hpp"
 #include "network/server_config.hpp"
-// #include "network/socket_address.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_ipv6.hpp"
 #include "network/stk_peer.hpp"
-// #include "online/online_profile.hpp"
 #include "online/request_manager.hpp"
 #include "online/xml_request.hpp"
-// #include "race/race_manager.hpp"
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/game_info.hpp"
 #include "utils/hit_processor.hpp"
-// #include "utils/log.hpp"
-// #include "utils/random_generator.hpp"
-// #include "utils/string_utils.hpp"
-// #include "utils/time.hpp"
 #include "utils/translation.hpp"
 
 #include <algorithm>
@@ -171,7 +157,6 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_troll_active = ServerConfig::m_troll_active;
 
     m_hit_processor = std::make_shared<HitProcessor>(this);
-    // feb16 remove this
 
     m_available_teams = ServerConfig::m_init_available_teams;
 
@@ -431,7 +416,6 @@ void ServerLobby::setup()
     m_winner_peer_id = 0;
     m_client_starting_time = 0;
     m_ai_count = 0;
-    getHitProcessor()->m_collecting_teammate_hit_info = false;
     auto players = STKHost::get()->getPlayersForNewGame();
     if (m_game_setup->isGrandPrix() && !m_game_setup->isGrandPrixStarted())
     {
@@ -527,12 +511,8 @@ void ServerLobby::handleChat(Event* event)
         event->getPeer()->getConsecutiveMessages() >
         ServerConfig::m_chat_consecutive_interval / 2)
     {
-        NetworkString* chat = getNetworkString();
-        chat->setSynchronous(true);
-        core::stringw warn = "Spam detected";
-        chat->addUInt8(LE_CHAT).encodeString16(warn);
-        event->getPeer()->sendPacket(chat, PRM_RELIABLE);
-        delete chat;
+        std::string msg = "Spam detected";
+        sendStringToPeer(msg, event->getPeerSP());
         return;
     }
 
@@ -547,12 +527,8 @@ void ServerLobby::handleChat(Event* event)
     
     if (!StringUtils::startsWith(message_utf8, prefix))
     {
-        NetworkString* chat = getNetworkString();
-        chat->setSynchronous(true);
-        core::stringw warn = "Don't try to impersonate others!";
-        chat->addUInt8(LE_CHAT).encodeString16(warn);
-        event->getPeer()->sendPacket(chat, PRM_RELIABLE);
-        delete chat;
+        std::string warn = "Don't try to impersonate others!";
+        sendStringToPeer(warn, event->getPeerSP());
         return;
     }
 
@@ -1163,7 +1139,7 @@ void ServerLobby::asynchronousUpdate()
         // reset
 
         // maybe this is not the best place for this?
-        getHitProcessor()->m_last_teammate_hit_msg = 0;
+        getHitProcessor()->resetLastHits();
 
         if (m_end_voting_period.load() == 0)
             return;
@@ -1930,17 +1906,7 @@ void ServerLobby::update(int ticks)
                     }
                 }
             }
-            if (getHitProcessor()->m_teammate_swatter_punish.size() > 0)
-            {
-                // punish players who swattered teammates
-                for (auto& kart : getHitProcessor()->m_teammate_swatter_punish)
-                {
-                    kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
-                        stk_config->time2Ticks(kart->getKartProperties()->getAnvilDuration()));
-                    kart->adjustSpeed(kart->getKartProperties()->getAnvilSpeedFactor());
-                }
-                getHitProcessor()->m_teammate_swatter_punish.clear();
-            }
+            getHitProcessor()->punishSwatterHits();
         }
     }
     if (m_state.load() == WAITING_FOR_START_GAME) {
