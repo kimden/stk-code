@@ -60,47 +60,46 @@ public:
     std::string getRandomAddonMap() const;
 
     std::set<std::string> getAvailableKarts() const
-                                              { return k_available_kts.first; }
-    void setMustHaveMaps(const std::string& input)
-                  { m_must_have_maps = StringUtils::split(input, ' ', false); }
+                                              { return m_available_kts.first; }
+    void setMustHaveMaps(const std::string& input);
 
-    std::set<std::string> getAddonKarts() const   { return k_addon_kts.first; }
-    std::set<std::string> getAddonTracks() const { return k_addon_kts.second; }
-    std::set<std::string> getAddonArenas() const     { return k_addon_arenas; }
-    std::set<std::string> getAddonSoccers() const   { return k_addon_soccers; }
+    std::set<std::string> getAddonKarts() const   { return m_addon_kts.first; }
+    std::set<std::string> getAddonTracks() const { return m_addon_kts.second; }
+    std::set<std::string> getAddonArenas() const     { return m_addon_arenas; }
+    std::set<std::string> getAddonSoccers() const   { return m_addon_soccers; }
 
     bool hasAddonKart(const std::string& id) const
-              { return k_addon_kts.first.find(id) != k_addon_kts.first.end(); }
+              { return m_addon_kts.first.find(id) != m_addon_kts.first.end(); }
     bool hasAddonTrack(const std::string& id) const
-            { return k_addon_kts.second.find(id) != k_addon_kts.second.end(); }
+            { return m_addon_kts.second.find(id) != m_addon_kts.second.end(); }
     bool hasAddonArena(const std::string& id) const
-                    { return k_addon_arenas.find(id) != k_addon_arenas.end(); }
+                    { return m_addon_arenas.find(id) != m_addon_arenas.end(); }
     bool hasAddonSoccer(const std::string& id) const
-                  { return k_addon_soccers.find(id) != k_addon_soccers.end(); }
+                  { return m_addon_soccers.find(id) != m_addon_soccers.end(); }
 
 private:
     ServerLobby* m_lobby;
 
 public:
     /** Official karts and maps available in server. */
-    std::pair<std::set<std::string>, std::set<std::string> > k_official_kts;
+    std::pair<std::set<std::string>, std::set<std::string> > m_official_kts;
 
     /** Addon karts and maps available in server. */
-    std::pair<std::set<std::string>, std::set<std::string> > k_addon_kts;
+    std::pair<std::set<std::string>, std::set<std::string> > m_addon_kts;
 
     /** Addon arenas available in server. */
-    std::set<std::string> k_addon_arenas;
+    std::set<std::string> m_addon_arenas;
 
     /** Addon soccers available in server. */
-    std::set<std::string> k_addon_soccers;
+    std::set<std::string> m_addon_soccers;
 
     /** Available karts and maps for all clients, this will be initialized
      *  with data in server first. */
-    std::pair<std::set<std::string>, std::set<std::string> > k_available_kts;
+    std::pair<std::set<std::string>, std::set<std::string> > m_available_kts;
 
     /** Available karts and maps for all clients, this will be initialized
      *  with data in server first. */
-    std::pair<std::set<std::string>, std::set<std::string> > k_entering_kts;
+    std::pair<std::set<std::string>, std::set<std::string> > m_entering_kts;
 
     std::vector<std::string> m_must_have_maps;
 };

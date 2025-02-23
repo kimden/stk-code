@@ -35,8 +35,10 @@
 #include "utils/file_utils.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/hourglass_reason.hpp"
+#include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
 #include "utils/log.hpp"
+#include "utils/map_vote_handler.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 
@@ -2142,13 +2144,13 @@ void CommandManager::process_gnu(Context& context)
     }
     // "nognu" and "gnu off" are equivalent
     bool turn_on = (argv.size() < 2 || argv[1] != "off");
-    if (turn_on && m_lobby->m_kart_elimination.isEnabled())
+    if (turn_on && m_lobby->m_kart_elimination->isEnabled())
     {
         std::string msg = "Gnu Elimination mode was already enabled!";
         m_lobby->sendStringToPeer(msg, peer);
         return;
     }
-    if (!turn_on && !m_lobby->m_kart_elimination.isEnabled())
+    if (!turn_on && !m_lobby->m_kart_elimination->isEnabled())
     {
         std::string msg = "Gnu Elimination mode was already off!";
         m_lobby->sendStringToPeer(msg, peer);
@@ -2198,14 +2200,14 @@ void CommandManager::process_gnu(Context& context)
     m_votables["gnu"].reset("gnu kart");
     if (kart == "off")
     {
-        m_lobby->m_kart_elimination.disable();
+        m_lobby->m_kart_elimination->disable();
         std::string msg = "Gnu Elimination is now off";
         m_lobby->sendStringToAllPeers(msg);
     }
     else
     {
-        m_lobby->m_kart_elimination.enable(kart);
-        std::string msg = m_lobby->m_kart_elimination.getStartingMessage();
+        m_lobby->m_kart_elimination->enable(kart);
+        std::string msg = m_lobby->m_kart_elimination->getStartingMessage();
         m_lobby->sendStringToAllPeers(msg);
     }
 } // process_gnu
@@ -2277,7 +2279,7 @@ void CommandManager::process_standings(Context& context)
         msg = m_lobby->getGrandPrixStandings(isGPPlayers, isGPTeams);
     }
     else if (isGnu)
-        msg = m_lobby->m_kart_elimination.getStandings();
+        msg = m_lobby->m_kart_elimination->getStandings();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_standings
 // ========================================================================
@@ -3981,7 +3983,7 @@ void CommandManager::process_voting(Context& context)
         return;
     }
     std::string msg = StringUtils::insertValues("Voting method: %d",
-            m_lobby->m_map_vote_handler.getAlgorithm());
+            m_lobby->m_map_vote_handler->getAlgorithm());
     m_lobby->sendStringToPeer(msg, peer);
 } // process_voting
 // ========================================================================
@@ -4007,7 +4009,7 @@ void CommandManager::process_voting_assign(Context& context)
         error(context);
         return;
     }
-    m_lobby->m_map_vote_handler.setAlgorithm(value);
+    m_lobby->m_map_vote_handler->setAlgorithm(value);
     msg = StringUtils::insertValues("Set voting method to %s", value);
     m_lobby->sendStringToPeer(msg, peer);
 } // process_voting_assign
