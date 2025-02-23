@@ -35,6 +35,7 @@
 #include "utils/file_utils.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/hourglass_reason.hpp"
+#include "utils/lobby_asset_manager.hpp"
 #include "utils/log.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
@@ -607,6 +608,8 @@ CommandManager::CommandManager(ServerLobby* lobby):
         return;
     initCommands();
     initAssets();
+
+    m_asset_manager = lobby->getLobbyAssetManager();
 
     m_aux_mode_aliases = {
             {"m0"},
@@ -1313,10 +1316,10 @@ void CommandManager::process_addons(Context& context)
     // removed const reference so that I can modify `from`
     // without changing the original container, we copy everything anyway
     std::set<std::string> from =
-        (argv[1] == "kart" ? m_lobby->m_addon_kts.first :
-        (argv[1] == "track" ? m_lobby->m_addon_kts.second :
-        (argv[1] == "arena" ? m_lobby->m_addon_arenas :
-        /*argv[1] == "soccer" ?*/ m_lobby->m_addon_soccers
+        (argv[1] == "kart" ? m_asset_manager->getAddonKarts() :
+        (argv[1] == "track" ? m_asset_manager->getAddonTracks() :
+        (argv[1] == "arena" ? m_asset_manager->getAddonArenas() :
+        /*argv[1] == "soccer" ?*/ m_asset_manager->getAddonSoccers()
     )));
     if (apply_filters)
         m_lobby->applyAllFilters(from, false); // happily the type is never karts in this line
@@ -1457,13 +1460,13 @@ void CommandManager::process_checkaddon(Context& context)
     unsigned server_status = 0;
     std::vector<std::string> players[4];
 
-    if (m_lobby->m_addon_kts.first.count(id))
+    if (m_asset_manager->hasAddonKart(id))
         server_status |= HAS_KART;
-    if (m_lobby->m_addon_kts.second.count(id))
+    if (m_asset_manager->hasAddonTrack(id))
         server_status |= HAS_MAP;
-    if (m_lobby->m_addon_arenas.count(id))
+    if (m_asset_manager->hasAddonArena(id))
         server_status |= HAS_MAP;
-    if (m_lobby->m_addon_soccers.count(id))
+    if (m_asset_manager->hasAddonSoccer(id))
         server_status |= HAS_MAP;
 
     auto peers = STKHost::get()->getPeers();
@@ -1616,22 +1619,26 @@ void CommandManager::process_lsa(Context& context)
     if (type.empty() || // not specify addon type
        (!type.empty() && type.compare("kart") == 0)) // list kart addon
     {
-        total_addons.insert(m_lobby->m_addon_kts.first.begin(), m_lobby->m_addon_kts.first.end());
+        const auto& collection = m_asset_manager->getAddonKarts();
+        total_addons.insert(collection.begin(), collection.end());
     }
     if (type.empty() || // not specify addon type
        (!type.empty() && type.compare("track") == 0))
     {
-        total_addons.insert(m_lobby->m_addon_kts.second.begin(), m_lobby->m_addon_kts.second.end());
+        const auto& collection = m_asset_manager->getAddonTracks();
+        total_addons.insert(collection.begin(), collection.end());
     }
     if (type.empty() || // not specify addon type
        (!type.empty() && type.compare("arena") == 0))
     {
-        total_addons.insert(m_lobby->m_addon_arenas.begin(), m_lobby->m_addon_arenas.end());
+        const auto& collection = m_asset_manager->getAddonArenas();
+        total_addons.insert(collection.begin(), collection.end());
     }
     if (type.empty() || // not specify addon type
        (!type.empty() && type.compare("soccer") == 0))
     {
-        total_addons.insert(m_lobby->m_addon_soccers.begin(), m_lobby->m_addon_soccers.end());
+        const auto& collection = m_asset_manager->getAddonSoccers();
+        total_addons.insert(collection.begin(), collection.end());
     }
     std::string msg = "";
     for (auto& addon : total_addons)
@@ -1992,10 +1999,15 @@ void CommandManager::process_sha(Context& context)
         return;
     }
     std::set<std::string> total_addons;
-    total_addons.insert(m_lobby->m_addon_kts.first.begin(), m_lobby->m_addon_kts.first.end());
-    total_addons.insert(m_lobby->m_addon_kts.second.begin(), m_lobby->m_addon_kts.second.end());
-    total_addons.insert(m_lobby->m_addon_arenas.begin(), m_lobby->m_addon_arenas.end());
-    total_addons.insert(m_lobby->m_addon_soccers.begin(), m_lobby->m_addon_soccers.end());
+
+    const auto all_karts = m_asset_manager->getAddonKarts();
+    const auto all_tracks = m_asset_manager->getAddonTracks();
+    const auto all_arenas = m_asset_manager->getAddonArenas();
+    const auto all_soccers = m_asset_manager->getAddonSoccers();
+    total_addons.insert(all_karts.begin(), all_karts.end());
+    total_addons.insert(all_tracks.begin(), all_tracks.end());
+    total_addons.insert(all_arenas.begin(), all_arenas.end());
+    total_addons.insert(all_soccers.begin(), all_soccers.end());
     std::string addon_id_test = Addon::createAddonId(argv[1]);
     bool found = total_addons.find(addon_id_test) != total_addons.end();
     if (found)
@@ -2160,7 +2172,7 @@ void CommandManager::process_gnu(Context& context)
         if (peer)
         {
             kart = "gnu";
-            if (argv.size() > 1 && m_lobby->m_available_kts.first.count(argv[1]) > 0)
+            if (argv.size() > 1 && m_asset_manager->isKartAvailable(argv[1]))
             {
                 kart = argv[1];
             }
@@ -2569,9 +2581,9 @@ void CommandManager::process_queue_push(Context& context)
     bool to_front = (argv[1] == "push_front");
 
     if (argv.size() == 3 && argv[2] == "-") // kept until there's filter-type replacement
-        argv[2] = getRandomMap();
+        argv[2] = m_asset_manager->getRandomMap();
     else if (argv.size() == 3 && argv[2] == "-addon") // kept until there's filter-type replacement
-        argv[2] = getRandomAddonMap();
+        argv[2] = m_asset_manager->getRandomAddonMap();
 
     std::string filter_text = "";
     CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
@@ -4249,40 +4261,6 @@ bool CommandManager::assignRandomTeams(int intended_number,
     }
     return true;
 } // assignRandomTeams
-// ========================================================================
-
-std::string CommandManager::getRandomMap() const
-{
-    std::set<std::string> items;
-    for (const std::string& s: m_lobby->m_entering_kts.second) {
-        items.insert(s);
-    }
-    m_lobby->applyAllFilters(items, false);
-    if (items.empty())
-        return "";
-    RandomGenerator rg;
-    std::set<std::string>::iterator it = items.begin();
-    std::advance(it, rg.get((int)items.size()));
-    return *it;
-} // getRandomMap
-// ========================================================================
-
-std::string CommandManager::getRandomAddonMap() const
-{
-    std::set<std::string> items;
-    for (const std::string& s: m_lobby->m_entering_kts.second) {
-        Track* t = track_manager->getTrack(s);
-        if (t->isAddon())
-            items.insert(s);
-    }
-    m_lobby->applyAllFilters(items, false);
-    if (items.empty())
-        return "";
-    RandomGenerator rg;
-    std::set<std::string>::iterator it = items.begin();
-    std::advance(it, rg.get((int)items.size()));
-    return *it;
-} // getRandomAddonMap
 // ========================================================================
 
 void CommandManager::addUser(std::string& s)

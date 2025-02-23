@@ -49,6 +49,7 @@
 class ServerLobby;
 class Event;
 class STKPeer;
+class LobbyAssetManager;
 
 class CommandManager
 {
@@ -196,6 +197,8 @@ class CommandManager
 private:
 
     ServerLobby* m_lobby;
+
+    std::shared_ptr<LobbyAssetManager> m_asset_manager;
 
     std::vector<std::weak_ptr<Command>> m_all_commands;
 
@@ -348,9 +351,6 @@ private:
     void process_available_teams(Context& context);
     void process_available_teams_assign(Context& context);
     void special(Context& context);
-
-    std::string getRandomMap() const;
-    std::string getRandomAddonMap() const;
 
 public:
 

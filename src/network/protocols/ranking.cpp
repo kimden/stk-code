@@ -17,6 +17,7 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "network/protocols/ranking.hpp"
+#include "online/request_manager.hpp"
 #include "io/xml_node.hpp"
 #include "utils/log.hpp"
 #include "utils/time.hpp"
@@ -38,6 +39,31 @@ namespace
     const double HANDICAP_OFFSET        = 2000.0;
 }
 
+SubmitRankingRequest::SubmitRankingRequest(const RankingEntry& entry,
+                    const std::string& country_code)
+    : XMLRequest(Online::RequestManager::HTTP_MAX_PRIORITY)
+{
+    addParameter("id", entry.online_id);
+    addParameter("scores", entry.score);
+    addParameter("max-scores", entry.max_score);
+    addParameter("num-races-done", entry.races);
+    addParameter("raw-scores", entry.raw_score);
+    addParameter("rating-deviation", entry.deviation);
+    addParameter("disconnects", entry.disconnects);
+    addParameter("country-code", country_code);
+}
+
+void SubmitRankingRequest::afterOperation()
+{
+    Online::XMLRequest::afterOperation();
+    const XMLNode* result = getXMLData();
+    std::string rec_success;
+    if (!(result->get("success", &rec_success) &&
+        rec_success == "yes"))
+    {
+        Log::error("ServerLobby", "Failed to submit scores.");
+    }
+}
 
 //-----------------------------------------------------------------------------
 RankingEntry::RankingEntry(uint32_t online_id): online_id(online_id)
