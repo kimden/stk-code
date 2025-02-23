@@ -53,6 +53,7 @@ class SocketAddress;
 enum AlwaysSpectateMode: uint8_t;
 class Ranking;
 class HitProcessor;
+class LobbyAssetManager;
 
 namespace Online
 {
@@ -145,26 +146,6 @@ private:
 
     std::atomic<uint32_t> m_server_owner_id;
 
-    /** Official karts and tracks available in server. */
-    std::pair<std::set<std::string>, std::set<std::string> > m_official_kts;
-
-    /** Addon karts and tracks available in server. */
-    std::pair<std::set<std::string>, std::set<std::string> > m_addon_kts;
-
-    /** Addon arenas available in server. */
-    std::set<std::string> m_addon_arenas;
-
-    /** Addon soccers available in server. */
-    std::set<std::string> m_addon_soccers;
-
-    /** Available karts and tracks for all clients, this will be initialized
-     *  with data in server first. */
-    std::pair<std::set<std::string>, std::set<std::string> > m_available_kts;
-
-    /** Available karts and tracks for all clients, this will be initialized
-     *  with data in server first. */
-    std::pair<std::set<std::string>, std::set<std::string> > m_entering_kts;
-
     /** Keeps track of the server state. */
     std::atomic_bool m_server_has_loaded_world;
 
@@ -197,6 +178,8 @@ private:
     std::shared_ptr<Ranking> m_ranking;
 
     std::shared_ptr<HitProcessor> m_hit_processor;
+
+    std::shared_ptr<LobbyAssetManager> m_asset_manager;
 
     /* Saved the last game result */
     NetworkString* m_result_ns;
@@ -238,8 +221,6 @@ private:
     unsigned m_ai_count;
 
     std::set<std::shared_ptr<STKPeer>> m_spectators_by_limit;
-
-    std::vector<std::string> m_must_have_tracks;
 
     std::vector<std::string> m_play_requirement_tracks;
 
@@ -392,7 +373,7 @@ private:
     void handleServerConfiguration(Event* event);
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
-    void updateTracksForMode();
+    void updateMapsForMode();
     bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     void resetPeersReady()
     {
@@ -484,7 +465,6 @@ private:
     void getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_id);
     void writePlayerReport(Event* event);
     bool supportsAI();
-    void updateAddons();
     void initCategories();
     void initTournamentPlayers();
     void changeColors();
@@ -603,6 +583,7 @@ public:
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
     int getTeamForUsername(const std::string& name) { return m_team_for_player[name]; }
     std::shared_ptr<HitProcessor> getHitProcessor() const { return m_hit_processor; }
+    std::shared_ptr<LobbyAssetManager> getLobbyAssetManager() const { return m_asset_manager; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

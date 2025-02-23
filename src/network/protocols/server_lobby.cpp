@@ -43,12 +43,13 @@
 #include "network/stk_ipv6.hpp"
 #include "network/stk_peer.hpp"
 #include "online/request_manager.hpp"
-#include "online/xml_request.hpp"
+// #include "online/xml_request.hpp"
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/game_info.hpp"
 #include "utils/hit_processor.hpp"
+#include "utils/lobby_asset_manager.hpp"
 #include "utils/translation.hpp"
 
 #include <algorithm>
@@ -59,35 +60,6 @@
 #include <iterator>
 
 int ServerLobby::m_default_fixed_laps = -1;
-// ========================================================================
-class SubmitRankingRequest : public Online::XMLRequest
-{
-public:
-    SubmitRankingRequest(const RankingEntry& entry,
-                         const std::string& country_code)
-        : XMLRequest(Online::RequestManager::HTTP_MAX_PRIORITY)
-    {
-        addParameter("id", entry.online_id);
-        addParameter("scores", entry.score);
-        addParameter("max-scores", entry.max_score);
-        addParameter("num-races-done", entry.races);
-        addParameter("raw-scores", entry.raw_score);
-        addParameter("rating-deviation", entry.deviation);
-        addParameter("disconnects", entry.disconnects);
-        addParameter("country-code", country_code);
-    }
-    virtual void afterOperation()
-    {
-        Online::XMLRequest::afterOperation();
-        const XMLNode* result = getXMLData();
-        std::string rec_success;
-        if (!(result->get("success", &rec_success) &&
-            rec_success == "yes"))
-        {
-            Log::error("ServerLobby", "Failed to submit scores.");
-        }
-    }
-};   // UpdatePlayerRankingRequest
 // ========================================================================
 
 // We use max priority for all server requests to avoid downloading of addons
@@ -158,6 +130,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     m_hit_processor = std::make_shared<HitProcessor>(this);
 
+    m_asset_manager = std::make_shared<LobbyAssetManager>(this);
+
     m_available_teams = ServerConfig::m_init_available_teams;
 
     m_map_vote_handler.setAlgorithm(ServerConfig::m_map_vote_handling);
@@ -165,25 +139,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     initAvailableModes();
 
     m_current_ai_count.store(0);
-    std::vector<int> all_k =
-        kart_properties_manager->getKartsInGroup("standard");
-    std::vector<int> all_t =
-        track_manager->getTracksInGroup("standard");
-    std::vector<int> all_arenas =
-        track_manager->getArenasInGroup("standard", false);
-    std::vector<int> all_soccers =
-        track_manager->getArenasInGroup("standard", true);
-    all_t.insert(all_t.end(), all_arenas.begin(), all_arenas.end());
-    all_t.insert(all_t.end(), all_soccers.begin(), all_soccers.end());
-
-    m_official_kts.first = OfficialKarts::getOfficialKarts();
-    for (int track : all_t)
-    {
-        Track* t = track_manager->getTrack(track);
-        if (!t->isAddon())
-            m_official_kts.second.insert(t->getIdent());
-    }
-    updateAddons();
+    m_asset_manager->init();
+    m_asset_manager->updateAddons();
 
     initAvailableTracks();
 
@@ -265,146 +222,14 @@ void ServerLobby::initServerStatsTable()
 }   // initServerStatsTable
 
 //-----------------------------------------------------------------------------
-void ServerLobby::updateAddons()
+/** Calls the corresponding method from LobbyAssetManager
+ *  whenever server is reset or game mode is changed. */
+void ServerLobby::updateMapsForMode()
 {
-    m_addon_kts.first.clear();
-    m_addon_kts.second.clear();
-    m_addon_arenas.clear();
-    m_addon_soccers.clear();
-
-    std::set<std::string> total_addons;
-    for (unsigned i = 0; i < kart_properties_manager->getNumberOfKarts(); i++)
-    {
-        const KartProperties* kp =
-            kart_properties_manager->getKartById(i);
-        if (kp->isAddon())
-            total_addons.insert(kp->getIdent());
-    }
-    for (unsigned i = 0; i < track_manager->getNumberOfTracks(); i++)
-    {
-        const Track* track = track_manager->getTrack(i);
-        if (track->isAddon())
-            total_addons.insert(track->getIdent());
-    }
-
-    for (auto& addon : total_addons)
-    {
-        const KartProperties* kp = kart_properties_manager->getKart(addon);
-        if (kp && kp->isAddon())
-        {
-            m_addon_kts.first.insert(kp->getIdent());
-            continue;
-        }
-        Track* t = track_manager->getTrack(addon);
-        if (!t || !t->isAddon() || t->isInternal())
-            continue;
-        if (t->isArena())
-            m_addon_arenas.insert(t->getIdent());
-        if (t->isSoccer())
-            m_addon_soccers.insert(t->getIdent());
-        if (!t->isArena() && !t->isSoccer())
-            m_addon_kts.second.insert(t->getIdent());
-    }
-
-    std::vector<std::string> all_k;
-    for (unsigned i = 0; i < kart_properties_manager->getNumberOfKarts(); i++)
-    {
-        const KartProperties* kp = kart_properties_manager->getKartById(i);
-        if (kp->isAddon())
-            all_k.push_back(kp->getIdent());
-    }
-    std::set<std::string> oks = OfficialKarts::getOfficialKarts();
-    if (all_k.size() >= 65536 - (unsigned)oks.size())
-        all_k.resize(65535 - (unsigned)oks.size());
-    for (const std::string& k : oks)
-        all_k.push_back(k);
-    if (ServerConfig::m_live_players)
-        m_available_kts.first = m_official_kts.first;
-    else
-        m_available_kts.first = { all_k.begin(), all_k.end() };
-    m_entering_kts = m_available_kts;
-}   // updateAddons
-
-//-----------------------------------------------------------------------------
-/** Called whenever server is reset or game mode is changed.
- */
-void ServerLobby::updateTracksForMode()
-{
-    auto all_t = track_manager->getAllTrackIdentifiers();
-    if (all_t.size() >= 65536)
-        all_t.resize(65535);
-    m_available_kts.second = { all_t.begin(), all_t.end() };
     RaceManager::MinorRaceModeType m =
         ServerConfig::getLocalGameMode(m_game_mode.load()).first;
-    switch (m)
-    {
-        case RaceManager::MINOR_MODE_NORMAL_RACE:
-        case RaceManager::MINOR_MODE_TIME_TRIAL:
-        case RaceManager::MINOR_MODE_FOLLOW_LEADER:
-        {
-            auto it = m_available_kts.second.begin();
-            while (it != m_available_kts.second.end())
-            {
-                Track* t =  track_manager->getTrack(*it);
-                if (t->isArena() || t->isSoccer() || t->isInternal())
-                {
-                    it = m_available_kts.second.erase(it);
-                }
-                else
-                    it++;
-            }
-            break;
-        }
-        case RaceManager::MINOR_MODE_FREE_FOR_ALL:
-        case RaceManager::MINOR_MODE_CAPTURE_THE_FLAG:
-        {
-            auto it = m_available_kts.second.begin();
-            while (it != m_available_kts.second.end())
-            {
-                Track* t =  track_manager->getTrack(*it);
-                if (RaceManager::get()->getMinorMode() ==
-                    RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
-                {
-                    if (!t->isCTF() || t->isInternal())
-                    {
-                        it = m_available_kts.second.erase(it);
-                    }
-                    else
-                        it++;
-                }
-                else
-                {
-                    if (!t->isArena() ||  t->isInternal())
-                    {
-                        it = m_available_kts.second.erase(it);
-                    }
-                    else
-                        it++;
-                }
-            }
-            break;
-        }
-        case RaceManager::MINOR_MODE_SOCCER:
-        {
-            auto it = m_available_kts.second.begin();
-            while (it != m_available_kts.second.end())
-            {
-                Track* t =  track_manager->getTrack(*it);
-                if (!t->isSoccer() || t->isInternal())
-                {
-                    it = m_available_kts.second.erase(it);
-                }
-                else
-                    it++;
-            }
-            break;
-        }
-        default:
-            assert(false);
-            break;
-    }
-    m_entering_kts = m_available_kts;
-}   // updateTracksForMode
+    m_asset_manager->updateMapsForMode(m);
+}   // updateMapsForMode
 
 //-----------------------------------------------------------------------------
 void ServerLobby::setup()
@@ -436,16 +261,9 @@ void ServerLobby::setup()
         ai->setKartName("");
 
     StateManager::get()->resetActivePlayers();
-    // We use maximum 16bit unsigned limit
-    auto all_k = kart_properties_manager->getAllAvailableKarts();
-    if (all_k.size() >= 65536)
-        all_k.resize(65535);
-    if (ServerConfig::m_live_players)
-        m_available_kts.first = m_official_kts.first;
-    else
-        m_available_kts.first = { all_k.begin(), all_k.end() };
+    m_asset_manager->onServerSetup();
     NetworkConfig::get()->setTuxHitboxAddon(ServerConfig::m_live_players);
-    updateTracksForMode();
+    updateMapsForMode();
 
     m_server_has_loaded_world.store(false);
 
@@ -2354,7 +2172,7 @@ void ServerLobby::startSelection(const Event *event)
     }
 
     // Remove karts / tracks from server that are not supported on all clients
-    std::set<std::string> karts_erase, tracks_erase;
+    std::vector<std::shared_ptr<STKPeer>> erasingPeers;
     bool has_peer_plays_game = false;
     for (auto peer : peers)
     {
@@ -2375,8 +2193,8 @@ void ServerLobby::startSelection(const Event *event)
             always_spectate_peers.insert(peer);
             continue;
         }
-        peer->eraseServerKarts(m_available_kts.first, karts_erase);
-        peer->eraseServerTracks(m_available_kts.second, tracks_erase);
+        // I might introduce an extra use for a peer that leaves at the same moment. Please investigate later.
+        erasingPeers.push_back(peer);
         if (!peer->isAIPeer())
             has_peer_plays_game = true;
     }
@@ -2409,14 +2227,7 @@ void ServerLobby::startSelection(const Event *event)
             peer->setWaitingForGame(true);
     }
 
-    for (const std::string& kart_erase : karts_erase)
-    {
-        m_available_kts.first.erase(kart_erase);
-    }
-    for (const std::string& track_erase : tracks_erase)
-    {
-        m_available_kts.second.erase(track_erase);
-    }
+    m_asset_manager->eraseAssetsWithPeers(erasingPeers);
 
     max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
@@ -2443,38 +2254,21 @@ void ServerLobby::startSelection(const Event *event)
     else
         m_ai_count = 0;
 
-    std::set<std::string> available_tracks_fallback = m_available_kts.second;
-    applyAllFilters(m_available_kts.second, true);
-
-   /* auto iter = m_available_kts.second.begin();
-    while (iter != m_available_kts.second.end())
-    {
-        // Initial version which will be brought into a separate fuction
-        std::string track = *iter;
-        if (getTrackMaxPlayers(track) < max_player)
-            iter = m_available_kts.second.erase(iter);
-        else
-            iter++;
-    }*/
-
-    if (m_available_kts.second.empty())
+    if (!m_asset_manager->tryApplyingMapFilters())
     {
         Log::error("ServerLobby", "No tracks for playing!");
-        m_available_kts.second = available_tracks_fallback;
         return;
     }
 
+    m_default_vote->m_track_name = m_asset_manager->getRandomAvailableMap();
     RandomGenerator rg;
-    std::set<std::string>::iterator it = m_available_kts.second.begin();
-    std::advance(it, rg.get((int)m_available_kts.second.size()));
-    m_default_vote->m_track_name = *it;
     switch (RaceManager::get()->getMinorMode())
     {
         case RaceManager::MINOR_MODE_NORMAL_RACE:
         case RaceManager::MINOR_MODE_TIME_TRIAL:
         case RaceManager::MINOR_MODE_FOLLOW_LEADER:
         {
-            Track* t = track_manager->getTrack(*it);
+            Track* t = track_manager->getTrack(m_default_vote->m_track_name);
             assert(t);
             m_default_vote->m_num_laps = t->getDefaultNumberOfLaps();
             if (ServerConfig::m_auto_game_time_ratio > 0.0f)
@@ -2581,14 +2375,7 @@ void ServerLobby::startSelection(const Event *event)
                 all_k = {};
         }
 
-
-        const auto& all_t = m_available_kts.second;
-
-        ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
-        for (const std::string& kart : all_k)
-            ns->encodeString(kart);
-        for (const std::string& track : all_t)
-            ns->encodeString(track);
+        m_asset_manager->encodePlayerKartsAndCommonMaps(ns, all_k);
 
         peer->sendPacket(ns, PRM_RELIABLE);
         delete ns;
@@ -3092,112 +2879,7 @@ bool ServerLobby::handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer>
         client_tracks.insert(track);
     }
 
-    // Drop this player if he doesn't have at least 1 kart / track the same
-    // as server
-    float okt = 0.0f;
-    float ott = 0.0f;
-    int addon_karts = 0;
-    int addon_tracks = 0;
-    int addon_arenas = 0;
-    int addon_soccers = 0;
-    for (auto& client_kart : client_karts)
-    {
-        if (m_official_kts.first.find(client_kart) !=
-            m_official_kts.first.end())
-            okt += 1.0f;
-        if (m_addon_kts.first.find(client_kart) !=
-            m_addon_kts.first.end())
-            ++addon_karts;
-    }
-    okt = okt / (float)m_official_kts.first.size();
-    for (auto& client_track : client_tracks)
-    {
-        if (m_official_kts.second.find(client_track) !=
-            m_official_kts.second.end())
-            ott += 1.0f;
-        if (m_addon_kts.second.find(client_track) !=
-            m_addon_kts.second.end())
-            ++addon_tracks;
-        if (m_addon_arenas.find(client_track) !=
-            m_addon_arenas.end())
-            ++addon_arenas;
-        if (m_addon_soccers.find(client_track) !=
-            m_addon_soccers.end())
-            ++addon_soccers;
-    }
-    ott = ott / (float)m_official_kts.second.size();
-
-    std::set<std::string> karts_erase, tracks_erase;
-    for (const std::string& server_kart : m_entering_kts.first)
-    {
-        if (client_karts.find(server_kart) == client_karts.end())
-        {
-            karts_erase.insert(server_kart);
-        }
-    }
-    for (const std::string& server_track : m_entering_kts.second)
-    {
-        if (client_tracks.find(server_track) == client_tracks.end())
-        {
-            tracks_erase.insert(server_track);
-        }
-    }
-
-    bool has_required_tracks = true;
-    for (const std::string& required_track : m_must_have_tracks)
-    {
-        if (client_tracks.find(required_track) == client_tracks.end())
-        {
-            has_required_tracks = false;
-            Log::info("ServerLobby", "Player does not have a required track '%s'.", required_track.c_str());
-            break;
-        }
-    }
-
-    Log::info("ServerLobby", "Player has the following addons: %d/%d(%d) karts,"
-        " %d/%d(%d) tracks, %d/%d(%d) arenas, %d/%d(%d) soccer fields.",
-        addon_karts, (int)ServerConfig::m_addon_karts_join_threshold,
-        (int)ServerConfig::m_addon_karts_play_threshold,
-        addon_tracks, (int)ServerConfig::m_addon_tracks_join_threshold,
-        (int)ServerConfig::m_addon_tracks_play_threshold,
-        addon_arenas, (int)ServerConfig::m_addon_arenas_join_threshold,
-        (int)ServerConfig::m_addon_arenas_play_threshold,
-        addon_soccers, (int)ServerConfig::m_addon_soccers_join_threshold,
-        (int)ServerConfig::m_addon_soccers_play_threshold);
-
-    peer->addon_karts_count = addon_karts;
-    peer->addon_tracks_count = addon_tracks;
-    peer->addon_arenas_count = addon_arenas;
-    peer->addon_soccers_count = addon_soccers;
-
-    if (karts_erase.size() == m_entering_kts.first.size())
-        Log::verbose("ServerLobby", "Bad player: no common karts with server");
-    if (tracks_erase.size() == m_entering_kts.second.size())
-        Log::verbose("ServerLobby", "Bad player: no common tracks with server");
-    if (okt < ServerConfig::m_official_karts_threshold)
-        Log::verbose("ServerLobby", "Bad player: bad official kart threshold");
-    if (ott < ServerConfig::m_official_tracks_threshold)
-        Log::verbose("ServerLobby", "Bad player: bad official track threshold");
-    if (addon_karts < (int)ServerConfig::m_addon_karts_join_threshold)
-        Log::verbose("ServerLobby", "Bad player: too little addon karts");
-    if (addon_tracks < (int)ServerConfig::m_addon_tracks_join_threshold)
-        Log::verbose("ServerLobby", "Bad player: too little addon tracks");
-    if (addon_arenas < (int)ServerConfig::m_addon_arenas_join_threshold)
-        Log::verbose("ServerLobby", "Bad player: too little addon arenas");
-    if (addon_soccers < (int)ServerConfig::m_addon_soccers_join_threshold)
-        Log::verbose("ServerLobby", "Bad player: too little addon soccers");
-    if (!has_required_tracks)
-        Log::verbose("ServerLobby", "Bad player: no required tracks");
-
-    if (karts_erase.size() == m_entering_kts.first.size() ||
-        tracks_erase.size() == m_entering_kts.second.size() ||
-        okt < ServerConfig::m_official_karts_threshold ||
-        ott < ServerConfig::m_official_tracks_threshold ||
-        addon_karts < (int)ServerConfig::m_addon_karts_join_threshold ||
-        addon_tracks < (int)ServerConfig::m_addon_tracks_join_threshold ||
-        addon_arenas < (int)ServerConfig::m_addon_arenas_join_threshold ||
-        addon_soccers < (int)ServerConfig::m_addon_soccers_join_threshold ||
-        !has_required_tracks)
+    if (!m_asset_manager->handleAssetsForPeer(peer, client_karts, client_tracks))
     {
         if (peer->isValidated())
         {
@@ -3234,49 +2916,8 @@ bool ServerLobby::handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer>
         return false;
     }
 
-    std::array<int, AS_TOTAL> addons_scores = {{ -1, -1, -1, -1 }};
-    size_t addon_kart = 0;
-    size_t addon_track = 0;
-    size_t addon_arena = 0;
-    size_t addon_soccer = 0;
 
-    for (auto& kart : m_addon_kts.first)
-    {
-        if (client_karts.find(kart) != client_karts.end())
-            addon_kart++;
-    }
-    for (auto& track : m_addon_kts.second)
-    {
-        if (client_tracks.find(track) != client_tracks.end())
-            addon_track++;
-    }
-    for (auto& arena : m_addon_arenas)
-    {
-        if (client_tracks.find(arena) != client_tracks.end())
-            addon_arena++;
-    }
-    for (auto& soccer : m_addon_soccers)
-    {
-        if (client_tracks.find(soccer) != client_tracks.end())
-            addon_soccer++;
-    }
-
-    if (!m_addon_kts.first.empty())
-    {
-        addons_scores[AS_KART] = addon_kart;
-    }
-    if (!m_addon_kts.second.empty())
-    {
-        addons_scores[AS_TRACK] = addon_track;
-    }
-    if (!m_addon_arenas.empty())
-    {
-        addons_scores[AS_ARENA] = addon_arena;
-    }
-    if (!m_addon_soccers.empty())
-    {
-        addons_scores[AS_SOCCER] = addon_soccer;
-    }
+    std::array<int, AS_TOTAL> addons_scores = m_asset_manager->getAddonScores(client_karts, client_tracks);
 
     // Save available karts and tracks from clients in STKPeer so if this peer
     // disconnects later in lobby it won't affect current players
@@ -3287,8 +2928,8 @@ bool ServerLobby::handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer>
         peer->getHostId() == m_client_server_host_id.load())
     {
         // Update child process addons list too so player can choose later
-        updateAddons();
-        updateTracksForMode();
+        m_asset_manager->updateAddons();
+        updateMapsForMode();
     }
 
     if (ServerConfig::m_soccer_tournament)
@@ -4014,7 +3655,7 @@ void ServerLobby::handlePlayerVote(Event* event)
     Track* t = track_manager->getTrack(vote.m_track_name);
     if (!t)
     {
-        vote.m_track_name = *m_available_kts.second.begin();
+        vote.m_track_name = m_asset_manager->getAnyMapForVote();
         t = track_manager->getTrack(vote.m_track_name);
         assert(t);
     }
@@ -4685,23 +4326,15 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     }
     m_difficulty.store(difficulty);
     m_game_mode.store(mode);
-    updateTracksForMode();
+    updateMapsForMode();
 
     auto peers = STKHost::get()->getPeers();
     for (auto& peer : peers)
     {
         auto assets = peer->getClientAssets();
-        if (!peer->isValidated() || assets.second.empty())
+        if (!peer->isValidated() || assets.second.empty()) // this check will fail hard when I introduce vavriable limits
             continue;
-        std::set<std::string> tracks_erase;
-        for (const std::string& server_track : m_available_kts.second)
-        {
-            if (assets.second.find(server_track) == assets.second.end())
-            {
-                tracks_erase.insert(server_track);
-            }
-        }
-        if (tracks_erase.size() == m_available_kts.second.size())
+        if (m_asset_manager->checkIfNoCommonMaps(assets))
         {
             NetworkString *message = getNetworkString(2);
             message->setSynchronous(true);
@@ -4981,7 +4614,7 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPee
         std::string current_kart = kart;
         if (kart.find("randomkart") != std::string::npos ||
                 (kart.find("addon_") == std::string::npos &&
-                m_available_kts.first.find(kart) == m_available_kts.first.end()))
+                !m_asset_manager->isKartAvailable(kart)))
         {
             current_kart = "";
         }
@@ -5901,9 +5534,6 @@ bool ServerLobby::canRace(std::shared_ptr<STKPeer> peer)
         return false;
     }
 
-    std::set<std::string> maps = peer->getClientAssets().second;
-    std::set<std::string> karts = peer->getClientAssets().first;
-
     if (!m_play_requirement_tracks.empty())
         for (const std::string& track: m_play_requirement_tracks)
             if (peer->getClientAssets().second.count(track) == 0)
@@ -5933,22 +5563,11 @@ bool ServerLobby::canRace(std::shared_ptr<STKPeer> peer)
         return false;
     }
 
-    float karts_fraction = 0.0f;
-    float maps_fraction = 0.0f;
-    for (auto& kart : karts)
-    {
-        if (m_official_kts.first.find(kart) !=
-            m_official_kts.first.end())
-            karts_fraction += 1.0f;
-    }
-    for (auto& map : maps)
-    {
-        if (m_official_kts.second.find(map) !=
-            m_official_kts.second.end())
-            maps_fraction += 1.0f;
-    }
-    karts_fraction /= (float)m_official_kts.first.size();
-    maps_fraction /= (float)m_official_kts.second.size();
+    std::set<std::string> maps = peer->getClientAssets().second;
+    std::set<std::string> karts = peer->getClientAssets().first;
+
+    float karts_fraction = m_asset_manager->officialKartsFraction(karts);
+    float maps_fraction = m_asset_manager->officialMapsFraction(maps);
 
     if (karts_fraction < ServerConfig::m_official_karts_play_threshold)
     {
@@ -6267,8 +5886,7 @@ void ServerLobby::initAvailableTracks()
 {
     m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
     m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
-    m_must_have_tracks = StringUtils::split(
-        ServerConfig::m_must_have_tracks_string, ' ', false);
+    m_asset_manager->setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
     m_play_requirement_tracks = StringUtils::split(
             ServerConfig::m_play_requirement_tracks_string, ' ', false);
 }   // initAvailableTracks
@@ -6597,7 +6215,7 @@ bool ServerLobby::areKartFiltersIgnoringKarts() const
 //-----------------------------------------------------------------------------
 std::string ServerLobby::getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, const std::string& username, const std::string& check_choice) const
 {
-    std::set<std::string> karts = (peer->isAIPeer() ? m_available_kts.first : peer->getClientAssets().first);
+    std::set<std::string> karts = (peer->isAIPeer() ? m_asset_manager->getAvailableKarts() : peer->getClientAssets().first);
     applyAllKartFilters(username, karts, true);
     if (m_kart_elimination.isEliminated(username)
         && karts.count(m_kart_elimination.getKart()))
