@@ -34,6 +34,7 @@
 #include "network/network_player_profile.hpp"
 #include "network/protocol_manager.hpp"
 #include "network/protocols/connect_to_peer.hpp"
+#include "network/protocols/command_manager.hpp"
 #include "network/protocols/game_protocol.hpp"
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/protocols/ranking.hpp"
@@ -47,9 +48,11 @@
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/kart_elimination.hpp"
 #include "utils/game_info.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/lobby_asset_manager.hpp"
+#include "utils/map_vote_handler.hpp"
 #include "utils/translation.hpp"
 
 #include <algorithm>
@@ -111,10 +114,13 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_help_message = getGameSetup()->readOrLoadFromFile
         ((std::string) ServerConfig::m_help);
 
-    m_command_manager = CommandManager(nullptr);
+    m_command_manager = std::make_shared<CommandManager>(nullptr);
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
     m_current_max_players_in_game.store(ServerConfig::m_max_players_in_game);
     m_consent_on_replays = false;
+
+    m_kart_elimination = std::make_shared<KartElimination>();
+    m_map_vote_handler = std::make_shared<MapVoteHandler>();
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
     // Server config has better priority than --laps
@@ -134,7 +140,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
     m_available_teams = ServerConfig::m_init_available_teams;
 
-    m_map_vote_handler.setAlgorithm(ServerConfig::m_map_vote_handling);
+    m_map_vote_handler->setAlgorithm(ServerConfig::m_map_vote_handling);
 
     initAvailableModes();
 
@@ -272,7 +278,7 @@ void ServerLobby::setup()
     resetPeersReady();
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
-    getCommandManager().onResetServer();
+    getCommandManager()->onResetServer();
     if (m_game_info)
         delete m_game_info;
     m_game_info = nullptr;
@@ -2115,7 +2121,7 @@ void ServerLobby::startSelection(const Event *event)
         }
         if (!hasHostRights(peer))
         {
-            auto argv = getCommandManager().getCurrentArgv();
+            auto argv = getCommandManager()->getCurrentArgv();
             if (argv.empty() || argv[0] != "start") {
                 Log::warn("ServerLobby",
                           "Client %d is not authorised to start selection.",
@@ -2367,10 +2373,10 @@ void ServerLobby::startSelection(const Event *event)
         // std::string username = StringUtils::wideToUtf8(profile->getName());
         applyAllKartFilters(username, all_k);
 
-        if (!m_kart_elimination.getRemainingParticipants().empty() && m_kart_elimination.getRemainingParticipants().count(username) == 0)
+        if (!m_kart_elimination->getRemainingParticipants().empty() && m_kart_elimination->getRemainingParticipants().count(username) == 0)
         {
-            if (all_k.count(m_kart_elimination.getKart()))
-                all_k = {m_kart_elimination.getKart()};
+            if (all_k.count(m_kart_elimination->getKart()))
+                all_k = {m_kart_elimination->getKart()};
             else
                 all_k = {};
         }
@@ -2422,7 +2428,7 @@ void ServerLobby::startSelection(const Event *event)
         m_gp_team_scores.clear();
     }
 
-    getCommandManager().onStartSelection();
+    getCommandManager()->onStartSelection();
 }   // startSelection
 
 //-----------------------------------------------------------------------------
@@ -2678,7 +2684,7 @@ void ServerLobby::checkRaceFinished()
         ranking_changes_indication = 1;
     m_result_ns->addUInt8(ranking_changes_indication);
 
-    if (m_kart_elimination.isEnabled())
+    if (m_kart_elimination->isEnabled())
     {
         // ServerLobby's function because we need to take
         // the list of players from somewhere
@@ -2813,7 +2819,7 @@ void ServerLobby::clientDisconnected(Event* event)
         std::string name = StringUtils::wideToUtf8(p->getName());
         msg->encodeString(name);
         Log::info("ServerLobby", "%s disconnected", name.c_str());
-        getCommandManager().deleteUser(name);
+        getCommandManager()->deleteUser(name);
     }
 
     unsigned players_number;
@@ -3232,7 +3238,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                     setTeamInLobby(player, KART_TEAM_BLUE);
             }
         }
-        getCommandManager().addUser(username);
+        getCommandManager()->addUser(username);
         if (m_game_setup->isGrandPrix())
         {
             auto it = m_gp_scores.find(username);
@@ -3357,14 +3363,14 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 #ifdef ENABLE_SQLITE3
     m_db_connector->onPlayerJoinQueries(peer, online_id, player_count, country_code);
 #endif
-    if (m_kart_elimination.isEnabled())
+    if (m_kart_elimination->isEnabled())
     {
         bool hasEliminatedPlayer = false;
         for (unsigned i = 0; i < peer->getPlayerProfiles().size(); ++i)
         {
             std::string name = StringUtils::wideToUtf8(
                     peer->getPlayerProfiles()[i]->getName());
-            if (m_kart_elimination.isEliminated(name))
+            if (m_kart_elimination->isEliminated(name))
             {
                 hasEliminatedPlayer = true;
                 break;
@@ -3373,7 +3379,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
-        std::string warning = m_kart_elimination.getWarningMessage(hasEliminatedPlayer);
+        std::string warning = m_kart_elimination->getWarningMessage(hasEliminatedPlayer);
         chat->encodeString16(StringUtils::utf8ToWide(warning));
         peer->sendPacket(chat, PRM_RELIABLE);
         delete chat;
@@ -3768,7 +3774,7 @@ bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
             cur_players++;
     }
 
-    return m_map_vote_handler.handleAllVotes(
+    return m_map_vote_handler->handleAllVotes(
         m_peers_votes,
         getRemainingVotingTime(),
         getMaxVotingTime(),
@@ -4355,7 +4361,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         {
             int final_number, players_number;
             m_team_for_player.clear();
-            m_command_manager.assignRandomTeams(2, &final_number, &players_number);
+            m_command_manager->assignRandomTeams(2, &final_number, &players_number);
         }
         else
         {
@@ -4381,11 +4387,11 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     delete server_info;
     updatePlayerList();
 
-    if (m_kart_elimination.isEnabled() &&
+    if (m_kart_elimination->isEnabled() &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_NORMAL_RACE &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
-        m_kart_elimination.disable();
+        m_kart_elimination->disable();
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
@@ -4606,9 +4612,9 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPee
         ns.decodeString(&kart);
         std::string username = StringUtils::wideToUtf8(
             peer->getPlayerProfiles()[i]->getName());
-        if (m_kart_elimination.isEliminated(username))
+        if (m_kart_elimination->isEliminated(username))
         {
-            peer->getPlayerProfiles()[i]->setKartName(m_kart_elimination.getKart());
+            peer->getPlayerProfiles()[i]->setKartName(m_kart_elimination->getKart());
             continue;
         }
         std::string current_kart = kart;
@@ -4951,7 +4957,7 @@ void ServerLobby::handleServerCommand(Event* event,
 {
     if (peer.get())
         peer->updateLastActivity();
-    getCommandManager().handleCommand(event, peer);
+    getCommandManager()->handleCommand(event, peer);
 }   // handleServerCommand
 //-----------------------------------------------------------------------------
 void ServerLobby::updateGnuElimination()
@@ -4968,7 +4974,7 @@ void ServerLobby::updateGnuElimination()
         else
             order[username] = RaceManager::get()->getKartRaceTime(i);
     }
-    std::string msg = m_kart_elimination.update(order);
+    std::string msg = m_kart_elimination->update(order);
     if (!msg.empty())
         sendStringToAllPeers(msg);
 }  // updateGnuElimination
@@ -5249,7 +5255,7 @@ void ServerLobby::resetToDefaultSettings()
         handleServerConfiguration(NULL);
 
     if (!m_preserve.count("elim"))
-        m_kart_elimination.disable();
+        m_kart_elimination->disable();
 
     if (!m_preserve.count("laps"))
     {
@@ -5954,11 +5960,11 @@ void ServerLobby::updateTournamentRole(std::shared_ptr<STKPeer> peer)
 }   // updateTournamentRole
 //-----------------------------------------------------------------------------
 
-CommandManager& ServerLobby::getCommandManager()
+std::shared_ptr<CommandManager> ServerLobby::getCommandManager()
 {
-    if (!m_command_manager.isInitialized())
+    if (!m_command_manager->isInitialized())
     {
-        m_command_manager = CommandManager(this);
+        m_command_manager = std::make_shared<CommandManager>(this);
     }
     return m_command_manager;
 }   // getCommandManager
@@ -6217,10 +6223,10 @@ std::string ServerLobby::getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, 
 {
     std::set<std::string> karts = (peer->isAIPeer() ? m_asset_manager->getAvailableKarts() : peer->getClientAssets().first);
     applyAllKartFilters(username, karts, true);
-    if (m_kart_elimination.isEliminated(username)
-        && karts.count(m_kart_elimination.getKart()))
+    if (m_kart_elimination->isEliminated(username)
+        && karts.count(m_kart_elimination->getKart()))
     {
-        return m_kart_elimination.getKart();
+        return m_kart_elimination->getKart();
     }
     if (!check_choice.empty() && karts.count(check_choice)) // valid choice
         return check_choice;

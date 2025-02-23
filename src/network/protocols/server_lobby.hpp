@@ -21,14 +21,11 @@
 
 #include "network/protocols/lobby_protocol.hpp"
 #include "utils/cpp2011.hpp"
-#include "utils/kart_elimination.hpp"
 #include "utils/team_utils.hpp"
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
-#include "utils/map_vote_handler.hpp"
 #include "utils/hourglass_reason.hpp"
 #include "karts/controller/player_controller.hpp"
-#include "network/protocols/command_manager.hpp"
 
 #include "irrString.h"
 
@@ -54,6 +51,9 @@ enum AlwaysSpectateMode: uint8_t;
 class Ranking;
 class HitProcessor;
 class LobbyAssetManager;
+class CommandManager;
+class KartElimination;
+class MapVoteHandler;
 
 namespace Online
 {
@@ -242,9 +242,9 @@ private:
 
     std::map<std::shared_ptr<STKPeer>, int> m_why_peer_cannot_play;
 
-    KartElimination m_kart_elimination;
+    std::shared_ptr<KartElimination> m_kart_elimination;
 
-    MapVoteHandler m_map_vote_handler;
+    std::shared_ptr<MapVoteHandler> m_map_vote_handler;
 
     std::set<int> m_available_difficulties;
 
@@ -350,7 +350,7 @@ private:
     bool  m_troll_active;
 
     friend CommandManager;
-    CommandManager m_command_manager;
+    std::shared_ptr<CommandManager> m_command_manager;
 
     // connection management
     void clientDisconnected(Event* event);
@@ -482,7 +482,7 @@ private:
     bool tournamentGoalsLimit(int game) const;
     bool tournamentColorsSwapped(int game) const;
     void updateTournamentRole(std::shared_ptr<STKPeer> peer);
-    CommandManager& getCommandManager();
+    std::shared_ptr<CommandManager> getCommandManager();
 
     // bool tournamentHasIcy(int game) const;
 #ifdef ENABLE_WEB_SUPPORT
