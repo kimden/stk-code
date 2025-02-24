@@ -54,6 +54,7 @@ class LobbyAssetManager;
 class CommandManager;
 class KartElimination;
 class MapVoteHandler;
+class Tournament;
 
 namespace Online
 {
@@ -224,8 +225,6 @@ private:
 
     std::vector<std::string> m_play_requirement_tracks;
 
-    std::vector<std::string> m_tournament_must_have_tracks;
-
     bool m_restricting_config;
 
     bool m_inverted_config_restriction;
@@ -260,35 +259,7 @@ private:
 
     std::map<std::string, int> m_team_for_player;
 
-    std::set<std::string> m_tournament_red_players;
-
-    std::set<std::string> m_tournament_blue_players;
-    
-    std::set<std::string> m_tournament_referees;
-
-    std::set<std::string> m_tournament_mutealls;
-
-    std::set<std::string> m_tournament_init_red;
-
-    std::set<std::string> m_tournament_init_blue;
-
-    std::set<std::string> m_tournament_init_ref;
-
-    bool m_tournament_limited_chat;
-
-    int m_tournament_length;
-
-    int m_tournament_max_games;
-
-    std::string m_tournament_game_limits;
-
-    std::string m_tournament_colors;
-
-    std::string m_tournament_votability;
-
-    std::vector<std::string> m_tournament_arenas;
-
-    std::vector<TrackFilter> m_tournament_track_filters;
+    std::shared_ptr<Tournament> m_tournament;
 
     TrackFilter m_global_filter;
 
@@ -310,13 +281,9 @@ private:
 
     std::map<int, GPScore> m_gp_team_scores;
 
-    int m_tournament_game;
-
     int m_fixed_lap;
 
     int m_fixed_direction;
-
-    float m_extra_seconds;
 
     double m_default_lap_multiplier;
 
@@ -479,9 +446,6 @@ private:
     void loadWhiteList();
     void loadPreservedSettings();
     void changeLimitForTournament(bool goal_target);
-    bool tournamentGoalsLimit(int game) const;
-    bool tournamentColorsSwapped(int game) const;
-    void updateTournamentRole(std::shared_ptr<STKPeer> peer);
     std::shared_ptr<CommandManager> getCommandManager();
 
     // bool tournamentHasIcy(int game) const;
@@ -581,9 +545,15 @@ public:
     void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
-    int getTeamForUsername(const std::string& name) { return m_team_for_player[name]; }
-    std::shared_ptr<HitProcessor> getHitProcessor() const { return m_hit_processor; }
-    std::shared_ptr<LobbyAssetManager> getLobbyAssetManager() const { return m_asset_manager; }
+    int getTeamForUsername(const std::string& name)
+                                            { return m_team_for_player[name]; }
+    std::shared_ptr<HitProcessor> getHitProcessor() const
+                                                    { return m_hit_processor; }
+    std::shared_ptr<LobbyAssetManager> getLobbyAssetManager() const
+                                                    { return m_asset_manager; }
+    std::shared_ptr<Tournament> getTournament() const  { return m_tournament; }
+    std::map<std::string, std::set<std::string>> getCategories() const
+                                                { return m_player_categories; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP
