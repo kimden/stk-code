@@ -20,6 +20,9 @@
 #define LOBBY_ASSET_MANAGER_HPP
 
 #include "utils/types.hpp"
+#include "race/race_manager.hpp"
+#include "network/stk_peer.hpp"
+
 
 #include <memory>
 #include <string>
@@ -27,6 +30,7 @@
 #include <vector>
 class ServerLobby;
 class STKPeer;
+class NetworkString;
 
 class LobbyAssetManager
 {

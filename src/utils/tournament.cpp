@@ -1,0 +1,495 @@
+//
+//  SuperTuxKart - a fun racing game with go-kart
+//  Copyright (C) 2024 kimden
+//
+//  This program is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU General Public License
+//  as published by the Free Software Foundation; either version 3
+//  of the License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+#include "utils/tournament.hpp"
+
+#include "utils/track_filter.hpp"
+#include "network/stk_peer.hpp"
+#include "network/network_player_profile.hpp"
+#include "network/server_config.hpp"
+#include "network/protocols/server_lobby.hpp"
+#include "network/peer_vote.hpp"
+#include "modes/world.hpp"
+#include "modes/soccer_world.hpp"
+// #include "karts/kart_properties.hpp"
+// #include "karts/kart_properties_manager.hpp"
+// #include "karts/official_karts.hpp"
+// #include "network/network_string.hpp"
+// #include "network/server_config.hpp"
+// #include "network/stk_peer.hpp"
+// #include "network/protocols/server_lobby.hpp"
+// #include "tracks/track.hpp"
+// #include "tracks/track_manager.hpp"
+// #include "utils/random_generator.hpp"
+#include "utils/string_utils.hpp"
+
+namespace
+{
+    using T = Tournament::TournamentRole;
+
+    static std::unordered_map<T, KartTeam> g_roleToTeam = {
+        {T::TR_RED_PLAYER, KART_TEAM_RED},
+        {T::TR_BLUE_PLAYER, KART_TEAM_BLUE},
+        {T::TR_JUDGE, KART_TEAM_NONE},
+        {T::TR_SPECTATOR, KART_TEAM_NONE},
+    };
+
+    static std::unordered_map<T, std::string> g_roleToString = {
+        {T::TR_RED_PLAYER, "red player"},
+        {T::TR_BLUE_PLAYER, "blue player"},
+        {T::TR_JUDGE, "referee"},
+        {T::TR_SPECTATOR, "spectator"},
+    };
+
+    static std::unordered_map<T, char> g_roleToChar = {
+        {T::TR_RED_PLAYER, 'r'},
+        {T::TR_BLUE_PLAYER, 'b'},
+        {T::TR_JUDGE, 'j'},
+        {T::TR_SPECTATOR, 's'},
+    };
+
+    static std::unordered_map<char, T> g_charToRole = {
+        {'r', T::TR_RED_PLAYER},
+        {'b', T::TR_BLUE_PLAYER},
+        {'j', T::TR_JUDGE},
+        {'s', T::TR_SPECTATOR},
+    };
+
+    static int g_history_limit = 100;
+}
+
+
+KartTeam Tournament::roleToTeam(TournamentRole role)
+{
+    return g_roleToTeam[role];
+}
+
+std::string Tournament::roleToString(TournamentRole role)
+{
+    return g_roleToString[role];
+}
+
+char Tournament::roleToCbar(TournamentRole role)
+{
+    return g_roleToChar[role];
+}
+
+Tournament::TournamentRole Tournament::charToRole(char c)
+{
+    auto it = g_charToRole.find(c);
+    if (it != g_charToRole.end())
+        return it->second;
+    return TR_SPECTATOR;
+}
+
+std::string Tournament::charToString(char c)
+{
+    return roleToString(charToRole(c));
+}
+
+
+Tournament::Tournament(ServerLobby* lobby): m_lobby(lobby)
+{
+    initTournamentPlayers();
+    m_tournament_game = 0;
+    m_extra_seconds = 0.0f;
+} // Tournament
+// ========================================================================
+
+void Tournament::applyFiltersForThisGame(FilterContext& track_context)
+{
+    track_context.wildcards = m_tournament_arenas;
+    m_tournament_track_filters[m_tournament_game].apply(track_context);
+}
+
+std::set<std::string> Tournament::getThoseWhoSeeTeamchats() const
+{
+    std::set<std::string> sees_teamchats;
+    for (const std::string& s: m_tournament_referees) {
+        sees_teamchats.insert(s);
+    }
+    return sees_teamchats;
+}
+
+bool Tournament::checkSenderInRefsOrPlayers(std::shared_ptr<STKPeer> sender) const
+{
+    if (!sender)
+        return false;
+    for (auto& profile: sender->getPlayerProfiles())
+    {
+        std::string name = StringUtils::wideToUtf8(
+            profile->getName());
+        if (m_tournament_referees.count(name) > 0 ||
+            m_tournament_red_players.count(name) > 0 ||
+            m_tournament_blue_players.count(name) > 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::set<std::string> Tournament::getImportantChatPlayers() const
+{
+    std::set<std::string> important_players;
+    if (m_tournament_limited_chat)
+    {
+        for (const std::string& s: m_tournament_referees)
+            important_players.insert(s);
+        for (const std::string& s: m_tournament_red_players)
+            important_players.insert(s);
+        for (const std::string& s: m_tournament_blue_players)
+            important_players.insert(s);
+    }
+    for (const std::string& s: m_tournament_mutealls)
+        important_players.insert(s);
+    return important_players;
+}
+
+void Tournament::fillNextArena(const std::string& track_name)
+{
+    if (m_tournament_game >= (int)m_tournament_arenas.size())
+        m_tournament_arenas.resize(m_tournament_game + 1, "");
+    m_tournament_arenas[m_tournament_game] = track_name;
+}
+
+void Tournament::applyRestrictionsOnDefaultVote(PeerVote* default_vote) const
+{
+    default_vote->m_num_laps = m_tournament_length;
+    default_vote->m_reverse = false;
+}
+
+void Tournament::applyRestrictionsOnVote(PeerVote* vote) const
+{
+    vote->m_reverse = false;
+}
+
+void Tournament::onRaceFinished() const
+{
+    World* w = World::getWorld();
+    if (w)
+    {
+        SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
+        sw->tellCountIfDiffers();
+    }
+}
+
+void Tournament::updateTournamentRole(std::shared_ptr<STKPeer> peer)
+{
+    if (peer->getPlayerProfiles().empty())
+        return;
+    std::string utf8_online_name = StringUtils::wideToUtf8(
+        peer->getPlayerProfiles()[0]->getName());
+    for (auto& player: peer->getPlayerProfiles())
+    {
+        core::stringw name = player->getName();
+        std::string utf8_name = StringUtils::wideToUtf8(name);
+        if (m_tournament_red_players.count(utf8_online_name))
+            m_lobby->setTeamInLobby(player, KART_TEAM_RED);
+        else if (m_tournament_blue_players.count(utf8_online_name))
+            m_lobby->setTeamInLobby(player, KART_TEAM_BLUE);
+        else
+            m_lobby->setTeamInLobby(player, KART_TEAM_NONE);
+        if (hasColorsSwapped())
+        {
+            if (player->getTeam() == KART_TEAM_BLUE)
+                m_lobby->setTeamInLobby(player, KART_TEAM_RED);
+            else if (player->getTeam() == KART_TEAM_RED)
+                m_lobby->setTeamInLobby(player, KART_TEAM_BLUE);
+        }
+    }
+}   // updateTournamentRole
+//-----------------------------------------------------------------------------
+
+KartTeam Tournament::getTeam(std::string utf8_online_name) const
+{
+    bool swapped = hasColorsSwapped();
+
+    if (m_tournament_red_players.count(utf8_online_name))
+    {
+        if (swapped)
+            return KART_TEAM_BLUE;
+        return KART_TEAM_RED;
+    }
+    
+    if (m_tournament_blue_players.count(utf8_online_name))
+    {
+        if (swapped)
+            return KART_TEAM_RED;
+        return KART_TEAM_BLUE;
+    }
+    
+    return KART_TEAM_NONE;
+}
+
+bool Tournament::hasGoalsLimit() const
+{
+    return m_tournament_game_limits[m_tournament_game] == 'G';
+}   // hasGoalsLimit
+//-----------------------------------------------------------------------------
+bool Tournament::hasGoalsLimit(int game) const
+{
+    return m_tournament_game_limits[game] == 'G';
+}   // hasGoalsLimit
+//-----------------------------------------------------------------------------
+bool Tournament::hasColorsSwapped() const
+{
+    return m_tournament_colors[m_tournament_game] == 'B';
+}   // hasColorsSwapped
+//-----------------------------------------------------------------------------
+bool Tournament::hasColorsSwapped(int game) const
+{
+    return m_tournament_colors[game] == 'B';
+}   // hasColorsSwapped
+//-----------------------------------------------------------------------------
+
+void Tournament::initTournamentPlayers()
+{
+    // Init playing teams
+    std::vector<std::string> tokens = StringUtils::split(
+        ServerConfig::m_soccer_tournament_match, ' ');
+    std::string type = "";
+    for (std::string& s: tokens)
+    {
+        if (s.length() == 1)
+            type = s;
+        else if (s.empty())
+            continue;
+        else if (s[0] == '#')
+        {
+            std::string cat_name = s.substr(1);
+            std::set<std::string>& dest = (
+                type == "R" ? m_tournament_red_players :
+                type == "B" ? m_tournament_blue_players :
+                m_tournament_referees);
+            for (const std::string& member: m_lobby->getCategories()[cat_name])
+                dest.insert(member);
+        }
+        else if (type == "R") 
+            m_tournament_red_players.insert(s);
+        else if (type == "B")
+            m_tournament_blue_players.insert(s);
+        else if (type == "J")
+            m_tournament_referees.insert(s);
+    }
+    for (const std::string& s: m_tournament_red_players)
+    {
+        Log::info("ServerLobby", "SoccerMatchLog: Role of %s is initially set to r",
+            s.c_str());
+    }
+    for (const std::string& s: m_tournament_blue_players)
+    {
+        Log::info("ServerLobby", "SoccerMatchLog: Role of %s is initially set to b",
+            s.c_str());
+    }
+    for (const std::string& s: m_tournament_referees)
+    {
+        Log::info("ServerLobby", "SoccerMatchLog: Role of %s is initially set to j",
+            s.c_str());
+    }
+    m_tournament_init_red = m_tournament_red_players;
+    m_tournament_init_blue = m_tournament_blue_players;
+    m_tournament_init_ref = m_tournament_referees;
+
+    // Init tournament format
+    tokens = StringUtils::split(
+        ServerConfig::m_soccer_tournament_rules, ';');
+    bool fallback = tokens.size() < 2;
+    std::vector<std::string> general;
+    if (!fallback)
+    {
+        general = StringUtils::split(tokens[0], ' ');
+        if (general.size() < 5)
+            fallback = true;
+    }
+    if (fallback)
+    {
+        Log::warn("ServerLobby", "Tournament rules are not complete, fallback to default");
+        general.clear();
+        general.push_back("nochat");
+        general.push_back("10");
+        general.push_back("GGGGT");
+        general.push_back("RRBBR");
+        general.push_back("+++++");
+        tokens.clear();
+        tokens.push_back("nochat 10 GGGT RRBBR");
+        tokens.push_back("");
+        tokens.push_back("");
+        tokens.push_back("not %0");
+        tokens.push_back("not %0" " %1");
+        tokens.push_back("");
+        ServerConfig::m_soccer_tournament_rules = "nochat 10 TTTTG RRBBR +++++;"
+            ";;not %1;"
+            "not %1 "
+            "%2;;;";
+    }
+    Log::info("ServerLobby", "SoccerMatchLog: Tournament rules are set to \"%s\"",
+        ServerConfig::m_soccer_tournament_rules.c_str());
+    m_tournament_limited_chat = false;
+    m_tournament_length = 10;
+    if (general[0] == "nochat")
+        m_tournament_limited_chat = true;
+    if (StringUtils::parseString<int>(general[1], &m_tournament_length))
+    {
+        if (m_tournament_length <= 0)
+            m_tournament_length = 10;
+    }
+    else
+        m_tournament_length = 10;
+    ServerConfig::m_fixed_lap_count = m_tournament_length;
+
+    m_tournament_game_limits = general[2];
+    m_tournament_colors = general[3];
+    m_tournament_max_games = std::min(general[2].length(), general[3].length());
+    m_tournament_max_games = std::min(m_tournament_max_games, (int)tokens.size() - 1);
+    m_tournament_votability = general[4];
+    for (int i = 0; i < m_tournament_max_games; i++)
+        m_tournament_track_filters.emplace_back(tokens[i + 1]);
+}   // initTournamentPlayers
+//-----------------------------------------------------------------------------
+
+bool Tournament::canPlay(const std::string& username) const
+{
+    return m_tournament_red_players.count(username) > 0 ||
+        m_tournament_blue_players.count(username) > 0;
+}
+
+bool Tournament::canVote(std::shared_ptr<STKPeer> peer) const
+{
+    std::string username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[0]->getName());
+    
+    bool first = m_tournament_red_players.count(username) > 0;
+    bool second = m_tournament_blue_players.count(username) > 0;
+    if (!first && !second)
+        return false;
+    char votable = m_tournament_votability[m_tournament_game];
+    if (votable == '+')
+        return true;
+    return (votable == 'F' && first) || (votable == 'S' && second);
+}
+
+bool Tournament::hasHostRights(std::shared_ptr<STKPeer> peer)
+{
+    std::string username = StringUtils::wideToUtf8(
+        peer->getPlayerProfiles()[0]->getName());
+    return m_tournament_referees.count(username) > 0;
+}
+
+bool Tournament::hasHammerRights(std::shared_ptr<STKPeer> peer)
+{
+    std::string username = StringUtils::wideToUtf8(
+        peer->getPlayerProfiles()[0]->getName());
+    return m_tournament_referees.count(username) > 0;
+}
+
+int Tournament::editMuteall(const std::string& username, int type)
+{
+    return m_tournament_mutealls.set(username, type);
+}
+
+
+int Tournament::getNextGameNumber() const
+{
+    int res = m_tournament_game + 1;
+    if (res == m_tournament_max_games)
+        res = 0;
+    return res;
+}
+
+int Tournament::getDefaultDuration() const
+{
+    return ServerConfig::m_fixed_lap_count;
+}
+
+bool Tournament::isValidGameCmdInput(int new_game_number, int new_duration, int addition) const
+{
+    return new_game_number >= 0
+        && new_game_number < m_tournament_max_games
+        && new_duration >= 0
+        && addition >= 0
+        && addition <= 59;
+}
+
+void Tournament::getGameCmdInput(int& game_number, int& duration, int& addition) const
+{
+    game_number = m_tournament_game;
+    duration = m_tournament_length;
+    addition = m_extra_seconds;
+}
+
+void Tournament::setGameCmdInput(int new_game_number, int new_duration, int addition)
+{
+    m_tournament_game = new_game_number;
+    m_tournament_length = new_duration;
+    m_extra_seconds = 0.0f;
+    if (addition > 0) {
+        m_extra_seconds = 60.0f - addition;
+    }
+}
+
+void Tournament::setTeam(KartTeam team, const std::string& username, bool permanent)
+{
+    if (team == KART_TEAM_RED)
+    {
+        m_tournament_red_players.insert(username);
+        if (permanent)
+            m_tournament_init_red.insert(username);
+    }
+    else if (team == KART_TEAM_BLUE)
+    {
+        m_tournament_blue_players.insert(username);
+        if (permanent)
+            m_tournament_init_blue.insert(username);
+    }
+}
+
+void Tournament::setReferee(const std::string& username, bool permanent)
+{
+    m_tournament_referees.insert(username);
+    if (permanent)
+        m_tournament_init_ref.insert(username);
+}
+
+void Tournament::eraseFromAllTournamentCategories(const std::string& username, bool permanent)
+{
+    m_tournament_red_players.erase(username);
+    m_tournament_blue_players.erase(username);
+    m_tournament_referees.erase(username);
+    if (permanent)
+    {
+        m_tournament_init_red.erase(username);
+        m_tournament_init_blue.erase(username);
+        m_tournament_init_ref.erase(username);
+    }
+}
+
+std::vector<std::string> Tournament::getMapHistory() const
+{
+    return m_tournament_arenas;
+}
+
+bool Tournament::assignToHistory(int index, const std::string& map_id)
+{
+    if (index >= g_history_limit)
+        return false;
+    if (index >= (int)m_tournament_arenas.size())
+        m_tournament_arenas.resize(index + 1, "");
+    m_tournament_arenas[index] = map_id;
+    return true;
+}

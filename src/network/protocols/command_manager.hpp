@@ -50,6 +50,7 @@ class ServerLobby;
 class Event;
 class STKPeer;
 class LobbyAssetManager;
+class Tournament;
 
 class CommandManager
 {
@@ -199,6 +200,7 @@ private:
     ServerLobby* m_lobby;
 
     std::shared_ptr<LobbyAssetManager> m_asset_manager;
+    std::shared_ptr<Tournament> m_tournament;
 
     std::vector<std::weak_ptr<Command>> m_all_commands;
 

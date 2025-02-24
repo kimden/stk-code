@@ -16,6 +16,8 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+#include "utils/lobby_asset_manager.hpp"
+
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "karts/official_karts.hpp"
@@ -25,7 +27,6 @@
 #include "network/protocols/server_lobby.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
-#include "utils/lobby_asset_manager.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 

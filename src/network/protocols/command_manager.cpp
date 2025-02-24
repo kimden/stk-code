@@ -41,6 +41,7 @@
 #include "utils/map_vote_handler.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tournament.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -612,6 +613,7 @@ CommandManager::CommandManager(ServerLobby* lobby):
     initAssets();
 
     m_asset_manager = lobby->getLobbyAssetManager();
+    m_tournament = lobby->getTournament();
 
     m_aux_mode_aliases = {
             {"m0"},
@@ -3350,7 +3352,7 @@ void CommandManager::process_muteall(Context& context)
 {
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
-    if (!peer)
+    if (!peer || !m_tournament)
     {
         error(context, true);
         return;
@@ -3359,23 +3361,17 @@ void CommandManager::process_muteall(Context& context)
         return;
     std::string peer_username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
+
+    int op = SWF_OP_FLIP;
     if (argv.size() >= 2 && argv[1] == "0")
-    {
-        m_lobby->m_tournament_mutealls.erase(peer_username);
-    }
+        op = SWF_OP_REMOVE;
     else if (argv.size() >= 2 && argv[1] == "1")
-    {
-        m_lobby->m_tournament_mutealls.insert(peer_username);
-    }
-    else
-    {
-        if (m_lobby->m_tournament_mutealls.count(peer_username))
-            m_lobby->m_tournament_mutealls.erase(peer_username);
-        else
-            m_lobby->m_tournament_mutealls.insert(peer_username);
-    }
+        op = SWF_OP_ADD;
+
+    int status = m_tournament->editMuteall(peer_username, op);
+
     std::string msg;
-    if (m_lobby->m_tournament_mutealls.count(peer_username))
+    if (status)
         msg = "You are now receiving messages only from players and referees";
     else
         msg = "You are now receiving messages from spectators too";
@@ -3387,7 +3383,7 @@ void CommandManager::process_game(Context& context)
 {
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
-    if (!peer)
+    if (!peer || !m_tournament)
     {
         error(context, true);
         return;
@@ -3396,73 +3392,67 @@ void CommandManager::process_game(Context& context)
         return;
     std::string peer_username = StringUtils::wideToUtf8(
         peer->getPlayerProfiles()[0]->getName());
-    int old_game = m_lobby->m_tournament_game;
-    int addition = 0;
-    if (argv.size() < 2)
+
+    int old_game_number;
+    int old_duration;
+    int old_addition;
+    m_tournament->getGameCmdInput(old_game_number, old_duration, old_addition);
+    int new_game_number = m_tournament->getNextGameNumber();
+    int new_duration = m_tournament->getDefaultDuration(); // Was m_tournament_length for argv.size >= 2
+    int new_addition = 0;
+
+    if (1 < argv.size())
     {
-        ++m_lobby->m_tournament_game;
-        if (m_lobby->m_tournament_game == m_lobby->m_tournament_max_games)
-            m_lobby->m_tournament_game = 0;
-        m_lobby->m_fixed_lap = ServerConfig::m_fixed_lap_count;
-    } else {
-        int new_game_number;
-        int new_length = m_lobby->m_tournament_length;
-        if (!StringUtils::parseString(argv[1], &new_game_number)
-            || new_game_number < 0
-            || new_game_number >= m_lobby->m_tournament_max_games)
+        // What's the difference between m_tournament_length and ServerConfig::fixedlap ??
+        bool bad = false;
+
+        if (!StringUtils::parseString(argv[1], &new_game_number))
+            bad = true;
+        
+        if (!bad && argv.size() >= 3 && !StringUtils::parseString(argv[2], &new_duration))
+            bad = true;
+
+        if (!bad && argv.size() >= 4 && !StringUtils::parseString(argv[3], &new_addition))
+            bad = true;
+        
+        if (!bad && !m_tournament->isValidGameCmdInput(new_game_number, new_duration, new_addition))
         {
-            std::string msg = "Please specify a correct number. "
-                "Format: /game [number 0.."
-                + std::to_string(m_lobby->m_tournament_max_games - 1) + "] [length]";
+            bad = true;
+        }
+
+        if (bad)
+        {
+            std::string msg = StringUtils::insertValues(
+                "Please specify a correct number. "
+                "Format: /game [number %d..%d] [length in minutes] [0..59 additional seconds]",
+                m_tournament->minGameNumber(),
+                m_tournament->maxGameNumber());
+            // error(context) ?
             m_lobby->sendStringToPeer(msg, peer);
             return;
         }
-        if (argv.size() >= 3)
-        {
-            bool ok = StringUtils::parseString(argv[2], &new_length);
-            if (!ok || new_length < 0)
-            {
-                error(context);
-                return;
-            }
-        }
-        if (argv.size() >= 4)
-        {
-            bool ok = StringUtils::parseString(argv[3], &addition);
-            if (!ok || addition < 0 || addition > 59)
-            {
-                std::string msg = "Please specify a correct number. "
-                                  "Format: /game [number] [length] [0..59 additional seconds]";
-                m_lobby->sendStringToPeer(msg, peer);
-                return;
-            }
-            m_lobby->m_extra_seconds = 0.0f;
-            if (addition > 0) {
-                m_lobby->m_extra_seconds = 60.0f - addition;
-            }
-        } else {
-            m_lobby->m_extra_seconds = 0.0f;
-        }
-        m_lobby->m_tournament_game = new_game_number;
-        m_lobby->m_fixed_lap = new_length;
     }
-    if (m_lobby->tournamentColorsSwapped(m_lobby->m_tournament_game)
-        ^ m_lobby->tournamentColorsSwapped(old_game))
+    m_tournament->setGameCmdInput(new_game_number, new_duration, new_addition);
+    m_lobby->m_fixed_lap = new_duration;
+
+    if (m_tournament->hasColorsSwapped(new_game_number) ^ m_tournament->hasColorsSwapped(old_game_number))
         m_lobby->changeColors();
-    if (m_lobby->tournamentGoalsLimit(m_lobby->m_tournament_game)
-        ^ m_lobby->tournamentGoalsLimit(old_game))
-        m_lobby->changeLimitForTournament(m_lobby->tournamentGoalsLimit(m_lobby->m_tournament_game));
+
+    if (m_tournament->hasGoalsLimit(new_game_number) ^ m_tournament->hasGoalsLimit(old_game_number))
+        m_lobby->changeLimitForTournament(m_tournament->hasGoalsLimit());
+
     std::string msg = StringUtils::insertValues(
-        "Ready to start game %d for %d ", m_lobby->m_tournament_game, m_lobby->m_fixed_lap)
-        + (m_lobby->tournamentGoalsLimit(m_lobby->m_tournament_game) ? "goals" : "minutes");
-    if (!m_lobby->tournamentGoalsLimit(m_lobby->m_tournament_game) && addition > 0)
+        "Ready to start game %d for %d %s", new_game_number, new_duration,
+        (m_tournament->hasGoalsLimit() ? "goals" : "minutes"));
+
+    if (!m_tournament->hasGoalsLimit() && new_addition > 0)
     {
-        msg += " " + std::to_string(addition) + " seconds";
+        msg += StringUtils::insertValues(" %d seconds", new_addition);
         ++m_lobby->m_fixed_lap;
     }
     m_lobby->sendStringToAllPeers(msg);
     Log::info("CommandManager", "SoccerMatchLog: Game number changed from %d to %d",
-        old_game, m_lobby->m_tournament_game);
+        old_game_number, new_game_number);
 } // process_game
 // ========================================================================
 
@@ -3470,7 +3460,7 @@ void CommandManager::process_role(Context& context)
 {
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
-    if (!peer)
+    if (!peer || !m_tournament)
     {
         error(context, true);
         return;
@@ -3500,8 +3490,9 @@ void CommandManager::process_role(Context& context)
         error(context);
         return;
     }
-    if (role[0] >= 'A' && role[0] <= 'Z')
-        role[0] += 'a' - 'A';
+    char role_char = role[0];
+    if (role_char >= 'A' && role_char <= 'Z')
+        role_char += 'a' - 'A';
     std::vector<std::string> changed_usernames;
     if (!username.empty())
     {
@@ -3524,15 +3515,7 @@ void CommandManager::process_role(Context& context)
     }
     for (const std::string& u: changed_usernames)
     {
-        m_lobby->m_tournament_red_players.erase(u);
-        m_lobby->m_tournament_blue_players.erase(u);
-        m_lobby->m_tournament_referees.erase(u);
-        if (permanent)
-        {
-            m_lobby->m_tournament_init_red.erase(u);
-            m_lobby->m_tournament_init_blue.erase(u);
-            m_lobby->m_tournament_init_ref.erase(u);
-        }
+        m_tournament->eraseFromAllTournamentCategories(u, permanent);
         std::string role_changed = "The referee has updated your role - you are now %s";
         std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
             StringUtils::utf8ToWide(u));
@@ -3540,102 +3523,68 @@ void CommandManager::process_role(Context& context)
         if (player_peer)
             missing_assets = m_lobby->getMissingAssets(player_peer);
         bool fail = false;
-        switch (role[0])
+        switch (role_char)
         {
-            case 'R':
             case 'r':
             {
-                if (!missing_assets.empty())
+                fail = !missing_assets.empty();
+                if (m_tournament->hasColorsSwapped())
                 {
-                    fail = true;
-//                    break;
-                }
-                if (m_lobby->tournamentColorsSwapped(m_lobby->m_tournament_game))
-                {
-                    m_lobby->m_tournament_blue_players.insert(u);
-                    if (permanent)
-                        m_lobby->m_tournament_init_blue.insert(u);
+                    m_tournament->setTeam(KART_TEAM_BLUE, u, permanent);
                 }
                 else
                 {
-                    m_lobby->m_tournament_red_players.insert(u);
-                    if (permanent)
-                        m_lobby->m_tournament_init_red.insert(u);
+                    m_tournament->setTeam(KART_TEAM_RED, u, permanent);
                 }
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, "red player");
+                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
                     if (player_peer->hasPlayerProfiles())
-                    {
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_RED);
-                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
             }
-            case 'B':
             case 'b':
             {
-                if (!missing_assets.empty())
+                fail = !missing_assets.empty();
+                if (m_tournament->hasColorsSwapped())
                 {
-                    fail = true;
-//                    break;
-                }
-                if (m_lobby->tournamentColorsSwapped(m_lobby->m_tournament_game))
-                {
-                    m_lobby->m_tournament_red_players.insert(u);
-                    if (permanent)
-                        m_lobby->m_tournament_init_red.insert(u);
+                    m_tournament->setTeam(KART_TEAM_RED, u, permanent);
                 }
                 else
                 {
-                    m_lobby->m_tournament_blue_players.insert(u);
-                    if (permanent)
-                        m_lobby->m_tournament_init_blue.insert(u);
+                    m_tournament->setTeam(KART_TEAM_BLUE, u, permanent);
                 }
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, "blue player");
+                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
                     if (player_peer->hasPlayerProfiles())
-                    {
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_BLUE);
-                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
             }
-            case 'J':
             case 'j':
             {
-                if (!missing_assets.empty())
-                {
-                    fail = true;
-//                    break;
-                }
-                m_lobby->m_tournament_referees.insert(u);
-                if (permanent)
-                    m_lobby->m_tournament_init_ref.insert(u);
+                fail = !missing_assets.empty();
+                m_tournament->setReferee(u, permanent);
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, "referee");
+                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
                     if (player_peer->hasPlayerProfiles())
-                    {
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
-                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
             }
-            case 'S':
             case 's':
             {
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, "spectator");
+                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
                     if (player_peer->hasPlayerProfiles())
-                    {
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
-                    }
                     m_lobby->sendStringToPeer(role_changed, player_peer);
                 }
                 break;
@@ -3669,6 +3618,11 @@ void CommandManager::process_role(Context& context)
 
 void CommandManager::process_stop(Context& context)
 {
+    if (!m_tournament)
+    {
+        error(context, true);
+        return;
+    }
     World* w = World::getWorld();
     if (!w)
         return;
@@ -3682,6 +3636,11 @@ void CommandManager::process_stop(Context& context)
 
 void CommandManager::process_go(Context& context)
 {
+    if (!m_tournament)
+    {
+        error(context, true);
+        return;
+    }
     World* w = World::getWorld();
     if (!w)
         return;
@@ -3695,6 +3654,11 @@ void CommandManager::process_go(Context& context)
 
 void CommandManager::process_lobby(Context& context)
 {
+    if (!m_tournament)
+    {
+        error(context, true);
+        return;
+    }
     World* w = World::getWorld();
     if (!w)
         return;
@@ -3709,7 +3673,7 @@ void CommandManager::process_init(Context& context)
 {
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
-    if (!peer)
+    if (!peer || !m_tournament)
     {
         error(context, true);
         return;
@@ -3928,14 +3892,15 @@ void CommandManager::process_preserve_assign(Context& context)
 void CommandManager::process_history(Context& context)
 {
     auto peer = context.m_peer.lock();
-    if (!peer)
+    if (!peer || !m_tournament)
     {
         error(context, true);
         return;
     }
     std::string msg = "Map history:";
-    for (unsigned i = 0; i < m_lobby->m_tournament_arenas.size(); i++)
-        msg += StringUtils::insertValues(" [%d]: ", i) + m_lobby->m_tournament_arenas[i];
+    std::vector<std::string> arenas = m_tournament->getMapHistory();
+    for (unsigned i = 0; i < arenas.size(); i++)
+        msg += StringUtils::insertValues(" [%d]: %s", i, arenas[i].c_str());
     m_lobby->sendStringToPeer(msg, peer);
 } // process_history
 // ========================================================================
@@ -3944,7 +3909,7 @@ void CommandManager::process_history_assign(Context& context)
 {
     auto& argv = context.m_argv;
     auto peer = context.m_peer.lock();
-    if (!peer)
+    if (!peer || !m_tournament)
     {
         error(context, true);
         return;
@@ -3965,9 +3930,11 @@ void CommandManager::process_history_assign(Context& context)
         2, m_stf_all_maps, 3, false, false))
         return;
     std::string id = argv[2];
-    if (index >= (int)m_lobby->m_tournament_arenas.size())
-        m_lobby->m_tournament_arenas.resize(index + 1, "");
-    m_lobby->m_tournament_arenas[index] = id;
+    if (!m_tournament->assignToHistory(index, id))
+    {
+        error(context);
+        return;
+    }
 
     msg = StringUtils::insertValues("Assigned [%d] to %s in the map history", index, id.c_str());
     m_lobby->sendStringToPeer(msg, peer);
