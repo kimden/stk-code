@@ -662,8 +662,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                 sd.m_time = getTime();
             // Notice: true first_goal means it's blue goal being shoot,
             // so red team can score
-            // if (!stopped)
-                m_red_scorers.push_back(sd);
+            m_red_scorers.push_back(sd);
         }
         else
         {
@@ -673,8 +672,8 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
             }
             else
                 sd.m_time = getTime();
-            // if (!stopped)
-                m_blue_scorers.push_back(sd);
+                
+            m_blue_scorers.push_back(sd);
         }
         if (NetworkConfig::get()->isNetworking() &&
             NetworkConfig::get()->isServer())

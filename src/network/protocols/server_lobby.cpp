@@ -5714,6 +5714,8 @@ bool ServerLobby::writeOnePlayerReport(std::shared_ptr<STKPeer> reporter,
     bool written = m_db_connector->writeReport(reporter, reporter_npp,
             reporter, reporter_npp, info_w);
     return written;
+#else
+    return false;
 #endif
 }   // writeOnePlayerReport
 //-----------------------------------------------------------------------------   

@@ -1149,7 +1149,7 @@ void CommandManager::process_config(Context& context)
     }
     int difficulty = m_lobby->getDifficulty();
     int mode = m_lobby->getGameMode();
-    bool goal_target = (m_lobby->m_game_setup->hasExtraSeverInfo() ? m_lobby->isSoccerGoalTarget() : false);
+    bool goal_target = (m_lobby->m_game_setup->hasExtraServerInfo() ? m_lobby->isSoccerGoalTarget() : false);
 //    m_aux_goal_aliases[goal_target ? 1 : 0][0]
     std::string msg = "Current config: ";
     auto get_first_if_exists = [&](std::vector<std::string>& v) -> std::string {
@@ -1181,7 +1181,7 @@ void CommandManager::process_config_assign(Context& context)
     const auto& argv = context.m_argv;
     int difficulty = m_lobby->getDifficulty();
     int mode = m_lobby->getGameMode();
-    bool goal_target = (m_lobby->m_game_setup->hasExtraSeverInfo() ? m_lobby->isSoccerGoalTarget() : false);
+    bool goal_target = (m_lobby->m_game_setup->hasExtraServerInfo() ? m_lobby->isSoccerGoalTarget() : false);
     bool user_chose_difficulty = false;
     bool user_chose_mode = false;
     bool user_chose_target = false;
@@ -1474,7 +1474,6 @@ void CommandManager::process_checkaddon(Context& context)
         server_status |= HAS_MAP;
 
     auto peers = STKHost::get()->getPeers();
-    unsigned total_players = 0;
     for (auto p : peers)
     {
         if (!p || !p->isValidated() || p->isWaitingForGame()
@@ -1490,7 +1489,6 @@ void CommandManager::process_checkaddon(Context& context)
         if (kt.second.find(id) != kt.second.end())
             status |= HAS_MAP;
         players[status].push_back(username);
-        ++total_players;
     }
 
     std::string response = "";
@@ -3538,7 +3536,7 @@ void CommandManager::process_role(Context& context)
                 }
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
+                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_RED);
                     m_lobby->sendStringToPeer(role_changed, player_peer);
@@ -3558,7 +3556,7 @@ void CommandManager::process_role(Context& context)
                 }
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
+                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_BLUE);
                     m_lobby->sendStringToPeer(role_changed, player_peer);
@@ -3571,7 +3569,7 @@ void CommandManager::process_role(Context& context)
                 m_tournament->setReferee(u, permanent);
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
+                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
                     m_lobby->sendStringToPeer(role_changed, player_peer);
@@ -3582,7 +3580,7 @@ void CommandManager::process_role(Context& context)
             {
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Tournament::charToString(role_char));
+                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         m_lobby->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
                     m_lobby->sendStringToPeer(role_changed, player_peer);

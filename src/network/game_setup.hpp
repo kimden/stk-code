@@ -99,11 +99,11 @@ public:
     // ------------------------------------------------------------------------
     bool isGrandPrix() const                 { return m_is_grand_prix.load(); }
     // ------------------------------------------------------------------------
-    bool hasExtraSeverInfo() const        { return m_extra_server_info != -1; }
+    bool hasExtraServerInfo() const        { return m_extra_server_info != -1; }
     // ------------------------------------------------------------------------
     uint8_t getExtraServerInfo() const
     {
-        assert(hasExtraSeverInfo());
+        assert(hasExtraServerInfo());
         return (uint8_t)m_extra_server_info;
     }
     // ------------------------------------------------------------------------
@@ -117,7 +117,7 @@ public:
     // ------------------------------------------------------------------------
     bool isSoccerGoalTarget() const
     {
-        assert(hasExtraSeverInfo());
+        assert(hasExtraServerInfo());
         return m_extra_server_info != 0;
     }
     // ------------------------------------------------------------------------
