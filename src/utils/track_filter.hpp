@@ -61,6 +61,7 @@ public:
     bool isPlaceholder() const                        { return m_placeholder; }
 
     Filter() {}
+    virtual ~Filter() {}
     Filter(std::string input) {}
     std::string getInitialString() const { return m_initial_string; }
     virtual void apply(FilterContext& context) const = 0;

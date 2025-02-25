@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-class GameInfo;
+struct GameInfo;
 class SocketAddress;
 class STKPeer;
 class NetworkPlayerProfile;

@@ -46,7 +46,7 @@ class AbstractKart;
 class BareNetworkString;
 class btRigidBody;
 class Controller;
-class GameInfo;
+struct GameInfo;
 class ItemState;
 class PhysicalObject;
 class STKPeer;

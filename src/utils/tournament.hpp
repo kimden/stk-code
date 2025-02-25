@@ -19,15 +19,15 @@
 #ifndef TOURNAMENT_HPP
 #define TOURNAMENT_HPP
 
-#include "network/remote_kart_info.hpp"
 #include "utils/types.hpp"
 #include "utils/set_with_flip.hpp"
+#include "utils/tournament_role.hpp"
 
 #include <memory>
 #include <string>
 #include <set>
 #include <vector>
-class FilterContext;
+struct FilterContext;
 class PeerVote;
 class TrackFilter;
 class ServerLobby;
@@ -41,21 +41,6 @@ class STKPeer;
 class Tournament
 {
 public:
-    enum TournamentRole: int8_t
-    {
-        TR_RED_PLAYER = 0,
-        TR_BLUE_PLAYER = 1,
-        TR_JUDGE = 2,
-        TR_SPECTATOR = -1,
-    };
-
-    static KartTeam roleToTeam(TournamentRole role);
-    static std::string roleToString(TournamentRole role);
-    static char roleToCbar(TournamentRole role);
-    static TournamentRole charToRole(char c);
-    static std::string charToString(char c);
-
-
     Tournament(ServerLobby* lobby);
     void initTournamentPlayers();
     void applyFiltersForThisGame(FilterContext& track_context);

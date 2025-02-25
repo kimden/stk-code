@@ -40,68 +40,8 @@
 
 namespace
 {
-    using T = Tournament::TournamentRole;
-
-    static std::unordered_map<T, KartTeam> g_roleToTeam = {
-        {T::TR_RED_PLAYER, KART_TEAM_RED},
-        {T::TR_BLUE_PLAYER, KART_TEAM_BLUE},
-        {T::TR_JUDGE, KART_TEAM_NONE},
-        {T::TR_SPECTATOR, KART_TEAM_NONE},
-    };
-
-    static std::unordered_map<T, std::string> g_roleToString = {
-        {T::TR_RED_PLAYER, "red player"},
-        {T::TR_BLUE_PLAYER, "blue player"},
-        {T::TR_JUDGE, "referee"},
-        {T::TR_SPECTATOR, "spectator"},
-    };
-
-    static std::unordered_map<T, char> g_roleToChar = {
-        {T::TR_RED_PLAYER, 'r'},
-        {T::TR_BLUE_PLAYER, 'b'},
-        {T::TR_JUDGE, 'j'},
-        {T::TR_SPECTATOR, 's'},
-    };
-
-    static std::unordered_map<char, T> g_charToRole = {
-        {'r', T::TR_RED_PLAYER},
-        {'b', T::TR_BLUE_PLAYER},
-        {'j', T::TR_JUDGE},
-        {'s', T::TR_SPECTATOR},
-    };
-
     static int g_history_limit = 100;
 }
-
-
-KartTeam Tournament::roleToTeam(TournamentRole role)
-{
-    return g_roleToTeam[role];
-}
-
-std::string Tournament::roleToString(TournamentRole role)
-{
-    return g_roleToString[role];
-}
-
-char Tournament::roleToCbar(TournamentRole role)
-{
-    return g_roleToChar[role];
-}
-
-Tournament::TournamentRole Tournament::charToRole(char c)
-{
-    auto it = g_charToRole.find(c);
-    if (it != g_charToRole.end())
-        return it->second;
-    return TR_SPECTATOR;
-}
-
-std::string Tournament::charToString(char c)
-{
-    return roleToString(charToRole(c));
-}
-
 
 Tournament::Tournament(ServerLobby* lobby): m_lobby(lobby)
 {

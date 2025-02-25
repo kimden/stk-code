@@ -41,7 +41,7 @@
 
 class BareNetworkString;
 class DatabaseConnector;
-class GameInfo;
+struct GameInfo;
 class NetworkItemManager;
 class NetworkString;
 class NetworkPlayerProfile;
