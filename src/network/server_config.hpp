@@ -733,15 +733,6 @@ namespace ServerConfig
         "is counted, no-own-goals - last touching player of scoring team "
         "is counted if existing, advanced - as standard for now."));
 
-#ifdef ENABLE_WEB_SUPPORT
-
-    SERVER_CFG_PREFIX StringServerConfigParam m_tokens_table
-        SERVER_CFG_DEFAULT(StringServerConfigParam("",
-        "tokens-table",
-        "A table containing tokens for website authentication using "
-        "STK account only."));
-#endif
-
     SERVER_CFG_PREFIX StringServerConfigParam m_power_password
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
         "power-password",

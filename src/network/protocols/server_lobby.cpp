@@ -124,7 +124,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_kart_elimination = std::make_shared<KartElimination>();
     m_map_vote_handler = std::make_shared<MapVoteHandler>();
 
-    m_lobby_queues = std::make_shared<LobbyQueues>(this);
+    m_lobby_queues = std::make_shared<LobbyQueues>();
 
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
     // Server config has better priority than --laps
@@ -177,25 +177,23 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
     m_default_vote = new PeerVote();
+
 #ifdef ENABLE_SQLITE3
-    m_db_connector = new DatabaseConnector();
+    m_db_connector = std::make_shared<DatabaseConnector>();
     m_db_connector->initDatabase();
 #endif
+
     initCategories();
+
     if (ServerConfig::m_soccer_tournament)
-    {
         m_tournament = std::make_shared<Tournament>(this);
-    }
+
     m_allowed_to_start = ServerConfig::m_allowed_to_start;
     m_game_info = nullptr;
     std::string scoring = ServerConfig::m_gp_scoring;
     loadCustomScoring(scoring);
     loadWhiteList();
     loadPreservedSettings();
-#ifdef ENABLE_WEB_SUPPORT
-    m_token_generation_tries.store(0);
-    loadAllTokens();
-#endif
 }   // ServerLobby
 
 //-----------------------------------------------------------------------------
@@ -216,7 +214,6 @@ ServerLobby::~ServerLobby()
 
 #ifdef ENABLE_SQLITE3
     m_db_connector->destroyDatabase();
-    delete m_db_connector;
 #endif
 }   // ~ServerLobby
 
@@ -5733,48 +5730,6 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
 }   // getRecord
 #endif
 //-----------------------------------------------------------------------------
-
-#ifdef ENABLE_WEB_SUPPORT
-
-void ServerLobby::loadAllTokens()
-{
-#ifdef ENABLE_SQLITE3
-    std::vector<std::string> tokens;
-    if (!m_db_connector->getAllTokens(tokens))
-    {
-        Log::warn("ServerLobby", "Could not make a query to retrieve tokens.");
-    }
-    else
-    {
-        Log::info("ServerLobby", "Successfully loaded %d tokens.", (int)tokens.size());
-        for (std::string& s: tokens)
-            m_web_tokens.insert(s);
-    }
-#endif
-}   // loadAllTokens
-//-----------------------------------------------------------------------------
-
-std::string ServerLobby::getToken()
-{
-    int tries = m_token_generation_tries.load();
-    m_token_generation_tries.store(tries + 1);
-    std::mt19937 mt(time(nullptr) + tries);
-    std::string token;
-    for (int i = 0; i < 16; ++i)
-    {
-        int z = mt() % 36;
-        if (z < 26)
-            token.push_back('a' + z);
-        else
-            token.push_back('0' + z - 26);
-        if ((i & 3) == 3)
-            token.push_back(' ');
-    }
-    token.pop_back();
-    return token;
-}   // getToken
-//-----------------------------------------------------------------------------
-#endif // ENABLE_WEB_SUPPORT
 
 bool ServerLobby::isSoccerGoalTarget() const
 {

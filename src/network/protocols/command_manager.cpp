@@ -497,9 +497,6 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("version", &CM::process_text);
     applyFunctionIfPossible("clear", &CM::process_text);
     applyFunctionIfPossible("register", &CM::process_register);
-#ifdef ENABLE_WEB_SUPPORT
-    applyFunctionIfPossible("token", &CM::process_token);
-#endif
     applyFunctionIfPossible("muteall", &CM::process_muteall);
     applyFunctionIfPossible("game", &CM::process_game);
     applyFunctionIfPossible("role", &CM::process_role);
@@ -3308,44 +3305,6 @@ void CommandManager::process_register(Context& context)
     else
         m_lobby->sendStringToPeer(message_wrong, peer);
 } // process_register
-// ========================================================================
-
-#ifdef ENABLE_WEB_SUPPORT
-void CommandManager::process_token(Context& context)
-{
-    auto peer = context.m_peer.lock();
-    if (!peer)
-    {
-        error(context, true);
-        return;
-    }
-    if (!peer->hasPlayerProfiles())
-        return;
-    int online_id = peer->getPlayerProfiles()[0]->getOnlineId();
-    if (online_id <= 0)
-    {
-        std::string msg = "Please join with a valid online STK account.";
-        m_lobby->sendStringToPeer(msg, peer);
-        return;
-    }
-    std::string username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
-    std::string token = m_lobby->getToken();
-    while (m_lobby->m_web_tokens.count(token))
-        token = m_lobby->getToken();
-    m_lobby->m_web_tokens.insert(token);
-    std::string msg = "Your token is " + token;
-#ifdef ENABLE_SQLITE3
-    if (m_lobby->m_db_connector->insertToken(username, token))
-        msg += "\nRetype it on the website to connect your STK account. ";
-    else
-        msg = "An error occurred, please try again.";
-#else
-    msg += "\nThough it is useless...";
-#endif
-    m_lobby->sendStringToPeer(msg, peer);
-} // process_token
-#endif
 // ========================================================================
 
 void CommandManager::process_muteall(Context& context)

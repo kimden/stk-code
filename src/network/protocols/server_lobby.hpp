@@ -116,7 +116,7 @@ private:
     };
 
 #ifdef ENABLE_SQLITE3
-    DatabaseConnector* m_db_connector;
+    std::shared_ptr<DatabaseConnector> m_db_connector;
 
     void pollDatabase();
 #endif
@@ -302,12 +302,6 @@ private:
 
     GameInfo* m_game_info;
 
-#ifdef ENABLE_WEB_SUPPORT
-    std::set<std::string> m_web_tokens;
-
-    std::atomic<int> m_token_generation_tries;
-#endif
-
     // config for troll system
     bool  m_troll_active;
 
@@ -442,11 +436,6 @@ private:
     void changeLimitForTournament(bool goal_target);
     std::shared_ptr<CommandManager> getCommandManager();
 
-    // bool tournamentHasIcy(int game) const;
-#ifdef ENABLE_WEB_SUPPORT
-    void loadAllTokens();
-    std::string getToken();
-#endif
 public:
              ServerLobby();
     virtual ~ServerLobby();
