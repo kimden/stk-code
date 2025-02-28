@@ -37,6 +37,7 @@
 #include "utils/hourglass_reason.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
+#include "utils/lobby_queues.hpp"
 #include "utils/log.hpp"
 #include "utils/map_vote_handler.hpp"
 #include "utils/random_generator.hpp"
@@ -614,6 +615,7 @@ CommandManager::CommandManager(ServerLobby* lobby):
 
     m_asset_manager = lobby->getLobbyAssetManager();
     m_tournament = lobby->getTournament();
+    m_lobby_queues = lobby->getLobbyQueues();
 
     m_aux_mode_aliases = {
             {"m0"},
@@ -2674,7 +2676,7 @@ void CommandManager::process_queue_pop(Context& context)
         {
             int another = another_cyclic_queue(x);
             if (get_queue(x).empty()) {
-                msg = "The " + get_queue_name(x) + " was empty before.";
+                msg += "The " + get_queue_name(x) + " was empty before.\n";
             }
             else
             {
@@ -4417,16 +4419,16 @@ std::string CommandManager::getAddonPreferredType() const
 std::deque<std::shared_ptr<Filter>>& CommandManager::get_queue(int x) const
 {
     if (x == QM_MAP_ONETIME)
-        return m_lobby->m_onetime_tracks_queue;
+        return m_lobby_queues->getOnetimeTracksQueue();
     if (x == QM_MAP_CYCLIC)
-        return m_lobby->m_cyclic_tracks_queue;
+        return m_lobby_queues->getCyclicTracksQueue();
     if (x == QM_KART_ONETIME)
-        return m_lobby->m_onetime_karts_queue;
+        return m_lobby_queues->getOnetimeKartsQueue();
     if (x == QM_KART_CYCLIC)
-        return m_lobby->m_cyclic_karts_queue;
+        return m_lobby_queues->getCyclicKartsQueue();
     Log::error("CommandManager",
                "Unknown queue mask %d, revert to map onetime", x);
-    return m_lobby->m_onetime_tracks_queue;
+    return m_lobby_queues->getOnetimeTracksQueue();
 
 } // get_queue
 // ========================================================================
