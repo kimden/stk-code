@@ -21,7 +21,7 @@
 #include "network/server_config.hpp"
 #include "utils/string_utils.hpp"
 
-LobbyQueues::LobbyQueues(ServerLobby* lobby): m_lobby(lobby)
+LobbyQueues::LobbyQueues()
 {
     loadTracksQueueFromConfig();
 } // LobbyQueues

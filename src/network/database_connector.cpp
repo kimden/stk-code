@@ -139,10 +139,6 @@ void DatabaseConnector::initDatabase()
         m_ipv6_geolocation_table_exists);
     checkTableExists(ServerConfig::m_records_table_name,
         m_records_table_exists, true);
-
-#ifdef ENABLE_WEB_SUPPORT
-    checkTableExists(ServerConfig::m_tokens_table, m_tokens_table_exists);
-#endif
 }   // initDatabase
 
 //-----------------------------------------------------------------------------
@@ -1262,49 +1258,6 @@ void DatabaseConnector::insertManyResults(const GameInfo& game_info)
         easySQLQuery(query, nullptr, coll->getBindFunction());
     }
 }   // insertManyResults
-
-//-----------------------------------------------------------------------------
-#ifdef ENABLE_WEB_SUPPORT
-
-bool DatabaseConnector::getAllTokens(std::vector<std::string>& result)
-{
-    if (!m_tokens_table_exists)
-        return false;
-    std::vector<std::vector<std::string>> output;
-    std::string query = StringUtils::insertValues(
-        "SELECT distinct token FROM %s;",
-        ServerConfig::m_tokens_table.c_str());
-    if (!easySQLQuery(query, &output))
-        return false;
-    result.clear();
-    for (const auto& row: output)
-        if (!row.empty())
-            result.push_back(row[0]);
-    return true;
-}   // getAllTokens
-
-//-----------------------------------------------------------------------------
-/** Inserts a generated token into the database.
- *  \param username The name of user whose token it is.
- *  \param token The token itself.
- *  \return True in case of success.
- */
-bool DatabaseConnector::insertToken(std::string& username, std::string& token)
-{
-    if (!m_tokens_table_exists)
-        return false;
-    std::shared_ptr<BinderCollection> coll = std::make_shared<BinderCollection>();
-    std::string query = StringUtils::insertValues(
-        "INSERT INTO %s (username, token) "
-        "VALUES (%s, %s);",
-        ServerConfig::m_tokens_table.c_str(),
-        Binder(coll, username, "username"),
-        Binder(coll, token, "token")
-    );
-    return easySQLQuery(query, nullptr, coll->getBindFunction());
-}   // insertToken
-
-#endif // ENABLE_WEB_SUPPORT
 
 //-----------------------------------------------------------------------------
 

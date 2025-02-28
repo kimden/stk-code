@@ -120,10 +120,6 @@ private:
     bool m_records_table_exists;
     uint64_t m_last_poll_db_time;
 
-#ifdef ENABLE_WEB_SUPPORT
-    bool m_tokens_table_exists;
-#endif
-
 public:
     /** Corresponds to the row of IPv4 ban table. */
     struct IpBanTableData
@@ -207,11 +203,6 @@ public:
     void deleteServerMessage(int row_id) const;
     bool getBestResult(const GameInfo& game_info, bool* exists, std::string* user, double* result);
     void insertManyResults(const GameInfo& game_info);
-
-#ifdef ENABLE_WEB_SUPPORT
-    bool getAllTokens(std::vector<std::string>& result);
-    bool insertToken(std::string& username, std::string& token);
-#endif
 };
 
 #endif // ifndef DATABASE_CONNECTOR_HPP

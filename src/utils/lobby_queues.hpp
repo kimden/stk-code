@@ -24,12 +24,11 @@
 #include <queue>
 #include <memory>
 #include "utils/track_filter.hpp"
-class ServerLobby;
 
 class LobbyQueues
 {
 public:
-    LobbyQueues(ServerLobby* lobby);
+    LobbyQueues();
 
     void loadTracksQueueFromConfig();
     
@@ -44,8 +43,6 @@ public:
     bool areKartFiltersIgnoringKarts() const;
 
 private:
-    ServerLobby* m_lobby;
-
     std::deque<std::shared_ptr<Filter>> m_onetime_tracks_queue;
 
     std::deque<std::shared_ptr<Filter>> m_cyclic_tracks_queue;

@@ -328,9 +328,6 @@ private:
     void process_scoring(Context& context);
     void process_scoring_assign(Context& context);
     void process_register(Context& context);
-#ifdef ENABLE_WEB_SUPPORT
-    void process_token(Context& context);
-#endif
     // soccer tournament commands
     void process_muteall(Context& context);
     void process_game(Context& context);
