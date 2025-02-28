@@ -55,6 +55,7 @@ class CommandManager;
 class KartElimination;
 class MapVoteHandler;
 class Tournament;
+class LobbyQueues;
 
 namespace Online
 {
@@ -267,13 +268,7 @@ private:
 
     std::set<std::string> m_temp_banned;
 
-    std::deque<std::shared_ptr<Filter>> m_onetime_tracks_queue;
-
-    std::deque<std::shared_ptr<Filter>> m_cyclic_tracks_queue;
-
-    std::deque<std::shared_ptr<Filter>> m_onetime_karts_queue;
-
-    std::deque<std::shared_ptr<Filter>> m_cyclic_karts_queue;
+    std::shared_ptr<LobbyQueues> m_lobby_queues;        
 
     std::vector<std::string> m_map_history;
 
@@ -439,7 +434,6 @@ private:
     bool canVote(std::shared_ptr<STKPeer> peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
     std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer> peer) const;
-    void loadTracksQueueFromConfig();
     std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
     bool loadCustomScoring(std::string& scoring);
     void updateWorldSettings();
@@ -554,6 +548,8 @@ public:
     std::shared_ptr<Tournament> getTournament() const  { return m_tournament; }
     std::map<std::string, std::set<std::string>> getCategories() const
                                                 { return m_player_categories; }
+    std::shared_ptr<LobbyQueues> getLobbyQueues() const
+                                                     { return m_lobby_queues; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

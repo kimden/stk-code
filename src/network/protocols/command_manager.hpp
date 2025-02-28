@@ -51,6 +51,7 @@ class Event;
 class STKPeer;
 class LobbyAssetManager;
 class Tournament;
+class LobbyQueues;
 
 class CommandManager
 {
@@ -201,6 +202,7 @@ private:
 
     std::shared_ptr<LobbyAssetManager> m_asset_manager;
     std::shared_ptr<Tournament> m_tournament;
+    std::shared_ptr<LobbyQueues> m_lobby_queues;
 
     std::vector<std::weak_ptr<Command>> m_all_commands;
 

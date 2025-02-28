@@ -31,6 +31,7 @@ KartTeam Conversions::roleToTeam(TournamentRole role)
         case TR_SPECTATOR:
             return KART_TEAM_NONE;
     }
+    return KART_TEAM_NONE;
 } // roleToTeam
 
 std::string Conversions::roleToString(TournamentRole role)
@@ -46,6 +47,7 @@ std::string Conversions::roleToString(TournamentRole role)
         case TR_SPECTATOR:
             return "spectator";
     }
+    return "";
 } // roleToString
 
 char Conversions::roleToChar(TournamentRole role)
@@ -61,6 +63,7 @@ char Conversions::roleToChar(TournamentRole role)
         case TR_SPECTATOR:
             return 's';
     }
+    return ' ';
 } // roleToChar
 
 TournamentRole Conversions::charToRole(char c)
@@ -78,6 +81,7 @@ TournamentRole Conversions::charToRole(char c)
         default:
             return TR_SPECTATOR;
     }
+    return TR_SPECTATOR;
 } // charToRole
 
 std::string Conversions::roleCharToString(char c)
