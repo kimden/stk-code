@@ -45,7 +45,6 @@ CMAKE_DEPENDENT_OPTION(USE_IPV6 "Allow create or connect to game server with IPv
 option(USE_SYSTEM_WIIUSE "Use system WiiUse instead of the built-in version, when available." OFF)
 option(USE_SQLITE3 "Use sqlite to manage server stats and ban list." ON)
 
-option(WEB_SUPPORT "Website integration tools" OFF)
 option(FATAL_WHEN_OLD_RECORDS "Fatal error if the results table is old" ON)
 
 if(APPLE)
@@ -514,11 +513,6 @@ if(USE_SQLITE3)
         include_directories("${SQLITE3_INCLUDEDIR}")
         MESSAGE(STATUS "Use system libsqlite3: ${SQLITE3_LIBRARY}")
     endif()
-endif()
-
-# Web support
-if(WEB_SUPPORT)
-    add_definitions(-DENABLE_WEB_SUPPORT)
 endif()
 
 # Error if the records table is too old

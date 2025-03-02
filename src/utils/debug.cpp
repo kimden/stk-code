@@ -975,7 +975,7 @@ bool handleContextMenuAction(s32 cmd_id)
                     StringUtils::split(StringUtils::wideToUtf8(text), ' ');
                 for (const std::string& track : parts)
                 {
-                    Track* t = track_manager->getTrack(track);
+                    Track* t = TrackManager::get()->getTrack(track);
                     if (t == NULL)
                     {
                         Log::warn("Debug", "Cutscene %s not found!",

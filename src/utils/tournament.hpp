@@ -32,6 +32,7 @@ class PeerVote;
 class TrackFilter;
 class ServerLobby;
 class STKPeer;
+class LobbySettings;
 
 /** This class combines things that were previously located in server lobby
  *  (m_tournament_*) and were related to Soccer Tournaments.
@@ -41,7 +42,7 @@ class STKPeer;
 class Tournament
 {
 public:
-    Tournament(ServerLobby* lobby);
+    Tournament(ServerLobby* lobby, std::shared_ptr<LobbySettings> settings);
     void initTournamentPlayers();
     void applyFiltersForThisGame(FilterContext& track_context);
     std::set<std::string> getThoseWhoSeeTeamchats() const;
@@ -86,6 +87,8 @@ public:
 
 private:
     ServerLobby* m_lobby;
+
+    std::shared_ptr<LobbySettings> m_lobby_settings;
 
     std::set<std::string> m_tournament_red_players;
 

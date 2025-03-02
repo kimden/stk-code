@@ -58,6 +58,7 @@ void ArenasScreen::loadedFromFile()
 
 void ArenasScreen::beforeAddingWidget()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
 
@@ -179,7 +180,7 @@ void ArenasScreen::eventCallback(Widget* widget, const std::string& name, const 
             return;
         }
         
-        Track* clicked_track = track_manager->getTrack(selection);
+        Track* clicked_track = TrackManager::get()->getTrack(selection);
         if (clicked_track)
         {
             // In favorite edit mode, switch the status of the selected track
@@ -215,6 +216,8 @@ void ArenasScreen::eventCallback(Widget* widget, const std::string& name, const 
 
 void ArenasScreen::buildTrackList()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
 

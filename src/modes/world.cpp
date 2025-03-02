@@ -176,7 +176,7 @@ void World::init()
     RewindManager::create();
     main_loop->renderGUI(1100);
     // Grab the track file
-    Track *track = track_manager->getTrack(RaceManager::get()->getTrackName());
+    Track *track = TrackManager::get()->getTrack(RaceManager::get()->getTrackName());
     if (m_process_type == PT_MAIN)
     {
         Scripting::ScriptEngine::getInstance<Scripting::ScriptEngine>();
@@ -1727,7 +1727,7 @@ void World::updateAchievementDataEndRace()
 
                 if (RaceManager::get()->modeHasLaps())
                 {
-                    Track* track = track_manager->getTrack(RaceManager::get()->getTrackName());
+                    Track* track = TrackManager::get()->getTrack(RaceManager::get()->getTrackName());
                     int default_lap_num = track->getDefaultNumberOfLaps();
                     if (RaceManager::get()->getNumLaps() < default_lap_num)
                     {

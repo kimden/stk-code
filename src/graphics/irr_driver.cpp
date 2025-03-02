@@ -1065,7 +1065,7 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
             s32(m_device->getNativeScaleY() * (float)UserConfigParams::m_prev_real_height)) );
         m_video_driver->endScene();
     }
-    track_manager->removeAllCachedData();
+    TrackManager::get()->removeAllCachedData();
     delete attachment_manager;
     attachment_manager = NULL;
     ProjectileManager::get()->removeTextures();
@@ -1180,9 +1180,9 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
     file_manager->popTextureSearchPath();
     std::string banana = file_manager->getAsset(FileManager::GUI_ICON, "banana.png");
     GUIEngine::addLoadingIcon(irr_driver->getTexture(banana) );
-    // No need to reload cached track data (track_manager->cleanAllCachedData
+    // No need to reload cached track data (TrackManager::get()->cleanAllCachedData
     // above) - this happens dynamically when the tracks are loaded.
-    track_manager->updateScreenshotCache();
+    TrackManager::get()->updateScreenshotCache();
     GUIEngine::reshowCurrentScreen();
     MessageQueue::updatePosition();
     // Preload the explosion effects (explode.png)

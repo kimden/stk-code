@@ -232,7 +232,7 @@ void GPInfoScreen::init()
 
         // We have to recreate the group spinner, but a new group might have
         // been added or deleted since the last time this screen was shown.
-        const std::vector<std::string>& groups = track_manager->getAllTrackGroups();
+        const std::vector<std::string>& groups = TrackManager::get()->getAllTrackGroups();
         m_group_names.clear();
         m_group_names.push_back("all"); // Add "all" group as first group
         for (unsigned int i = 0; i < groups.size(); i++)  // Add rest of groups
@@ -317,7 +317,7 @@ void GPInfoScreen::addTracks()
     list->clear();
     for (unsigned int i = 0; i < (unsigned int)tracks.size(); i++)
     {
-        const Track *track = track_manager->getTrack(tracks[i]);
+        const Track *track = TrackManager::get()->getTrack(tracks[i]);
         std::string s = StringUtils::toString(i);
         list->addItem(s, track->getName());
     }
@@ -334,7 +334,7 @@ void GPInfoScreen::addScreenshot()
     // (but it will be shown if the given icon is not found)
     screenshot->m_properties[PROP_ICON] = "gui/icons/main_help.png";
 
-    const Track *track = track_manager->getTrack(m_gp.getTrackId(0));
+    const Track *track = TrackManager::get()->getTrack(m_gp.getTrackId(0));
     video::ITexture* image = STKTexManager::getInstance()
         ->getTexture(track->getScreenshotFile(),
         "While loading screenshot for track '%s':", track->getFilename());
@@ -454,7 +454,7 @@ void GPInfoScreen::onUpdate(float dt)
         m_curr_time = 0;
     }
 
-    Track* track = track_manager->getTrack(tracks[frame_after]);
+    Track* track = TrackManager::get()->getTrack(tracks[frame_after]);
     std::string file = track->getScreenshotFile();
     GUIEngine::IconButtonWidget* screenshot = getWidget<IconButtonWidget>("screenshot");
     screenshot->setImage(file, IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE);
@@ -465,6 +465,8 @@ void GPInfoScreen::onUpdate(float dt)
  */
 int GPInfoScreen::getMaxNumTracks(std::string group)
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+    
     int max_num_tracks = 0;
 
     if (group == "all")

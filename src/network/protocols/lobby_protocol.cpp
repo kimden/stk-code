@@ -262,7 +262,7 @@ Track* LobbyProtocol::getPlayingTrack() const
     std::unique_lock<std::mutex> ul(m_current_track_mutex);
     std::string track_ident = m_current_track;
     ul.unlock();
-    return track_manager->getTrack(track_ident);
+    return TrackManager::get()->getTrack(track_ident);
 }   // getPlayingTrack
 
 //-----------------------------------------------------------------------------

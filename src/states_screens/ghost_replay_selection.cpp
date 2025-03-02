@@ -223,7 +223,7 @@ void GhostReplaySelection::loadList()
             if (!m_multiplayer && (rd.m_kart_list.size() > 1))
                 continue;
 
-            Track* track = track_manager->getTrack(rd.m_track_name);
+            Track* track = TrackManager::get()->getTrack(rd.m_track_name);
         
             if (track == NULL)
                 continue;
@@ -362,7 +362,7 @@ void GhostReplaySelection::loadList()
             rd.m_minor_mode != "egg-hunt")
             continue;
 
-        Track* track = track_manager->getTrack(rd.m_track_name);
+        Track* track = TrackManager::get()->getTrack(rd.m_track_name);
         
         if (track == NULL)
             continue;

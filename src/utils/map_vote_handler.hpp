@@ -27,6 +27,7 @@
 #include <vector>
 #include <string>
 #include <map>
+class LobbySettings;
 
 #include "network/peer_vote.hpp"
 
@@ -42,26 +43,29 @@ class MapVoteHandler
     // ADVANCED = 2
 private:
     int algorithm;
+
+    std::shared_ptr<LobbySettings> m_lobby_settings;
+
     template<typename T>
     static void findMajorityValue(const std::map<T, unsigned>& choices, unsigned cur_players,
                            T* best_choice, float* rate);
 
     bool standard(std::map<uint32_t, PeerVote>& peers_votes,
                         float remaining_time, float max_time, bool is_over,
-                  unsigned cur_players, PeerVote* default_vote,
-                        PeerVote* winner_vote, uint32_t* winner_peer_id) const;
+                  unsigned cur_players,
+                        PeerVote* winner_vote) const;
     bool random(std::map<uint32_t, PeerVote>& peers_votes,
                         float remaining_time, float max_time, bool is_over,
-                unsigned cur_players, PeerVote* default_vote,
-                        PeerVote* winner_vote, uint32_t* winner_peer_id) const;
+                unsigned cur_players,
+                        PeerVote* winner_vote) const;
 public:
-    MapVoteHandler();
+    MapVoteHandler(std::shared_ptr<LobbySettings> settings);
     void setAlgorithm(int x) { algorithm = x; }
     int getAlgorithm() const { return algorithm; }
     bool handleAllVotes(std::map<uint32_t, PeerVote>& peers_votes,
                         float remaining_time, float max_time, bool is_over,
-                        unsigned cur_players, PeerVote* default_vote,
-                        PeerVote* winner_vote, uint32_t* winner_peer_id) const;
+                        unsigned cur_players,
+                        PeerVote* winner_vote) const;
 
 };
 #endif // MAP_VOTE_HANDLER_HPP

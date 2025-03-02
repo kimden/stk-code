@@ -23,8 +23,10 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 class AbstractKart;
 class ServerLobby;
+class LobbySettings;
 
 // A class that incapsulates most of the logic for processing kart hits.
 // Contains the code originally written by Heuchi1, but it's moved to a
@@ -33,10 +35,13 @@ class ServerLobby;
 class HitProcessor
 {
 public:
-    HitProcessor(ServerLobby* lobby);
+    HitProcessor(ServerLobby* lobby, std::shared_ptr<LobbySettings> settings);
 
 private:
     ServerLobby* m_lobby = nullptr;
+    std::shared_ptr<LobbySettings> m_lobby_settings;
+
+    bool m_troll_active;
 
     bool m_show_teammate_hits; // Whether to show messages about team hits.
     bool m_teammate_hit_mode; // Whether to anvil the team hitters.
@@ -61,22 +66,21 @@ private:
     const float MAX_BOWL_TEAMMATE_HIT_TIME = 2.0f;
     
 public:
-    // handle cakes and bowls
-    bool isTeammateHitMode() const { return m_teammate_hit_mode; }
-    bool showTeammateHits() const { return m_show_teammate_hits; }
-    void setTeammateHitMode(bool value) { m_teammate_hit_mode = value; }
-    void setShowTeammateHits(bool value) { m_show_teammate_hits = value; }
-    void setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown = 0);
-    void registerTeamMateHit(unsigned int kartID);
-    void registerTeamMateExplode(unsigned int kartID);
-    void handleTeamMateHits();
+    bool isAntiTrollActive() const                   { return m_troll_active; }
+    bool isTeammateHitMode() const              { return m_teammate_hit_mode; }
+    bool showTeammateHits() const              { return m_show_teammate_hits; }
+    void setAntiTroll(bool value)                   { m_troll_active = value; }
+    void setTeammateHitMode(bool value)        { m_teammate_hit_mode = value; }
+    void setShowTeammateHits(bool value)      { m_show_teammate_hits = value; }
+    void setTeammateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown = 0);
+    void registerTeammateHit(unsigned int kartID);
+    void registerTeammateExplode(unsigned int kartID);
+    void handleTeammateHits();
 
-    // handle swatters
     void handleSwatterHit(unsigned int ownerID, unsigned int victimID, bool success, bool has_hit_kart, uint16_t ticks_active);
-    // handle anvil
     void handleAnvilHit(unsigned int ownerID, unsigned int victimID);
 
-    void sendTeamMateHitMsg(std::string& s);
+    void sendTeammateHitMsg(std::string& s);
     void punishSwatterHits();
     void resetLastHits() { m_last_teammate_hit_msg = 0; }
 };

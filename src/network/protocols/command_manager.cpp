@@ -37,6 +37,7 @@
 #include "utils/hourglass_reason.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
+#include "utils/lobby_settings.hpp"
 #include "utils/lobby_queues.hpp"
 #include "utils/log.hpp"
 #include "utils/map_vote_handler.hpp"
@@ -540,9 +541,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("liststkaddon", &CM::special);
     applyFunctionIfPossible("listlocaladdon", &CM::special);
 
-    addTextResponse("description", StringUtils::wideToUtf8(m_lobby->getGameSetup()->readOrLoadFromFile
-            ((std::string)ServerConfig::m_motd)));
-    addTextResponse("moreinfo", StringUtils::wideToUtf8(m_lobby->m_help_message));
+    addTextResponse("description", m_lobby_settings->getMotd());
+    addTextResponse("moreinfo", m_lobby_settings->getHelpMessage());
     std::string version = "1.3 k 210fff beta";
 #ifdef GIT_VERSION
     version = std::string(GIT_VERSION);
@@ -568,7 +568,7 @@ void CommandManager::initCommands()
 
 void CommandManager::initAssets()
 {
-    auto all_t = track_manager->getAllTrackIdentifiers();
+    auto all_t = TrackManager::get()->getAllTrackIdentifiers();
     std::map<std::string, int> what_exists;
     for (std::string& s: all_t)
     {
@@ -607,12 +607,16 @@ CommandManager::CommandManager(ServerLobby* lobby):
 {
     if (!lobby)
         return;
-    initCommands();
-    initAssets();
 
+    m_hit_processor = lobby->getHitProcessor();
     m_asset_manager = lobby->getLobbyAssetManager();
     m_tournament = lobby->getTournament();
     m_lobby_queues = lobby->getLobbyQueues();
+    m_lobby_settings = lobby->getLobbySettings();
+    m_kart_elimination = lobby->getKartElimination();
+
+    initCommands();
+    initAssets();
 
     m_aux_mode_aliases = {
             {"m0"},
@@ -1102,7 +1106,7 @@ void CommandManager::process_replay(Context& context)
     }
     if (ServerConfig::m_record_replays)
     {
-        bool current_state = m_lobby->hasConsentOnReplays();
+        bool current_state = m_lobby_settings->hasConsentOnReplays();
         if (argv.size() >= 2 && argv[1] == "0")
             current_state = false;
         else if (argv.size() >= 2 && argv[1] == "1")
@@ -1110,7 +1114,7 @@ void CommandManager::process_replay(Context& context)
         else
             current_state ^= 1;
 
-        m_lobby->setConsentOnReplays(current_state);
+        m_lobby_settings->setConsentOnReplays(current_state);
         std::string msg = "Recording ghost replays is now ";
         msg += (current_state ? "on" : "off");
         m_lobby->sendStringToAllPeers(msg);
@@ -1219,8 +1223,8 @@ void CommandManager::process_config_assign(Context& context)
     // if (mode != 6) {
     //     goal_target = false;
     // }
-    if (!m_lobby->isDifficultyAvailable(difficulty)
-        || !m_lobby->isModeAvailable(mode))
+    if (!m_lobby_settings->isDifficultyAvailable(difficulty)
+        || !m_lobby_settings->isModeAvailable(mode))
     {
         std::string response = "Mode or difficulty are not permitted on this server";
         m_lobby->sendStringToPeer(response, peer);
@@ -2055,7 +2059,7 @@ void CommandManager::process_mute(Context& context)
         return;
     }
 
-    m_lobby->m_peers_muted_players[peer].insert(player_name);
+    m_lobby_settings->addMutedPlayerFor(peer, player_name);
     result_msg = "Muted player " + argv[1];
     m_lobby->sendStringToPeer(result_msg, peer);
 } // process_mute
@@ -2071,7 +2075,6 @@ void CommandManager::process_unmute(Context& context)
         error(context, true);
         return;
     }
-    std::string result_msg;
     core::stringw player_name;
 
     if (argv.size() != 2 || argv[1].empty())
@@ -2081,23 +2084,13 @@ void CommandManager::process_unmute(Context& context)
     }
 
     player_name = StringUtils::utf8ToWide(argv[1]);
-    for (auto it = m_lobby->m_peers_muted_players[peer].begin();
-        it != m_lobby->m_peers_muted_players[peer].end();)
-    {
-        if (*it == player_name)
-        {
-            it = m_lobby->m_peers_muted_players[peer].erase(it);
-            result_msg = "Unmuted player " + argv[1];
-            m_lobby->sendStringToPeer(result_msg, peer);
-            return;
-        }
-        else
-        {
-            it++;
-        }
-    }
 
-    error(context);
+    if (!m_lobby_settings->removeMutedPlayerFor(peer, player_name))
+        error(context);
+
+    std::string result_msg = "Unmuted player " + StringUtils::wideToUtf8(player_name);
+    m_lobby->sendStringToPeer(result_msg, peer);
+
 } // process_unmute
 // ========================================================================
 
@@ -2109,23 +2102,9 @@ void CommandManager::process_listmute(Context& context)
         error(context, true);
         return;
     }
-    std::string response;
-    int num_players = 0;
-    for (auto& name : m_lobby->m_peers_muted_players[peer])
-    {
-        response += StringUtils::wideToUtf8(name);
-        response += " ";
-        ++num_players;
-    }
-    if (num_players == 0)
-        response = "No player has been muted by you";
-    else
-    {
-        response += (num_players == 1 ? "is" : "are");
-        response += " muted (total: " + std::to_string(num_players) + ")";
-    }
 
-    m_lobby->sendStringToPeer(response, peer);
+    std::string muted_players = m_lobby_settings->getMutedPlayersAsString(peer);
+    m_lobby->sendStringToPeer(muted_players, peer);
 } // process_listmute
 // ========================================================================
 
@@ -2143,13 +2122,13 @@ void CommandManager::process_gnu(Context& context)
     }
     // "nognu" and "gnu off" are equivalent
     bool turn_on = (argv.size() < 2 || argv[1] != "off");
-    if (turn_on && m_lobby->m_kart_elimination->isEnabled())
+    if (turn_on && m_kart_elimination->isEnabled())
     {
         std::string msg = "Gnu Elimination mode was already enabled!";
         m_lobby->sendStringToPeer(msg, peer);
         return;
     }
-    if (!turn_on && !m_lobby->m_kart_elimination->isEnabled())
+    if (!turn_on && !m_kart_elimination->isEnabled())
     {
         std::string msg = "Gnu Elimination mode was already off!";
         m_lobby->sendStringToPeer(msg, peer);
@@ -2199,14 +2178,14 @@ void CommandManager::process_gnu(Context& context)
     m_votables["gnu"].reset("gnu kart");
     if (kart == "off")
     {
-        m_lobby->m_kart_elimination->disable();
+        m_kart_elimination->disable();
         std::string msg = "Gnu Elimination is now off";
         m_lobby->sendStringToAllPeers(msg);
     }
     else
     {
-        m_lobby->m_kart_elimination->enable(kart);
-        std::string msg = m_lobby->m_kart_elimination->getStartingMessage();
+        m_kart_elimination->enable(kart);
+        std::string msg = m_kart_elimination->getStartingMessage();
         m_lobby->sendStringToAllPeers(msg);
     }
 } // process_gnu
@@ -2278,7 +2257,7 @@ void CommandManager::process_standings(Context& context)
         msg = m_lobby->getGrandPrixStandings(isGPPlayers, isGPTeams);
     }
     else if (isGnu)
-        msg = m_lobby->m_kart_elimination->getStandings();
+        msg = m_kart_elimination->getStandings();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_standings
 // ========================================================================
@@ -2291,7 +2270,7 @@ void CommandManager::process_teamchat(Context& context)
         error(context, true);
         return;
     }
-    m_lobby->m_team_speakers.insert(peer);
+    m_lobby_settings->addTeamSpeaker(peer);
     std::string msg = "Your messages are now addressed to team only";
     m_lobby->sendStringToPeer(msg, peer);
 } // process_teamchat
@@ -2311,15 +2290,15 @@ void CommandManager::process_to(Context& context)
         error(context);
         return;
     }
-    m_lobby->m_message_receivers[peer].clear();
+    std::vector<std::string> receivers;
     for (unsigned i = 1; i < argv.size(); ++i)
     {
         if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
             i, m_stf_present_users, 3, false, true))
             return;
-        m_lobby->m_message_receivers[peer].insert(
-            StringUtils::utf8ToWide(argv[i]));
+        receivers.push_back(argv[i]);
     }
+    m_lobby_settings->setMessageReceiversFor(peer, receivers);
     std::string msg = "Successfully changed chat settings";
     m_lobby->sendStringToPeer(msg, peer);
 } // process_to
@@ -2333,8 +2312,7 @@ void CommandManager::process_public(Context& context)
         error(context, true);
         return;
     }
-    m_lobby->m_message_receivers[peer].clear();
-    m_lobby->m_team_speakers.erase(peer);
+    m_lobby_settings->makeChatPublicFor(peer);
     std::string s = "Your messages are now public";
     m_lobby->sendStringToPeer(s, peer);
 } // process_public
@@ -2426,20 +2404,7 @@ void CommandManager::process_length(Context& context)
         error(context, true);
         return;
     }
-    std::string msg;
-    if (m_lobby->m_default_lap_multiplier < 0 && m_lobby->m_fixed_lap < 0)
-        msg = "Game length is currently chosen by players";
-    else if (m_lobby->m_default_lap_multiplier > 0)
-        msg = StringUtils::insertValues(
-                "Game length is %f x default",
-                m_lobby->m_default_lap_multiplier);
-    else if (m_lobby->m_fixed_lap > 0)
-        msg = StringUtils::insertValues(
-                "Game length is %d", m_lobby->m_fixed_lap);
-    else
-        msg = StringUtils::insertValues(
-                "An error: game length is both %f x default and %d",
-                m_lobby->m_default_lap_multiplier, m_lobby->m_fixed_lap);
+    std::string msg = m_lobby_settings->getLapRestrictionsAsString();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_length
 // ========================================================================
@@ -2453,11 +2418,9 @@ void CommandManager::process_length_multi(Context& context)
         error(context);
         return;
     }
-    m_lobby->m_default_lap_multiplier = std::max<double>(0.0, temp_double);
-    m_lobby->m_fixed_lap = -1;
-    std::string msg = StringUtils::insertValues(
-            "Game length is now %f x default",
-            m_lobby->m_default_lap_multiplier);
+    double value = std::max<double>(0.0, temp_double);
+    m_lobby_settings->setMultiplier(value);
+    std::string msg = StringUtils::insertValues("Game length is now %f x default", value);
     m_lobby->sendStringToAllPeers(msg);
 } // process_length_multi
 // ========================================================================
@@ -2471,17 +2434,15 @@ void CommandManager::process_length_fixed(Context& context)
         error(context);
         return;
     }
-    m_lobby->m_fixed_lap = std::max<int>(0, temp_int);
-    m_lobby->m_default_lap_multiplier = -1.0;
-    std::string msg = StringUtils::insertValues(
-            "Game length is now %d", m_lobby->m_fixed_lap);
+    int value = std::max<int>(0, temp_int);
+    m_lobby_settings->setFixedLapCount(value);
+    std::string msg = StringUtils::insertValues("Game length is now %d", value);
     m_lobby->sendStringToAllPeers(msg);
 } // process_length_fixed
 // ========================================================================
 void CommandManager::process_length_clear(Context& context)
 {
-    m_lobby->m_default_lap_multiplier = -1.0;
-    m_lobby->m_fixed_lap = -1;
+    m_lobby_settings->resetLapRestrictions();
     std::string msg = "Game length will be chosen by players";
     m_lobby->sendStringToAllPeers(msg);
 } // process_length_clear
@@ -2489,15 +2450,7 @@ void CommandManager::process_length_clear(Context& context)
 
 void CommandManager::process_direction(Context& context)
 {
-    std::string msg = "Direction is ";
-    if (m_lobby->m_fixed_direction == -1)
-    {
-        msg += "chosen ingame";
-    } else
-    {
-        msg += "set to ";
-        msg += (m_lobby->m_fixed_direction == 0 ? "forward" : "reverse");
-    }
+    std::string msg = m_lobby_settings->getDirectionAsString();
     m_lobby->sendStringToAllPeers(msg);
 } // process_direction
 // ========================================================================
@@ -2512,26 +2465,12 @@ void CommandManager::process_direction_assign(Context& context)
         return;
     }
     int temp_int = -1;
-    if (!StringUtils::parseString<int>(argv[1], &temp_int))
+    if (!StringUtils::parseString<int>(argv[1], &temp_int) || !m_lobby_settings->setDirection(temp_int))
     {
         error(context);
         return;
     }
-    if (temp_int < -1 || temp_int > 1)
-    {
-        error(context);
-        return;
-    }
-    m_lobby->m_fixed_direction = temp_int;
-    msg = "Direction is now ";
-    if (temp_int == -1)
-    {
-        msg += "chosen ingame";
-    } else
-    {
-        msg += "set to ";
-        msg += (temp_int == 0 ? "forward" : "reverse");
-    }
+    msg = m_lobby_settings->getDirectionAsString(true);
     m_lobby->sendStringToAllPeers(msg);
 } // process_direction_assign
 // ========================================================================
@@ -2779,40 +2718,31 @@ void CommandManager::process_queue_shuffle(Context& context)
 
 void CommandManager::process_allowstart(Context& context)
 {
-    std::string msg;
     auto peer = context.m_peer.lock();
     if (!peer)
     {
         error(context, true);
         return;
     }
-    if (m_lobby->m_allowed_to_start)
-        msg = "Starting the game is allowed";
-    else
-        msg = "Starting the game is forbidden";
+
+    std::string msg = m_lobby_settings->getAllowedToStartAsString();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_allowstart
 // ========================================================================
 
 void CommandManager::process_allowstart_assign(Context& context)
 {
-    std::string msg;
     auto& argv = context.m_argv;
+    // kimden thinks the parts 2-3 should be moved into validation part
+    // of the settings. Please do it later. In this function it's not done
+    // because of an extra cast.
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
         error(context);
         return;
     }
-    if (argv[1] == "0")
-    {
-        m_lobby->m_allowed_to_start = false;
-        msg = "Now starting a game is forbidden";
-    }
-    else
-    {
-        m_lobby->m_allowed_to_start = true;
-        msg = "Now starting a game is allowed";
-    }
+    m_lobby_settings->setAllowedToStart(argv[1] != "0");
+    std::string msg = m_lobby_settings->getAllowedToStartAsString(true);
     m_lobby->sendStringToAllPeers(msg);
 } // process_allowstart_assign
 // ========================================================================
@@ -2825,32 +2755,22 @@ void CommandManager::process_shuffle(Context& context)
         error(context, true);
         return;
     }
-    std::string msg;
-    if (m_lobby->m_shuffle_gp)
-        msg = "The GP grid is sorted by score";
-    else
-        msg = "The GP grid is shuffled";
+    std::string msg = m_lobby_settings->getWhetherShuffledGPGridAsString();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_shuffle
 // ========================================================================
 
 void CommandManager::process_shuffle_assign(Context& context)
 {
-    std::string msg;
     auto& argv = context.m_argv;
+    // Move validation to lobby settings.
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
         error(context);
         return;
     }
-    if (argv[1] == "0")
-    {
-        m_lobby->m_shuffle_gp = false;
-        msg = "Now the GP grid is sorted by score";
-    } else {
-        m_lobby->m_shuffle_gp = true;
-        msg = "Now the GP grid is shuffled";
-    }
+    m_lobby_settings->setGPGridShuffled(argv[1] != "0");
+    std::string msg = m_lobby_settings->getWhetherShuffledGPGridAsString(true);
     m_lobby->sendStringToAllPeers(msg);
 } // process_shuffle_assign
 // ========================================================================
@@ -2903,7 +2823,7 @@ void CommandManager::process_team(Context& context)
     if (!argv[1].empty())
     {
         std::string temp(1, argv[1][0]);
-        if (m_lobby->getAvailableTeams().find(temp) != std::string::npos)
+        if (m_lobby_settings->getAvailableTeams().find(temp) != std::string::npos)
             allowed_color = true;
     }
     int team = TeamUtils::getIndexByCode(argv[1]);
@@ -3071,8 +2991,7 @@ void CommandManager::process_cat(Context& context)
             2, m_stf_present_users, 3, false, true))
             return;
         std::string player = argv[2];
-        m_lobby->m_player_categories[category].insert(player);
-        m_lobby->m_categories_for_player[player].insert(category);
+        m_lobby_settings->addPlayerToCategory(player, category);
         m_lobby->updatePlayerList();
         return;
     }
@@ -3089,14 +3008,14 @@ void CommandManager::process_cat(Context& context)
             2, m_stf_present_users, 3, false, true))
             return;
         player = argv[2];
-        m_lobby->m_player_categories[category].erase(player);
-        m_lobby->m_categories_for_player[player].erase(category);
+        m_lobby_settings->erasePlayerFromCategory(player, category);
         m_lobby->updatePlayerList();
         return;
     }
     if (argv[0] == "catshow")
     {
         int displayed;
+        // Validation should happen in LS
         if (argv.size() != 3 || !StringUtils::parseString(argv[2], &displayed)
                 || displayed < 0 || displayed > 1)
         {
@@ -3104,11 +3023,7 @@ void CommandManager::process_cat(Context& context)
             return;
         }
         std::string category = argv[1];
-        if (displayed) {
-            m_lobby->m_hidden_categories.erase(category);
-        } else {
-            m_lobby->m_hidden_categories.insert(category);
-        }
+        m_lobby_settings->makeCategoryVisible(category, displayed);
         m_lobby->updatePlayerList();
         return;
     }
@@ -3124,7 +3039,7 @@ void CommandManager::process_troll(Context& context)
         error(context, true);
         return;
     }
-    if (m_lobby->m_troll_active)
+    if (m_hit_processor->isAntiTrollActive())
         msg = "Trolls will be kicked";
     else
         msg = "Trolls can stay";
@@ -3143,10 +3058,10 @@ void CommandManager::process_troll_assign(Context& context)
     }
     if (argv[1] == "0")
     {
-        m_lobby->m_troll_active = false;
+        m_hit_processor->setAntiTroll(false);
         msg = "Trolls can stay";
     } else {
-        m_lobby->m_troll_active = true;
+        m_hit_processor->setAntiTroll(true);
         msg = "Trolls will be kicked";
     }
     m_lobby->sendStringToAllPeers(msg);
@@ -3239,10 +3154,7 @@ void CommandManager::process_scoring(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = "Current scoring is \"" + m_lobby->m_scoring_type;
-    for (int param: m_lobby->m_scoring_int_params)
-        msg += StringUtils::insertValues(" %d", param);
-    msg += "\"";
+    std::string msg = m_lobby_settings->getScoringAsString();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_scoring
 // ========================================================================
@@ -3259,7 +3171,7 @@ void CommandManager::process_scoring_assign(Context& context)
     }
     std::string cmd2;
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
-    if (m_lobby->loadCustomScoring(cmd2))
+    if (m_lobby_settings->loadCustomScoring(cmd2))
     {
         msg = "Scoring set to \"" + cmd2 + "\"";
         m_lobby->sendStringToAllPeers(msg);
@@ -3392,7 +3304,7 @@ void CommandManager::process_game(Context& context)
         }
     }
     m_tournament->setGameCmdInput(new_game_number, new_duration, new_addition);
-    m_lobby->m_fixed_lap = new_duration;
+    m_lobby_settings->setFixedLapCount(new_duration);
 
     if (m_tournament->hasColorsSwapped(new_game_number) ^ m_tournament->hasColorsSwapped(old_game_number))
         m_lobby->changeColors();
@@ -3407,7 +3319,7 @@ void CommandManager::process_game(Context& context)
     if (!m_tournament->hasGoalsLimit() && new_addition > 0)
     {
         msg += StringUtils::insertValues(" %d seconds", new_addition);
-        ++m_lobby->m_fixed_lap;
+        m_lobby_settings->setFixedLapCount(m_lobby_settings->getFixedLapCount() + 1);
     }
     m_lobby->sendStringToAllPeers(msg);
     Log::info("CommandManager", "SoccerMatchLog: Game number changed from %d to %d",
@@ -3452,25 +3364,13 @@ void CommandManager::process_role(Context& context)
     char role_char = role[0];
     if (role_char >= 'A' && role_char <= 'Z')
         role_char += 'a' - 'A';
-    std::vector<std::string> changed_usernames;
+    std::set<std::string> changed_usernames;
     if (!username.empty())
     {
         if (username[0] == '#')
-        {
-            std::string category = username.substr(1);
-            auto it = m_lobby->m_player_categories.find(category);
-            if (it != m_lobby->m_player_categories.end())
-            {
-                for (const std::string& s: it->second)
-                {
-                    changed_usernames.push_back(s);
-                }
-            }
-        }
+            changed_usernames = m_lobby_settings->getPlayersInCategory(username.substr(1));
         else
-        {
-            changed_usernames.push_back(username);
-        }
+            changed_usernames.insert(username);
     }
     for (const std::string& u: changed_usernames)
     {
@@ -3480,7 +3380,7 @@ void CommandManager::process_role(Context& context)
             StringUtils::utf8ToWide(u));
         std::vector<std::string> missing_assets;
         if (player_peer)
-            missing_assets = m_lobby->getMissingAssets(player_peer);
+            missing_assets = m_lobby_settings->getMissingAssets(player_peer);
         bool fail = false;
         switch (role_char)
         {
@@ -3810,9 +3710,7 @@ void CommandManager::process_preserve(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = "Preserved settings:";
-    for (const std::string& str: m_lobby->m_preserve)
-        msg += " " + str;
+    std::string msg = m_lobby_settings->getPreservedSettingsAsString();
     m_lobby->sendStringToPeer(msg, peer);
 } // process_preserve
 // ========================================================================
@@ -3836,13 +3734,13 @@ void CommandManager::process_preserve_assign(Context& context)
     {
         msg = StringUtils::insertValues(
             "'%s' isn't preserved on server reset anymore", argv[1].c_str());
-        m_lobby->m_preserve.erase(argv[1]);
+        m_lobby_settings->eraseFromPreserved(argv[1]);
     }
     else
     {
         msg = StringUtils::insertValues(
             "'%s' is now preserved on server reset", argv[1].c_str());
-        m_lobby->m_preserve.insert(argv[1]);
+        m_lobby_settings->insertIntoPreserved(argv[1]);
     }
     m_lobby->sendStringToAllPeers(msg);
 } // process_preserve_assign
@@ -4044,7 +3942,7 @@ void CommandManager::process_available_teams(Context& context)
         return;
     }
     std::string msg = StringUtils::insertValues("Currently available teams: \"%s\"",
-            m_lobby->getInternalAvailableTeams().c_str());
+            m_lobby_settings->getInternalAvailableTeams().c_str());
     m_lobby->sendStringToPeer(msg, peer);
 } // process_available_teams
 // ========================================================================
@@ -4088,7 +3986,7 @@ void CommandManager::process_available_teams_assign(Context& context)
         ignored.push_back(c);
     for (char c: value_set)
         value.push_back(c);
-    m_lobby->setInternalAvailableTeams(value);
+    m_lobby_settings->setInternalAvailableTeams(value);
     msg = StringUtils::insertValues("Set available teams to \"%s\"", value);
     if (!ignored.empty())
         msg += StringUtils::insertValues(
@@ -4143,7 +4041,7 @@ bool CommandManager::assignRandomTeams(int intended_number,
         return false;
     }
     int max_number_of_teams = TeamUtils::getNumberOfTeams();
-    std::string available_colors_string = m_lobby->getAvailableTeams();
+    std::string available_colors_string = m_lobby_settings->getAvailableTeams();
     if (available_colors_string.empty())
         return false;
     if (max_number_of_teams > (int)available_colors_string.length())

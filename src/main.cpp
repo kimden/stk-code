@@ -1622,7 +1622,7 @@ int handleCmdLine(bool has_server_config, bool has_parent_process)
         Log::verbose("main", "You chose to start in track '%s'.",
                      s.c_str());
 
-        Track* t = track_manager->getTrack(s);
+        Track* t = TrackManager::get()->getTrack(s);
         if (!t)
         {
             Log::warn("main", "Can't find track named '%s'.", s.c_str());
@@ -1722,9 +1722,10 @@ int handleCmdLine(bool has_server_config, bool has_parent_process)
         else
         {
             Log::verbose("main", "You chose to have %d laps.", laps);
-            if (NetworkConfig::get()->isServer())
-                ServerLobby::m_default_fixed_laps = laps;
-            else
+
+            // Note that --laps doesn't work with ServerLobby anymore, as it was removed
+            // during refactoring. Will probably be returned later.
+            if (!NetworkConfig::get()->isServer())
                 RaceManager::get()->setNumLaps(laps);
         }
     }   // --laps
@@ -1980,7 +1981,6 @@ void initRest()
     ReplayPlay::create();
     ReplayRecorder::create();
     material_manager        = new MaterialManager      ();
-    track_manager           = new TrackManager         ();
     kart_properties_manager = new KartPropertiesManager();
     ProjectileManager::create();
     powerup_manager         = new PowerupManager       ();
@@ -1997,7 +1997,7 @@ void initRest()
     }
     if (!UserConfigParams::m_disable_addon_tracks)
     {
-        track_manager->addTrackSearchDir(
+        TrackManager::get()->addTrackSearchDir(
             file_manager->getAddonsFile("tracks/"));
     }
 
@@ -2008,7 +2008,7 @@ void initRest()
     XMLNode characteristicsNode(file_manager->getAsset(char_file));
     kart_properties_manager->loadCharacteristics(&characteristicsNode);
 
-    track_manager->loadTrackList();
+    TrackManager::get()->loadTrackList();
     music_manager->addMusicToTracks();
 
     GUIEngine::addLoadingIcon(irr_driver->getTexture(FileManager::GUI_ICON,
@@ -2030,7 +2030,7 @@ void initRest()
     RaceManager::get()->setDifficulty(
                  (RaceManager::Difficulty)(int)UserConfigParams::m_difficulty);
 
-    if (!track_manager->getTrack(UserConfigParams::m_last_track))
+    if (!TrackManager::get()->getTrack(UserConfigParams::m_last_track))
         UserConfigParams::m_last_track.revertToDefaults();
 
     RaceManager::get()->setTrack(UserConfigParams::m_last_track);
@@ -2760,7 +2760,6 @@ static void cleanSuperTuxKart()
     if(powerup_manager)         delete powerup_manager;
     ProjectileManager::destroy();
     if(kart_properties_manager) delete kart_properties_manager;
-    if(track_manager)           delete track_manager;
     if(material_manager)        delete material_manager;
     if(history)                 delete history;
     ReplayPlay::destroy();

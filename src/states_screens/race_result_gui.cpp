@@ -2262,7 +2262,7 @@ void RaceResultGUI::displayScreenShots()
     int n_sshot = 1;
     for (int i = m_start_track; i < m_end_track; i++)
     {
-        Track* track = track_manager->getTrack(tracks[i]);
+        Track* track = TrackManager::get()->getTrack(tracks[i]);
         GUIEngine::IconButtonWidget* sshot = getWidget<GUIEngine::IconButtonWidget>(
             ("sshot_" + StringUtils::toString(n_sshot)).c_str());
         GUIEngine::LabelWidget* label = getWidget<GUIEngine::LabelWidget>(

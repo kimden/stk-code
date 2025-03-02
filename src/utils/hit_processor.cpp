@@ -24,10 +24,13 @@
 #include "utils/string_utils.hpp"
 #include "karts/kart_properties.hpp"
 #include "network/protocols/server_lobby.hpp"
+#include "utils/lobby_settings.hpp"
 
 
-HitProcessor::HitProcessor(ServerLobby* lobby): m_lobby(lobby)
+HitProcessor::HitProcessor(ServerLobby* lobby, std::shared_ptr<LobbySettings> settings)
+    : m_lobby(lobby), m_lobby_settings(settings)
 {
+    m_troll_active = ServerConfig::m_troll_active;
     m_show_teammate_hits = ServerConfig::m_show_teammate_hits;
     m_teammate_hit_mode = ServerConfig::m_teammate_hit_mode;
     m_last_teammate_hit_msg = 0;
@@ -42,33 +45,33 @@ HitProcessor::HitProcessor(ServerLobby* lobby): m_lobby(lobby)
 
 // this is called when collisions of an item are handled
 // so we keep track of hits caused by that item
-void HitProcessor::setTeamMateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown)
+void HitProcessor::setTeammateHitOwner(unsigned int ownerID, uint16_t ticks_since_thrown)
 {
     m_teammate_current_item_ownerID = ownerID;
     m_teammate_ticks_since_thrown = ticks_since_thrown;
     m_teammate_karts_hit.clear();
     m_teammate_karts_exploded.clear();
     m_collecting_teammate_hit_info = true;
-}   // setTeamMateHitOwner
+}   // setTeammateHitOwner
 //-----------------------------------------------------------------------------
 
-void HitProcessor::registerTeamMateHit(unsigned int kartID)
+void HitProcessor::registerTeammateHit(unsigned int kartID)
 {
     // only register if we know the item owner and victim is still racing
     if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
         m_teammate_karts_hit.push_back(kartID);
-}   // registerTeamMateHit
+}   // registerTeammateHit
 //-----------------------------------------------------------------------------
 
-void HitProcessor::registerTeamMateExplode(unsigned int kartID)
+void HitProcessor::registerTeammateExplode(unsigned int kartID)
 {
     // only register if we know the item owner and victim is still racing
     if (m_collecting_teammate_hit_info && !World::getWorld()->getKart(kartID)->hasFinishedRace())
         m_teammate_karts_exploded.push_back(kartID);
-}   // registerTeamMateExplode
+}   // registerTeammateExplode
 //-----------------------------------------------------------------------------
 
-void HitProcessor::sendTeamMateHitMsg(std::string& s)
+void HitProcessor::sendTeammateHitMsg(std::string& s)
 {
     if (World* w = World::getWorld())
     {
@@ -79,16 +82,16 @@ void HitProcessor::sendTeamMateHitMsg(std::string& s)
             m_lobby->sendStringToAllPeers(s);
         }
     }
-}   // sendTeamMateHitMsg
+}   // sendTeammateHitMsg
 //-----------------------------------------------------------------------------
 
-void HitProcessor::handleTeamMateHits()
+void HitProcessor::handleTeammateHits()
 {
     m_collecting_teammate_hit_info = false;
     // get team of owner of item
     const std::string owner_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(m_teammate_current_item_ownerID).getPlayerName());
-    const int owner_team = m_lobby->getTeamForUsername(owner_name);
+    const int owner_team = m_lobby_settings->getTeamForUsername(owner_name);
 
     if (owner_team == 0) // no team, no punishment
         return;
@@ -116,7 +119,7 @@ void HitProcessor::handleTeamMateHits()
         {
             const std::string playername = StringUtils::wideToUtf8(
                 RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
-            const int playerTeam = m_lobby->getTeamForUsername(playername);
+            const int playerTeam = m_lobby_settings->getTeamForUsername(playername);
             if (owner_team == playerTeam)
             {
                 // hit teammate
@@ -130,7 +133,7 @@ void HitProcessor::handleTeamMateHits()
         {
             msg += (num_victims > 1) ? "teammates " : "teammate ";
             msg += victims;
-            sendTeamMateHitMsg(msg);
+            sendTeammateHitMsg(msg);
         }
     }
 
@@ -142,7 +145,7 @@ void HitProcessor::handleTeamMateHits()
         {
             const std::string playername = StringUtils::wideToUtf8(
                 RaceManager::get()->getKartInfo(m_teammate_karts_exploded[i]).getPlayerName());
-            const int playerTeam = m_lobby->getTeamForUsername(playername);
+            const int playerTeam = m_lobby_settings->getTeamForUsername(playername);
             if (owner_team == playerTeam)
             {
                 // we did, so punish
@@ -178,7 +181,7 @@ void HitProcessor::handleTeamMateHits()
         {
             const std::string playername = StringUtils::wideToUtf8(
                 RaceManager::get()->getKartInfo(m_teammate_karts_hit[i]).getPlayerName());
-            const int playerTeam = m_lobby->getTeamForUsername(playername);
+            const int playerTeam = m_lobby_settings->getTeamForUsername(playername);
             if (owner_team == playerTeam)
             {
                 // we did, so punish
@@ -210,7 +213,7 @@ void HitProcessor::handleTeamMateHits()
             }
         }
     }
-}   // handleTeamMateHits
+}   // handleTeammateHits
 //-----------------------------------------------------------------------------
 
 void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
@@ -218,13 +221,13 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
 {
     const std::string owner_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int owner_team = m_lobby->getTeamForUsername(owner_name);
+    const int owner_team = m_lobby_settings->getTeamForUsername(owner_name);
     if (owner_team == 0)
         return;
 
     const std::string victim_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victim_team = m_lobby->getTeamForUsername(victim_name);
+    const int victim_team = m_lobby_settings->getTeamForUsername(victim_name);
     if (victim_team != owner_team)
         return;
 
@@ -237,7 +240,7 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
             owner_name.c_str(),
             victim_name.c_str()
         );
-        sendTeamMateHitMsg(msg);
+        sendTeammateHitMsg(msg);
     }
     if (isTeammateHitMode())
     {
@@ -257,13 +260,13 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
 {
     const std::string owner_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int owner_team = m_lobby->getTeamForUsername(owner_name);
+    const int owner_team = m_lobby_settings->getTeamForUsername(owner_name);
     if (owner_team == 0)
         return;
 
     const std::string victim_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victim_team = m_lobby->getTeamForUsername(victim_name);
+    const int victim_team = m_lobby_settings->getTeamForUsername(victim_name);
     if (victim_team != owner_team)
         return;
 
@@ -278,7 +281,7 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
             owner_name.c_str(),
             victim_name.c_str()
         );
-        sendTeamMateHitMsg(msg);
+        sendTeammateHitMsg(msg);
     }
     if (isTeammateHitMode())
     {

@@ -322,6 +322,7 @@ void Highscores::getEntry(int number, std::string &kart_name,
 // -----------------------------------------------------------------------------
 bool Highscores::operator < (const Highscores& hi) const
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     switch (m_sort_order)
     {
         case SO_TRACK:

@@ -198,7 +198,7 @@ void GrandPrixEditorScreen::loadTrackList (const std::string& gpname)
     tracks_widget->setItemCountHint(std::min((int)tracks.size(), 15));
     for (unsigned int t = 0; t < tracks.size(); t++)
     {
-        Track* curr = track_manager->getTrack(tracks[t]);
+        Track* curr = TrackManager::get()->getTrack(tracks[t]);
         if (curr == NULL)
         {
             Log::warn("GrandPrixEditor",
@@ -238,7 +238,7 @@ void GrandPrixEditorScreen::loadGPList()
         std::vector<std::string> sshot_files;
         for (unsigned int t=0; t<tracks.size(); t++)
         {
-            Track* track = track_manager->getTrack(tracks[t]);
+            Track* track = TrackManager::get()->getTrack(tracks[t]);
             sshot_files.push_back(track->getScreenshotFile());
         }
         if (sshot_files.empty())

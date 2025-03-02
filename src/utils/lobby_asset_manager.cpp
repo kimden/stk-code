@@ -32,12 +32,14 @@
 
 LobbyAssetManager::LobbyAssetManager(ServerLobby* lobby): m_lobby(lobby)
 {
-
+    init();
+    updateAddons();
 } // LobbyAssetManager
 // ========================================================================
 
 void LobbyAssetManager::init()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
 
     std::vector<int> all_k =
         kart_properties_manager->getKartsInGroup("standard");
@@ -62,6 +64,8 @@ void LobbyAssetManager::init()
 
 void LobbyAssetManager::updateAddons()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     m_addon_kts.first.clear();
     m_addon_kts.second.clear();
     m_addon_arenas.clear();
@@ -125,6 +129,8 @@ void LobbyAssetManager::updateAddons()
  */
 void LobbyAssetManager::updateMapsForMode(RaceManager::MinorRaceModeType mode)
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+    
     auto all_t = track_manager->getAllTrackIdentifiers();
     if (all_t.size() >= 65536)
         all_t.resize(65535);
@@ -138,7 +144,7 @@ void LobbyAssetManager::updateMapsForMode(RaceManager::MinorRaceModeType mode)
             auto it = m_available_kts.second.begin();
             while (it != m_available_kts.second.end())
             {
-                Track* t =  track_manager->getTrack(*it);
+                Track* t = track_manager->getTrack(*it);
                 if (t->isArena() || t->isSoccer() || t->isInternal())
                 {
                     it = m_available_kts.second.erase(it);
@@ -154,7 +160,7 @@ void LobbyAssetManager::updateMapsForMode(RaceManager::MinorRaceModeType mode)
             auto it = m_available_kts.second.begin();
             while (it != m_available_kts.second.end())
             {
-                Track* t =  track_manager->getTrack(*it);
+                Track* t = track_manager->getTrack(*it);
                 if (RaceManager::get()->getMinorMode() ==
                     RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
                 {
@@ -182,7 +188,7 @@ void LobbyAssetManager::updateMapsForMode(RaceManager::MinorRaceModeType mode)
             auto it = m_available_kts.second.begin();
             while (it != m_available_kts.second.end())
             {
-                Track* t =  track_manager->getTrack(*it);
+                Track* t = track_manager->getTrack(*it);
                 if (!t->isSoccer() || t->isInternal())
                 {
                     it = m_available_kts.second.erase(it);
@@ -560,7 +566,7 @@ std::string LobbyAssetManager::getRandomAddonMap() const
 {
     std::set<std::string> items;
     for (const std::string& s: m_entering_kts.second) {
-        Track* t = track_manager->getTrack(s);
+        Track* t = TrackManager::get()->getTrack(s);
         if (t->isAddon())
             items.insert(s);
     }

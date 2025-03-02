@@ -93,7 +93,7 @@ void EditTrackScreen::loadedFromFile()
     assert(tracks_widget != NULL);
     tracks_widget->setMaxLabelLength(MAX_LABEL_LENGTH);
     // Avoid too many items shown at the same time
-    tracks_widget->setItemCountHint(std::min((int)track_manager->getNumberOfTracks()+1, 30));
+    tracks_widget->setItemCountHint(std::min((int)TrackManager::get()->getNumberOfTracks()+1, 30));
 
     m_screenshot = getWidget<IconButtonWidget>("screenshot");
     m_screenshot->setFocusable(false);
@@ -103,6 +103,8 @@ void EditTrackScreen::loadedFromFile()
 // -----------------------------------------------------------------------------
 void EditTrackScreen::beforeAddingWidget()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     track_manager->setFavoriteTrackStatus(
         PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
     
@@ -193,6 +195,8 @@ void EditTrackScreen::eventCallback(GUIEngine::Widget* widget, const std::string
 // -----------------------------------------------------------------------------
 void EditTrackScreen::loadTrackList()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+    
     track_manager->setFavoriteTrackStatus(
         PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
 
@@ -284,7 +288,7 @@ void EditTrackScreen::selectTrack(const std::string& id)
     ButtonWidget* ok_button = getWidget<ButtonWidget>("ok");
     assert(ok_button != NULL);
 
-    m_track = track_manager->getTrack(id);
+    m_track = TrackManager::get()->getTrack(id);
     ok_button->setActive(m_track!=NULL);
     if (m_track)
     {

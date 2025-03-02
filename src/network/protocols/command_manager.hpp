@@ -49,9 +49,12 @@
 class ServerLobby;
 class Event;
 class STKPeer;
+class HitProcessor;
 class LobbyAssetManager;
 class Tournament;
 class LobbyQueues;
+class LobbySettings;
+class KartElimination;
 
 class CommandManager
 {
@@ -200,9 +203,12 @@ private:
 
     ServerLobby* m_lobby;
 
+    std::shared_ptr<HitProcessor> m_hit_processor;
     std::shared_ptr<LobbyAssetManager> m_asset_manager;
     std::shared_ptr<Tournament> m_tournament;
     std::shared_ptr<LobbyQueues> m_lobby_queues;
+    std::shared_ptr<LobbySettings> m_lobby_settings;
+    std::shared_ptr<KartElimination> m_kart_elimination;
 
     std::vector<std::weak_ptr<Command>> m_all_commands;
 

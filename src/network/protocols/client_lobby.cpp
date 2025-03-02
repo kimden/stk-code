@@ -590,7 +590,7 @@ void ClientLobby::receivePlayerVote(Event* event)
         "Vote from server: host %d, track %s, laps %d, reverse %d.",
         host_id, vote.m_track_name.c_str(), vote.m_num_laps, vote.m_reverse);
 
-    Track* track = track_manager->getTrack(vote.m_track_name);
+    Track* track = TrackManager::get()->getTrack(vote.m_track_name);
     if (!track)
     {
         Log::fatal("ClientLobby", "Missing track %s",
@@ -1807,6 +1807,8 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
                         total_addons.insert(kp->getIdent());
                 }
             }
+
+            std::shared_ptr<TrackManager> track_manager = TrackManager::get();
             if(type.empty() || // not specify addon type
                (!type.empty() && (type.compare("track") == 0 || type.compare("arena") == 0)))
             {
@@ -1892,7 +1894,7 @@ void ClientLobby::getKartsTracksNetworkString(BareNetworkString* ns)
     for (const std::string& k : oks)
         all_k.push_back(k);
 
-    auto all_t = track_manager->getAllTrackIdentifiers();
+    auto all_t = TrackManager::get()->getAllTrackIdentifiers();
     if (all_t.size() >= 65536)
         all_t.resize(65535);
     ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
@@ -2017,7 +2019,7 @@ void ClientLobby::doInstallAddonsPack()
             addons_manager->saveInstalled();
         if (track_installed)
         {
-            track_manager->loadTrackList();
+            TrackManager::get()->loadTrackList();
             // Update the replay file list to use latest track pointer
             ReplayPlay::get()->loadAllReplayFile();
             delete grand_prix_manager;

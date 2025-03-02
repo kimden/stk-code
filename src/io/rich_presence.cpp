@@ -478,7 +478,7 @@ void RichPresence::update(bool force)
     Track* track = nullptr;
     if (world)
     {
-        track = track_manager->getTrack(trackId);
+        track = TrackManager::get()->getTrack(trackId);
         if (track)
             trackName = StringUtils::wideToUtf8(track->getName());
     }

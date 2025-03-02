@@ -84,7 +84,7 @@ void TracksAndGPScreen::eventCallback(Widget* widget, const std::string& name,
             m_random_track_list.push_back(selection);
 
         }   // selection=="random_track"
-        Track *track = track_manager->getTrack(selection);
+        Track *track = TrackManager::get()->getTrack(selection);
 
         if (track)
         {
@@ -155,6 +155,8 @@ void TracksAndGPScreen::eventCallback(Widget* widget, const std::string& name,
 void TracksAndGPScreen::beforeAddingWidget()
 {
     Screen::init();
+
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
@@ -234,7 +236,7 @@ void TracksAndGPScreen::init()
         std::vector<std::string> screenshots;
         for (unsigned int t=0; t<tracks.size(); t++)
         {
-            const Track* curr = track_manager->getTrack(tracks[t]);
+            const Track* curr = TrackManager::get()->getTrack(tracks[t]);
             screenshots.push_back(curr->getScreenshotFile());
         }
         assert(screenshots.size() > 0);
@@ -281,6 +283,8 @@ void TracksAndGPScreen::init()
  */
 void TracksAndGPScreen::buildTrackList()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
 

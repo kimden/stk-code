@@ -63,7 +63,7 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
     {
         kart->decreaseShieldTime();
         if (sl)
-            sl->getHitProcessor()->registerTeamMateHit(kart->getWorldKartId());
+            sl->getHitProcessor()->registerTeammateHit(kart->getWorldKartId());
         return NULL;
     }
 
@@ -76,7 +76,7 @@ ExplosionAnimation *ExplosionAnimation::create(AbstractKart *kart,
     }
 
     if (sl)
-        sl->getHitProcessor()->registerTeamMateExplode(kart->getWorldKartId());
+        sl->getHitProcessor()->registerTeammateExplode(kart->getWorldKartId());
     return new ExplosionAnimation(kart, direct_hit);
 }   // create
 

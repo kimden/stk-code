@@ -183,6 +183,8 @@ void ServerSelection::init()
         file_manager->getAsset(FileManager::GUI_ICON, "hourglass.png"));
     m_icon_bank->addTextureAsSprite(icon1);
     m_icon_bank->addTextureAsSprite(icon2);
+
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     for (unsigned i = 0; i < track_manager->getNumberOfTracks(); i++)
     {
         Track* t = track_manager->getTrack(i);
@@ -276,7 +278,7 @@ void ServerSelection::loadList()
         int icon = server->isGameStarted() ? 1 : 0;
         Track* t = server->getCurrentTrack();
         if (t)
-            icon = track_manager->getTrackIndexByIdent(t->getIdent()) + 2;
+            icon = TrackManager::get()->getTrackIndexByIdent(t->getIdent()) + 2;
         core::stringw num_players;
         int current_players = server->getCurrentPlayers();
         int current_ai = server->getCurrentAI();

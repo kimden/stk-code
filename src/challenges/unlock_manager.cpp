@@ -68,7 +68,7 @@ UnlockManager::UnlockManager()
 
     // Read challenges from .../data/tracks/*
     // --------------------------------------
-    const std::vector<std::string> *all_track_dirs = track_manager->getAllTrackDirs();
+    const std::vector<std::string> *all_track_dirs = TrackManager::get()->getAllTrackDirs();
     readAllChallengesInDirs(all_track_dirs);
 
     // Read challenges from .../data/karts/*
