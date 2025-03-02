@@ -585,7 +585,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
             m_karts[sd.m_id]->getKartModel()
                 ->setAnimation(KartModel::AF_LOSE_START, true/* play_non_loop*/);
         }
-        GameInfo* game_info = getGameInfo();
+        std::shared_ptr<GameInfo> game_info = getGameInfo();
         if (game_info)
         {
             int sz = game_info->m_player_info.size();

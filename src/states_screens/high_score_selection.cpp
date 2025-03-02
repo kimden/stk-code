@@ -224,7 +224,7 @@ void HighScoreSelection::loadList()
         }
         else
         {
-            Track* track = track_manager->getTrack(hs->m_track);
+            Track* track = TrackManager::get()->getTrack(hs->m_track);
 
             if (track == NULL || hs->getNumberEntries() < 1)
                 continue;

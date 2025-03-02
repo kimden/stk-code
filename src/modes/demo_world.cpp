@@ -144,6 +144,8 @@ bool DemoWorld::updateIdleTimeAndStartDemo(float dt)
     if(m_current_idle_time <= m_max_idle_time)
         return false;
 
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     if(m_demo_tracks.size()==0)
         m_demo_tracks = track_manager->getAllTrackIdentifiers();
     Track *track = track_manager->getTrack(m_demo_tracks[0]);

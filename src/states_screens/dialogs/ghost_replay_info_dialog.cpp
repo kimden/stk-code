@@ -60,7 +60,7 @@ GhostReplayInfoDialog::GhostReplayInfoDialog(unsigned int replay_id,
     m_info_widget = getWidget<BubbleWidget>("info");
     m_info_widget->setText(m_rd.m_info);
 
-    Track* track = track_manager->getTrack(m_rd.m_track_name);
+    Track* track = TrackManager::get()->getTrack(m_rd.m_track_name);
 
     m_track_screenshot_widget = getWidget<IconButtonWidget>("track_screenshot");
     m_track_screenshot_widget->setFocusable(false);

@@ -413,7 +413,7 @@ void CaptureTheFlag::ctfScored(int kart_id, bool red_team_scored,
     {
         scored_msg = _("%s captured the red flag!", name);
     }
-    GameInfo* game_info = getGameInfo();
+    std::shared_ptr<GameInfo> game_info = getGameInfo();
     if (game_info)
     {
         game_info->m_player_info.emplace_back(false/* reserved */,

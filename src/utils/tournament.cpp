@@ -26,16 +26,7 @@
 #include "network/peer_vote.hpp"
 #include "modes/world.hpp"
 #include "modes/soccer_world.hpp"
-// #include "karts/kart_properties.hpp"
-// #include "karts/kart_properties_manager.hpp"
-// #include "karts/official_karts.hpp"
-// #include "network/network_string.hpp"
-// #include "network/server_config.hpp"
-// #include "network/stk_peer.hpp"
-// #include "network/protocols/server_lobby.hpp"
-// #include "tracks/track.hpp"
-// #include "tracks/track_manager.hpp"
-// #include "utils/random_generator.hpp"
+#include "utils/lobby_settings.hpp"
 #include "utils/string_utils.hpp"
 
 namespace
@@ -43,7 +34,8 @@ namespace
     static int g_history_limit = 100;
 }
 
-Tournament::Tournament(ServerLobby* lobby): m_lobby(lobby)
+Tournament::Tournament(ServerLobby* lobby, std::shared_ptr<LobbySettings> settings)
+    : m_lobby(lobby), m_lobby_settings(settings)
 {
     initTournamentPlayers();
     m_tournament_game = 0;
@@ -217,7 +209,7 @@ void Tournament::initTournamentPlayers()
                 type == "R" ? m_tournament_red_players :
                 type == "B" ? m_tournament_blue_players :
                 m_tournament_referees);
-            for (const std::string& member: m_lobby->getCategories()[cat_name])
+            for (const std::string& member: m_lobby_settings->getCategories()[cat_name])
                 dest.insert(member);
         }
         else if (type == "R") 

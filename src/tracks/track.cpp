@@ -1465,7 +1465,7 @@ bool Track::loadMainTrack(const XMLNode &root)
                 {
                     if (challenge != "tutorial")
                     {
-                        Track* t = track_manager->getTrack(c->getTrackId());
+                        Track* t = TrackManager::get()->getTrack(c->getTrackId());
                         if (t == NULL)
                         {
                             Log::error("track", "Cannot find track named <%s>\n",

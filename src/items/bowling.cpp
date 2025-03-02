@@ -159,7 +159,7 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
 {
     auto sl = LobbyProtocol::get<ServerLobby>();
     if (sl)
-        sl->getHitProcessor()->setTeamMateHitOwner(getOwnerId(),m_ticks_since_thrown);
+        sl->getHitProcessor()->setTeammateHitOwner(getOwnerId(),m_ticks_since_thrown);
 
     bool was_real_hit = Flyable::hit(kart, obj);
     if (was_real_hit)
@@ -169,8 +169,8 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
             kart->decreaseShieldTime();
             if (sl)
             {
-                sl->getHitProcessor()->registerTeamMateHit(kart->getWorldKartId());
-                sl->getHitProcessor()->handleTeamMateHits();
+                sl->getHitProcessor()->registerTeammateHit(kart->getWorldKartId());
+                sl->getHitProcessor()->handleTeammateHits();
             }
             return true;
         }
@@ -181,7 +181,7 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
         }
     }
     if (sl)
-        sl->getHitProcessor()->handleTeamMateHits();
+        sl->getHitProcessor()->handleTeammateHits();
     return was_real_hit;
 }   // hit
 

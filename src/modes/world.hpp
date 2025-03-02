@@ -133,7 +133,7 @@ protected:
 
     bool        m_unfair_team;
 
-    GameInfo* m_game_info;
+    std::shared_ptr<GameInfo> m_game_info;
 
     /** Whether highscores should be used for this kind of race.
      *  True by default, change to false in a child class to disable.
@@ -211,7 +211,7 @@ protected:
     void updateAchievementDataEndRace();
     void updateAchievementModeCounters(bool start);
     // ------------------------------------------------------------------------
-    GameInfo* getGameInfo()      { return m_game_info; }
+    std::shared_ptr<GameInfo> getGameInfo()      { return m_game_info; }
 
 public:
                     World();
@@ -439,7 +439,7 @@ public:
     unsigned getStartPosition(int index) const
                                       { return m_kart_position_map.at(index); }
     // ------------------------------------------------------------------------
-    void setGameInfo(GameInfo* ptr)                      { m_game_info = ptr; }
+    void setGameInfo(std::shared_ptr<GameInfo> ptr)      { m_game_info = ptr; }
 };   // World
 
 #endif

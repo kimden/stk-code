@@ -273,7 +273,7 @@ bool ReplayPlay::addReplayFile(const std::string& fn, bool custom_replay, int ca
     if (rd.m_track_name.compare("mansion") == 0)
         rd.m_track_name = std::string("addon_blackhill-mansion");
 
-    Track* t = track_manager->getTrack(rd.m_track_name);
+    Track* t = TrackManager::get()->getTrack(rd.m_track_name);
     if (t == NULL)
     {
         Log::warn("Replay", "Track '%s' used in replay '%s' not found in STK!",

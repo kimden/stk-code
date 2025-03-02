@@ -56,6 +56,7 @@ class KartElimination;
 class MapVoteHandler;
 class Tournament;
 class LobbyQueues;
+class LobbySettings;
 
 namespace Online
 {
@@ -126,10 +127,9 @@ private:
     /* The state used in multiple threads when reseting server. */
     enum ResetState : unsigned int
     {
-        RS_NONE, // Default state
-        RS_WAITING, // Waiting for reseting finished
-        RS_ASYNC_RESET // Finished reseting server in main thread, now async
-                       // thread
+        RS_NONE,       // Default state
+        RS_WAITING,    // Waiting for reseting finished
+        RS_ASYNC_RESET // Finished reseting server in main thread, now async thread
     };
 
     std::atomic<ResetState> m_rs_state;
@@ -159,9 +159,6 @@ private:
     std::map<std::weak_ptr<STKPeer>, bool,
         std::owner_less<std::weak_ptr<STKPeer> > > m_peers_ready;
 
-    std::map<std::weak_ptr<STKPeer>, std::set<irr::core::stringw>,
-        std::owner_less<std::weak_ptr<STKPeer> > > m_peers_muted_players;
-
     std::weak_ptr<Online::Request> m_server_registering;
 
     /** Timeout counter for various state. */
@@ -176,12 +173,6 @@ private:
         std::owner_less<std::weak_ptr<STKPeer> > > m_pending_connection;
 
     std::map<std::string, uint64_t> m_pending_peer_connection;
-
-    std::shared_ptr<Ranking> m_ranking;
-
-    std::shared_ptr<HitProcessor> m_hit_processor;
-
-    std::shared_ptr<LobbyAssetManager> m_asset_manager;
 
     /* Saved the last game result */
     NetworkString* m_result_ns;
@@ -205,17 +196,20 @@ private:
 
     uint64_t m_last_unsuccess_poll_time, m_server_started_at, m_server_delay;
 
-    // Default game settings if no one has ever vote, and save inside here for
-    // final vote (for live join)
-    PeerVote* m_default_vote;
+    // Other units previously used in ServerLobby
+    std::shared_ptr<Ranking> m_ranking;
+    std::shared_ptr<HitProcessor> m_hit_processor;
+    std::shared_ptr<LobbyAssetManager> m_asset_manager;
+    std::shared_ptr<KartElimination> m_kart_elimination;
+    std::shared_ptr<MapVoteHandler> m_map_vote_handler;
+    std::shared_ptr<Tournament> m_tournament;
+    std::shared_ptr<LobbyQueues> m_lobby_queues;
+    std::shared_ptr<LobbySettings> m_lobby_settings;
 
-    int m_battle_hit_capture_limit;
-
-    float m_battle_time_limit;
+    friend CommandManager;
+    std::shared_ptr<CommandManager> m_command_manager;
 
     unsigned m_item_seed;
-
-    uint32_t m_winner_peer_id;
 
     uint64_t m_client_starting_time;
 
@@ -224,51 +218,9 @@ private:
 
     std::set<std::shared_ptr<STKPeer>> m_spectators_by_limit;
 
-    std::vector<std::string> m_play_requirement_tracks;
-
-    bool m_restricting_config;
-
-    bool m_inverted_config_restriction;
-
-    std::set<std::string> m_config_available_tracks;
-
-    std::map<std::string, std::vector<std::string>> m_config_track_limitations;
-
-    irr::core::stringw m_help_message;
-
-    std::map<std::shared_ptr<STKPeer>, std::set<irr::core::stringw>> m_message_receivers;
-
-    std::set<std::shared_ptr<STKPeer>> m_team_speakers;
-
     std::map<std::shared_ptr<STKPeer>, int> m_why_peer_cannot_play;
 
-    std::shared_ptr<KartElimination> m_kart_elimination;
-
-    std::shared_ptr<MapVoteHandler> m_map_vote_handler;
-
-    std::set<int> m_available_difficulties;
-
-    std::set<int> m_available_modes;
-
-    std::map<std::string, std::set<std::string>> m_player_categories;
-
-    std::set<std::string> m_hidden_categories;
-
-    std::set<std::string> m_special_categories;
-
-    std::map<std::string, std::set<std::string>> m_categories_for_player;
-
-    std::map<std::string, int> m_team_for_player;
-
-    std::shared_ptr<Tournament> m_tournament;
-
-    TrackFilter m_global_filter;
-
-    KartFilter m_global_karts_filter;
-
     std::set<std::string> m_temp_banned;
-
-    std::shared_ptr<LobbyQueues> m_lobby_queues;        
 
     std::vector<std::string> m_map_history;
 
@@ -276,37 +228,9 @@ private:
 
     std::map<int, GPScore> m_gp_team_scores;
 
-    int m_fixed_lap;
-
-    int m_fixed_direction;
-
-    double m_default_lap_multiplier;
-
-    std::vector<int> m_scoring_int_params;
-
-    std::string m_scoring_type;
-
-    std::set<std::string> m_usernames_white_list;
-
-    std::set<std::string> m_preserve;
-
-    bool m_allowed_to_start;
-
-    bool m_consent_on_replays;
-
-    bool m_shuffle_gp;
-
-    std::string m_available_teams;
-
     std::atomic<unsigned> m_current_max_players_in_game;
 
-    GameInfo* m_game_info;
-
-    // config for troll system
-    bool  m_troll_active;
-
-    friend CommandManager;
-    std::shared_ptr<CommandManager> m_command_manager;
+    std::shared_ptr<GameInfo> m_game_info;
 
     // connection management
     void clientDisconnected(Event* event);
@@ -382,7 +306,7 @@ private:
                                   uint32_t online_id,
                                   const irr::core::stringw& online_name,
                                   const std::string& country_code);
-    bool handleAllVotes(PeerVote* winner, uint32_t* winner_peer_id);
+    bool handleAllVotes(PeerVote* winner);
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
     void computeNewRankings();
@@ -398,16 +322,12 @@ private:
     NetworkString* getLoadWorldMessage(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
         bool live_join) const;
-    void encodePlayers(BareNetworkString* bns,
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    std::vector<std::shared_ptr<NetworkPlayerProfile> > getLivePlayers() const;
     void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
     bool handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer> peer);
     void handleServerCommand(Event* event, std::shared_ptr<STKPeer> peer);
     void liveJoinRequest(Event* event);
     void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
     bool canLiveJoinNow() const;
-    bool worldIsActive() const;
     int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
                       unsigned local_id);
     void handleKartInfo(Event* event);
@@ -421,18 +341,12 @@ private:
     void getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_id);
     void writePlayerReport(Event* event);
     bool supportsAI();
-    void initCategories();
     void initTournamentPlayers();
     void changeColors();
     bool canRace(std::shared_ptr<STKPeer> peer);
     bool canVote(std::shared_ptr<STKPeer> peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
-    std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer> peer) const;
     std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
-    bool loadCustomScoring(std::string& scoring);
-    void updateWorldSettings();
-    void loadWhiteList();
-    void loadPreservedSettings();
     void changeLimitForTournament(bool goal_target);
     std::shared_ptr<CommandManager> getCommandManager();
 
@@ -473,8 +387,6 @@ public:
     void storeResults();
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
-    void initAvailableTracks();
-    void initAvailableModes();
     void resetToDefaultSettings();
     void writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_ptr<STKPeer> reporting,
         const std::string& info);
@@ -485,8 +397,6 @@ public:
     void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer> peer);
     void sendStringToAllPeers(std::string& s);
     int getPermissions(std::shared_ptr<STKPeer> peer) const;
-    bool hasConsentOnReplays() const           { return m_consent_on_replays; }
-    void setConsentOnReplays(bool value)      { m_consent_on_replays = value; }
     bool isSoccerGoalTarget() const;
 
 #ifdef ENABLE_SQLITE3
@@ -494,10 +404,6 @@ public:
         std::string& direction, int laps);
 #endif
 
-    bool isDifficultyAvailable(int difficulty) const
-                     { return m_available_difficulties.count(difficulty) > 0; }
-    bool isModeAvailable(int mode) const
-                                  { return m_available_modes.count(mode) > 0; }
     void setTemporaryTeamInLobby(const std::string& username, int team);
     void clearTemporaryTeams();
     void shuffleTemporaryTeams(const std::map<int, int>& permutation);
@@ -512,15 +418,10 @@ public:
                              std::shared_ptr<NetworkPlayerProfile> player,
                              const std::string& type) const;
 
-    static int m_default_fixed_laps;
-    static int m_fixed_laps;
     bool playerReportsTableExists() const;
 
     void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
     void saveDisconnectingIdInfo(int id) const;
-    std::string getInternalAvailableTeams() const { return m_available_teams; }
-    std::string getAvailableTeams() const;
-    void setInternalAvailableTeams(std::string& s)   { m_available_teams = s; }
 
     // The functions below set *both* KartTeam and temporary team,
     // depending on game mode; also reset/set ASM_NO_TEAM if needed.
@@ -528,17 +429,19 @@ public:
     void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
-    int getTeamForUsername(const std::string& name)
-                                            { return m_team_for_player[name]; }
+
     std::shared_ptr<HitProcessor> getHitProcessor() const
                                                     { return m_hit_processor; }
     std::shared_ptr<LobbyAssetManager> getLobbyAssetManager() const
                                                     { return m_asset_manager; }
     std::shared_ptr<Tournament> getTournament() const  { return m_tournament; }
-    std::map<std::string, std::set<std::string>> getCategories() const
-                                                { return m_player_categories; }
     std::shared_ptr<LobbyQueues> getLobbyQueues() const
                                                      { return m_lobby_queues; }
+    std::shared_ptr<LobbySettings> getLobbySettings() const
+                                                   { return m_lobby_settings; }
+    std::shared_ptr<KartElimination> getKartElimination() const
+                                                 { return m_kart_elimination; }
+    std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

@@ -52,11 +52,11 @@ AchievementsStatus::AchievementsStatus()
 
     // Create one TrackStats instance for all existing tracks
     const unsigned int track_amount =
-        (unsigned int)track_manager->getNumberOfTracks();
+        (unsigned int)TrackManager::get()->getNumberOfTracks();
 
     for (unsigned int n = 0; n < track_amount; n++)
     {
-        Track* curr = track_manager->getTrack(n);
+        Track* curr = TrackManager::get()->getTrack(n);
         if (curr->isArena() || curr->isSoccer()||curr->isInternal()) continue;
 
         TrackStats new_track;

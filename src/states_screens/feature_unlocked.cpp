@@ -223,7 +223,7 @@ void FeatureUnlockedCutScene::
 
     for (unsigned int i = 0; i < tracks.size(); i++)
     {
-        addUnlockedTrack(track_manager->getTrack(tracks[i]));
+        addUnlockedTrack(TrackManager::get()->getTrack(tracks[i]));
     }
     for (unsigned int i = 0; i < gps.size(); i++)
     {
@@ -714,9 +714,9 @@ void FeatureUnlockedCutScene::addUnlockedGP(const GrandPrixData* gp)
             images.push_back(WTF_image);
         }
 
-        for (int t=0; t<track_amount; t++)
+        for (int t = 0; t < track_amount; t++)
         {
-            Track* track = track_manager->getTrack(gptracks[t]);
+            Track* track = TrackManager::get()->getTrack(gptracks[t]);
 
             const std::string t_name = 
                 track ? track->getScreenshotFile()

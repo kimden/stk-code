@@ -135,10 +135,11 @@ MusicInformation::~MusicInformation()
 
 void MusicInformation::addMusicToTracks()
 {
-    for(int i=0; i<(int)m_all_tracks.size(); i++)
+    for (int i = 0; i < (int)m_all_tracks.size(); i++)
     {
-        Track* track=track_manager->getTrack(m_all_tracks[i]);
-        if(track) track->addMusic(this);
+        Track* track = TrackManager::get()->getTrack(m_all_tracks[i]);
+        if (track)
+            track->addMusic(this);
     }
 }   // addMusicToTracks
 
