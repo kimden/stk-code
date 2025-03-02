@@ -4069,7 +4069,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     unsigned total_players = 0;
     STKHost::get()->updatePlayers(NULL, NULL, &total_players);
     bool bad_mode = !m_lobby_settings->isModeAvailable(mode);
-    bool bad_difficulty = m_lobby_settings->isDifficultyAvailable(difficulty);
+    bool bad_difficulty = !m_lobby_settings->isDifficultyAvailable(difficulty);
     if (bad_mode || bad_difficulty)
     {
         // It remains just in case, but kimden thinks that

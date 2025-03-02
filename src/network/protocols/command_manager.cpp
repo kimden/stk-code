@@ -2086,7 +2086,10 @@ void CommandManager::process_unmute(Context& context)
     player_name = StringUtils::utf8ToWide(argv[1]);
 
     if (!m_lobby_settings->removeMutedPlayerFor(peer, player_name))
+    {
         error(context);
+        return;
+    }
 
     std::string result_msg = "Unmuted player " + StringUtils::wideToUtf8(player_name);
     m_lobby->sendStringToPeer(result_msg, peer);
