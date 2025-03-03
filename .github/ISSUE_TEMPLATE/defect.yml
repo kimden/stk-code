@@ -1,6 +1,6 @@
 name: Defect
 description: Report bugs, crashes, or unintended behavior
-labels: ['T: defect']
+labels: ['T: bug']
 
 body:
 
