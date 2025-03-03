@@ -1,9 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2004-2020  Steve Baker <sjbaker1@airmail.net>,
-//  Copyright (C) 2004-2020  Ingo Ruhnke <grumbel@gmx.de>
-//  Copyright (C) 2006-2020  SuperTuxKart-Team
-//  Copyright (C) 2020  kimden
+//  Copyright (C) 2020-2025  kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,18 +18,17 @@
 
 #include "utils/kart_elimination.hpp"
 
-#include "utils/string_utils.hpp"
 #include "utils/log.hpp"
+#include "utils/string_utils.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <string>
 #include <exception>
+#include <string>
 
-
-//-----------------------------------------------------------------------------
 KartElimination::KartElimination()
 {
     m_enabled = false;
@@ -40,6 +36,7 @@ KartElimination::KartElimination()
     m_kart = "";
 }   // KartElimination
 //-----------------------------------------------------------------------------
+
 bool KartElimination::isEliminated(std::string username) const
 {
     if (!m_enabled || m_remained < 0)
@@ -50,6 +47,7 @@ bool KartElimination::isEliminated(std::string username) const
     return true;
 }   // isEliminated
 //-----------------------------------------------------------------------------
+
 std::set<std::string> KartElimination::getRemainingParticipants() const
 {
     std::set<std::string> ans;
@@ -60,6 +58,7 @@ std::set<std::string> KartElimination::getRemainingParticipants() const
     return ans;
 }   // getRemainingParticipants
 //-----------------------------------------------------------------------------
+
 std::string KartElimination::getStandings() const
 {
     std::string result = "Gnu Elimination ";
@@ -79,6 +78,7 @@ std::string KartElimination::getStandings() const
     return result;
 }   // getStandings
 //-----------------------------------------------------------------------------
+
 void KartElimination::disable()
 {
     m_kart = "";
@@ -87,6 +87,7 @@ void KartElimination::disable()
     m_participants.clear();
 }   // disable
 //-----------------------------------------------------------------------------
+
 void KartElimination::enable(std::string kart)
 {
     m_kart = kart;
@@ -95,6 +96,7 @@ void KartElimination::enable(std::string kart)
     m_participants.clear();
 }   // enable
 //-----------------------------------------------------------------------------
+
 std::string KartElimination::getStartingMessage() const
 {
     if (m_kart == "gnu")
@@ -106,6 +108,7 @@ std::string KartElimination::getStartingMessage() const
             "after each race for results.", m_kart.c_str());
 }   // getStartingMessage
 //-----------------------------------------------------------------------------
+
 std::string KartElimination::getWarningMessage(bool isEliminated) const
 {
     std::string what = "Gnu Elimination is played right now on this server";
@@ -132,16 +135,20 @@ std::string KartElimination::update(
         if (order.count(m_participants[i]) == 0)
             order[m_participants[i]] = KartElimination::INF_TIME;
     }
-    std::stable_sort(m_participants.begin(), m_participants.begin() + m_remained,
+    std::stable_sort(
+        m_participants.begin(),
+        m_participants.begin() + m_remained,
         [order](const std::string& a, const std::string& b) -> bool {
             auto it1 = order.find(a);
             auto it2 = order.find(b);
             return it1->second < it2->second;
-    });
+        }
+    );
     std::string msg = "";
     msg += m_participants[--m_remained];
     bool alone = true;
-    while (m_remained - 1 >= 0 && order[m_participants[m_remained - 1]] == KartElimination::INF_TIME)
+    while (m_remained - 1 >= 0 &&
+            order[m_participants[m_remained - 1]] == KartElimination::INF_TIME)
     {
         msg += ", " + m_participants[--m_remained];
         alone = false;
@@ -152,10 +159,9 @@ std::string KartElimination::update(
         msg += " are now eliminated.";
     if (m_remained <= 1) {
         m_enabled = false;
-        msg += "\nGnu Elimination has finished! Congratulations to " + m_participants[0] + " !";
+        msg += "\nGnu Elimination has finished! "
+               "Congratulations to " + m_participants[0] + " !";
     }
     return msg;
 }   // update
 //-----------------------------------------------------------------------------
-
-/* EOF */

@@ -20,22 +20,21 @@
 #define LOBBY_SETTINGS_HPP
 
 #include "irrString.h"
-
-// kimden: probably should be removed later
-#include "utils/track_filter.hpp"
 #include "utils/team_utils.hpp"
+#include "utils/track_filter.hpp"
 
 #include <memory>
+
 class GameSetup;
-class LobbyQueues;
 class KartElimination;
-class STKPeer;
-class PeerVote;
-class NetworkString;
 class LobbyAssetManager;
-class GameInfo;
-class Track;
+class LobbyQueues;
+class NetworkString;
+class PeerVote;
+class STKPeer;
 class Tournament;
+class Track;
+struct GameInfo;
 
 /** @brief A class that manipulates server settings, such as resetting,
  * scoring, goal policies, etc. Might be split into a few parts later,
@@ -56,20 +55,13 @@ public:
     bool loadCustomScoring(std::string& scoring);
     void loadWhiteList();
     void loadPreservedSettings();
-
     bool hasConsentOnReplays() const           { return m_consent_on_replays; }
     void setConsentOnReplays(bool value)      { m_consent_on_replays = value; }
     std::string getInternalAvailableTeams() const { return m_available_teams; }
     void setInternalAvailableTeams(std::string& s)   { m_available_teams = s; }
     void setTeamForUsername(const std::string& name, int team)
                                             { m_team_for_player[name] = team; }
-    int getTeamForUsername(const std::string& name)
-    {
-        auto it = m_team_for_player.find(name);
-        if (it == m_team_for_player.end())
-            return TeamUtils::NO_TEAM;
-        return it->second;
-    }
+    int getTeamForUsername(const std::string& name);
     void clearTeams()                            { m_team_for_player.clear(); }
     bool hasTeam(const std::string& name)
             { return m_team_for_player.find(name) != m_team_for_player.end(); }
@@ -78,13 +70,18 @@ public:
 
     std::string getHelpMessage() const               { return m_help_message; }
     std::string getMotd() const                              { return m_motd; }
-    void addMutedPlayerFor(std::shared_ptr<STKPeer> peer, const irr::core::stringw& name);
-    bool removeMutedPlayerFor(std::shared_ptr<STKPeer> peer, const irr::core::stringw& name);
-    bool isMuting(std::shared_ptr<STKPeer> peer, const irr::core::stringw& name) const;
+    void addMutedPlayerFor(std::shared_ptr<STKPeer> peer,
+                           const irr::core::stringw& name);
+    bool removeMutedPlayerFor(std::shared_ptr<STKPeer> peer,
+                           const irr::core::stringw& name);
+    bool isMuting(std::shared_ptr<STKPeer> peer,
+                           const irr::core::stringw& name) const;
     std::string getMutedPlayersAsString(std::shared_ptr<STKPeer> peer);
     void addTeamSpeaker(std::shared_ptr<STKPeer> peer);
-    void setMessageReceiversFor(std::shared_ptr<STKPeer> peer, const std::vector<std::string>& receivers);
-    std::set<irr::core::stringw> getMessageReceiversFor(std::shared_ptr<STKPeer> peer) const;
+    void setMessageReceiversFor(std::shared_ptr<STKPeer> peer,
+                                    const std::vector<std::string>& receivers);
+    std::set<irr::core::stringw> getMessageReceiversFor(
+                                          std::shared_ptr<STKPeer> peer) const;
     bool isTeamSpeaker(std::shared_ptr<STKPeer> peer) const;
     void makeChatPublicFor(std::shared_ptr<STKPeer> peer);
     bool hasNoLapRestrictions() const;
@@ -156,7 +153,7 @@ private:
 
     std::shared_ptr<Tournament> m_tournament;
 
-// These are fine here ===============================================================================
+// These are fine here ========================================================
 
     int m_battle_hit_capture_limit;
 
@@ -203,7 +200,7 @@ private:
     std::string m_available_teams;
 
 
-// These should be moved to voting manager ===========================================================
+// These should be moved to voting manager ====================================
 
     // Default game settings if no one has ever vote, and save inside here for
     // final vote (for live join)
@@ -212,7 +209,7 @@ private:
     uint32_t m_winner_peer_id;
 
 
-// These should be moved to chat handler =============================================================
+// These should be moved to chat handler ======================================
 
     std::map<std::weak_ptr<STKPeer>, std::set<irr::core::stringw>,
         std::owner_less<std::weak_ptr<STKPeer> > > m_peers_muted_players;
@@ -222,7 +219,7 @@ private:
     std::set<std::shared_ptr<STKPeer>> m_team_speakers;
 
 
-// These should be moved to category and team manager ================================================
+// These should be moved to category and team manager =========================
 
     std::map<std::string, std::set<std::string>> m_player_categories;
 
@@ -236,4 +233,4 @@ private:
 
 };
 
-#endif
+#endif // LOBBY_SETTINGS_HPP

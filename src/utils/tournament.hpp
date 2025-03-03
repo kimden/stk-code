@@ -19,20 +19,21 @@
 #ifndef TOURNAMENT_HPP
 #define TOURNAMENT_HPP
 
-#include "utils/types.hpp"
 #include "utils/set_with_flip.hpp"
 #include "utils/tournament_role.hpp"
+#include "utils/types.hpp"
 
 #include <memory>
-#include <string>
 #include <set>
+#include <string>
 #include <vector>
-struct FilterContext;
+
+class LobbySettings;
 class PeerVote;
-class TrackFilter;
 class ServerLobby;
 class STKPeer;
-class LobbySettings;
+class TrackFilter;
+struct FilterContext;
 
 /** This class combines things that were previously located in server lobby
  *  (m_tournament_*) and were related to Soccer Tournaments.
@@ -53,16 +54,12 @@ public:
     void applyRestrictionsOnVote(PeerVote* vote) const;
     void onRaceFinished() const;
     void updateTournamentRole(std::shared_ptr<STKPeer> peer);
-
     KartTeam getTeam(std::string utf8_online_name) const;
     bool canPlay(const std::string& username) const;
     bool canVote(std::shared_ptr<STKPeer> peer) const;
-
     bool hasHostRights(std::shared_ptr<STKPeer> peer);
     bool hasHammerRights(std::shared_ptr<STKPeer> peer);
-
     int editMuteall(const std::string& username, int type);
-
     bool hasGoalsLimit() const;
     bool hasGoalsLimit(int game) const;
     bool hasColorsSwapped() const;
@@ -71,15 +68,16 @@ public:
     bool forbidStarting() const { return true; }
     int getNextGameNumber() const;
     int getDefaultDuration() const;
-    bool isValidGameNumber(int number) const;
     int minGameNumber() const { return 0; }
-    int maxGameNumber() const { return m_tournament_max_games - 1; }
-    bool isValidGameCmdInput(int new_game_number, int new_duration, int addition) const;
+    int maxGameNumber() const { return m_max_games - 1; }
+    bool isValidGameCmdInput(int new_game_number,
+            int new_duration, int addition) const;
     void getGameCmdInput(int& game_number, int& duration, int& addition) const;
     void setGameCmdInput(int new_game_number, int new_duration, int addition);
     void setTeam(KartTeam team, const std::string& username, bool permanent);
     void setReferee(const std::string& username, bool permanent);
-    void eraseFromAllTournamentCategories(const std::string& username, bool permanent);
+    void eraseFromAllTournamentCategories(
+            const std::string& username, bool permanent);
     std::vector<std::string> getMapHistory() const;
     bool assignToHistory(int index, const std::string& map_id);
 
@@ -90,39 +88,39 @@ private:
 
     std::shared_ptr<LobbySettings> m_lobby_settings;
 
-    std::set<std::string> m_tournament_red_players;
+    std::set<std::string> m_red_players;
 
-    std::set<std::string> m_tournament_blue_players;
+    std::set<std::string> m_blue_players;
     
-    std::set<std::string> m_tournament_referees;
+    std::set<std::string> m_referees;
 
-    SetWithFlip<std::string> m_tournament_mutealls;
+    SetWithFlip<std::string> m_mutealls;
 
-    std::set<std::string> m_tournament_init_red;
+    std::set<std::string> m_init_red;
 
-    std::set<std::string> m_tournament_init_blue;
+    std::set<std::string> m_init_blue;
 
-    std::set<std::string> m_tournament_init_ref;
+    std::set<std::string> m_init_ref;
 
-    bool m_tournament_limited_chat;
+    bool m_limited_chat;
 
-    int m_tournament_length;
+    int m_length;
 
-    int m_tournament_max_games;
+    int m_max_games;
 
-    std::string m_tournament_game_limits;
+    std::string m_game_limits;
 
-    std::string m_tournament_colors;
+    std::string m_colors;
 
-    std::string m_tournament_votability;
+    std::string m_votability;
 
-    std::vector<std::string> m_tournament_arenas;
+    std::vector<std::string> m_arenas;
 
-    std::vector<TrackFilter> m_tournament_track_filters;
+    std::vector<TrackFilter> m_track_filters;
 
-    int m_tournament_game;
+    int m_game;
 
-    std::vector<std::string> m_tournament_must_have_tracks;
+    std::vector<std::string> m_must_have_tracks;
 
     float m_extra_seconds;
 };

@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -32,7 +32,8 @@ KartTeam Conversions::roleToTeam(TournamentRole role)
             return KART_TEAM_NONE;
     }
     return KART_TEAM_NONE;
-} // roleToTeam
+}   // roleToTeam
+//-----------------------------------------------------------------------------
 
 std::string Conversions::roleToString(TournamentRole role)
 {
@@ -48,7 +49,8 @@ std::string Conversions::roleToString(TournamentRole role)
             return "spectator";
     }
     return "";
-} // roleToString
+}   // roleToString
+//-----------------------------------------------------------------------------
 
 char Conversions::roleToChar(TournamentRole role)
 {
@@ -64,7 +66,8 @@ char Conversions::roleToChar(TournamentRole role)
             return 's';
     }
     return ' ';
-} // roleToChar
+}   // roleToChar
+//-----------------------------------------------------------------------------
 
 TournamentRole Conversions::charToRole(char c)
 {
@@ -82,9 +85,11 @@ TournamentRole Conversions::charToRole(char c)
             return TR_SPECTATOR;
     }
     return TR_SPECTATOR;
-} // charToRole
+}   // charToRole
+//-----------------------------------------------------------------------------
 
 std::string Conversions::roleCharToString(char c)
 {
     return roleToString(charToRole(c));
-} // roleCharToString
+}   // roleCharToString
+//-----------------------------------------------------------------------------

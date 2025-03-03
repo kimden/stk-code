@@ -20,6 +20,7 @@
 #define SET_WITH_FLIP_HPP
 
 #include "utils/log.hpp"
+
 #include <set>
 
 enum Op: int
@@ -64,7 +65,8 @@ public:
             case SWF_OP_FLIP: return flip(element);
         }
         
-        Log::warn("SetWithFlip", "Invalid type = %d encountered, defaulting to flip (%d).", type, SWF_OP_FLIP);
+        Log::warn("SetWithFlip", "Invalid type = %d encountered, "
+                "defaulting to flip (%d).", type, SWF_OP_FLIP);
         return flip(element);
     }
 };

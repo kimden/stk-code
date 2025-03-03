@@ -17,6 +17,7 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "utils/lobby_queues.hpp"
+
 #include "network/protocols/server_lobby.hpp"
 #include "network/server_config.hpp"
 #include "utils/string_utils.hpp"
@@ -24,8 +25,8 @@
 LobbyQueues::LobbyQueues()
 {
     loadTracksQueueFromConfig();
-} // LobbyQueues
-// ========================================================================
+}   // LobbyQueues
+//-----------------------------------------------------------------------------
 
 void LobbyQueues::loadTracksQueueFromConfig()
 {
@@ -35,26 +36,32 @@ void LobbyQueues::loadTracksQueueFromConfig()
     m_onetime_karts_queue.clear();
     m_cyclic_karts_queue.clear();
 
-    tokens = StringUtils::splitQuoted(ServerConfig::m_tracks_order, ' ', '{', '}', '\\');
+    tokens = StringUtils::splitQuoted(
+            ServerConfig::m_tracks_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
     {
         m_onetime_tracks_queue.push_back(std::make_shared<TrackFilter>(s));
-        m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(TrackFilter::PLACEHOLDER_STRING));
+        m_cyclic_tracks_queue.push_back(
+            std::make_shared<TrackFilter>(TrackFilter::PLACEHOLDER_STRING));
     }
 
-    tokens = StringUtils::splitQuoted(ServerConfig::m_cyclic_tracks_order, ' ', '{', '}', '\\');
+    tokens = StringUtils::splitQuoted(
+            ServerConfig::m_cyclic_tracks_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
         m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(s));
 
 
-    tokens = StringUtils::splitQuoted(ServerConfig::m_karts_order, ' ', '{', '}', '\\');
+    tokens = StringUtils::splitQuoted(
+            ServerConfig::m_karts_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
     {
         m_onetime_karts_queue.push_back(std::make_shared<KartFilter>(s));
-        m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(KartFilter::PLACEHOLDER_STRING));
+        m_cyclic_karts_queue.push_back(
+            std::make_shared<KartFilter>(KartFilter::PLACEHOLDER_STRING));
     }
 
-    tokens = StringUtils::splitQuoted(ServerConfig::m_cyclic_karts_order, ' ', '{', '}', '\\');
+    tokens = StringUtils::splitQuoted(
+            ServerConfig::m_cyclic_karts_order, ' ', '{', '}', '\\');
     for (std::string& s: tokens)
         m_cyclic_karts_queue.push_back(std::make_shared<KartFilter>(s));
 }   // loadTracksQueueFromConfig
@@ -63,9 +70,8 @@ void LobbyQueues::loadTracksQueueFromConfig()
 void LobbyQueues::popOnRaceFinished()
 {
     if (!m_onetime_tracks_queue.empty())
-    {
         m_onetime_tracks_queue.pop_front();
-    }
+
     if (!m_cyclic_tracks_queue.empty())
     {
         auto item = m_cyclic_tracks_queue.front().get()->getInitialString();
@@ -74,10 +80,10 @@ void LobbyQueues::popOnRaceFinished()
         if (!is_placeholder)
             m_cyclic_tracks_queue.push_back(std::make_shared<TrackFilter>(item));
     }
+
     if (!m_onetime_karts_queue.empty())
-    {
         m_onetime_karts_queue.pop_front();
-    }
+
     if (!m_cyclic_karts_queue.empty())
     {
         auto item = m_cyclic_karts_queue.front().get()->getInitialString();
@@ -133,10 +139,14 @@ void LobbyQueues::applyFrontKartFilters(FilterContext& context)
 
 bool LobbyQueues::areKartFiltersIgnoringKarts() const
 {
-    if (!m_onetime_karts_queue.empty() && m_onetime_karts_queue.front()->ignoresPlayersInput())
+    if (!m_onetime_karts_queue.empty() &&
+            m_onetime_karts_queue.front()->ignoresPlayersInput())
         return true;
-    if (!m_cyclic_karts_queue.empty() && m_cyclic_karts_queue.front()->ignoresPlayersInput())
+
+    if (!m_cyclic_karts_queue.empty() &&
+            m_cyclic_karts_queue.front()->ignoresPlayersInput())
         return true;
+
     return false;
 }   // applyAllKartFilters
 //-----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,9 +22,9 @@
 #include "karts/kart_properties_manager.hpp"
 #include "karts/official_karts.hpp"
 #include "network/network_string.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "network/server_config.hpp"
 #include "network/stk_peer.hpp"
-#include "network/protocols/server_lobby.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/random_generator.hpp"
@@ -34,8 +34,8 @@ LobbyAssetManager::LobbyAssetManager(ServerLobby* lobby): m_lobby(lobby)
 {
     init();
     updateAddons();
-} // LobbyAssetManager
-// ========================================================================
+}   // LobbyAssetManager
+//-----------------------------------------------------------------------------
 
 void LobbyAssetManager::init()
 {
@@ -59,8 +59,8 @@ void LobbyAssetManager::init()
         if (!t->isAddon())
             m_official_kts.second.insert(t->getIdent());
     }
-} // init
-// ========================================================================
+}   // init
+//-----------------------------------------------------------------------------
 
 void LobbyAssetManager::updateAddons()
 {
@@ -123,10 +123,9 @@ void LobbyAssetManager::updateAddons()
         m_available_kts.first = { all_k.begin(), all_k.end() };
     m_entering_kts = m_available_kts;
 }   // updateAddons
-
 //-----------------------------------------------------------------------------
-/** Called whenever server is reset or game mode is changed.
- */
+
+/** Called whenever server is reset or game mode is changed. */
 void LobbyAssetManager::updateMapsForMode(RaceManager::MinorRaceModeType mode)
 {
     std::shared_ptr<TrackManager> track_manager = TrackManager::get();
@@ -204,7 +203,6 @@ void LobbyAssetManager::updateMapsForMode(RaceManager::MinorRaceModeType mode)
     }
     m_entering_kts = m_available_kts;
 }   // updateMapsForMode
-
 //-----------------------------------------------------------------------------
 
 void LobbyAssetManager::onServerSetup()
@@ -217,11 +215,11 @@ void LobbyAssetManager::onServerSetup()
         m_available_kts.first = m_official_kts.first;
     else
         m_available_kts.first = { all_k.begin(), all_k.end() };
-} // onServerSetup
-
+}   // onServerSetup
 //-----------------------------------------------------------------------------
 
-void LobbyAssetManager::eraseAssetsWithPeers(const std::vector<std::shared_ptr<STKPeer>>& peers)
+void LobbyAssetManager::eraseAssetsWithPeers(
+        const std::vector<std::shared_ptr<STKPeer>>& peers)
 {
     std::set<std::string> karts_erase, tracks_erase;
     for (const auto& peer: peers)
@@ -241,7 +239,6 @@ void LobbyAssetManager::eraseAssetsWithPeers(const std::vector<std::shared_ptr<S
         m_available_kts.second.erase(track_erase);
     }
 } // eraseAssetsWithPeers
-
 //-----------------------------------------------------------------------------
 
 bool LobbyAssetManager::tryApplyingMapFilters()
@@ -266,7 +263,7 @@ bool LobbyAssetManager::tryApplyingMapFilters()
         return false;
     }
     return true;
-} // tryApplyingMapFilters
+}   // tryApplyingMapFilters
 //-----------------------------------------------------------------------------
 
 std::string LobbyAssetManager::getRandomAvailableMap()
@@ -275,11 +272,11 @@ std::string LobbyAssetManager::getRandomAvailableMap()
     std::set<std::string>::iterator it = m_available_kts.second.begin();
     std::advance(it, rg.get((int)m_available_kts.second.size()));
     return *it;
-} // getRandomAvailableMap
-
+}   // getRandomAvailableMap
 //-----------------------------------------------------------------------------
 
-void LobbyAssetManager::encodePlayerKartsAndCommonMaps(NetworkString* ns, const std::set<std::string>& all_k)
+void LobbyAssetManager::encodePlayerKartsAndCommonMaps(NetworkString* ns,
+        const std::set<std::string>& all_k)
 {
     const auto& all_t = m_available_kts.second;
 
@@ -288,8 +285,7 @@ void LobbyAssetManager::encodePlayerKartsAndCommonMaps(NetworkString* ns, const 
         ns->encodeString(kart);
     for (const std::string& track : all_t)
         ns->encodeString(track);
-} // encodePlayerKartsAndCommonMaps
-
+}   // encodePlayerKartsAndCommonMaps
 //-----------------------------------------------------------------------------
 
 bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
@@ -432,15 +428,13 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
     }
 
     return !bad;
-} // handleAssetsForPeer
-
+}   // handleAssetsForPeer
 //-----------------------------------------------------------------------------
 
 std::array<int, AS_TOTAL> LobbyAssetManager::getAddonScores(
         const std::set<std::string>& client_karts,
         const std::set<std::string>& client_tracks)
 {
-
     std::array<int, AS_TOTAL> addons_scores = {{ -1, -1, -1, -1 }};
     size_t addon_kart = 0;
     size_t addon_track = 0;
@@ -485,15 +479,13 @@ std::array<int, AS_TOTAL> LobbyAssetManager::getAddonScores(
         addons_scores[AS_SOCCER] = addon_soccer;
     }
     return addons_scores;
-} // getAddonScores
-
+}   // getAddonScores
 //-----------------------------------------------------------------------------
 
 std::string LobbyAssetManager::getAnyMapForVote()
 {
     return *m_available_kts.second.begin();
-} // getAnyMapForVote
-
+}   // getAnyMapForVote
 //-----------------------------------------------------------------------------
 
 bool LobbyAssetManager::checkIfNoCommonMaps(
@@ -508,15 +500,13 @@ bool LobbyAssetManager::checkIfNoCommonMaps(
         }
     }
     return tracks_erase.size() == m_available_kts.second.size();
-} // checkIfNoCommonMaps
-
+}   // checkIfNoCommonMaps
 //-----------------------------------------------------------------------------
 
 bool LobbyAssetManager::isKartAvailable(const std::string& kart) const
 {
     return m_available_kts.first.find(kart) != m_available_kts.first.end();
-} // isKartAvailable
-
+}   // isKartAvailable
 //-----------------------------------------------------------------------------
 
 float LobbyAssetManager::officialKartsFraction(const std::set<std::string>& clientKarts) const
@@ -528,8 +518,7 @@ float LobbyAssetManager::officialKartsFraction(const std::set<std::string>& clie
             karts_count += 1;
     }
     return karts_count / (float)m_official_kts.first.size();
-} // officialKartsFraction
-
+}   // officialKartsFraction
 //-----------------------------------------------------------------------------
 
 float LobbyAssetManager::officialMapsFraction(const std::set<std::string>& clientMaps) const
@@ -541,8 +530,7 @@ float LobbyAssetManager::officialMapsFraction(const std::set<std::string>& clien
             maps_count += 1;
     }
     return maps_count / (float)m_official_kts.second.size();
-} // officialMapsFraction
-
+}   // officialMapsFraction
 //-----------------------------------------------------------------------------
 
 std::string LobbyAssetManager::getRandomMap() const
@@ -558,9 +546,8 @@ std::string LobbyAssetManager::getRandomMap() const
     std::set<std::string>::iterator it = items.begin();
     std::advance(it, rg.get((int)items.size()));
     return *it;
-} // getRandomMap
-
-// ========================================================================
+}   // getRandomMap
+//-----------------------------------------------------------------------------
 
 std::string LobbyAssetManager::getRandomAddonMap() const
 {
@@ -577,13 +564,11 @@ std::string LobbyAssetManager::getRandomAddonMap() const
     std::set<std::string>::iterator it = items.begin();
     std::advance(it, rg.get((int)items.size()));
     return *it;
-} // getRandomAddonMap
-
-// ========================================================================
+}   // getRandomAddonMap
+//-----------------------------------------------------------------------------
 
 void LobbyAssetManager::setMustHaveMaps(const std::string& input)
 {
     m_must_have_maps = StringUtils::split(input, ' ', false);
-} // setMustHaveMaps
-
-// ========================================================================
+}   // setMustHaveMaps
+//-----------------------------------------------------------------------------

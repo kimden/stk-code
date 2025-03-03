@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2024-2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -16,23 +16,23 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "utils/map_vote_handler.hpp"
-#include "utils/string_utils.hpp"
-#include "utils/log.hpp"
-#include "utils/random_generator.hpp"
 #include "utils/lobby_settings.hpp"
+#include "utils/log.hpp"
+#include "utils/map_vote_handler.hpp"
+#include "utils/random_generator.hpp"
+#include "utils/string_utils.hpp"
 
 MapVoteHandler::MapVoteHandler(std::shared_ptr<LobbySettings> settings)
     : algorithm(0), m_lobby_settings(settings)
 {
 
 }   // MapVoteHandler
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 
 template<typename T>
-void MapVoteHandler::findMajorityValue(const std::map<T, unsigned>& choices, unsigned cur_players,
-                       T* best_choice, float* rate)
+void MapVoteHandler::findMajorityValue(const std::map<T, unsigned>& choices,
+        unsigned cur_players, T* best_choice, float* rate)
 {
     RandomGenerator rg;
     unsigned max_votes = 0;
@@ -64,7 +64,7 @@ void MapVoteHandler::findMajorityValue(const std::map<T, unsigned>& choices, uns
         *rate = float(best_iter->second) / cur_players;
     }
 }   // findMajorityValue
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 bool MapVoteHandler::handleAllVotes(std::map<uint32_t, PeerVote>& peers_votes,
                     float remaining_time, float max_time, bool is_over,
@@ -72,11 +72,13 @@ bool MapVoteHandler::handleAllVotes(std::map<uint32_t, PeerVote>& peers_votes,
                     PeerVote* winner_vote) const
 {
     if (algorithm == 0)
-        return standard(peers_votes, remaining_time, max_time, is_over, cur_players, winner_vote);
+        return standard(peers_votes, remaining_time, max_time,
+                is_over, cur_players, winner_vote);
     else // if (algorithm == 1)
-        return random(peers_votes, remaining_time, max_time, is_over, cur_players, winner_vote);
+        return random(peers_votes, remaining_time, max_time,
+                is_over, cur_players, winner_vote);
 }   // handleAllVotes
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 bool MapVoteHandler::random(std::map<uint32_t, PeerVote>& peers_votes,
                     float remaining_time, float max_time, bool is_over,
@@ -99,7 +101,7 @@ bool MapVoteHandler::random(std::map<uint32_t, PeerVote>& peers_votes,
     *winner_vote = it->second;
     return true;
 }   // random
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
                     float remaining_time, float max_time, bool is_over,
@@ -156,9 +158,9 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
             reverse_vote->second++;
     }
 
-    findMajorityValue<std::string>(tracks, cur_players, &top_track, &tracks_rate);
-    findMajorityValue<unsigned>(laps, cur_players, &top_laps, &laps_rate);
-    findMajorityValue<bool>(reverses, cur_players, &top_reverse, &reverses_rate);
+    findMajorityValue<std::string>(tracks,   cur_players, &top_track,   &tracks_rate);
+    findMajorityValue<unsigned>   (laps,     cur_players, &top_laps,    &laps_rate);
+    findMajorityValue<bool>       (reverses, cur_players, &top_reverse, &reverses_rate);
 
     // End early if there is majority agreement which is all entries rate > 0.5
     auto it = peers_votes.begin();
@@ -208,5 +210,5 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
         return true;
     }
     return false;
-} // standard
-// ========================================================================
+}   // standard
+//-----------------------------------------------------------------------------

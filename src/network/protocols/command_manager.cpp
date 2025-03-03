@@ -3272,12 +3272,12 @@ void CommandManager::process_game(Context& context)
     int old_addition;
     m_tournament->getGameCmdInput(old_game_number, old_duration, old_addition);
     int new_game_number = m_tournament->getNextGameNumber();
-    int new_duration = m_tournament->getDefaultDuration(); // Was m_tournament_length for argv.size >= 2
+    int new_duration = m_tournament->getDefaultDuration(); // Was m_length for argv.size >= 2
     int new_addition = 0;
 
     if (1 < argv.size())
     {
-        // What's the difference between m_tournament_length and ServerConfig::fixedlap ??
+        // What's the difference between m_length and ServerConfig::fixedlap ??
         bool bad = false;
 
         if (!StringUtils::parseString(argv[1], &new_game_number))
