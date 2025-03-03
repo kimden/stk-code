@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2024-2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,10 +24,10 @@
 
 #include <algorithm>
 #include <functional>
-#include <set>
-#include <vector>
-#include <string>
 #include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 // A set of classes that will manipulate teams, their names
 // and representations such as emojis, and probably something else
@@ -60,8 +60,8 @@ public:
     std::string getNameWithEmoji() const { return m_emoji + " " + m_names[0]; }
     float getColor() const                                  { return m_color; }
     std::string getEmoji() const                            { return m_emoji; }
-    void addCode(const std::string& code)   { m_codes.push_back(code); }
-    void addName(const std::string& name)   { m_names.push_back(name); }
+    void addCode(const std::string& code)          { m_codes.push_back(code); }
+    void addName(const std::string& name)          { m_names.push_back(name); }
 };
 
 class TeamManager

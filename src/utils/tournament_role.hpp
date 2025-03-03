@@ -19,8 +19,9 @@
 #ifndef TOURNAMENT_ROLE_HPP
 #define TOURNAMENT_ROLE_HPP
 
-#include "utils/types.hpp"
 #include "network/remote_kart_info.hpp"
+#include "utils/types.hpp"
+
 #include <string>
 
 enum TournamentRole: int8_t

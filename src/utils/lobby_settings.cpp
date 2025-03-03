@@ -26,6 +26,7 @@
 #include "network/peer_vote.hpp"
 #include "network/server_config.hpp"
 #include "network/stk_peer.hpp"
+#include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/game_info.hpp"
 #include "utils/kart_elimination.hpp"
@@ -33,7 +34,6 @@
 #include "utils/lobby_queues.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
-#include "tracks/track.hpp"
 #include "utils/tournament.hpp"
 
 LobbySettings::LobbySettings(GameSetup* game_setup,
@@ -82,8 +82,8 @@ LobbySettings::LobbySettings(GameSetup* game_setup,
     m_battle_hit_capture_limit = 0;
     m_battle_time_limit = 0.0f;
     m_winner_peer_id = 0;
-} // LobbySettings
-// ========================================================================
+}   // LobbySettings
+//-----------------------------------------------------------------------------
 
 LobbySettings::~LobbySettings()
 {
@@ -130,6 +130,7 @@ void LobbySettings::initCategories()
     }
 }   // initCategories
 //-----------------------------------------------------------------------------
+
 void LobbySettings::initAvailableModes()
 {
     std::vector<std::string> statements =
@@ -188,7 +189,8 @@ bool LobbySettings::loadCustomScoring(std::string& scoring)
         m_scoring_type = params[0];
         if (available_scoring_types.count(m_scoring_type) == 0)
         {
-            Log::warn("ServerLobby", "Unknown scoring type %s, fallback.", m_scoring_type.c_str());
+            Log::warn("ServerLobby", "Unknown scoring type %s, "
+                    "fallback.", m_scoring_type.c_str());
             m_scoring_int_params = previous_params;
             m_scoring_type = previous_type;
             return false;
@@ -198,7 +200,8 @@ bool LobbySettings::loadCustomScoring(std::string& scoring)
             int param;
             if (!StringUtils::fromString(params[i], param))
             {
-                Log::warn("ServerLobby", "Unable to parse integer from custom scoring data, fallback.");
+                Log::warn("ServerLobby", "Unable to parse integer from custom "
+                        "scoring data, fallback.");
                 m_scoring_int_params = previous_params;
                 m_scoring_type = previous_type;
                 return false;
@@ -218,21 +221,34 @@ void LobbySettings::loadWhiteList()
         m_usernames_white_list.insert(s);
 }   // loadWhiteList
 //-----------------------------------------------------------------------------
+
 void LobbySettings::loadPreservedSettings()
 {
-    std::vector<std::string> what_to_preserve =
-            StringUtils::split(std::string(ServerConfig::m_preserve_on_reset), ' ');
+    std::vector<std::string> what_to_preserve = StringUtils::split(
+            std::string(ServerConfig::m_preserve_on_reset), ' ');
     for (std::string& str: what_to_preserve)
         m_preserve.insert(str);
-}   // loadWhiteList
-//-----------------------------------------------------------------------------  
+}   // loadPreservedSettings
+//-----------------------------------------------------------------------------
 
-void LobbySettings::addMutedPlayerFor(std::shared_ptr<STKPeer> peer, const irr::core::stringw& name)
+int LobbySettings::getTeamForUsername(const std::string& name)
+{
+    auto it = m_team_for_player.find(name);
+    if (it == m_team_for_player.end())
+        return TeamUtils::NO_TEAM;
+    return it->second;
+}   // getTeamForUsername
+//-----------------------------------------------------------------------------
+
+void LobbySettings::addMutedPlayerFor(std::shared_ptr<STKPeer> peer,
+                                      const irr::core::stringw& name)
 {
     m_peers_muted_players[std::weak_ptr<STKPeer>(peer)].insert(name);
-}
+}   // addMutedPlayerFor
+//-----------------------------------------------------------------------------
 
-bool LobbySettings::removeMutedPlayerFor(std::shared_ptr<STKPeer> peer, const irr::core::stringw& name)
+bool LobbySettings::removeMutedPlayerFor(std::shared_ptr<STKPeer> peer,
+                                         const irr::core::stringw& name)
 {
     // I'm not sure why the implementation was so long
     auto& collection = m_peers_muted_players[std::weak_ptr<STKPeer>(peer)];
@@ -247,16 +263,19 @@ bool LobbySettings::removeMutedPlayerFor(std::shared_ptr<STKPeer> peer, const ir
             it++;
     }
     return false;
-}
+}   // removeMutedPlayerFor
+//-----------------------------------------------------------------------------
 
-bool LobbySettings::isMuting(std::shared_ptr<STKPeer> peer, const irr::core::stringw& name) const
+bool LobbySettings::isMuting(std::shared_ptr<STKPeer> peer,
+                             const irr::core::stringw& name) const
 {
     auto it = m_peers_muted_players.find(std::weak_ptr<STKPeer>(peer));
     if (it == m_peers_muted_players.end())
         return false;
     
     return it->second.find(name) != it->second.end();
-}
+}   // isMuting
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getMutedPlayersAsString(std::shared_ptr<STKPeer> peer)
 {
@@ -276,12 +295,14 @@ std::string LobbySettings::getMutedPlayersAsString(std::shared_ptr<STKPeer> peer
         response += StringUtils::insertValues(" muted (total: %s)", num_players);
     }
     return response;
-}
+}   // getMutedPlayersAsString
+//-----------------------------------------------------------------------------
 
 void LobbySettings::addTeamSpeaker(std::shared_ptr<STKPeer> peer)
 {
     m_team_speakers.insert(peer);
-}
+}   // addTeamSpeaker
+//-----------------------------------------------------------------------------
 
 void LobbySettings::setMessageReceiversFor(std::shared_ptr<STKPeer> peer,
     const std::vector<std::string>& receivers)
@@ -290,76 +311,90 @@ void LobbySettings::setMessageReceiversFor(std::shared_ptr<STKPeer> peer,
     thing.clear();
     for (unsigned i = 0; i < receivers.size(); ++i)
         thing.insert(StringUtils::utf8ToWide(receivers[i]));
-}
+}   // setMessageReceiversFor
+//-----------------------------------------------------------------------------
 
-std::set<irr::core::stringw> LobbySettings::getMessageReceiversFor(std::shared_ptr<STKPeer> peer) const
+std::set<irr::core::stringw> LobbySettings::getMessageReceiversFor(
+        std::shared_ptr<STKPeer> peer) const
 {
     auto it = m_message_receivers.find(peer);
     if (it == m_message_receivers.end())
         return {};
 
     return it->second;
-}
+}   // getMessageReceiversFor
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isTeamSpeaker(std::shared_ptr<STKPeer> peer) const
 {
     return m_team_speakers.find(peer) != m_team_speakers.end();
-}
+}   // isTeamSpeaker
+//-----------------------------------------------------------------------------
 
 void LobbySettings::makeChatPublicFor(std::shared_ptr<STKPeer> peer)
 {
     m_message_receivers[peer].clear();
     m_team_speakers.erase(peer);
-}
+}   // makeChatPublicFor
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::hasNoLapRestrictions() const
 {
     return m_default_lap_multiplier < 0. && m_fixed_lap < 0;
-}
+}   // hasNoLapRestrictions
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::hasMultiplier() const
 {
     return m_default_lap_multiplier >= 0.;
-}
+}   // hasMultiplier
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::hasFixedLapCount() const
 {
     return m_fixed_lap >= 0;
-}
+}   // hasFixedLapCount
+//-----------------------------------------------------------------------------
 
 int LobbySettings::getMultiplier() const
 {
     return m_default_lap_multiplier;
-}
+}   // getMultiplier
+//-----------------------------------------------------------------------------
 
 int LobbySettings::getFixedLapCount() const
 {
     return m_fixed_lap;
-}
+}   // getFixedLapCount
+//-----------------------------------------------------------------------------
 
 void LobbySettings::setMultiplier(int new_value)
 {
     m_default_lap_multiplier = new_value;
     m_fixed_lap = -1;
-}
+}   // setMultiplier
+//-----------------------------------------------------------------------------
 
 void LobbySettings::setFixedLapCount(int new_value)
 {
     m_fixed_lap = new_value;
     m_default_lap_multiplier = -1;
-}
+}   // setFixedLapCount
+//-----------------------------------------------------------------------------
 
 void LobbySettings::resetLapRestrictions()
 {
     m_default_lap_multiplier = -1;
     m_fixed_lap = -1;
-}
+}   // resetLapRestrictions
+//-----------------------------------------------------------------------------
 
 void LobbySettings::setDefaultLapRestrictions()
 {
     m_default_lap_multiplier = ServerConfig::m_auto_game_time_ratio;
     m_fixed_lap = ServerConfig::m_fixed_lap_count;
-}
+}   // setDefaultLapRestrictions
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getLapRestrictionsAsString() const
 {
@@ -378,7 +413,8 @@ std::string LobbySettings::getLapRestrictionsAsString() const
     return StringUtils::insertValues(
         "An error: game length is both %f x default and %d",
         m_default_lap_multiplier, m_fixed_lap);
-}
+}   // getLapRestrictionsAsString
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getDirectionAsString(bool just_edited) const
 {
@@ -393,7 +429,8 @@ std::string LobbySettings::getDirectionAsString(bool just_edited) const
         msg += (m_fixed_direction == 0 ? "forward" : "reverse");
     }
     return msg;
-}
+}   // getDirectionAsString
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::setDirection(int x)
 {
@@ -402,27 +439,32 @@ bool LobbySettings::setDirection(int x)
 
     m_fixed_direction = x;
     return true;
-}
+}   // setDirection
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::hasFixedDirection() const
 {
     return m_fixed_direction != -1;
-}
+}   // hasFixedDirection
+//-----------------------------------------------------------------------------
 
 int LobbySettings::getDirection() const
 {
     return m_fixed_direction;
-}
+}   // getDirection
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isAllowedToStart() const
 {
     return m_allowed_to_start;
-}
+}   // isAllowedToStart
+//-----------------------------------------------------------------------------
 
 void LobbySettings::setAllowedToStart(bool value)
 {
     m_allowed_to_start = value;
-}
+}   // setAllowedToStart
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getAllowedToStartAsString(bool just_edited) const
 {
@@ -432,17 +474,20 @@ std::string LobbySettings::getAllowedToStartAsString(bool just_edited) const
         return prefix + "allowed";
     else
         return prefix + "forbidden";
-}
+}   // getAllowedToStartAsString
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isGPGridShuffled() const
 {
     return m_shuffle_gp;
-}
+}   // isGPGridShuffled
+//-----------------------------------------------------------------------------
 
 void LobbySettings::setGPGridShuffled(bool value)
 {
     m_shuffle_gp = value;
-}
+}   // setGPGridShuffled
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getWhetherShuffledGPGridAsString(bool just_edited) const
 {
@@ -452,9 +497,11 @@ std::string LobbySettings::getWhetherShuffledGPGridAsString(bool just_edited) co
         return prefix + "sorted by score";
     else
         return prefix + "shuffled";
-}
+}   // getWhetherShuffledGPGridAsString
+//-----------------------------------------------------------------------------
 
-std::vector<std::string> LobbySettings::getMissingAssets(std::shared_ptr<STKPeer> peer) const
+std::vector<std::string> LobbySettings::getMissingAssets(
+        std::shared_ptr<STKPeer> peer) const
 {
     if (m_play_requirement_tracks.empty())
         return {};
@@ -486,7 +533,8 @@ void LobbySettings::updateWorldSettings(std::shared_ptr<GameInfo> game_info)
         else if (policy == "advanced")
             sw->setGoalScoringPolicy(2);
         else
-            Log::warn("LobbySettings", "Soccer goals policy %s does not exist", policy.c_str());
+            Log::warn("LobbySettings", "Soccer goals policy %s "
+                    "does not exist", policy.c_str());
     }
 }   // updateWorldSettings
 //-----------------------------------------------------------------------------
@@ -500,7 +548,7 @@ void LobbySettings::onResetToDefaultSettings()
 
     if (!m_preserve.count("laps"))
     {
-        // Note that we don't reset restrictions, but set them to those in config
+        // We don't reset restrictions, but set them to those in config
         setDefaultLapRestrictions();
     }
 
@@ -510,11 +558,13 @@ void LobbySettings::onResetToDefaultSettings()
     if (!m_preserve.count("replay"))
         setConsentOnReplays(false);
 }   // onResetToDefaultSettings
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isPreservingMode() const
 {
     return m_preserve.find("mode") != m_preserve.end();
-}
+}   // isPreservingMode
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getScoringAsString() const
 {
@@ -523,19 +573,22 @@ std::string LobbySettings::getScoringAsString() const
         msg += StringUtils::insertValues(" %d", param);
     msg += "\"";
     return msg;
-}
+}   // getScoringAsString
+//-----------------------------------------------------------------------------
 
 void LobbySettings::addPlayerToCategory(const std::string& player, const std::string& category)
 {
     m_player_categories[category].insert(player);
     m_categories_for_player[player].insert(category);
-}
+}   // addPlayerToCategory
+//-----------------------------------------------------------------------------
 
 void LobbySettings::erasePlayerFromCategory(const std::string& player, const std::string& category)
 {
     m_player_categories[category].erase(player);
     m_categories_for_player[player].erase(category);
-}
+}   // erasePlayerFromCategory
+//-----------------------------------------------------------------------------
 
 void LobbySettings::makeCategoryVisible(const std::string category, bool value)
 {
@@ -544,12 +597,14 @@ void LobbySettings::makeCategoryVisible(const std::string category, bool value)
     } else {
         m_hidden_categories.insert(category);
     }
-}
+}   // makeCategoryVisible
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isCategoryVisible(const std::string category) const
 {
     return m_hidden_categories.find(category) == m_hidden_categories.end();
-}
+}   // isCategoryVisible
+//-----------------------------------------------------------------------------
 
 std::vector<std::string> LobbySettings::getVisibleCategoriesForPlayer(const std::string& profile_name) const
 {
@@ -563,7 +618,8 @@ std::vector<std::string> LobbySettings::getVisibleCategoriesForPlayer(const std:
             res.push_back(category);
     
     return res;
-}
+}   // getVisibleCategoriesForPlayer
+//-----------------------------------------------------------------------------
 
 
 std::set<std::string> LobbySettings::getPlayersInCategory(const std::string& category) const
@@ -573,7 +629,8 @@ std::set<std::string> LobbySettings::getPlayersInCategory(const std::string& cat
         return {};
 
     return it->second;
-}
+}   // getPlayersInCategory
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getPreservedSettingsAsString() const
 {
@@ -581,17 +638,20 @@ std::string LobbySettings::getPreservedSettingsAsString() const
     for (const std::string& str: m_preserve)
         msg += " " + str;
     return msg;
-}
+}   // getPreservedSettingsAsString
+//-----------------------------------------------------------------------------
 
 void LobbySettings::eraseFromPreserved(const std::string& value)
 {
     m_preserve.erase(value);
-}
+}   // eraseFromPreserved
+//-----------------------------------------------------------------------------
 
 void LobbySettings::insertIntoPreserved(const std::string& value)
 {
     m_preserve.insert(value);
-}
+}   // insertIntoPreserved
+//-----------------------------------------------------------------------------
 
 void LobbySettings::clearAllExpiredWeakPtrs()
 {
@@ -603,7 +663,8 @@ void LobbySettings::clearAllExpiredWeakPtrs()
         else
             it++;
     }
-}
+}   // clearAllExpiredWeakPtrs
+//-----------------------------------------------------------------------------
 
 void LobbySettings::initializeDefaultVote()
 {
@@ -674,17 +735,20 @@ void LobbySettings::initializeDefaultVote()
             assert(false);
             break;
     }
-}
+}   // initializeDefaultVote
+//-----------------------------------------------------------------------------
 
 void LobbySettings::applyGlobalFilter(FilterContext& map_context) const
 {
     m_global_filter.apply(map_context);
-}
+}   // applyGlobalFilter
+//-----------------------------------------------------------------------------
 
 void LobbySettings::applyGlobalKartsFilter(FilterContext& kart_context) const
 {
     m_global_karts_filter.apply(kart_context);
-}
+}   // applyGlobalKartsFilter
+//-----------------------------------------------------------------------------
 
 void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
 {
@@ -741,46 +805,53 @@ void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
     }
     if (hasFixedDirection())
         vote->m_reverse = (getDirection() == 1);
-}
+}   // applyRestrictionsOnVote
+//-----------------------------------------------------------------------------
 
 void LobbySettings::encodeDefaultVote(NetworkString* ns) const
 {
     ns->addUInt32(m_winner_peer_id);
     m_default_vote->encode(ns);
-}
+}   // encodeDefaultVote
+//-----------------------------------------------------------------------------
 
 
 void LobbySettings::setDefaultVote(PeerVote winner_vote)
 {
     *m_default_vote = winner_vote;
-}
+}   // setDefaultVote
+//-----------------------------------------------------------------------------
 
 PeerVote LobbySettings::getDefaultVote() const
 {
     return *m_default_vote;
-}
+}   // getDefaultVote
+//-----------------------------------------------------------------------------
 
 
 void LobbySettings::onPeerDisconnect(std::shared_ptr<STKPeer> peer)
 {
     m_message_receivers.erase(peer);
-}
+}   // onPeerDisconnect
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isInWhitelist(const std::string& username) const
 {
     return m_usernames_white_list.find(username) != m_usernames_white_list.end();
-}
-
+}   // isInWhitelist
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isModeAvailable(int mode) const
 {
     return m_available_modes.find(mode) != m_available_modes.end();
-}
+}   // isModeAvailable
+//-----------------------------------------------------------------------------
 
 bool LobbySettings::isDifficultyAvailable(int difficulty) const
 {
     return m_available_difficulties.find(difficulty) != m_available_difficulties.end();
-}
+}   // isDifficultyAvailable
+//-----------------------------------------------------------------------------
 
 void LobbySettings::applyPermutationToTeams(const std::map<int, int>& permutation)
 {
@@ -790,7 +861,8 @@ void LobbySettings::applyPermutationToTeams(const std::map<int, int>& permutatio
         if (it != permutation.end())
             p.second = it->second;
     }
-}
+}   // applyPermutationToTeams
+//-----------------------------------------------------------------------------
 
 std::string LobbySettings::getAvailableTeams() const
 {
@@ -799,5 +871,4 @@ std::string LobbySettings::getAvailableTeams() const
 
     return m_available_teams;
 }   // getAvailableTeams
-
 //-----------------------------------------------------------------------------

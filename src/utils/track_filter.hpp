@@ -1,9 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2004-2020  Steve Baker <sjbaker1@airmail.net>,
-//  Copyright (C) 2004-2020  Ingo Ruhnke <grumbel@gmx.de>
-//  Copyright (C) 2006-2020  SuperTuxKart-Team
-//  Copyright (C) 2020  kimden
+//  Copyright (C) 2020-2025  kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -23,12 +20,13 @@
 #define HEADER_TRACK_FILTER_HPP
 
 #include "utils/types.hpp"
+
 #include <limits>
-#include <string>
-#include <vector>
-#include <sstream>
 #include <map>
 #include <set>
+#include <sstream>
+#include <string>
+#include <vector>
 
 // A structure to apply requirements to the track set. allowed contains 
 // the only tracks to be allowed, forbidden contains the only tracks to be
@@ -55,7 +53,7 @@ struct FilterContext {
 class Filter {
 public:
     std::string m_initial_string;
-    std::string toString() const { return "{ " + m_initial_string + " }"; }   // toString
+    std::string toString() const     { return "{ " + m_initial_string + " }"; }
 
     bool m_placeholder = false;
     bool isPlaceholder() const                        { return m_placeholder; }
@@ -122,7 +120,8 @@ public:
     KartFilter();
     KartFilter(std::string input);
 
-    bool ignoresPlayersInput() const override { return m_ignore_players_input; }
+    bool ignoresPlayersInput() const override
+                                             { return m_ignore_players_input; }
     // apply is called when the selection starts just like for maps,
     // while applyAfterwards is called when the selection ends to determine the
     // random kart for a player who selected nothing (or a random kart,

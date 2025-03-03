@@ -19,18 +19,18 @@
 #ifndef LOBBY_ASSET_MANAGER_HPP
 #define LOBBY_ASSET_MANAGER_HPP
 
-#include "utils/types.hpp"
-#include "race/race_manager.hpp"
 #include "network/stk_peer.hpp"
-
+#include "race/race_manager.hpp"
+#include "utils/types.hpp"
 
 #include <memory>
-#include <string>
 #include <set>
+#include <string>
 #include <vector>
+
+class NetworkString;
 class ServerLobby;
 class STKPeer;
-class NetworkString;
 
 class LobbyAssetManager
 {
@@ -38,27 +38,31 @@ public:
     LobbyAssetManager(ServerLobby* lobby);
 
     void init();
-
     void updateAddons();
     void updateMapsForMode(RaceManager::MinorRaceModeType mode);
     void onServerSetup();
     void eraseAssetsWithPeers(const std::vector<std::shared_ptr<STKPeer>>& peers);
     bool tryApplyingMapFilters();
     std::string getRandomAvailableMap();
-    void encodePlayerKartsAndCommonMaps(NetworkString* ns, const std::set<std::string>& all_k);
+
+    void encodePlayerKartsAndCommonMaps(
+            NetworkString* ns, const std::set<std::string>& all_k);
+
     bool handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
             const std::set<std::string>& client_karts,
             const std::set<std::string>& client_maps);
+
     std::array<int, AS_TOTAL> getAddonScores(
-        const std::set<std::string>& client_karts,
-        const std::set<std::string>& client_maps);
+            const std::set<std::string>& client_karts,
+            const std::set<std::string>& client_maps);
+
     std::string getAnyMapForVote();
     bool checkIfNoCommonMaps(
             const std::pair<std::set<std::string>, std::set<std::string>>& assets);
+
     bool isKartAvailable(const std::string& kart) const;
     float officialKartsFraction(const std::set<std::string>& clientKarts) const;
     float officialMapsFraction(const std::set<std::string>& clientMaps) const;
-
 
     std::string getRandomMap() const;
     std::string getRandomAddonMap() const;
@@ -108,4 +112,4 @@ public:
     std::vector<std::string> m_must_have_maps;
 };
 
-#endif
+#endif // LOBBY_ASSET_MANAGER_HPP

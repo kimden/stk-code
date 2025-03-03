@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2013-2015 Lauri Kasanen
+//  Copyright (C) 2024-2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -16,24 +16,24 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#ifndef HOURGLASS_REASON_H
-#define HOURGLASS_REASON_H
+#ifndef HOURGLASS_REASON_HPP
+#define HOURGLASS_REASON_HPP
 
 enum HourglassReason : int
 {
     HR_NONE = 0,
-    HR_ABSENT_PEER = (1 << 0),
-    HR_NOT_A_TOURNAMENT_PLAYER = (1 << 1),
-    HR_SPECTATOR_BY_LIMIT = (1 << 2),
-    HR_NO_KARTS_AFTER_FILTER = (1 << 3),
-    HR_NO_MAPS_AFTER_FILTER = (1 << 4),
-    HR_LACKING_REQUIRED_MAPS = (1 << 5),
-    HR_ADDON_KARTS_PLAY_THRESHOLD = (1 << 6),
-    HR_ADDON_TRACKS_PLAY_THRESHOLD = (1 << 7),
-    HR_ADDON_ARENAS_PLAY_THRESHOLD = (1 << 8),
-    HR_ADDON_FIELDS_PLAY_THRESHOLD = (1 << 9),
-    HR_OFFICIAL_KARTS_PLAY_THRESHOLD = (1 << 10),
+    HR_ABSENT_PEER                    = (1 << 0),
+    HR_NOT_A_TOURNAMENT_PLAYER        = (1 << 1),
+    HR_SPECTATOR_BY_LIMIT             = (1 << 2),
+    HR_NO_KARTS_AFTER_FILTER          = (1 << 3),
+    HR_NO_MAPS_AFTER_FILTER           = (1 << 4),
+    HR_LACKING_REQUIRED_MAPS          = (1 << 5),
+    HR_ADDON_KARTS_PLAY_THRESHOLD     = (1 << 6),
+    HR_ADDON_TRACKS_PLAY_THRESHOLD    = (1 << 7),
+    HR_ADDON_ARENAS_PLAY_THRESHOLD    = (1 << 8),
+    HR_ADDON_FIELDS_PLAY_THRESHOLD    = (1 << 9),
+    HR_OFFICIAL_KARTS_PLAY_THRESHOLD  = (1 << 10),
     HR_OFFICIAL_TRACKS_PLAY_THRESHOLD = (1 << 11)
 };
 
-#endif
+#endif // HOURGLASS_REASON_HPP

@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2021-2022 kimden
+//  Copyright (C) 2021-2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -23,10 +23,10 @@
 
 #include <algorithm>
 #include <functional>
-#include <set>
-#include <vector>
-#include <string>
 #include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 // A lazy class that stores a set of strings.
 // For a query string, it finds exactly the same string in the set
@@ -45,6 +45,7 @@ public:
     void add(const std::string& key, const std::string& value);
     void remove(const std::string& key);
     std::vector<std::pair<std::string, int>> getClosest(
-            const std::string& query, int count = 3, bool case_sensitive = true) const;
+            const std::string& query, int count = 3,
+            bool case_sensitive = true) const;
 };
 #endif // SET_TYPO_FIXER_HPP

@@ -20,10 +20,10 @@
 #define LOBBY_QUEUES_HPP
 
 #include "irrString.h"
-
-#include <queue>
-#include <memory>
 #include "utils/track_filter.hpp"
+
+#include <memory>
+#include <queue>
 
 class LobbyQueues
 {
@@ -42,21 +42,23 @@ public:
 
     bool areKartFiltersIgnoringKarts() const;
 
+    using Queue = std::deque<std::shared_ptr<Filter>>;
+
 private:
-    std::deque<std::shared_ptr<Filter>> m_onetime_tracks_queue;
+    Queue m_onetime_tracks_queue;
 
-    std::deque<std::shared_ptr<Filter>> m_cyclic_tracks_queue;
+    Queue m_cyclic_tracks_queue;
 
-    std::deque<std::shared_ptr<Filter>> m_onetime_karts_queue;
+    Queue m_onetime_karts_queue;
 
-    std::deque<std::shared_ptr<Filter>> m_cyclic_karts_queue;
+    Queue m_cyclic_karts_queue;
 
 // Temporary reference getters
 public:
-    std::deque<std::shared_ptr<Filter>>& getOnetimeTracksQueue() { return m_onetime_tracks_queue; }
-    std::deque<std::shared_ptr<Filter>>& getCyclicTracksQueue() { return m_cyclic_tracks_queue; }
-    std::deque<std::shared_ptr<Filter>>& getOnetimeKartsQueue() { return m_onetime_karts_queue; }
-    std::deque<std::shared_ptr<Filter>>& getCyclicKartsQueue() { return m_cyclic_karts_queue; }
+    Queue& getOnetimeTracksQueue()           { return m_onetime_tracks_queue; }
+    Queue& getCyclicTracksQueue()             { return m_cyclic_tracks_queue; }
+    Queue& getOnetimeKartsQueue()             { return m_onetime_karts_queue; }
+    Queue& getCyclicKartsQueue()               { return m_cyclic_karts_queue; }
 
 };
 
