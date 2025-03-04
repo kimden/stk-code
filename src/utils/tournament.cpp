@@ -222,7 +222,9 @@ void Tournament::initTournamentPlayers()
                 type == "R" ? m_red_players :
                 type == "B" ? m_blue_players :
                 m_referees);
-            for (const std::string& member: m_lobby_settings->getCategories()[cat_name])
+
+            auto categories = m_lobby_settings->getCategories();
+            for (const std::string& member: categories[cat_name])
                 dest.insert(member);
         }
         else if (type == "R") 
