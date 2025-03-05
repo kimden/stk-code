@@ -19,44 +19,45 @@
 #ifndef SERVER_LOBBY_HPP
 #define SERVER_LOBBY_HPP
 
+#include "karts/controller/player_controller.hpp"
 #include "network/protocols/lobby_protocol.hpp"
+#include "network/requests.hpp" // only needed in header as long as KeyData is there
 #include "utils/cpp2011.hpp"
+#include "utils/hourglass_reason.hpp"
 #include "utils/team_utils.hpp"
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
-#include "utils/hourglass_reason.hpp"
-#include "karts/controller/player_controller.hpp"
 
 #include "irrString.h"
 
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <deque>
 #include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
-#include <deque>
 
 class BareNetworkString;
-class DatabaseConnector;
-struct GameInfo;
-class NetworkItemManager;
-class NetworkString;
-class NetworkPlayerProfile;
-class STKPeer;
-class SocketAddress;
-enum AlwaysSpectateMode: uint8_t;
-class Ranking;
-class HitProcessor;
-class LobbyAssetManager;
 class CommandManager;
+class DatabaseConnector;
+class HitProcessor;
 class KartElimination;
-class MapVoteHandler;
-class Tournament;
+class LobbyAssetManager;
 class LobbyQueues;
 class LobbySettings;
+class MapVoteHandler;
+class NetworkItemManager;
+class NetworkPlayerProfile;
+class NetworkString;
+class Ranking;
+class SocketAddress;
+class STKPeer;
+class Tournament;
+enum AlwaysSpectateMode: uint8_t;
+struct GameInfo;
 
 namespace Online
 {
@@ -107,14 +108,6 @@ public:
         AFTER_GAME = 2,
     };
 private:
-    struct KeyData
-    {
-        std::string m_aes_key;
-        std::string m_aes_iv;
-        irr::core::stringw m_name;
-        std::string m_country_code;
-        bool m_tried = false;
-    };
 
 #ifdef ENABLE_SQLITE3
     std::shared_ptr<DatabaseConnector> m_db_connector;
@@ -270,28 +263,6 @@ private:
             }
         }
     }
-    void addPeerConnection(const std::string& addr_str)
-    {
-        m_pending_peer_connection[addr_str] = StkTime::getMonoTimeMs();
-    }
-    void removeExpiredPeerConnection()
-    {
-        // Remove connect to peer protocol running more than a 45 seconds
-        // (from stk addons poll server request),
-        for (auto it = m_pending_peer_connection.begin();
-             it != m_pending_peer_connection.end();)
-        {
-            if (StkTime::getMonoTimeMs() - it->second > 45000)
-                it = m_pending_peer_connection.erase(it);
-            else
-                it++;
-        }
-    }
-    void replaceKeys(std::map<uint32_t, KeyData>& new_keys)
-    {
-        std::lock_guard<std::mutex> lock(m_keys_mutex);
-        std::swap(m_keys, new_keys);
-    }
     void handlePendingConnection();
     void handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                                      BareNetworkString& data,
@@ -442,6 +413,42 @@ public:
     std::shared_ptr<KartElimination> getKartElimination() const
                                                  { return m_kart_elimination; }
     std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
+
+    // Functions that arose from requests separation
+    void setServerOnlineId(uint32_t id)       { m_server_id_online.store(id); }
+    void resetSuccessPollTime()
+                  { m_last_success_poll_time.store(StkTime::getMonoTimeMs()); }
+    void doErrorLeave()                         { m_state.store(ERROR_LEAVE); }
+
+    bool hasPendingPeerConnection(const std::string& peer_addr_str) const
+                        { return m_pending_peer_connection.find(peer_addr_str)
+                              != m_pending_peer_connection.end(); }
+    bool isWaitingForStartGame() const
+                           { return m_state.load() == WAITING_FOR_START_GAME; }
+
+    void addPeerConnection(const std::string& addr_str)
+    {
+        m_pending_peer_connection[addr_str] = StkTime::getMonoTimeMs();
+    }
+    void removeExpiredPeerConnection()
+    {
+        // Remove connect to peer protocol running more than a 45 seconds
+        // (from stk addons poll server request),
+        for (auto it = m_pending_peer_connection.begin();
+             it != m_pending_peer_connection.end();)
+        {
+            if (StkTime::getMonoTimeMs() - it->second > 45000)
+                it = m_pending_peer_connection.erase(it);
+            else
+                it++;
+        }
+    }
+    void replaceKeys(std::map<uint32_t, KeyData>& new_keys)
+    {
+        std::lock_guard<std::mutex> lock(m_keys_mutex);
+        std::swap(m_keys, new_keys);
+    }
+    // end of functions that arose from requests separation
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

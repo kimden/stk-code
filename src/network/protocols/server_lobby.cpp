@@ -39,6 +39,7 @@
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/protocols/ranking.hpp"
 #include "network/race_event_manager.hpp"
+#include "network/requests.hpp"
 #include "network/server_config.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_ipv6.hpp"
@@ -1799,7 +1800,7 @@ void ServerLobby::update(int ticks)
         // once all track votes have been received.
         break;
     case LOAD_WORLD:
-        Log::info("ServerLobbyRoom", "Starting the race loading.");
+        Log::info("ServerLobby", "Starting the race loading.");
         // This will create the world instance, i.e. load track and karts
         loadWorld();
         m_lobby_settings->updateWorldSettings(m_game_info);
@@ -1857,57 +1858,6 @@ void ServerLobby::update(int ticks)
  */
 void ServerLobby::registerServer(bool first_time)
 {
-    // ========================================================================
-    class RegisterServerRequest : public Online::XMLRequest
-    {
-    private:
-        std::weak_ptr<ServerLobby> m_server_lobby;
-        bool m_first_time;
-    protected:
-        virtual void afterOperation()
-        {
-            Online::XMLRequest::afterOperation();
-            const XMLNode* result = getXMLData();
-            std::string rec_success;
-            auto sl = m_server_lobby.lock();
-            if (!sl)
-                return;
-
-            if (result->get("success", &rec_success) &&
-                rec_success == "yes")
-            {
-                const XMLNode* server = result->getNode("server");
-                assert(server);
-                const XMLNode* server_info = server->getNode("server-info");
-                assert(server_info);
-                unsigned server_id_online = 0;
-                server_info->get("id", &server_id_online);
-                assert(server_id_online != 0);
-                bool is_official = false;
-                server_info->get("official", &is_official);
-                if (!is_official && ServerConfig::m_ranked)
-                {
-                    Log::fatal("ServerLobby", "You don't have permission to "
-                        "host a ranked server.");
-                }
-                Log::info("ServerLobby",
-                    "Server %d is now online.", server_id_online);
-                sl->m_server_id_online.store(server_id_online);
-                sl->m_last_success_poll_time.store(StkTime::getMonoTimeMs());
-                return;
-            }
-            Log::error("ServerLobby", "%s",
-                StringUtils::wideToUtf8(getInfo()).c_str());
-            // Exit now if failed to register to stk addons for first time
-            if (m_first_time)
-                sl->m_state.store(ERROR_LEAVE);
-        }
-    public:
-        RegisterServerRequest(std::shared_ptr<ServerLobby> sl, bool first_time)
-        : XMLRequest(Online::RequestManager::HTTP_MAX_PRIORITY),
-        m_server_lobby(sl), m_first_time(first_time) {}
-    };   // RegisterServerRequest
-
     auto request = std::make_shared<RegisterServerRequest>(
         std::dynamic_pointer_cast<ServerLobby>(shared_from_this()), first_time);
     NetworkConfig::get()->setServerDetails(request, "create");
@@ -1950,36 +1900,7 @@ void ServerLobby::registerServer(bool first_time)
  */
 void ServerLobby::unregisterServer(bool now, std::weak_ptr<ServerLobby> sl)
 {
-    // ========================================================================
-    class UnRegisterServerRequest : public Online::XMLRequest
-    {
-    private:
-        std::weak_ptr<ServerLobby> m_server_lobby;
-    protected:
-        virtual void afterOperation()
-        {
-            Online::XMLRequest::afterOperation();
-            const XMLNode* result = getXMLData();
-            std::string rec_success;
-
-            if (result->get("success", &rec_success) &&
-                rec_success == "yes")
-            {
-                // Clear the server online for next register
-                // For grand prix server
-                if (auto sl = m_server_lobby.lock())
-                    sl->m_server_id_online.store(0);
-                return;
-            }
-            Log::error("ServerLobby", "%s",
-                StringUtils::wideToUtf8(getInfo()).c_str());
-        }
-    public:
-        UnRegisterServerRequest(std::weak_ptr<ServerLobby> sl)
-        : XMLRequest(Online::RequestManager::HTTP_MAX_PRIORITY),
-        m_server_lobby(sl) {}
-    };   // UnRegisterServerRequest
-    auto request = std::make_shared<UnRegisterServerRequest>(sl);
+    auto request = std::make_shared<UnregisterServerRequest>(sl);
     NetworkConfig::get()->setServerDetails(request, "stop");
 
     const SocketAddress& addr = STKHost::get()->getPublicAddress();
@@ -2333,87 +2254,6 @@ void ServerLobby::checkIncomingConnectionRequests()
 
     // Now poll the stk server
     last_poll_time = StkTime::getMonoTimeMs();
-
-    // ========================================================================
-    class PollServerRequest : public Online::XMLRequest
-    {
-    private:
-        std::weak_ptr<ServerLobby> m_server_lobby;
-        std::weak_ptr<ProtocolManager> m_protocol_manager;
-    protected:
-        virtual void afterOperation()
-        {
-            Online::XMLRequest::afterOperation();
-            const XMLNode* result = getXMLData();
-            std::string success;
-
-            if (!result->get("success", &success) || success != "yes")
-            {
-                Log::error("ServerLobby", "Poll server request failed: %s",
-                    StringUtils::wideToUtf8(getInfo()).c_str());
-                return;
-            }
-
-            // Now start a ConnectToPeer protocol for each connection request
-            const XMLNode * users_xml = result->getNode("users");
-            std::map<uint32_t, KeyData> keys;
-            auto sl = m_server_lobby.lock();
-            if (!sl)
-                return;
-            sl->m_last_success_poll_time.store(StkTime::getMonoTimeMs());
-            if (sl->m_state.load() != WAITING_FOR_START_GAME &&
-                !sl->allowJoinedPlayersWaiting())
-            {
-                sl->replaceKeys(keys);
-                return;
-            }
-
-            sl->removeExpiredPeerConnection();
-            for (unsigned int i = 0; i < users_xml->getNumNodes(); i++)
-            {
-                uint32_t addr, id;
-                uint16_t port;
-                std::string ipv6;
-                users_xml->getNode(i)->get("ip", &addr);
-                users_xml->getNode(i)->get("ipv6", &ipv6);
-                users_xml->getNode(i)->get("port", &port);
-                users_xml->getNode(i)->get("id", &id);
-                users_xml->getNode(i)->get("aes-key", &keys[id].m_aes_key);
-                users_xml->getNode(i)->get("aes-iv", &keys[id].m_aes_iv);
-                users_xml->getNode(i)->get("username", &keys[id].m_name);
-                users_xml->getNode(i)->get("country-code",
-                    &keys[id].m_country_code);
-                keys[id].m_tried = false;
-                if (ServerConfig::m_firewalled_server)
-                {
-                    SocketAddress peer_addr(addr, port);
-                    if (!ipv6.empty())
-                        peer_addr.init(ipv6, port);
-                    peer_addr.convertForIPv6Socket(isIPv6Socket());
-                    std::string peer_addr_str = peer_addr.toString();
-                    if (sl->m_pending_peer_connection.find(peer_addr_str) !=
-                        sl->m_pending_peer_connection.end())
-                    {
-                        continue;
-                    }
-                    auto ctp = std::make_shared<ConnectToPeer>(peer_addr);
-                    if (auto pm = m_protocol_manager.lock())
-                        pm->requestStart(ctp);
-                    sl->addPeerConnection(peer_addr_str);
-                }
-            }
-            sl->replaceKeys(keys);
-        }
-    public:
-        PollServerRequest(std::shared_ptr<ServerLobby> sl,
-                          std::shared_ptr<ProtocolManager> pm)
-        : XMLRequest(Online::RequestManager::HTTP_MAX_PRIORITY),
-        m_server_lobby(sl), m_protocol_manager(pm)
-        {
-            m_disable_sending_log = true;
-        }
-    };   // PollServerRequest
-    // ========================================================================
 
     auto request = std::make_shared<PollServerRequest>(
         std::dynamic_pointer_cast<ServerLobby>(shared_from_this()),
