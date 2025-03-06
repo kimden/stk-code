@@ -142,6 +142,9 @@ public:
     void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
     std::string getAvailableTeams() const;
 
+    bool isInHammerWhitelist(const std::string& str) const
+           { return m_hammer_whitelist.find(str) != m_hammer_whitelist.end(); }
+
 private:
     GameSetup* m_game_setup;
 
@@ -230,6 +233,8 @@ private:
     std::map<std::string, std::set<std::string>> m_categories_for_player;
 
     std::map<std::string, int> m_team_for_player;
+
+    std::set<std::string> m_hammer_whitelist;
 
 };
 

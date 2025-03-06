@@ -96,6 +96,7 @@ void LobbySettings::initCategories()
         ServerConfig::m_categories, ' ');
     std::string category = "";
     bool isTeam = false;
+    bool isHammerWhitelisted = false;
     for (std::string& s: tokens)
     {
         if (s.empty())
@@ -103,6 +104,7 @@ void LobbySettings::initCategories()
         else if (s[0] == '#')
         {
             isTeam = false;
+            isHammerWhitelisted = false;
             if (s.length() > 1 && s[1] == '#')
             {
                 category = s.substr(2);
@@ -114,17 +116,29 @@ void LobbySettings::initCategories()
         else if (s[0] == '$')
         {
             isTeam = true;
+            isHammerWhitelisted = false;
             category = s.substr(1);
+        }
+        else if (s[0] == '^')
+        {
+            isHammerWhitelisted = true;
         }
         else
         {
-            if (!isTeam) {
-                m_player_categories[category].insert(s);
-                m_categories_for_player[s].insert(category);
+            if (isHammerWhitelisted)
+            {
+                m_hammer_whitelist.insert(s);
             }
             else
             {
-                m_team_for_player[s] = category[0] - '0' + 1;
+                if (!isTeam) {
+                    m_player_categories[category].insert(s);
+                    m_categories_for_player[s].insert(category);
+                }
+                else
+                {
+                    m_team_for_player[s] = category[0] - '0' + 1;
+                }
             }
         }
     }

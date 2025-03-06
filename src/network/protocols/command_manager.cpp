@@ -2386,8 +2386,20 @@ void CommandManager::process_power(Context& context)
         m_lobby->updatePlayerList();
         return;
     }
+    std::string username = "";
+    uint32_t online_id = 0;
+    const auto& profiles = peer->getPlayerProfiles();
+    if (!profiles.empty())
+    {
+        username = StringUtils::wideToUtf8(profiles[0]->getName());
+        online_id = profiles[0]->getOnlineId();
+    }
+
     std::string password = ServerConfig::m_power_password;
-    if (password.empty() || argv.size() <= 1 || argv[1] != password)
+    bool bad_password = (password.empty() || argv.size() <= 1 || argv[1] != password);
+    bool good_player = (m_lobby_settings->isInHammerWhitelist(username)
+            && online_id != 0);
+    if (bad_password && !good_player)
     {
         std::string msg = "You need to provide the password to have the power";
         m_lobby->sendStringToPeer(msg, peer);
@@ -3080,7 +3092,7 @@ void CommandManager::process_hitmsg(Context& context)
         error(context, true);
         return;
     }
-    if (m_lobby->getHitProcessor()->showTeammateHits())
+    if (m_hit_processor->showTeammateHits())
         msg = "Teammate hits are sent to all players";
     else
         msg = "Teammate hits are not sent";
@@ -3099,10 +3111,10 @@ void CommandManager::process_hitmsg_assign(Context& context)
     }
     if (argv[1] == "0")
     {
-        m_lobby->getHitProcessor()->setShowTeammateHits(false);
+        m_hit_processor->setShowTeammateHits(false);
         msg = "Teammate hits will not be sent";
     } else {
-        m_lobby->getHitProcessor()->setShowTeammateHits(true);
+        m_hit_processor->setShowTeammateHits(true);
         msg = "Teammate hits will be sent to all players";
     }
     m_lobby->sendStringToAllPeers(msg);
@@ -3118,7 +3130,7 @@ void CommandManager::process_teamhit(Context& context)
         error(context, true);
         return;
     }
-    if (m_lobby->getHitProcessor()->isTeammateHitMode())
+    if (m_hit_processor->isTeammateHitMode())
         msg = "Teammate hits are punished";
     else
         msg = "Teammate hits are not punished";
@@ -3137,12 +3149,12 @@ void CommandManager::process_teamhit_assign(Context& context)
     }
     if (argv[1] == "0")
     {
-        m_lobby->getHitProcessor()->setTeammateHitMode(false);
+        m_hit_processor->setTeammateHitMode(false);
         msg = "Teammate hits are not punished now";
     }
     else
     {
-        m_lobby->getHitProcessor()->setTeammateHitMode(true);
+        m_hit_processor->setTeammateHitMode(true);
         msg = "Teammate hits are punished now";
     }
     m_lobby->sendStringToAllPeers(msg);
