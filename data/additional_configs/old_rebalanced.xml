@@ -169,73 +169,73 @@
     </weights>
     <weights num-karts="2">
       <!--            bubble   cake  bowl zipper  plunger  switch swattr rubber para  anvil -->
-      <weight single  ="100      0   400     0      300      50     150     0     0     0"
+      <weight single  ="100      0   400     0      300      60     140     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="120     50    50   250       40     100      50   100    50     0"
-              multi   ="  0      0   120     0       70       0       0     0     0     0" />
+      <weight single  ="100     50    40   250       40     125      50   100    50     0"
+              multi   ="  0      0   125     0       70       0       0     0     0     0" />
     </weights>
     <weights num-karts="3">
       <!--            bubble   cake  bowl zipper  plunger  switch swattr rubber para  anvil -->
       <weight single  =" 75      0   400     0      350      75     100     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="125    100    75   200       50      85     100    15     0     0"
+      <weight single  ="110    100    75   200       50     100     100    15     0     0"
               multi   ="  0      0   150     0      100       0       0     0     0     0" />
-      <weight single  ="125      0     0   150        0      10       0   100   150    25"
+      <weight single  =" 75      0     0   150        0      60       0   100   150    25"
               multi   =" 50      0    15   350       25       0       0     0     0     0" />              
     </weights>
     <weights num-karts="4">
       <!--            bubble   cake  bowl zipper  plunger  switch swattr rubber para  anvil -->
-      <weight single  =" 50      0   400     0      400      50     100     0     0     0"
+      <weight single  =" 50      0   400     0      400      60      90     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="120     50   250   100      200      60     150     0     0     0"
+      <weight single  ="120     50   220   100      200      90     150     0     0     0"
               multi   ="  0      0    50     0       20       0       0     0     0     0" />
       <weight single  ="125     50     0   160        0      40      50   125    20    50"
               multi   ="  0      0   120   160      100       0       0     0     0     0" />
-      <weight single  =" 50      0     0     0        0      10       0     0   120     0"
+      <weight single  =" 40      0     0     0        0      20       0     0   120     0"
               multi   ="100      0     0   650       70       0       0     0     0     0" />
     </weights>
     <weights num-karts="5">
       <!--            bubble   cake  bowl zipper  plunger  switch swattr rubber para  anvil -->
-      <weight single  =" 50      0   400     0      400      50     100     0     0     0"
+      <weight single  =" 50      0   400     0      400      60      90     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="120     45   275   125      225      60     130     0     0     0"
+      <weight single  =" 90     45   275   125      225      90     130     0     0     0"
               multi   ="  0      0    10     0       10       0       0     0     0     0" />
-      <weight single  ="125     65    80   150        0      15     100   110     0    30"
+      <weight single  ="100     65    80   150        0      40     100   110     0    30"
               multi   ="  0     15    90   150       70       0       0     0     0     0" />
-      <weight single  =" 50      0     0    25        0      25      20    70    75    10"
+      <weight single  =" 40      0     0    25        0      30      20    70    75    10"
               multi   ="100      0     0   450      175       0       0     0     0     0" />
-      <weight single  ="  0      0     0     0        0      10       0     0   150     0"
-              multi   ="100      0     0   700       40       0       0     0     0     0" />
+      <weight single  ="  0      0     0     0        0      20       0     0   150     0"
+              multi   ="100      0     0   700       30       0       0     0     0     0" />
     </weights>    
     <weights num-karts="6">
       <!--            bubble   cake  bowl zipper  plunger  switch swattr rubber para  anvil -->
-      <weight single  =" 50      0   400     0      400      50     100     0     0     0"
+      <weight single  =" 50      0   400     0      400      60      90     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="100     75   300   100      240      60     115     0     0     0"
+      <weight single  ="100     75   270   100      240      90     115     0     0     0"
               multi   ="  0      0    10     0        0       0       0     0     0     0" />
-      <weight single  ="125    100   120   150       80       5     120   120     0    30"
+      <weight single  ="120     90   100   140       80      50     120   120     0    30"
               multi   ="  0      0    75    50       25       0       0     0     0     0" />
-      <weight single  ="125     75     0   185       25      20      80   110    20    30"
+      <weight single  ="125     75     0   185        0      40      80   110    25    30"
               multi   ="  0     25    40   185       80       0       0     0     0     0" /> 
-      <weight single  =" 80      0     0    25        0      10       0     0    40    20"
-              multi   =" 50      0   125   450      200       0       0     0     0     0" />
-      <weight single  ="  0      0     0     0        0      10       0     0   180     0"
-              multi   ="100      0     0   690       20       0       0     0     0     0" />   
+      <weight single  =" 80      0     0    25        0      30       0     0    40    20"
+              multi   =" 50      0   125   450      180       0       0     0     0     0" />
+      <weight single  ="  0      0     0     0        0      20       0     0   180     0"
+              multi   ="100      0     0   690       10       0       0     0     0     0" />   
     </weights>       
     <weights num-karts="7">
       <!--            bubble   cake  bowl zipper  plunger  switch swattr rubber para  anvil -->
-      <weight single  =" 50      0   400     0      400      50     100     0     0     0"
+      <weight single  =" 50      0   400     0      400      60      90     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="100     50   300   100      265      60     115     0     0     0"
+      <weight single  ="100     50   300   100      250      90     100     0     0     0"
               multi   ="  0      0    10     0        0       0       0     0     0     0" />
-      <weight single  ="125    100   120   150      100      10     120   120     0    30"
+      <weight single  ="125    100   100   150       80      50     120   120     0    30"
               multi   ="  0      0    75    25       25       0       0     0     0     0" />
-      <weight single  ="125     75     0   185        0      20      80   125     0    40"
+      <weight single  ="100     75     0   190        0      40      80   125     0    40"
               multi   ="  0     50   100   150       50       0       0     0     0     0" /> 
-      <weight single  ="100      0     0   125        0      10      40    30    40    20"
-              multi   =" 10     50   175   300      170       0       0    30     0     0" />
-      <weight single  =" 75      0     0    50        0      10       0     0    80     0"
-              multi   =" 75      0    40   450       40       0       0    50     0    20" />
+      <weight single  ="100      0     0   125        0      30      40    30    40    20"
+              multi   =" 10     50   175   300      150       0       0    30     0     0" />
+      <weight single  =" 75      0     0    50        0      20       0     0    80     0"
+              multi   =" 75      0    30   450       40       0       0    50     0    20" />
       <weight single  ="  0      0     0     0        0      10       0     0   200     0"
               multi   ="100      0     0   690        0       0       0     0     0     0" />     
     </weights>                                                                              
@@ -243,16 +243,16 @@
       <!--            bubble   cake  bowl zipper  plunger  switch swattr rubber para  anvil -->
       <weight single  =" 50      0   400     0      400      50     100     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="100     50   300   100      250      60     120     0     0     0"
+      <weight single  =" 90     50   300   100      250      75     115     0     0     0"
               multi   ="  0      0    20     0        0       0       0     0     0     0" />
-      <weight single  ="125     75   190   150      175      10     160    75     0     0"
+      <weight single  ="110     75   190   150      150      45     150    75     0     0"
               multi   ="  0      0    40     0        0       0       0     0     0     0" />
-      <weight single  ="125    100   120   125      100      10     140   100     0    25"
+      <weight single  ="125    100   100   125      100      30     140   100     0    25"
               multi   ="  0      0    80   100        0       0       0     0     0     0" />
-      <weight single  ="125     25    80   160       10      10     140   100     0    30"
+      <weight single  ="125     25    75   160        0      25     140   100     0    30"
               multi   ="  0     30    70   160       60       0       0     0     0     0" />
-      <weight single  ="125      0     0   150        0      10     120   100    25    30"
-              multi   ="  0     55    30   300       30       0       0    25     0    10" />
+      <weight single  ="100      0     0   150        0      20     120   100    25    30"
+              multi   =" 15     55    30   300       30       0       0    25     0    10" />
       <weight single  =" 25      0     0   200        0      50       0     0    50     0"
               multi   =" 75      0    20   450       50       0       0    50     0    30" />
       <weight single  ="  0      0     0     0        0      10       0     0   200     0"
@@ -264,16 +264,16 @@
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
       <weight single  ="100     50   300   100      280      60     120     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="120     60   210   150      175      10     160    70     0     0"
+      <weight single  ="120     60   180   150      175      40     160    70     0     0"
               multi   ="  0      0    20    25        0       0       0     0     0     0" /> 
       <weight single  ="125     70   125   200       50      25     140   120     0    20"
               multi   ="  0      0    50    75        0       0       0     0     0     0" /> 
-      <weight single  ="125     80    85   150       40      10     100   120     0    20"
+      <weight single  ="125     80    75   150       40      20     100   120     0    20"
               multi   ="  0      0    85   150       25       0       0     0     0     0" /> 
-      <weight single  ="125     50    50   100        0      10     100   125     0    40"
+      <weight single  ="120     50    50   100        0      15     100   125     0    40"
               multi   ="  0     50   100   200       50       0       0     0     0     0" />
-      <weight single  ="125      0    10   100        0      20     100    70    10    25"
-              multi   ="  0     50    50   300       20       0       0    30     0     0" /> 
+      <weight single  ="100      0    10   100        0      10     100    70    10    25"
+              multi   =" 15     50    50   300       20       0       0    30     0     0" /> 
       <weight single  =" 75      0     0    75        0      30      40     0    20    20"
               multi   =" 75      0     0   425      170       0       0    50     0    20" /> 
       <weight single  =" 50      0     0    25        0      20       0     0    60     0"
@@ -287,13 +287,13 @@
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
       <weight single  ="100     50   300   100      280      60     120     0     0     0"
               multi   ="  0      0     0     0        0       0       0     0     0     0" />
-      <weight single  ="100     60   230   125      150      20     200    60     0     0"
-              multi   ="  0      0    10    25       20       0       0     0     0     0" />
+      <weight single  ="100     60   225   125      150      30     180    60     0     0"
+              multi   ="  0      0    25    25       20       0       0     0     0     0" />
       <weight single  ="120     60   150   150       70      50     180   120     0     0"
               multi   ="  0      0    20    50       30       0       0     0     0     0" />
-      <weight single  ="125     80    75   180       50      10     180   120     0    25"
+      <weight single  ="125     80    75   180       50      20     170   120     0    25"
               multi   ="  0      0    40   100       15       0       0     0     0     0" />
-      <weight single  ="125    100     0   175        0      10     150   120     0    50"
+      <weight single  ="120    100     0   175        0      15     150   120     0    50"
               multi   ="  0     25    70   150       25       0       0     0     0     0" />
       <weight single  ="125      0     0   100        0      10     120   120     0    50"
               multi   ="  0     50   115   200       90       0       0    20     0    10" />
