@@ -21,6 +21,7 @@
 
 #include "irrString.h"
 #include "network/peer_vote.hpp"
+#include "utils/lobby_context.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -36,15 +37,13 @@ class LobbySettings;
 // It can be extended to store some information about previous choices,
 // but currently it doesn't store or use it.
 
-class MapVoteHandler
+class MapVoteHandler: public LobbyContextComponent
 {
     // STANDARD = 0
     // RANDOM = 1
     // ADVANCED = 2
 private:
     int algorithm;
-
-    std::shared_ptr<LobbySettings> m_lobby_settings;
 
     template<typename T>
     static void findMajorityValue(const std::map<T, unsigned>& choices,
@@ -58,7 +57,9 @@ private:
             float remaining_time, float max_time, bool is_over,
             unsigned cur_players, PeerVote* winner_vote) const;
 public:
-    MapVoteHandler(std::shared_ptr<LobbySettings> settings);
+    MapVoteHandler(LobbyContext* context): LobbyContextComponent(context) {}
+    
+    void setupContextUser() OVERRIDE;
     void setAlgorithm(int x)                                 { algorithm = x; }
     int getAlgorithm() const                              { return algorithm; }
 

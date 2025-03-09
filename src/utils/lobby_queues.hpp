@@ -21,14 +21,17 @@
 
 #include "irrString.h"
 #include "utils/track_filter.hpp"
+#include "utils/lobby_context.hpp"
 
 #include <memory>
 #include <queue>
 
-class LobbyQueues
+class LobbyQueues: public LobbyContextComponent
 {
 public:
-    LobbyQueues();
+    LobbyQueues(LobbyContext* context): LobbyContextComponent(context) {}
+    
+    void setupContextUser() OVERRIDE;
 
     void loadTracksQueueFromConfig();
     

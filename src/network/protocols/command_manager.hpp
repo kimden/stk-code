@@ -41,22 +41,19 @@
 #include "network/protocols/command_voting.hpp"
 #include "network/protocols/command_permissions.hpp"
 #include "utils/enum_extended_reader.hpp"
+#include "utils/lobby_context.hpp"
 #include "utils/set_typo_fixer.hpp"
 #include "utils/team_utils.hpp"
 #include "utils/track_filter.hpp"
 #include "utils/types.hpp"
 
-class ServerLobby;
 class Event;
-class STKPeer;
-class HitProcessor;
-class LobbyAssetManager;
-class Tournament;
-class LobbyQueues;
-class LobbySettings;
 class KartElimination;
+class LobbySettings;
+class ServerLobby;
+class STKPeer;
 
-class CommandManager
+class CommandManager: public LobbyContextComponent
 {
     struct FileResource
     {
@@ -200,15 +197,6 @@ class CommandManager
     };
 
 private:
-
-    ServerLobby* m_lobby;
-
-    std::shared_ptr<HitProcessor> m_hit_processor;
-    std::shared_ptr<LobbyAssetManager> m_asset_manager;
-    std::shared_ptr<Tournament> m_tournament;
-    std::shared_ptr<LobbyQueues> m_lobby_queues;
-    std::shared_ptr<LobbySettings> m_lobby_settings;
-    std::shared_ptr<KartElimination> m_kart_elimination;
 
     std::vector<std::weak_ptr<Command>> m_all_commands;
 
@@ -360,12 +348,11 @@ private:
     void special(Context& context);
 
 public:
+    CommandManager(LobbyContext* context): LobbyContextComponent(context) {}
 
-    CommandManager(ServerLobby* lobby = nullptr);
+    void setupContextUser() OVERRIDE;
 
     void handleCommand(Event* event, std::shared_ptr<STKPeer> peer);
-
-    bool isInitialized() { return m_lobby != nullptr; }
 
     template<typename T>
     void addTextResponse(std::string key, T&& value)

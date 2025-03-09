@@ -28,6 +28,7 @@
 #include "karts/kart_properties_manager.hpp"
 #include "karts/official_karts.hpp"
 #include "network/network_config.hpp"
+#include "utils/hit_processor.hpp"
 #include "physics/physics.hpp"
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
@@ -276,3 +277,9 @@ void AbstractKart::makeKartRest()
     body->proceedToTransform(t);
     setTrans(t);
 }   // makeKartRest
+
+// ----------------------------------------------------------------------------
+std::shared_ptr<HitProcessor> AbstractKart::getHitProcessor() const
+{
+    return RaceManager::get()->getHitProcessor();
+}   // getHitProcessor

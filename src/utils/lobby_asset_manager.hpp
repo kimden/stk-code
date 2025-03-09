@@ -21,6 +21,7 @@
 
 #include "network/stk_peer.hpp"
 #include "race/race_manager.hpp"
+#include "utils/lobby_context.hpp"
 #include "utils/types.hpp"
 
 #include <memory>
@@ -32,10 +33,12 @@ class NetworkString;
 class ServerLobby;
 class STKPeer;
 
-class LobbyAssetManager
+class LobbyAssetManager: public LobbyContextComponent
 {
 public:
-    LobbyAssetManager(ServerLobby* lobby);
+    LobbyAssetManager(LobbyContext* context): LobbyContextComponent(context) {}
+    
+    void setupContextUser() OVERRIDE;
 
     void init();
     void updateAddons();
@@ -84,9 +87,6 @@ public:
                     { return m_addon_arenas.find(id) != m_addon_arenas.end(); }
     bool hasAddonSoccer(const std::string& id) const
                   { return m_addon_soccers.find(id) != m_addon_soccers.end(); }
-
-private:
-    ServerLobby* m_lobby;
 
 public:
     /** Official karts and maps available in server. */

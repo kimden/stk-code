@@ -24,6 +24,7 @@
 #include "network/requests.hpp" // only needed in header as long as KeyData is there
 #include "utils/cpp2011.hpp"
 #include "utils/hourglass_reason.hpp"
+#include "utils/lobby_context.hpp"
 #include "utils/team_utils.hpp"
 #include "utils/time.hpp"
 #include "utils/track_filter.hpp"
@@ -81,7 +82,7 @@ struct GPScore
     }
 };
 
-class ServerLobby : public LobbyProtocol
+class ServerLobby : public LobbyProtocol, public LobbyContextUser
 {
 public:
     /* The state for a small finite state machine. */
@@ -190,17 +191,11 @@ private:
     uint64_t m_last_unsuccess_poll_time, m_server_started_at, m_server_delay;
 
     // Other units previously used in ServerLobby
+    std::shared_ptr<LobbyContext> m_lobby_context;
+
     std::shared_ptr<Ranking> m_ranking;
-    std::shared_ptr<HitProcessor> m_hit_processor;
-    std::shared_ptr<LobbyAssetManager> m_asset_manager;
-    std::shared_ptr<KartElimination> m_kart_elimination;
-    std::shared_ptr<MapVoteHandler> m_map_vote_handler;
-    std::shared_ptr<Tournament> m_tournament;
-    std::shared_ptr<LobbyQueues> m_lobby_queues;
-    std::shared_ptr<LobbySettings> m_lobby_settings;
 
     friend CommandManager;
-    std::shared_ptr<CommandManager> m_command_manager;
 
     unsigned m_item_seed;
 
@@ -319,7 +314,6 @@ private:
     bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
     std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
     void changeLimitForTournament(bool goal_target);
-    std::shared_ptr<CommandManager> getCommandManager();
 
 public:
              ServerLobby();
@@ -401,17 +395,6 @@ public:
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
 
-    std::shared_ptr<HitProcessor> getHitProcessor() const
-                                                    { return m_hit_processor; }
-    std::shared_ptr<LobbyAssetManager> getLobbyAssetManager() const
-                                                    { return m_asset_manager; }
-    std::shared_ptr<Tournament> getTournament() const  { return m_tournament; }
-    std::shared_ptr<LobbyQueues> getLobbyQueues() const
-                                                     { return m_lobby_queues; }
-    std::shared_ptr<LobbySettings> getLobbySettings() const
-                                                   { return m_lobby_settings; }
-    std::shared_ptr<KartElimination> getKartElimination() const
-                                                 { return m_kart_elimination; }
     std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
 
     // Functions that arose from requests separation

@@ -23,6 +23,7 @@
 #define GAME_SETUP_HPP
 
 #include <irrString.h>
+#include "utils/lobby_context.hpp"
 
 #include <atomic>
 #include <cassert>
@@ -39,7 +40,7 @@ class PeerVote;
  *  \brief Used to store the needed data about the players that join a game.
  *  This class stores all the possible information about players in a lobby.
  */
-class GameSetup
+class GameSetup: public LobbyContextUser
 {
 private:
     std::vector<std::string> m_tracks;

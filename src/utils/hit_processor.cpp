@@ -41,8 +41,7 @@ namespace
 }   // namespace
 //-----------------------------------------------------------------------------
 
-HitProcessor::HitProcessor(ServerLobby* lobby, std::shared_ptr<LobbySettings> settings)
-    : m_lobby(lobby), m_lobby_settings(settings)
+void HitProcessor::setupContextUser()
 {
     m_troll_active = ServerConfig::m_troll_active;
     m_show_hits = ServerConfig::m_show_teammate_hits;
@@ -97,7 +96,7 @@ void HitProcessor::sendTeammateHitMsg(std::string& s)
     if (ticks - m_last_hit_msg > stk_config->time2Ticks(1.5f))
     {
         m_last_hit_msg = ticks;
-        m_lobby->sendStringToAllPeers(s);
+        getLobby()->sendStringToAllPeers(s);
     }
 }   // sendTeammateHitMsg
 //-----------------------------------------------------------------------------
@@ -109,7 +108,7 @@ void HitProcessor::handleTeammateHits()
     // Get team of item owner
     auto kart_info = RaceManager::get()->getKartInfo(m_current_item_owner_id);
     const std::string owner_name = StringUtils::wideToUtf8(kart_info.getPlayerName());
-    const int owner_team = m_lobby_settings->getTeamForUsername(owner_name);
+    const int owner_team = getSettings()->getTeamForUsername(owner_name);
 
     if (owner_team == TeamUtils::NO_TEAM)
         return;
@@ -144,7 +143,7 @@ void HitProcessor::processHitMessage(const std::string& owner_name, int owner_te
     {
         const std::string player_name = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(m_karts_exploded[i]).getPlayerName());
-        const int playerTeam = m_lobby_settings->getTeamForUsername(player_name);
+        const int playerTeam = getSettings()->getTeamForUsername(player_name);
         if (owner_team != playerTeam)
             continue;
 
@@ -171,7 +170,7 @@ void HitProcessor::processTeammateHit(AbstractKart* owner,
     {
         const std::string player_name = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(m_karts_exploded[i]).getPlayerName());
-        const int playerTeam = m_lobby_settings->getTeamForUsername(player_name);
+        const int playerTeam = getSettings()->getTeamForUsername(player_name);
         if (owner_team != playerTeam)
             continue;
 
@@ -195,7 +194,7 @@ void HitProcessor::processTeammateHit(AbstractKart* owner,
     {
         const std::string player_name = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(m_karts_hit[i]).getPlayerName());
-        const int playerTeam = m_lobby_settings->getTeamForUsername(player_name);
+        const int playerTeam = getSettings()->getTeamForUsername(player_name);
         if (owner_team != playerTeam)
             continue;
 
@@ -225,13 +224,13 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
 {
     const std::string owner_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int owner_team = m_lobby_settings->getTeamForUsername(owner_name);
+    const int owner_team = getSettings()->getTeamForUsername(owner_name);
     if (owner_team == TeamUtils::NO_TEAM)
         return;
 
     const std::string victim_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victim_team = m_lobby_settings->getTeamForUsername(victim_name);
+    const int victim_team = getSettings()->getTeamForUsername(victim_name);
     if (victim_team != owner_team)
         return;
 
@@ -269,13 +268,13 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
 {
     const std::string owner_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int owner_team = m_lobby_settings->getTeamForUsername(owner_name);
+    const int owner_team = getSettings()->getTeamForUsername(owner_name);
     if (owner_team == TeamUtils::NO_TEAM)
         return;
 
     const std::string victim_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victim_team = m_lobby_settings->getTeamForUsername(victim_name);
+    const int victim_team = getSettings()->getTeamForUsername(victim_name);
     if (victim_team != owner_team)
         return;
 

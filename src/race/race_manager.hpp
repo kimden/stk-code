@@ -29,6 +29,7 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
+#include <memory>
 #include <string>
 
 #include "network/remote_kart_info.hpp"
@@ -37,6 +38,7 @@
 #include "utils/types.hpp"
 
 class AbstractKart;
+class HitProcessor;
 class NetworkString;
 class SavedGrandPrix;
 class Track;
@@ -387,6 +389,8 @@ private:
     std::vector<int> m_pending_karts_pos;
     bool m_benchmarking;
     bool m_scheduled_benchmark;
+
+    std::shared_ptr<HitProcessor> m_hit_processor;
 
 public:
     // ----------------------------------------------------------------------------------------
@@ -969,6 +973,12 @@ public:
     void setRandomItemsIndicator(bool value)        { m_random_items = value; }
     // ----------------------------------------------------------------------------------------
     bool getRandomItemsIndicator() const             { return m_random_items; }
+    // ----------------------------------------------------------------------------------------
+    std::shared_ptr<HitProcessor> getHitProcessor() const { return m_hit_processor; }
+    // ----------------------------------------------------------------------------------------
+    void setHitProcessor(std::shared_ptr<HitProcessor> hp) { m_hit_processor = hp; }
+    // ----------------------------------------------------------------------------------------
+    void resetHitProcessor()                          { m_hit_processor = {}; }
 };   // RaceManager
 
 #endif

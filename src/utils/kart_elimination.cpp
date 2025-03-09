@@ -29,12 +29,12 @@
 #include <exception>
 #include <string>
 
-KartElimination::KartElimination()
+void KartElimination::setupContextUser()
 {
     m_enabled = false;
     m_remained = 0;
     m_kart = "";
-}   // KartElimination
+}   // setupContextUser
 //-----------------------------------------------------------------------------
 
 bool KartElimination::isEliminated(std::string username) const

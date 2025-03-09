@@ -19,6 +19,7 @@
 #ifndef TOURNAMENT_HPP
 #define TOURNAMENT_HPP
 
+#include "utils/lobby_context.hpp"
 #include "utils/set_with_flip.hpp"
 #include "utils/tournament_role.hpp"
 #include "utils/types.hpp"
@@ -40,10 +41,12 @@ struct FilterContext;
  *  The current plan is to make it contain generic tournament things, while
  *  specific things like format, modes, etc would be in other new classes.
  */
-class Tournament
+class Tournament: public LobbyContextComponent
 {
 public:
-    Tournament(ServerLobby* lobby, std::shared_ptr<LobbySettings> settings);
+    Tournament(LobbyContext* context): LobbyContextComponent(context) {}
+    
+    void setupContextUser() OVERRIDE;
     void initTournamentPlayers();
     void applyFiltersForThisGame(FilterContext& track_context);
     std::set<std::string> getThoseWhoSeeTeamchats() const;
@@ -84,9 +87,6 @@ public:
     float getExtraSeconds() const { return m_extra_seconds; }
 
 private:
-    ServerLobby* m_lobby;
-
-    std::shared_ptr<LobbySettings> m_lobby_settings;
 
     std::set<std::string> m_red_players;
 
