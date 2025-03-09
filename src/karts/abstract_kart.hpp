@@ -25,6 +25,7 @@
 #include "karts/moveable.hpp"
 #include "karts/controller/kart_control.hpp"
 #include "race/race_manager.hpp"
+class HitProcessor;
 
 namespace irr
 {
@@ -550,6 +551,8 @@ public:
     /** Return the confirmed finish ticks (sent by the server)
      *  indicating that this kart has really finished the race. */
     virtual int getNetworkConfirmedFinishTicks() const = 0;
+    // ------------------------------------------------------------------------
+    std::shared_ptr<HitProcessor> getHitProcessor() const;
 };   // AbstractKart
 
 

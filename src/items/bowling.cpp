@@ -24,9 +24,9 @@
 #include "graphics/material.hpp"
 #include "io/xml_node.hpp"
 #include "karts/abstract_kart.hpp"
+#include "guiengine/engine.hpp"
+#include "config/stk_config.hpp"
 // #include "modes/linear_world.hpp"
-
-#include "network/protocols/server_lobby.hpp"
 
 #include "utils/hit_processor.hpp"
 #include "utils/log.hpp" //TODO: remove after debugging is done
@@ -157,9 +157,9 @@ bool Bowling::updateAndDelete(int ticks)
  */
 bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
 {
-    auto sl = LobbyProtocol::get<ServerLobby>();
-    if (sl)
-        sl->getHitProcessor()->setTeammateHitOwner(getOwnerId(),m_ticks_since_thrown);
+    auto hp = kart->getHitProcessor();
+    if (hp)
+        hp->setTeammateHitOwner(getOwnerId(),m_ticks_since_thrown);
 
     bool was_real_hit = Flyable::hit(kart, obj);
     if (was_real_hit)
@@ -167,10 +167,10 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
         if (kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
-            if (sl)
+            if (hp)
             {
-                sl->getHitProcessor()->registerTeammateHit(kart->getWorldKartId());
-                sl->getHitProcessor()->handleTeammateHits();
+                hp->registerTeammateHit(kart->getWorldKartId());
+                hp->handleTeammateHits();
             }
             return true;
         }
@@ -180,8 +180,8 @@ bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
             explode(kart, obj, /*hit_secondary*/false);
         }
     }
-    if (sl)
-        sl->getHitProcessor()->handleTeammateHits();
+    if (hp)
+        hp->handleTeammateHits();
     return was_real_hit;
 }   // hit
 

@@ -21,8 +21,8 @@
 #include "utils/track_filter.hpp"
 #include "network/stk_peer.hpp"
 #include "network/network_player_profile.hpp"
-#include "network/server_config.hpp"
 #include "network/protocols/server_lobby.hpp"
+#include "network/server_config.hpp"
 #include "network/peer_vote.hpp"
 #include "modes/world.hpp"
 #include "modes/soccer_world.hpp"
@@ -34,14 +34,12 @@ namespace
     static int g_history_limit = 100;
 }
 
-Tournament::Tournament(ServerLobby* lobby,
-        std::shared_ptr<LobbySettings> settings)
-    : m_lobby(lobby), m_lobby_settings(settings)
+void Tournament::setupContextUser()
 {
     initTournamentPlayers();
     m_game = 0;
     m_extra_seconds = 0.0f;
-}   // Tournament
+}   // setupContextUser
 //-----------------------------------------------------------------------------
 
 void Tournament::applyFiltersForThisGame(FilterContext& track_context)
@@ -141,17 +139,17 @@ void Tournament::updateTournamentRole(std::shared_ptr<STKPeer> peer)
         core::stringw name = player->getName();
         std::string utf8_name = StringUtils::wideToUtf8(name);
         if (m_red_players.count(utf8_online_name))
-            m_lobby->setTeamInLobby(player, KART_TEAM_RED);
+            getLobby()->setTeamInLobby(player, KART_TEAM_RED);
         else if (m_blue_players.count(utf8_online_name))
-            m_lobby->setTeamInLobby(player, KART_TEAM_BLUE);
+            getLobby()->setTeamInLobby(player, KART_TEAM_BLUE);
         else
-            m_lobby->setTeamInLobby(player, KART_TEAM_NONE);
+            getLobby()->setTeamInLobby(player, KART_TEAM_NONE);
         if (hasColorsSwapped())
         {
             if (player->getTeam() == KART_TEAM_BLUE)
-                m_lobby->setTeamInLobby(player, KART_TEAM_RED);
+                getLobby()->setTeamInLobby(player, KART_TEAM_RED);
             else if (player->getTeam() == KART_TEAM_RED)
-                m_lobby->setTeamInLobby(player, KART_TEAM_BLUE);
+                getLobby()->setTeamInLobby(player, KART_TEAM_BLUE);
         }
     }
 }   // updateTournamentRole
@@ -223,7 +221,7 @@ void Tournament::initTournamentPlayers()
                 type == "B" ? m_blue_players :
                 m_referees);
 
-            auto categories = m_lobby_settings->getCategories();
+            auto categories = getSettings()->getCategories();
             for (const std::string& member: categories[cat_name])
                 dest.insert(member);
         }
