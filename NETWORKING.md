@@ -5,11 +5,11 @@ A reminder: you are looking at NETWORKING.md of the fork, not the one of the sta
 ## Hosting server
 You **should** compile STK with `-DSERVER_ONLY=ON`. This option produces a GUI-less STK binary optimized for size and memory usage, useful for situation like in VPS. As this fork is server-side (at least for now), this option is enabled **always** during the testing. You can compile the code without this option, and most likely nothing bad will happen, but it's not an intended way to run this fork.
 
-The other options you should consider using are `-DUSE_SQLITE3=ON`, if you want to use a database for storing data; `-DWEB_SUPPORT=ON`, if you want to use a (slightly deprecated) way to authenticate users with their STK account.
+The other option(s) you should consider using are `-DUSE_SQLITE3=ON`, if you want to use a database for storing data.
 
 A typical cmake command looks like
 ```bash
-cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSERVER_ONLY=ON -DUSE_SQLITE3=ON -DWEB_SUPPORT=ON
+cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSERVER_ONLY=ON -DUSE_SQLITE3=ON
 ```
 
 The dependencies for RHEL/CentOS 7 are installed with:
@@ -364,9 +364,6 @@ A typical current server configuration xml that fits the current code version is
     <!-- Specifies how to count own goals: standard - last touching player is counted, no-own-goals - last touching player of scoring team is counted if existing, advanced - as standard for now. -->
     <soccer-goals-policy value="standard" />
 
-    <!-- A table containing tokens for website authentication using STK account only. -->
-    <tokens-table value="" />
-
     <!-- Allows server owner (not crowned player!) to go to power mode to kick players using GUI and not be kicked, empty to disable. -->
     <power-password value="" />
 
@@ -396,6 +393,9 @@ A typical current server configuration xml that fits the current code version is
 
     <!-- File with commands used for this server. Default file is commands.xml which can be changed with new commits, but you can use any other file from data/ folder, or even include contents of one other commands file using external-commands-file tag inside your file. -->
     <commands-file value="commands.xml" />
+
+    <!-- Whether the game can be started immediately when the server is opened. -->
+    <start-allowed value="true" />
 
 </server-config>
 ```

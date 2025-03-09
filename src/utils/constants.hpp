@@ -20,10 +20,24 @@
 #ifndef HEADER_CONSTANTS_HPP
 #define HEADER_CONSTANTS_HPP
 
+#include "utils/types.hpp"
+
 /*
   All final units are in meters (or meters/sec or meters/sec^2)
   and degrees (or degrees/sec).
 */
+
+enum PacketReliabilityMode : uint8_t
+{
+    PRM_UNRELIABLE = 0,
+    PRM_RELIABLE = 1,
+};
+
+enum PacketEncryptionMode : uint8_t
+{
+    PEM_UNENCRYPTED = 0,
+    PEM_ENCRYPTED = 1,
+};
 
 /* Handy constants */
 #define KILOMETER            1000.000f

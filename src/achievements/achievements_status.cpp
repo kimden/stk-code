@@ -52,11 +52,11 @@ AchievementsStatus::AchievementsStatus()
 
     // Create one TrackStats instance for all existing tracks
     const unsigned int track_amount =
-        (unsigned int)track_manager->getNumberOfTracks();
+        (unsigned int)TrackManager::get()->getNumberOfTracks();
 
     for (unsigned int n = 0; n < track_amount; n++)
     {
-        Track* curr = track_manager->getTrack(n);
+        Track* curr = TrackManager::get()->getTrack(n);
         if (curr->isArena() || curr->isSoccer()||curr->isInternal()) continue;
 
         TrackStats new_track;
@@ -420,6 +420,8 @@ int AchievementsStatus::getNumTracksAboveValue(int value, std::string goal_strin
         return -1;
     }
 
+    auto track_manager = TrackManager::get();
+
     for (unsigned int i=0;i<m_track_stats.size();i++)
     {
         // Increment on standard tracks, ignore all other kind of tracks (addons, WIP, etc.)
@@ -436,6 +438,7 @@ int AchievementsStatus::getNumTracksAboveValue(int value, std::string goal_strin
 /* This function returns the number of tracks valid for by-track achievements. */
 int AchievementsStatus::getNumAchieveTracks(bool is_egg_hunt)
 {
+    auto track_manager = TrackManager::get();
     int num_tracks = 0;
     for (unsigned int i=0;i<m_track_stats.size();i++)
     {
@@ -456,6 +459,7 @@ int AchievementsStatus::getNumAchieveTracks(bool is_egg_hunt)
  *                  the update. */
 void AchievementsStatus::updateAchievementsProgress(UpdateType type, unsigned int enum_id)
 {
+    auto track_manager = TrackManager::get();
     std::string goal_string[2];
     int max_across_tracks = -1;
     int min_across_tracks = INT_MAX;

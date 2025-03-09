@@ -21,6 +21,7 @@
 #include "config/player_manager.hpp"
 #include "guiengine/CGUISpriteBank.hpp"
 #include "graphics/stk_tex_manager.hpp"
+#include "guiengine/widgets/bubble_widget.hpp"
 #include "guiengine/widgets/check_box_widget.hpp"
 #include "guiengine/widgets/icon_button_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
@@ -43,7 +44,7 @@ using namespace irr::core;
 // -----------------------------------------------------------------------------
 GhostReplayInfoDialog::GhostReplayInfoDialog(unsigned int replay_id,
                      uint64_t compare_replay_uid, bool compare_ghost)
-                      : ModalDialog(0.95f,0.75f), m_replay_id(replay_id)
+                      : ModalDialog(0.95f,0.9f), m_replay_id(replay_id)
 {
     m_self_destroy         = false;
     m_record_race          = false;
@@ -56,7 +57,10 @@ GhostReplayInfoDialog::GhostReplayInfoDialog(unsigned int replay_id,
 
     loadFromFile("ghost_replay_info_dialog.stkgui");
 
-    Track* track = track_manager->getTrack(m_rd.m_track_name);
+    m_info_widget = getWidget<BubbleWidget>("info");
+    m_info_widget->setText(m_rd.m_info);
+
+    Track* track = TrackManager::get()->getTrack(m_rd.m_track_name);
 
     m_track_screenshot_widget = getWidget<IconButtonWidget>("track_screenshot");
     m_track_screenshot_widget->setFocusable(false);

@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2024-2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -16,21 +16,23 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "utils/map_vote_handler.hpp"
-#include "utils/string_utils.hpp"
+#include "utils/lobby_settings.hpp"
 #include "utils/log.hpp"
+#include "utils/map_vote_handler.hpp"
 #include "utils/random_generator.hpp"
+#include "utils/string_utils.hpp"
 
-MapVoteHandler::MapVoteHandler(): algorithm(0)
+MapVoteHandler::MapVoteHandler(std::shared_ptr<LobbySettings> settings)
+    : algorithm(0), m_lobby_settings(settings)
 {
 
 }   // MapVoteHandler
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 
 template<typename T>
-void MapVoteHandler::findMajorityValue(const std::map<T, unsigned>& choices, unsigned cur_players,
-                       T* best_choice, float* rate)
+void MapVoteHandler::findMajorityValue(const std::map<T, unsigned>& choices,
+        unsigned cur_players, T* best_choice, float* rate)
 {
     RandomGenerator rg;
     unsigned max_votes = 0;
@@ -62,47 +64,49 @@ void MapVoteHandler::findMajorityValue(const std::map<T, unsigned>& choices, uns
         *rate = float(best_iter->second) / cur_players;
     }
 }   // findMajorityValue
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 bool MapVoteHandler::handleAllVotes(std::map<uint32_t, PeerVote>& peers_votes,
                     float remaining_time, float max_time, bool is_over,
-                    unsigned cur_players, PeerVote* default_vote,
-                    PeerVote* winner_vote, uint32_t* winner_peer_id) const
+                    unsigned cur_players,
+                    PeerVote* winner_vote) const
 {
     if (algorithm == 0)
-        return standard(peers_votes, remaining_time, max_time, is_over, cur_players, default_vote, winner_vote, winner_peer_id);
+        return standard(peers_votes, remaining_time, max_time,
+                is_over, cur_players, winner_vote);
     else // if (algorithm == 1)
-        return random(peers_votes, remaining_time, max_time, is_over, cur_players, default_vote, winner_vote, winner_peer_id);
+        return random(peers_votes, remaining_time, max_time,
+                is_over, cur_players, winner_vote);
 }   // handleAllVotes
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 bool MapVoteHandler::random(std::map<uint32_t, PeerVote>& peers_votes,
                     float remaining_time, float max_time, bool is_over,
-                    unsigned cur_players, PeerVote* default_vote,
-                    PeerVote* winner_vote, uint32_t* winner_peer_id) const
+                    unsigned cur_players,
+                    PeerVote* winner_vote) const
 {
     if (!is_over)
         return false;
 
     if (peers_votes.empty())
     {
-        *winner_vote = *default_vote;
+        *winner_vote = m_lobby_settings->getDefaultVote();
         return true;
     }
 
     RandomGenerator rg;
     std::map<uint32_t, PeerVote>::iterator it = peers_votes.begin();
     std::advance(it, rg.get((int)peers_votes.size()));
-    *winner_peer_id = it->first;
+    m_lobby_settings->setWinnerPeerId(it->first);
     *winner_vote = it->second;
     return true;
 }   // random
-// ============================================================================
+//-----------------------------------------------------------------------------
 
 bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
                     float remaining_time, float max_time, bool is_over,
-                    unsigned cur_players, PeerVote* default_vote,
-                    PeerVote* winner_vote, uint32_t* winner_peer_id) const
+                    unsigned cur_players,
+                    PeerVote* winner_vote) const
 {
     // Determine majority agreement when 35% of voting time remains,
     // reserve some time for kart selection so it's not 50%
@@ -115,15 +119,16 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
     {
         if (is_over)
         {
-            *winner_vote = *default_vote;
+            *winner_vote = m_lobby_settings->getDefaultVote();
             return true;
         }
         return false;
     }
 
-    std::string top_track = default_vote->m_track_name;
-    unsigned top_laps = default_vote->m_num_laps;
-    bool top_reverse = default_vote->m_reverse;
+    PeerVote default_vote = m_lobby_settings->getDefaultVote();
+    std::string top_track = default_vote.m_track_name;
+    unsigned top_laps = default_vote.m_num_laps;
+    bool top_reverse = default_vote.m_reverse;
 
     std::map<std::string, unsigned> tracks;
     std::map<unsigned, unsigned> laps;
@@ -153,9 +158,9 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
             reverse_vote->second++;
     }
 
-    findMajorityValue<std::string>(tracks, cur_players, &top_track, &tracks_rate);
-    findMajorityValue<unsigned>(laps, cur_players, &top_laps, &laps_rate);
-    findMajorityValue<bool>(reverses, cur_players, &top_reverse, &reverses_rate);
+    findMajorityValue<std::string>(tracks,   cur_players, &top_track,   &tracks_rate);
+    findMajorityValue<unsigned>   (laps,     cur_players, &top_laps,    &laps_rate);
+    findMajorityValue<bool>       (reverses, cur_players, &top_reverse, &reverses_rate);
 
     // End early if there is majority agreement which is all entries rate > 0.5
     auto it = peers_votes.begin();
@@ -179,7 +184,7 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
             if (!is_over)
                 return false;
         }
-        *winner_peer_id = it->first;
+        m_lobby_settings->setWinnerPeerId(it->first);
         *winner_vote = it->second;
         return true;
     }
@@ -200,10 +205,10 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
             else
                 it++;
         }
-        *winner_peer_id = closest_lap->first;
+        m_lobby_settings->setWinnerPeerId(closest_lap->first);
         *winner_vote = closest_lap->second;
         return true;
     }
     return false;
-} // standard
-// ========================================================================
+}   // standard
+//-----------------------------------------------------------------------------

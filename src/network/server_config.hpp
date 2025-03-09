@@ -733,15 +733,6 @@ namespace ServerConfig
         "is counted, no-own-goals - last touching player of scoring team "
         "is counted if existing, advanced - as standard for now."));
 
-#ifdef ENABLE_WEB_SUPPORT
-
-    SERVER_CFG_PREFIX StringServerConfigParam m_tokens_table
-        SERVER_CFG_DEFAULT(StringServerConfigParam("",
-        "tokens-table",
-        "A table containing tokens for website authentication using "
-        "STK account only."));
-#endif
-
     SERVER_CFG_PREFIX StringServerConfigParam m_power_password
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
         "power-password",
@@ -799,6 +790,10 @@ namespace ServerConfig
             "which can be changed with new commits, but you can use any other file "
             "from data/ folder, or even include contents of one other commands file "
             "using external-commands-file tag inside your file."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allowed_to_start
+            SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "start-allowed",
+            "Whether the game can be started immediately when the server is opened."));
 
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */

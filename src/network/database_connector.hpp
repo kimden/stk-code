@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-class GameInfo;
+struct GameInfo;
 class SocketAddress;
 class STKPeer;
 class NetworkPlayerProfile;
@@ -120,10 +120,6 @@ private:
     bool m_records_table_exists;
     uint64_t m_last_poll_db_time;
 
-#ifdef ENABLE_WEB_SUPPORT
-    bool m_tokens_table_exists;
-#endif
-
 public:
     /** Corresponds to the row of IPv4 ban table. */
     struct IpBanTableData
@@ -174,11 +170,11 @@ public:
                                                          sqlite3_value** argv);
     static void insideIPv6CIDRSQL(sqlite3_context* context, int argc,
                                                          sqlite3_value** argv);
-    void writeDisconnectInfoTable(STKPeer* peer);
+    void writeDisconnectInfoTable(std::shared_ptr<STKPeer> peer);
     void initServerStatsTable();
     bool writeReport(
-         STKPeer* reporter, std::shared_ptr<NetworkPlayerProfile> reporter_npp,
-       STKPeer* reporting, std::shared_ptr<NetworkPlayerProfile> reporting_npp,
+         std::shared_ptr<STKPeer> reporter, std::shared_ptr<NetworkPlayerProfile> reporter_npp,
+       std::shared_ptr<STKPeer> reporting, std::shared_ptr<NetworkPlayerProfile> reporting_npp,
                                                      irr::core::stringw& info);
     bool hasDatabase() const                        { return m_db != nullptr; }
     bool hasServerStatsTable() const  { return !m_server_stats_table.empty(); }
@@ -207,11 +203,6 @@ public:
     void deleteServerMessage(int row_id) const;
     bool getBestResult(const GameInfo& game_info, bool* exists, std::string* user, double* result);
     void insertManyResults(const GameInfo& game_info);
-
-#ifdef ENABLE_WEB_SUPPORT
-    bool getAllTokens(std::vector<std::string>& result);
-    bool insertToken(std::string& username, std::string& token);
-#endif
 };
 
 #endif // ifndef DATABASE_CONNECTOR_HPP

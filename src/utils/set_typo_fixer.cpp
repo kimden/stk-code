@@ -23,23 +23,23 @@ void SetTypoFixer::add(const std::string& key)
 {
     m_set.insert(key);
     m_map[key] = key;
-} // add
-// ========================================================================
+}   // add (1)
+//-----------------------------------------------------------------------------
 
 void SetTypoFixer::add(const std::string& key, const std::string& value)
 {
     m_set.insert(key);
     m_map[key] = value;
-} // add
-// ========================================================================
+}   // add (2)
+//-----------------------------------------------------------------------------
 
 void SetTypoFixer::remove(const std::string& key)
 {
     m_set.erase(m_set.find(key));
     if (m_set.find(key) == m_set.end())
         m_map.erase(key);
-} // remove
-// ========================================================================
+}   // remove
+//-----------------------------------------------------------------------------
 
 std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
     const std::string& query, int count, bool case_sensitive) const
@@ -68,8 +68,9 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
     }
     for (const auto& p: ans_map)
         ans.emplace_back(p.first, p.second);
-    std::sort(ans.begin(), ans.end(),
-        [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b) -> bool
+    std::sort(ans.begin(), ans.end(), []
+            (const std::pair<std::string, int>& a,
+             const std::pair<std::string, int>& b) -> bool
     {
         if (a.second != b.second)
             return a.second < b.second;
@@ -78,5 +79,5 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
     if ((int)ans.size() > count)
         ans.resize(count);
     return ans;
-} // getClosest
-// ========================================================================
+}   // getClosest
+//-----------------------------------------------------------------------------

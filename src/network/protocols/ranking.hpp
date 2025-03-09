@@ -19,12 +19,15 @@
 #ifndef RANKING_HPP
 #define RANKING_HPP
 
+#include "online/xml_request.hpp"
 #include <map>
 #include <memory>
 #include <vector>
+#include <stdint.h>
 
 class XMLNode;
 class NetworkPlayerProfile;
+
 
 struct RankingEntry
 {
@@ -50,6 +53,14 @@ struct RankingEntryAndProfile
 {
     RankingEntry entry;
     std::weak_ptr<NetworkPlayerProfile> profile;
+};
+
+class SubmitRankingRequest : public Online::XMLRequest
+{
+public:
+    SubmitRankingRequest(const RankingEntry& entry,
+                         const std::string& country_code);
+    virtual void afterOperation();
 };
 
 class Ranking

@@ -392,7 +392,7 @@ std::vector<int16_t> ArenaGraph::getPathFromTo(int from, int to,
  */
 void ArenaGraph::unitTesting()
 {
-    Track *track = track_manager->getTrack("cave");
+    Track *track = TrackManager::get()->getTrack("cave");
     std::string navmesh_file_name=track->getTrackFile("navmesh.xml");
 
     double s = StkTime::getRealTime();

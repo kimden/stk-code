@@ -238,7 +238,7 @@ Server::~Server()
 Track* Server::getCurrentTrack() const
 {
     if (!m_current_track.empty())
-        return track_manager->getTrack(m_current_track);
+        return TrackManager::get()->getTrack(m_current_track);
     return NULL;
 }   // getCurrentTrack
 

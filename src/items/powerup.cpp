@@ -36,6 +36,7 @@
 #include "network/rewind_manager.hpp"
 #include "physics/triangle_mesh.hpp"
 #include "tracks/track.hpp"
+#include "utils/hit_processor.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/log.hpp" //TODO: remove after debugging is done
 
@@ -315,15 +316,20 @@ void Powerup::use()
             //by the bananas) to the kart in the 1st position.
             for(unsigned int i = 0 ; i < world->getNumKarts(); ++i)
             {
-                Kart *kart=world->getKart(i);
-                if(kart->isEliminated() || kart->isInvulnerable()) continue;
-                if(kart == m_kart) continue;
-                if(kart->getPosition() == 1)
+                Kart *kart = world->getKart(i);
+
+                if (kart->isEliminated() || kart->isInvulnerable())
+                    continue;
+
+                if (kart == m_kart)
+                    continue;
+
+                if (kart->getPosition() == 1)
                 {
                     // check if we are in team gp and hit a teammate and should punish the attacker
                     auto sl = LobbyProtocol::get<ServerLobby>();
-                    if(sl && !kart->hasFinishedRace())
-                        sl->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
+                    if (sl && !kart->hasFinishedRace())
+                        sl->getHitProcessor()->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
 
                     kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
                                                stk_config->

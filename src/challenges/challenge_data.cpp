@@ -190,7 +190,7 @@ ChallengeData::ChallengeData(const std::string& filename)
         {
             error("track");
         }
-        if (track_manager->getTrack(m_track_id) == NULL)
+        if (TrackManager::get()->getTrack(m_track_id) == NULL)
         {
             error("track");
         }
@@ -351,7 +351,7 @@ void ChallengeData::check() const
     {
         try
         {
-            track_manager->getTrack(m_track_id);
+            TrackManager::get()->getTrack(m_track_id);
         }
         catch(std::exception&)
         {
@@ -597,7 +597,7 @@ const irr::core::stringw
     {
         case UNLOCK_TRACK:
         {    // {} avoids compiler warning
-            const Track* track = track_manager->getTrack(m_name);
+            const Track* track = TrackManager::get()->getTrack(m_name);
 
             // shouldn't happen but let's avoid crashes as much as possible...
             if (track == NULL) return irr::core::stringw( L"????" );
@@ -646,7 +646,7 @@ const irr::core::stringw
 void ChallengeData::addUnlockTrackReward(const std::string &track_name)
 {
 
-    if (track_manager->getTrack(track_name) == NULL)
+    if (TrackManager::get()->getTrack(track_name) == NULL)
     {
         throw std::runtime_error(
             StringUtils::insertValues("Challenge refers to unknown track <%s>",

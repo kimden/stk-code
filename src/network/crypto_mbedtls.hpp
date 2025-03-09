@@ -22,6 +22,7 @@
 #define HEADER_CRYPTO_MBEDTLS_HPP
 
 #include "utils/log.hpp"
+#include "utils/constants.hpp"
 
 #include <enet/enet.h>
 #include <mbedtls/ctr_drbg.h>
@@ -134,7 +135,7 @@ public:
     // ------------------------------------------------------------------------
     bool decryptConnectionRequest(BareNetworkString& ns);
     // ------------------------------------------------------------------------
-    ENetPacket* encryptSend(BareNetworkString& ns, bool reliable);
+    ENetPacket* encryptSend(BareNetworkString& ns, PacketReliabilityMode reliable);
     // ------------------------------------------------------------------------
     NetworkString* decryptRecieve(ENetPacket* p);
 

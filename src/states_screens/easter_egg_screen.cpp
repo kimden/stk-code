@@ -79,7 +79,7 @@ void EasterEggScreen::eventCallback(Widget* widget, const std::string& name, con
                 std::string track = m_random_track_list.front();
                 m_random_track_list.pop_front();
                 m_random_track_list.push_back(track);
-                Track* clicked_track = track_manager->getTrack( track );
+                Track* clicked_track = TrackManager::get()->getTrack( track );
 
 
                 if (clicked_track != NULL)
@@ -95,7 +95,7 @@ void EasterEggScreen::eventCallback(Widget* widget, const std::string& name, con
             }
             else if (selection != RibbonWidget::NO_ITEM_ID)
             {
-                Track* clicked_track = track_manager->getTrack(selection);
+                Track* clicked_track = TrackManager::get()->getTrack(selection);
                 if (clicked_track != NULL)
                 {
                     TrackInfoScreen::getInstance()->setTrack(clicked_track);
@@ -121,6 +121,8 @@ void EasterEggScreen::eventCallback(Widget* widget, const std::string& name, con
 
 void EasterEggScreen::beforeAddingWidget()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
 
@@ -204,6 +206,8 @@ void EasterEggScreen::init()
 
 void EasterEggScreen::buildTrackList()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
 
@@ -243,7 +247,7 @@ void EasterEggScreen::buildTrackList()
         const std::vector<int>& curr_group = track_manager->getTracksInGroup( curr_group_name );
         const int trackAmount = (int)curr_group.size();
 
-        for (int n=0; n<trackAmount; n++)
+        for (int n = 0; n < trackAmount; n++)
         {
             Track* curr = track_manager->getTrack( curr_group[n] );
             if(RaceManager::get()->getMinorMode()==RaceManager::MINOR_MODE_EASTER_EGG

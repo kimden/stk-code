@@ -510,7 +510,7 @@ void FileManager::reinitAfterDownloadAssets()
     // Add back addons search path
     KartPropertiesManager::addKartSearchDir(
                  file_manager->getAddonsFile("karts/"));
-    track_manager->addTrackSearchDir(
+    TrackManager::get()->addTrackSearchDir(
                  file_manager->getAddonsFile("tracks/"));
 }   // reinitAfterDownloadAssets
 

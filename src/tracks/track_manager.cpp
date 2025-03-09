@@ -28,6 +28,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <stdio.h>
+#include <memory>
 
 #include <IFileSystem.h>
 #include <ITexture.h>
@@ -37,7 +38,6 @@
 #include <ge_main.hpp>
 #endif
 
-TrackManager* track_manager = 0;
 std::vector<std::string>  TrackManager::m_track_search_path;
 
 /** Constructor (currently empty). The real work happens in loadTrackList.
@@ -55,6 +55,13 @@ TrackManager::~TrackManager()
     for(Tracks::iterator i = m_tracks.begin(); i != m_tracks.end(); ++i)
         delete *i;
 }   // ~TrackManager
+
+//-----------------------------------------------------------------------------
+std::shared_ptr<TrackManager> TrackManager::get()
+{
+    static std::shared_ptr<TrackManager> instance = std::make_shared<TrackManager>();
+    return instance;
+}   // get
 
 //-----------------------------------------------------------------------------
 void TrackManager::removeTrackSearchDirs()

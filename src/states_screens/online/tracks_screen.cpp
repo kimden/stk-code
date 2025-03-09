@@ -83,7 +83,7 @@ void TracksScreen::eventCallback(Widget* widget, const std::string& name,
             const PeerVote* host_vote = cl->getVote(host_id);
             if (host_vote)
             {
-                m_selected_track = track_manager->getTrack(
+                m_selected_track = TrackManager::get()->getTrack(
                     host_vote->m_track_name);
                 if (!m_selected_track)
                     return;
@@ -126,7 +126,7 @@ void TracksScreen::eventCallback(Widget* widget, const std::string& name,
             m_random_track_list.push_back(selection);
         }   // selection=="random_track"
 
-        m_selected_track = track_manager->getTrack(selection);
+        m_selected_track = TrackManager::get()->getTrack(selection);
 
         if (m_selected_track)
         {
@@ -218,6 +218,8 @@ void TracksScreen::unloaded()
 void TracksScreen::beforeAddingWidget()
 {
     Screen::init();
+
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
 
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
@@ -437,7 +439,7 @@ void TracksScreen::init()
         assert(cl);
         for (const std::string& track : cl->getAvailableTracks())
         {
-            Track* t = track_manager->getTrack(track);
+            Track* t = TrackManager::get()->getTrack(track);
             if (!t)
             {
                 Log::fatal("TracksScreen", "Missing network track %s",
@@ -462,7 +464,7 @@ void TracksScreen::init()
         if (vote)
         {
             DynamicRibbonWidget* w2 = getWidget<DynamicRibbonWidget>("tracks");
-            m_selected_track = track_manager->getTrack(vote->m_track_name);
+            m_selected_track = TrackManager::get()->getTrack(vote->m_track_name);
             w2->setBadge(vote->m_track_name, OK_BADGE);
         }
 
@@ -570,6 +572,8 @@ void TracksScreen::init()
  */
 void TracksScreen::buildTrackList()
 {
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+    
     // Add user-defined group to track groups
     track_manager->setFavoriteTrackStatus(PlayerManager::getCurrentPlayer()->getFavoriteTrackStatus());
 
@@ -757,7 +761,7 @@ void TracksScreen::voteForPlayer()
         PeerVote pvote(vote);
         lp->addVote(STKHost::get()->getMyHostId(), pvote);
     }
-    STKHost::get()->sendToServer(&vote, true);
+    STKHost::get()->sendToServer(&vote, PRM_RELIABLE);
 }   // voteForPlayer
 
 // -----------------------------------------------------------------------------

@@ -364,6 +364,7 @@ void AddonsManager::checkInstalledAddons()
 
     // Then tracks
     // -----------
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     for(unsigned int i=0; i<track_manager->getNumberOfTracks(); i++)
     {
         const Track *track = track_manager->getTrack(i);
@@ -545,6 +546,7 @@ bool AddonsManager::install(const Addon &addon)
     assert(index>=0 && index < (int)m_addons_list.getData().size());
     m_addons_list.getData()[index].setInstalled(true);
 
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     if(addon.getType()=="kart")
     {
         // We have to remove the mesh of the kart since otherwise it remains
@@ -598,6 +600,8 @@ bool AddonsManager::uninstall(const Addon &addon)
 {
     Log::info("addons", "Uninstalling '%s'.",
                core::stringc(addon.getName()).c_str());
+
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
 
     // addon is a const reference, and to avoid removing the const, we
     // find the proper index again to modify the installed state

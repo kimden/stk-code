@@ -178,7 +178,7 @@ void ClientLobby::doneWithResults()
     NetworkString* done = getNetworkString(1);
     done->setSynchronous(true);
     done->addUInt8(LE_RACE_FINISHED_ACK);
-    sendToServer(done, /*reliable*/true);
+    sendToServer(done, PRM_RELIABLE);
     delete done;
 }   // doneWithResults
 
@@ -514,7 +514,7 @@ void ClientLobby::update(int ticks)
             m_auto_started = true;
             NetworkString start(PROTOCOL_LOBBY_ROOM);
             start.addUInt8(LobbyProtocol::LE_REQUEST_BEGIN);
-            STKHost::get()->sendToServer(&start, true);
+            STKHost::get()->sendToServer(&start, PRM_RELIABLE);
         }
         if (m_background_download.joinable())
         {
@@ -590,7 +590,7 @@ void ClientLobby::receivePlayerVote(Event* event)
         "Vote from server: host %d, track %s, laps %d, reverse %d.",
         host_id, vote.m_track_name.c_str(), vote.m_num_laps, vote.m_reverse);
 
-    Track* track = track_manager->getTrack(vote.m_track_name);
+    Track* track = TrackManager::get()->getTrack(vote.m_track_name);
     if (!track)
     {
         Log::fatal("ClientLobby", "Missing track %s",
@@ -1282,7 +1282,7 @@ void ClientLobby::finishedLoadingWorld()
     NetworkString* ns = getNetworkString(1);
     ns->setSynchronous(m_server_send_live_load_world);
     ns->addUInt8(LE_CLIENT_LOADED_WORLD);
-    sendToServer(ns, true);
+    sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // finishedLoadingWorld
 
@@ -1381,7 +1381,7 @@ void ClientLobby::requestKartInfo(uint8_t kart_id)
     NetworkString* ns = getNetworkString(1);
     ns->setSynchronous(true);
     ns->addUInt8(LE_KART_INFO).addUInt8(kart_id);
-    sendToServer(ns, true/*reliable*/);
+    sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // requestKartInfo
 
@@ -1525,7 +1525,7 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
         if (team != KART_TEAM_NONE)
             chat->addUInt8(team);
 
-        STKHost::get()->sendToServer(chat, true);
+        STKHost::get()->sendToServer(chat, PRM_RELIABLE);
         delete chat;
     }
 }   // sendChat
@@ -1807,6 +1807,8 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
                         total_addons.insert(kp->getIdent());
                 }
             }
+
+            std::shared_ptr<TrackManager> track_manager = TrackManager::get();
             if(type.empty() || // not specify addon type
                (!type.empty() && (type.compare("track") == 0 || type.compare("arena") == 0)))
             {
@@ -1870,7 +1872,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         NetworkString* cmd_ns = getNetworkString(1);
         const std::string& language = UserConfigParams::m_language;
         cmd_ns->addUInt8(LE_COMMAND).encodeString(language).encodeString(cmd);
-        sendToServer(cmd_ns, /*reliable*/true);
+        sendToServer(cmd_ns, PRM_RELIABLE);
         delete cmd_ns;
     }
 #endif
@@ -1892,7 +1894,7 @@ void ClientLobby::getKartsTracksNetworkString(BareNetworkString* ns)
     for (const std::string& k : oks)
         all_k.push_back(k);
 
-    auto all_t = track_manager->getAllTrackIdentifiers();
+    auto all_t = TrackManager::get()->getAllTrackIdentifiers();
     if (all_t.size() >= 65536)
         all_t.resize(65535);
     ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
@@ -1912,7 +1914,7 @@ void ClientLobby::updateAssetsToServer()
     NetworkString* ns = getNetworkString(1);
     ns->addUInt8(LE_ASSETS_UPDATE);
     getKartsTracksNetworkString(ns);
-    sendToServer(ns, /*reliable*/true);
+    sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // updateAssetsToServer
 
@@ -2017,7 +2019,7 @@ void ClientLobby::doInstallAddonsPack()
             addons_manager->saveInstalled();
         if (track_installed)
         {
-            track_manager->loadTrackList();
+            TrackManager::get()->loadTrackList();
             // Update the replay file list to use latest track pointer
             ReplayPlay::get()->loadAllReplayFile();
             delete grand_prix_manager;

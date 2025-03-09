@@ -316,6 +316,8 @@ void AddonsPack::uninstallByName(const std::string& name,
             cl->updateAssetsToServer();
         return;
     }
+    
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     if (track_manager->getTrack(addon_id))
     {
         track_manager->removeTrack(addon_id);

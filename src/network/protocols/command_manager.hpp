@@ -49,6 +49,12 @@
 class ServerLobby;
 class Event;
 class STKPeer;
+class HitProcessor;
+class LobbyAssetManager;
+class Tournament;
+class LobbyQueues;
+class LobbySettings;
+class KartElimination;
 
 class CommandManager
 {
@@ -197,6 +203,13 @@ private:
 
     ServerLobby* m_lobby;
 
+    std::shared_ptr<HitProcessor> m_hit_processor;
+    std::shared_ptr<LobbyAssetManager> m_asset_manager;
+    std::shared_ptr<Tournament> m_tournament;
+    std::shared_ptr<LobbyQueues> m_lobby_queues;
+    std::shared_ptr<LobbySettings> m_lobby_settings;
+    std::shared_ptr<KartElimination> m_kart_elimination;
+
     std::vector<std::weak_ptr<Command>> m_all_commands;
 
     std::map<std::string, std::weak_ptr<Command>> m_full_name_to_command;
@@ -321,9 +334,6 @@ private:
     void process_scoring(Context& context);
     void process_scoring_assign(Context& context);
     void process_register(Context& context);
-#ifdef ENABLE_WEB_SUPPORT
-    void process_token(Context& context);
-#endif
     // soccer tournament commands
     void process_muteall(Context& context);
     void process_game(Context& context);
@@ -348,9 +358,6 @@ private:
     void process_available_teams(Context& context);
     void process_available_teams_assign(Context& context);
     void special(Context& context);
-
-    std::string getRandomMap() const;
-    std::string getRandomAddonMap() const;
 
 public:
 

@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2024-2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -20,15 +20,16 @@
 #define MAP_VOTE_HANDLER_HPP
 
 #include "irrString.h"
+#include "network/peer_vote.hpp"
 
 #include <algorithm>
 #include <functional>
-#include <set>
-#include <vector>
-#include <string>
 #include <map>
+#include <set>
+#include <string>
+#include <vector>
 
-#include "network/peer_vote.hpp"
+class LobbySettings;
 
 // A class containing different implementations for handling map votes
 // in a server lobby.
@@ -42,26 +43,28 @@ class MapVoteHandler
     // ADVANCED = 2
 private:
     int algorithm;
+
+    std::shared_ptr<LobbySettings> m_lobby_settings;
+
     template<typename T>
-    static void findMajorityValue(const std::map<T, unsigned>& choices, unsigned cur_players,
-                           T* best_choice, float* rate);
+    static void findMajorityValue(const std::map<T, unsigned>& choices,
+            unsigned cur_players, T* best_choice, float* rate);
 
     bool standard(std::map<uint32_t, PeerVote>& peers_votes,
-                        float remaining_time, float max_time, bool is_over,
-                  unsigned cur_players, PeerVote* default_vote,
-                        PeerVote* winner_vote, uint32_t* winner_peer_id) const;
+            float remaining_time, float max_time, bool is_over,
+            unsigned cur_players, PeerVote* winner_vote) const;
+
     bool random(std::map<uint32_t, PeerVote>& peers_votes,
-                        float remaining_time, float max_time, bool is_over,
-                unsigned cur_players, PeerVote* default_vote,
-                        PeerVote* winner_vote, uint32_t* winner_peer_id) const;
+            float remaining_time, float max_time, bool is_over,
+            unsigned cur_players, PeerVote* winner_vote) const;
 public:
-    MapVoteHandler();
-    void setAlgorithm(int x) { algorithm = x; }
-    int getAlgorithm() const { return algorithm; }
+    MapVoteHandler(std::shared_ptr<LobbySettings> settings);
+    void setAlgorithm(int x)                                 { algorithm = x; }
+    int getAlgorithm() const                              { return algorithm; }
+
     bool handleAllVotes(std::map<uint32_t, PeerVote>& peers_votes,
-                        float remaining_time, float max_time, bool is_over,
-                        unsigned cur_players, PeerVote* default_vote,
-                        PeerVote* winner_vote, uint32_t* winner_peer_id) const;
+            float remaining_time, float max_time, bool is_over,
+            unsigned cur_players, PeerVote* winner_vote) const;
 
 };
 #endif // MAP_VOTE_HANDLER_HPP
