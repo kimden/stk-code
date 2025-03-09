@@ -28,13 +28,14 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/random_generator.hpp"
+#include "utils/lobby_settings.hpp"
 #include "utils/string_utils.hpp"
 
-LobbyAssetManager::LobbyAssetManager(ServerLobby* lobby): m_lobby(lobby)
+void LobbyAssetManager::setupContextUser()
 {
     init();
     updateAddons();
-}   // LobbyAssetManager
+}   // setupContextUser
 //-----------------------------------------------------------------------------
 
 void LobbyAssetManager::init()
@@ -117,7 +118,7 @@ void LobbyAssetManager::updateAddons()
         all_k.resize(65535 - (unsigned)oks.size());
     for (const std::string& k : oks)
         all_k.push_back(k);
-    if (ServerConfig::m_live_players)
+    if (getSettings()->isLivePlayers())
         m_available_kts.first = m_official_kts.first;
     else
         m_available_kts.first = { all_k.begin(), all_k.end() };
@@ -211,7 +212,7 @@ void LobbyAssetManager::onServerSetup()
     auto all_k = kart_properties_manager->getAllAvailableKarts();
     if (all_k.size() >= 65536)
         all_k.resize(65535);
-    if (ServerConfig::m_live_players)
+    if (getSettings()->isLivePlayers())
         m_available_kts.first = m_official_kts.first;
     else
         m_available_kts.first = { all_k.begin(), all_k.end() };
@@ -244,7 +245,7 @@ void LobbyAssetManager::eraseAssetsWithPeers(
 bool LobbyAssetManager::tryApplyingMapFilters()
 {
     std::set<std::string> available_tracks_fallback = m_available_kts.second;
-    m_lobby->applyAllFilters(m_available_kts.second, true);
+    getLobby()->applyAllFilters(m_available_kts.second, true);
 
    /* auto iter = m_available_kts.second.begin();
     while (iter != m_available_kts.second.end())
@@ -539,7 +540,7 @@ std::string LobbyAssetManager::getRandomMap() const
     for (const std::string& s: m_entering_kts.second) {
         items.insert(s);
     }
-    m_lobby->applyAllFilters(items, false);
+    getLobby()->applyAllFilters(items, false);
     if (items.empty())
         return "";
     RandomGenerator rg;
@@ -557,7 +558,7 @@ std::string LobbyAssetManager::getRandomAddonMap() const
         if (t->isAddon())
             items.insert(s);
     }
-    m_lobby->applyAllFilters(items, false);
+    getLobby()->applyAllFilters(items, false);
     if (items.empty())
         return "";
     RandomGenerator rg;

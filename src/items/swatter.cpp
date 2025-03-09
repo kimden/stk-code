@@ -42,7 +42,6 @@
 #include "modes/capture_the_flag.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
-#include "network/protocols/server_lobby.hpp"
 #include "utils/hit_processor.hpp"
 #include <IAnimatedMeshSceneNode.h>
 
@@ -398,7 +397,7 @@ void Swatter::squashThingsAround()
     const KartProperties *kp = m_kart->getKartProperties();
 
     float duration = kp->getSwatterSquashDuration();
-    float slowdown =  kp->getSwatterSquashSlowdown();
+    float slowdown = kp->getSwatterSquashSlowdown();
     // The squash attempt may fail because of invulnerability, shield, etc.
     // Making a bomb explode counts as a success
     bool wasHit = !m_closest_kart->isInvulnerable() && !m_closest_kart->getKartAnimation();
@@ -411,9 +410,9 @@ void Swatter::squashThingsAround()
     if (wasHit)
     {
         // check if we are in team gp and hit a teammate and should punish attacker
-        auto sl = LobbyProtocol::get<ServerLobby>();
-        if (sl && !m_closest_kart->hasFinishedRace())
-            sl->getHitProcessor()->handleSwatterHit(m_kart->getWorldKartId(),
+        auto hp = m_kart->getHitProcessor();
+        if (hp && !m_closest_kart->hasFinishedRace())
+            hp->handleSwatterHit(m_kart->getWorldKartId(),
                 m_closest_kart->getWorldKartId(), success, m_has_hit_kart,
                 World::getWorld()->getTicksSinceStart() - m_created_ticks);
     }
