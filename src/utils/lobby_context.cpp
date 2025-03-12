@@ -19,6 +19,7 @@
 #include "utils/lobby_context.hpp"
 
 #include "network/protocols/command_manager.hpp"
+#include "utils/chat_manager.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
@@ -38,6 +39,7 @@ LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
     m_lobby_settings   = std::make_shared<LobbySettings>(this);
     m_map_vote_handler = std::make_shared<MapVoteHandler>(this);
     m_command_manager  = std::make_shared<CommandManager>(this);
+    m_chat_manager     = std::make_shared<ChatManager>(this);
     
     if (make_tournament)
         m_tournament   = std::make_shared<Tournament>(this);
@@ -53,6 +55,7 @@ void LobbyContext::setup()
     m_lobby_queues->setupContextUser();
     m_lobby_settings->setupContextUser();
     m_map_vote_handler->setupContextUser();
+    m_chat_manager->setupContextUser();
     m_command_manager->setupContextUser();
     
     if (m_tournament)

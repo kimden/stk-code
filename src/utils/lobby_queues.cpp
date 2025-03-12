@@ -147,5 +147,5 @@ bool LobbyQueues::areKartFiltersIgnoringKarts() const
         return true;
 
     return false;
-}   // applyAllKartFilters
+}   // areKartFiltersIgnoringKarts
 //-----------------------------------------------------------------------------

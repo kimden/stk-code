@@ -23,6 +23,7 @@
 
 #include <memory>
 
+class ChatManager;
 class CommandManager;
 class HitProcessor;
 class KartElimination;
@@ -45,6 +46,7 @@ private:
     std::shared_ptr<KartElimination>   m_kart_elimination;
     std::shared_ptr<MapVoteHandler>    m_map_vote_handler;
     std::shared_ptr<CommandManager>    m_command_manager;
+    std::shared_ptr<ChatManager>       m_chat_manager;
 
 public:
 
@@ -62,6 +64,7 @@ public:
     std::shared_ptr<KartElimination>   getKartElimination() const { return m_kart_elimination; }
     std::shared_ptr<MapVoteHandler>    getMapVoteHandler()  const { return m_map_vote_handler; }
     std::shared_ptr<CommandManager>    getCommandManager()  const { return m_command_manager; }
+    std::shared_ptr<ChatManager>       getChatManager()     const { return m_chat_manager; }
 };
 
 class LobbyContextUser
@@ -78,6 +81,7 @@ protected:
     std::shared_ptr<KartElimination>   getKartElimination() const { return m_context->getKartElimination(); }
     std::shared_ptr<MapVoteHandler>    getMapVoteHandler()  const { return m_context->getMapVoteHandler(); }
     std::shared_ptr<CommandManager>    getCommandManager()  const { return m_context->getCommandManager(); }
+    std::shared_ptr<ChatManager>       getChatManager()     const { return m_context->getChatManager(); }
 
 public:
     void setContext(LobbyContext* context)             { m_context = context; }

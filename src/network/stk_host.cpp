@@ -896,8 +896,7 @@ void STKHost::mainLoop(ProcessType pt)
                         std::string player_name;
                         if (!p.second->getPlayerProfiles().empty())
                         {
-                            player_name = StringUtils::wideToUtf8
-                                (p.second->getPlayerProfiles()[0]->getName());
+                            player_name = p.second->getMainName();
                         }
                         const bool peer_not_in_game =
                             sl->getCurrentState() <= ServerLobby::SELECTING

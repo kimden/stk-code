@@ -139,13 +139,13 @@ void GameSetup::addServerInfo(NetworkString* ns)
     if (ServerConfig::m_owner_less)
     {
         ns->addUInt8(ServerConfig::m_min_start_game_players)
-            .addFloat(std::max<float>(0.0f, ServerConfig::m_start_game_counter));
+            .addFloat(std::max<float>(0.0f, getSettings()->getStartGameCounter()));
     }
     else
         ns->addUInt8(0).addFloat(0.0f);
 
     ns->encodeString16(m_message_of_today);
-    ns->addUInt8((uint8_t)ServerConfig::m_server_configurable);
+    ns->addUInt8((uint8_t)getSettings()->getServerConfigurable());
     ns->addUInt8(getSettings()->isLivePlayers() ? 1 : 0);
 }   // addServerInfo
 

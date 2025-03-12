@@ -73,6 +73,11 @@ public:
     std::set<std::string> getAvailableKarts() const
                                               { return m_available_kts.first; }
     void setMustHaveMaps(const std::string& input);
+    void gameFinishedOn(const std::string& map_name);
+
+    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
+    void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
+    
 
     std::set<std::string> getAddonKarts() const   { return m_addon_kts.first; }
     std::set<std::string> getAddonTracks() const { return m_addon_kts.second; }
@@ -110,6 +115,8 @@ public:
     std::pair<std::set<std::string>, std::set<std::string> > m_entering_kts;
 
     std::vector<std::string> m_must_have_maps;
+
+    std::vector<std::string> m_map_history;
 };
 
 #endif // LOBBY_ASSET_MANAGER_HPP

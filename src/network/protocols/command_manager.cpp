@@ -32,6 +32,7 @@
 #include "network/stk_peer.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/chat_manager.hpp"
 #include "utils/file_utils.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/hourglass_reason.hpp"
@@ -411,7 +412,7 @@ void CommandManager::initCommands()
     // special permissions according to ServerConfig options
     std::shared_ptr<Command> kick_command = mp["kick"].lock();
     if (kick_command) {
-        if (ServerConfig::m_kicks_allowed)
+        if (getSettings()->getKicksAllowed())
             kick_command->m_permissions |= PE_CROWNED;
         else
             kick_command->m_permissions &= ~PE_CROWNED;
@@ -655,15 +656,13 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     std::string action = "invoke";
     std::string username = "";
     if (peer->hasPlayerProfiles())
-        username = StringUtils::wideToUtf8(
-            peer->getPlayerProfiles()[0]->getName());
+        username = peer->getMainName();
 
     if (argv[0] == "vote")
     {
         if (argv.size() == 1 || argv[1] == "vote")
         {
-            std::string msg = "Usage: /vote (a command with arguments)";
-            getLobby()->sendStringToPeer(msg, peer);
+            getLobby()->sendStringToPeer(peer, "Usage: /vote (a command with arguments)");
             return;
         }
         std::reverse(argv.begin(), argv.end());
@@ -694,7 +693,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     msg = "Pick one of " +
                         std::to_string(-1 + (int)m_user_command_replacements[username].size())
                         + " options using /1, etc., or use /0, or type a different command";
-                getLobby()->sendStringToPeer(msg, peer);
+                getLobby()->sendStringToPeer(peer, msg);
                 return;
             }
         }
@@ -726,21 +725,21 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         if (!command)
         {
             // todo change message
-            std::string msg = "There is no such command but there should be. Very strange. Please report it.";
-            getLobby()->sendStringToPeer(msg, peer);
+            getLobby()->sendStringToPeer(peer,
+                    "There is no such command but there should be. Very strange. Please report it.");
             return;
         }
         else if (!isAvailable(command))
         {
-            std::string msg = "You don't have permissions to " + action + " this command";
-            getLobby()->sendStringToPeer(msg, peer);
+            getLobby()->sendStringToPeer(peer,
+                    "You don't have permissions to " + action + " this command");
             return;
         }
         int mask = (permissions & command->m_permissions);
         if (mask == 0)
         {
-            std::string msg = "You don't have permissions to " + action + " this command";
-            getLobby()->sendStringToPeer(msg, peer);
+            getLobby()->sendStringToPeer(peer,
+                    "You don't have permissions to " + action + " this command");
             return;
         }
         int mask_without_voting = (mask & ~PE_VOTED);
@@ -804,7 +803,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
 int CommandManager::getCurrentModeScope()
 {
     int mask = MS_DEFAULT;
-    if (ServerConfig::m_soccer_tournament)
+    if (isTournament())
         mask |= MS_SOCCER_TOURNAMENT;
     return mask;
 } // getCurrentModeScope
@@ -840,8 +839,7 @@ void CommandManager::vote(Context& context, std::string category, std::string va
     }
     if (!peer->hasPlayerProfiles())
         return;
-    std::string username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string username = peer->getMainName();
     auto& votable = m_votables[command->m_prefix_name];
     bool neededCheck = votable.needsCheck();
     votable.castVote(username, category, value);
@@ -903,7 +901,7 @@ void CommandManager::error(Context& context, bool is_error)
         msg = "An error occurred while invoking command \"" + command->getFullName() + "\".";
     if (is_error)
         msg += "\n/!\\ Please report this error to the server owner";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // error
 // ========================================================================
 
@@ -942,8 +940,7 @@ void CommandManager::process_help(Context& context)
         error(context);
         return;
     }
-    std::string msg = command->getHelp();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, command->getHelp());
 } // process_help
 // ========================================================================
 
@@ -963,7 +960,7 @@ void CommandManager::process_text(Context& context)
             + " is defined without text";
     else
         response = it->second;
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_text
 // ========================================================================
 
@@ -983,7 +980,7 @@ void CommandManager::process_file(Context& context)
             + command->getFullName();
     else
         response = it->second.get();
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_text
 // ========================================================================
 
@@ -1012,7 +1009,7 @@ void CommandManager::process_auth(Context& context)
         else
             response = it->second.get(username, online_id);
     }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_text
 // ========================================================================
 
@@ -1047,8 +1044,7 @@ void CommandManager::process_commands(Context& context)
     }
     if (!valid_prefix)
     {
-        result = "There are no available commands with such prefix";
-        getLobby()->sendStringToPeer(result, peer);
+        getLobby()->sendStringToPeer(peer, "There are no available commands with such prefix");
         return;
     }
     result = (command == m_root_command ? "Available commands"
@@ -1081,7 +1077,7 @@ void CommandManager::process_commands(Context& context)
     }
     if (had_any_subcommands)
         result += "\n* has subcommands";
-    getLobby()->sendStringToPeer(result, peer);
+    getLobby()->sendStringToPeer(peer, result);
 } // process_commands
 // ========================================================================
 
@@ -1094,7 +1090,7 @@ void CommandManager::process_replay(Context& context)
         error(context, true);
         return;
     }
-    if (ServerConfig::m_record_replays)
+    if (getSettings()->getRecordReplays())
     {
         bool current_state = getSettings()->hasConsentOnReplays();
         if (argv.size() >= 2 && argv[1] == "0")
@@ -1105,21 +1101,19 @@ void CommandManager::process_replay(Context& context)
             current_state ^= 1;
 
         getSettings()->setConsentOnReplays(current_state);
-        std::string msg = "Recording ghost replays is now ";
-        msg += (current_state ? "on" : "off");
-        getLobby()->sendStringToAllPeers(msg);
+        getLobby()->sendStringToAllPeers(std::string("Recording ghost replays is now ")
+                + (current_state ? "on" : "off"));
     }
     else
     {
-        std::string msg = "This server doesn't allow recording replays";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "This server doesn't allow recording replays");
     }
 } // process_replay
 // ========================================================================
 
 void CommandManager::process_start(Context& context)
 {
-    if (!ServerConfig::m_owner_less && (context.m_user_permissions & UP_CROWNED) == 0)
+    if (!getSettings()->getOwnerLess() && (context.m_user_permissions & UP_CROWNED) == 0)
     {
         context.m_voting = true;
     }
@@ -1156,19 +1150,18 @@ void CommandManager::process_config(Context& context)
     msg += get_first_if_exists(m_aux_difficulty_aliases[difficulty]);
     msg += " ";
     msg += get_first_if_exists(m_aux_goal_aliases[goal_target ? 1 : 0]);
-    if (!ServerConfig::m_server_configurable)
+    if (!getSettings()->getServerConfigurable())
         msg += " (not configurable)";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_config
 // ========================================================================
 
 void CommandManager::process_config_assign(Context& context)
 {
     auto peer = context.m_peer.lock();
-    if (!ServerConfig::m_server_configurable)
+    if (!getSettings()->getServerConfigurable())
     {
-        std::string msg = "Server is not configurable, this command cannot be invoked.";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Server is not configurable, this command cannot be invoked.");
         return;
     }
     const auto& argv = context.m_argv;
@@ -1216,8 +1209,8 @@ void CommandManager::process_config_assign(Context& context)
     if (!getSettings()->isDifficultyAvailable(difficulty)
         || !getSettings()->isModeAvailable(mode))
     {
-        std::string response = "Mode or difficulty are not permitted on this server";
-        getLobby()->sendStringToPeer(response, peer);
+        getLobby()->sendStringToPeer(peer,
+                "Mode or difficulty are not permitted on this server");
         return;
     }
     if (context.m_voting)
@@ -1252,7 +1245,7 @@ void CommandManager::process_spectate(Context& context)
 
     if (!response.empty())
     {
-        getLobby()->sendStringToPeer(response, peer);
+        getLobby()->sendStringToPeer(peer, response);
         return;
     }
 
@@ -1276,8 +1269,7 @@ void CommandManager::process_spectate(Context& context)
         if (getLobby()->m_process_type == PT_CHILD &&
             peer->getHostId() == getLobby()->m_client_server_host_id.load())
         {
-            std::string msg = "Graphical client server cannot spectate";
-            getLobby()->sendStringToPeer(msg, peer);
+            getLobby()->sendStringToPeer(peer, "Graphical client server cannot spectate");
             return;
         }
         AlwaysSpectateMode type = (value == 2 ? ASM_COMMAND_ABSENT : ASM_COMMAND);
@@ -1320,7 +1312,7 @@ void CommandManager::process_addons(Context& context)
         /*argv[1] == "soccer" ?*/ asset_manager->getAddonSoccers()
     )));
     if (apply_filters)
-        getLobby()->applyAllFilters(from, false); // happily the type is never karts in this line
+        getAssetManager()->applyAllFilters(from, false); // happily the type is never karts in this line
     std::vector<std::pair<std::string, std::vector<std::string>>> result;
     for (const std::string& s: from)
         result.push_back({s, {}});
@@ -1337,8 +1329,7 @@ void CommandManager::process_addons(Context& context)
         if (!p->hasPlayerProfiles())
             continue;
         ++num_players;
-        std::string username = StringUtils::wideToUtf8(
-                p->getPlayerProfiles()[0]->getName());
+        std::string username = p->getMainName();
         const auto& kt = p->getClientAssets();
         const auto& container = (argv[1] == "kart" ? kt.first : kt.second);
         for (auto& pr: result)
@@ -1372,8 +1363,7 @@ void CommandManager::process_addons(Context& context)
             result.clear();
             std::string asking_username = "";
             if (peer->hasPlayerProfiles())
-                asking_username = StringUtils::wideToUtf8(
-                    peer->getPlayerProfiles()[0]->getName());
+                asking_username = peer->getMainName();
             for (unsigned i = 0; i < result2.size(); ++i)
             {
                 bool present = false;
@@ -1430,7 +1420,7 @@ void CommandManager::process_addons(Context& context)
         response = "No one in the lobby can play. Found "
             + std::to_string(all_have.size()) + " assets on the server.";
     }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_addons
 // ========================================================================
 
@@ -1475,8 +1465,7 @@ void CommandManager::process_checkaddon(Context& context)
             || !getLobby()->canRace(p) || p->isCommandSpectator()
             || !p->hasPlayerProfiles())
             continue;
-        std::string username = StringUtils::wideToUtf8(
-                p->getPlayerProfiles()[0]->getName());
+        std::string username = p->getMainName();
         const auto& kt = p->getClientAssets();
         unsigned status = 0;
         if (kt.first.find(id) != kt.first.end())
@@ -1550,7 +1539,7 @@ void CommandManager::process_checkaddon(Context& context)
         }
         response.pop_back();
     }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_checkaddon
 // ========================================================================
 
@@ -1571,9 +1560,8 @@ void CommandManager::process_id(Context& context)
     if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
                 1, m_stf_all_maps, 3, false, true))
         return;
-    std::string id = argv[1];
-    std::string response = "Server knows this map, copy it below:\n" + id;
-    getLobby()->sendStringToPeer(response, peer);
+
+    getLobby()->sendStringToPeer(peer, "Server knows this map, copy it below:\n" + argv[1]);
 } // process_id
 // ========================================================================
 
@@ -1655,7 +1643,7 @@ void CommandManager::process_lsa(Context& context)
         msg = msg.substr(0, msg.size() - 2);
         response = "Server's addons: " + msg;
     }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_lsa
 // ========================================================================
 
@@ -1716,17 +1704,10 @@ void CommandManager::process_pha(Context& context)
             }
         }
     }
-    if (found)
-    {
-        response = player_name + " has addon " + addon_id;
-    }
-    else
-    {
-        response = player_name + " has no addon " + addon_id;
-    }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, player_name +
+            " has " + (found ? "" : "no ") + "addon " + addon_id);
 } // process_pha
-// ========================================================================
+// ============================================================================
 
 void CommandManager::process_kick(Context& context)
 {
@@ -1753,9 +1734,8 @@ void CommandManager::process_kick(Context& context)
     }
     if (player_peer->isAngryHost())
     {
-        std::string msg = "This player is the owner of this server, "
-            "and is protected from your actions now";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "This player is the owner of "
+            "this server, and is protected from your actions now");
         return;
     }
     if (context.m_voting)
@@ -1765,7 +1745,7 @@ void CommandManager::process_kick(Context& context)
     }
     Log::info("CommandManager", "%s kicks %s", (peer.get() ? "Crown player" : "Vote"), player_name.c_str());
     player_peer->kick();
-    if (ServerConfig::m_track_kicks)
+    if (getSettings()->getTrackKicks())
     {
         std::string auto_report = "[ Auto report caused by kick ]";
         getLobby()->writeOwnReport(player_peer, peer, auto_report);
@@ -1774,9 +1754,8 @@ void CommandManager::process_kick(Context& context)
     {
         Log::info("CommandManager", "%s is now banned", player_name.c_str());
         getLobby()->m_temp_banned.insert(player_name);
-        std::string msg = StringUtils::insertValues(
-            "%s is now banned", player_name.c_str());
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+                "%s is now banned", player_name.c_str()));
     }
 } // process_kick
 // ========================================================================
@@ -1803,9 +1782,8 @@ void CommandManager::process_unban(Context& context)
     }
     Log::info("CommandManager", "%s is now unbanned", player_name.c_str());
     getLobby()->m_temp_banned.erase(player_name);
-    std::string msg = StringUtils::insertValues(
-        "%s is now unbanned", player_name.c_str());
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "%s is now unbanned", player_name.c_str()));
 } // process_unban
 // ========================================================================
 
@@ -1832,9 +1810,8 @@ void CommandManager::process_ban(Context& context)
     }
     Log::info("CommandManager", "%s is now banned", player_name.c_str());
     getLobby()->m_temp_banned.insert(player_name);
-    std::string msg = StringUtils::insertValues(
-        "%s is now banned", player_name.c_str());
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "%s is now banned", player_name.c_str()));
 } // process_ban
 // ========================================================================
 
@@ -1858,8 +1835,7 @@ void CommandManager::process_pas(Context& context)
             error(context);
             return;
         }
-        player_name = StringUtils::wideToUtf8(
-                peer->getPlayerProfiles()[0]->getName());
+        player_name = peer->getMainName();
     }
     else
     {
@@ -1896,7 +1872,7 @@ void CommandManager::process_pas(Context& context)
         msg.pop_back();
         response = msg;
     }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_pas
 // ========================================================================
 
@@ -1924,8 +1900,7 @@ void CommandManager::process_everypas(Context& context)
             continue;
         if (!p->hasPlayerProfiles())
             continue;
-        std::string player_name = StringUtils::wideToUtf8(
-                p->getPlayerProfiles()[0]->getName());
+        std::string player_name = p->getMainName();
         auto &scores = p->getAddonsScores();
         std::vector<int> overall;
         for (int item = 0; item < AS_TOTAL; item++)
@@ -1977,7 +1952,7 @@ void CommandManager::process_everypas(Context& context)
             response += msg;
         }
     }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_everypas
 // ========================================================================
 
@@ -1989,7 +1964,6 @@ void CommandManager::process_sha(Context& context)
         error(context, true);
         return;
     }
-    std::string response;
     auto& argv = context.m_argv;
     if (argv.size() != 2)
     {
@@ -2009,15 +1983,8 @@ void CommandManager::process_sha(Context& context)
     total_addons.insert(all_soccers.begin(), all_soccers.end());
     std::string addon_id_test = Addon::createAddonId(argv[1]);
     bool found = total_addons.find(addon_id_test) != total_addons.end();
-    if (found)
-    {
-        response = "Server has addon " + argv[1];
-    }
-    else
-    {
-        response = "Server has no addon " + argv[1];
-    }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, std::string("Server has ") +
+            (found ? "" : "no ") + "addon " + argv[1]);
 } // process_sha
 // ========================================================================
 
@@ -2032,7 +1999,6 @@ void CommandManager::process_mute(Context& context)
         return;
     }
     std::string result_msg;
-    core::stringw player_name;
 
     if (argv.size() != 2 || argv[1].empty())
     {
@@ -2044,8 +2010,9 @@ void CommandManager::process_mute(Context& context)
         1, m_stf_present_users, 3, false, false))
         return;
 
-    player_name = StringUtils::utf8ToWide(argv[1]);
-    player_peer = STKHost::get()->findPeerByName(player_name);
+    
+    std::string player_name = argv[1];
+    player_peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(player_name));
 
     if (!player_peer || player_peer == peer)
     {
@@ -2053,9 +2020,8 @@ void CommandManager::process_mute(Context& context)
         return;
     }
 
-    getSettings()->addMutedPlayerFor(peer, player_name);
-    result_msg = "Muted player " + argv[1];
-    getLobby()->sendStringToPeer(result_msg, peer);
+    getChatManager()->addMutedPlayerFor(peer, player_name);
+    getLobby()->sendStringToPeer(peer, "Muted player " + player_name);
 } // process_mute
 // ========================================================================
 
@@ -2069,7 +2035,6 @@ void CommandManager::process_unmute(Context& context)
         error(context, true);
         return;
     }
-    core::stringw player_name;
 
     if (argv.size() != 2 || argv[1].empty())
     {
@@ -2077,16 +2042,15 @@ void CommandManager::process_unmute(Context& context)
         return;
     }
 
-    player_name = StringUtils::utf8ToWide(argv[1]);
+    std::string player_name = argv[1];
 
-    if (!getSettings()->removeMutedPlayerFor(peer, player_name))
+    if (!getChatManager()->removeMutedPlayerFor(peer, player_name))
     {
         error(context);
         return;
     }
 
-    std::string result_msg = "Unmuted player " + StringUtils::wideToUtf8(player_name);
-    getLobby()->sendStringToPeer(result_msg, peer);
+    getLobby()->sendStringToPeer(peer, "Unmuted player " + player_name);
 
 } // process_unmute
 // ========================================================================
@@ -2100,8 +2064,8 @@ void CommandManager::process_listmute(Context& context)
         return;
     }
 
-    std::string muted_players = getSettings()->getMutedPlayersAsString(peer);
-    getLobby()->sendStringToPeer(muted_players, peer);
+    getLobby()->sendStringToPeer(peer,
+            getChatManager()->getMutedPlayersAsString(peer));
 } // process_listmute
 // ========================================================================
 
@@ -2122,22 +2086,19 @@ void CommandManager::process_gnu(Context& context)
     auto kart_elimination = getKartElimination();
     if (turn_on && kart_elimination->isEnabled())
     {
-        std::string msg = "Gnu Elimination mode was already enabled!";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Gnu Elimination mode was already enabled!");
         return;
     }
     if (!turn_on && !kart_elimination->isEnabled())
     {
-        std::string msg = "Gnu Elimination mode was already off!";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Gnu Elimination mode was already off!");
         return;
     }
     if (turn_on &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_NORMAL_RACE &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
-        std::string msg = "Gnu Elimination is available only with racing modes";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Gnu Elimination is available only with racing modes");
         return;
     }
     std::string kart;
@@ -2177,14 +2138,12 @@ void CommandManager::process_gnu(Context& context)
     if (kart == "off")
     {
         kart_elimination->disable();
-        std::string msg = "Gnu Elimination is now off";
-        getLobby()->sendStringToAllPeers(msg);
+        getLobby()->sendStringToAllPeers("Gnu Elimination is now off");
     }
     else
     {
         kart_elimination->enable(kart);
-        std::string msg = kart_elimination->getStartingMessage();
-        getLobby()->sendStringToAllPeers(msg);
+        getLobby()->sendStringToAllPeers(kart_elimination->getStartingMessage());
     }
 } // process_gnu
 // ========================================================================
@@ -2256,7 +2215,7 @@ void CommandManager::process_standings(Context& context)
     }
     else if (isGnu)
         msg = getKartElimination()->getStandings();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_standings
 // ========================================================================
 
@@ -2268,9 +2227,8 @@ void CommandManager::process_teamchat(Context& context)
         error(context, true);
         return;
     }
-    getSettings()->addTeamSpeaker(peer);
-    std::string msg = "Your messages are now addressed to team only";
-    getLobby()->sendStringToPeer(msg, peer);
+    getChatManager()->addTeamSpeaker(peer);
+    getLobby()->sendStringToPeer(peer, "Your messages are now addressed to team only");
 } // process_teamchat
 // ========================================================================
 
@@ -2296,9 +2254,8 @@ void CommandManager::process_to(Context& context)
             return;
         receivers.push_back(argv[i]);
     }
-    getSettings()->setMessageReceiversFor(peer, receivers);
-    std::string msg = "Successfully changed chat settings";
-    getLobby()->sendStringToPeer(msg, peer);
+    getChatManager()->setMessageReceiversFor(peer, receivers);
+    getLobby()->sendStringToPeer(peer, "Successfully changed chat settings");
 } // process_to
 // ========================================================================
 
@@ -2310,9 +2267,8 @@ void CommandManager::process_public(Context& context)
         error(context, true);
         return;
     }
-    getSettings()->makeChatPublicFor(peer);
-    std::string s = "Your messages are now public";
-    getLobby()->sendStringToPeer(s, peer);
+    getChatManager()->makeChatPublicFor(peer);
+    getLobby()->sendStringToPeer(peer, "Your messages are now public");
 } // process_public
 // ========================================================================
 
@@ -2360,7 +2316,7 @@ void CommandManager::process_record(Context& context)
 #else
     response = "This command is not supported.";
 #endif
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_record
 // ========================================================================
 
@@ -2376,8 +2332,7 @@ void CommandManager::process_power(Context& context)
     if (peer->isAngryHost())
     {
         peer->setAngryHost(false);
-        std::string msg = "You are now a normal player";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "You are now a normal player");
         getLobby()->updatePlayerList();
         return;
     }
@@ -2390,19 +2345,17 @@ void CommandManager::process_power(Context& context)
         online_id = profiles[0]->getOnlineId();
     }
 
-    std::string password = ServerConfig::m_power_password;
+    std::string password = getSettings()->getPowerPassword();
     bool bad_password = (password.empty() || argv.size() <= 1 || argv[1] != password);
     bool good_player = (getSettings()->isInHammerWhitelist(username)
             && online_id != 0);
     if (bad_password && !good_player)
     {
-        std::string msg = "You need to provide the password to have the power";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "You need to provide the password to have the power");
         return;
     }
     peer->setAngryHost(true);
-    std::string msg = "Now you finally have the power!";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, "Now you finally have the power!");
     getLobby()->updatePlayerList();
 } // process_power
 // ========================================================================
@@ -2414,8 +2367,7 @@ void CommandManager::process_length(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = getSettings()->getLapRestrictionsAsString();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, getSettings()->getLapRestrictionsAsString());
 } // process_length
 // ========================================================================
 void CommandManager::process_length_multi(Context& context)
@@ -2430,8 +2382,8 @@ void CommandManager::process_length_multi(Context& context)
     }
     double value = std::max<double>(0.0, temp_double);
     getSettings()->setMultiplier(value);
-    std::string msg = StringUtils::insertValues("Game length is now %f x default", value);
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers(StringUtils::insertValues(
+                "Game length is now %f x default", value));
 } // process_length_multi
 // ========================================================================
 void CommandManager::process_length_fixed(Context& context)
@@ -2446,29 +2398,26 @@ void CommandManager::process_length_fixed(Context& context)
     }
     int value = std::max<int>(0, temp_int);
     getSettings()->setFixedLapCount(value);
-    std::string msg = StringUtils::insertValues("Game length is now %d", value);
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers(StringUtils::insertValues(
+                "Game length is now %d", value));
 } // process_length_fixed
 // ========================================================================
 void CommandManager::process_length_clear(Context& context)
 {
     getSettings()->resetLapRestrictions();
-    std::string msg = "Game length will be chosen by players";
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers("Game length will be chosen by players");
 } // process_length_clear
 // ========================================================================
 
 void CommandManager::process_direction(Context& context)
 {
-    std::string msg = getSettings()->getDirectionAsString();
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers(getSettings()->getDirectionAsString());
 } // process_direction
 // ========================================================================
 
 void CommandManager::process_direction_assign(Context& context)
 {
     auto& argv = context.m_argv;
-    std::string msg;
     if (argv.size() < 2)
     {
         error(context);
@@ -2480,8 +2429,7 @@ void CommandManager::process_direction_assign(Context& context)
         error(context);
         return;
     }
-    msg = getSettings()->getDirectionAsString(true);
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers(getSettings()->getDirectionAsString(true));
 } // process_direction_assign
 // ========================================================================
 
@@ -2508,7 +2456,7 @@ void CommandManager::process_queue(Context& context)
         }
     }
     msg.pop_back();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_queue
 // ========================================================================
 
@@ -2736,8 +2684,7 @@ void CommandManager::process_allowstart(Context& context)
         return;
     }
 
-    std::string msg = getSettings()->getAllowedToStartAsString();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, getSettings()->getAllowedToStartAsString());
 } // process_allowstart
 // ========================================================================
 
@@ -2753,8 +2700,7 @@ void CommandManager::process_allowstart_assign(Context& context)
         return;
     }
     getSettings()->setAllowedToStart(argv[1] != "0");
-    std::string msg = getSettings()->getAllowedToStartAsString(true);
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers(getSettings()->getAllowedToStartAsString(true));
 } // process_allowstart_assign
 // ========================================================================
 
@@ -2766,8 +2712,7 @@ void CommandManager::process_shuffle(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = getSettings()->getWhetherShuffledGPGridAsString();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, getSettings()->getWhetherShuffledGPGridAsString());
 } // process_shuffle
 // ========================================================================
 
@@ -2781,8 +2726,7 @@ void CommandManager::process_shuffle_assign(Context& context)
         return;
     }
     getSettings()->setGPGridShuffled(argv[1] != "0");
-    std::string msg = getSettings()->getWhetherShuffledGPGridAsString(true);
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers(getSettings()->getWhetherShuffledGPGridAsString(true));
 } // process_shuffle_assign
 // ========================================================================
 
@@ -2794,7 +2738,6 @@ void CommandManager::process_timeout(Context& context)
         error(context, true);
         return;
     }
-    std::string msg;
     int seconds;
     auto& argv = context.m_argv;
     if (argv.size() < 2 || !StringUtils::parseString(argv[1], &seconds) || seconds <= 0)
@@ -2805,8 +2748,7 @@ void CommandManager::process_timeout(Context& context)
     getLobby()->m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
             (int64_t)(seconds * 1000.0f));
     getLobby()->updatePlayerList();
-    msg = "Successfully changed timeout";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, "Successfully changed timeout");
 } // process_timeout
 // ========================================================================
 
@@ -2841,9 +2783,8 @@ void CommandManager::process_team(Context& context)
     // Resetting should be allowed anyway
     if (!allowed_color && team != TeamUtils::NO_TEAM)
     {
-        std::string msg = StringUtils::insertValues("Color %s is not allowed",
-                argv[1].c_str());
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+                "Color %s is not allowed", argv[1]));
         return;
     }
     getLobby()->setTemporaryTeamInLobby(player, team);
@@ -2907,7 +2848,7 @@ void CommandManager::process_swapteams(Context& context)
         permutation_map_int[from] = to;
     }
     getLobby()->shuffleTemporaryTeams(permutation_map_int);
-    getLobby()->sendStringToPeer(msg, peer); // todo make public?
+    getLobby()->sendStringToPeer(peer, msg); // todo make public?
     getLobby()->updatePlayerList();
 } // process_swapteams
 // ========================================================================
@@ -2920,9 +2861,8 @@ void CommandManager::process_resetteams(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = "Teams are reset now";
     getLobby()->clearTemporaryTeams();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, "Teams are reset now");
     getLobby()->updatePlayerList();
 } // process_resetteams
 // ========================================================================
@@ -2951,19 +2891,17 @@ void CommandManager::process_randomteams(Context& context)
             msg = "No one can play!";
         else
             msg = "Teams are currently not allowed";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, msg);
         return;
     }
-    std::string msg = StringUtils::insertValues(
-            "Created %d teams for %d players", final_number, players_number);
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Created %d teams for %d players", final_number, players_number));
     getLobby()->updatePlayerList();
 } // process_randomteams
 // ========================================================================
 
 void CommandManager::process_resetgp(Context& context)
 {
-    std::string msg = "GP is now reset";
     auto& argv = context.m_argv;
     if (argv.size() >= 2) {
         int number_of_games;
@@ -2976,7 +2914,7 @@ void CommandManager::process_resetgp(Context& context)
         getLobby()->getGameSetup()->setGrandPrixTrack(number_of_games);
     }
     getLobby()->resetGrandPrix();
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers("GP is now reset");
 } // process_resetgp
 // ========================================================================
 
@@ -3055,7 +2993,7 @@ void CommandManager::process_troll(Context& context)
         msg = "Trolls will be kicked";
     else
         msg = "Trolls can stay";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_troll
 // ========================================================================
 
@@ -3095,7 +3033,7 @@ void CommandManager::process_hitmsg(Context& context)
         msg = "Teammate hits are sent to all players";
     else
         msg = "Teammate hits are not sent";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_hitmsg
 // ========================================================================
 
@@ -3135,7 +3073,7 @@ void CommandManager::process_teamhit(Context& context)
         msg = "Teammate hits are punished";
     else
         msg = "Teammate hits are not punished";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_teamhit
 // ========================================================================
 
@@ -3171,8 +3109,7 @@ void CommandManager::process_scoring(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = getSettings()->getScoringAsString();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, getSettings()->getScoringAsString());
 } // process_scoring
 // ========================================================================
 
@@ -3190,13 +3127,11 @@ void CommandManager::process_scoring_assign(Context& context)
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     if (getSettings()->loadCustomScoring(cmd2))
     {
-        msg = "Scoring set to \"" + cmd2 + "\"";
-        getLobby()->sendStringToAllPeers(msg);
+        getLobby()->sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
     }
     else
     {
-        msg = "Scoring could not be parsed from \"" + cmd2 + "\"";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Scoring could not be parsed from \"" + cmd2 + "\"");
     }
 } // process_scoring_assign
 // ========================================================================
@@ -3215,8 +3150,7 @@ void CommandManager::process_register(Context& context)
     int online_id = peer->getPlayerProfiles()[0]->getOnlineId();
     if (online_id <= 0)
     {
-        std::string msg = "Please join with a valid online STK account.";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Please join with a valid online STK account.");
         return;
     }
     std::string ans = "";
@@ -3226,13 +3160,11 @@ void CommandManager::process_register(Context& context)
             ans.push_back(' ');
         ans += argv[i];
     }
-    std::string message_ok = "Your registration request is being processed";
-    std::string message_wrong = "Sorry, an error occurred. Please try again.";
-    if (getLobby()->writeOnePlayerReport(peer, ServerConfig::m_register_table_name,
+    if (getLobby()->writeOnePlayerReport(peer, getSettings()->getRegisterTableName(),
         ans))
-        getLobby()->sendStringToPeer(message_ok, peer);
+        getLobby()->sendStringToPeer(peer, "Your registration request is being processed");
     else
-        getLobby()->sendStringToPeer(message_wrong, peer);
+        getLobby()->sendStringToPeer(peer, "Sorry, an error occurred. Please try again.");
 } // process_register
 // ========================================================================
 
@@ -3248,8 +3180,7 @@ void CommandManager::process_muteall(Context& context)
     }
     if (!peer->hasPlayerProfiles())
         return;
-    std::string peer_username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string peer_username = peer->getMainName();
 
     int op = SWF_OP_FLIP;
     if (argv.size() >= 2 && argv[1] == "0")
@@ -3264,7 +3195,7 @@ void CommandManager::process_muteall(Context& context)
         msg = "You are now receiving messages only from players and referees";
     else
         msg = "You are now receiving messages from spectators too";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_muteall
 // ========================================================================
 
@@ -3280,8 +3211,7 @@ void CommandManager::process_game(Context& context)
     }
     if (!peer->hasPlayerProfiles())
         return;
-    std::string peer_username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string peer_username = peer->getMainName();
 
     int old_game_number;
     int old_duration;
@@ -3312,13 +3242,12 @@ void CommandManager::process_game(Context& context)
 
         if (bad)
         {
-            std::string msg = StringUtils::insertValues(
+            // error(context) ?
+            getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
                 "Please specify a correct number. "
                 "Format: /game [number %d..%d] [length in minutes] [0..59 additional seconds]",
                 tournament->minGameNumber(),
-                tournament->maxGameNumber());
-            // error(context) ?
-            getLobby()->sendStringToPeer(msg, peer);
+                tournament->maxGameNumber()));
             return;
         }
     }
@@ -3358,8 +3287,7 @@ void CommandManager::process_role(Context& context)
     }
     if (!peer->hasPlayerProfiles())
         return;
-    std::string peer_username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string peer_username = peer->getMainName();
     if (argv.size() < 3)
     {
         error(context);
@@ -3417,10 +3345,10 @@ void CommandManager::process_role(Context& context)
                 }
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_RED);
-                    getLobby()->sendStringToPeer(role_changed, player_peer);
+                    getLobby()->sendStringToPeer(player_peer,
+                            StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
             }
@@ -3437,10 +3365,10 @@ void CommandManager::process_role(Context& context)
                 }
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_BLUE);
-                    getLobby()->sendStringToPeer(role_changed, player_peer);
+                    getLobby()->sendStringToPeer(player_peer,
+                            StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
             }
@@ -3450,10 +3378,10 @@ void CommandManager::process_role(Context& context)
                 tournament->setReferee(u, permanent);
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
-                    getLobby()->sendStringToPeer(role_changed, player_peer);
+                    getLobby()->sendStringToPeer(player_peer,
+                            StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
             }
@@ -3461,10 +3389,10 @@ void CommandManager::process_role(Context& context)
             {
                 if (player_peer)
                 {
-                    role_changed = StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char));
                     if (player_peer->hasPlayerProfiles())
                         getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
-                    getLobby()->sendStringToPeer(role_changed, player_peer);
+                    getLobby()->sendStringToPeer(player_peer,
+                            StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
             }
@@ -3489,7 +3417,7 @@ void CommandManager::process_role(Context& context)
                 msg += " " + missing_assets[i];
             }
         }
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, msg);
     }
     getLobby()->updatePlayerList();
 } // process_role
@@ -3507,8 +3435,7 @@ void CommandManager::process_stop(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->stop();
-    std::string msg = "The game is stopped.";
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers("The game is stopped.");
     Log::info("CommandManager", "SoccerMatchLog: The game is stopped");
 } // process_stop
 // ========================================================================
@@ -3525,8 +3452,7 @@ void CommandManager::process_go(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->resume();
-    std::string msg = "The game is resumed.";
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers("The game is resumed.");
     Log::info("CommandManager", "SoccerMatchLog: The game is resumed");
 } // process_go
 // ========================================================================
@@ -3543,8 +3469,7 @@ void CommandManager::process_lobby(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->allToLobby();
-    std::string msg = "The game will be restarted.";
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers("The game will be restarted.");
 } // process_lobby
 // ========================================================================
 
@@ -3559,8 +3484,7 @@ void CommandManager::process_init(Context& context)
     }
     if (!peer->hasPlayerProfiles())
         return;
-    std::string peer_username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string peer_username = peer->getMainName();
     int red, blue;
     if (argv.size() < 3 ||
         !StringUtils::parseString<int>(argv[1], &red) ||
@@ -3572,10 +3496,9 @@ void CommandManager::process_init(Context& context)
     World* w = World::getWorld();
     if (!w)
     {
-        std::string msg = "Please set the count when the karts "
-            "are ready. Setting the initial count in lobby is "
-            "not implemented yet, sorry.";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Please set the count "
+            "when the karts are ready. Setting the initial count "
+            "in the lobby is not implemented yet, sorry.");
         return;
     }
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
@@ -3599,7 +3522,7 @@ void CommandManager::process_mimiz(Context& context)
         msg = "please provide text";
     else
         msg = cmd.substr(argv[0].length() + 1);
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_mimiz
 // ========================================================================
 
@@ -3609,8 +3532,8 @@ void CommandManager::process_test(Context& context)
     auto peer = context.m_peer.lock();
     if (argv.size() == 1)
     {
-        std::string msg = "/test is now deprecated. Use /test *2 [something] [something]";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer,
+                "/test is now deprecated. Use /test *2 [something] [something]");
         return;
     }
     argv.resize(4, "");
@@ -3627,12 +3550,10 @@ void CommandManager::process_test(Context& context)
     std::string username = "Vote";
     if (peer.get() && peer->hasPlayerProfiles())
     {
-        username = StringUtils::wideToUtf8(
-            peer->getPlayerProfiles()[0]->getName());
+        username = peer->getMainName();
     }
     username = "{" + argv[1].substr(4) + "} " + username;
-    std::string msg = username + ", " + argv[2] + ", " + argv[3];
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers(username + ", " + argv[2] + ", " + argv[3]);
 } // process_test
 // ========================================================================
 
@@ -3645,18 +3566,18 @@ void CommandManager::process_slots(Context& context)
         return;
     }
     int current = getLobby()->m_current_max_players_in_game.load();
-    std::string msg = "Number of slots is currently " + std::to_string(current);
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, "Number of slots is currently " +
+            std::to_string(current));
 } // process_slots
 // ========================================================================
 
 void CommandManager::process_slots_assign(Context& context)
 {
-    if (ServerConfig::m_only_host_riding)
+    if (getSettings()->getOnlyHostRiding())
     {
-        std::string msg = "Changing slots is not possible in the singleplayer mode";
         auto peer = context.m_peer.lock(); // may be nullptr, here we don't care
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, 
+                "Changing slots is not possible in the singleplayer mode");
         return;
     }
     auto& argv = context.m_argv;
@@ -3664,7 +3585,7 @@ void CommandManager::process_slots_assign(Context& context)
     int number = 0;
     if (argv.size() < 2 || !StringUtils::parseString<int>(argv[1], &number))
         fail = true;
-    else if (number <= 0 || number > ServerConfig::m_server_max_players)
+    else if (number <= 0 || number > getSettings()->getServerMaxPlayers())
         fail = true;
     if (fail)
     {
@@ -3678,8 +3599,7 @@ void CommandManager::process_slots_assign(Context& context)
     }
     getLobby()->m_current_max_players_in_game.store((unsigned)number);
     getLobby()->updatePlayerList();
-    std::string msg = "Number of playable slots is now " + argv[1];
-    getLobby()->sendStringToAllPeers(msg);
+    getLobby()->sendStringToAllPeers("Number of playable slots is now " + argv[1]);
 } // process_slots_assign
 // ========================================================================
 
@@ -3691,8 +3611,7 @@ void CommandManager::process_time(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = "Server time: " + StkTime::getLogTime();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, "Server time: " + StkTime::getLogTime());
 } // process_time
 // ========================================================================
 
@@ -3718,7 +3637,7 @@ void CommandManager::process_result(Context& context)
     }
     else
         msg = "This command is not yet supported for this game mode";
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_result
 // ========================================================================
 
@@ -3730,8 +3649,7 @@ void CommandManager::process_preserve(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = getSettings()->getPreservedSettingsAsString();
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, getSettings()->getPreservedSettingsAsString());
 } // process_preserve
 // ========================================================================
 
@@ -3779,7 +3697,7 @@ void CommandManager::process_history(Context& context)
     std::vector<std::string> arenas = tournament->getMapHistory();
     for (unsigned i = 0; i < arenas.size(); i++)
         msg += StringUtils::insertValues(" [%d]: %s", i, arenas[i].c_str());
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_history
 // ========================================================================
 
@@ -3815,8 +3733,8 @@ void CommandManager::process_history_assign(Context& context)
         return;
     }
 
-    msg = StringUtils::insertValues("Assigned [%d] to %s in the map history", index, id.c_str());
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Assigned [%d] to %s in the map history", index, id.c_str()));
 } // process_history_assign
 // ========================================================================
 
@@ -3828,9 +3746,9 @@ void CommandManager::process_voting(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = StringUtils::insertValues("Voting method: %d",
-            getMapVoteHandler()->getAlgorithm());
-    getLobby()->sendStringToPeer(msg, peer);
+
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues("Voting method: %d",
+            getMapVoteHandler()->getAlgorithm()));
 } // process_voting
 // ========================================================================
 
@@ -3856,8 +3774,8 @@ void CommandManager::process_voting_assign(Context& context)
         return;
     }
     getMapVoteHandler()->setAlgorithm(value);
-    msg = StringUtils::insertValues("Set voting method to %s", value);
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Set voting method to %s", value));
 } // process_voting_assign
 // ========================================================================
 
@@ -3880,8 +3798,7 @@ void CommandManager::process_why_hourglass(Context& context)
             error(context);
             return;
         }
-        player_name = StringUtils::wideToUtf8(
-                peer->getPlayerProfiles()[0]->getName());
+        player_name = peer->getMainName();
     }
     else
     {
@@ -3900,6 +3817,7 @@ void CommandManager::process_why_hourglass(Context& context)
     auto it = getLobby()->m_why_peer_cannot_play.find(player_peer);
     if (it == getLobby()->m_why_peer_cannot_play.end())
     {
+        Log::error("CommandManager", "Hourglass status undefined for a player!");
         response = "For some reason, server doesn't know about the hourglass status of this player.";
     }
     else
@@ -3951,7 +3869,7 @@ void CommandManager::process_why_hourglass(Context& context)
         }
         response = StringUtils::insertValues(response, player_name.c_str());
     }
-    getLobby()->sendStringToPeer(response, peer);
+    getLobby()->sendStringToPeer(peer, response);
 } // process_why_hourglass
 // ========================================================================
 
@@ -3963,9 +3881,9 @@ void CommandManager::process_available_teams(Context& context)
         error(context, true);
         return;
     }
-    std::string msg = StringUtils::insertValues("Currently available teams: \"%s\"",
-            getSettings()->getInternalAvailableTeams().c_str());
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Currently available teams: \"%s\"",
+            getSettings()->getInternalAvailableTeams().c_str()));
 } // process_available_teams
 // ========================================================================
 
@@ -4013,7 +3931,7 @@ void CommandManager::process_available_teams_assign(Context& context)
     if (!ignored.empty())
         msg += StringUtils::insertValues(
                 ", but teams \"%s\" were not recognized", ignored);
-    getLobby()->sendStringToPeer(msg, peer);
+    getLobby()->sendStringToPeer(peer, msg);
 } // process_available_teams_assign
 // ========================================================================
 
@@ -4034,12 +3952,12 @@ void CommandManager::special(Context& context)
     Log::warn("CommandManager", "Command %s was invoked "
         "but not implemented or unavailable for this server",
         command->getFullName().c_str());
-    std::string msg = "This command (%s) is not implemented, or "
+
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+        "This command (%s) is not implemented, or "
         "not available for this server. "
         "If you believe that is a bug, please report it. Full input:\n"
-        "/%s";
-    msg = StringUtils::insertValues(msg, command->getFullName(), cmd);
-    getLobby()->sendStringToPeer(msg, peer);
+        "/%s", command->getFullName(), cmd));
 } // special
 // ========================================================================
 
@@ -4171,8 +4089,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         return false;
     std::string username = "";
     if (peer->hasPlayerProfiles())
-        username = StringUtils::wideToUtf8(
-            peer->getPlayerProfiles()[0]->getName());
+        username = peer->getMainName();
     auto it = m_user_last_correct_argument.find(username);
     if (it != m_user_last_correct_argument.end() &&
             std::make_pair(idx, subidx) <= it->second)
@@ -4189,8 +4106,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     auto closest_commands = stf.getClosest(text, top, case_sensitive);
     if (closest_commands.empty())
     {
-        std::string msg = "Command " + cmd + " not found";
-        getLobby()->sendStringToPeer(msg, peer);
+        getLobby()->sendStringToPeer(peer, "Command " + cmd + " not found");
         return true;
     }
     bool no_zeros = closest_commands[0].second != 0;
@@ -4227,7 +4143,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         }
         argv[idx] = initial_argument;
         CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
-        getLobby()->sendStringToPeer(response, peer);
+        getLobby()->sendStringToPeer(peer, response);
         return true;
     }
 

@@ -49,6 +49,7 @@
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/chat_manager.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/game_info.hpp"
 #include "utils/hit_processor.hpp"
@@ -262,9 +263,9 @@ void ServerLobby::initServerStatsTable()
  *  whenever server is reset or game mode is changed. */
 void ServerLobby::updateMapsForMode()
 {
-    RaceManager::MinorRaceModeType m =
-        ServerConfig::getLocalGameMode(m_game_mode.load()).first;
-    getAssetManager()->updateMapsForMode(m);
+    getAssetManager()->updateMapsForMode(
+        ServerConfig::getLocalGameMode(m_game_mode.load()).first
+    );
 }   // updateMapsForMode
 
 //-----------------------------------------------------------------------------
@@ -325,12 +326,13 @@ bool ServerLobby::notifyEvent(Event* event)
               message_type);
     switch (message_type)
     {
-    case LE_RACE_FINISHED_ACK: playerFinishedResult(event);   break;
-    case LE_LIVE_JOIN:         liveJoinRequest(event);        break;
+    case LE_RACE_FINISHED_ACK:   playerFinishedResult(event);          break;
+    case LE_LIVE_JOIN:           liveJoinRequest(event);               break;
     case LE_CLIENT_LOADED_WORLD: finishedLoadingLiveJoinClient(event); break;
-    case LE_KART_INFO: handleKartInfo(event); break;
-    case LE_CLIENT_BACK_LOBBY: clientInGameWantsToBackLobby(event); break;
-    default: Log::error("ServerLobby", "Unknown message of type %d - ignored.",
+    case LE_KART_INFO:           handleKartInfo(event);                break;
+    case LE_CLIENT_BACK_LOBBY:   clientInGameWantsToBackLobby(event);  break;
+    default:
+        Log::error("ServerLobby", "Unknown message of type %d - ignored.",
                         message_type);
              break;
     }   // switch message_type
@@ -340,186 +342,19 @@ bool ServerLobby::notifyEvent(Event* event)
 //-----------------------------------------------------------------------------
 void ServerLobby::handleChat(Event* event)
 {
-    if (!checkDataSize(event, 1) || !getSettings()->getChat()) return;
+    if (!checkDataSize(event, 1) || !getChatManager()->getChat()) return;
 
-    // Update so that the peer is not kicked
-    event->getPeer()->updateLastActivity();
-    const bool sender_in_game = event->getPeer()->isWaitingForGame();
-
-    int64_t last_message = event->getPeer()->getLastMessage();
-    int64_t elapsed_time = (int64_t)StkTime::getMonoTimeMs() - last_message;
-
-    // Read ServerConfig for formula and details
-    if (getSettings()->getChatConsecutiveInterval() > 0 &&
-        elapsed_time < getSettings()->getChatConsecutiveInterval() * 1000)
-        event->getPeer()->updateConsecutiveMessages(true);
-    else
-        event->getPeer()->updateConsecutiveMessages(false);
-
-    if (getSettings()->getChatConsecutiveInterval() > 0 &&
-        event->getPeer()->getConsecutiveMessages() >
-        getSettings()->getChatConsecutiveInterval() / 2)
-    {
-        std::string msg = "Spam detected";
-        sendStringToPeer(msg, event->getPeerSP());
-        return;
-    }
+    auto peer = event->getPeerSP();
 
     core::stringw message;
     event->data().decodeString16(&message, 360/*max_len*/);
-
-    // Check if the message starts with "(the name of main profile): " to prevent
-    // impersonation, see #5121.
-    std::string message_utf8 = StringUtils::wideToUtf8(message);
-    std::string prefix = StringUtils::wideToUtf8(
-        event->getPeer()->getPlayerProfiles()[0]->getName()) + ": ";
-    
-    if (!StringUtils::startsWith(message_utf8, prefix))
-    {
-        std::string warn = "Don't try to impersonate others!";
-        sendStringToPeer(warn, event->getPeerSP());
-        return;
-    }
 
     KartTeam target_team = KART_TEAM_NONE;
     if (event->data().size() > 0)
         target_team = (KartTeam)event->data().getUInt8();
 
-    if (message.size() > 0)
-    {
-        bool add_red_emoji = false;
-        bool add_blue_emoji = false;
-        // Red or blue square emoji
-        if (target_team == KART_TEAM_RED)
-            add_red_emoji = true;
-        else if (target_team == KART_TEAM_BLUE)
-            add_blue_emoji = true;
-
-        NetworkString* chat = getNetworkString();
-        chat->setSynchronous(true);
-        const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
-        std::shared_ptr<STKPeer> sender = event->getPeerSP();
-        auto can_receive = getSettings()->getMessageReceiversFor(sender);
-        if (!can_receive.empty())
-            message = StringUtils::utf32ToWide({0x1f512, 0x20}) + message;
-        bool team_speak = getSettings()->isTeamSpeaker(sender);
-        team_speak &= (
-            RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER ||
-            RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
-        );
-        std::set<KartTeam> teams;
-        for (auto& profile: sender->getPlayerProfiles())
-            teams.insert(profile->getTeam());
-        if (team_speak)
-        {
-            for (auto &team: teams)
-            {
-                if (team == KART_TEAM_RED)
-                    add_red_emoji = true;
-                else if (team == KART_TEAM_BLUE)
-                    add_blue_emoji = true;
-            }
-        }
-        if (add_blue_emoji)
-            message = StringUtils::utf32ToWide({0x1f7e6, 0x20}) + message;
-        if (add_red_emoji)
-            message = StringUtils::utf32ToWide({0x1f7e5, 0x20}) + message;
-        bool tournament_limit = false;
-        if (isTournament())
-            tournament_limit = !getTournament()->checkSenderInRefsOrPlayers(sender);
-        std::set<std::string> sees_teamchats;
-        if (isTournament())
-            sees_teamchats = getTournament()->getThoseWhoSeeTeamchats();
-            
-        // Note that mutealls are still spectators
-        std::set<std::string> important_players;
-        if (getTournament() && tournament_limit)
-        {
-            important_players = getTournament()->getImportantChatPlayers();
-        }
-        chat->addUInt8(LE_CHAT).encodeString16(message);
-        core::stringw sender_name =
-            event->getPeer()->getPlayerProfiles()[0]->getName();
-
-        STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, sender_in_game, target_team, can_receive,
-                sender, team_speak, teams, tournament_limit,
-                important_players, sender_name, sees_teamchats, this](std::shared_ptr<STKPeer> p)
-            {
-                if (sender == p)
-                    return true;
-                if (game_started)
-                {
-                    if (p->isWaitingForGame() && !sender_in_game)
-                        return false;
-                    if (!p->isWaitingForGame() && sender_in_game)
-                        return false;
-                    if (tournament_limit)
-                    {
-                        bool all_are_important = true;
-                        for (auto& player : p->getPlayerProfiles())
-                        {
-                            std::string name = StringUtils::wideToUtf8(
-                                player->getName());
-                            if (important_players.count(name) == 0)
-                            {
-                                all_are_important = false;
-                                break;
-                            }
-                        }
-                        if (all_are_important)
-                            return false;
-                    }
-                    if (target_team != KART_TEAM_NONE)
-                    {
-                        if (p->isSpectator())
-                            return false;
-                        bool someone_good = false;
-                        for (auto& player : p->getPlayerProfiles())
-                        {
-                            if (player->getTeam() == target_team)
-                                someone_good = true;
-                            std::string name = StringUtils::wideToUtf8(
-                                player->getName());
-                            if (sees_teamchats.count(name))
-                                someone_good = true;
-                        }
-                        if (!someone_good)
-                            return false;
-                    }
-                }
-                if (getSettings()->isMuting(p, sender_name))
-                    return false;
-                if (team_speak)
-                {
-                    bool someone_good = false;
-                    for (auto& profile: p->getPlayerProfiles())
-                    {
-                        if (teams.count(profile->getTeam()) > 0)
-                            someone_good = true;
-                        std::string name = StringUtils::wideToUtf8(
-                            profile->getName());
-                        if (sees_teamchats.count(name))
-                            someone_good = true;
-                    }
-                    if (!someone_good)
-                        return false;
-                }
-                if (can_receive.empty())
-                    return true;
-                for (auto& profile : p->getPlayerProfiles())
-                {
-                    if (can_receive.find(profile->getName()) !=
-                        can_receive.end())
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }, chat);
-        event->getPeer()->updateLastMessage();
-        delete chat;
-    }
+    getChatManager()->handleNormalChatMessage(peer,
+            StringUtils::wideToUtf8(message), target_team);
 }   // handleChat
 
 //-----------------------------------------------------------------------------
@@ -567,9 +402,7 @@ void ServerLobby::kickHost(Event* event)
         return;
     if (!getSettings()->getKicksAllowed())
     {
-        std::string msg = "Kicking players is not allowed on this server";
-        auto crown = event->getPeerSP();
-        sendStringToPeer(msg, crown);
+        sendStringToPeer(event->getPeerSP(), "Kicking players is not allowed on this server");
         return;
     }
     if (!checkDataSize(event, 4)) return;
@@ -581,10 +414,8 @@ void ServerLobby::kickHost(Event* event)
     {
         if (peer->isAngryHost())
         {
-            std::string msg = "This player is the owner of this server, "
-                "and is protected from your actions now";
-            auto crown = event->getPeerSP();
-            sendStringToPeer(msg, crown);
+            sendStringToPeer(event->getPeerSP(), "This player is the owner of this server, "
+                "and is protected from your actions now");
             return;
         }
         if (!peer->hasPlayerProfiles())
@@ -797,7 +628,7 @@ void ServerLobby::asynchronousUpdate()
         m_rs_state.store(RS_NONE);
     }
 
-    getSettings()->clearAllExpiredWeakPtrs();
+    getChatManager()->clearAllExpiredWeakPtrs();
 
 #ifdef ENABLE_SQLITE3
     pollDatabase();
@@ -1642,15 +1473,14 @@ void ServerLobby::update(int ticks)
                             break;
                         case 1:
                         {
-                            std::string msg = getSettings()->getTrollWarnMsg();
-                            sendStringToPeer(msg, peer);
-                            std::string player_name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+                            sendStringToPeer(peer, getSettings()->getTrollWarnMsg());
+                            std::string player_name = peer->getMainName();
                             Log::info("ServerLobby-AntiTroll", "Sent WARNING to %s", player_name.c_str());
                             break;
                         }
                         default:
                         {
-                            std::string player_name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+                            std::string player_name = peer->getMainName();
                             Log::info("ServerLobby-AntiTroll", "KICKING %s", player_name.c_str());
                             peer->kick();
                             break;
@@ -1676,8 +1506,7 @@ void ServerLobby::update(int ticks)
                     continue;
                 std::string peer_name = "";
                 if (peer->hasPlayerProfiles())
-                    peer_name = StringUtils::wideToUtf8(
-                            peer->getPlayerProfiles()[0]->getName()).c_str();
+                    peer_name = peer->getMainName().c_str();
                 Log::info("ServerLobby", "%s %s has been idle on the server for "
                         "more than %d seconds, kick.",
                         peer->getAddress().toString().c_str(), peer_name.c_str(), sec);
@@ -1943,14 +1772,12 @@ void ServerLobby::startSelection(const Event *event)
         {
             if (!getSettings()->isAllowedToStart())
             {
-                std::string msg = "Starting the game is forbidden by server owner";
-                sendStringToPeer(msg, peer);
+                sendStringToPeer(peer, "Starting the game is forbidden by server owner");
                 return;
             }
             if (!canRace(peer))
             {
-                std::string msg = "You cannot play so pressing ready has no action";
-                sendStringToPeer(msg, peer);
+                sendStringToPeer(peer, "You cannot play so pressing ready has no action");
                 return;
             }
             else
@@ -1963,8 +1790,7 @@ void ServerLobby::startSelection(const Event *event)
         }
         if (!getSettings()->isAllowedToStart())
         {
-            std::string msg = "Starting the game is forbidden by server owner";
-            sendStringToPeer(msg, peer);
+            sendStringToPeer(peer, "Starting the game is forbidden by server owner");
             return;
         }
         if (!hasHostRights(peer))
@@ -2062,8 +1888,7 @@ void ServerLobby::startSelection(const Event *event)
             // inside if to not produce log spam for ownerless
             Log::warn("ServerLobby",
                 "An attempt to start a game while no one can play.");
-            std::string msg = "No one can play!";
-            sendStringToPeer(msg, event->getPeerSP());
+            sendStringToPeer(event->getPeerSP(), "No one can play!");
         }
         addWaitingPlayersToGame();
         return;
@@ -2128,8 +1953,6 @@ void ServerLobby::startSelection(const Event *event)
 
     startVotingPeriod(getSettings()->getVotingTimeout());
 
-    std::string ignored_choice_string = "The server will ignore your kart choice";
-
     peers = STKHost::get()->getPeers();
     for (auto& peer: peers)
     {
@@ -2150,9 +1973,9 @@ void ServerLobby::startSelection(const Event *event)
 
 
         std::set<std::string> all_k = peer->getClientAssets().first;
-        std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+        std::string username = peer->getMainName();
         // std::string username = StringUtils::wideToUtf8(profile->getName());
-        applyAllKartFilters(username, all_k);
+        getAssetManager()->applyAllKartFilters(username, all_k);
 
         if (!getKartElimination()->getRemainingParticipants().empty() && getKartElimination()->getRemainingParticipants().count(username) == 0)
         {
@@ -2168,7 +1991,7 @@ void ServerLobby::startSelection(const Event *event)
         delete ns;
 
         if (getQueues()->areKartFiltersIgnoringKarts())
-            sendStringToPeer(ignored_choice_string, peer);
+            sendStringToPeer(peer, "The server will ignore your kart choice");
     }
 
     m_state = SELECTING;
@@ -2407,7 +2230,7 @@ void ServerLobby::checkRaceFinished()
     }
     m_state.store(WAIT_FOR_RACE_STOPPED);
 
-    m_map_history.push_back(RaceManager::get()->getTrackName());
+    getAssetManager()->gameFinishedOn(RaceManager::get()->getTrackName());
 
     getQueues()->popOnRaceFinished();
 }   // checkRaceFinished
@@ -2474,7 +2297,7 @@ void ServerLobby::clientDisconnected(Event* event)
 
     World* w = World::getWorld();
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
-    getSettings()->onPeerDisconnect(peer);
+    getChatManager()->onPeerDisconnect(peer);
      // No warnings otherwise, as it could happen during lobby period
     if (w && m_game_info)
         saveDisconnectingPeerInfo(peer);
@@ -2562,8 +2385,7 @@ bool ServerLobby::handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer>
     {
         if (peer->isValidated())
         {
-            std::string msg = "You deleted some assets that are required to stay on the server";
-            sendStringToPeer(msg, peer);
+            sendStringToPeer(peer, "You deleted some assets that are required to stay on the server");
             peer->kick();
         }
         else
@@ -2963,7 +2785,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 
     message_ack->addFloat(auto_start_timer)
         .addUInt32(getSettings()->getStateFrequency())
-        .addUInt8(getSettings()->getChat() ? 1 : 0)
+        .addUInt8(getChatManager()->getChat() ? 1 : 0)
         .addUInt8(playerReportsTableExists() ? 1 : 0);
 
     peer->setSpectator(false);
@@ -3065,7 +2887,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             msg = "Recording ghost replays is disabled. "
                 "The crowned player can change that "
                 "using /replay 0 (to disable) or /replay 1 (to enable). ";
-        sendStringToPeer(msg, peer);
+        sendStringToPeer(peer, msg);
     }
     getMessagesFromHost(peer, online_id);
 
@@ -3774,9 +3596,8 @@ void ServerLobby::getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_
     for (const auto& message: messages)
     {
         Log::info("ServerLobby", "A message from server was delivered");
-        std::string msg = "A message from the server (" +
-            std::string(message.timestamp) + "):\n" + std::string(message.message);
-        sendStringToPeer(msg, peer);
+        sendStringToPeer(peer, "A message from the server (" +
+            std::string(message.timestamp) + "):\n" + std::string(message.message));
         m_db_connector->deleteServerMessage(message.row_id);
     }
 #endif
@@ -3911,7 +3732,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
             msg = "This mode is not permitted on this server";
         else
             msg = "This difficulty is not permitted on this server";
-        sendStringToPeer(msg, peer);
+        sendStringToPeer(peer, msg);
         return;
     }
     auto modes = ServerConfig::getLocalGameMode(mode);
@@ -4009,13 +3830,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
         getKartElimination()->disable();
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
-        chat->encodeString16(
-                L"Gnu Elimination is disabled because of non-racing mode");
-        sendMessageToPeers(chat);
-        delete chat;
+        sendStringToAllPeers("Gnu Elimination is disabled because of non-racing mode");
     }
 }   // handleServerConfiguration
 //-----------------------------------------------------------------------------
@@ -4907,7 +4722,8 @@ void ServerLobby::changeColors()
     updatePlayerList();
 }   // changeColors
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer> peer)
+
+void ServerLobby::sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s)
 {
     if (!peer)
     {
@@ -4922,7 +4738,8 @@ void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer> peer
     delete chat;
 }   // sendStringToPeer
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToAllPeers(std::string& s)
+
+void ServerLobby::sendStringToAllPeers(const std::string& s)
 {
     NetworkString* chat = getNetworkString();
     chat->addUInt8(LE_CHAT);
@@ -4932,6 +4749,7 @@ void ServerLobby::sendStringToAllPeers(std::string& s)
     delete chat;
 }   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
+
 bool ServerLobby::canRace(std::shared_ptr<STKPeer> peer)
 {
     auto it = m_why_peer_cannot_play.find(peer);
@@ -4943,8 +4761,7 @@ bool ServerLobby::canRace(std::shared_ptr<STKPeer> peer)
         m_why_peer_cannot_play[peer] = HR_ABSENT_PEER;
         return false;
     }
-    std::string username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string username = peer->getMainName();
     if (getTournament() && !getTournament()->canPlay(username))
     {
         m_why_peer_cannot_play[peer] = HR_NOT_A_TOURNAMENT_PLAYER;
@@ -5000,8 +4817,8 @@ bool ServerLobby::canRace(std::shared_ptr<STKPeer> peer)
         return false;
     }
     
-    applyAllFilters(maps, true);
-    applyAllKartFilters(username, karts, false);
+    getAssetManager()->applyAllFilters(maps, true);
+    getAssetManager()->applyAllKartFilters(username, karts, false);
 
     if (karts.empty())
     {
@@ -5291,64 +5108,10 @@ void ServerLobby::resetGrandPrix()
 }   // resetGrandPrix
 //-----------------------------------------------------------------------------
 
-void ServerLobby::applyAllFilters(std::set<std::string>& maps, bool use_history) const
-{
-    unsigned max_player = 0;
-    STKHost::get()->updatePlayers(&max_player);
-    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
-    {
-        auto it = maps.begin();
-        while (it != maps.end())
-        {
-            Track* t = TrackManager::get()->getTrack(*it);
-            if (t && t->getMaxArenaPlayers() < max_player)
-            {
-                it = maps.erase(it);
-            }
-            else
-                it++;
-        }
-    }
-
-    // Please note that use_history refers to using queue filters too -
-    // calls with false only get map sets, etc
-    FilterContext map_context;
-    map_context.username = ""; // unused
-    map_context.num_players = max_player;
-    map_context.wildcards = m_map_history;
-    map_context.applied_at_selection_start = true;
-    map_context.elements = maps;
-    getSettings()->applyGlobalFilter(map_context);
-    
-    if (use_history)
-    {
-        if (isTournament())
-            getTournament()->applyFiltersForThisGame(map_context);
-        map_context.wildcards = m_map_history;
-        getQueues()->applyFrontMapFilters(map_context);
-    }
-    swap(maps, map_context.elements);
-}   // applyAllFilters
-//-----------------------------------------------------------------------------
-
-void ServerLobby::applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection) const
-{
-    FilterContext kart_context;
-    kart_context.username = username;
-    kart_context.num_players = 0; // unused
-    kart_context.wildcards = {}; // unused
-    kart_context.applied_at_selection_start = !afterSelection;
-    kart_context.elements = karts;
-
-    getSettings()->applyGlobalKartsFilter(kart_context);
-    getQueues()->applyFrontKartFilters(kart_context);
-    swap(karts, kart_context.elements);
-}   // applyAllKartFilters
-//-----------------------------------------------------------------------------
 std::string ServerLobby::getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, const std::string& username, const std::string& check_choice) const
 {
     std::set<std::string> karts = (peer->isAIPeer() ? getAssetManager()->getAvailableKarts() : peer->getClientAssets().first);
-    applyAllKartFilters(username, karts, true);
+    getAssetManager()->applyAllKartFilters(username, karts, true);
     if (getKartElimination()->isEliminated(username)
         && karts.count(getKartElimination()->getKart()))
     {

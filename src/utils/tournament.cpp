@@ -132,8 +132,7 @@ void Tournament::updateTournamentRole(std::shared_ptr<STKPeer> peer)
 {
     if (peer->getPlayerProfiles().empty())
         return;
-    std::string utf8_online_name = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string utf8_online_name = peer->getMainName();
     for (auto& player: peer->getPlayerProfiles())
     {
         core::stringw name = player->getName();
@@ -296,7 +295,7 @@ void Tournament::initTournamentPlayers()
     }
     else
         m_length = 10;
-    ServerConfig::m_fixed_lap_count = m_length;
+    getSettings()->setFixedLapCount(m_length);
 
     m_game_limits = general[2];
     m_colors = general[3];
@@ -317,8 +316,7 @@ bool Tournament::canPlay(const std::string& username) const
 
 bool Tournament::canVote(std::shared_ptr<STKPeer> peer) const
 {
-    std::string username = StringUtils::wideToUtf8(
-            peer->getPlayerProfiles()[0]->getName());
+    std::string username = peer->getMainName();
     
     bool first = m_red_players.count(username) > 0;
     bool second = m_blue_players.count(username) > 0;
@@ -333,16 +331,14 @@ bool Tournament::canVote(std::shared_ptr<STKPeer> peer) const
 
 bool Tournament::hasHostRights(std::shared_ptr<STKPeer> peer)
 {
-    std::string username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string username = peer->getMainName();
     return m_referees.count(username) > 0;
 }   // hasHostRights
 //-----------------------------------------------------------------------------
 
 bool Tournament::hasHammerRights(std::shared_ptr<STKPeer> peer)
 {
-    std::string username = StringUtils::wideToUtf8(
-        peer->getPlayerProfiles()[0]->getName());
+    std::string username = peer->getMainName();
     return m_referees.count(username) > 0;
 }   // hasHammerRights
 //-----------------------------------------------------------------------------
@@ -365,7 +361,7 @@ int Tournament::getNextGameNumber() const
 
 int Tournament::getDefaultDuration() const
 {
-    return ServerConfig::m_fixed_lap_count;
+    return getSettings()->getFixedLapCount();
 }   // getDefaultDuration
 //-----------------------------------------------------------------------------
 
@@ -452,4 +448,62 @@ bool Tournament::assignToHistory(int index, const std::string& map_id)
     m_arenas[index] = map_id;
     return true;
 }   // assignToHistory
+//-----------------------------------------------------------------------------
+
+bool Tournament::peerHasOnlyImportantProfiles(std::shared_ptr<STKPeer> peer) const
+{
+    // This has to be called much rarer than once per call
+    std::set<std::string> important = getImportantChatPlayers();
+
+    for (auto& player : peer->getPlayerProfiles())
+    {
+        std::string name = StringUtils::wideToUtf8(
+            player->getName());
+        if (important.count(name) == 0)
+        {
+            return false;
+        }
+    }
+    return true;
+}   // peerHasOnlyImportantProfiles
+//-----------------------------------------------------------------------------
+
+bool Tournament::cannotSendForSureDueToRoles(std::shared_ptr<STKPeer> sender,
+                                   std::shared_ptr<STKPeer> target) const
+{
+    if (checkSenderInRefsOrPlayers(sender))
+        return false;
+    if (peerHasOnlyImportantProfiles(target))
+        return true;
+
+    return false;
+}   // cannotSendForSureDueToRoles
+//-----------------------------------------------------------------------------
+
+bool Tournament::hasProfileThatSeesTeamchats(std::shared_ptr<STKPeer> peer) const
+{
+    // shouldn't be done once per call - obviously I could just say they should be
+    // referees, but what if I change it? Better to rework it separately
+    std::set<std::string> those_who_see_teamchats = getThoseWhoSeeTeamchats();
+
+    for (auto& player : peer->getPlayerProfiles())
+    {
+        std::string name = StringUtils::wideToUtf8(
+            player->getName());
+        if (those_who_see_teamchats.count(name))
+            return true;
+    }
+    return false;
+}   // hasProfileThatSeesTeamchats
+//-----------------------------------------------------------------------------
+
+bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team) const
+{
+    for (auto& player : peer->getPlayerProfiles())
+    {
+        if (player->getTeam() == target_team)
+            return true;
+    }
+    return false;
+}   // hasProfileFromTeam
 //-----------------------------------------------------------------------------

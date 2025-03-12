@@ -74,15 +74,9 @@ void LobbySettings::setupContextUser()
 
     m_live_players = ServerConfig::m_live_players;
 
-    m_addon_arenas_play_threshold    = ServerConfig::m_addon_arenas_play_threshold;
-    m_addon_karts_play_threshold     = ServerConfig::m_addon_karts_play_threshold;
-    m_addon_soccers_play_threshold   = ServerConfig::m_addon_soccers_play_threshold;
-    m_addon_tracks_play_threshold    = ServerConfig::m_addon_tracks_play_threshold;
     m_ai_anywhere                    = ServerConfig::m_ai_anywhere;
     m_ai_handling                    = ServerConfig::m_ai_handling;
     m_capture_limit                  = ServerConfig::m_capture_limit;
-    m_chat                           = ServerConfig::m_chat;
-    m_chat_consecutive_interval      = ServerConfig::m_chat_consecutive_interval;
     m_expose_mobile                  = ServerConfig::m_expose_mobile;
     m_firewalled_server              = ServerConfig::m_firewalled_server;
     m_flag_deactivated_time          = ServerConfig::m_flag_deactivated_time;
@@ -126,6 +120,18 @@ void LobbySettings::setupContextUser()
     m_validating_player              = ServerConfig::m_validating_player;
     m_voting_timeout                 = ServerConfig::m_voting_timeout;
     m_commands_file                  = ServerConfig::m_commands_file;
+    m_addon_karts_join_threshold     = ServerConfig::m_addon_karts_join_threshold;
+    m_addon_tracks_join_threshold    = ServerConfig::m_addon_tracks_join_threshold;
+    m_addon_arenas_join_threshold    = ServerConfig::m_addon_arenas_join_threshold;
+    m_addon_soccers_join_threshold   = ServerConfig::m_addon_soccers_join_threshold;
+    m_addon_arenas_play_threshold    = ServerConfig::m_addon_arenas_play_threshold;
+    m_addon_karts_play_threshold     = ServerConfig::m_addon_karts_play_threshold;
+    m_addon_soccers_play_threshold   = ServerConfig::m_addon_soccers_play_threshold;
+    m_addon_tracks_play_threshold    = ServerConfig::m_addon_tracks_play_threshold;
+    m_power_password                 = ServerConfig::m_power_password;
+    m_register_table_name            = ServerConfig::m_register_table_name;
+    m_official_karts_threshold       = ServerConfig::m_official_karts_threshold;
+    m_official_tracks_threshold      = ServerConfig::m_official_tracks_threshold;
 }   // setupContextUser
 //-----------------------------------------------------------------------------
 
@@ -297,104 +303,6 @@ int LobbySettings::getTeamForUsername(const std::string& name)
         return TeamUtils::NO_TEAM;
     return it->second;
 }   // getTeamForUsername
-//-----------------------------------------------------------------------------
-
-void LobbySettings::addMutedPlayerFor(std::shared_ptr<STKPeer> peer,
-                                      const irr::core::stringw& name)
-{
-    m_peers_muted_players[std::weak_ptr<STKPeer>(peer)].insert(name);
-}   // addMutedPlayerFor
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::removeMutedPlayerFor(std::shared_ptr<STKPeer> peer,
-                                         const irr::core::stringw& name)
-{
-    // I'm not sure why the implementation was so long
-    auto& collection = m_peers_muted_players[std::weak_ptr<STKPeer>(peer)];
-    for (auto it = collection.begin(); it != collection.end(); )
-    {
-        if (*it == name)
-        {
-            it = collection.erase(it);
-            return true;
-        }
-        else
-            it++;
-    }
-    return false;
-}   // removeMutedPlayerFor
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::isMuting(std::shared_ptr<STKPeer> peer,
-                             const irr::core::stringw& name) const
-{
-    auto it = m_peers_muted_players.find(std::weak_ptr<STKPeer>(peer));
-    if (it == m_peers_muted_players.end())
-        return false;
-    
-    return it->second.find(name) != it->second.end();
-}   // isMuting
-//-----------------------------------------------------------------------------
-
-std::string LobbySettings::getMutedPlayersAsString(std::shared_ptr<STKPeer> peer)
-{
-    std::string response;
-    int num_players = 0;
-    for (auto& name : m_peers_muted_players[std::weak_ptr<STKPeer>(peer)])
-    {
-        response += StringUtils::wideToUtf8(name);
-        response += " ";
-        ++num_players;
-    }
-    if (num_players == 0)
-        response = "No player has been muted by you";
-    else
-    {
-        response += (num_players == 1 ? "is" : "are");
-        response += StringUtils::insertValues(" muted (total: %s)", num_players);
-    }
-    return response;
-}   // getMutedPlayersAsString
-//-----------------------------------------------------------------------------
-
-void LobbySettings::addTeamSpeaker(std::shared_ptr<STKPeer> peer)
-{
-    m_team_speakers.insert(peer);
-}   // addTeamSpeaker
-//-----------------------------------------------------------------------------
-
-void LobbySettings::setMessageReceiversFor(std::shared_ptr<STKPeer> peer,
-    const std::vector<std::string>& receivers)
-{
-    auto& thing = m_message_receivers[peer];
-    thing.clear();
-    for (unsigned i = 0; i < receivers.size(); ++i)
-        thing.insert(StringUtils::utf8ToWide(receivers[i]));
-}   // setMessageReceiversFor
-//-----------------------------------------------------------------------------
-
-std::set<irr::core::stringw> LobbySettings::getMessageReceiversFor(
-        std::shared_ptr<STKPeer> peer) const
-{
-    auto it = m_message_receivers.find(peer);
-    if (it == m_message_receivers.end())
-        return {};
-
-    return it->second;
-}   // getMessageReceiversFor
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::isTeamSpeaker(std::shared_ptr<STKPeer> peer) const
-{
-    return m_team_speakers.find(peer) != m_team_speakers.end();
-}   // isTeamSpeaker
-//-----------------------------------------------------------------------------
-
-void LobbySettings::makeChatPublicFor(std::shared_ptr<STKPeer> peer)
-{
-    m_message_receivers[peer].clear();
-    m_team_speakers.erase(peer);
-}   // makeChatPublicFor
 //-----------------------------------------------------------------------------
 
 bool LobbySettings::hasNoLapRestrictions() const
@@ -712,19 +620,6 @@ void LobbySettings::insertIntoPreserved(const std::string& value)
 }   // insertIntoPreserved
 //-----------------------------------------------------------------------------
 
-void LobbySettings::clearAllExpiredWeakPtrs()
-{
-    for (auto it = m_peers_muted_players.begin();
-        it != m_peers_muted_players.end();)
-    {
-        if (it->first.expired())
-            it = m_peers_muted_players.erase(it);
-        else
-            it++;
-    }
-}   // clearAllExpiredWeakPtrs
-//-----------------------------------------------------------------------------
-
 void LobbySettings::initializeDefaultVote()
 {
     m_default_vote->m_track_name = getAssetManager()->getRandomAvailableMap();
@@ -885,13 +780,6 @@ PeerVote LobbySettings::getDefaultVote() const
 {
     return *m_default_vote;
 }   // getDefaultVote
-//-----------------------------------------------------------------------------
-
-
-void LobbySettings::onPeerDisconnect(std::shared_ptr<STKPeer> peer)
-{
-    m_message_receivers.erase(peer);
-}   // onPeerDisconnect
 //-----------------------------------------------------------------------------
 
 bool LobbySettings::isInWhitelist(const std::string& username) const

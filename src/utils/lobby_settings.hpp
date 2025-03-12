@@ -69,20 +69,6 @@ public:
 
     std::string getHelpMessage() const               { return m_help_message; }
     std::string getMotd() const                              { return m_motd; }
-    void addMutedPlayerFor(std::shared_ptr<STKPeer> peer,
-                           const irr::core::stringw& name);
-    bool removeMutedPlayerFor(std::shared_ptr<STKPeer> peer,
-                           const irr::core::stringw& name);
-    bool isMuting(std::shared_ptr<STKPeer> peer,
-                           const irr::core::stringw& name) const;
-    std::string getMutedPlayersAsString(std::shared_ptr<STKPeer> peer);
-    void addTeamSpeaker(std::shared_ptr<STKPeer> peer);
-    void setMessageReceiversFor(std::shared_ptr<STKPeer> peer,
-                                    const std::vector<std::string>& receivers);
-    std::set<irr::core::stringw> getMessageReceiversFor(
-                                          std::shared_ptr<STKPeer> peer) const;
-    bool isTeamSpeaker(std::shared_ptr<STKPeer> peer) const;
-    void makeChatPublicFor(std::shared_ptr<STKPeer> peer);
     bool hasNoLapRestrictions() const;
     bool hasMultiplier() const;
     bool hasFixedLapCount() const;
@@ -117,7 +103,6 @@ public:
     std::string getPreservedSettingsAsString() const;
     void eraseFromPreserved(const std::string& value);
     void insertIntoPreserved(const std::string& value);
-    void clearAllExpiredWeakPtrs();
     void initializeDefaultVote();
     void applyGlobalFilter(FilterContext& map_context) const;
     void applyGlobalKartsFilter(FilterContext& kart_context) const;
@@ -125,7 +110,6 @@ public:
     void encodeDefaultVote(NetworkString* ns) const;
     void setDefaultVote(PeerVote winner_vote);
     PeerVote getDefaultVote() const;
-    void onPeerDisconnect(std::shared_ptr<STKPeer> peer);
     bool isInWhitelist(const std::string& username) const;
     bool isModeAvailable(int mode) const;
     bool isDifficultyAvailable(int difficulty) const;
@@ -148,15 +132,9 @@ public:
 
     // These were used unchanged from ServerConfig
     bool isLivePlayers() const                       { return m_live_players; }
-    int getAddonArenasPlayThreshold()      const { return m_addon_arenas_play_threshold;    }
-    int getAddonKartsPlayThreshold()       const { return m_addon_karts_play_threshold;     }
-    int getAddonSoccersPlayThreshold()     const { return m_addon_soccers_play_threshold;   }
-    int getAddonTracksPlayThreshold()      const { return m_addon_tracks_play_threshold;    }
     bool canConnectAiAnywhere()            const { return m_ai_anywhere;                    }
     bool getAiHandling()                   const { return m_ai_handling;                    }
     int getCaptureLimit()                  const { return m_capture_limit;                  }
-    bool getChat()                         const { return m_chat;                           }
-    int getChatConsecutiveInterval()       const { return m_chat_consecutive_interval;      }
     bool getExposeMobile()                 const { return m_expose_mobile;                  }
     bool getFirewalledServer()             const { return m_firewalled_server;              }
     float getFlagDeactivatedTime()         const { return m_flag_deactivated_time;          }
@@ -200,6 +178,18 @@ public:
     bool getValidatingPlayer()             const { return m_validating_player;              }
     float getVotingTimeout()               const { return m_voting_timeout;                 }
     std::string getCommandsFile()          const { return m_commands_file;                  }
+    int getAddonKartsJoinThreshold()       const { return m_addon_karts_join_threshold;     }
+    int getAddonTracksJoinThreshold()      const { return m_addon_tracks_join_threshold;    }
+    int getAddonArenasJoinThreshold()      const { return m_addon_arenas_join_threshold;    }
+    int getAddonSoccersJoinThreshold()     const { return m_addon_soccers_join_threshold;   }
+    int getAddonKartsPlayThreshold()       const { return m_addon_karts_play_threshold;     }
+    int getAddonTracksPlayThreshold()      const { return m_addon_tracks_play_threshold;    }
+    int getAddonArenasPlayThreshold()      const { return m_addon_arenas_play_threshold;    }
+    int getAddonSoccersPlayThreshold()     const { return m_addon_soccers_play_threshold;   }
+    std::string getPowerPassword()         const { return m_power_password;                 }
+    std::string getRegisterTableName()     const { return m_register_table_name;            }
+    float getOfficialKartsThreshold()      const { return m_official_karts_threshold;       }
+    float getOfficialTracksThreshold()     const { return m_official_tracks_threshold;      }
 
 private:
     GameSetup* m_game_setup;
@@ -252,15 +242,9 @@ private:
 
     bool m_live_players;
 
-    int m_addon_arenas_play_threshold;
-    int m_addon_karts_play_threshold;
-    int m_addon_soccers_play_threshold;
-    int m_addon_tracks_play_threshold;
     bool m_ai_anywhere;
     bool m_ai_handling;
     int m_capture_limit;
-    bool m_chat;
-    int m_chat_consecutive_interval;
     bool m_expose_mobile;
     bool m_firewalled_server;
     float m_flag_deactivated_time;
@@ -304,7 +288,18 @@ private:
     bool m_validating_player;
     float m_voting_timeout;
     std::string m_commands_file;
-
+    int m_addon_karts_join_threshold;
+    int m_addon_tracks_join_threshold;
+    int m_addon_arenas_join_threshold;
+    int m_addon_soccers_join_threshold;
+    int m_addon_arenas_play_threshold;
+    int m_addon_karts_play_threshold;
+    int m_addon_soccers_play_threshold;
+    int m_addon_tracks_play_threshold;
+    std::string m_power_password;
+    std::string m_register_table_name;
+    float m_official_karts_threshold;
+    float m_official_tracks_threshold;
 
 
 // These should be moved to voting manager ====================================
@@ -314,16 +309,6 @@ private:
     PeerVote* m_default_vote;
 
     uint32_t m_winner_peer_id;
-
-
-// These should be moved to chat handler ======================================
-
-    std::map<std::weak_ptr<STKPeer>, std::set<irr::core::stringw>,
-        std::owner_less<std::weak_ptr<STKPeer> > > m_peers_muted_players;
-
-    std::map<std::shared_ptr<STKPeer>, std::set<irr::core::stringw>> m_message_receivers;
-
-    std::set<std::shared_ptr<STKPeer>> m_team_speakers;
 
 
 // These should be moved to category and team manager =========================
