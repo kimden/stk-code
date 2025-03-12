@@ -38,6 +38,8 @@ namespace
         return kart->getAttachment()->getType();
     }
 
+    const float g_hit_message_delay = 1.5f;
+
 }   // namespace
 //-----------------------------------------------------------------------------
 
@@ -46,6 +48,7 @@ void HitProcessor::setupContextUser()
     m_troll_active = ServerConfig::m_troll_active;
     m_show_hits = ServerConfig::m_show_teammate_hits;
     m_hit_mode = ServerConfig::m_teammate_hit_mode;
+    m_message_prefix = ServerConfig::m_teammate_hit_msg_prefix;
     m_last_hit_msg = 0;
     m_swatter_punish.clear();
 
@@ -93,7 +96,7 @@ void HitProcessor::sendTeammateHitMsg(std::string& s)
         return;
 
     int ticks = w->getTicksSinceStart();
-    if (ticks - m_last_hit_msg > stk_config->time2Ticks(1.5f))
+    if (ticks - m_last_hit_msg > stk_config->time2Ticks(g_hit_message_delay))
     {
         m_last_hit_msg = ticks;
         getLobby()->sendStringToAllPeers(s);
@@ -134,7 +137,7 @@ void HitProcessor::processHitMessage(const std::string& owner_name, int owner_te
 {
     // prepare string
     int num_victims = 0;
-    std::string msg = ServerConfig::m_teammate_hit_msg_prefix;
+    std::string msg = m_message_prefix;
     std::string victims;
     msg += owner_name;
     msg += " just shot ";
@@ -239,7 +242,7 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
     {
         std::string msg = StringUtils::insertValues(
             "%s%s just swattered teammate %s",
-            std::string(ServerConfig::m_teammate_hit_msg_prefix).c_str(),
+            m_message_prefix.c_str(),
             owner_name.c_str(),
             victim_name.c_str()
         );
@@ -285,7 +288,7 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
     {
         std::string msg = StringUtils::insertValues(
             "%s%s just gave an anchor to teammate %s",
-            std::string(ServerConfig::m_teammate_hit_msg_prefix).c_str(),
+            m_message_prefix.c_str(),
             owner_name.c_str(),
             victim_name.c_str()
         );

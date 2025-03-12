@@ -210,8 +210,6 @@ private:
 
     std::set<std::string> m_temp_banned;
 
-    std::vector<std::string> m_map_history;
-
     std::map<std::string, GPScore> m_gp_scores;
 
     std::map<int, GPScore> m_gp_team_scores;
@@ -359,8 +357,10 @@ public:
         const std::string& info);
     // int getTrackMaxPlayers(std::string& name) const;
     void updateGnuElimination();
-    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer> peer);
-    void sendStringToAllPeers(std::string& s);
+
+    void sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s);
+    void sendStringToAllPeers(const std::string& s);
+
     int getPermissions(std::shared_ptr<STKPeer> peer) const;
     bool isSoccerGoalTarget() const;
 
@@ -375,8 +375,6 @@ public:
     void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
-    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
-    void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
     bool areKartFiltersIgnoringKarts() const;
     std::string getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, const std::string& username, const std::string& check_choice) const;
     void setKartDataProperly(KartData& kart_data, const std::string& kart_name,

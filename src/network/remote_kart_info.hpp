@@ -38,6 +38,18 @@ enum KartTeam : int8_t
     KART_TEAM_BLUE=1,
 };
 
+struct KartTeamSet
+{
+    int state;
+    KartTeamSet(int x = 0): state(x) {}
+    KartTeamSet add       (KartTeam team)   const { return KartTeamSet(state | (1 << (team + 1)));  }
+    KartTeamSet remove    (KartTeam team)   const { return KartTeamSet(state & ~(1 << (team + 1))); }
+    KartTeamSet flip      (KartTeam team)   const { return KartTeamSet(state ^ (1 << (team + 1)));  }
+    bool        has       (KartTeam team)   const { return ((state >> (team + 1)) & 1);             }
+    KartTeamSet intersect (KartTeamSet rhs) const { return KartTeamSet(state & rhs.state);          }
+    bool        empty     ()                const { return state == 0;                              }
+};
+
 /** Handicap per player. */
 enum HandicapLevel : uint8_t
 {

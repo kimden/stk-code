@@ -51,6 +51,8 @@ private:
     bool m_show_hits; // Whether to show messages about team hits.
 
     bool m_hit_mode;  // Whether to anvil the team hitters.
+
+    std::string m_message_prefix;
     
     int m_last_hit_msg; // Last tick when the message was shown.
 

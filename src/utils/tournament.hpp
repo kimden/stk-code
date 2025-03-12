@@ -86,6 +86,14 @@ public:
 
     float getExtraSeconds() const { return m_extra_seconds; }
 
+    bool peerHasOnlyImportantProfiles(std::shared_ptr<STKPeer> peer) const;
+
+    bool cannotSendForSureDueToRoles(std::shared_ptr<STKPeer> sender,
+                                     std::shared_ptr<STKPeer> target) const;
+
+    bool hasProfileThatSeesTeamchats(std::shared_ptr<STKPeer> peer) const;
+    bool hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team) const;
+
 private:
 
     std::set<std::string> m_red_players;
