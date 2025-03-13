@@ -145,7 +145,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
         ns->addUInt8(0).addFloat(0.0f);
 
     ns->encodeString16(m_message_of_today);
-    ns->addUInt8((uint8_t)getSettings()->getServerConfigurable());
+    ns->addUInt8((uint8_t)getSettings()->isServerConfigurable());
     ns->addUInt8(getSettings()->isLivePlayers() ? 1 : 0);
 }   // addServerInfo
 

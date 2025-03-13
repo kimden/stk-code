@@ -108,52 +108,55 @@ public:
 
     void onServerSetup();
 
+    void tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
+                         std::shared_ptr<STKPeer> target) const;
+
     // These were used unchanged from ServerConfig
-    bool isLivePlayers() const                       { return m_live_players; }
+    bool isLivePlayers()                   const { return m_live_players;                   }
     bool canConnectAiAnywhere()            const { return m_ai_anywhere;                    }
-    bool getAiHandling()                   const { return m_ai_handling;                    }
+    bool hasAiHandling()                   const { return m_ai_handling;                    }
     int getCaptureLimit()                  const { return m_capture_limit;                  }
-    bool getExposeMobile()                 const { return m_expose_mobile;                  }
-    bool getFirewalledServer()             const { return m_firewalled_server;              }
+    bool isExposingMobile()                const { return m_expose_mobile;                  }
+    bool isFirewalledServer()              const { return m_firewalled_server;              }
     float getFlagDeactivatedTime()         const { return m_flag_deactivated_time;          }
     float getFlagReturnTimeout()           const { return m_flag_return_timeout;            }
-    bool getFreeTeams()                    const { return m_free_teams;                     }
-    bool getHighPingWorkaround()           const { return m_high_ping_workaround;           }
+    bool hasFreeTeams()                    const { return m_free_teams;                     }
+    bool hasHighPingWorkaround()           const { return m_high_ping_workaround;           }
     int getHitLimit()                      const { return m_hit_limit;                      }
     std::string getIncompatibleAdvice()    const { return m_incompatible_advice;            }
     int getJitterTolerance()               const { return m_jitter_tolerance;               }
     int getKickIdleLobbyPlayerSeconds()    const { return m_kick_idle_lobby_player_seconds; }
     int getKickIdlePlayerSeconds()         const { return m_kick_idle_player_seconds;       }
-    bool getKicksAllowed()                 const { return m_kicks_allowed;                  }
+    bool hasKicksAllowed()                 const { return m_kicks_allowed;                  }
     int getMaxPing()                       const { return m_max_ping;                       }
     int getMinStartGamePlayers()           const { return m_min_start_game_players;         }
     float getOfficialKartsPlayThreshold()  const { return m_official_karts_play_threshold;  }
     float getOfficialTracksPlayThreshold() const { return m_official_tracks_play_threshold; }
-    bool getOnlyHostRiding()               const { return m_only_host_riding;               }
-    bool getOwnerLess()                    const { return m_owner_less;                     }
-    bool getPreserveBattleScores()         const { return m_preserve_battle_scores;         }
+    bool hasOnlyHostRiding()               const { return m_only_host_riding;               }
+    bool isOwnerLess()                     const { return m_owner_less;                     }
+    bool isPreservingBattleScores()        const { return m_preserve_battle_scores;         }
     std::string getPrivateServerPassword() const { return m_private_server_password;        }
-    bool getRanked()                       const { return m_ranked;                         }
-    bool getRealAddonKarts()               const { return m_real_addon_karts;               }
-    bool getRecordReplays()                const { return m_record_replays;                 }
-    bool getServerConfigurable()           const { return m_server_configurable;            }
+    bool isRanked()                        const { return m_ranked;                         }
+    bool usesRealAddonKarts()              const { return m_real_addon_karts;               }
+    bool isRecordingReplays()              const { return m_record_replays;                 }
+    bool isServerConfigurable()            const { return m_server_configurable;            }
     int getServerDifficulty()              const { return m_server_difficulty;              }
     int getServerMaxPlayers()              const { return m_server_max_players;             }
     int getServerMode()                    const { return m_server_mode;                    }
-    bool getSleepingServer()               const { return m_sleeping_server;                }
-    bool getSoccerGoalTarget()             const { return m_soccer_goal_target;             }
-    bool getSqlManagement()                const { return m_sql_management;                 }
+    bool isSleepingServer()                const { return m_sleeping_server;                }
+    bool isSoccerGoalTargetInConfig()      const { return m_soccer_goal_target;             }
+    bool hasSqlManagement()                const { return m_sql_management;                 }
     float getStartGameCounter()            const { return m_start_game_counter;             }
     int getStateFrequency()                const { return m_state_frequency;                }
-    bool getStoreResults()                 const { return m_store_results;                  }
-    bool getStrictPlayers()                const { return m_strict_players;                 }
-    bool getTeamChoosing()                 const { return m_team_choosing;                  }
+    bool isStoringResults()                const { return m_store_results;                  }
+    bool hasStrictPlayers()                const { return m_strict_players;                 }
+    bool hasTeamChoosing()                 const { return m_team_choosing;                  }
     int getTimeLimitCtf()                  const { return m_time_limit_ctf;                 }
     int getTimeLimitFfa()                  const { return m_time_limit_ffa;                 }
-    bool getTrackKicks()                   const { return m_track_kicks;                    }
-    bool getTrackVoting()                  const { return m_track_voting;                   }
+    bool isTrackingKicks()                 const { return m_track_kicks;                    }
+    bool hasTrackVoting()                  const { return m_track_voting;                   }
     std::string getTrollWarnMsg()          const { return m_troll_warn_msg;                 }
-    bool getValidatingPlayer()             const { return m_validating_player;              }
+    bool isValidatingPlayer()              const { return m_validating_player;              }
     float getVotingTimeout()               const { return m_voting_timeout;                 }
     std::string getCommandsFile()          const { return m_commands_file;                  }
     int getAddonKartsJoinThreshold()       const { return m_addon_karts_join_threshold;     }

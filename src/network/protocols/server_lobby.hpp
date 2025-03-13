@@ -234,7 +234,11 @@ private:
     void handleChat(Event* event);
     void unregisterServer(bool now,
         std::weak_ptr<ServerLobby> sl = std::weak_ptr<ServerLobby>());
+
+public: // I'll see if it should be private later
     void updatePlayerList(bool update_when_reset_server = false);
+
+private:
     void updateServerOwner(bool force = false);
     void handleServerConfiguration(Event* event);
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
@@ -287,8 +291,13 @@ private:
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
         bool live_join) const;
     void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
-    bool handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer> peer);
-    void handleServerCommand(Event* event, std::shared_ptr<STKPeer> peer);
+    bool handleAssets(Event* event);
+
+    bool handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
+            const std::set<std::string>& client_karts,
+            const std::set<std::string>& client_maps);
+    
+    void handleServerCommand(Event* event);
     void liveJoinRequest(Event* event);
     void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
     bool canLiveJoinNow() const;
@@ -391,6 +400,8 @@ public:
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
 
     std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
+    std::shared_ptr<STKPeer> getServerOwner() const
+                                              { return m_server_owner.lock(); }
 
     // Functions that arose from requests separation
     void setServerOnlineId(uint32_t id)       { m_server_id_online.store(id); }
