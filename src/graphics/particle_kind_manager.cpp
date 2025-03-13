@@ -86,7 +86,7 @@ ParticleKind* ParticleKindManager::getParticles(const std::string &name)
     {
         try
         {
-            Track* t = track_manager->getTrack(RaceManager::get()->getTrackName());
+            Track* t = TrackManager::get()->getTrack(RaceManager::get()->getTrackName());
             if (t)
             {
                 ParticleKind* newkind = new ParticleKind(t->getTrackFile(name));

@@ -25,6 +25,7 @@
 #include "challenges/unlock_manager.hpp"
 #include "config/user_config.hpp"
 #include "graphics/camera/camera.hpp"
+#include "graphics/camera/camera_normal.hpp"
 #include "graphics/central_settings.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/material.hpp"
@@ -138,7 +139,7 @@ World::World() : WorldStatus()
     m_schedule_exit_race = false;
     m_schedule_tutorial  = false;
     m_is_network_world   = false;
-    m_snap_camera        = false;
+    m_restart_camera        = false;
 
     m_stop_music_when_dialog_open = true;
 
@@ -176,7 +177,7 @@ void World::init()
     RewindManager::create();
     main_loop->renderGUI(1100);
     // Grab the track file
-    Track *track = track_manager->getTrack(RaceManager::get()->getTrackName());
+    Track *track = TrackManager::get()->getTrack(RaceManager::get()->getTrackName());
     if (m_process_type == PT_MAIN)
     {
         Scripting::ScriptEngine::getInstance<Scripting::ScriptEngine>();
@@ -408,7 +409,7 @@ void World::reset(bool restart)
 
     if (restart)
     {
-        m_snap_camera = true;
+        m_restart_camera = true;
     }
     // Note: track reset must be called after all karts exist, since check
     // objects need to allocate data structures depending on the number
@@ -915,7 +916,8 @@ void World::resetAllKarts()
     {
         for(unsigned int i=0; i<Camera::getNumCameras(); i++)
         {
-            Camera::getCamera(i)->setInitialTransform();
+            Camera* cam = Camera::getCamera(i);
+            cam->setInitialTransform();
         }
     }
 }   // resetAllKarts
@@ -1180,12 +1182,13 @@ void World::update(int ticks)
     }
 #endif
 
-    if (m_snap_camera)
+   if (m_restart_camera)
     {
-        m_snap_camera = false;
+        m_restart_camera = false;
         for(unsigned int i=0; i<Camera::getNumCameras(); i++)
         {
-            //Camera::getCamera(i)->snapToPosition(true);
+            Camera* cam = Camera::getCamera(i);
+            dynamic_cast<CameraNormal*>(cam)->restart();
         }
     }
 
@@ -1740,7 +1743,7 @@ void World::updateAchievementDataEndRace()
 
                 if (RaceManager::get()->modeHasLaps())
                 {
-                    Track* track = track_manager->getTrack(RaceManager::get()->getTrackName());
+                    Track* track = TrackManager::get()->getTrack(RaceManager::get()->getTrackName());
                     int default_lap_num = track->getDefaultNumberOfLaps();
                     if (RaceManager::get()->getNumLaps() < default_lap_num)
                     {

@@ -348,7 +348,7 @@ void CaptureTheFlag::checkScoring(FlagColor color)
                     .addUInt16((int16_t)new_kart_score)
                     .addUInt8((uint8_t)new_red_score)
                     .addUInt8((uint8_t)new_blue_score);
-                STKHost::get()->sendPacketToAllPeers(&p, true);
+                STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
             }
             ctfScored(active_holder, (red_active) ? false : true /*red_team_scored*/,
                 new_kart_score, new_red_score, new_blue_score); 
@@ -413,7 +413,7 @@ void CaptureTheFlag::ctfScored(int kart_id, bool red_team_scored,
     {
         scored_msg = _("%s captured the red flag!", name);
     }
-    GameInfo* game_info = getGameInfo();
+    std::shared_ptr<GameInfo> game_info = getGameInfo();
     if (game_info)
     {
         game_info->m_player_info.emplace_back(false/* reserved */,
@@ -571,7 +571,7 @@ const std::string& CaptureTheFlag::getIdent() const
 }   // getIdent
 
 // ----------------------------------------------------------------------------
-void CaptureTheFlag::saveCompleteState(BareNetworkString* bns, STKPeer* peer)
+void CaptureTheFlag::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
 {
     FreeForAll::saveCompleteState(bns, peer);
     bns->addUInt32(m_red_scores).addUInt32(m_blue_scores);

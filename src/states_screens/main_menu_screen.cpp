@@ -94,6 +94,8 @@ void MainMenuScreen::loadedFromFile()
     
     RibbonWidget* rw_top = getWidget<RibbonWidget>("menu_toprow");
     assert(rw_top != NULL);
+
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     
     if (track_manager->getTrack("overworld") == NULL ||
         track_manager->getTrack("introcutscene") == NULL ||
@@ -468,6 +470,8 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
         ((CutsceneWorld*)World::getWorld())->setParts(parts);
 
         scene->addTrophy(RaceManager::DIFFICULTY_EASY, false);
+        
+        std::shared_ptr<TrackManager> track_manager = TrackManager::get();
 
         if (selection == "test_unlocked")
         {

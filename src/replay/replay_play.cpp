@@ -280,7 +280,7 @@ bool ReplayPlay::addReplayFile(const std::string& fn, bool custom_replay, int ca
     if (rd.m_track_name.compare("mansion") == 0)
         rd.m_track_name = std::string("addon_blackhill-mansion");
 
-    Track* t = track_manager->getTrack(rd.m_track_name);
+    Track* t = TrackManager::get()->getTrack(rd.m_track_name);
     if (t == NULL)
     {
         Log::warn("Replay", "Track '%s' used in replay '%s' not found in STK!",
@@ -291,6 +291,15 @@ bool ReplayPlay::addReplayFile(const std::string& fn, bool custom_replay, int ca
     rd.m_track = t;
 
     fgets(s, 1023, fd);
+    if (sscanf(s, "info: %1023s", s1) == 1)
+    {
+        int last = strlen(s);
+        if (s[last - 1] == '\n')
+            s[last - 1] = '\0';
+         
+        rd.m_info = s + 6;
+        fgets(s, 1023, fd);
+    }
     if (sscanf(s, "laps: %u", &rd.m_laps) != 1)
     {
         Log::warn("Replay", "No number of laps found in replay file, '%s'.", fn.c_str());

@@ -26,6 +26,7 @@
 #include "utils/no_copy.hpp"
 #include "utils/time.hpp"
 #include "utils/types.hpp"
+#include "utils/constants.hpp"
 
 #include <enet/enet.h>
 
@@ -144,8 +145,8 @@ public:
     // ------------------------------------------------------------------------
     ~STKPeer();
     // ------------------------------------------------------------------------
-    void sendPacket(NetworkString *data, bool reliable = true,
-                    bool encrypted = true);
+    void sendPacket(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE,
+                    PacketEncryptionMode encrypted = PEM_ENCRYPTED);
     // ------------------------------------------------------------------------
     void disconnect();
     // ------------------------------------------------------------------------

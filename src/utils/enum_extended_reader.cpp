@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2021 kimden
+//  Copyright (C) 2021, 2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -17,10 +17,10 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "utils/enum_extended_reader.hpp"
+
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
 
-// ========================================================================
 
 int EnumExtendedReader::parse(std::string& text)
 {
@@ -30,10 +30,11 @@ int EnumExtendedReader::parse(std::string& text)
     for (const std::string& key: items) {
         auto it = values.find(key);
         if (it == values.end())
-            Log::warn("EnumExtendedReader", "Key \"%s\" not found - ignored.", key.c_str());
+            Log::warn("EnumExtendedReader",
+                    "Key \"%s\" not found - ignored.", key.c_str());
         else
             value |= it->second;
     }
     return value;
-} // parse
-// ========================================================================
+}   // parse
+//-----------------------------------------------------------------------------

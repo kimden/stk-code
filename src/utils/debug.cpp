@@ -983,7 +983,7 @@ bool handleContextMenuAction(s32 cmd_id)
                     StringUtils::split(StringUtils::wideToUtf8(text), ' ');
                 for (const std::string& track : parts)
                 {
-                    Track* t = track_manager->getTrack(track);
+                    Track* t = TrackManager::get()->getTrack(track);
                     if (t == NULL)
                     {
                         Log::warn("Debug", "Cutscene %s not found!",
@@ -1058,8 +1058,8 @@ bool handleContextMenuAction(s32 cmd_id)
     case DEBUG_HELP:
         new TutorialMessageDialog(L"Debug keyboard shortcuts (can conflict with user-defined shortcuts):\n"
                             "* <~> - Show this help dialog | + <Ctrl> - Adjust lights | + <Shift> - Adjust visuals\n"
-                            "* <F1> - Anvil powerup | + <Ctrl> - Normal view | + <Shift> - Bomb attachment\n"
-                            "* <F2> - Basketball powerup | + <Ctrl> - First person view | + <Shift> - Anvil attachment\n"
+                            "* <F1> - Anchor powerup | + <Ctrl> - Normal view | + <Shift> - Bomb attachment\n"
+                            "* <F2> - Basketball powerup | + <Ctrl> - First person view | + <Shift> - Anchor attachment\n"
                             "* <F3> - Bowling ball powerup | + <Ctrl> - Top view | + <Shift> - Parachute attachment\n"
                             "* <F4> - Bubblegum powerup | + <Ctrl> - Behind wheel view | + <Shift> - Flatten kart\n"
                             "* <F5> - Cake powerup | + <Ctrl> - Behind kart view | + <Shift> - Send plunger to kart front\n"
@@ -1256,9 +1256,9 @@ bool onEvent(const SEvent &event)
 
             mnu->addItem(L"Items >",-1,true,true);
             sub = mnu->getSubMenu(3);
-            sub->addItem(L"Anvil (F1)", DEBUG_POWERUP_ANVIL );
+            sub->addItem(L"Anchor (F1)", DEBUG_POWERUP_ANVIL );
             sub->addItem(L"Basketball (F2)", DEBUG_POWERUP_RUBBERBALL );
-            sub->addItem(L"Bowling (F3)", DEBUG_POWERUP_BOWLING );
+            sub->addItem(L"Bowling ball (F3)", DEBUG_POWERUP_BOWLING );
             sub->addItem(L"Bubblegum (F4)", DEBUG_POWERUP_BUBBLEGUM );
             sub->addItem(L"Cake (F5)", DEBUG_POWERUP_CAKE );
             sub->addItem(L"Parachute (F6)", DEBUG_POWERUP_PARACHUTE );
@@ -1273,7 +1273,7 @@ bool onEvent(const SEvent &event)
             mnu->addItem(L"Attachments >",-1,true, true);
             sub = mnu->getSubMenu(4);
             sub->addItem(L"Bomb (Shift + F1)", DEBUG_ATTACHMENT_BOMB);
-            sub->addItem(L"Anvil (Shift + F2)", DEBUG_ATTACHMENT_ANVIL);
+            sub->addItem(L"Anchor (Shift + F2)", DEBUG_ATTACHMENT_ANVIL);
             sub->addItem(L"Parachute (Shift + F3)", DEBUG_ATTACHMENT_PARACHUTE);
             sub->addItem(L"Flatten (Shift + F4)", DEBUG_ATTACHMENT_SQUASH);
             sub->addItem(L"Plunger (Shift + F5)", DEBUG_ATTACHMENT_PLUNGER);

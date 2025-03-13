@@ -103,7 +103,7 @@ void STKPeer::reset()
  *  \param reliable If the data is sent reliable or not.
  *  \param encrypted If the data is sent encrypted or not.
  */
-void STKPeer::sendPacket(NetworkString *data, bool reliable, bool encrypted)
+void STKPeer::sendPacket(NetworkString *data, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
 {
     if (m_disconnected.load())
         return;

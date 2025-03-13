@@ -100,9 +100,10 @@ void GrandPrixData::changeTrackNumber(const unsigned int number_of_tracks,
     // The problem with the track groups is that "all" isn't a track group
     // TODO: Add "all" to the track groups and rewrite this more elegant
     std::vector<int> track_indices;
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
     if (track_group == "all")
     {
-        for(unsigned int i=0; i<track_manager->getNumberOfTracks(); i++)
+        for (unsigned int i = 0; i < track_manager->getNumberOfTracks(); i++)
         {
             const Track *track = track_manager->getTrack(i);
             // Ignore no-racing tracks:
@@ -187,11 +188,11 @@ void GrandPrixData::changeReverse(const GrandPrixData::GPReverseType use_reverse
         }
         else if (use_reverse == GP_ALL_REVERSE) // all reversed
         {
-            m_reversed[i] = track_manager->getTrack(m_tracks[i])->reverseAvailable();
+            m_reversed[i] = TrackManager::get()->getTrack(m_tracks[i])->reverseAvailable();
         }
         else if (use_reverse == GP_RANDOM_REVERSE)
         {
-            if (track_manager->getTrack(m_tracks[i])->reverseAvailable())
+            if (TrackManager::get()->getTrack(m_tracks[i])->reverseAvailable())
                 m_reversed[i] = (rand() % 2 != 0);
             else
                 m_reversed[i] = false;
@@ -312,7 +313,7 @@ void GrandPrixData::reload()
         }
 
         // 1.1 Checking if the track exists
-        Track* t = track_manager->getTrack(track_id);
+        Track* t = TrackManager::get()->getTrack(track_id);
         if (t == NULL)
         {
             Log::error("GrandPrixData",
@@ -402,7 +403,7 @@ bool GrandPrixData::checkConsistency(bool log_error) const
 {
     for (unsigned int i = 0; i < m_tracks.size(); i++)
     {
-        if (track_manager->getTrack(m_tracks[i]) == NULL)
+        if (TrackManager::get()->getTrack(m_tracks[i]) == NULL)
         {
             if (log_error)
             {
@@ -512,7 +513,7 @@ unsigned int GrandPrixData::getNumberOfTracks(bool includeLocked) const
 irr::core::stringw GrandPrixData::getTrackName(const unsigned int track) const
 {
     assert(track < getNumberOfTracks(true));
-    Track* t = track_manager->getTrack(m_tracks[track]);
+    Track* t = TrackManager::get()->getTrack(m_tracks[track]);
     assert(t != NULL);
     return t->getName();
 }   // getTrackName

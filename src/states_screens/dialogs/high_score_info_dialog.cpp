@@ -66,6 +66,8 @@ HighScoreInfoDialog::HighScoreInfoDialog(Highscores* highscore, bool is_linear, 
     core::stringw track_name;
     core::stringw track_type_name;
 
+    std::shared_ptr<TrackManager> track_manager = TrackManager::get();
+
     if (m_major_mode == RaceManager::MAJOR_MODE_GRAND_PRIX)
     {
         m_gp = *grand_prix_manager->getGrandPrix(m_hs->m_track);
@@ -346,7 +348,7 @@ void HighScoreInfoDialog::onUpdate(float dt)
             m_curr_time = 0;
         }
 
-        Track* track = track_manager->getTrack(tracks[frame_after]);
+        Track* track = TrackManager::get()->getTrack(tracks[frame_after]);
         std::string file = track->getScreenshotFile();
         m_track_screenshot_widget->setImage(file, IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE);
         m_track_screenshot_widget->m_properties[PROP_ICON] = file;

@@ -156,7 +156,7 @@ void NetworkKartSelectionScreen::allPlayersDone()
             kart_data.encode(&kart);
         }
     }
-    STKHost::get()->sendToServer(&kart, true);
+    STKHost::get()->sendToServer(&kart, PRM_RELIABLE);
 
     // ---- Switch to assign mode
     input_manager->getDeviceManager()->setAssignMode(ASSIGN);
@@ -187,7 +187,7 @@ bool NetworkKartSelectionScreen::onEscapePressed()
             m_exit_timeout = StkTime::getMonoTimeMs() + 5000;
             NetworkString back(PROTOCOL_LOBBY_ROOM);
             back.addUInt8(LobbyProtocol::LE_CLIENT_BACK_LOBBY);
-            STKHost::get()->sendToServer(&back, true);
+            STKHost::get()->sendToServer(&back, PRM_RELIABLE);
         }
         return false;
     }

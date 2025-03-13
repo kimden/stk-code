@@ -183,7 +183,7 @@ SelectChallengeDialog::SelectChallengeDialog(const float percentWidth,
     else
     {
         const core::stringw track_name =
-            track_manager->getTrack(c->getData()->getTrackId())->getName();
+            TrackManager::get()->getTrack(c->getData()->getTrackId())->getName();
         getWidget<LabelWidget>("title")->setText(track_name, true);
     }
 

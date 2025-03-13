@@ -585,7 +585,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
             m_karts[sd.m_id]->getKartModel()
                 ->setAnimation(KartModel::AF_LOSE_START, true/* play_non_loop*/);
         }
-        GameInfo* game_info = getGameInfo();
+        std::shared_ptr<GameInfo> game_info = getGameInfo();
         if (game_info)
         {
             int sz = game_info->m_player_info.size();
@@ -663,8 +663,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                 sd.m_time = getTime();
             // Notice: true first_goal means it's blue goal being shoot,
             // so red team can score
-            // if (!stopped)
-                m_red_scorers.push_back(sd);
+            m_red_scorers.push_back(sd);
         }
         else
         {
@@ -674,8 +673,8 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
             }
             else
                 sd.m_time = getTime();
-            // if (!stopped)
-                m_blue_scorers.push_back(sd);
+                
+            m_blue_scorers.push_back(sd);
         }
         if (NetworkConfig::get()->isNetworking() &&
             NetworkConfig::get()->isServer())
@@ -700,11 +699,11 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                     if (peer->getClientCapabilities().find("soccer_fixes") !=
                         peer->getClientCapabilities().end())
                     {
-                        peer->sendPacket(&p_1_1, true/*reliable*/);
+                        peer->sendPacket(&p_1_1, PRM_RELIABLE);
                     }
                     else
                     {
-                        peer->sendPacket(&p, true/*reliable*/);
+                        peer->sendPacket(&p, PRM_RELIABLE);
                     }
                 }
             }
@@ -966,7 +965,7 @@ void SoccerWorld::updateBallPosition(int ticks)
                     p.setSynchronous(true);
                     p.addUInt8(GameEventsProtocol::GE_RESET_BALL)
                         .addTime(m_reset_ball_ticks);
-                    STKHost::get()->sendPacketToAllPeers(&p, true);
+                    STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
                 }
                 else if (!NetworkConfig::get()->isNetworking())
                 {
@@ -1198,7 +1197,7 @@ void SoccerWorld::enterRaceOverState()
 }   // enterRaceOverState
 
 // ----------------------------------------------------------------------------
-void SoccerWorld::saveCompleteState(BareNetworkString* bns, STKPeer* peer)
+void SoccerWorld::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
 {
     const unsigned red_scorers = (unsigned)m_red_scorers.size();
     bns->addUInt32(red_scorers);
@@ -1388,7 +1387,7 @@ void SoccerWorld::tellCountToEveryoneInGame() const
     chat->encodeString16(StringUtils::utf8ToWide(real_count));
     for (auto& peer : peers)
         if (peer->isValidated() && !peer->isWaitingForGame())
-            peer->sendPacket(chat, true/*reliable*/);
+            peer->sendPacket(chat, PRM_RELIABLE);
 
     delete chat;
 }   // tellCountToEveryoneInGame
@@ -1406,7 +1405,7 @@ void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
     std::string real_count =
             std::to_string(real_red) + " : " + std::to_string(real_blue);
     chat->encodeString16(StringUtils::utf8ToWide(real_count));
-    peer->sendPacket(chat, true/*reliable*/);
+    peer->sendPacket(chat, PRM_RELIABLE);
     delete chat;
 }   // tellCount
 // ----------------------------------------------------------------------------

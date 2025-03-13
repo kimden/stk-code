@@ -19,7 +19,6 @@
 #ifndef GAME_INFO_HPP
 #define GAME_INFO_HPP
 
-#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -32,28 +31,27 @@ struct GameInfo
 {
     struct PlayerInfo
     {
-        bool m_reserved;
-        int m_game_event;
-        std::string m_username = "";
-        double m_result = 0.0f;
-        std::string m_kart = "";
-        float m_kart_color = 0.0f;
-        std::string m_kart_class = "";
-        int m_not_full = 0;
-        int m_online_id = 0;
-        int m_autofinish = 0;
-        int m_team = -1;
-        double m_when_joined = 0;
-        double m_when_left = 0;
-        double m_fastest_lap = -1.0;
-        double m_sog_time = -1.0;
-        int m_start_position = -1;
-        double m_game_duration = -1;
-        int m_handicap = 0;
-        unsigned m_starting_tyre = 0;
-        std::string m_country_code = "";
-
-        std::string m_other_info = "";
+        bool        m_reserved;
+        int         m_game_event;
+        std::string m_username       = "";
+        double      m_result         = 0.0f;
+        std::string m_kart           = "";
+        float       m_kart_color     = 0.0f;
+        std::string m_kart_class     = "";
+        int         m_not_full       = 0;
+        int         m_online_id      = 0;
+        int         m_autofinish     = 0;
+        int         m_team           = -1;
+        double      m_when_joined    = 0;
+        double      m_when_left      = 0;
+        double      m_fastest_lap    = -1.0;
+        double      m_sog_time       = -1.0;
+        int         m_start_position = -1;
+        double      m_game_duration  = -1;
+        int         m_handicap       = 0;
+        unsigned    m_starting_tyre  = 0;
+        std::string m_country_code   = "";
+        std::string m_other_info     = "";
 
         PlayerInfo(bool reserved = false, bool game_event = false):
             m_reserved(reserved),
@@ -62,19 +60,17 @@ struct GameInfo
         bool isReserved() const                          { return m_reserved; }
     };
 
-    static const std::string m_default_powerup_string;
-    static const std::string m_default_kart_char_string;
     std::string m_powerup_string;
     std::string m_kart_char_string;
     std::string m_venue;
     std::string m_reverse;
     std::string m_mode;
     std::string m_server_version;
-    int m_value_limit;
-    double m_time_limit;
-    int m_flag_return_timeout;
-    int m_flag_deactivated_time;
-    int m_difficulty;
+    int         m_value_limit;
+    double      m_time_limit;
+    int         m_flag_return_timeout;
+    int         m_flag_deactivated_time;
+    int         m_difficulty;
     std::string m_timestamp;
 
     // First RaceManager->getNumPlayers() elements in m_player_info

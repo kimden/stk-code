@@ -125,7 +125,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
         // Reserve for extra spectators
         .addUInt8(0)
         .addUInt8((uint8_t)sl->getGameMode());
-    if (hasExtraSeverInfo())
+    if (hasExtraServerInfo())
     {
         if (isGrandPrix())
         {

@@ -713,7 +713,7 @@ void  STKConfig::getAllScores(std::vector<int> *all_scores, int num_karts)
     if (num_karts == 0) return;
 
     assert(num_karts <= m_max_karts);
-    all_scores->resize(num_karts);
+    all_scores->resize(num_karts, 0);
     sorted_score_increase.resize(num_karts+1); //sorting function is [begin, end[
 
     //get increase data into sorted_score_increase

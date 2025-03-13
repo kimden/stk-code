@@ -46,7 +46,7 @@ class Kart;
 class BareNetworkString;
 class btRigidBody;
 class Controller;
-class GameInfo;
+struct GameInfo;
 class ItemState;
 class PhysicalObject;
 class STKPeer;
@@ -133,7 +133,7 @@ protected:
 
     bool        m_unfair_team;
 
-    GameInfo* m_game_info;
+    std::shared_ptr<GameInfo> m_game_info;
 
     /** Whether highscores should be used for this kind of race.
      *  True by default, change to false in a child class to disable.
@@ -180,7 +180,7 @@ protected:
 
     Phase m_scheduled_pause_phase;
 
-    bool m_snap_camera;
+    bool m_restart_camera;
 
     /** Set when the world needs to be deleted but you can't do it immediately
      * because you are e.g. within World::update()
@@ -211,7 +211,7 @@ protected:
     void updateAchievementDataEndRace();
     void updateAchievementModeCounters(bool start);
     // ------------------------------------------------------------------------
-    GameInfo* getGameInfo()      { return m_game_info; }
+    std::shared_ptr<GameInfo> getGameInfo()      { return m_game_info; }
 
 public:
                     World();
@@ -374,7 +374,7 @@ public:
             m_eliminated_karts--;
     }
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns, STKPeer* peer) {}
+    virtual void saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer) {}
     // ------------------------------------------------------------------------
     virtual void restoreCompleteState(const BareNetworkString& buffer) {}
     // ------------------------------------------------------------------------
@@ -437,7 +437,7 @@ public:
     unsigned getStartPosition(int index) const
                                       { return m_kart_position_map.at(index); }
     // ------------------------------------------------------------------------
-    void setGameInfo(GameInfo* ptr)                      { m_game_info = ptr; }
+    void setGameInfo(std::shared_ptr<GameInfo> ptr)      { m_game_info = ptr; }
 };   // World
 
 #endif

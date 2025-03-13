@@ -918,11 +918,6 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions-verbose="everyone"
              description="The command is used to register to an event (if the server has a database to store the registrations). Players can provide information while registering."
     />
-    <command name="token"
-             usage="/token"
-             permissions-verbose="everyone"
-             description="Produces a token for a player and stores it in the database (if the server has a database to store tokens). Tokens may be used to authenticate players using their STK accounts."
-    />
     <command name="muteall"
              usage="/muteall [0 | 1]"
              permissions-verbose="everyone in soccer tournament mode"

@@ -42,7 +42,7 @@
 #include "race/race_manager.hpp"
 #include "states_screens/state_manager.hpp"
 #include "tracks/track.hpp"
-#include "tracks/track_manager.hpp"
+// #include "tracks/track_manager.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -164,7 +164,7 @@ void TrackInfoScreen::init()
 {
     m_record_this_race = false;
 
-    const int max_arena_players = m_track->getMaxArenaPlayers();
+    const int max_arena_players = std::min(m_track->getMaxArenaPlayers(), unsigned(stk_config->m_max_karts));
     const int local_players     = RaceManager::get()->getNumLocalPlayers();
     const bool has_laps         = RaceManager::get()->modeHasLaps();
     const bool has_highscores   = RaceManager::get()->modeHasHighscores();

@@ -21,9 +21,10 @@
 
 #include "utils/track_filter.hpp"
 
-#include "utils/string_utils.hpp"
 #include "utils/log.hpp"
-#include "random_generator.hpp"
+#include "utils/random_generator.hpp"
+#include "utils/string_utils.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -33,6 +34,7 @@
 #include <exception>
 
 std::string Filter::PLACEHOLDER_STRING = ":placeholder";
+//-----------------------------------------------------------------------------
 
 TrackFilter::TrackFilter()
 {
@@ -182,7 +184,8 @@ std::vector<SplitArgument> prepareAssetNames<TrackFilter>(std::string& input)
         return {SplitArgument(input, -1, false)};
 
     std::set<std::string> keywords = {
-        "", " ", "random", "available", "unavailable", "official", "addon", "not", "no", "yes", "ok", "other:yes", "other:no"
+        "", " ", "random", "available", "unavailable", "official", "addon",
+        "not", "no", "yes", "ok", "other:yes", "other:no"
     };
     for (unsigned i = 0; i < tokens.size(); i++)
     {
@@ -296,7 +299,8 @@ void TrackFilter::apply(FilterContext& context) const
         for (unsigned i = 0; i < context.elements.size(); i++)
             std::swap(take[rg.get(i + 1)], take[i]);
         std::set<std::string> result;
-        for (std::set<std::string>::iterator it = context.elements.begin(); it != context.elements.end(); it++)
+        for (std::set<std::string>::iterator it = context.elements.begin();
+                it != context.elements.end(); it++)
         {
             if (take.back() == 1)
                 result.insert(*it);
@@ -513,5 +517,3 @@ void KartFilter::apply(FilterContext& context) const
     std::swap(result, context.elements);
 }   // KartFilter::apply
 //-----------------------------------------------------------------------------
-
-/* EOF */

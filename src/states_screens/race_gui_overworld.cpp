@@ -596,7 +596,7 @@ void RaceGUIOverworld::drawGlobalMiniMap()
             }
             else
             {
-                Track* track = track_manager->getTrack(challenge->getTrackId());
+                Track* track = TrackManager::get()->getTrack(challenge->getTrackId());
                 if (track == NULL)
                 {
                     Log::error("RaceGUIOverworld", "Cannot find track <%s>, "

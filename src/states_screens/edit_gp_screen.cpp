@@ -174,7 +174,7 @@ void EditGPScreen::init()
         EditTrackScreen* edit = EditTrackScreen::getInstance();
         assert(edit != NULL);
 
-        if (edit->getResult())
+        if (edit->getResult() && edit->getTrack())
         {
             bool reverse = edit->getTrack()->reverseAvailable() ? 
                            edit->getReverse() : false;
@@ -241,7 +241,7 @@ void EditGPScreen::loadList(const int selected)
     {
         std::vector<GUIEngine::ListWidget::ListCell> row;
 
-        Track* t = track_manager->getTrack(m_gp->getTrackId(i));
+        Track* t = TrackManager::get()->getTrack(m_gp->getTrackId(i));
         assert(t != NULL);
 
         video::ITexture* screenShot = irr_driver->getTexture(t->getScreenshotFile());
@@ -308,7 +308,7 @@ void EditGPScreen::edit()
 
     if (m_selected >= 0 && m_selected < m_list->getItemCount())
     {
-        edit_screen->setSelection(track_manager->getTrack(
+        edit_screen->setSelection(TrackManager::get()->getTrack(
             m_gp->getTrackId(m_selected)),
             m_gp->getLaps((unsigned int)m_selected),
             m_gp->getReverse((unsigned int)m_selected));

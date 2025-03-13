@@ -178,7 +178,7 @@ bool Crypto::decryptConnectionRequest(BareNetworkString& ns)
 }   // decryptConnectionRequest
 
 // ----------------------------------------------------------------------------
-ENetPacket* Crypto::encryptSend(BareNetworkString& ns, bool reliable)
+ENetPacket* Crypto::encryptSend(BareNetworkString& ns, PacketReliabilityMode reliable)
 {
     // 4 bytes counter and 4 bytes tag
     ENetPacket* p = enet_packet_create(NULL, ns.m_buffer.size() + 8,

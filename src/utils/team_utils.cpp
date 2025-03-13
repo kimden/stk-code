@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2024-2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -29,28 +29,28 @@ void TeamManager::addTeam(std::string hardcoded_code,
                          hardcoded_color, hardcoded_emoji);
     m_finder_by_code[hardcoded_code] = index;
     m_finder_by_name[hardcoded_name] = index;
-} // addTeam
-// ========================================================================
+}   // addTeam
+//-----------------------------------------------------------------------------
 
 void TeamManager::addCode(int idx, std::string hardcoded_code)
 {
     m_teams[idx].addCode(hardcoded_code);
     m_finder_by_code[hardcoded_code] = idx;
-} // addCode
-// ========================================================================
+}   // addCode
+//-----------------------------------------------------------------------------
 
 void TeamManager::addName(int idx, std::string hardcoded_name)
 {
     m_teams[idx].addName(hardcoded_name);
     m_finder_by_name[hardcoded_name] = idx;
-} // addName
-// ========================================================================
+}   // addName
+//-----------------------------------------------------------------------------
 
 const CustomTeam& TeamManager::operator[](int idx) const
 {
     return m_teams[idx];
-} // getTeamByIndex
-// ========================================================================
+}   // getTeamByIndex
+//-----------------------------------------------------------------------------
 
 int TeamManager::getIndexByCode(const std::string& code) const
 {
@@ -60,8 +60,8 @@ int TeamManager::getIndexByCode(const std::string& code) const
         // breaks something. Check out the neighboring comment too
         return 0;
     return it->second;
-} // getIndexByCode
-// ========================================================================
+}   // getIndexByCode
+//-----------------------------------------------------------------------------
 
 int TeamManager::getIndexByName(const std::string& name) const
 {
@@ -71,8 +71,8 @@ int TeamManager::getIndexByName(const std::string& name) const
         // breaks something. Check out the neighboring comment too
         return 0;
     return it->second;
-} // getIndexByName
-// ========================================================================
+}   // getIndexByName
+//-----------------------------------------------------------------------------
 
 TeamManager::TeamManager()
 {
@@ -89,6 +89,6 @@ TeamManager::TeamManager()
     addCode(6, "v");
     addName(6, "violet");
     addName(8, "pink");
-} // TeamManager
-// ========================================================================
+}   // TeamManager
+//-----------------------------------------------------------------------------
 

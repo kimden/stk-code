@@ -31,6 +31,7 @@
 #include "network/protocols/server_lobby.hpp"
 #include "race/race_manager.hpp"
 #include "tracks/track.hpp"
+#include "utils/hit_processor.hpp"
 #include "mini_glm.hpp"
 
 #include <cstring>
@@ -62,7 +63,7 @@ ExplosionAnimation *ExplosionAnimation::create(Kart *kart,
     {
         kart->decreaseShieldTime();
         if (sl)
-            sl->registerTeamMateHit(kart->getWorldKartId());
+            sl->getHitProcessor()->registerTeammateHit(kart->getWorldKartId());
         return NULL;
     }
 
@@ -75,7 +76,7 @@ ExplosionAnimation *ExplosionAnimation::create(Kart *kart,
     }
 
     if (sl)
-        sl->registerTeamMateExplode(kart->getWorldKartId());
+        sl->getHitProcessor()->registerTeammateExplode(kart->getWorldKartId());
     return new ExplosionAnimation(kart, direct_hit);
 }   // create
 
