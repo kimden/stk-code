@@ -57,6 +57,7 @@
 #include "utils/lobby_settings.hpp"
 #include "utils/lobby_queues.hpp"
 #include "utils/map_vote_handler.hpp"
+#include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/translation.hpp"
 
@@ -384,13 +385,13 @@ void ServerLobby::changeTeam(Event* event)
     {
         if (red_blue.first >= 7 && !getSettings()->getFreeTeams())
             return;
-        setTeamInLobby(player, KART_TEAM_RED);
+        getTeamManager()->setTeamInLobby(player, KART_TEAM_RED);
     }
     else
     {
         if (red_blue.second >= 7 && !getSettings()->getFreeTeams())
             return;
-        setTeamInLobby(player, KART_TEAM_BLUE);
+        getTeamManager()->setTeamInLobby(player, KART_TEAM_BLUE);
     }
     updatePlayerList();
 }   // changeTeam
@@ -1253,7 +1254,7 @@ int ServerLobby::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
             {
                 if (rki.getKartTeam() == target_team)
                 {
-                    setTeamInLobby(p, target_team);
+                    getTeamManager()->setTeamInLobby(p, target_team);
                     rki.copyFrom(p, local_id);
                     return i;
                 }
@@ -2165,7 +2166,7 @@ void ServerLobby::checkRaceFinished()
                 gp_changes.back() += points_fl;
                 cur_score += points_fl;
             }
-            int team = getSettings()->getTeamForUsername(username);
+            int team = getTeamManager()->getTeamForUsername(username);
             if (team > 0)
             {
                 m_gp_team_scores[team].score += cur_score;
@@ -2697,8 +2698,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         std::string username = StringUtils::wideToUtf8(player->getName());
         
         // kimden: I'm not sure why the check is double
-        if (getSettings()->hasTeam(username))
-            previous_team = getSettings()->getTeamForUsername(username);
+        if (getTeamManager()->hasTeam(username))
+            previous_team = getTeamManager()->getTeamForUsername(username);
 
         bool can_change_teams = true;
         if (getTournament() && !getTournament()->canChangeTeam())
@@ -2721,13 +2722,13 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                 }
             }
             if (cur_team != KART_TEAM_NONE)
-                setTeamInLobby(player, cur_team);
+                getTeamManager()->setTeamInLobby(player, cur_team);
         }
         if (isTournament())
         {
             KartTeam team = getTournament()->getTeam(utf8_online_name);
             if (team != KART_TEAM_NONE)
-                setTeamInLobby(player, team);
+                getTeamManager()->setTeamInLobby(player, team);
         }
         getCommandManager()->addUser(username);
         if (m_game_setup->isGrandPrix())
@@ -2743,14 +2744,14 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         {
             if (previous_team != -1)
             {
-                setTemporaryTeamInLobby(player, previous_team);
+                getTeamManager()->setTemporaryTeamInLobby(player, previous_team);
             }
         }
         peer->addPlayer(player);
 
         // As it sets spectating mode for peer based on which players it has,
         // we need to set the team once again to the same thing
-        setTemporaryTeamInLobby(player, player->getTemporaryTeam());
+        getTeamManager()->setTemporaryTeamInLobby(player, player->getTemporaryTeam());
     }
 
     peer->setValidated(true);
@@ -2989,7 +2990,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             profile_name = StringUtils::utf32ToWide({0x1F528}) + profile_name;
 
         std::string prefix = "";
-        for (const std::string& category: getSettings()->getVisibleCategoriesForPlayer(utf8_profile_name))
+        for (const std::string& category: getTeamManager()->getVisibleCategoriesForPlayer(utf8_profile_name))
         {
             prefix += category + ", ";
         }
@@ -3798,12 +3799,12 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         if (teams_after)
         {
             int final_number, players_number;
-            getSettings()->clearTeams();
+            getTeamManager()->clearTeams();
             getCommandManager()->assignRandomTeams(2, &final_number, &players_number);
         }
         else
         {
-            clearTemporaryTeams();
+            getTeamManager()->clearTemporaryTeams();
         }
         for (auto& peer : STKHost::get()->getPeers())
         {
@@ -3812,7 +3813,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
             for (auto &profile: peer->getPlayerProfiles())
             {
                 // updates KartTeam
-                setTemporaryTeamInLobby(profile, profile->getTemporaryTeam());
+                getTeamManager()->setTemporaryTeamInLobby(profile, profile->getTemporaryTeam());
             }
         }
     }
@@ -4711,11 +4712,11 @@ void ServerLobby::changeColors()
             auto pp = peer->getPlayerProfiles()[0];
             if (pp->getTeam() == KART_TEAM_RED)
             {
-                setTeamInLobby(pp, KART_TEAM_BLUE);
+                getTeamManager()->setTeamInLobby(pp, KART_TEAM_BLUE);
             }
             else if (pp->getTeam() == KART_TEAM_BLUE)
             {
-                setTeamInLobby(pp, KART_TEAM_RED);
+                getTeamManager()->setTeamInLobby(pp, KART_TEAM_RED);
             }
         }
     }
@@ -5041,55 +5042,12 @@ void ServerLobby::setTemporaryTeamInLobby(const std::string& username, int team)
         {
             if (profile->getName() == wide_player_name)
             {
-                setTemporaryTeamInLobby(profile, team);
+                getTeamManager()->setTemporaryTeamInLobby(profile, team);
                 break;
             }
         }
     }
 }   // setTemporaryTeamInLobby (username)
-//-----------------------------------------------------------------------------
-
-// todo This should be moved later to another unit.
-void ServerLobby::clearTemporaryTeams()
-{
-    getSettings()->clearTeams();
-
-    for (auto& peer : STKHost::get()->getPeers())
-    {
-        for (auto& profile : peer->getPlayerProfiles())
-        {
-            setTemporaryTeamInLobby(profile, TeamUtils::NO_TEAM);
-        }
-    }
-}   // clearTemporaryTeams
-//-----------------------------------------------------------------------------
-
-// todo This should be moved later to another unit.
-void ServerLobby::shuffleTemporaryTeams(const std::map<int, int>& permutation)
-{
-    getSettings()->applyPermutationToTeams(permutation);
-    for (auto& peer : STKHost::get()->getPeers())
-    {
-        for (auto &profile: peer->getPlayerProfiles())
-        {
-            auto it = permutation.find(profile->getTemporaryTeam());
-            if (it != permutation.end())
-            {
-                setTemporaryTeamInLobby(profile, it->second);
-            }
-        }
-    }
-    auto old_scores = m_gp_team_scores;
-    m_gp_team_scores.clear();
-    for (auto& p: old_scores)
-    {
-        auto it = permutation.find(p.first);
-        if (it != permutation.end())
-            m_gp_team_scores[it->second] = p.second;
-        else
-            m_gp_team_scores[p.first] = p.second;
-    }
-}   // shuffleTemporaryTeams
 //-----------------------------------------------------------------------------
 
 void ServerLobby::resetGrandPrix()
@@ -5227,42 +5185,12 @@ void ServerLobby::saveDisconnectingIdInfo(int id) const
 }   // saveDisconnectingIdInfo
 
 //-----------------------------------------------------------------------------
-void ServerLobby::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team)
-{
-    // Used for soccer+CTF, where everything can be defined by KartTeam
-    profile->setTeam(team);
-    profile->setTemporaryTeam(TeamUtils::getIndexFromKartTeam(team));
-    getSettings()->setTeamForUsername(
-        StringUtils::wideToUtf8(profile->getName()),
-        profile->getTemporaryTeam()
-    );
-
-    checkNoTeamSpectator(profile->getPeer());
-}   // setTeamInLobby
-
-//-----------------------------------------------------------------------------
-void ServerLobby::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team)
-{
-    // Used for racing+FFA, where everything can be defined by a temporary team
-    profile->setTemporaryTeam(team);
-    if (RaceManager::get()->teamEnabled())
-        profile->setTeam((KartTeam)(TeamUtils::getKartTeamFromIndex(team)));
-    else
-        profile->setTeam(KART_TEAM_NONE);
-    getSettings()->setTeamForUsername(
-        StringUtils::wideToUtf8(profile->getName()),
-        profile->getTemporaryTeam()
-    );
-
-    checkNoTeamSpectator(profile->getPeer());
-}   // setTemporaryTeamInLobby
-
-//-----------------------------------------------------------------------------
 
 void ServerLobby::checkNoTeamSpectator(std::shared_ptr<STKPeer> peer)
 {
     if (!peer)
         return;
+
     if (RaceManager::get()->teamEnabled())
     {
         bool has_teamed = false;
@@ -5276,13 +5204,10 @@ void ServerLobby::checkNoTeamSpectator(std::shared_ptr<STKPeer> peer)
         }
 
         if (!has_teamed && peer->getAlwaysSpectate() == ASM_NONE)
-        {
             setSpectateModeProperly(peer, ASM_NO_TEAM);
-        }
+
         if (has_teamed && peer->getAlwaysSpectate() == ASM_NO_TEAM)
-        {
             setSpectateModeProperly(peer, ASM_NONE);
-        }
     }
 }   // checkNoTeamSpectator
 
@@ -5305,4 +5230,19 @@ void ServerLobby::setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysS
     if (mode == ASM_NONE)
         checkNoTeamSpectator(peer);
 }   // setSpectateModeProperly
+//-----------------------------------------------------------------------------
+
+void ServerLobby::shuffleGPScoresWithPermutation(const std::map<int, int>& permutation)
+{
+    auto old_scores = m_gp_team_scores;
+    m_gp_team_scores.clear();
+    for (auto& p: old_scores)
+    {
+        auto it = permutation.find(p.first);
+        if (it != permutation.end())
+            m_gp_team_scores[it->second] = p.second;
+        else
+            m_gp_team_scores[p.first] = p.second;
+    }
+}   // shuffleGPScoresWithPermutation
 //-----------------------------------------------------------------------------

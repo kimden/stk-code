@@ -28,6 +28,7 @@
 #include "modes/soccer_world.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/team_manager.hpp"
 
 namespace
 {
@@ -138,17 +139,17 @@ void Tournament::updateTournamentRole(std::shared_ptr<STKPeer> peer)
         core::stringw name = player->getName();
         std::string utf8_name = StringUtils::wideToUtf8(name);
         if (m_red_players.count(utf8_online_name))
-            getLobby()->setTeamInLobby(player, KART_TEAM_RED);
+            getTeamManager()->setTeamInLobby(player, KART_TEAM_RED);
         else if (m_blue_players.count(utf8_online_name))
-            getLobby()->setTeamInLobby(player, KART_TEAM_BLUE);
+            getTeamManager()->setTeamInLobby(player, KART_TEAM_BLUE);
         else
-            getLobby()->setTeamInLobby(player, KART_TEAM_NONE);
+            getTeamManager()->setTeamInLobby(player, KART_TEAM_NONE);
         if (hasColorsSwapped())
         {
             if (player->getTeam() == KART_TEAM_BLUE)
-                getLobby()->setTeamInLobby(player, KART_TEAM_RED);
+                getTeamManager()->setTeamInLobby(player, KART_TEAM_RED);
             else if (player->getTeam() == KART_TEAM_RED)
-                getLobby()->setTeamInLobby(player, KART_TEAM_BLUE);
+                getTeamManager()->setTeamInLobby(player, KART_TEAM_BLUE);
         }
     }
 }   // updateTournamentRole
@@ -220,7 +221,7 @@ void Tournament::initTournamentPlayers()
                 type == "B" ? m_blue_players :
                 m_referees);
 
-            auto categories = getSettings()->getCategories();
+            auto categories = getTeamManager()->getCategories();
             for (const std::string& member: categories[cat_name])
                 dest.insert(member);
         }

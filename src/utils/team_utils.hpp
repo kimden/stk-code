@@ -64,7 +64,7 @@ public:
     void addName(const std::string& name)          { m_names.push_back(name); }
 };
 
-class TeamManager
+class TeamsStorage
 {
 private:
     std::vector<CustomTeam> m_teams;
@@ -75,10 +75,10 @@ private:
     void addCode(int idx, std::string hardcoded_code);
     void addName(int idx, std::string hardcoded_name);
 public:
-    TeamManager();
+    TeamsStorage();
     // Teams are indexed from 1 to N, 0 means no team set (or undefined).
     // Previously the code had 4-way inconsistent indexation
-    // but hopefully it's fixed now'
+    // but hopefully it's fixed now
     const CustomTeam& operator[](int idx) const;
     int getIndexByCode(const std::string& code) const;
     int getIndexByName(const std::string& name) const;
@@ -86,7 +86,7 @@ public:
                               { return (int)m_teams.size() - 1; }
 };
 
-class TeamUtils: public Singleton<TeamManager>
+class TeamUtils: public Singleton<TeamsStorage>
 {
 public:
     static const int NO_TEAM = 0;

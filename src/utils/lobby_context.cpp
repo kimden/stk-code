@@ -26,6 +26,7 @@
 #include "utils/lobby_queues.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/map_vote_handler.hpp"
+#include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 
 LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
@@ -40,6 +41,7 @@ LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
     m_map_vote_handler = std::make_shared<MapVoteHandler>(this);
     m_command_manager  = std::make_shared<CommandManager>(this);
     m_chat_manager     = std::make_shared<ChatManager>(this);
+    m_team_manager     = std::make_shared<TeamManager>(this);
     
     if (make_tournament)
         m_tournament   = std::make_shared<Tournament>(this);
@@ -56,6 +58,7 @@ void LobbyContext::setup()
     m_lobby_settings->setupContextUser();
     m_map_vote_handler->setupContextUser();
     m_chat_manager->setupContextUser();
+    m_team_manager->setupContextUser();
     m_command_manager->setupContextUser();
     
     if (m_tournament)
