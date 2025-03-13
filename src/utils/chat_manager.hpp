@@ -26,6 +26,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 
 class STKPeer;
 enum KartTeam : int8_t;

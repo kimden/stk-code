@@ -60,11 +60,9 @@ void LobbySettings::setupContextUser()
 
     setDefaultLapRestrictions();
 
-    m_available_teams = ServerConfig::m_init_available_teams;
     m_default_vote = new PeerVote();
     m_allowed_to_start = ServerConfig::m_allowed_to_start;
 
-    initCategories();
     initAvailableModes();
     initAvailableTracks();
     std::string scoring = ServerConfig::m_gp_scoring;
@@ -139,61 +137,6 @@ LobbySettings::~LobbySettings()
 {
     delete m_default_vote;
 }   // ~LobbySettings
-//-----------------------------------------------------------------------------
-
-void LobbySettings::initCategories()
-{
-    std::vector<std::string> tokens = StringUtils::split(
-        ServerConfig::m_categories, ' ');
-    std::string category = "";
-    bool isTeam = false;
-    bool isHammerWhitelisted = false;
-    for (std::string& s: tokens)
-    {
-        if (s.empty())
-            continue;
-        else if (s[0] == '#')
-        {
-            isTeam = false;
-            isHammerWhitelisted = false;
-            if (s.length() > 1 && s[1] == '#')
-            {
-                category = s.substr(2);
-                m_hidden_categories.insert(category);
-            }
-            else
-                category = s.substr(1);
-        }
-        else if (s[0] == '$')
-        {
-            isTeam = true;
-            isHammerWhitelisted = false;
-            category = s.substr(1);
-        }
-        else if (s[0] == '^')
-        {
-            isHammerWhitelisted = true;
-        }
-        else
-        {
-            if (isHammerWhitelisted)
-            {
-                m_hammer_whitelist.insert(s);
-            }
-            else
-            {
-                if (!isTeam) {
-                    m_player_categories[category].insert(s);
-                    m_categories_for_player[s].insert(category);
-                }
-                else
-                {
-                    m_team_for_player[s] = category[0] - '0' + 1;
-                }
-            }
-        }
-    }
-}   // initCategories
 //-----------------------------------------------------------------------------
 
 void LobbySettings::initAvailableModes()
@@ -294,15 +237,6 @@ void LobbySettings::loadPreservedSettings()
     for (std::string& str: what_to_preserve)
         m_preserve.insert(str);
 }   // loadPreservedSettings
-//-----------------------------------------------------------------------------
-
-int LobbySettings::getTeamForUsername(const std::string& name)
-{
-    auto it = m_team_for_player.find(name);
-    if (it == m_team_for_player.end())
-        return TeamUtils::NO_TEAM;
-    return it->second;
-}   // getTeamForUsername
 //-----------------------------------------------------------------------------
 
 bool LobbySettings::hasNoLapRestrictions() const
@@ -543,62 +477,6 @@ std::string LobbySettings::getScoringAsString() const
 }   // getScoringAsString
 //-----------------------------------------------------------------------------
 
-void LobbySettings::addPlayerToCategory(const std::string& player, const std::string& category)
-{
-    m_player_categories[category].insert(player);
-    m_categories_for_player[player].insert(category);
-}   // addPlayerToCategory
-//-----------------------------------------------------------------------------
-
-void LobbySettings::erasePlayerFromCategory(const std::string& player, const std::string& category)
-{
-    m_player_categories[category].erase(player);
-    m_categories_for_player[player].erase(category);
-}   // erasePlayerFromCategory
-//-----------------------------------------------------------------------------
-
-void LobbySettings::makeCategoryVisible(const std::string category, bool value)
-{
-    if (value) {
-        m_hidden_categories.erase(category);
-    } else {
-        m_hidden_categories.insert(category);
-    }
-}   // makeCategoryVisible
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::isCategoryVisible(const std::string category) const
-{
-    return m_hidden_categories.find(category) == m_hidden_categories.end();
-}   // isCategoryVisible
-//-----------------------------------------------------------------------------
-
-std::vector<std::string> LobbySettings::getVisibleCategoriesForPlayer(const std::string& profile_name) const
-{
-    auto it = m_categories_for_player.find(profile_name);
-    if (it == m_categories_for_player.end())
-        return {};
-    
-    std::vector<std::string> res;
-    for (const std::string& category: it->second)
-        if (isCategoryVisible(category))
-            res.push_back(category);
-    
-    return res;
-}   // getVisibleCategoriesForPlayer
-//-----------------------------------------------------------------------------
-
-
-std::set<std::string> LobbySettings::getPlayersInCategory(const std::string& category) const
-{
-    auto it = m_player_categories.find(category);
-    if (it == m_player_categories.end())
-        return {};
-
-    return it->second;
-}   // getPlayersInCategory
-//-----------------------------------------------------------------------------
-
 std::string LobbySettings::getPreservedSettingsAsString() const
 {
     std::string msg = "Preserved settings:";
@@ -798,26 +676,6 @@ bool LobbySettings::isDifficultyAvailable(int difficulty) const
 {
     return m_available_difficulties.find(difficulty) != m_available_difficulties.end();
 }   // isDifficultyAvailable
-//-----------------------------------------------------------------------------
-
-void LobbySettings::applyPermutationToTeams(const std::map<int, int>& permutation)
-{
-    for (auto& p: m_team_for_player)
-    {
-        auto it = permutation.find(p.second);
-        if (it != permutation.end())
-            p.second = it->second;
-    }
-}   // applyPermutationToTeams
-//-----------------------------------------------------------------------------
-
-std::string LobbySettings::getAvailableTeams() const
-{
-    if (RaceManager::get()->teamEnabled())
-        return "rb";
-
-    return m_available_teams;
-}   // getAvailableTeams
 //-----------------------------------------------------------------------------
 
 void LobbySettings::onServerSetup()

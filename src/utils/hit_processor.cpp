@@ -25,6 +25,7 @@
 #include "utils/hit_processor.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/team_manager.hpp"
 
 
 namespace
@@ -111,7 +112,7 @@ void HitProcessor::handleTeammateHits()
     // Get team of item owner
     auto kart_info = RaceManager::get()->getKartInfo(m_current_item_owner_id);
     const std::string owner_name = StringUtils::wideToUtf8(kart_info.getPlayerName());
-    const int owner_team = getSettings()->getTeamForUsername(owner_name);
+    const int owner_team = getTeamManager()->getTeamForUsername(owner_name);
 
     if (owner_team == TeamUtils::NO_TEAM)
         return;
@@ -146,7 +147,7 @@ void HitProcessor::processHitMessage(const std::string& owner_name, int owner_te
     {
         const std::string player_name = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(m_karts_exploded[i]).getPlayerName());
-        const int playerTeam = getSettings()->getTeamForUsername(player_name);
+        const int playerTeam = getTeamManager()->getTeamForUsername(player_name);
         if (owner_team != playerTeam)
             continue;
 
@@ -173,7 +174,7 @@ void HitProcessor::processTeammateHit(AbstractKart* owner,
     {
         const std::string player_name = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(m_karts_exploded[i]).getPlayerName());
-        const int playerTeam = getSettings()->getTeamForUsername(player_name);
+        const int playerTeam = getTeamManager()->getTeamForUsername(player_name);
         if (owner_team != playerTeam)
             continue;
 
@@ -197,7 +198,7 @@ void HitProcessor::processTeammateHit(AbstractKart* owner,
     {
         const std::string player_name = StringUtils::wideToUtf8(
             RaceManager::get()->getKartInfo(m_karts_hit[i]).getPlayerName());
-        const int playerTeam = getSettings()->getTeamForUsername(player_name);
+        const int playerTeam = getTeamManager()->getTeamForUsername(player_name);
         if (owner_team != playerTeam)
             continue;
 
@@ -227,13 +228,13 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
 {
     const std::string owner_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int owner_team = getSettings()->getTeamForUsername(owner_name);
+    const int owner_team = getTeamManager()->getTeamForUsername(owner_name);
     if (owner_team == TeamUtils::NO_TEAM)
         return;
 
     const std::string victim_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victim_team = getSettings()->getTeamForUsername(victim_name);
+    const int victim_team = getTeamManager()->getTeamForUsername(victim_name);
     if (victim_team != owner_team)
         return;
 
@@ -271,13 +272,13 @@ void HitProcessor::handleAnvilHit(unsigned int ownerID, unsigned int victimID)
 {
     const std::string owner_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(ownerID).getPlayerName());
-    const int owner_team = getSettings()->getTeamForUsername(owner_name);
+    const int owner_team = getTeamManager()->getTeamForUsername(owner_name);
     if (owner_team == TeamUtils::NO_TEAM)
         return;
 
     const std::string victim_name = StringUtils::wideToUtf8(
         RaceManager::get()->getKartInfo(victimID).getPlayerName());
-    const int victim_team = getSettings()->getTeamForUsername(victim_name);
+    const int victim_team = getTeamManager()->getTeamForUsername(victim_name);
     if (victim_team != owner_team)
         return;
 

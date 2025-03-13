@@ -45,6 +45,7 @@
 #include "utils/map_vote_handler.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 
 #include <algorithm>
@@ -2347,7 +2348,7 @@ void CommandManager::process_power(Context& context)
 
     std::string password = getSettings()->getPowerPassword();
     bool bad_password = (password.empty() || argv.size() <= 1 || argv[1] != password);
-    bool good_player = (getSettings()->isInHammerWhitelist(username)
+    bool good_player = (getTeamManager()->isInHammerWhitelist(username)
             && online_id != 0);
     if (bad_password && !good_player)
     {
@@ -2776,7 +2777,7 @@ void CommandManager::process_team(Context& context)
     if (!argv[1].empty())
     {
         std::string temp(1, argv[1][0]);
-        if (getSettings()->getAvailableTeams().find(temp) != std::string::npos)
+        if (getTeamManager()->getAvailableTeams().find(temp) != std::string::npos)
             allowed_color = true;
     }
     int team = TeamUtils::getIndexByCode(argv[1]);
@@ -2847,7 +2848,7 @@ void CommandManager::process_swapteams(Context& context)
         int to = TeamUtils::getIndexByCode(std::string(1, p.second));
         permutation_map_int[from] = to;
     }
-    getLobby()->shuffleTemporaryTeams(permutation_map_int);
+    getTeamManager()->shuffleTemporaryTeams(permutation_map_int);
     getLobby()->sendStringToPeer(peer, msg); // todo make public?
     getLobby()->updatePlayerList();
 } // process_swapteams
@@ -2861,7 +2862,7 @@ void CommandManager::process_resetteams(Context& context)
         error(context, true);
         return;
     }
-    getLobby()->clearTemporaryTeams();
+    getTeamManager()->clearTemporaryTeams();
     getLobby()->sendStringToPeer(peer, "Teams are reset now");
     getLobby()->updatePlayerList();
 } // process_resetteams
@@ -2940,7 +2941,7 @@ void CommandManager::process_cat(Context& context)
             2, m_stf_present_users, 3, false, true))
             return;
         std::string player = argv[2];
-        getSettings()->addPlayerToCategory(player, category);
+        getTeamManager()->addPlayerToCategory(player, category);
         getLobby()->updatePlayerList();
         return;
     }
@@ -2957,7 +2958,7 @@ void CommandManager::process_cat(Context& context)
             2, m_stf_present_users, 3, false, true))
             return;
         player = argv[2];
-        getSettings()->erasePlayerFromCategory(player, category);
+        getTeamManager()->erasePlayerFromCategory(player, category);
         getLobby()->updatePlayerList();
         return;
     }
@@ -2972,7 +2973,7 @@ void CommandManager::process_cat(Context& context)
             return;
         }
         std::string category = argv[1];
-        getSettings()->makeCategoryVisible(category, displayed);
+        getTeamManager()->makeCategoryVisible(category, displayed);
         getLobby()->updatePlayerList();
         return;
     }
@@ -3316,7 +3317,7 @@ void CommandManager::process_role(Context& context)
     if (!username.empty())
     {
         if (username[0] == '#')
-            changed_usernames = getSettings()->getPlayersInCategory(username.substr(1));
+            changed_usernames = getTeamManager()->getPlayersInCategory(username.substr(1));
         else
             changed_usernames.insert(username);
     }
@@ -3346,7 +3347,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_RED);
+                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_RED);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3366,7 +3367,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_BLUE);
+                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_BLUE);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3379,7 +3380,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
+                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3390,7 +3391,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getLobby()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
+                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3883,7 +3884,7 @@ void CommandManager::process_available_teams(Context& context)
     }
     getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
             "Currently available teams: \"%s\"",
-            getSettings()->getInternalAvailableTeams().c_str()));
+            getTeamManager()->getInternalAvailableTeams().c_str()));
 } // process_available_teams
 // ========================================================================
 
@@ -3926,7 +3927,7 @@ void CommandManager::process_available_teams_assign(Context& context)
         ignored.push_back(c);
     for (char c: value_set)
         value.push_back(c);
-    getSettings()->setInternalAvailableTeams(value);
+    getTeamManager()->setInternalAvailableTeams(value);
     msg = StringUtils::insertValues("Set available teams to \"%s\"", value);
     if (!ignored.empty())
         msg += StringUtils::insertValues(
@@ -3981,7 +3982,7 @@ bool CommandManager::assignRandomTeams(int intended_number,
         return false;
     }
     int max_number_of_teams = TeamUtils::getNumberOfTeams();
-    std::string available_colors_string = getSettings()->getAvailableTeams();
+    std::string available_colors_string = getTeamManager()->getAvailableTeams();
     if (available_colors_string.empty())
         return false;
     if (max_number_of_teams > (int)available_colors_string.length())
@@ -4012,7 +4013,7 @@ bool CommandManager::assignRandomTeams(int intended_number,
 
     std::shuffle(profile_colors.begin(), profile_colors.end(), g);
 
-    getLobby()->clearTemporaryTeams();
+    getTeamManager()->clearTemporaryTeams();
     for (auto& p : STKHost::get()->getPeers())
     {
         if (!getLobby()->canRace(p))
@@ -4020,7 +4021,7 @@ bool CommandManager::assignRandomTeams(int intended_number,
         if (p->alwaysSpectateButNotNeutral())
             continue;
         for (auto& profile : p->getPlayerProfiles()) {
-            getLobby()->setTemporaryTeamInLobby(profile, profile_colors.back());
+            getTeamManager()->setTemporaryTeamInLobby(profile, profile_colors.back());
             if (profile_colors.size() > 1) // prevent crash just in case
                 profile_colors.pop_back();
         }

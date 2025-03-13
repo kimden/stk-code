@@ -370,8 +370,6 @@ public:
 #endif
 
     void setTemporaryTeamInLobby(const std::string& username, int team);
-    void clearTemporaryTeams();
-    void shuffleTemporaryTeams(const std::map<int, int>& permutation);
     void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
@@ -386,10 +384,9 @@ public:
     void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
     void saveDisconnectingIdInfo(int id) const;
 
-    // The functions below set *both* KartTeam and temporary team,
-    // depending on game mode; also reset/set ASM_NO_TEAM if needed.
-    void setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team);
-    void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
+    void shuffleGPScoresWithPermutation(const std::map<int, int>& permutation);
+
+    // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
 

@@ -48,7 +48,6 @@ public:
     void setupContextUser() OVERRIDE;
     ~LobbySettings();
 
-    void initCategories();
     void initAvailableTracks();
     void initAvailableModes();
     bool loadCustomScoring(std::string& scoring);
@@ -56,16 +55,6 @@ public:
     void loadPreservedSettings();
     bool hasConsentOnReplays() const           { return m_consent_on_replays; }
     void setConsentOnReplays(bool value)      { m_consent_on_replays = value; }
-    std::string getInternalAvailableTeams() const { return m_available_teams; }
-    void setInternalAvailableTeams(std::string& s)   { m_available_teams = s; }
-    void setTeamForUsername(const std::string& name, int team)
-                                            { m_team_for_player[name] = team; }
-    int getTeamForUsername(const std::string& name);
-    void clearTeams()                            { m_team_for_player.clear(); }
-    bool hasTeam(const std::string& name)
-            { return m_team_for_player.find(name) != m_team_for_player.end(); }
-    std::map<std::string, std::set<std::string>> getCategories() const
-                                                { return m_player_categories; }
 
     std::string getHelpMessage() const               { return m_help_message; }
     std::string getMotd() const                              { return m_motd; }
@@ -94,12 +83,6 @@ public:
     void onResetToDefaultSettings();
     bool isPreservingMode() const;
     std::string getScoringAsString() const;
-    void addPlayerToCategory(const std::string& player, const std::string& category);
-    void erasePlayerFromCategory(const std::string& player, const std::string& category);
-    void makeCategoryVisible(const std::string category, bool value);
-    bool isCategoryVisible(const std::string category) const;
-    std::vector<std::string> getVisibleCategoriesForPlayer(const std::string& profile_name) const;
-    std::set<std::string> getPlayersInCategory(const std::string& category) const;
     std::string getPreservedSettingsAsString() const;
     void eraseFromPreserved(const std::string& value);
     void insertIntoPreserved(const std::string& value);
@@ -113,7 +96,6 @@ public:
     bool isInWhitelist(const std::string& username) const;
     bool isModeAvailable(int mode) const;
     bool isDifficultyAvailable(int difficulty) const;
-    void applyPermutationToTeams(const std::map<int, int>& permutation);
     void resetWinnerPeerId()
                    { m_winner_peer_id = std::numeric_limits<uint32_t>::max(); }
     void setWinnerPeerId(uint32_t value)          { m_winner_peer_id = value; }
@@ -123,10 +105,6 @@ public:
     void setBattleHitCaptureLimit(int value)
                                         { m_battle_hit_capture_limit = value; }
     void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
-    std::string getAvailableTeams() const;
-
-    bool isInHammerWhitelist(const std::string& str) const
-           { return m_hammer_whitelist.find(str) != m_hammer_whitelist.end(); }
 
     void onServerSetup();
 
@@ -238,8 +216,6 @@ private:
 
     bool m_shuffle_gp;
 
-    std::string m_available_teams;
-
     bool m_live_players;
 
     bool m_ai_anywhere;
@@ -309,21 +285,6 @@ private:
     PeerVote* m_default_vote;
 
     uint32_t m_winner_peer_id;
-
-
-// These should be moved to category and team manager =========================
-
-    std::map<std::string, std::set<std::string>> m_player_categories;
-
-    std::set<std::string> m_hidden_categories;
-
-    std::set<std::string> m_special_categories;
-
-    std::map<std::string, std::set<std::string>> m_categories_for_player;
-
-    std::map<std::string, int> m_team_for_player;
-
-    std::set<std::string> m_hammer_whitelist;
 
 };
 
