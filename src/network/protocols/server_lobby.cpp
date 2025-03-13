@@ -68,7 +68,7 @@
 #include <sstream>
 #include <iterator> 
 
-// ========================================================================
+// ============================================================================
 
 // Helper functions.
 namespace
@@ -91,7 +91,7 @@ namespace
             bns->encodeString(player->getKartName());
         }
     }   // encodePlayers
-    //---------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     /** Returns true if world is active for clients to live join, spectate or
      *  going back to lobby live
      */
@@ -102,7 +102,7 @@ namespace
             World::getWorld()->getPhase() == WorldStatus::RACE_PHASE;
     }   // worldIsActive
 
-    //-----------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     /** Get a list of current ingame players for live join or spectate.
      */
     std::vector<std::shared_ptr<NetworkPlayerProfile> > getLivePlayers()
@@ -138,10 +138,33 @@ namespace
         }
         return players;
     }   // getLivePlayers
-    //-----------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
+
+    void getClientAssetsFromNetworkString(const NetworkString& ns,
+            std::set<std::string>& client_karts,
+            std::set<std::string>& client_maps)
+    {
+        client_karts.clear();
+        client_maps.clear();
+        const unsigned kart_num = ns.getUInt16();
+        const unsigned maps_num = ns.getUInt16();
+        for (unsigned i = 0; i < kart_num; i++)
+        {
+            std::string kart;
+            ns.decodeString(&kart);
+            client_karts.insert(kart);
+        }
+        for (unsigned i = 0; i < maps_num; i++)
+        {
+            std::string map;
+            ns.decodeString(&map);
+            client_maps.insert(map);
+        }
+    }   // getClientAssetsFromNetworkString
+    //-------------------------------------------------------------------------
 } // anonymous namespace
 
-// ========================================================================
+// ============================================================================
 
 // We use max priority for all server requests to avoid downloading of addons
 // icons blocking the poll request in all-in-one graphical client server
@@ -361,81 +384,28 @@ void ServerLobby::handleChat(Event* event)
 //-----------------------------------------------------------------------------
 void ServerLobby::changeTeam(Event* event)
 {
-    if (!getSettings()->getTeamChoosing() ||
-        !RaceManager::get()->teamEnabled())
+    if (!checkDataSize(event, 1))
         return;
-    if (!checkDataSize(event, 1)) return;
+
     NetworkString& data = event->data();
     uint8_t local_id = data.getUInt8();
     auto& player = event->getPeer()->getPlayerProfiles().at(local_id);
-    auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
-    if (getTournament() && !getTournament()->canChangeTeam())
-    {
-        Log::info("ServerLobby", "Team change requested by %s, but tournament forbids it.", player->getName().c_str());
-        return;
-    }
 
-    // For now, the change team button will still only work in soccer + CTF.
-    // Further logic might be added later, but now it seems to be complicated
-    // because there's a restriction of 7 for those modes, and unnecessary
-    // because we don't have client changes.
-
-    // At most 7 players on each team (for live join)
-    if (player->getTeam() == KART_TEAM_BLUE)
-    {
-        if (red_blue.first >= 7 && !getSettings()->getFreeTeams())
-            return;
-        getTeamManager()->setTeamInLobby(player, KART_TEAM_RED);
-    }
-    else
-    {
-        if (red_blue.second >= 7 && !getSettings()->getFreeTeams())
-            return;
-        getTeamManager()->setTeamInLobby(player, KART_TEAM_BLUE);
-    }
-    updatePlayerList();
+    getTeamManager()->changeTeam(player);
 }   // changeTeam
 
 //-----------------------------------------------------------------------------
 void ServerLobby::kickHost(Event* event)
 {
-    if (m_server_owner.lock() != event->getPeerSP())
+    if (!checkDataSize(event, 4))
         return;
-    if (!getSettings()->getKicksAllowed())
-    {
-        sendStringToPeer(event->getPeerSP(), "Kicking players is not allowed on this server");
-        return;
-    }
-    if (!checkDataSize(event, 4)) return;
+
     NetworkString& data = event->data();
     uint32_t host_id = data.getUInt32();
-    std::shared_ptr<STKPeer> peer = STKHost::get()->findPeerByHostId(host_id);
-    // Ignore kicking ai peer if ai handling is on
-    if (peer && (!getSettings()->getAiHandling() || !peer->isAIPeer()))
-    {
-        if (peer->isAngryHost())
-        {
-            sendStringToPeer(event->getPeerSP(), "This player is the owner of this server, "
-                "and is protected from your actions now");
-            return;
-        }
-        if (!peer->hasPlayerProfiles())
-        {
-            Log::info("ServerLobby", "Crown player kicks a player");
-        }
-        else
-        {
-            auto npp = peer->getPlayerProfiles()[0];
-            std::string player_name = StringUtils::wideToUtf8(npp->getName());
-            Log::info("ServerLobby", "Crown player kicks %s", player_name.c_str());
-        }
-        peer->kick();
-        if (getSettings()->getTrackKicks())
-        {
-            std::string auto_report = "[ Auto report caused by kick ]";
-            writeOwnReport(peer, event->getPeerSP(), auto_report);
-        }
-    }
+    std::shared_ptr<STKPeer> target = STKHost::get()->findPeerByHostId(host_id);
+    auto initiator = event->getPeerSP();
+
+    getSettings()->tryKickingAnotherPeer(initiator, target);
 }   // kickHost
 
 //-----------------------------------------------------------------------------
@@ -452,24 +422,24 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
                   message_type);
         switch(message_type)
         {
-        case LE_CONNECTION_REQUESTED: connectionRequested(event); break;
-        case LE_KART_SELECTION: kartSelectionRequested(event);    break;
-        case LE_CLIENT_LOADED_WORLD: finishedLoadingWorldClient(event); break;
-        case LE_VOTE: handlePlayerVote(event);                    break;
-        case LE_KICK_HOST: kickHost(event);                       break;
-        case LE_CHANGE_TEAM: changeTeam(event);                   break;
-        case LE_REQUEST_BEGIN: startSelection(event);             break;
-        case LE_CHAT: handleChat(event);                          break;
-        case LE_CONFIG_SERVER: handleServerConfiguration(event);  break;
-        case LE_CHANGE_HANDICAP: changeHandicap(event);           break;
+        case LE_CONNECTION_REQUESTED:        connectionRequested(event); break;
+        case LE_KART_SELECTION:           kartSelectionRequested(event); break;
+        case LE_CLIENT_LOADED_WORLD:  finishedLoadingWorldClient(event); break;
+        case LE_VOTE:                           handlePlayerVote(event); break;
+        case LE_KICK_HOST:                              kickHost(event); break;
+        case LE_CHANGE_TEAM:                          changeTeam(event); break;
+        case LE_REQUEST_BEGIN:                    startSelection(event); break;
+        case LE_CHAT:                                 handleChat(event); break;
+        case LE_CONFIG_SERVER:         handleServerConfiguration(event); break;
+        case LE_CHANGE_HANDICAP:                  changeHandicap(event); break;
         case LE_CLIENT_BACK_LOBBY:
-            clientSelectingAssetsWantsToBackLobby(event);         break;
-        case LE_REPORT_PLAYER: writePlayerReport(event);          break;
-        case LE_ASSETS_UPDATE:
-            handleAssets(event->data(), event->getPeerSP());      break;
-        case LE_COMMAND:
-            handleServerCommand(event, event->getPeerSP());       break;
-        default:                                                  break;
+                           clientSelectingAssetsWantsToBackLobby(event); break;
+        case LE_REPORT_PLAYER:                 writePlayerReport(event); break;
+        case LE_ASSETS_UPDATE:                      handleAssets(event); break;
+        case LE_COMMAND:                     handleServerCommand(event); break;
+        default:
+            Log::error("ServerLobby", "Invalid message type %d", message_type);
+            break;
         }   // switch
     } // if (event->getType() == EVENT_TYPE_MESSAGE)
     else if (event->getType() == EVENT_TYPE_DISCONNECTED)
@@ -488,7 +458,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
  */
 void ServerLobby::pollDatabase()
 {
-    if (!getSettings()->getSqlManagement() || !m_db_connector->hasDatabase())
+    if (!getSettings()->hasSqlManagement() || !m_db_connector->hasDatabase())
         return;
 
     if (!m_db_connector->isTimeToPoll())
@@ -638,7 +608,7 @@ void ServerLobby::asynchronousUpdate()
     // Check if server owner has left
     updateServerOwner();
 
-    if (getSettings()->getRanked() && m_state.load() == WAITING_FOR_START_GAME)
+    if (getSettings()->isRanked() && m_state.load() == WAITING_FOR_START_GAME)
         m_ranking->cleanup();
 
     if (allowJoinedPlayersWaiting() /*|| (m_game_setup->isGrandPrix() &&
@@ -729,7 +699,7 @@ void ServerLobby::asynchronousUpdate()
     }
     case WAITING_FOR_START_GAME:
     {
-        if (getSettings()->getOwnerLess())
+        if (getSettings()->isOwnerLess())
         {
             // Ensure that a game can auto-start if the server meets the config's starting limit or if it's already full.
             int starting_limit = std::min((int)getSettings()->getMinStartGamePlayers(), (int)getSettings()->getServerMaxPlayers());
@@ -800,7 +770,7 @@ void ServerLobby::asynchronousUpdate()
         unsigned player_in_game = 0;
         STKHost::get()->updatePlayers(&player_in_game);
         // Reset lobby will be done in main thread
-        if ((player_in_game == 1 && getSettings()->getRanked()) ||
+        if ((player_in_game == 1 && getSettings()->isRanked()) ||
             player_in_game == 0)
         {
             resetVotingTime();
@@ -811,7 +781,7 @@ void ServerLobby::asynchronousUpdate()
         if (m_server_has_loaded_world.load() == false)
             return;
         if (!checkPeersReady(
-            getSettings()->getAiHandling() && m_ai_count == 0/*ignore_ai_peer*/, LOADING_WORLD))
+            getSettings()->hasAiHandling() && m_ai_count == 0/*ignore_ai_peer*/, LOADING_WORLD))
             return;
         // Reset for next state usage
         resetPeersReady();
@@ -824,7 +794,7 @@ void ServerLobby::asynchronousUpdate()
             return;
         unsigned player_in_game = 0;
         STKHost::get()->updatePlayers(&player_in_game);
-        if ((player_in_game == 1 && getSettings()->getRanked()) ||
+        if ((player_in_game == 1 && getSettings()->isRanked()) ||
             player_in_game == 0)
         {
             resetVotingTime();
@@ -834,7 +804,7 @@ void ServerLobby::asynchronousUpdate()
         PeerVote winner_vote;
         getSettings()->resetWinnerPeerId();
         bool go_on_race = false;
-        if (getSettings()->getTrackVoting())
+        if (getSettings()->hasTrackVoting())
             go_on_race = handleAllVotes(&winner_vote);
         else if (/*m_game_setup->isGrandPrixStarted() || */isVotingOver())
         {
@@ -962,7 +932,7 @@ void ServerLobby::asynchronousUpdate()
                 getSettings()->getFlagReturnTimeout());
             RaceManager::get()->setHitProcessor(getHitProcessor());
             RaceManager::get()->setFlagReturnTicks(flag_return_time);
-            if (getSettings()->getRecordReplays() && getSettings()->hasConsentOnReplays() &&
+            if (getSettings()->isRecordingReplays() && getSettings()->hasConsentOnReplays() &&
                 (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL ||
                 RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE))
                 RaceManager::get()->setRecordRace(true);
@@ -1133,15 +1103,18 @@ void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
  */
 void ServerLobby::liveJoinRequest(Event* event)
 {
+    // I moved some data getters ahead of some returns. This should be fine
+    // in general, but you know what caused it if smth goes wrong.
+
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
     const NetworkString& data = event->data();
+    bool spectator = data.getUInt8() == 1;
 
     if (!canLiveJoinNow())
     {
         rejectLiveJoin(peer, BLR_NO_GAME_FOR_LIVE_JOIN);
         return;
     }
-    bool spectator = data.getUInt8() == 1;
     if (RaceManager::get()->modeHasLaps() && !spectator)
     {
         // No live join for linear race
@@ -1164,7 +1137,7 @@ void ServerLobby::liveJoinRequest(Event* event)
             used_id.push_back(id);
         }
         if ((used_id.size() != peer->getPlayerProfiles().size()) ||
-            (spectators_by_limit.find(event->getPeerSP()) != spectators_by_limit.end()))
+            (spectators_by_limit.find(peer) != spectators_by_limit.end()))
         {
             for (unsigned i = 0; i < peer->getPlayerProfiles().size(); i++)
                 peer->getPlayerProfiles()[i]->setKartName("");
@@ -1239,7 +1212,7 @@ int ServerLobby::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
                 rki.copyFrom(p, local_id);
                 return i;
             }
-            if (getSettings()->getTeamChoosing())
+            if (getSettings()->hasTeamChoosing())
             {
                 if ((p->getTeam() == KART_TEAM_RED &&
                     rki.getKartTeam() == KART_TEAM_RED) ||
@@ -1348,7 +1321,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
             }
             if (RaceManager::get()->isBattleMode())
             {
-                if (getSettings()->getPreserveBattleScores())
+                if (getSettings()->isPreservingBattleScores())
                     points = m_game_info->m_saved_ffa_points[name];
                 info.m_result -= points;
             }
@@ -1583,7 +1556,7 @@ void ServerLobby::update(int ticks)
         return;
 
     // Reset for ranked server if in kart / track selection has only 1 player
-    if (getSettings()->getRanked() &&
+    if (getSettings()->isRanked() &&
         m_state.load() == SELECTING &&
         STKHost::get()->getPlayersInGame() == 1)
     {
@@ -1762,14 +1735,14 @@ void ServerLobby::startSelection(const Event *event)
                 m_state.load());
             return;
         }
-        if (getSettings()->getSleepingServer())
+        if (getSettings()->isSleepingServer())
         {
             Log::warn("ServerLobby",
                 "An attempt to start a race on a sleeping server.");
             return;
         }
         auto peer = event->getPeerSP();
-        if (getSettings()->getOwnerLess())
+        if (getSettings()->isOwnerLess())
         {
             if (!getSettings()->isAllowedToStart())
             {
@@ -1812,8 +1785,8 @@ void ServerLobby::startSelection(const Event *event)
         }
     }
 
-    if (!getSettings()->getOwnerLess() && getSettings()->getTeamChoosing() &&
-        !getSettings()->getFreeTeams() && RaceManager::get()->teamEnabled())
+    if (!getSettings()->isOwnerLess() && getSettings()->hasTeamChoosing() &&
+        !getSettings()->hasFreeTeams() && RaceManager::get()->teamEnabled())
     {
         auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
         if ((red_blue.first == 0 || red_blue.second == 0) &&
@@ -1970,7 +1943,7 @@ void ServerLobby::startSelection(const Event *event)
            .addFloat(getSettings()->getVotingTimeout())
            .addUInt8(/*m_game_setup->isGrandPrixStarted() ? 1 : */0)
            .addUInt8((!getSettings()->hasNoLapRestrictions() ? 1 : 0))
-           .addUInt8(getSettings()->getTrackVoting() ? 1 : 0);
+           .addUInt8(getSettings()->hasTrackVoting() ? 1 : 0);
 
 
         std::set<std::string> all_k = peer->getClientAssets().first;
@@ -2051,7 +2024,7 @@ void ServerLobby::checkIncomingConnectionRequests()
 
     // Keep the port open, it can be sent to anywhere as we will send to the
     // correct peer later in ConnectToPeer.
-    if (getSettings()->getFirewalledServer())
+    if (getSettings()->isFirewalledServer())
     {
         BareNetworkString data;
         data.addUInt8(0);
@@ -2197,7 +2170,7 @@ void ServerLobby::checkRaceFinished()
     }
 
     uint8_t ranking_changes_indication = 0;
-    if (getSettings()->getRanked() && RaceManager::get()->modeHasLaps())
+    if (getSettings()->isRanked() && RaceManager::get()->modeHasLaps())
         ranking_changes_indication = 1;
     if (m_game_setup->isGrandPrix())
         ranking_changes_indication = 1;
@@ -2210,12 +2183,12 @@ void ServerLobby::checkRaceFinished()
         updateGnuElimination();
     }
 
-    if (getSettings()->getStoreResults())
+    if (getSettings()->isStoringResults())
     {
         storeResults();
     }
 
-    if (getSettings()->getRanked())
+    if (getSettings()->isRanked())
     {
         computeNewRankings();
         submitRankingsToAddons();
@@ -2362,27 +2335,25 @@ void ServerLobby::saveIPBanTable(const SocketAddress& addr)
     m_db_connector->saveAddressToIpBanTable(addr);
 #endif
 }   // saveIPBanTable
-
 //-----------------------------------------------------------------------------
-bool ServerLobby::handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer> peer)
-{
-    std::set<std::string> client_karts, client_tracks;
-    const unsigned kart_num = ns.getUInt16();
-    const unsigned track_num = ns.getUInt16();
-    for (unsigned i = 0; i < kart_num; i++)
-    {
-        std::string kart;
-        ns.decodeString(&kart);
-        client_karts.insert(kart);
-    }
-    for (unsigned i = 0; i < track_num; i++)
-    {
-        std::string track;
-        ns.decodeString(&track);
-        client_tracks.insert(track);
-    }
 
-    if (!getAssetManager()->handleAssetsForPeer(peer, client_karts, client_tracks))
+bool ServerLobby::handleAssets(Event* event)
+{
+    const NetworkString& ns = event->data();
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
+
+    std::set<std::string> client_karts, client_maps;
+    getClientAssetsFromNetworkString(ns, client_karts, client_maps);
+
+    return handleAssetsAndAddonScores(peer, client_karts, client_maps);
+}   // handleAssets
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
+        const std::set<std::string>& client_karts,
+        const std::set<std::string>& client_maps)
+{
+    if (!getAssetManager()->handleAssetsForPeer(peer, client_karts, client_maps))
     {
         if (peer->isValidated())
         {
@@ -2419,11 +2390,11 @@ bool ServerLobby::handleAssets(const NetworkString& ns, std::shared_ptr<STKPeer>
     }
 
 
-    std::array<int, AS_TOTAL> addons_scores = getAssetManager()->getAddonScores(client_karts, client_tracks);
+    std::array<int, AS_TOTAL> addons_scores = getAssetManager()->getAddonScores(client_karts, client_maps);
 
     // Save available karts and tracks from clients in STKPeer so if this peer
     // disconnects later in lobby it won't affect current players
-    peer->setAvailableKartsTracks(client_karts, client_tracks);
+    peer->setAvailableKartsTracks(client_karts, client_maps);
     peer->setAddonsScores(addons_scores);
 
     if (m_process_type == PT_CHILD &&
@@ -2493,7 +2464,10 @@ void ServerLobby::connectionRequested(Event* event)
         caps.insert(cap);
     }
     event->getPeer()->setClientCapabilities(caps);
-    if (!handleAssets(data, event->getPeerSP()))
+
+    std::set<std::string> client_karts, client_maps;
+    getClientAssetsFromNetworkString(data, client_karts, client_maps);
+    if (!handleAssetsAndAddonScores(event->getPeerSP(), client_karts, client_maps))
         return;
 
     unsigned player_count = data.getUInt8();
@@ -2545,12 +2519,12 @@ void ServerLobby::connectionRequested(Event* event)
         !(peer->getAddress().isPublicAddressLocalhost() ||
         peer->getAddress().isLAN()) &&
         NetworkConfig::get()->isWAN() &&
-        getSettings()->getValidatingPlayer()) ||
-        (getSettings()->getStrictPlayers() &&
+        getSettings()->isValidatingPlayer()) ||
+        (getSettings()->hasStrictPlayers() &&
         (player_count != 1 || online_id == 0 || duplicated_ranked_player)) ||
         (peer->isAIPeer() && !peer->getAddress().isLAN() && !getSettings()->canConnectAiAnywhere()) ||
         (peer->isAIPeer() &&
-        getSettings()->getAiHandling() && !m_ai_peer.expired()))
+        getSettings()->hasAiHandling() && !m_ai_peer.expired()))
     {
         NetworkString* message = getNetworkString(2);
         message->setSynchronous(true);
@@ -2562,7 +2536,7 @@ void ServerLobby::connectionRequested(Event* event)
         return;
     }
 
-    if (getSettings()->getAiHandling() && peer->isAIPeer())
+    if (getSettings()->hasAiHandling() && peer->isAIPeer())
         m_ai_peer = peer;
 
     if (encrypted_size != 0)
@@ -2651,7 +2625,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             STKHost::get()->getAllPlayerOnlineIds();
         bool duplicated_ranked_player =
             all_online_ids.find(online_id) != all_online_ids.end();
-        if (getSettings()->getRanked() && duplicated_ranked_player)
+        if (getSettings()->isRanked() && duplicated_ranked_player)
         {
             NetworkString* message = getNetworkString(2);
             message->setSynchronous(true);
@@ -2704,7 +2678,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         bool can_change_teams = true;
         if (getTournament() && !getTournament()->canChangeTeam())
             can_change_teams = false;
-        if (getSettings()->getTeamChoosing() && can_change_teams)
+        if (getSettings()->hasTeamChoosing() && can_change_teams)
         {
             KartTeam cur_team = KART_TEAM_NONE;
 
@@ -2830,7 +2804,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     {
         peer->setWaitingForGame(false);
         m_peers_ready[peer] = false;
-        if (!getSettings()->getSqlManagement())
+        if (!getSettings()->hasSqlManagement())
         {
             for (std::shared_ptr<NetworkPlayerProfile>& npp :
                 peer->getPlayerProfiles())
@@ -2846,7 +2820,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         peer->sendPacket(message_ack);
         delete message_ack;
 
-        if (getSettings()->getRanked())
+        if (getSettings()->isRanked())
         {
             getRankingForPlayer(peer->getPlayerProfiles()[0]);
         }
@@ -2876,7 +2850,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         peer->sendPacket(chat, PRM_RELIABLE);
         delete chat;
     }
-    if (getSettings()->getRecordReplays())
+    if (getSettings()->isRecordingReplays())
     {
         std::string msg;
         if (getSettings()->hasConsentOnReplays())
@@ -2977,8 +2951,8 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         std::string os_type_str = version_os.second;
         std::string utf8_profile_name = StringUtils::wideToUtf8(profile_name);
         // Add a Mobile emoji for mobile OS
-        if (getSettings()->getExposeMobile() && 
-            (os_type_str == "iOS" || os_type_str == "Android"))
+        if (getSettings()->isExposingMobile() &&
+                (os_type_str == "iOS" || os_type_str == "Android"))
             profile_name = StringUtils::utf32ToWide({0x1F4F1}) + profile_name;
 
         // Add an hourglass emoji for players waiting because of the player limit
@@ -3020,7 +2994,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= (1 << 1);
         if (p && m_server_owner_id.load() == p->getHostId())
             boolean_combine |= (1 << 2);
-        if (getSettings()->getOwnerLess() && !game_started &&
+        if (getSettings()->isOwnerLess() && !game_started &&
             m_peers_ready.find(p) != m_peers_ready.end() &&
             m_peers_ready.at(p))
             boolean_combine |= (1 << 3);
@@ -3028,7 +3002,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= (1 << 4);
         pl->addUInt8(boolean_combine);
         pl->addUInt8(profile->getHandicap());
-        if (getSettings()->getTeamChoosing())
+        if (getSettings()->hasTeamChoosing())
             pl->addUInt8(profile->getTeam());
         else
             pl->addUInt8(KART_TEAM_NONE);
@@ -3053,7 +3027,7 @@ void ServerLobby::updateServerOwner(bool force)
 {
     if (m_state.load() < WAITING_FOR_START_GAME ||
         m_state.load() > RESULT_DISPLAY ||
-        getSettings()->getOwnerLess())
+        getSettings()->isOwnerLess())
         return;
     if (!force && !m_server_owner.expired())
         return;
@@ -3126,7 +3100,7 @@ void ServerLobby::kartSelectionRequested(Event* event)
  */
 void ServerLobby::handlePlayerVote(Event* event)
 {
-    if (m_state != SELECTING || !getSettings()->getTrackVoting())
+    if (m_state != SELECTING || !getSettings()->hasTrackVoting())
     {
         Log::warn("ServerLobby", "Received track vote while in state %d.",
                   m_state.load());
@@ -3445,7 +3419,7 @@ void ServerLobby::configPeersStartTime()
         }
         max_ping = std::max(peer->getAveragePing(), max_ping);
     }
-    if ((getSettings()->getHighPingWorkaround() && peer_exceeded_max_ping) ||
+    if ((getSettings()->hasHighPingWorkaround() && peer_exceeded_max_ping) ||
         (getSettings()->isLivePlayers() && RaceManager::get()->supportsLiveJoining()))
     {
         Log::info("ServerLobby", "Max ping to ServerConfig::m_max_ping for "
@@ -3513,7 +3487,7 @@ void ServerLobby::addWaitingPlayersToGame()
         if (m_peers_ready.find(peer) == m_peers_ready.end())
         {
             m_peers_ready[peer] = false;
-            if (!getSettings()->getSqlManagement())
+            if (!getSettings()->hasSqlManagement())
             {
                 Log::info("ServerLobby",
                     "New player %s with online id %u from %s with %s.",
@@ -3524,7 +3498,7 @@ void ServerLobby::addWaitingPlayersToGame()
             }
         }
         uint32_t online_id = profile->getOnlineId();
-        if (getSettings()->getRanked() && !m_ranking->has(online_id))
+        if (getSettings()->isRanked() && !m_ranking->has(online_id))
         {
             getRankingForPlayer(peer->getPlayerProfiles()[0]);
         }
@@ -3710,7 +3684,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
             m_state.load());
         return;
     }
-    if (!getSettings()->getServerConfigurable())
+    if (!getSettings()->isServerConfigurable())
     {
         Log::warn("ServerLobby", "server-configurable is not enabled.");
         return;
@@ -3857,7 +3831,7 @@ void ServerLobby::handleServerConfiguration(Event* event)
     }
     int new_difficulty = getSettings()->getServerDifficulty();
     int new_game_mode = getSettings()->getServerMode();
-    bool new_soccer_goal_target = getSettings()->getSoccerGoalTarget();
+    bool new_soccer_goal_target = getSettings()->isSoccerGoalTargetInConfig();
     if (event != NULL)
     {
         NetworkString& data = event->data();
@@ -3956,7 +3930,7 @@ void ServerLobby::handlePlayerDisconnection() const
 
             World::getWorld()->eliminateKart(i,
                 false/*notify_of_elimination*/);
-            if (getSettings()->getRanked())
+            if (getSettings()->isRanked())
             {
                 // Handle disconnection earlier to prevent cheating by joining
                 // another ranked server
@@ -4385,11 +4359,13 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer, SelectionPhase phase)
 }   // checkPeersReady
 
 //-----------------------------------------------------------------------------
-void ServerLobby::handleServerCommand(Event* event,
-                                      std::shared_ptr<STKPeer> peer)
+void ServerLobby::handleServerCommand(Event* event)
 {
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
+
     if (peer.get())
         peer->updateLastActivity();
+    
     getCommandManager()->handleCommand(event, peer);
 }   // handleServerCommand
 //-----------------------------------------------------------------------------
@@ -4657,7 +4633,7 @@ void ServerLobby::storeResults()
 //-----------------------------------------------------------------------------
 void ServerLobby::resetToDefaultSettings()
 {
-    if (getSettings()->getServerConfigurable() && !getSettings()->isPreservingMode())
+    if (getSettings()->isServerConfigurable() && !getSettings()->isPreservingMode())
         handleServerConfiguration(NULL);
 
     getSettings()->onResetToDefaultSettings();
@@ -4880,7 +4856,7 @@ int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
     if (peer == m_server_owner.lock())
     {
         mask |= CommandPermissions::PE_CROWNED;
-        if (getSettings()->getOnlyHostRiding())
+        if (getSettings()->hasOnlyHostRiding())
             mask |= CommandPermissions::PE_SINGLE;
     }
     if (peer->isAngryHost())
@@ -5103,7 +5079,7 @@ void ServerLobby::setKartDataProperly(KartData& kart_data, const std::string& ka
     {
         const KartProperties* real_addon =
             kart_properties_manager->getKart(kart_name);
-        if (getSettings()->getRealAddonKarts() && real_addon)
+        if (getSettings()->usesRealAddonKarts() && real_addon)
         {
             kart_data = KartData(real_addon);
         }
@@ -5157,7 +5133,7 @@ void ServerLobby::saveDisconnectingIdInfo(int id) const
         if (ffa_world)
             points = ffa_world->getKartScore(id);
         info.m_result += points;
-        if (getSettings()->getPreserveBattleScores())
+        if (getSettings()->isPreservingBattleScores())
             m_game_info->m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())] = points;
     }
     info.m_when_left = stk_config->ticks2Time(w->getTicksSinceStart());

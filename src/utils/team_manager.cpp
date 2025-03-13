@@ -26,6 +26,9 @@
 #include "network/server_config.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "utils/lobby_settings.hpp"
+#include "utils/tournament.hpp"
+#include "network/protocols/server_lobby.hpp"
 
 void TeamManager::setupContextUser()
 {
@@ -237,3 +240,37 @@ void TeamManager::shuffleTemporaryTeams(const std::map<int, int>& permutation)
     getLobby()->shuffleGPScoresWithPermutation(permutation);
 }   // shuffleTemporaryTeams
 //-----------------------------------------------------------------------------
+
+void TeamManager::changeTeam(std::shared_ptr<NetworkPlayerProfile> player)
+{
+    if (!getSettings()->hasTeamChoosing() ||
+        !RaceManager::get()->teamEnabled())
+        return;
+
+    auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
+    if (isTournament() && !getTournament()->canChangeTeam())
+    {
+        Log::info("ServerLobby", "Team change requested by %s, but tournament forbids it.", player->getName().c_str());
+        return;
+    }
+
+    // For now, the change team button will still only work in soccer + CTF.
+    // Further logic might be added later, but now it seems to be complicated
+    // because there's a restriction of 7 for those modes, and unnecessary
+    // because we don't have client changes.
+
+    // At most 7 players on each team (for live join)
+    if (player->getTeam() == KART_TEAM_BLUE)
+    {
+        if (red_blue.first >= 7 && !getSettings()->hasFreeTeams())
+            return;
+        setTeamInLobby(player, KART_TEAM_RED);
+    }
+    else
+    {
+        if (red_blue.second >= 7 && !getSettings()->hasFreeTeams())
+            return;
+        setTeamInLobby(player, KART_TEAM_BLUE);
+    }
+    getLobby()->updatePlayerList();
+}

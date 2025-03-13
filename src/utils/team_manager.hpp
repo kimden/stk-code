@@ -66,6 +66,7 @@ public:
            { return m_hammer_whitelist.find(str) != m_hammer_whitelist.end(); }
     void clearTemporaryTeams();
     void shuffleTemporaryTeams(const std::map<int, int>& permutation);
+    void changeTeam(std::shared_ptr<NetworkPlayerProfile> player);
 
 private:
 

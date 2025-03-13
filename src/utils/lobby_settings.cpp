@@ -687,3 +687,45 @@ void LobbySettings::onServerSetup()
     NetworkConfig::get()->setTuxHitboxAddon(m_live_players);
 }   // onServerSetup
 //-----------------------------------------------------------------------------
+
+void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
+                                    std::shared_ptr<STKPeer> target) const
+{
+    // Should probably include hammer permissions, but this function is
+    // originated from the ingame button press. Unify all such functions later.
+    if (getLobby()->getServerOwner() != initiator)
+        return;
+
+    if (!hasKicksAllowed())
+    {
+        getLobby()->sendStringToPeer(initiator, "Kicking players is not allowed on this server");
+        return;
+    }
+
+    // Ignore kicking ai peer if ai handling is on
+    if (target && (!hasAiHandling() || !target->isAIPeer()))
+    {
+        if (target->isAngryHost())
+        {
+            getLobby()->sendStringToPeer(initiator, "This player is the owner of this server, "
+                "and is protected from your actions now");
+            return;
+        }
+        if (!target->hasPlayerProfiles())
+        {
+            Log::info("ServerLobby", "Crown player kicks a player");
+        }
+        else
+        {
+            std::string player_name = target->getMainName();
+            Log::info("ServerLobby", "Crown player kicks %s", player_name.c_str());
+        }
+        target->kick();
+        if (isTrackingKicks())
+        {
+            std::string auto_report = "[ Auto report caused by kick ]";
+            getLobby()->writeOwnReport(target, initiator, auto_report);
+        }
+    }
+}   // tryKickingAnotherPeer
+//-----------------------------------------------------------------------------

@@ -413,7 +413,7 @@ void CommandManager::initCommands()
     // special permissions according to ServerConfig options
     std::shared_ptr<Command> kick_command = mp["kick"].lock();
     if (kick_command) {
-        if (getSettings()->getKicksAllowed())
+        if (getSettings()->hasKicksAllowed())
             kick_command->m_permissions |= PE_CROWNED;
         else
             kick_command->m_permissions &= ~PE_CROWNED;
@@ -1091,7 +1091,7 @@ void CommandManager::process_replay(Context& context)
         error(context, true);
         return;
     }
-    if (getSettings()->getRecordReplays())
+    if (getSettings()->isRecordingReplays())
     {
         bool current_state = getSettings()->hasConsentOnReplays();
         if (argv.size() >= 2 && argv[1] == "0")
@@ -1114,7 +1114,7 @@ void CommandManager::process_replay(Context& context)
 
 void CommandManager::process_start(Context& context)
 {
-    if (!getSettings()->getOwnerLess() && (context.m_user_permissions & UP_CROWNED) == 0)
+    if (!getSettings()->isOwnerLess() && (context.m_user_permissions & UP_CROWNED) == 0)
     {
         context.m_voting = true;
     }
@@ -1151,7 +1151,7 @@ void CommandManager::process_config(Context& context)
     msg += get_first_if_exists(m_aux_difficulty_aliases[difficulty]);
     msg += " ";
     msg += get_first_if_exists(m_aux_goal_aliases[goal_target ? 1 : 0]);
-    if (!getSettings()->getServerConfigurable())
+    if (!getSettings()->isServerConfigurable())
         msg += " (not configurable)";
     getLobby()->sendStringToPeer(peer, msg);
 } // process_config
@@ -1160,7 +1160,7 @@ void CommandManager::process_config(Context& context)
 void CommandManager::process_config_assign(Context& context)
 {
     auto peer = context.m_peer.lock();
-    if (!getSettings()->getServerConfigurable())
+    if (!getSettings()->isServerConfigurable())
     {
         getLobby()->sendStringToPeer(peer, "Server is not configurable, this command cannot be invoked.");
         return;
@@ -1746,7 +1746,7 @@ void CommandManager::process_kick(Context& context)
     }
     Log::info("CommandManager", "%s kicks %s", (peer.get() ? "Crown player" : "Vote"), player_name.c_str());
     player_peer->kick();
-    if (getSettings()->getTrackKicks())
+    if (getSettings()->isTrackingKicks())
     {
         std::string auto_report = "[ Auto report caused by kick ]";
         getLobby()->writeOwnReport(player_peer, peer, auto_report);
@@ -3574,7 +3574,7 @@ void CommandManager::process_slots(Context& context)
 
 void CommandManager::process_slots_assign(Context& context)
 {
-    if (getSettings()->getOnlyHostRiding())
+    if (getSettings()->hasOnlyHostRiding())
     {
         auto peer = context.m_peer.lock(); // may be nullptr, here we don't care
         getLobby()->sendStringToPeer(peer, 
