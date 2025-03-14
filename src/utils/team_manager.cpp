@@ -26,6 +26,7 @@
 #include "network/server_config.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "utils/lobby_gp_manager.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/tournament.hpp"
 #include "network/protocols/server_lobby.hpp"
@@ -35,6 +36,25 @@ void TeamManager::setupContextUser()
     m_available_teams = ServerConfig::m_init_available_teams;
     initCategories();
 }   // setupContextUser
+//-----------------------------------------------------------------------------
+
+void TeamManager::setTemporaryTeamInLobby(const std::string& username, int team)
+{
+    irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
+            wide_player_name);
+    if (player_peer)
+    {
+        for (auto& profile : player_peer.get()->getPlayerProfiles())
+        {
+            if (profile->getName() == wide_player_name)
+            {
+                getTeamManager()->setTemporaryTeamInLobby(profile, team);
+                break;
+            }
+        }
+    }
+}   // setTemporaryTeamInLobby (username)
 //-----------------------------------------------------------------------------
 
 void TeamManager::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team)
@@ -49,8 +69,8 @@ void TeamManager::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, 
 
     getLobby()->checkNoTeamSpectator(profile->getPeer());
 }   // setTeamInLobby
-
 //-----------------------------------------------------------------------------
+
 void TeamManager::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team)
 {
     // Used for racing+FFA, where everything can be defined by a temporary team
@@ -66,7 +86,6 @@ void TeamManager::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> 
 
     getLobby()->checkNoTeamSpectator(profile->getPeer());
 }   // setTemporaryTeamInLobby
-
 //-----------------------------------------------------------------------------
 
 void TeamManager::applyPermutationToTeams(const std::map<int, int>& permutation)
@@ -237,7 +256,7 @@ void TeamManager::shuffleTemporaryTeams(const std::map<int, int>& permutation)
             }
         }
     }
-    getLobby()->shuffleGPScoresWithPermutation(permutation);
+    getGPManager()->shuffleGPScoresWithPermutation(permutation);
 }   // shuffleTemporaryTeams
 //-----------------------------------------------------------------------------
 

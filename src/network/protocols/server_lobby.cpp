@@ -54,6 +54,7 @@
 #include "utils/game_info.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/lobby_asset_manager.hpp"
+#include "utils/lobby_gp_manager.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/lobby_queues.hpp"
 #include "utils/map_vote_handler.hpp"
@@ -911,7 +912,7 @@ void ServerLobby::asynchronousUpdate()
                 // cannot return an addon; when addons are supported, this part of
                 // code will also have to provide kart data (or setKartName has to
                 // set the correct hitbox itself).
-                std::string new_kart = getKartForBadKartChoice(
+                std::string new_kart = getAssetManager()->getKartForBadKartChoice(
                         players[i]->getPeer(), name, current_kart);
                 if (new_kart != current_kart)
                 {
@@ -2000,11 +2001,8 @@ void ServerLobby::startSelection(const Event *event)
 
     // Will be changed after the first vote received
     m_timeout.store(std::numeric_limits<int64_t>::max());
-    if (!m_game_setup->isGrandPrixStarted())
-    {
-        m_gp_scores.clear();
-        m_gp_team_scores.clear();
-    }
+
+    getGPManager()->onStartSelection();
 
     getCommandManager()->onStartSelection();
 }   // startSelection
@@ -2091,74 +2089,7 @@ void ServerLobby::checkRaceFinished()
     std::vector<float> gp_changes;
     if (m_game_setup->isGrandPrix())
     {
-        // fastest lap
-        int fastest_lap =
-            static_cast<LinearWorld*>(World::getWorld())->getFastestLapTicks();
-        m_result_ns->addUInt32(fastest_lap);
-        irr::core::stringw fastest_kart_wide =
-            static_cast<LinearWorld*>(World::getWorld())
-            ->getFastestLapKartName();
-        m_result_ns->encodeString(fastest_kart_wide);
-        std::string fastest_kart = StringUtils::wideToUtf8(fastest_kart_wide);
-
-        int points_fl = 0;
-        // Commented until used to remove the warning
-        // int points_pole = 0;
-        WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
-        if (wwr)
-        {
-            points_fl = wwr->getFastestLapPoints();
-            // Commented until used to remove the warning
-            // points_pole = wwr->getPolePoints();
-        }
-        else
-        {
-            Log::error("ServerLobby",
-                       "World with scores that is not a WorldWithRank??");
-        }
-
-        // all gp tracks
-        m_result_ns->addUInt8((uint8_t)m_game_setup->getTotalGrandPrixTracks())
-            .addUInt8((uint8_t)m_game_setup->getAllTracks().size());
-        for (const std::string& gp_track : m_game_setup->getAllTracks())
-            m_result_ns->encodeString(gp_track);
-
-        // each kart score and total time
-        m_result_ns->addUInt8((uint8_t)RaceManager::get()->getNumPlayers());
-        for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
-        {
-            int last_score = (World::getWorld()->getKart(i)->isEliminated() ?
-                    0 : RaceManager::get()->getKartScore(i));
-            gp_changes.push_back((float)last_score);
-            int cur_score = last_score;
-            float overall_time = RaceManager::get()->getOverallTime(i);
-            std::string username = StringUtils::wideToUtf8(
-                RaceManager::get()->getKartInfo(i).getPlayerName());
-            if (username == fastest_kart)
-            {
-                gp_changes.back() += points_fl;
-                cur_score += points_fl;
-            }
-            int team = getTeamManager()->getTeamForUsername(username);
-            if (team > 0)
-            {
-                m_gp_team_scores[team].score += cur_score;
-                m_gp_team_scores[team].time += overall_time;
-            }
-            last_score = m_gp_scores[username].score;
-            cur_score += last_score;
-            overall_time = overall_time + m_gp_scores[username].time;
-            if (auto player =
-                RaceManager::get()->getKartInfo(i).getNetworkPlayerProfile().lock())
-            {
-                player->setScore(cur_score);
-                player->setOverallTime(overall_time);
-            }
-            m_gp_scores[username].score = cur_score;
-            m_gp_scores[username].time = overall_time;
-            m_result_ns->addUInt32(last_score).addUInt32(cur_score)
-                .addFloat(overall_time);            
-        }
+        getGPManager()->updateGPScores(gp_changes, m_result_ns);
     }
     else if (RaceManager::get()->modeHasLaps())
     {
@@ -2705,15 +2636,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                 getTeamManager()->setTeamInLobby(player, team);
         }
         getCommandManager()->addUser(username);
-        if (m_game_setup->isGrandPrix())
-        {
-            auto it = m_gp_scores.find(username);
-            if (it != m_gp_scores.end())
-            {
-                player->setScore(it->second.score);
-                player->setOverallTime(it->second.time);
-            }
-        }
+        getGPManager()->setScoresToPlayer(player);
         if (!RaceManager::get()->teamEnabled())
         {
             if (previous_team != -1)
@@ -4034,7 +3957,8 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPee
         if (getQueues()->areKartFiltersIgnoringKarts())
             current_kart = "";
         std::string name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName());
-        peer->getPlayerProfiles()[i]->setKartName(getKartForBadKartChoice(peer, name, current_kart));
+        peer->getPlayerProfiles()[i]->setKartName(
+                getAssetManager()->getKartForBadKartChoice(peer, name, current_kart));
     }
     if (peer->getClientCapabilities().find("real_addon_karts") ==
         peer->getClientCapabilities().end() || ns.size() == 0)
@@ -4817,7 +4741,7 @@ bool ServerLobby::canVote(std::shared_ptr<STKPeer> peer) const
     if (!peer || peer->getPlayerProfiles().empty())
         return false;
 
-    if (!getTournament())
+    if (!isTournament())
         return true;
 
     return getTournament()->canVote(peer);
@@ -4870,65 +4794,7 @@ int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
     return mask;
 }   // getPermissions
 //-----------------------------------------------------------------------------
-std::string ServerLobby::getGrandPrixStandings(bool showIndividual, bool showTeam) const
-{
-    std::stringstream response;
-    response << "Grand Prix standings";
 
-    if (!showIndividual && !showTeam)
-    {
-        if (m_gp_team_scores.empty())
-            showIndividual = true;
-        else
-            showTeam = true;
-    }
-
-    uint8_t passed = (uint8_t)m_game_setup->getAllTracks().size();
-    uint8_t total = m_game_setup->getExtraServerInfo();
-    if (passed != 0)
-        response << " after " << (int)passed << " of " << (int)total << " games:\n";
-    else
-        response << ", " << (int)total << " games:\n";
-
-    if (showIndividual)
-    {
-        std::vector<std::pair<GPScore, std::string>> results;
-        for (auto &p: m_gp_scores)
-            results.emplace_back(p.second, p.first);
-        std::stable_sort(results.rbegin(), results.rend());
-        for (unsigned i = 0; i < results.size(); i++)
-        {
-            response << (i + 1) << ". ";
-            response << "  " << results[i].second;
-            response << "  " << results[i].first.score;
-            response << "  " << "(" << StringUtils::timeToString(results[i].first.time) << ")";
-            response << "\n";
-        }
-    }
-
-    if (showTeam)
-    {
-        if (!m_gp_team_scores.empty())
-        {
-            std::vector<std::pair<GPScore, int>> results2;
-            if (showIndividual)
-                response << "\n";
-            for (auto &p: m_gp_team_scores)
-                results2.emplace_back(p.second, p.first);
-            std::stable_sort(results2.rbegin(), results2.rend());
-            for (unsigned i = 0; i < results2.size(); i++)
-            {
-                response << (i + 1) << ". ";
-                response << "  " << TeamUtils::getTeamByIndex(results2[i].second).getNameWithEmoji();
-                response << "  " << results2[i].first.score;
-                response << "  " << "(" << StringUtils::timeToString(results2[i].first.time) << ")";
-                response << "\n";
-            }
-        }
-    }
-    return response.str();
-}   // getGrandPrixStandings
-//-----------------------------------------------------------------------------
 bool ServerLobby::writeOnePlayerReport(std::shared_ptr<STKPeer> reporter,
     const std::string& table, const std::string& info)
 {
@@ -4953,12 +4819,7 @@ bool ServerLobby::writeOnePlayerReport(std::shared_ptr<STKPeer> reporter,
 void ServerLobby::changeLimitForTournament(bool goal_target)
 {
     m_game_setup->setSoccerGoalTarget(goal_target);
-    NetworkString* server_info = getNetworkString();
-    server_info->setSynchronous(true);
-    server_info->addUInt8(LE_SERVER_INFO);
-    m_game_setup->addServerInfo(server_info);
-    sendMessageToPeers(server_info);
-    delete server_info;
+    sendServerInfoToEveryone();
     updatePlayerList();
 }   // changeLimitForTournament
 //-----------------------------------------------------------------------------
@@ -5006,60 +4867,6 @@ bool ServerLobby::isSoccerGoalTarget() const
 }   // isSoccerGoalTarget
 //-----------------------------------------------------------------------------
 
-// This should be moved later to another unit.
-void ServerLobby::setTemporaryTeamInLobby(const std::string& username, int team)
-{
-    irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
-    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            wide_player_name);
-    if (player_peer)
-    {
-        for (auto& profile : player_peer.get()->getPlayerProfiles())
-        {
-            if (profile->getName() == wide_player_name)
-            {
-                getTeamManager()->setTemporaryTeamInLobby(profile, team);
-                break;
-            }
-        }
-    }
-}   // setTemporaryTeamInLobby (username)
-//-----------------------------------------------------------------------------
-
-void ServerLobby::resetGrandPrix()
-{
-    m_gp_scores.clear();
-    m_gp_team_scores.clear();
-    m_game_setup->stopGrandPrix();
-
-    NetworkString* server_info = getNetworkString();
-    server_info->setSynchronous(true);
-    server_info->addUInt8(LE_SERVER_INFO);
-    m_game_setup->addServerInfo(server_info);
-    sendMessageToPeers(server_info);
-    delete server_info;
-    updatePlayerList();
-}   // resetGrandPrix
-//-----------------------------------------------------------------------------
-
-std::string ServerLobby::getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, const std::string& username, const std::string& check_choice) const
-{
-    std::set<std::string> karts = (peer->isAIPeer() ? getAssetManager()->getAvailableKarts() : peer->getClientAssets().first);
-    getAssetManager()->applyAllKartFilters(username, karts, true);
-    if (getKartElimination()->isEliminated(username)
-        && karts.count(getKartElimination()->getKart()))
-    {
-        return getKartElimination()->getKart();
-    }
-    if (!check_choice.empty() && karts.count(check_choice)) // valid choice
-        return check_choice;
-    // choice is invalid, roll the random
-    RandomGenerator rg;
-    std::set<std::string>::iterator it = karts.begin();
-    std::advance(it, rg.get((int)karts.size()));
-    return *it;
-}   // getKartForRandomKartChoice
-//-----------------------------------------------------------------------------
 void ServerLobby::setKartDataProperly(KartData& kart_data, const std::string& kart_name,
          std::shared_ptr<NetworkPlayerProfile> player,
          const std::string& type) const
@@ -5208,17 +5015,13 @@ void ServerLobby::setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysS
 }   // setSpectateModeProperly
 //-----------------------------------------------------------------------------
 
-void ServerLobby::shuffleGPScoresWithPermutation(const std::map<int, int>& permutation)
+void ServerLobby::sendServerInfoToEveryone() const
 {
-    auto old_scores = m_gp_team_scores;
-    m_gp_team_scores.clear();
-    for (auto& p: old_scores)
-    {
-        auto it = permutation.find(p.first);
-        if (it != permutation.end())
-            m_gp_team_scores[it->second] = p.second;
-        else
-            m_gp_team_scores[p.first] = p.second;
-    }
-}   // shuffleGPScoresWithPermutation
+    NetworkString* server_info = getNetworkString();
+    server_info->setSynchronous(true);
+    server_info->addUInt8(LE_SERVER_INFO);
+    m_game_setup->addServerInfo(server_info);
+    sendMessageToPeers(server_info);
+    delete server_info;
+}   // sendServerInfoToEveryone
 //-----------------------------------------------------------------------------

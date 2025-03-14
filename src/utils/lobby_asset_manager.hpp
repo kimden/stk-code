@@ -77,7 +77,11 @@ public:
 
     void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
     void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
-    
+
+    std::string getKartForBadKartChoice(
+            std::shared_ptr<STKPeer> peer,
+            const std::string& username,
+            const std::string& check_choice) const;
 
     std::set<std::string> getAddonKarts() const   { return m_addon_kts.first; }
     std::set<std::string> getAddonTracks() const { return m_addon_kts.second; }

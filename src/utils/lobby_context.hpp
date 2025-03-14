@@ -34,6 +34,7 @@ class MapVoteHandler;
 class ServerLobby;
 class TeamManager;
 class Tournament;
+class LobbyGPManager;
 
 class LobbyContext
 {
@@ -49,6 +50,7 @@ private:
     std::shared_ptr<CommandManager>    m_command_manager;
     std::shared_ptr<ChatManager>       m_chat_manager;
     std::shared_ptr<TeamManager>       m_team_manager;
+    std::shared_ptr<LobbyGPManager>    m_gp_manager;
 
 public:
 
@@ -68,6 +70,7 @@ public:
     std::shared_ptr<CommandManager>    getCommandManager()  const { return m_command_manager; }
     std::shared_ptr<ChatManager>       getChatManager()     const { return m_chat_manager; }
     std::shared_ptr<TeamManager>       getTeamManager()     const { return m_team_manager; }
+    std::shared_ptr<LobbyGPManager>    getGPManager()       const { return m_gp_manager; }
 };
 
 class LobbyContextUser
@@ -86,6 +89,7 @@ protected:
     std::shared_ptr<CommandManager>    getCommandManager()  const { return m_context->getCommandManager(); }
     std::shared_ptr<ChatManager>       getChatManager()     const { return m_context->getChatManager(); }
     std::shared_ptr<TeamManager>       getTeamManager()     const { return m_context->getTeamManager(); }
+    std::shared_ptr<LobbyGPManager>    getGPManager()       const { return m_context->getGPManager(); }
 
 public:
     void setContext(LobbyContext* context)             { m_context = context; }
