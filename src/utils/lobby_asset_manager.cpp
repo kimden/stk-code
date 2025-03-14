@@ -28,6 +28,7 @@
 #include "network/stk_peer.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/kart_elimination.hpp"
 #include "utils/lobby_queues.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/random_generator.hpp"
@@ -639,4 +640,35 @@ void LobbyAssetManager::applyAllKartFilters(const std::string& username, std::se
     getQueues()->applyFrontKartFilters(kart_context);
     swap(karts, kart_context.elements);
 }   // applyAllKartFilters
+//-----------------------------------------------------------------------------
+
+std::string LobbyAssetManager::getKartForBadKartChoice(
+            std::shared_ptr<STKPeer> peer,
+            const std::string& username,
+            const std::string& check_choice) const
+{
+    std::set<std::string> karts;
+    if (peer->isAIPeer())
+        karts = getAvailableKarts();
+    else
+        karts = peer->getClientAssets().first;
+
+    applyAllKartFilters(username, karts, true);
+
+    auto kart_elimination = getKartElimination();
+    if (kart_elimination->isEliminated(username)
+        && karts.count(kart_elimination->getKart()))
+    {
+        return kart_elimination->getKart();
+    }
+
+    if (!check_choice.empty() && karts.count(check_choice)) // valid choice
+        return check_choice;
+
+    // choice is invalid, roll the random
+    RandomGenerator rg;
+    std::set<std::string>::iterator it = karts.begin();
+    std::advance(it, rg.get((int)karts.size()));
+    return *it;
+}   // getKartForRandomKartChoice
 //-----------------------------------------------------------------------------

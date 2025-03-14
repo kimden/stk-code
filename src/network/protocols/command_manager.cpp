@@ -39,6 +39,7 @@
 #include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
 #include "utils/lobby_context.hpp"
+#include "utils/lobby_gp_manager.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/lobby_queues.hpp"
 #include "utils/log.hpp"
@@ -2212,7 +2213,7 @@ void CommandManager::process_standings(Context& context)
     {
         // the function will decide itself what to show if nothing is specified:
         // if there are teams, teams will be shown, otherwise players
-        msg = getLobby()->getGrandPrixStandings(isGPPlayers, isGPTeams);
+        msg = getGPManager()->getGrandPrixStandings(isGPPlayers, isGPTeams);
     }
     else if (isGnu)
         msg = getKartElimination()->getStandings();
@@ -2788,7 +2789,7 @@ void CommandManager::process_team(Context& context)
                 "Color %s is not allowed", argv[1]));
         return;
     }
-    getLobby()->setTemporaryTeamInLobby(player, team);
+    getTeamManager()->setTemporaryTeamInLobby(player, team);
 
     getLobby()->updatePlayerList();
 } // process_team
@@ -2914,7 +2915,7 @@ void CommandManager::process_resetgp(Context& context)
         }
         getLobby()->getGameSetup()->setGrandPrixTrack(number_of_games);
     }
-    getLobby()->resetGrandPrix();
+    getGPManager()->resetGrandPrix();
     getLobby()->sendStringToAllPeers("GP is now reset");
 } // process_resetgp
 // ========================================================================

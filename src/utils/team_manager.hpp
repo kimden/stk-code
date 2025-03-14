@@ -40,6 +40,7 @@ public:
 
     // The functions below set *both* KartTeam and temporary team,
     // depending on game mode; also reset/set ASM_NO_TEAM if needed.
+    void setTemporaryTeamInLobby(const std::string& username, int team);
     void setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, KartTeam team);
     void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
     void applyPermutationToTeams(const std::map<int, int>& permutation);

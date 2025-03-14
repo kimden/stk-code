@@ -65,23 +65,6 @@ namespace Online
     class Request;
 }
 
-// I know it should be in a more suitable place, but for now I have no idea
-// how to make this with the current system. Sorry. Hope to refactor later.
-
-struct GPScore
-{
-    int score = 0;
-    double time = 0.;
-    bool operator < (const GPScore& rhs) const
-    {
-        return (score < rhs.score || (score == rhs.score && time > rhs.time));
-    }
-    bool operator > (const GPScore& rhs) const
-    {
-        return (score > rhs.score || (score == rhs.score && time < rhs.time));
-    }
-};
-
 class ServerLobby : public LobbyProtocol, public LobbyContextUser
 {
 public:
@@ -210,10 +193,6 @@ private:
 
     std::set<std::string> m_temp_banned;
 
-    std::map<std::string, GPScore> m_gp_scores;
-
-    std::map<int, GPScore> m_gp_team_scores;
-
     std::atomic<unsigned> m_current_max_players_in_game;
 
     std::shared_ptr<GameInfo> m_game_info;
@@ -319,7 +298,6 @@ private:
     bool canRace(std::shared_ptr<STKPeer> peer);
     bool canVote(std::shared_ptr<STKPeer> peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
-    std::string getGrandPrixStandings(bool showIndividual = false, bool showTeam = true) const;
     void changeLimitForTournament(bool goal_target);
 
 public:
@@ -378,12 +356,10 @@ public:
         std::string& direction, int laps);
 #endif
 
-    void setTemporaryTeamInLobby(const std::string& username, int team);
-    void resetGrandPrix();
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
     bool areKartFiltersIgnoringKarts() const;
-    std::string getKartForBadKartChoice(std::shared_ptr<STKPeer> peer, const std::string& username, const std::string& check_choice) const;
+
     void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
                              std::shared_ptr<NetworkPlayerProfile> player,
                              const std::string& type) const;
@@ -392,8 +368,7 @@ public:
 
     void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
     void saveDisconnectingIdInfo(int id) const;
-
-    void shuffleGPScoresWithPermutation(const std::map<int, int>& permutation);
+    void sendServerInfoToEveryone() const;
 
     // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
