@@ -20,8 +20,6 @@
 #define PACKET_TYPES_HPP
 
 #include "network/network_string.hpp"
-#include "utils/string_utils.hpp"
-#include <string>
 
 /**
  * IMPORTANT!
@@ -177,15 +175,3 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 //---------------------- End --------------------------------------------------
 
 #endif // PACKET_TYPES_HPP
-
-/*
- //\
-    //Log::debug("PacketTypes", "type: %s; value: %s", #Type, StringUtils::toString(Var).c_str());
-    //\
-    //ns->decode<Type>(Var); \
-    //Log::debug("PacketTypes", "type: %s; value: %s", #Type, StringUtils::toString(Var).c_str()); \
-    //if (Var != Value) \
-    //    Log::error("PacketTypes", "Expected fixed field %d, received %d!", Value, Var);
-
-
-*/
