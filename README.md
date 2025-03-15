@@ -1,14 +1,14 @@
 # SuperTuxKart Tyre Mod Edition by Nomagno, based on STK 2.X Alpha
 ### + Command Manager (CM) by Kimden
-## Or in short, STK 2.Xue TME + CM :P
-SuperTuxKart is a free kart racing game.
+#### Or in short, STK 2.Xue TME + CM :P
+SuperTuxKart is a free kart racing game. The SuperTuxKart homepage can be found at <https://supertuxkart.net/>.
 
-The SuperTuxKart homepage can be found at <https://supertuxkart.net/>.
+## A shorter and clearer version of the info below can be found in a new "*Tyres*" tab in the in-game help menu.
+
+![STK Tyre Mod Edition](/tme_banner.png)
 
 ## License
 The software is released under the GNU General Public License (GPL) which can be found in the file [`COPYING`](/COPYING) in the same directory as this file.
-
-![STK Tyre Mod Edition](/tme_banner.png)
 
 ## Building from source
 
@@ -21,8 +21,6 @@ To compile SuperTuxKart 2.0 and/or STK TME, you will need to install custom asse
 ## What is SuperTuxKart 2.0 Tyre Mod Edition (TME)?
 
 STK TME is a SuperTuxKart mod by Nomagno that introduces some limited race simulation elements, namely arcade versions of tyre degradation and fuel systems. Its overall aim is to arrive at configurable and that can improve long (6 laps all the way to 200 laps) races and provide more opportunities for tournament formats and friendly competitions. It is not concerned with casual players in its default configuration, though it makes sure not to make any casual-unfriendly choices that can not be disabled easily enough through configuration files or the (currently very primitive) in game UI.
-
-A summary of the information below can be found in a new "**Tyres**" tab in the in-game help menu.
 
 Features:
 - Backplunger patch: In STK 2.0 and 1.0, the plunger item, when shot backwards, blocks the hit player's viewport. This sucks. It has been changed to instead remove the items of the hit player. It hence changes from an annoying item to a disarment item if the player behind takes too long to aim their cake or bowl.
@@ -77,4 +75,4 @@ A quick run-down of the added, removed and modified features with a rough credit
    - Feature modification: basketballs are now inescapable. I personally hate this, but it has its merit. In 1.0 the basketballs can be outran indefinitely in most tracks by a good enough player. Mostly changed back to the 1.0 behaviour in TME.
 - Anti-glitch fix and new feature: Identified, designed and implemented by Nomagno. In SuperTuxKart 1.0, the fact that on-track zipper boosts occupy the same slot as the item zippers mean that you can't use item zippers tracks that have big, long-lasting ground zipper pad sections. This seemingly small issue has become a huge deal for most of the 1.0 lifecycle, specially with the proliferation of track ports from racing simulators such as STK's Italian, open-source older brother TORCS turned Speed Dreams. These tracks are *mostly* so big they need ground zippers to be any fun. The separation makes it so that on-track zippers are a distinct boost that is not overridden by item zippers, and viceversa. However, their effects are not cumulative. Instead, the best engine force of either active boost and the best top speed of either active boost will be separately applied at any given time, automatically giving the player the best combination while ensuring they can't reach absurd speeds that slightly break the physics simulation.
 - Gradual braking: Suggested by Nomagno. Basically, now braking will be applied, even with a keyboard, as a separate entity from acceleration, and gradually at a maximum fixed rate. This drops braking points up to a dozen meters back in the tighter tracks, and consequently raises the skill cap a bit while. An as-of-yet unfixed issue (though severely mitigated by my auxiliary changes in TME, as I was the one who identified the issue in the first place) is the fact that it now becomes sometimes faster to take the grass/gravel/etc on the side of tracks than to brake for corners.
-- New handicap system: handicaps don't change the feel of the karts, only their boosts and speeds. There are four handicap levels, 6%, 12%, 18% and 24%. There is no online UI support for anything other than the 6% handicap, though it's planned. The higher handicap levels make for a proper way for good players to have fun with more casual gamers, and it even has potential in tournament rulesets.
+- New handicap system: handicaps don't change the feel of the karts, only their boosts and speeds. There are four handicap levels, 6%, 12%, 18% and 24%. For TME, online support for all handicap levels was added. The higher handicap levels make for a proper way for good players to have fun with more casual gamers, and it even has potential in tournament rulesets.
