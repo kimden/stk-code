@@ -28,6 +28,7 @@
 #include "items/item_manager.hpp"
 #include "karts/abstract_kart.hpp"
 #include "modes/world.hpp"
+#include "network/packet_types.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include "tracks/arena_graph.hpp"
@@ -67,21 +68,21 @@ ItemState::ItemState(ItemType type, const AbstractKart *owner, int id)
 //-----------------------------------------------------------------------------
 /** Constructor to restore item state at current ticks in client for live join
  */
-ItemState::ItemState(const BareNetworkString& buffer)
+ItemState::ItemState(const ItemStatePacket& packet)
 {
-    m_type = (ItemType)buffer.getUInt8();
-    m_original_type = (ItemType)buffer.getUInt8();
-    m_ticks_till_return = buffer.getUInt32();
-    m_item_id = buffer.getUInt32();
-    m_deactive_ticks = buffer.getUInt32();
-    m_used_up_counter = buffer.getUInt32();
-    m_xyz = buffer.getVec3();
-    m_original_rotation = buffer.getQuat();
+    m_type = (ItemType)packet.type;
+    m_original_type = (ItemType)packet.original_type;
+    m_ticks_till_return = packet.ticks_till_return;
+    m_item_id = packet.item_id;
+    m_deactive_ticks = packet.deactive_ticks;
+    m_used_up_counter = packet.used_up_counter;
+    m_xyz = packet.xyz;
+    m_original_rotation = packet.original_rotation;
     m_previous_owner = NULL;
-    int8_t kart_id = buffer.getUInt8();
+    int8_t kart_id = packet.previous_owner;
     if (kart_id != -1)
         m_previous_owner = World::getWorld()->getKart(kart_id);
-}   // ItemState(const BareNetworkString& buffer)
+}   // ItemState(const ItemStatePacket& packet)
 
 // ------------------------------------------------------------------------
 /** Sets the disappear counter depending on type.  */
@@ -185,24 +186,31 @@ void ItemState::collected(const AbstractKart *kart)
 // ----------------------------------------------------------------------------
 /** Returns the graphical type of this item should be using (takes nolok into
  *  account). */
-Item::ItemType ItemState::getGrahpicalType() const
+Item::ItemType ItemState::getGraphicalType() const
 {
     return m_previous_owner && m_previous_owner->getIdent() == "nolok" &&
         getType() == ITEM_BUBBLEGUM ?
         ITEM_BUBBLEGUM_NOLOK : getType();
-}   // getGrahpicalType
+}   // getGraphicalType
 
 //-----------------------------------------------------------------------------
 /** Save item state at current ticks in server for live join
  */
-void ItemState::saveCompleteState(BareNetworkString* buffer) const
+ItemStatePacket ItemState::saveCompleteState() const
 {
-    buffer->addUInt8((uint8_t)m_type).addUInt8((uint8_t)m_original_type)
-        .addUInt32(m_ticks_till_return).addUInt32(m_item_id)
-        .addUInt32(m_deactive_ticks).addUInt32(m_used_up_counter)
-        .add(m_xyz).add(m_original_rotation)
-        .addUInt8(m_previous_owner ?
-            (int8_t)m_previous_owner->getWorldKartId() : (int8_t)-1);
+    ItemStatePacket packet;
+    packet.type = m_type;
+    packet.original_type = m_original_type;
+    packet.ticks_till_return = m_ticks_till_return;
+    packet.item_id = m_item_id;
+    packet.deactive_ticks = m_deactive_ticks;
+    packet.used_up_counter = m_used_up_counter;
+    packet.xyz = m_xyz;
+    packet.original_rotation = m_original_rotation;
+    packet.previous_owner = m_previous_owner ?
+            m_previous_owner->getWorldKartId() : -1;
+
+    return packet;
 }   // saveCompleteState
 
 // ============================================================================
@@ -228,7 +236,7 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
     m_animation_start_ticks = -9999;
     m_distance_2        = 1.2f;
     initItem(type, xyz, normal);
-    m_graphical_type    = getGrahpicalType();
+    m_graphical_type    = getGraphicalType();
 
     m_node = NULL;
     if (mesh && !GUIEngine::isNoGraphics())
@@ -256,7 +264,7 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
         m_appear_anime_node = irr_driver->getSceneManager()->addEmptySceneNode(m_node);
     }
     setType(type);
-    handleNewMesh(getGrahpicalType());
+    handleNewMesh(getGraphicalType());
 
     if (!m_node)
         return;
@@ -442,10 +450,10 @@ void Item::updateGraphics(float dt)
     if (m_node == NULL)
         return;
 
-    if (m_graphical_type != getGrahpicalType())
+    if (m_graphical_type != getGraphicalType())
     {
-        handleNewMesh(getGrahpicalType());
-        m_graphical_type = getGrahpicalType();
+        handleNewMesh(getGraphicalType());
+        m_graphical_type = getGraphicalType();
     }
 
     auto& stk_config = STKConfig::get();

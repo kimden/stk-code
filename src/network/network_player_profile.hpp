@@ -36,6 +36,7 @@ class STKPeer;
 class GenericDecorator;
 enum KartTeam : int8_t;
 enum HandicapLevel : uint8_t;
+struct EncodedSinglePlayerPacket;
 
 /*! \class NetworkPlayerProfile
  *  \brief Contains the profile of a player.
@@ -193,6 +194,9 @@ public:
     core::stringw getDecoratedName(std::shared_ptr<GenericDecorator> decorator);
     // ------------------------------------------------------------------------
 
+    // ------------------------------------------------------------------------
+    EncodedSinglePlayerPacket getPacket() const;
+    // ------------------------------------------------------------------------
 };   // class NetworkPlayerProfile
 
 #endif // HEADER_NETWORK_PLAYER_PROFILE

@@ -20,6 +20,9 @@
 #define PACKET_TYPES_HPP
 
 #include "network/network_string.hpp"
+#include "utils/cpp2011.hpp"
+
+#include <memory>
 
 /**
  * IMPORTANT!
@@ -89,16 +92,32 @@ enum BackLobbyReason : uint8_t
     BLR_SPECTATING_NEXT_GAME = 5
 };
 
+struct Checkable
+{
+private:
+    uint8_t m_state = 0;
+public:
+    bool check(uint8_t which) const { return (m_state >> which) & 1; }
+    void set(uint8_t which, bool value)
+    {
+        if (value)
+            m_state |= (1 << which);
+        else
+            m_state &= ~(1 << which);
+    }
+};
+
 //---------------------- Initialization ---------------------------------------
 
 #define DEFINE_CLASS(Name) \
-struct Name { \
+struct Name: public Checkable { \
     public: \
-    void toNetworkString(NetworkString* ns) const; \
-    void fromNetworkString(NetworkString* ns);
+        void toNetworkString(NetworkString* ns) const; \
+        void fromNetworkString(NetworkString* ns);
 
 #define SYNCHRONOUS(Value) bool isSynchronous() { return Value; }
 #define DEFINE_FIELD(Type, Var) Type Var;
+#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) std::shared_ptr<Type> Var;
 #define DEFINE_FIXED_FIELD(Type, Var, Value) Type Var;
 #define DEFINE_VECTOR(Type, Size, Var) std::vector<Type> Var;
 #define END_DEFINE_CLASS(Name) };
@@ -108,6 +127,7 @@ struct Name { \
 #undef SYNCHRONOUS
 #undef DEFINE_FIELD
 #undef DEFINE_FIXED_FIELD
+#undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
 #undef END_DEFINE_CLASS
 
@@ -122,6 +142,11 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 
 #define DEFINE_FIELD(Type, Var) \
     ns->encode<Type>(Var);
+
+// We send it if it exists, and receive only if the condition is true
+#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
+    if (Var) \
+        ns->encode<Type>(*Var);
 
 #define DEFINE_FIXED_FIELD(Type, Var, Value) \
     ns->encode<Type>(Value);
@@ -139,6 +164,7 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 #undef SYNCHRONOUS
 #undef DEFINE_FIELD
 #undef DEFINE_FIXED_FIELD
+#undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
 #undef END_DEFINE_CLASS
 
@@ -152,6 +178,14 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 
 #define DEFINE_FIELD(Type, Var) \
     ns->decode<Type>(Var);
+
+// We send it if it exists, and receive only if the condition is true
+#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
+    if (Condition) { \
+        Type temp_##Var; \
+        ns->decode<Type>(temp_##Var); \
+        Var = std::make_shared<Type>(temp_##Var); \
+    }
 
 #define DEFINE_FIXED_FIELD(Type, Var, Value)
 
@@ -169,6 +203,7 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 #undef SYNCHRONOUS
 #undef DEFINE_FIELD
 #undef DEFINE_FIXED_FIELD
+#undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
 #undef END_DEFINE_CLASS
 

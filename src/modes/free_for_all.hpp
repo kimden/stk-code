@@ -85,8 +85,7 @@ public:
         m_scores.at(kart_id) = param;
     }
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns,
-                                   std::shared_ptr<STKPeer> peer) OVERRIDE;
+    virtual WorldCompleteStatePacket saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
     // ------------------------------------------------------------------------

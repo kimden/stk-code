@@ -258,7 +258,7 @@ private:
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    NetworkString* getLoadWorldMessage(
+    LoadWorldPacket getLoadWorldMessage(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
         bool live_join) const;
     void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
