@@ -318,10 +318,10 @@ void ClientLobby::addAllPlayers(Event* event)
     peer->cleanPlayerProfiles();
     m_server_send_live_load_world = data.getUInt8() == 1;
 
-    bool is_specator = true;
+    bool is_spectator = true;
     std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
-        decodePlayers(data, peer, &is_specator);
-    setSpectator(is_specator);
+        decodePlayers(data, peer, &is_spectator);
+    setSpectator(is_spectator);
 
     uint32_t random_seed = data.getUInt32();
     ItemManager::updateRandomSeed(random_seed);

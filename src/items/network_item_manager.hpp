@@ -30,6 +30,7 @@
 #include <mutex>
 
 class STKPeer;
+class NimCompleteStatePacket;
 
 /** \ingroup items
  *  The network item manager is responsible for handling all network related
@@ -107,9 +108,9 @@ public:
         m_last_confirmed_item_ticks.erase(peer);
     }
     // ------------------------------------------------------------------------
-    void saveCompleteState(BareNetworkString* buffer) const;
+    NimCompleteStatePacket saveCompleteState() const;
     // ------------------------------------------------------------------------
-    void restoreCompleteState(const BareNetworkString& buffer);
+    void restoreCompleteState(const NimCompleteStatePacket& packet);
     // ------------------------------------------------------------------------
     void initServer();
 

@@ -276,8 +276,7 @@ public:
     virtual std::pair<uint32_t, uint32_t> getGameStartedProgress() const
         OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns,
-                                   std::shared_ptr<STKPeer> peer) OVERRIDE;
+    virtual WorldCompleteStatePacket saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
     // ------------------------------------------------------------------------

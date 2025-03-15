@@ -77,25 +77,21 @@
 // Helper functions.
 namespace
 {
-    void encodePlayers(BareNetworkString* bns,
-            std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+    EncodedSinglePlayerPacket encodePlayer(std::shared_ptr<NetworkPlayerProfile> player,
             const std::shared_ptr<GenericDecorator>& decorator)
     {
-        bns->addUInt8((uint8_t)players.size());
-        for (unsigned i = 0; i < players.size(); i++)
-        {
-            std::shared_ptr<NetworkPlayerProfile>& player = players[i];
-            bns->encodeString(player->getDecoratedName(decorator))
-                .addUInt32(player->getHostId())
-                .addFloat(player->getDefaultKartColor())
-                .addUInt32(player->getOnlineId())
-                .addUInt8(player->getHandicap())
-                .addUInt8(player->getLocalPlayerId())
-                .addUInt8(player->getTeam())
-                .encodeString(player->getCountryCode());
-            bns->encodeString(player->getKartName());
-        }
-    }   // encodePlayers
+        EncodedSinglePlayerPacket packet;
+        packet.name            = player->getDecoratedName(decorator);
+        packet.host_id         = player->getHostId();
+        packet.kart_color      = player->getDefaultKartColor();
+        packet.online_id       = player->getOnlineId();
+        packet.handicap        = player->getHandicap();
+        packet.local_player_id = player->getLocalPlayerId();
+        packet.kart_team       = player->getTeam();
+        packet.country_code    = player->getCountryCode();
+        packet.kart_name       = player->getKartName();
+        return packet;
+    }
     //-------------------------------------------------------------------------
     /** Returns true if world is active for clients to live join, spectate or
      *  going back to lobby live
@@ -947,8 +943,6 @@ void ServerLobby::asynchronousUpdate()
 
             auto& stk_config = STKConfig::get();
 
-            NetworkString* load_world_message = getLoadWorldMessage(players,
-                false/*live_join*/);
             m_game_setup->setHitCaptureTime(getSettings()->getBattleHitCaptureLimit(),
                 getSettings()->getBattleTimeLimit());
             uint16_t flag_return_time = (uint16_t)stk_config->time2Ticks(
@@ -968,6 +962,8 @@ void ServerLobby::asynchronousUpdate()
             resetPeersReady();
 
             m_state = LOAD_WORLD;
+            NetworkString* load_world_message = getLoadWorldMessage(players,
+                false/*live_join*/);
             Comm::sendMessageToPeers(load_world_message);
             // updatePlayerList so the in lobby players (if any) can see always
             // spectators join the game
@@ -1004,33 +1000,34 @@ void ServerLobby::asynchronousUpdate()
 }   // asynchronousUpdate
 
 //-----------------------------------------------------------------------------
-NetworkString* ServerLobby::getLoadWorldMessage(
+LoadWorldPacket ServerLobby::getLoadWorldMessage(
     std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
     bool live_join) const
 {
-    NetworkString* load_world_message = getNetworkString();
-    load_world_message->setSynchronous(true);
-    load_world_message->addUInt8(LE_LOAD_WORLD);
-    getSettings()->encodeDefaultVote(load_world_message);
-    load_world_message->addUInt8(live_join ? 1 : 0);
-    encodePlayers(load_world_message, players, m_name_decorator);
-    load_world_message->addUInt32(m_item_seed);
+    LoadWorldPacket packet;
+    packet.default_vote = getSettings()->encodeDefaultVote();
+    packet.live_join = live_join;
+    packet.players_size = players.size();
+    for (auto& player: players)
+        packet.all_players.push_back(encodePlayer(player, m_name_decorator));
+    packet.item_seed = m_item_seed;
+    packet.battle_info = {};
+
     if (RaceManager::get()->isBattleMode())
     {
-        auto& stk_config = STKConfig::get();
-
-        load_world_message->addUInt32(getSettings()->getBattleHitCaptureLimit())
-            .addFloat(getSettings()->getBattleTimeLimit());
-        uint16_t flag_return_time = (uint16_t)stk_config->time2Ticks(
-            getSettings()->getFlagReturnTimeout());
-        load_world_message->addUInt16(flag_return_time);
-        uint16_t flag_deactivated_time = (uint16_t)stk_config->time2Ticks(
-            getSettings()->getFlagDeactivatedTime());
-        load_world_message->addUInt16(flag_deactivated_time);
+        BattleInfoPacket battle_packet;
+        battle_packet.battle_hit_capture_limit = getSettings()->getBattleHitCaptureLimit();
+        battle_packet.battle_time_limit = getSettings()->getBattleTimeLimit();
+        battle_packet.flag_return_time = (uint16_t)stk_config->time2Ticks(
+                getSettings()->getFlagReturnTimeout());
+        battle_packet.flag_deactivated_time = (uint16_t)stk_config->time2Ticks(
+                getSettings()->getFlagDeactivatedTime());
+        packet.battle_info = battle_packet;
     }
     for (unsigned i = 0; i < players.size(); i++)
-        players[i]->getKartData().encode(load_world_message);
-    return load_world_message;
+        packet.players_kart_data.push_back(players[i]->getKartData().encode());
+
+    return packet;
 }   // getLoadWorldMessage
 
 //-----------------------------------------------------------------------------
@@ -1312,33 +1309,45 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
 
     const uint8_t cc = (uint8_t)Track::getCurrentTrack()->getCheckManager()->getCheckStructureCount();
     NetworkString* ns = getNetworkString(10);
-    ns->setSynchronous(true);
-    ns->addUInt8(LE_LIVE_JOIN_ACK).addUInt64(m_client_starting_time)
-        .addUInt8(cc).addUInt64(live_join_start_time)
-        .addUInt32(m_last_live_join_util_ticks);
+
+    LiveJoinPacket packet;
+
+    packet.client_starting_time = m_client_starting_time;
+    packet.check_count = cc;
+    packet.live_join_start_time = live_join_start_time;
+    packet.last_live_join_util_ticks = m_last_live_join_util_ticks;
 
     NetworkItemManager* nim = dynamic_cast<NetworkItemManager*>
         (Track::getCurrentTrack()->getItemManager());
     assert(nim);
-    nim->saveCompleteState(ns);
+    packet.nim_complete_state = nim->saveCompleteState();
     nim->addLiveJoinPeer(peer);
 
-    w->saveCompleteState(ns, peer);
+    packet.world_complete_state = w->saveCompleteState(peer);
+    packet.inside_info = {};
     if (RaceManager::get()->supportsLiveJoining())
     {
+        InsideGameInfoPacket inside_packet;
         // Only needed in non-racing mode as no need players can added after
         // starting of race
         std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
             getLivePlayers();
-        encodePlayers(ns, players, m_name_decorator);
+
+        inside_packet.players_size = players.size();
+
+        for (auto& player: players)
+            inside_packet.all_players.push_back(encodePlayer(player, m_name_decorator));
         for (unsigned i = 0; i < players.size(); i++)
-            players[i]->getKartData().encode(ns);
+            inside_packet.players_kart_data.push_back(players[i]->getKartData().encode());
+
+        packet.inside_info = inside_packet;
     }
 
     m_peers_ready[peer] = false;
     peer->setWaitingForGame(false);
     peer->setSpectator(spectator);
 
+    packet.toNetworkString(ns);
     peer->sendPacket(ns, PRM_RELIABLE);
     delete ns;
     updatePlayerList();
@@ -3093,7 +3102,6 @@ void ServerLobby::handlePlayerVote(Event* event)
 // ----------------------------------------------------------------------------
 /** Select the track to be used based on all votes being received.
  * \param winner_vote The PeerVote that was picked.
- * \param winner_peer_id The host id of winner (unchanged if no vote).
  *  \return True if race can go on, otherwise wait.
  */
 bool ServerLobby::handleAllVotes(PeerVote* winner_vote)
