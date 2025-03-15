@@ -126,12 +126,12 @@ void NetworkKartSelectionScreen::allPlayersDone()
     if (m_live_join)
     {
         kart.setSynchronous(true);
-        kart.addUInt8(LobbyProtocol::LE_LIVE_JOIN)
+        kart.addUInt8(LobbyEvent::LE_LIVE_JOIN)
             // not spectator
             .addUInt8(0);
     }
     else
-        kart.addUInt8(LobbyProtocol::LE_KART_SELECTION);
+        kart.addUInt8(LobbyEvent::LE_KART_SELECTION);
     kart.addUInt8(kart_count);
     for (unsigned n = 0; n < kart_count; n++)
     {
@@ -187,7 +187,7 @@ bool NetworkKartSelectionScreen::onEscapePressed()
             // server doesn't react in time we exit the server
             m_exit_timeout = StkTime::getMonoTimeMs() + 5000;
             NetworkString back(PROTOCOL_LOBBY_ROOM);
-            back.addUInt8(LobbyProtocol::LE_CLIENT_BACK_LOBBY);
+            back.addUInt8(LobbyEvent::LE_CLIENT_BACK_LOBBY);
             STKHost::get()->sendToServer(&back, PRM_RELIABLE);
         }
         return false;

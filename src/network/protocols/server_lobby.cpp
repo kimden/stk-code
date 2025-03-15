@@ -32,6 +32,7 @@
 #include "network/game_setup.hpp"
 #include "network/network_config.hpp"
 #include "network/network_player_profile.hpp"
+#include "network/packet_types.hpp"
 #include "network/protocol_manager.hpp"
 #include "network/protocols/connect_to_peer.hpp"
 #include "network/protocols/command_manager.hpp"
@@ -2859,13 +2860,13 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         m_state.load() > WAITING_FOR_START_GAME && !update_when_reset_server)
         return;
 
-    NetworkString* pl = getNetworkString();
-    pl->setSynchronous(true);
-    pl->addUInt8(LE_UPDATE_PLAYER_LIST)
-        .addUInt8((uint8_t)(game_started ? 1 : 0))
-        .addUInt8((uint8_t)all_profiles.size());
+    PlayerListPacket list_packet;
+    list_packet.game_started = game_started;
+    list_packet.all_profiles_size = all_profiles.size();
+
     for (auto profile : all_profiles)
     {
+        PlayerListProfilePacket packet;
         auto profile_name = profile->getName();
 
         // get OS information
@@ -2903,9 +2904,10 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
 
         profile_name = StringUtils::utf8ToWide(prefix) + profile_name;
 
-        pl->addUInt32(profile->getHostId()).addUInt32(profile->getOnlineId())
-            .addUInt8(profile->getLocalPlayerId())
-            .encodeString(profile_name);
+        packet.host_id         = profile->getHostId();
+        packet.online_id       = profile->getOnlineId();
+        packet.local_player_id = profile->getLocalPlayerId();
+        packet.profile_name    = profile_name;
 
         std::shared_ptr<STKPeer> p = profile->getPeer();
         uint8_t boolean_combine = 0;
@@ -2923,14 +2925,18 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= (1 << 3);
         if ((p && p->isAIPeer()) || isAIProfile(profile))
             boolean_combine |= (1 << 4);
-        pl->addUInt8(boolean_combine);
-        pl->addUInt8(profile->getHandicap());
+        packet.mask = boolean_combine;
+        packet.handicap = profile->getHandicap();
         if (getSettings()->hasTeamChoosing())
-            pl->addUInt8(profile->getTeam());
+            packet.kart_team = profile->getTeam();
         else
-            pl->addUInt8(KART_TEAM_NONE);
-        pl->encodeString(profile->getCountryCode());
+            packet.kart_team = KART_TEAM_NONE;
+        packet.country_code = profile->getCountryCode();
+        list_packet.all_profiles.push_back(packet);
     }
+
+    NetworkString* pl = getNetworkString();
+    list_packet.toNetworkString(pl);
 
     // Don't send this message to in-game players
     STKHost::get()->sendPacketToAllPeersWith([game_started]
