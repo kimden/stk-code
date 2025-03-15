@@ -20,6 +20,7 @@
 #define PEER_VOTE_HPP
 
 #include "network/network_string.hpp"
+#include "network/packet_types.hpp"
 
 #include "irrString.h"
 #include <string>
@@ -62,12 +63,14 @@ public:
 
     // ------------------------------------------------------
     /** Encodes this vote object into a network string. */
-    void encode(NetworkString *ns)
+    PeerVotePacket encode()
     {
-        ns->encodeString(m_player_name)
-            .encodeString(m_track_name)
-            .addUInt8(m_num_laps)
-            .addUInt8(m_reverse);
+        PeerVotePacket packet;
+        packet.player_name = m_player_name;
+        packet.track_name = m_track_name;
+        packet.num_laps = m_num_laps;
+        packet.is_reverse = m_reverse;
+        return packet;
     }   // encode
 };   // class PeerVote
 

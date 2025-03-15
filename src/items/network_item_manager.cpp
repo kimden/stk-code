@@ -22,6 +22,7 @@
 #include "modes/world.hpp"
 #include "network/network_config.hpp"
 #include "network/network_string.hpp"
+#include "network/packet_types.hpp"
 #include "network/protocols/game_protocol.hpp"
 #include "network/rewind_manager.hpp"
 #include "network/stk_host.hpp"
@@ -519,32 +520,36 @@ void NetworkItemManager::restoreState(BareNetworkString *buffer, int count)
 //-----------------------------------------------------------------------------
 /** Save all current items at current ticks in server for live join
  */
-void NetworkItemManager::saveCompleteState(BareNetworkString* buffer) const
+NimCompleteStatePacket NetworkItemManager::saveCompleteState() const
 {
+    NimCompleteStatePacket packet;
     const uint32_t all_items = (uint32_t)m_all_items.size();
-    buffer->addUInt32(World::getWorld()->getTicksSinceStart())
-        .addUInt32(m_switch_ticks).addUInt32(all_items);
+    packet.ticks_since_start = World::getWorld()->getTicksSinceStart();
+    packet.switch_ticks = m_switch_ticks;
+    packet.all_items_size = all_items;
     for (unsigned i = 0; i < all_items; i++)
     {
+        packet.all_items.emplace_back();
         if (m_all_items[i])
         {
-            buffer->addUInt8(1);
-            m_all_items[i]->saveCompleteState(buffer);
+            packet.all_items.back().has_item = true;
+            packet.all_items.back().item_state = std::make_shared<ItemStatePacket>(m_all_items[i]->saveCompleteState());
         }
         else
-            buffer->addUInt8(0);
+            packet.all_items.back().has_item = false;
     }
+    return packet;
 }   // saveCompleteState
 
 //-----------------------------------------------------------------------------
 /** Restore all current items at current ticks in client for live join
  *  or at the start of a race.
  */
-void NetworkItemManager::restoreCompleteState(const BareNetworkString& buffer)
+void NetworkItemManager::restoreCompleteState(const NimCompleteStatePacket& packet)
 {
-    m_confirmed_state_time = buffer.getUInt32();
-    m_confirmed_switch_ticks = buffer.getUInt32();
-    uint32_t all_items = buffer.getUInt32();
+    m_confirmed_state_time = packet.ticks_since_start;
+    m_confirmed_switch_ticks = packet.switch_ticks;
+    uint32_t all_items = packet.all_items_size;
     for (ItemState* is : m_confirmed_state)
     {
         delete is;
@@ -552,10 +557,10 @@ void NetworkItemManager::restoreCompleteState(const BareNetworkString& buffer)
     m_confirmed_state.clear();
     for (unsigned i = 0; i < all_items; i++)
     {
-        const bool has_item = buffer.getUInt8() == 1;
+        const bool has_item = packet.all_items[i].has_item;
         if (has_item)
         {
-            ItemState* is = new ItemState(buffer);
+            ItemState* is = new ItemState(*(packet.all_items[i].item_state));
             m_confirmed_state.push_back(is);
         }
         else

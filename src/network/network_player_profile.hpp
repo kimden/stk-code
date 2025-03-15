@@ -35,6 +35,7 @@
 class STKPeer;
 enum KartTeam : int8_t;
 enum HandicapLevel : uint8_t;
+struct EncodedSinglePlayerPacket;
 
 /*! \class NetworkPlayerProfile
  *  \brief Contains the profile of a player.
@@ -188,6 +189,9 @@ public:
     void setKartData(const KartData& data)              { m_kart_data = data; }
     // ------------------------------------------------------------------------
     const KartData& getKartData() const                 { return m_kart_data; }
+    // ------------------------------------------------------------------------
+    EncodedSinglePlayerPacket getPacket() const;
+    // ------------------------------------------------------------------------
 };   // class NetworkPlayerProfile
 
 #endif // HEADER_NETWORK_PLAYER_PROFILE

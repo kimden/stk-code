@@ -1238,7 +1238,7 @@ void LinearWorld::KartInfo::restoreCompleteState(const BareNetworkString& b)
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------
-void LinearWorld::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
+WorldCompleteStatePacket LinearWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
     bns->addUInt32(m_fastest_lap_ticks);
     bns->addFloat(m_distance_increase);

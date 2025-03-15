@@ -19,6 +19,7 @@
 #include "network/network_player_profile.hpp"
 #include "network/network_config.hpp"
 #include "network/stk_host.hpp"
+#include "network/packet_types.hpp"
 
 // ----------------------------------------------------------------------------
 /** Returns true if this player is local, i.e. running on this computer. This
@@ -31,3 +32,20 @@ bool NetworkPlayerProfile::isLocalPlayer() const
     return NetworkConfig::get()->isClient() &&
         m_host_id == STKHost::get()->getMyHostId();
 }   // isLocalPlayer
+//-----------------------------------------------------------------------------
+
+EncodedSinglePlayerPacket NetworkPlayerProfile::getPacket() const
+{
+    EncodedSinglePlayerPacket packet;
+    packet.name            = getName();
+    packet.host_id         = getHostId();
+    packet.kart_color      = getDefaultKartColor();
+    packet.online_id       = getOnlineId();
+    packet.handicap        = getHandicap();
+    packet.local_player_id = getLocalPlayerId();
+    packet.kart_team       = getTeam();
+    packet.country_code    = getCountryCode();
+    packet.kart_name       = getKartName();
+    return packet;
+}   // getPacket
+//-----------------------------------------------------------------------------
