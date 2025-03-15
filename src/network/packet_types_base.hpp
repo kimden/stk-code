@@ -43,10 +43,8 @@
 #include "irrString.h"
 #include "utils/types.hpp"
 
-#include <memory>
-#include <map>
-#include <set>
 #include <string>
+#include <vector>
 
 using widestr = irr::core::stringw;
 
