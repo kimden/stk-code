@@ -732,7 +732,7 @@ void TracksScreen::voteForPlayer()
         UserConfigParams::m_random_arena_item = m_reversed->getState();
 
     NetworkString vote(PROTOCOL_LOBBY_ROOM);
-    vote.addUInt8(LobbyProtocol::LE_VOTE);
+    vote.addUInt8(LobbyEvent::LE_VOTE);
     core::stringw player_name;
     if (PlayerManager::getCurrentPlayer())
         player_name = PlayerManager::getCurrentPlayer()->getName();

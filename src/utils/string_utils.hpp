@@ -348,6 +348,31 @@ namespace StringUtils
         Precision(double value, int precision): m_value(value), m_precision(precision) {}
     };
     std::ostream& operator << (std::ostream& os, const Precision& item);
+    // ------------------------------------------------------------------------
+
+    // I'm lazy to move it to .cpp
+    template <>
+    inline std::string toString(const irr::core::stringw& any)
+    {
+        return wideToUtf8(any);
+    }   // toString template
+    // ------------------------------------------------------------------------
+
+    // I'm lazy to move it to .cpp
+    template <>
+    inline std::string toString(const uint8_t& any)
+    {
+        return toString((int)any);
+    }   // toString template
+    // ------------------------------------------------------------------------
+
+    // I'm lazy to move it to .cpp
+    template <>
+    inline std::string toString(const uint32_t& any)
+    {
+        return toString((int)any);
+    }   // toString template
+    // ------------------------------------------------------------------------
 
 } // namespace StringUtils
 

@@ -238,7 +238,105 @@ std::string BareNetworkString::getLogMessage(const std::string &indent) const
         if(line+16<m_buffer.size())
             oss << indent;
     }   // for line
+    oss << "offset " << m_current_offset << "\n";
 
     return oss.str();
 }   // getLogMessage
+//-----------------------------------------------------------------------------
 
+//=============================================================================
+// Generic encoders/decoders
+
+
+template<>
+void BareNetworkString::encode<uint32_t>(const uint32_t& value)
+{
+    Log::debug("BareNetworkString", "before encode %s", getLogMessage("                                                                  ").c_str());
+    addUInt32(value);
+    Log::debug("BareNetworkString", " after encode %s", getLogMessage("                                                                  ").c_str());
+}   // encode(uint32_t)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void BareNetworkString::decode<uint32_t>(uint32_t& value)
+{
+    Log::debug("BareNetworkString", "before decode %s", getLogMessage("                                         ").c_str());
+    value = getUInt32();
+    Log::debug("BareNetworkString", " after decode %s", getLogMessage("                                         ").c_str());
+}   // decode(uint32_t)
+//-----------------------------------------------------------------------------
+template<>
+void BareNetworkString::encode<uint8_t>(const uint8_t& value)
+{
+    Log::debug("BareNetworkString", "before encode %s", getLogMessage("                                                                  ").c_str());
+    addUInt8(value);
+    Log::debug("BareNetworkString", " after encode %s", getLogMessage("                                                                  ").c_str());
+}   // encode(uint8_t)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void BareNetworkString::decode<uint8_t>(uint8_t& value)
+{
+    Log::debug("BareNetworkString", "before decode %s", getLogMessage("                                         ").c_str());
+    value = getUInt8();
+    Log::debug("BareNetworkString", " after decode %s", getLogMessage("                                         ").c_str());
+}   // decode(uint8_t)
+//-----------------------------------------------------------------------------
+template<>
+void BareNetworkString::encode<irr::core::stringw>(const irr::core::stringw& value)
+{
+    Log::debug("BareNetworkString", "before encode %s", getLogMessage("                                                                  ").c_str());
+    encodeString(value);
+    Log::debug("BareNetworkString", " after encode %s", getLogMessage("                                                                  ").c_str());
+}   // encode(irr::core::stringw)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void BareNetworkString::decode<irr::core::stringw>(irr::core::stringw& value)
+{
+    Log::debug("BareNetworkString", "before decode %s", getLogMessage("                                         ").c_str());
+    decodeStringW(&value);
+    Log::debug("BareNetworkString", " after decode %s", getLogMessage("                                         ").c_str());
+}   // decode(irr::core::stringw)
+//-----------------------------------------------------------------------------
+template<>
+void BareNetworkString::encode<std::string>(const std::string& value)
+{
+    Log::debug("BareNetworkString", "before encode %s", getLogMessage("                                                                  ").c_str());
+    encodeString(value);
+    Log::debug("BareNetworkString", " after encode %s", getLogMessage("                                                                  ").c_str());
+}   // encode(std::string)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void BareNetworkString::decode<std::string>(std::string& value)
+{
+    Log::debug("BareNetworkString", "before decode %s", getLogMessage("                                         ").c_str());
+    decodeString(&value);
+    Log::debug("BareNetworkString", " after decode %s", getLogMessage("                                         ").c_str());
+}   // decode(std::string)
+//-----------------------------------------------------------------------------
+template<>
+void BareNetworkString::encode<bool>(const bool& value)
+{
+    Log::debug("BareNetworkString", "before encode %s", getLogMessage("                                                                  ").c_str());
+    addUInt8(value ? 1 : 0);
+    Log::debug("BareNetworkString", " after encode %s", getLogMessage("                                                                  ").c_str());
+}   // encode(bool)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void BareNetworkString::decode<bool>(bool& value)
+{
+    Log::debug("BareNetworkString", "before decode %s", getLogMessage("                                         ").c_str());
+    value = getUInt8() == 1;
+    Log::debug("BareNetworkString", " after decode %s", getLogMessage("                                         ").c_str());
+}   // decode(bool)
+//-----------------------------------------------------------------------------
+// template<>
+// void BareNetworkString::encode<T>(const T& value)
+// {
+
+// }   // encode(T)
+// //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// template<>
+// void BareNetworkString::decode<T>(T& value)
+// {
+
+// }   // decode(T)
+// //-----------------------------------------------------------------------------

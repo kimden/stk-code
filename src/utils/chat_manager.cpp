@@ -219,7 +219,7 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
 
     NetworkString* chat = getLobby()->getNetworkString();
     chat->setSynchronous(true);
-    chat->addUInt8(getLobby()->LE_CHAT).encodeString16(StringUtils::utf8ToWide(message));
+    chat->addUInt8(LobbyEvent::LE_CHAT).encodeString16(StringUtils::utf8ToWide(message));
 
     STKHost::get()->sendPacketToAllPeersWith(
         std::bind(&ChatManager::shouldMessageBeSent,

@@ -924,7 +924,7 @@ void STKHost::mainLoop(ProcessType pt)
                             p.second->setWarnedForHighPing(true);
                             NetworkString msg(PROTOCOL_LOBBY_ROOM);
                             msg.setSynchronous(true);
-                            msg.addUInt8(LobbyProtocol::LE_BAD_CONNECTION);
+                            msg.addUInt8(LobbyEvent::LE_BAD_CONNECTION);
                             p.second->sendPacket(&msg, PRM_RELIABLE);
                         }
                     }
