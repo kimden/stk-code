@@ -45,6 +45,7 @@
 #include "network/network_config.hpp"
 #include "network/network_player_profile.hpp"
 #include "network/network_timer_synchronizer.hpp"
+#include "network/packet_types.hpp"
 #include "network/peer_vote.hpp"
 #include "network/protocols/connect_to_server.hpp"
 #include "network/protocols/game_protocol.hpp"
@@ -513,7 +514,7 @@ void ClientLobby::update(int ticks)
             // Send a message to the server to start
             m_auto_started = true;
             NetworkString start(PROTOCOL_LOBBY_ROOM);
-            start.addUInt8(LobbyProtocol::LE_REQUEST_BEGIN);
+            start.addUInt8(LobbyEvent::LE_REQUEST_BEGIN);
             STKHost::get()->sendToServer(&start, PRM_RELIABLE);
         }
         if (m_background_download.joinable())
@@ -823,7 +824,11 @@ void ClientLobby::updatePlayerList(Event* event)
 {
     if (!checkDataSize(event, 1)) return;
     NetworkString& data = event->data();
-    bool waiting = data.getUInt8() == 1;
+
+    PlayerListPacket list_packet;
+    list_packet.fromNetworkString(&data);
+
+    bool waiting = list_packet.game_started;
     if (m_waiting_for_game && !waiting)
     {
         // The waiting game finished
@@ -831,21 +836,22 @@ void ClientLobby::updatePlayerList(Event* event)
     }
 
     m_waiting_for_game = waiting;
-    unsigned player_count = data.getUInt8();
+    unsigned player_count = list_packet.all_profiles_size;
     core::stringw total_players;
     m_lobby_players.clear();
     bool client_server_owner = false;
     for (unsigned i = 0; i < player_count; i++)
     {
+        PlayerListProfilePacket packet = list_packet.all_profiles[i];
         LobbyPlayer lp = {};
-        lp.m_host_id = data.getUInt32();
-        lp.m_online_id = data.getUInt32();
-        uint8_t local_id = data.getUInt8();
+        lp.m_host_id = packet.host_id;
+        lp.m_online_id = packet.online_id;
+        uint8_t local_id = packet.local_player_id;
         lp.m_handicap = HANDICAP_NONE;
         lp.m_local_player_id = local_id;
-        data.decodeStringW(&lp.m_user_name);
+        lp.m_user_name = packet.profile_name;
         total_players += lp.m_user_name;
-        uint8_t boolean_combine = data.getUInt8();
+        uint8_t boolean_combine = packet.mask;
         bool is_peer_waiting_for_game = (boolean_combine & 1) == 1;
         bool is_spectator = ((boolean_combine >> 1) & 1) == 1;
         bool is_peer_server_owner = ((boolean_combine >> 2) & 1) == 1;
@@ -862,12 +868,12 @@ void ClientLobby::updatePlayerList(Event* event)
             lp.m_icon_id = 5;
         if (ready)
             lp.m_icon_id = 4;
-        lp.m_handicap = (HandicapLevel)data.getUInt8();
+        lp.m_handicap = (HandicapLevel)packet.handicap;
         if (lp.m_handicap != HANDICAP_NONE)
         {
             lp.m_user_name = _("%s (handicapped)", lp.m_user_name);
         }
-        KartTeam team = (KartTeam)data.getUInt8();
+        KartTeam team = (KartTeam)packet.kart_team;
         if (is_spectator)
             lp.m_kart_team = KART_TEAM_NONE;
         else
@@ -880,7 +886,7 @@ void ClientLobby::updatePlayerList(Event* event)
             auto& local_players = NetworkConfig::get()->getNetworkPlayers();
             std::get<2>(local_players.at(local_id)) = lp.m_handicap;
         }
-        data.decodeString(&lp.m_country_code);
+        lp.m_country_code = packet.country_code;
         m_lobby_players.push_back(lp);
     }
     STKHost::get()->setAuthorisedToControl(client_server_owner);
@@ -1475,7 +1481,7 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
     if (text.size() > 0)
     {
         NetworkString* chat = getNetworkString();
-        chat->addUInt8(LobbyProtocol::LE_CHAT);
+        chat->addUInt8(LobbyEvent::LE_CHAT);
 
         core::stringw name;
         PlayerProfile* player = PlayerManager::getCurrentPlayer();

@@ -35,7 +35,7 @@ constexpr bool isConnectionRequestPacket(unsigned char* data, size_t length)
 {
     // Connection request is not synchronous
     return length < 2 ? false : (uint8_t)data[0] == PROTOCOL_LOBBY_ROOM &&
-        (uint8_t)data[1] == LobbyProtocol::LE_CONNECTION_REQUESTED;
+        (uint8_t)data[1] == LobbyEvent::LE_CONNECTION_REQUESTED;
 }   // isConnectionRequestPacket
 
 // ============================================================================

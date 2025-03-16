@@ -16,17 +16,18 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+#include "utils/map_vote_handler.hpp"
+
+#include "network/server_config.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/log.hpp"
-#include "utils/map_vote_handler.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 
-MapVoteHandler::MapVoteHandler(std::shared_ptr<LobbySettings> settings)
-    : algorithm(0), m_lobby_settings(settings)
+void MapVoteHandler::setupContextUser()
 {
-
-}   // MapVoteHandler
+    algorithm = ServerConfig::m_map_vote_handling;
+}   // setupContextUser
 //-----------------------------------------------------------------------------
 
 
@@ -90,14 +91,14 @@ bool MapVoteHandler::random(std::map<uint32_t, PeerVote>& peers_votes,
 
     if (peers_votes.empty())
     {
-        *winner_vote = m_lobby_settings->getDefaultVote();
+        *winner_vote = getSettings()->getDefaultVote();
         return true;
     }
 
     RandomGenerator rg;
     std::map<uint32_t, PeerVote>::iterator it = peers_votes.begin();
     std::advance(it, rg.get((int)peers_votes.size()));
-    m_lobby_settings->setWinnerPeerId(it->first);
+    getSettings()->setWinnerPeerId(it->first);
     *winner_vote = it->second;
     return true;
 }   // random
@@ -119,13 +120,13 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
     {
         if (is_over)
         {
-            *winner_vote = m_lobby_settings->getDefaultVote();
+            *winner_vote = getSettings()->getDefaultVote();
             return true;
         }
         return false;
     }
 
-    PeerVote default_vote = m_lobby_settings->getDefaultVote();
+    PeerVote default_vote = getSettings()->getDefaultVote();
     std::string top_track = default_vote.m_track_name;
     unsigned top_laps = default_vote.m_num_laps;
     bool top_reverse = default_vote.m_reverse;
@@ -184,7 +185,7 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
             if (!is_over)
                 return false;
         }
-        m_lobby_settings->setWinnerPeerId(it->first);
+        getSettings()->setWinnerPeerId(it->first);
         *winner_vote = it->second;
         return true;
     }
@@ -205,7 +206,7 @@ bool MapVoteHandler::standard(std::map<uint32_t, PeerVote>& peers_votes,
             else
                 it++;
         }
-        m_lobby_settings->setWinnerPeerId(closest_lap->first);
+        getSettings()->setWinnerPeerId(closest_lap->first);
         *winner_vote = closest_lap->second;
         return true;
     }

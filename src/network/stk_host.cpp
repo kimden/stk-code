@@ -896,8 +896,7 @@ void STKHost::mainLoop(ProcessType pt)
                         std::string player_name;
                         if (!p.second->getPlayerProfiles().empty())
                         {
-                            player_name = StringUtils::wideToUtf8
-                                (p.second->getPlayerProfiles()[0]->getName());
+                            player_name = p.second->getMainName();
                         }
                         const bool peer_not_in_game =
                             sl->getCurrentState() <= ServerLobby::SELECTING
@@ -925,7 +924,7 @@ void STKHost::mainLoop(ProcessType pt)
                             p.second->setWarnedForHighPing(true);
                             NetworkString msg(PROTOCOL_LOBBY_ROOM);
                             msg.setSynchronous(true);
-                            msg.addUInt8(LobbyProtocol::LE_BAD_CONNECTION);
+                            msg.addUInt8(LobbyEvent::LE_BAD_CONNECTION);
                             p.second->sendPacket(&msg, PRM_RELIABLE);
                         }
                     }

@@ -18,14 +18,13 @@
 
 #include "utils/lobby_queues.hpp"
 
-#include "network/protocols/server_lobby.hpp"
 #include "network/server_config.hpp"
 #include "utils/string_utils.hpp"
 
-LobbyQueues::LobbyQueues()
+void LobbyQueues::setupContextUser()
 {
     loadTracksQueueFromConfig();
-}   // LobbyQueues
+}   // setupContextUser
 //-----------------------------------------------------------------------------
 
 void LobbyQueues::loadTracksQueueFromConfig()
@@ -148,5 +147,5 @@ bool LobbyQueues::areKartFiltersIgnoringKarts() const
         return true;
 
     return false;
-}   // applyAllKartFilters
+}   // areKartFiltersIgnoringKarts
 //-----------------------------------------------------------------------------

@@ -203,7 +203,7 @@ void NetworkPlayerDialog::onUpdate(float dt)
                 if (info.empty())
                     return false;
                 NetworkString report(PROTOCOL_LOBBY_ROOM);
-                report.addUInt8(LobbyProtocol::LE_REPORT_PLAYER)
+                report.addUInt8(LobbyEvent::LE_REPORT_PLAYER)
                     .addUInt32(host_id).encodeString16(info);
                 STKHost::get()->sendToServer(&report, PRM_RELIABLE);
                 return true;
@@ -247,7 +247,7 @@ GUIEngine::EventPropagation
         else if (selection == m_kick_widget->m_properties[PROP_ID])
         {
             NetworkString kick(PROTOCOL_LOBBY_ROOM);
-            kick.addUInt8(LobbyProtocol::LE_KICK_HOST).addUInt32(m_host_id);
+            kick.addUInt8(LobbyEvent::LE_KICK_HOST).addUInt32(m_host_id);
             STKHost::get()->sendToServer(&kick, PRM_RELIABLE);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
@@ -256,7 +256,7 @@ GUIEngine::EventPropagation
             selection == m_change_team_widget->m_properties[PROP_ID])
         {
             NetworkString change_team(PROTOCOL_LOBBY_ROOM);
-            change_team.addUInt8(LobbyProtocol::LE_CHANGE_TEAM)
+            change_team.addUInt8(LobbyEvent::LE_CHANGE_TEAM)
                 .addUInt8(m_local_id);
             STKHost::get()->sendToServer(&change_team, PRM_RELIABLE);
             m_self_destroy = true;
@@ -271,7 +271,7 @@ GUIEngine::EventPropagation
                 new_handicap = HANDICAP_4;
             }
             NetworkString change_handicap(PROTOCOL_LOBBY_ROOM);
-            change_handicap.addUInt8(LobbyProtocol::LE_CHANGE_HANDICAP)
+            change_handicap.addUInt8(LobbyEvent::LE_CHANGE_HANDICAP)
                 .addUInt8(m_local_id).addUInt8(new_handicap);
             STKHost::get()->sendToServer(&change_handicap, PRM_RELIABLE);
             m_self_destroy = true;

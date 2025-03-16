@@ -24,17 +24,23 @@
 #include "network/network_string.hpp"
 #include "network/protocols/server_lobby.hpp"
 #include "network/server_config.hpp"
+#include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/kart_elimination.hpp"
+#include "utils/lobby_queues.hpp"
+#include "utils/lobby_settings.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tournament.hpp"
 
-LobbyAssetManager::LobbyAssetManager(ServerLobby* lobby): m_lobby(lobby)
+
+void LobbyAssetManager::setupContextUser()
 {
     init();
     updateAddons();
-}   // LobbyAssetManager
+}   // setupContextUser
 //-----------------------------------------------------------------------------
 
 void LobbyAssetManager::init()
@@ -117,7 +123,7 @@ void LobbyAssetManager::updateAddons()
         all_k.resize(65535 - (unsigned)oks.size());
     for (const std::string& k : oks)
         all_k.push_back(k);
-    if (ServerConfig::m_live_players)
+    if (getSettings()->isLivePlayers())
         m_available_kts.first = m_official_kts.first;
     else
         m_available_kts.first = { all_k.begin(), all_k.end() };
@@ -211,7 +217,7 @@ void LobbyAssetManager::onServerSetup()
     auto all_k = kart_properties_manager->getAllAvailableKarts();
     if (all_k.size() >= 65536)
         all_k.resize(65535);
-    if (ServerConfig::m_live_players)
+    if (getSettings()->isLivePlayers())
         m_available_kts.first = m_official_kts.first;
     else
         m_available_kts.first = { all_k.begin(), all_k.end() };
@@ -244,7 +250,7 @@ void LobbyAssetManager::eraseAssetsWithPeers(
 bool LobbyAssetManager::tryApplyingMapFilters()
 {
     std::set<std::string> available_tracks_fallback = m_available_kts.second;
-    m_lobby->applyAllFilters(m_available_kts.second, true);
+    applyAllFilters(m_available_kts.second, true);
 
    /* auto iter = m_available_kts.second.begin();
     while (iter != m_available_kts.second.end())
@@ -343,16 +349,18 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
         }
     }
 
+    auto settings = getSettings();
+
     Log::info("LobbyAssetManager", "Player has the following addons: %d/%d(%d) karts,"
         " %d/%d(%d) tracks, %d/%d(%d) arenas, %d/%d(%d) soccer fields.",
-        addon_karts, (int)ServerConfig::m_addon_karts_join_threshold,
-        (int)ServerConfig::m_addon_karts_play_threshold,
-        addon_tracks, (int)ServerConfig::m_addon_tracks_join_threshold,
-        (int)ServerConfig::m_addon_tracks_play_threshold,
-        addon_arenas, (int)ServerConfig::m_addon_arenas_join_threshold,
-        (int)ServerConfig::m_addon_arenas_play_threshold,
-        addon_soccers, (int)ServerConfig::m_addon_soccers_join_threshold,
-        (int)ServerConfig::m_addon_soccers_play_threshold);
+        addon_karts, settings->getAddonKartsJoinThreshold(),
+                     settings->getAddonKartsPlayThreshold(),
+        addon_tracks, settings->getAddonTracksJoinThreshold(),
+                      settings->getAddonTracksPlayThreshold(),
+        addon_arenas, settings->getAddonArenasJoinThreshold(),
+                      settings->getAddonArenasPlayThreshold(),
+        addon_soccers, settings->getAddonSoccersJoinThreshold(),
+                       settings->getAddonSoccersPlayThreshold());
 
     bool bad = false;
 
@@ -385,37 +393,37 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
         bad = true;
     }
 
-    if (okt < ServerConfig::m_official_karts_threshold)
+    if (okt < getSettings()->getOfficialKartsThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: bad official kart threshold");
         bad = true;
     }
 
-    if (ott < ServerConfig::m_official_tracks_threshold)
+    if (ott < getSettings()->getOfficialTracksThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: bad official track threshold");
         bad = true;
     }
 
-    if (addon_karts < (int)ServerConfig::m_addon_karts_join_threshold)
+    if (addon_karts < getSettings()->getAddonKartsJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon karts");
         bad = true;
     }
 
-    if (addon_tracks < (int)ServerConfig::m_addon_tracks_join_threshold)
+    if (addon_tracks < getSettings()->getAddonTracksJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon tracks");
         bad = true;
     }
 
-    if (addon_arenas < (int)ServerConfig::m_addon_arenas_join_threshold)
+    if (addon_arenas < getSettings()->getAddonArenasJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon arenas");
         bad = true;
     }
 
-    if (addon_soccers < (int)ServerConfig::m_addon_soccers_join_threshold)
+    if (addon_soccers < getSettings()->getAddonSoccersJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon soccers");
         bad = true;
@@ -539,7 +547,7 @@ std::string LobbyAssetManager::getRandomMap() const
     for (const std::string& s: m_entering_kts.second) {
         items.insert(s);
     }
-    m_lobby->applyAllFilters(items, false);
+    applyAllFilters(items, false);
     if (items.empty())
         return "";
     RandomGenerator rg;
@@ -557,7 +565,7 @@ std::string LobbyAssetManager::getRandomAddonMap() const
         if (t->isAddon())
             items.insert(s);
     }
-    m_lobby->applyAllFilters(items, false);
+    applyAllFilters(items, false);
     if (items.empty())
         return "";
     RandomGenerator rg;
@@ -571,4 +579,96 @@ void LobbyAssetManager::setMustHaveMaps(const std::string& input)
 {
     m_must_have_maps = StringUtils::split(input, ' ', false);
 }   // setMustHaveMaps
+//-----------------------------------------------------------------------------
+
+void LobbyAssetManager::gameFinishedOn(const std::string& map_name)
+{
+    m_map_history.push_back(map_name);
+}   // gameFinishedOn
+//-----------------------------------------------------------------------------
+
+void LobbyAssetManager::applyAllFilters(std::set<std::string>& maps, bool use_history) const
+{
+    unsigned max_player = 0;
+    STKHost::get()->updatePlayers(&max_player);
+    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
+    {
+        auto it = maps.begin();
+        while (it != maps.end())
+        {
+            Track* t = TrackManager::get()->getTrack(*it);
+            if (t && t->getMaxArenaPlayers() < max_player)
+            {
+                it = maps.erase(it);
+            }
+            else
+                it++;
+        }
+    }
+
+    // Please note that use_history refers to using queue filters too -
+    // calls with false only get map sets, etc
+    FilterContext map_context;
+    map_context.username = ""; // unused
+    map_context.num_players = max_player;
+    map_context.wildcards = m_map_history;
+    map_context.applied_at_selection_start = true;
+    map_context.elements = maps;
+    getSettings()->applyGlobalFilter(map_context);
+    
+    if (use_history)
+    {
+        if (isTournament())
+            getTournament()->applyFiltersForThisGame(map_context);
+        map_context.wildcards = m_map_history;
+        getQueues()->applyFrontMapFilters(map_context);
+    }
+    swap(maps, map_context.elements);
+}   // applyAllFilters
+//-----------------------------------------------------------------------------
+
+void LobbyAssetManager::applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection) const
+{
+    FilterContext kart_context;
+    kart_context.username = username;
+    kart_context.num_players = 0; // unused
+    kart_context.wildcards = {}; // unused
+    kart_context.applied_at_selection_start = !afterSelection;
+    kart_context.elements = karts;
+
+    getSettings()->applyGlobalKartsFilter(kart_context);
+    getQueues()->applyFrontKartFilters(kart_context);
+    swap(karts, kart_context.elements);
+}   // applyAllKartFilters
+//-----------------------------------------------------------------------------
+
+std::string LobbyAssetManager::getKartForBadKartChoice(
+            std::shared_ptr<STKPeer> peer,
+            const std::string& username,
+            const std::string& check_choice) const
+{
+    std::set<std::string> karts;
+    if (peer->isAIPeer())
+        karts = getAvailableKarts();
+    else
+        karts = peer->getClientAssets().first;
+
+    applyAllKartFilters(username, karts, true);
+
+    auto kart_elimination = getKartElimination();
+    if (kart_elimination->isEliminated(username)
+        && karts.count(kart_elimination->getKart()))
+    {
+        return kart_elimination->getKart();
+    }
+
+    if (!check_choice.empty() && karts.count(check_choice)) // valid choice
+        return check_choice;
+
+    // choice is invalid, roll the random
+    RandomGenerator rg;
+    std::set<std::string>::iterator it = karts.begin();
+    std::advance(it, rg.get((int)karts.size()));
+    return *it;
+}   // getKartForRandomKartChoice
 //-----------------------------------------------------------------------------

@@ -119,9 +119,9 @@ public:
     /// functions to check incoming data easily
     NetworkString* getNetworkString(size_t capacity = 16) const;
     bool checkDataSize(Event* event, unsigned int minimum_size);
-    void sendMessageToPeers(NetworkString *message, PacketReliabilityMode reliable = PRM_RELIABLE);
+    void sendMessageToPeers(NetworkString *message, PacketReliabilityMode reliable = PRM_RELIABLE) const;
     void sendMessageToPeersInServer(NetworkString *message,
-                                    PacketReliabilityMode reliable = PRM_RELIABLE);
+                                    PacketReliabilityMode reliable = PRM_RELIABLE) const;
     void sendToServer(NetworkString *message, PacketReliabilityMode reliable = PRM_RELIABLE);
     virtual void requestStart();
     virtual void requestTerminate();

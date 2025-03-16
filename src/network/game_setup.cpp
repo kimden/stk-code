@@ -30,6 +30,7 @@
 #include "network/stk_host.hpp"
 #include "race/race_manager.hpp"
 #include "utils/file_utils.hpp"
+#include "utils/lobby_settings.hpp"
 #include "utils/log.hpp"
 #include "utils/stk_process.hpp"
 #include "utils/string_utils.hpp"
@@ -138,14 +139,14 @@ void GameSetup::addServerInfo(NetworkString* ns)
     if (ServerConfig::m_owner_less)
     {
         ns->addUInt8(ServerConfig::m_min_start_game_players)
-            .addFloat(std::max<float>(0.0f, ServerConfig::m_start_game_counter));
+            .addFloat(std::max<float>(0.0f, getSettings()->getStartGameCounter()));
     }
     else
         ns->addUInt8(0).addFloat(0.0f);
 
     ns->encodeString16(m_message_of_today);
-    ns->addUInt8((uint8_t)ServerConfig::m_server_configurable);
-    ns->addUInt8(ServerConfig::m_live_players? 1 : 0);
+    ns->addUInt8((uint8_t)getSettings()->isServerConfigurable());
+    ns->addUInt8(getSettings()->isLivePlayers() ? 1 : 0);
 }   // addServerInfo
 
 //-----------------------------------------------------------------------------
