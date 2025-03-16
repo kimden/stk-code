@@ -180,8 +180,8 @@ public:
     float getConnectedTime() const
        { return float(StkTime::getMonoTimeMs() - m_connected_time) / 1000.0f; }
     // ------------------------------------------------------------------------
-    void setAvailableKartsTracks(std::set<std::string>& k,
-                                 std::set<std::string>& t)
+    void setAvailableKartsTracks(const std::set<std::string>& k,
+                                 const std::set<std::string>& t)
               { m_available_kts = std::make_pair(std::move(k), std::move(t)); }
     // ------------------------------------------------------------------------
     void eraseServerKarts(const std::set<std::string>& server_karts,
@@ -382,6 +382,8 @@ public:
     bool isAngryHost() const                    { return m_angry_host.load(); }
     // ------------------------------------------------------------------------
     void setAngryHost(bool val)                    { m_angry_host.store(val); }
+    // ------------------------------------------------------------------------
+    std::string getMainName() const;
     // ------------------------------------------------------------------------
 };   // STKPeer
 

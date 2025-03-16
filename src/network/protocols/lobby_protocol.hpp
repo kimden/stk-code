@@ -20,6 +20,7 @@
 #define LOBBY_PROTOCOL_HPP
 
 #include "network/protocol.hpp"
+#include "network/packet_types.hpp"
 #include "utils/stk_process.hpp"
 
 class GameSetup;
@@ -46,63 +47,7 @@ class Track;
 class LobbyProtocol : public Protocol
 {
 public:
-    /** Lists all lobby events (LE). */
-    enum : uint8_t
-    {
-        LE_CONNECTION_REQUESTED = 1, // a connection to the server
-        LE_CONNECTION_REFUSED, // Connection to server refused
-        LE_CONNECTION_ACCEPTED, // Connection to server accepted
-        LE_SERVER_INFO, // inform client about server info
-        LE_REQUEST_BEGIN, // begin of kart selection
-        LE_UPDATE_PLAYER_LIST, // inform client about player list update
-        LE_KART_SELECTION, // Player selected kart
-        LE_PLAYER_DISCONNECTED, // Client disconnected
-        LE_CLIENT_LOADED_WORLD, // Client finished loading world
-        LE_LOAD_WORLD, // Clients should load world
-        LE_START_RACE, // Server to client to start race
-        LE_START_SELECTION, // inform client to start selection
-        LE_RACE_FINISHED, // race has finished, display result
-        LE_RACE_FINISHED_ACK, // client went back to lobby
-        LE_BACK_LOBBY, // Force clients to go back to lobby
-        LE_VOTE, // Track vote
-        LE_CHAT, // Client chat message
-        LE_SERVER_OWNERSHIP, // Tell client he is now the server owner
-        LE_KICK_HOST, // Server owner kicks some other peer in game
-        LE_CHANGE_TEAM, // Client wants to change his team
-        LE_BAD_TEAM, // Tell server owner that the team is unbalanced
-        LE_BAD_CONNECTION, // High ping or too many packets loss
-        LE_CONFIG_SERVER, // Server owner config server game mode or difficulty
-        LE_CHANGE_HANDICAP_AND_TYRE, // Client changes handicap
-        LE_CHANGE_COLOR, // Client changes color
-        LE_LIVE_JOIN, // Client live join or spectate
-        LE_LIVE_JOIN_ACK, // Server tell client live join or spectate succeed
-        LE_KART_INFO, // Client or server exchange new kart info
-        LE_CLIENT_BACK_LOBBY, // Client tell server to go back lobby
-        LE_REPORT_PLAYER, // Client report some player in server
-                         // (like abusive behaviour)
-        LE_ASSETS_UPDATE, // Client tell server with updated assets
-        LE_COMMAND, // Command
-    };
-
-    enum RejectReason : uint8_t
-    {
-        RR_BUSY = 0,
-        RR_BANNED = 1,
-        RR_INCORRECT_PASSWORD = 2,
-        RR_INCOMPATIBLE_DATA = 3,
-        RR_TOO_MANY_PLAYERS = 4,
-        RR_INVALID_PLAYER = 5
-    };
-
-    enum BackLobbyReason : uint8_t
-    {
-        BLR_NONE = 0,
-        BLR_NO_GAME_FOR_LIVE_JOIN = 1,
-        BLR_NO_PLACE_FOR_LIVE_JOIN = 2,
-        BLR_ONE_PLAYER_IN_RANKED_MATCH = 3,
-        BLR_SERVER_ONWER_QUITED_THE_GAME = 4,
-        BLR_SPECTATING_NEXT_GAME = 5
-    };
+    // Enums were moved to packet_types.hpp
 
 protected:
     const ProcessType m_process_type;

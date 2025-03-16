@@ -19,6 +19,7 @@
 #ifndef HIT_PROCESSOR_HPP
 #define HIT_PROCESSOR_HPP
 
+#include "utils/lobby_context.hpp"
 #include "utils/types.hpp"
 
 #include <memory>
@@ -36,20 +37,22 @@ class ServerLobby;
 // Note that this class currently (March 2025) processes *team* hits.
 // It will be modified to process all hits later.
 
-class HitProcessor
+class HitProcessor: public LobbyContextComponent
 {
 public:
-    HitProcessor(ServerLobby* lobby, std::shared_ptr<LobbySettings> settings);
+    HitProcessor(LobbyContext* context): LobbyContextComponent(context) {}
+
+    void setupContextUser() OVERRIDE;
 
 private:
-    ServerLobby* m_lobby = nullptr;
-    std::shared_ptr<LobbySettings> m_lobby_settings;
 
     bool m_troll_active; // Whether the anti-troll system is active.
 
     bool m_show_hits; // Whether to show messages about team hits.
 
     bool m_hit_mode;  // Whether to anvil the team hitters.
+
+    std::string m_message_prefix;
     
     int m_last_hit_msg; // Last tick when the message was shown.
 

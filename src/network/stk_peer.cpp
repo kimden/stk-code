@@ -23,6 +23,7 @@
 #include "network/event.hpp"
 #include "network/network.hpp"
 #include "network/network_config.hpp"
+#include "network/network_player_profile.hpp"
 #include "network/network_string.hpp"
 #include "network/socket_address.hpp"
 #include "network/stk_ipv6.hpp"
@@ -188,9 +189,23 @@ uint32_t STKPeer::getPing()
     }
     return m_enet_peer->roundTripTime;
 }   // getPing
-
 //-----------------------------------------------------------------------------
+
 void STKPeer::setCrypto(std::unique_ptr<Crypto>&& c)
 {
     m_crypto = std::move(c);
 }   // setCrypto
+// ----------------------------------------------------------------------------
+
+// A method for convenience only.
+// For now, returns an empty string if there are no profiles.
+// Might be better to throw an exception. I will see later.
+// For now, make sure there are profiles before calling.
+std::string STKPeer::getMainName() const
+{
+    if (m_players.empty())
+        return "";
+
+    return StringUtils::wideToUtf8(m_players[0]->getName());
+}   // getMainName
+// ------------------------------------------------------------------------

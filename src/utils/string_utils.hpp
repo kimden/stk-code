@@ -354,6 +354,7 @@ namespace StringUtils
         Precision(double value, int precision): m_value(value), m_precision(precision) {}
     };
     std::ostream& operator << (std::ostream& os, const Precision& item);
+    // ------------------------------------------------------------------------
 
 } // namespace StringUtils
 

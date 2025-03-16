@@ -21,6 +21,7 @@
 
 #include "network/stk_peer.hpp"
 #include "race/race_manager.hpp"
+#include "utils/lobby_context.hpp"
 #include "utils/types.hpp"
 
 #include <memory>
@@ -32,10 +33,12 @@ class NetworkString;
 class ServerLobby;
 class STKPeer;
 
-class LobbyAssetManager
+class LobbyAssetManager: public LobbyContextComponent
 {
 public:
-    LobbyAssetManager(ServerLobby* lobby);
+    LobbyAssetManager(LobbyContext* context): LobbyContextComponent(context) {}
+    
+    void setupContextUser() OVERRIDE;
 
     void init();
     void updateAddons();
@@ -70,6 +73,15 @@ public:
     std::set<std::string> getAvailableKarts() const
                                               { return m_available_kts.first; }
     void setMustHaveMaps(const std::string& input);
+    void gameFinishedOn(const std::string& map_name);
+
+    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
+    void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
+
+    std::string getKartForBadKartChoice(
+            std::shared_ptr<STKPeer> peer,
+            const std::string& username,
+            const std::string& check_choice) const;
 
     std::set<std::string> getAddonKarts() const   { return m_addon_kts.first; }
     std::set<std::string> getAddonTracks() const { return m_addon_kts.second; }
@@ -84,9 +96,6 @@ public:
                     { return m_addon_arenas.find(id) != m_addon_arenas.end(); }
     bool hasAddonSoccer(const std::string& id) const
                   { return m_addon_soccers.find(id) != m_addon_soccers.end(); }
-
-private:
-    ServerLobby* m_lobby;
 
 public:
     /** Official karts and maps available in server. */
@@ -110,6 +119,8 @@ public:
     std::pair<std::set<std::string>, std::set<std::string> > m_entering_kts;
 
     std::vector<std::string> m_must_have_maps;
+
+    std::vector<std::string> m_map_history;
 };
 
 #endif // LOBBY_ASSET_MANAGER_HPP

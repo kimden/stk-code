@@ -88,6 +88,7 @@
 #include "tracks/track_sector.hpp"
 #include "utils/constants.hpp"
 #include "utils/helpers.hpp"
+#include "utils/hit_processor.hpp"
 #include "utils/log.hpp" //TODO: remove after debugging is done
 #include "utils/profiler.hpp"
 #include "utils/string_utils.hpp"
@@ -4115,5 +4116,11 @@ bool Kart::isVisible() const
 {
     return m_node && m_node->isVisible();
 } // isVisible
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<HitProcessor> Kart::getHitProcessor() const
+{
+    return RaceManager::get()->getHitProcessor();
+}   // getHitProcessor
 
 /* EOF */

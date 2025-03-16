@@ -19,6 +19,7 @@
 #ifndef HEADER_KART_ELIMINATION_HPP
 #define HEADER_KART_ELIMINATION_HPP
 
+#include "utils/lobby_context.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/types.hpp"
 
@@ -30,7 +31,8 @@
 
 // A class that contains Gnu Elimination data
 
-class KartElimination {
+class KartElimination: public LobbyContextComponent
+{
 private:
     bool m_enabled;
     int m_remained;
@@ -39,7 +41,10 @@ private:
 
 public:
 	static constexpr double INF_TIME = 1e9;
-    KartElimination();
+
+    KartElimination(LobbyContext* context): LobbyContextComponent(context) {}
+    
+    void setupContextUser() OVERRIDE;
     bool isEliminated(std::string username) const;
     std::string getKart() const                             {  return m_kart; }
     std::set<std::string> getRemainingParticipants() const;

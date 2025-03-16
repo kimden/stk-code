@@ -27,9 +27,7 @@
 #include "utils/hit_processor.hpp"
 #include "utils/random_generator.hpp"
 
-#include "network/protocols/server_lobby.hpp"
-
-#include "utils/log.hpp"
+#include "utils/log.hpp" //TODO: remove after debugging is done
 #include <ISceneNode.h>
 
 float Cake::m_st_max_distance_squared;
@@ -65,9 +63,9 @@ void Cake::init(const XMLNode &node, scene::IMesh *cake_model)
  */
 bool Cake::hit(Kart* kart, PhysicalObject* obj)
 {
-    auto sl = LobbyProtocol::get<ServerLobby>();
-    if (sl)
-        sl->getHitProcessor()->setTeammateHitOwner(getOwnerId());
+    auto hp = kart->getHitProcessor();
+    if (hp)
+        hp->setTeammateHitOwner(getOwnerId());
 
     bool was_real_hit = Flyable::hit(kart, obj);
     if (was_real_hit)
@@ -75,10 +73,10 @@ bool Cake::hit(Kart* kart, PhysicalObject* obj)
         if (kart && kart->isShielded())
         {
             kart->decreaseShieldTime();
-            if (sl)
+            if (hp)
             {
-                sl->getHitProcessor()->registerTeammateHit(kart->getWorldKartId());
-                sl->getHitProcessor()->handleTeammateHits();
+                hp->registerTeammateHit(kart->getWorldKartId());
+                hp->handleTeammateHits();
             }
             return false; //Not sure if a shield hit is a real hit.
         }
@@ -88,8 +86,8 @@ bool Cake::hit(Kart* kart, PhysicalObject* obj)
             explode(kart, obj, /* secondary hits */ false, /* indirect damage */ true);
     }
 
-    if (sl)
-        sl->getHitProcessor()->handleTeammateHits();
+    if (hp)
+        hp->handleTeammateHits();
     return was_real_hit;
 }   // hit
 

@@ -20,7 +20,7 @@
 #include "utils/team_utils.hpp"
 
 
-void TeamManager::addTeam(std::string hardcoded_code,
+void TeamsStorage::addTeam(std::string hardcoded_code,
                         std::string hardcoded_name,
                         float hardcoded_color, std::string hardcoded_emoji)
 {
@@ -32,27 +32,27 @@ void TeamManager::addTeam(std::string hardcoded_code,
 }   // addTeam
 //-----------------------------------------------------------------------------
 
-void TeamManager::addCode(int idx, std::string hardcoded_code)
+void TeamsStorage::addCode(int idx, std::string hardcoded_code)
 {
     m_teams[idx].addCode(hardcoded_code);
     m_finder_by_code[hardcoded_code] = idx;
 }   // addCode
 //-----------------------------------------------------------------------------
 
-void TeamManager::addName(int idx, std::string hardcoded_name)
+void TeamsStorage::addName(int idx, std::string hardcoded_name)
 {
     m_teams[idx].addName(hardcoded_name);
     m_finder_by_name[hardcoded_name] = idx;
 }   // addName
 //-----------------------------------------------------------------------------
 
-const CustomTeam& TeamManager::operator[](int idx) const
+const CustomTeam& TeamsStorage::operator[](int idx) const
 {
     return m_teams[idx];
 }   // getTeamByIndex
 //-----------------------------------------------------------------------------
 
-int TeamManager::getIndexByCode(const std::string& code) const
+int TeamsStorage::getIndexByCode(const std::string& code) const
 {
     auto it = m_finder_by_code.find(code);
     if (it == m_finder_by_code.end())
@@ -63,7 +63,7 @@ int TeamManager::getIndexByCode(const std::string& code) const
 }   // getIndexByCode
 //-----------------------------------------------------------------------------
 
-int TeamManager::getIndexByName(const std::string& name) const
+int TeamsStorage::getIndexByName(const std::string& name) const
 {
     auto it = m_finder_by_name.find(name);
     if (it == m_finder_by_name.end())
@@ -74,7 +74,7 @@ int TeamManager::getIndexByName(const std::string& name) const
 }   // getIndexByName
 //-----------------------------------------------------------------------------
 
-TeamManager::TeamManager()
+TeamsStorage::TeamsStorage()
 {
     addTeam("-", "none",    0.00, "");
     addTeam("r", "red",     1.00, StringUtils::utf32ToUtf8({0x1f7e5})); // 1
@@ -89,6 +89,6 @@ TeamManager::TeamManager()
     addCode(6, "v");
     addName(6, "violet");
     addName(8, "pink");
-}   // TeamManager
+}   // TeamsStorage
 //-----------------------------------------------------------------------------
 

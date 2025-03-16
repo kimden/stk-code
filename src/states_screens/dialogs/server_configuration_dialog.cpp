@@ -163,7 +163,7 @@ GUIEngine::EventPropagation
         {
             m_self_destroy = true;
             NetworkString change(PROTOCOL_LOBBY_ROOM);
-            change.addUInt8(LobbyProtocol::LE_CONFIG_SERVER);
+            change.addUInt8(LobbyEvent::LE_CONFIG_SERVER);
             change.addUInt8((uint8_t)m_difficulty_widget
                 ->getSelection(PLAYER_ID_GAME_MASTER));
 

@@ -22,10 +22,13 @@
 #include "modes/world.hpp"
 #include "network/game_setup.hpp"
 #include "network/game_setup.hpp"
+#include "network/network_config.hpp"
 #include "network/network_string.hpp"
 #include "network/peer_vote.hpp"
 #include "network/server_config.hpp"
 #include "network/stk_peer.hpp"
+#include "network/protocols/server_lobby.hpp"
+#include "network/game_setup.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/game_info.hpp"
@@ -36,17 +39,10 @@
 #include "utils/string_utils.hpp"
 #include "utils/tournament.hpp"
 
-LobbySettings::LobbySettings(GameSetup* game_setup,
-        std::shared_ptr<LobbyQueues> queues,
-        std::shared_ptr<KartElimination> elim,
-        std::shared_ptr<LobbyAssetManager> asset_manager,
-        std::shared_ptr<Tournament> tournament)
-    : m_game_setup(game_setup)
-    , m_lobby_queues(queues)
-    , m_kart_elimination(elim)
-    , m_asset_manager(asset_manager)
-    , m_tournament(tournament)
+void LobbySettings::setupContextUser()
 {
+    m_game_setup = getLobby()->getGameSetup();
+
     m_motd = StringUtils::wideToUtf8(
         m_game_setup->readOrLoadFromFile(
             (std::string) ServerConfig::m_motd
@@ -64,11 +60,9 @@ LobbySettings::LobbySettings(GameSetup* game_setup,
 
     setDefaultLapRestrictions();
 
-    m_available_teams = ServerConfig::m_init_available_teams;
     m_default_vote = new PeerVote();
     m_allowed_to_start = ServerConfig::m_allowed_to_start;
 
-    initCategories();
     initAvailableModes();
     initAvailableTracks();
     std::string scoring = ServerConfig::m_gp_scoring;
@@ -76,73 +70,73 @@ LobbySettings::LobbySettings(GameSetup* game_setup,
     loadWhiteList();
     loadPreservedSettings();
 
-    // The following was called in SL::setup, I doubt it's any different
-    // but just in case
+    m_live_players = ServerConfig::m_live_players;
 
-    m_battle_hit_capture_limit = 0;
-    m_battle_time_limit = 0.0f;
-    m_winner_peer_id = 0;
-}   // LobbySettings
+    m_ai_anywhere                    = ServerConfig::m_ai_anywhere;
+    m_ai_handling                    = ServerConfig::m_ai_handling;
+    m_capture_limit                  = ServerConfig::m_capture_limit;
+    m_expose_mobile                  = ServerConfig::m_expose_mobile;
+    m_firewalled_server              = ServerConfig::m_firewalled_server;
+    m_flag_deactivated_time          = ServerConfig::m_flag_deactivated_time;
+    m_flag_return_timeout            = ServerConfig::m_flag_return_timeout;
+    m_free_teams                     = ServerConfig::m_free_teams;
+    m_high_ping_workaround           = ServerConfig::m_high_ping_workaround;
+    m_hit_limit                      = ServerConfig::m_hit_limit;
+    m_incompatible_advice            = ServerConfig::m_incompatible_advice;
+    m_jitter_tolerance               = ServerConfig::m_jitter_tolerance;
+    m_kick_idle_lobby_player_seconds = ServerConfig::m_kick_idle_lobby_player_seconds;
+    m_kick_idle_player_seconds       = ServerConfig::m_kick_idle_player_seconds;
+    m_kicks_allowed                  = ServerConfig::m_kicks_allowed;
+    m_max_ping                       = ServerConfig::m_max_ping;
+    m_min_start_game_players         = ServerConfig::m_min_start_game_players;
+    m_official_karts_play_threshold  = ServerConfig::m_official_karts_play_threshold;
+    m_official_tracks_play_threshold = ServerConfig::m_official_tracks_play_threshold;
+    m_only_host_riding               = ServerConfig::m_only_host_riding;
+    m_owner_less                     = ServerConfig::m_owner_less;
+    m_preserve_battle_scores         = ServerConfig::m_preserve_battle_scores;
+    m_private_server_password        = ServerConfig::m_private_server_password;
+    m_ranked                         = ServerConfig::m_ranked;
+    m_real_addon_karts               = ServerConfig::m_real_addon_karts;
+    m_record_replays                 = ServerConfig::m_record_replays;
+    m_server_configurable            = ServerConfig::m_server_configurable;
+    m_server_difficulty              = ServerConfig::m_server_difficulty;
+    m_server_max_players             = ServerConfig::m_server_max_players;
+    m_server_mode                    = ServerConfig::m_server_mode;
+    m_sleeping_server                = ServerConfig::m_sleeping_server;
+    m_soccer_goal_target             = ServerConfig::m_soccer_goal_target;
+    m_sql_management                 = ServerConfig::m_sql_management;
+    m_start_game_counter             = ServerConfig::m_start_game_counter;
+    m_state_frequency                = ServerConfig::m_state_frequency;
+    m_store_results                  = ServerConfig::m_store_results;
+    m_strict_players                 = ServerConfig::m_strict_players;
+    m_team_choosing                  = ServerConfig::m_team_choosing;
+    m_time_limit_ctf                 = ServerConfig::m_time_limit_ctf;
+    m_time_limit_ffa                 = ServerConfig::m_time_limit_ffa;
+    m_track_kicks                    = ServerConfig::m_track_kicks;
+    m_track_voting                   = ServerConfig::m_track_voting;
+    m_troll_warn_msg                 = ServerConfig::m_troll_warn_msg;
+    m_validating_player              = ServerConfig::m_validating_player;
+    m_voting_timeout                 = ServerConfig::m_voting_timeout;
+    m_commands_file                  = ServerConfig::m_commands_file;
+    m_addon_karts_join_threshold     = ServerConfig::m_addon_karts_join_threshold;
+    m_addon_tracks_join_threshold    = ServerConfig::m_addon_tracks_join_threshold;
+    m_addon_arenas_join_threshold    = ServerConfig::m_addon_arenas_join_threshold;
+    m_addon_soccers_join_threshold   = ServerConfig::m_addon_soccers_join_threshold;
+    m_addon_arenas_play_threshold    = ServerConfig::m_addon_arenas_play_threshold;
+    m_addon_karts_play_threshold     = ServerConfig::m_addon_karts_play_threshold;
+    m_addon_soccers_play_threshold   = ServerConfig::m_addon_soccers_play_threshold;
+    m_addon_tracks_play_threshold    = ServerConfig::m_addon_tracks_play_threshold;
+    m_power_password                 = ServerConfig::m_power_password;
+    m_register_table_name            = ServerConfig::m_register_table_name;
+    m_official_karts_threshold       = ServerConfig::m_official_karts_threshold;
+    m_official_tracks_threshold      = ServerConfig::m_official_tracks_threshold;
+}   // setupContextUser
 //-----------------------------------------------------------------------------
 
 LobbySettings::~LobbySettings()
 {
     delete m_default_vote;
-}
-
-void LobbySettings::initCategories()
-{
-    std::vector<std::string> tokens = StringUtils::split(
-        ServerConfig::m_categories, ' ');
-    std::string category = "";
-    bool isTeam = false;
-    bool isHammerWhitelisted = false;
-    for (std::string& s: tokens)
-    {
-        if (s.empty())
-            continue;
-        else if (s[0] == '#')
-        {
-            isTeam = false;
-            isHammerWhitelisted = false;
-            if (s.length() > 1 && s[1] == '#')
-            {
-                category = s.substr(2);
-                m_hidden_categories.insert(category);
-            }
-            else
-                category = s.substr(1);
-        }
-        else if (s[0] == '$')
-        {
-            isTeam = true;
-            isHammerWhitelisted = false;
-            category = s.substr(1);
-        }
-        else if (s[0] == '^')
-        {
-            isHammerWhitelisted = true;
-        }
-        else
-        {
-            if (isHammerWhitelisted)
-            {
-                m_hammer_whitelist.insert(s);
-            }
-            else
-            {
-                if (!isTeam) {
-                    m_player_categories[category].insert(s);
-                    m_categories_for_player[s].insert(category);
-                }
-                else
-                {
-                    m_team_for_player[s] = category[0] - '0' + 1;
-                }
-            }
-        }
-    }
-}   // initCategories
+}   // ~LobbySettings
 //-----------------------------------------------------------------------------
 
 void LobbySettings::initAvailableModes()
@@ -177,7 +171,7 @@ void LobbySettings::initAvailableTracks()
 {
     m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
     m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
-    m_asset_manager->setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
+    getAssetManager()->setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
     m_play_requirement_tracks = StringUtils::split(
             ServerConfig::m_play_requirement_tracks_string, ' ', false);
 }   // initAvailableTracks
@@ -243,113 +237,6 @@ void LobbySettings::loadPreservedSettings()
     for (std::string& str: what_to_preserve)
         m_preserve.insert(str);
 }   // loadPreservedSettings
-//-----------------------------------------------------------------------------
-
-int LobbySettings::getTeamForUsername(const std::string& name)
-{
-    auto it = m_team_for_player.find(name);
-    if (it == m_team_for_player.end())
-        return TeamUtils::NO_TEAM;
-    return it->second;
-}   // getTeamForUsername
-//-----------------------------------------------------------------------------
-
-void LobbySettings::addMutedPlayerFor(std::shared_ptr<STKPeer> peer,
-                                      const irr::core::stringw& name)
-{
-    m_peers_muted_players[std::weak_ptr<STKPeer>(peer)].insert(name);
-}   // addMutedPlayerFor
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::removeMutedPlayerFor(std::shared_ptr<STKPeer> peer,
-                                         const irr::core::stringw& name)
-{
-    // I'm not sure why the implementation was so long
-    auto& collection = m_peers_muted_players[std::weak_ptr<STKPeer>(peer)];
-    for (auto it = collection.begin(); it != collection.end(); )
-    {
-        if (*it == name)
-        {
-            it = collection.erase(it);
-            return true;
-        }
-        else
-            it++;
-    }
-    return false;
-}   // removeMutedPlayerFor
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::isMuting(std::shared_ptr<STKPeer> peer,
-                             const irr::core::stringw& name) const
-{
-    auto it = m_peers_muted_players.find(std::weak_ptr<STKPeer>(peer));
-    if (it == m_peers_muted_players.end())
-        return false;
-    
-    return it->second.find(name) != it->second.end();
-}   // isMuting
-//-----------------------------------------------------------------------------
-
-std::string LobbySettings::getMutedPlayersAsString(std::shared_ptr<STKPeer> peer)
-{
-    std::string response;
-    int num_players = 0;
-    for (auto& name : m_peers_muted_players[std::weak_ptr<STKPeer>(peer)])
-    {
-        response += StringUtils::wideToUtf8(name);
-        response += " ";
-        ++num_players;
-    }
-    if (num_players == 0)
-        response = "No player has been muted by you";
-    else
-    {
-        response += (num_players == 1 ? "is" : "are");
-        response += StringUtils::insertValues(" muted (total: %s)", num_players);
-    }
-    return response;
-}   // getMutedPlayersAsString
-//-----------------------------------------------------------------------------
-
-void LobbySettings::addTeamSpeaker(std::shared_ptr<STKPeer> peer)
-{
-    m_team_speakers.insert(peer);
-}   // addTeamSpeaker
-//-----------------------------------------------------------------------------
-
-void LobbySettings::setMessageReceiversFor(std::shared_ptr<STKPeer> peer,
-    const std::vector<std::string>& receivers)
-{
-    auto& thing = m_message_receivers[peer];
-    thing.clear();
-    for (unsigned i = 0; i < receivers.size(); ++i)
-        thing.insert(StringUtils::utf8ToWide(receivers[i]));
-}   // setMessageReceiversFor
-//-----------------------------------------------------------------------------
-
-std::set<irr::core::stringw> LobbySettings::getMessageReceiversFor(
-        std::shared_ptr<STKPeer> peer) const
-{
-    auto it = m_message_receivers.find(peer);
-    if (it == m_message_receivers.end())
-        return {};
-
-    return it->second;
-}   // getMessageReceiversFor
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::isTeamSpeaker(std::shared_ptr<STKPeer> peer) const
-{
-    return m_team_speakers.find(peer) != m_team_speakers.end();
-}   // isTeamSpeaker
-//-----------------------------------------------------------------------------
-
-void LobbySettings::makeChatPublicFor(std::shared_ptr<STKPeer> peer)
-{
-    m_message_receivers[peer].clear();
-    m_team_speakers.erase(peer);
-}   // makeChatPublicFor
 //-----------------------------------------------------------------------------
 
 bool LobbySettings::hasNoLapRestrictions() const
@@ -555,10 +442,10 @@ void LobbySettings::updateWorldSettings(std::shared_ptr<GameInfo> game_info)
 
 void LobbySettings::onResetToDefaultSettings()
 {
-    m_lobby_queues->resetToDefaultSettings(m_preserve);
+    getQueues()->resetToDefaultSettings(m_preserve);
 
     if (!m_preserve.count("elim"))
-        m_kart_elimination->disable();
+        getKartElimination()->disable();
 
     if (!m_preserve.count("laps"))
     {
@@ -590,62 +477,6 @@ std::string LobbySettings::getScoringAsString() const
 }   // getScoringAsString
 //-----------------------------------------------------------------------------
 
-void LobbySettings::addPlayerToCategory(const std::string& player, const std::string& category)
-{
-    m_player_categories[category].insert(player);
-    m_categories_for_player[player].insert(category);
-}   // addPlayerToCategory
-//-----------------------------------------------------------------------------
-
-void LobbySettings::erasePlayerFromCategory(const std::string& player, const std::string& category)
-{
-    m_player_categories[category].erase(player);
-    m_categories_for_player[player].erase(category);
-}   // erasePlayerFromCategory
-//-----------------------------------------------------------------------------
-
-void LobbySettings::makeCategoryVisible(const std::string category, bool value)
-{
-    if (value) {
-        m_hidden_categories.erase(category);
-    } else {
-        m_hidden_categories.insert(category);
-    }
-}   // makeCategoryVisible
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::isCategoryVisible(const std::string category) const
-{
-    return m_hidden_categories.find(category) == m_hidden_categories.end();
-}   // isCategoryVisible
-//-----------------------------------------------------------------------------
-
-std::vector<std::string> LobbySettings::getVisibleCategoriesForPlayer(const std::string& profile_name) const
-{
-    auto it = m_categories_for_player.find(profile_name);
-    if (it == m_categories_for_player.end())
-        return {};
-    
-    std::vector<std::string> res;
-    for (const std::string& category: it->second)
-        if (isCategoryVisible(category))
-            res.push_back(category);
-    
-    return res;
-}   // getVisibleCategoriesForPlayer
-//-----------------------------------------------------------------------------
-
-
-std::set<std::string> LobbySettings::getPlayersInCategory(const std::string& category) const
-{
-    auto it = m_player_categories.find(category);
-    if (it == m_player_categories.end())
-        return {};
-
-    return it->second;
-}   // getPlayersInCategory
-//-----------------------------------------------------------------------------
-
 std::string LobbySettings::getPreservedSettingsAsString() const
 {
     std::string msg = "Preserved settings:";
@@ -667,22 +498,9 @@ void LobbySettings::insertIntoPreserved(const std::string& value)
 }   // insertIntoPreserved
 //-----------------------------------------------------------------------------
 
-void LobbySettings::clearAllExpiredWeakPtrs()
-{
-    for (auto it = m_peers_muted_players.begin();
-        it != m_peers_muted_players.end();)
-    {
-        if (it->first.expired())
-            it = m_peers_muted_players.erase(it);
-        else
-            it++;
-    }
-}   // clearAllExpiredWeakPtrs
-//-----------------------------------------------------------------------------
-
 void LobbySettings::initializeDefaultVote()
 {
-    m_default_vote->m_track_name = m_asset_manager->getRandomAvailableMap();
+    m_default_vote->m_track_name = getAssetManager()->getRandomAvailableMap();
     RandomGenerator rg;
     switch (RaceManager::get()->getMinorMode())
     {
@@ -721,9 +539,9 @@ void LobbySettings::initializeDefaultVote()
         }
         case RaceManager::MINOR_MODE_SOCCER:
         {
-            if (m_tournament)
+            if (isTournament())
             {
-                m_tournament->applyRestrictionsOnDefaultVote(m_default_vote);
+                getTournament()->applyRestrictionsOnDefaultVote(m_default_vote);
             }
             else
             {
@@ -842,13 +660,6 @@ PeerVote LobbySettings::getDefaultVote() const
 }   // getDefaultVote
 //-----------------------------------------------------------------------------
 
-
-void LobbySettings::onPeerDisconnect(std::shared_ptr<STKPeer> peer)
-{
-    m_message_receivers.erase(peer);
-}   // onPeerDisconnect
-//-----------------------------------------------------------------------------
-
 bool LobbySettings::isInWhitelist(const std::string& username) const
 {
     return m_usernames_white_list.find(username) != m_usernames_white_list.end();
@@ -867,22 +678,54 @@ bool LobbySettings::isDifficultyAvailable(int difficulty) const
 }   // isDifficultyAvailable
 //-----------------------------------------------------------------------------
 
-void LobbySettings::applyPermutationToTeams(const std::map<int, int>& permutation)
+void LobbySettings::onServerSetup()
 {
-    for (auto& p: m_team_for_player)
-    {
-        auto it = permutation.find(p.second);
-        if (it != permutation.end())
-            p.second = it->second;
-    }
-}   // applyPermutationToTeams
+    m_battle_hit_capture_limit = 0;
+    m_battle_time_limit = 0.0f;
+    m_winner_peer_id = 0;
+
+    NetworkConfig::get()->setTuxHitboxAddon(m_live_players);
+}   // onServerSetup
 //-----------------------------------------------------------------------------
 
-std::string LobbySettings::getAvailableTeams() const
+void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
+                                    std::shared_ptr<STKPeer> target) const
 {
-    if (RaceManager::get()->teamEnabled())
-        return "rb";
+    // Should probably include hammer permissions, but this function is
+    // originated from the ingame button press. Unify all such functions later.
+    if (getLobby()->getServerOwner() != initiator)
+        return;
 
-    return m_available_teams;
-}   // getAvailableTeams
+    if (!hasKicksAllowed())
+    {
+        getLobby()->sendStringToPeer(initiator, "Kicking players is not allowed on this server");
+        return;
+    }
+
+    // Ignore kicking ai peer if ai handling is on
+    if (target && (!hasAiHandling() || !target->isAIPeer()))
+    {
+        if (target->isAngryHost())
+        {
+            getLobby()->sendStringToPeer(initiator, "This player is the owner of this server, "
+                "and is protected from your actions now");
+            return;
+        }
+        if (!target->hasPlayerProfiles())
+        {
+            Log::info("ServerLobby", "Crown player kicks a player");
+        }
+        else
+        {
+            std::string player_name = target->getMainName();
+            Log::info("ServerLobby", "Crown player kicks %s", player_name.c_str());
+        }
+        target->kick();
+        if (isTrackingKicks())
+        {
+            std::string auto_report = "[ Auto report caused by kick ]";
+            getLobby()->writeOwnReport(target, initiator, auto_report);
+        }
+    }
+}   // tryKickingAnotherPeer
 //-----------------------------------------------------------------------------
