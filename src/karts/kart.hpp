@@ -36,6 +36,7 @@
 #include "race/race_manager.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/no_copy.hpp"
+class HitProcessor;
 
 namespace irr
 {
@@ -931,6 +932,8 @@ public:
     /** Return the confirmed finish ticks (sent by the server)
      *  indicating that this kart has really finished the race. */
     int getNetworkConfirmedFinishTicks() const { return m_network_confirmed_finish_ticks; }
+    // ------------------------------------------------------------------------
+    std::shared_ptr<HitProcessor> getHitProcessor() const;
 
 };   // Kart
 

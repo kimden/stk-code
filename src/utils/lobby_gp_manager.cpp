@@ -24,7 +24,7 @@
 #include "network/protocols/server_lobby.hpp"
 #include "network/network_player_profile.hpp"
 #include "modes/world.hpp"
-#include "karts/abstract_kart.hpp"
+#include "karts/kart.hpp"
 #include "utils/team_manager.hpp"
 #include "modes/world_with_rank.hpp"
 #include "modes/linear_world.hpp"
