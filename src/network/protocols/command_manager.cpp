@@ -535,6 +535,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("whyhourglass", &CM::process_why_hourglass);
     applyFunctionIfPossible("availableteams", &CM::process_available_teams);
     applyFunctionIfPossible("availableteams =", &CM::process_available_teams_assign);
+    applyFunctionIfPossible("cooldown", &CM::process_cooldown);
+    applyFunctionIfPossible("cooldown =", &CM::process_cooldown_assign);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
     applyFunctionIfPossible("stopaddondownload", &CM::special);
@@ -3935,6 +3937,49 @@ void CommandManager::process_available_teams_assign(Context& context)
                 ", but teams \"%s\" were not recognized", ignored);
     getLobby()->sendStringToPeer(peer, msg);
 } // process_available_teams_assign
+// ========================================================================
+
+void CommandManager::process_cooldown(Context& context)
+{
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Cooldown for starting the game: %d",
+            getSettings()->getLobbyCooldown()));
+} // process_cooldown
+// ========================================================================
+
+void CommandManager::process_cooldown_assign(Context& context)
+{
+    auto& argv = context.m_argv;
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    if (argv.size() < 2)
+    {
+        error(context);
+        return;
+    }
+    int new_cooldown = -1;
+    // kimden: figure out what's with epsilons in STK
+    if (!StringUtils::parseString<int>(argv[1], &new_cooldown) || new_cooldown < 0)
+    {
+        error(context);
+        return;
+    }
+    getSettings()->setLobbyCooldown(new_cooldown);
+
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Set cooldown for starting the game to %d",
+            new_cooldown));
+} // process_cooldown_assign
 // ========================================================================
 
 void CommandManager::special(Context& context)

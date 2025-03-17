@@ -105,6 +105,9 @@ public:
     void setBattleHitCaptureLimit(int value)
                                         { m_battle_hit_capture_limit = value; }
     void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
+    void setLobbyCooldown(int value)            { m_lobby_cooldown = value; }
+
+    bool isCooldown() const;
 
     void onServerSetup();
 
@@ -171,6 +174,7 @@ public:
     std::string getRegisterTableName()     const { return m_register_table_name;            }
     float getOfficialKartsThreshold()      const { return m_official_karts_threshold;       }
     float getOfficialTracksThreshold()     const { return m_official_tracks_threshold;      }
+    int getLobbyCooldown()                 const { return m_lobby_cooldown;                 }
 
 private:
     GameSetup* m_game_setup;
@@ -190,6 +194,8 @@ private:
     std::string m_motd;
 
     std::string m_help_message;
+
+    uint64_t m_last_reset;
 
     std::set<int> m_available_difficulties;
 
@@ -279,6 +285,7 @@ private:
     std::string m_register_table_name;
     float m_official_karts_threshold;
     float m_official_tracks_threshold;
+    int m_lobby_cooldown;
 
 
 // These should be moved to voting manager ====================================
