@@ -3,19 +3,18 @@
 #### Or in short, STK 2.Xue TME + CM :P
 SuperTuxKart is a free kart racing game. The SuperTuxKart homepage can be found at <https://supertuxkart.net/>.
 
+## Building from source
+
+Building instructions can be found in [`INSTALL.md`](/INSTALL.md)
+
+To compile SuperTuxKart TME, you will need to install custom assets. Check out the releases tab for the latest version of `stk-assets.zip`.
+
 ## A shorter and clearer version of the info below can be found in a new "*Tyres*" tab in the in-game help menu.
 
 ![STK Tyre Mod Edition](/tme_banner.png)
 
 ## License
 The software is released under the GNU General Public License (GPL) which can be found in the file [`COPYING`](/COPYING) in the same directory as this file.
-
-## Building from source
-
-Building instructions can be found in [`INSTALL.md`](/INSTALL.md)
-
-To compile SuperTuxKart 2.0 and/or STK TME, you will need to install custom assets instead of the ones detailed in INSTALL.md . Check out the releases tab for the latest version.
-
 
 ---
 ## What is SuperTuxKart 2.0 Tyre Mod Edition (TME)?
