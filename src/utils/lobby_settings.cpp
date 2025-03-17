@@ -56,6 +56,8 @@ void LobbySettings::setupContextUser()
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
     m_consent_on_replays = false;
 
+    m_last_reset = 0;
+
     m_fixed_direction = ServerConfig::m_fixed_direction;
 
     setDefaultLapRestrictions();
@@ -130,6 +132,7 @@ void LobbySettings::setupContextUser()
     m_register_table_name            = ServerConfig::m_register_table_name;
     m_official_karts_threshold       = ServerConfig::m_official_karts_threshold;
     m_official_tracks_threshold      = ServerConfig::m_official_tracks_threshold;
+    m_lobby_cooldown                 = ServerConfig::m_lobby_cooldown;
 }   // setupContextUser
 //-----------------------------------------------------------------------------
 
@@ -684,6 +687,8 @@ void LobbySettings::onServerSetup()
     m_battle_time_limit = 0.0f;
     m_winner_peer_id = 0;
 
+    m_last_reset = StkTime::getMonoTimeMs();
+
     NetworkConfig::get()->setTuxHitboxAddon(m_live_players);
 }   // onServerSetup
 //-----------------------------------------------------------------------------
@@ -728,4 +733,11 @@ void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
         }
     }
 }   // tryKickingAnotherPeer
+//-----------------------------------------------------------------------------
+
+bool LobbySettings::isCooldown() const
+{
+    int64_t passed_since_reset = (int64_t)StkTime::getMonoTimeMs() - m_last_reset;
+    return passed_since_reset < 1000 * m_lobby_cooldown;
+}   // isCooldown
 //-----------------------------------------------------------------------------

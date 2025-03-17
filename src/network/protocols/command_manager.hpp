@@ -345,6 +345,8 @@ private:
     void process_why_hourglass(Context& context);
     void process_available_teams(Context& context);
     void process_available_teams_assign(Context& context);
+    void process_cooldown(Context& context);
+    void process_cooldown_assign(Context& context);
     void special(Context& context);
 
 public:

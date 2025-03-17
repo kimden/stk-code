@@ -739,9 +739,10 @@ void ServerLobby::asynchronousUpdate()
                 forbid_starting = true;
             
             bool timer_finished = (!forbid_starting && m_timeout.load() < (int64_t)StkTime::getMonoTimeMs());
-            bool players_ready = (checkPeersReady(true/*ignore_ai_peer*/, BEFORE_SELECTION) && (int)players >= starting_limit);
+            bool players_ready = (checkPeersReady(true/*ignore_ai_peer*/, BEFORE_SELECTION)
+                    && (int)players >= starting_limit);
 
-            if (timer_finished || players_ready)
+            if (timer_finished || (players_ready && !getSettings()->isCooldown()))
             {
                 resetPeersReady();
                 startSelection();
@@ -1728,6 +1729,8 @@ void ServerLobby::unregisterServer(bool now, std::weak_ptr<ServerLobby> sl)
 void ServerLobby::startSelection(const Event *event)
 {
     bool need_to_update = false;
+    bool cooldown = getSettings()->isCooldown();
+    
     if (event != NULL)
     {
         if (m_state.load() != WAITING_FOR_START_GAME)
@@ -1779,7 +1782,15 @@ void ServerLobby::startSelection(const Event *event)
                 return;
             }
         }
+        if (cooldown)
+        {
+            sendStringToPeer(peer, "Starting the game is forbidden by server cooldown");
+            return;
+        }
     } else {
+        // Even if cooldown is bigger than server timeout, start happens upon
+        // timeout expiration. If all players clicked before timeout, no start
+        // happens - it's handled in another place
         if (!getSettings()->isAllowedToStart())
         {
             // Produce no log spam

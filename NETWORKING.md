@@ -397,6 +397,9 @@ A typical current server configuration xml that fits the current code version is
     <!-- Whether the game can be started immediately when the server is opened. -->
     <start-allowed value="true" />
 
+    <!-- Timeout in seconds during which you cannot start the next game, regardless of hammers, votes, or buttons pressed.-->
+    <lobby-cooldown value="0" />
+
 </server-config>
 ```
 
