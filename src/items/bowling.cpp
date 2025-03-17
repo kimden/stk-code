@@ -157,7 +157,9 @@ bool Bowling::updateAndDelete(int ticks)
  */
 bool Bowling::hit(AbstractKart* kart, PhysicalObject* obj)
 {
-    auto hp = kart->getHitProcessor();
+    std::shared_ptr<HitProcessor> hp;
+    if (kart)
+        hp = kart->getHitProcessor();
     if (hp)
         hp->setTeammateHitOwner(getOwnerId(),m_ticks_since_thrown);
 
