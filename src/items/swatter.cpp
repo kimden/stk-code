@@ -410,7 +410,10 @@ void Swatter::squashThingsAround()
     if (wasHit)
     {
         // check if we are in team gp and hit a teammate and should punish attacker
-        auto hp = m_kart->getHitProcessor();
+
+        std::shared_ptr<HitProcessor> hp;
+        if (m_kart)
+            hp = m_kart->getHitProcessor();
         if (hp && !m_closest_kart->hasFinishedRace())
             hp->handleSwatterHit(m_kart->getWorldKartId(),
                 m_closest_kart->getWorldKartId(), success, m_has_hit_kart,

@@ -63,7 +63,9 @@ void Cake::init(const XMLNode &node, scene::IMesh *cake_model)
  */
 bool Cake::hit(Kart* kart, PhysicalObject* obj)
 {
-    auto hp = kart->getHitProcessor();
+    std::shared_ptr<HitProcessor> hp;
+    if (kart)
+        hp = kart->getHitProcessor();
     if (hp)
         hp->setTeammateHitOwner(getOwnerId());
 
