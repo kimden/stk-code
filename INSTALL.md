@@ -4,7 +4,8 @@ In order to build SuperTuxKart from source, you'll need both the code and the as
 
 ```bash
 git clone https://github.com/supertuxkart/stk-code stk-code
-svn co https://svn.code.sf.net/p/supertuxkart/code/stk-assets stk-assets
+wget https://github.com/Nomagno/stk-code/releases/download/TME_2025_ST_VALENTINES/stk-assets.zip
+unzip stk-assets.zip
 ```
 
 ## Building SuperTuxKart on Linux
@@ -104,28 +105,28 @@ mkdir cmake_build
 cd cmake_build
 
 # run cmake to generate the makefile
-cmake ..
+cmake .. -DNO_SHADERC=on
 
-# compile
-make -j$(nproc)
+# compile, you can replace the 8 with more to (possibly) go faster, up to twice your number of CPU cores usually
+make -j8
 ```
 
 STK can then be run from the build directory with `bin/supertuxkart`.
 
 #### Keeping your build up to date
 
-To recompile the latest code without redownloading the entire source, first run the ```svn up``` command inside the 'stk-assets' directory, then run the following commands inside the 'stk-code' directory:
+To recompile the latest code without redownloading the entire source, first download and extract the latest `stk-assets.zip`, then run the following commands inside the 'stk-code' directory:
 
 ```bash
 git pull
 cd cmake_build
-cmake ..
-make -j$(nproc)
+cmake .. -DNO_SHADERC=on
+make -j8
 ```
 
 #### Build Speed Optimization
 
-The `-j$(nproc)` option is an example. For a faster build, use `-jx` instead, where "x" is the amount of CPU threads you have, minus one.
+The `-j8` option is an example. For a faster build, use `-jx` instead, where "x" is the amount of CPU threads you have, minus one.
 
 #### Further options
 
