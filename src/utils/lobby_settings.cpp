@@ -55,6 +55,9 @@ void LobbySettings::setupContextUser()
     );
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
     m_consent_on_replays = false;
+    
+    m_legacy_gp_mode = false;
+    m_legacy_gp_mode_started = false;
 
     m_last_reset = 0;
 

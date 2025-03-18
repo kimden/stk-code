@@ -537,6 +537,7 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("availableteams =", &CM::process_available_teams_assign);
     applyFunctionIfPossible("cooldown", &CM::process_cooldown);
     applyFunctionIfPossible("cooldown =", &CM::process_cooldown_assign);
+    applyFunctionIfPossible("temp", &CM::process_temp250318);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
     applyFunctionIfPossible("stopaddondownload", &CM::special);
@@ -1244,7 +1245,7 @@ void CommandManager::process_spectate(Context& context)
         return;
     }
 
-    if (/*m_game_setup->isGrandPrix() || */!getSettings()->isLivePlayers())
+    if (getSettings()->isLegacyGPMode() || !getSettings()->isLivePlayers())
         response = "Server doesn't support spectating";
 
     if (!response.empty())
@@ -3980,6 +3981,29 @@ void CommandManager::process_cooldown_assign(Context& context)
             "Set cooldown for starting the game to %d",
             new_cooldown));
 } // process_cooldown_assign
+// ========================================================================
+
+void CommandManager::process_temp250318(Context& context)
+{
+    auto& argv = context.m_argv;
+    auto peer = context.m_peer.lock();
+    if (!peer)
+    {
+        error(context, true);
+        return;
+    }
+    int value = 0;
+    if (argv.size() < 2 || !StringUtils::parseString<int>(argv[1], &value))
+    {
+        error(context);
+        return;
+    }
+    auto settings = getSettings();
+    settings->m_legacy_gp_mode         = ((value >> 1) & 1);
+    settings->m_legacy_gp_mode_started = ((value >> 0) & 1);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "ok value = %d", value));
+} // process_temp250318
 // ========================================================================
 
 void CommandManager::special(Context& context)

@@ -75,13 +75,26 @@ std::string LobbyGPManager::getGrandPrixStandings(bool showIndividual, bool show
     }
 
     auto game_setup = getLobby()->getGameSetup();
-    uint8_t passed = (uint8_t)game_setup->getAllTracks().size();
+    int passed = (int)game_setup->getAllTracks().size();
+    bool ongoing = false;
+    if (getLobby()->isWorldPicked() && !getLobby()->isWorldFinished())
+    {
+        --passed;
+        ongoing = true;
+    }
+    
     uint8_t total = game_setup->getExtraServerInfo();
-    if (passed != 0)
-        response << " after " << (int)passed << " of " << (int)total << " games:\n";
+    if (passed != 0 || ongoing)
+    {
+        response << " after " << (int)passed << " of " << (int)total << " games";
+        if (ongoing)
+            response << " (before this game)";
+    }
     else
-        response << ", " << (int)total << " games:\n";
+        response << ", " << (int)total << " games";
 
+    response << ":\n";
+    
     if (showIndividual)
     {
         std::vector<std::pair<GPScore, std::string>> results;

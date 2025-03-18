@@ -176,10 +176,14 @@ public:
     float getOfficialTracksThreshold()     const { return m_official_tracks_threshold;      }
     int getLobbyCooldown()                 const { return m_lobby_cooldown;                 }
 
+    // This one might not get into the config (as it originated from official
+    // code's GP, where it is useless unless you want to make a private
+    // server), however, it might be useful regardless
+    bool isLegacyGPMode()                  const { return m_legacy_gp_mode;                 }
+    bool isLegacyGPModeStarted()           const { return m_legacy_gp_mode_started;         }
+
 private:
     GameSetup* m_game_setup;
-
-// These are fine here ========================================================
 
     int m_battle_hit_capture_limit;
 
@@ -287,6 +291,16 @@ private:
     float m_official_tracks_threshold;
     int m_lobby_cooldown;
 
+    // Special, temporarily public
+public:
+
+    bool m_legacy_gp_mode;
+
+    // This one corresponds to m_game_setup->isGrandPrixStarted()
+    bool m_legacy_gp_mode_started;
+
+    // Special, temporarily public END
+private:
 
 // These should be moved to voting manager ====================================
 
