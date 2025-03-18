@@ -1154,6 +1154,13 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="temp"
+             usage="/temp"
+             permissions-verbose="hammers"
+             description="test"
+             permissions="UP_HAMMER"
+             state-scope="SS_ALWAYS"
+    />
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions-verbose="everyone (client command)"

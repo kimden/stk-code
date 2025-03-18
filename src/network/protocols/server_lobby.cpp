@@ -613,8 +613,8 @@ void ServerLobby::asynchronousUpdate()
     if (getSettings()->isRanked() && m_state.load() == WAITING_FOR_START_GAME)
         m_ranking->cleanup();
 
-    if (allowJoinedPlayersWaiting() /*|| (m_game_setup->isGrandPrix() &&
-        m_state.load() == WAITING_FOR_START_GAME)*/)
+    if (allowJoinedPlayersWaiting() || (getSettings()->isLegacyGPMode() &&
+        m_state.load() == WAITING_FOR_START_GAME))
     {
         // Only poll the STK server if server has been registered.
         if (m_server_id_online.load() != 0 &&
@@ -1827,8 +1827,9 @@ void ServerLobby::startSelection(const Event *event)
     auto& spectators_by_limit = getSpectatorsByLimit();
     if (spectators_by_limit.size() == peers.size())
     {
-        Log::error("ServerLobby", "Too many players and cannot set "
-            "spectate for late coming players!");
+        // produce no log spam for now
+        // Log::error("ServerLobby", "Too many players and cannot set "
+        //     "spectate for late coming players!");
         return;
     }
     for (auto &peer : spectators_by_limit)
@@ -3206,8 +3207,8 @@ void ServerLobby::playerFinishedResult(Event *event)
 //-----------------------------------------------------------------------------
 bool ServerLobby::waitingForPlayers() const
 {
-    // if (m_game_setup->isGrandPrix() && m_game_setup->isGrandPrixStarted())
-    //     return false;
+    if (getSettings()->isLegacyGPMode() && getSettings()->isLegacyGPModeStarted())
+        return false;
     return m_state.load() >= WAITING_FOR_START_GAME;
 }   // waitingForPlayers
 
@@ -3408,7 +3409,7 @@ void ServerLobby::configPeersStartTime()
 //-----------------------------------------------------------------------------
 bool ServerLobby::allowJoinedPlayersWaiting() const
 {
-    return true; //!m_game_setup->isGrandPrix();
+    return !getSettings()->isLegacyGPMode();
 }   // allowJoinedPlayersWaiting
 
 //-----------------------------------------------------------------------------

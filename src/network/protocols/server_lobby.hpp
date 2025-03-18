@@ -370,6 +370,10 @@ public:
     void saveDisconnectingIdInfo(int id) const;
     void sendServerInfoToEveryone() const;
 
+    bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }
+    bool isWorldFinished() const   { return m_state.load() >= RESULT_DISPLAY; }
+
+    //-------------------------------------------------------------------------
     // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
     void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);

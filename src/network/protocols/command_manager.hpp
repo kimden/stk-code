@@ -347,6 +347,10 @@ private:
     void process_available_teams_assign(Context& context);
     void process_cooldown(Context& context);
     void process_cooldown_assign(Context& context);
+
+    // Temporary command
+    void process_temp250318(Context& context);
+
     void special(Context& context);
 
 public:
