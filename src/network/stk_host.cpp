@@ -867,7 +867,7 @@ void STKHost::mainLoop(ProcessType pt)
             std::unique_lock<std::mutex> peer_lock(m_peers_mutex);
             const float timeout = ServerConfig::m_validation_timeout;
             bool need_ping = false;
-            if (sl && (!sl->isRacing() || sl->allowJoinedPlayersWaiting()) &&
+            if (sl && (!sl->isRacing() || !sl->isLegacyGPMode()) &&
                 last_ping_time < StkTime::getMonoTimeMs())
             {
                 // If not racing, send an reliable packet at the 10 packets
@@ -955,7 +955,7 @@ void STKHost::mainLoop(ProcessType pt)
             for (auto it = m_peers.begin(); it != m_peers.end();)
             {
                 if (!ping_packet.getBuffer().empty() &&
-                    (!sl->allowJoinedPlayersWaiting() ||
+                    (sl->isLegacyGPMode() ||
                     !sl->isRacing() || it->second->isWaitingForGame()))
                 {
                     ENetPacket* packet = enet_packet_create(ping_packet.getData(),
