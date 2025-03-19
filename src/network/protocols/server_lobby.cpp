@@ -1596,6 +1596,7 @@ void ServerLobby::update(int ticks)
         Log::info("ServerLobby", "Starting the race loading.");
         // This will create the world instance, i.e. load track and karts
         loadWorld();
+        getGPManager()->updateWorldScoring();
         getSettings()->updateWorldSettings(m_game_info);
         m_state = WAIT_FOR_WORLD_LOADED;
         break;
