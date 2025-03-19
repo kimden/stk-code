@@ -613,7 +613,7 @@ void ServerLobby::asynchronousUpdate()
     if (getSettings()->isRanked() && m_state.load() == WAITING_FOR_START_GAME)
         m_ranking->cleanup();
 
-    if (allowJoinedPlayersWaiting() || (getSettings()->isLegacyGPMode() &&
+    if (!getSettings()->isLegacyGPMode() || (getSettings()->isLegacyGPMode() &&
         m_state.load() == WAITING_FOR_START_GAME))
     {
         // Only poll the STK server if server has been registered.
@@ -624,7 +624,7 @@ void ServerLobby::asynchronousUpdate()
     }
 
     if (m_server_id_online.load() != 0 &&
-        allowJoinedPlayersWaiting() &&
+        !getSettings()->isLegacyGPMode() &&
         StkTime::getMonoTimeMs() > m_last_unsuccess_poll_time &&
         StkTime::getMonoTimeMs() > m_last_success_poll_time.load() + 30000)
     {
@@ -691,7 +691,7 @@ void ServerLobby::asynchronousUpdate()
             {
                 // For non grand prix server we only need to register to stk
                 // addons once
-                if (allowJoinedPlayersWaiting())
+                if (!getSettings()->isLegacyGPMode())
                     m_registered_for_once_only = true;
                 m_state = WAITING_FOR_START_GAME;
                 updatePlayerList();
@@ -1929,7 +1929,7 @@ void ServerLobby::startSelection(const Event *event)
 
     getSettings()->initializeDefaultVote();
 
-    if (!allowJoinedPlayersWaiting())
+    if (getSettings()->isLegacyGPMode())
     {
         ProtocolManager::lock()->findAndTerminate(PROTOCOL_CONNECTION);
         if (m_server_id_online.load() != 0)
@@ -1998,7 +1998,7 @@ void ServerLobby::startSelection(const Event *event)
         updatePlayerList();
     }
 
-    if (!allowJoinedPlayersWaiting())
+    if (getSettings()->isLegacyGPMode())
     {
         // Drop all pending players and keys if doesn't allow joinning-waiting
         for (auto& p : m_pending_connection)
@@ -2365,7 +2365,7 @@ void ServerLobby::connectionRequested(Event* event)
     peer->cleanPlayerProfiles();
 
     // can we add the player ?
-    if (!allowJoinedPlayersWaiting() &&
+    if (getSettings()->isLegacyGPMode() &&
         (m_state.load() != WAITING_FOR_START_GAME /*||
         m_game_setup->isGrandPrixStarted()*/))
     {
@@ -2868,7 +2868,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
     m_lobby_players.store((int)all_profiles.size());
 
     // No need to update player list (for started grand prix currently)
-    if (!allowJoinedPlayersWaiting() &&
+    if (getSettings()->isLegacyGPMode() &&
         m_state.load() > WAITING_FOR_START_GAME && !update_when_reset_server)
         return;
 
@@ -3405,12 +3405,6 @@ void ServerLobby::configPeersStartTime()
             m_state.store(RACING);
         });
 }   // configPeersStartTime
-
-//-----------------------------------------------------------------------------
-bool ServerLobby::allowJoinedPlayersWaiting() const
-{
-    return !getSettings()->isLegacyGPMode();
-}   // allowJoinedPlayersWaiting
 
 //-----------------------------------------------------------------------------
 void ServerLobby::addWaitingPlayersToGame()
@@ -5042,4 +5036,10 @@ void ServerLobby::sendServerInfoToEveryone() const
     sendMessageToPeers(server_info);
     delete server_info;
 }   // sendServerInfoToEveryone
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::isLegacyGPMode() const
+{
+    return getSettings()->isLegacyGPMode();
+}   // isLegacyGPMode
 //-----------------------------------------------------------------------------

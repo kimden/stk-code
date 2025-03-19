@@ -319,7 +319,6 @@ public:
     virtual bool allPlayersReady() const OVERRIDE
                             { return m_state.load() >= WAIT_FOR_RACE_STARTED; }
     virtual bool isRacing() const OVERRIDE { return m_state.load() == RACING; }
-    bool allowJoinedPlayersWaiting() const;
     void setSaveServerConfig(bool val)          { m_save_server_config = val; }
     float getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
     int getDifficulty() const                   { return m_difficulty.load(); }
@@ -372,6 +371,7 @@ public:
 
     bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }
     bool isWorldFinished() const   { return m_state.load() >= RESULT_DISPLAY; }
+    bool isLegacyGPMode() const;
 
     //-------------------------------------------------------------------------
     // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
