@@ -50,7 +50,6 @@ public:
 
     void initAvailableTracks();
     void initAvailableModes();
-    bool loadCustomScoring(std::string& scoring);
     void loadWhiteList();
     void loadPreservedSettings();
     bool hasConsentOnReplays() const           { return m_consent_on_replays; }
@@ -82,7 +81,6 @@ public:
     void updateWorldSettings(std::shared_ptr<GameInfo> game_info);
     void onResetToDefaultSettings();
     bool isPreservingMode() const;
-    std::string getScoringAsString() const;
     std::string getPreservedSettingsAsString() const;
     void eraseFromPreserved(const std::string& value);
     void insertIntoPreserved(const std::string& value);
@@ -214,10 +212,6 @@ private:
     int m_fixed_direction;
 
     double m_default_lap_multiplier;
-
-    std::vector<int> m_scoring_int_params;
-
-    std::string m_scoring_type;
 
     std::set<std::string> m_usernames_white_list;
 

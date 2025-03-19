@@ -3114,7 +3114,7 @@ void CommandManager::process_scoring(Context& context)
         error(context, true);
         return;
     }
-    getLobby()->sendStringToPeer(peer, getSettings()->getScoringAsString());
+    getLobby()->sendStringToPeer(peer, getGPManager()->getScoringAsString());
 } // process_scoring
 // ========================================================================
 
@@ -3130,14 +3130,10 @@ void CommandManager::process_scoring_assign(Context& context)
     }
     std::string cmd2;
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
-    if (getSettings()->loadCustomScoring(cmd2))
-    {
+    if (getGPManager()->trySettingGPScoring(cmd2))
         getLobby()->sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
-    }
     else
-    {
         getLobby()->sendStringToPeer(peer, "Scoring could not be parsed from \"" + cmd2 + "\"");
-    }
 } // process_scoring_assign
 // ========================================================================
 

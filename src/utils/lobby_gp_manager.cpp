@@ -18,21 +18,23 @@
 
 #include "utils/lobby_gp_manager.hpp"
 
-#include "network/server_config.hpp"
-#include "utils/string_utils.hpp"
-#include "network/game_setup.hpp"
-#include "network/protocols/server_lobby.hpp"
-#include "network/network_player_profile.hpp"
-#include "modes/world.hpp"
 #include "karts/abstract_kart.hpp"
-#include "utils/team_manager.hpp"
-#include "modes/world_with_rank.hpp"
 #include "modes/linear_world.hpp"
+#include "modes/world.hpp"
+#include "modes/world_with_rank.hpp"
+#include "network/game_setup.hpp"
+#include "network/network_player_profile.hpp"
 #include "network/network_string.hpp"
+#include "network/protocols/server_lobby.hpp"
+#include "network/server_config.hpp"
+#include "utils/gp_scoring.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/team_manager.hpp"
 
 void LobbyGPManager::setupContextUser()
 {
-    
+    if (!trySettingGPScoring(ServerConfig::m_gp_scoring))
+        m_gp_scoring = {};
 }   // setupContextUser
 //-----------------------------------------------------------------------------
 
@@ -249,4 +251,42 @@ void LobbyGPManager::updateGPScores(std::vector<float>& gp_changes, NetworkStrin
                     .addFloat(overall_times[i]);
     }
 }   // updateGPScores
+//-----------------------------------------------------------------------------
+
+bool LobbyGPManager::trySettingGPScoring(const std::string& input)
+{
+    std::shared_ptr<GPScoring> new_scoring;
+    
+    try
+    {
+        new_scoring = GPScoring::createFromIntParamString(input);
+    }
+    catch (std::logic_error& ex)
+    {
+        Log::warn("Failed to create GP scoring from string (%s): %s",
+                input.c_str(), ex.what());
+        return false;
+    }
+
+    std::swap(m_gp_scoring, new_scoring);
+    return true;
+}   // trySettingGPScoring
+//-----------------------------------------------------------------------------
+
+void LobbyGPManager::updateWorldScoring() const
+{
+    WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
+    if (wwr)
+        wwr->setCustomScoringSystem(m_gp_scoring);
+}   // updateWorldScoring
+//-----------------------------------------------------------------------------
+
+std::string LobbyGPManager::getScoringAsString() const
+{
+    std::string msg = "Current scoring is \"";
+    if (m_gp_scoring)
+        msg += m_gp_scoring->toString();
+    msg += "\"";
+    return msg;
+}   // getScoringAsString
 //-----------------------------------------------------------------------------

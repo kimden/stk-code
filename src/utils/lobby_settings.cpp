@@ -70,8 +70,7 @@ void LobbySettings::setupContextUser()
 
     initAvailableModes();
     initAvailableTracks();
-    std::string scoring = ServerConfig::m_gp_scoring;
-    loadCustomScoring(scoring);
+
     loadWhiteList();
     loadPreservedSettings();
 
@@ -181,50 +180,6 @@ void LobbySettings::initAvailableTracks()
     m_play_requirement_tracks = StringUtils::split(
             ServerConfig::m_play_requirement_tracks_string, ' ', false);
 }   // initAvailableTracks
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::loadCustomScoring(std::string& scoring)
-{
-    std::set<std::string> available_scoring_types = {
-            "standard", "default", "", "inc", "fixed", "linear-gap", "exp-gap"
-    };
-    auto previous_params = m_scoring_int_params;
-    auto previous_type = m_scoring_type;
-    m_scoring_int_params.clear();
-    m_scoring_type = "";
-    if (!scoring.empty())
-    {
-        std::vector<std::string> params = StringUtils::split(scoring, ' ');
-        if (params.empty())
-        {
-            m_scoring_type = "";
-            return true;
-        }
-        m_scoring_type = params[0];
-        if (available_scoring_types.count(m_scoring_type) == 0)
-        {
-            Log::warn("ServerLobby", "Unknown scoring type %s, "
-                    "fallback.", m_scoring_type.c_str());
-            m_scoring_int_params = previous_params;
-            m_scoring_type = previous_type;
-            return false;
-        }
-        for (unsigned i = 1; i < params.size(); i++)
-        {
-            int param;
-            if (!StringUtils::fromString(params[i], param))
-            {
-                Log::warn("ServerLobby", "Unable to parse integer from custom "
-                        "scoring data, fallback.");
-                m_scoring_int_params = previous_params;
-                m_scoring_type = previous_type;
-                return false;
-            }
-            m_scoring_int_params.push_back(param);
-        }
-    }
-    return true;
-}   // loadCustomScoring
 //-----------------------------------------------------------------------------
 
 void LobbySettings::loadWhiteList()
@@ -424,11 +379,6 @@ std::vector<std::string> LobbySettings::getMissingAssets(
 void LobbySettings::updateWorldSettings(std::shared_ptr<GameInfo> game_info)
 {
     World::getWorld()->setGameInfo(game_info);
-    WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
-    if (wwr)
-    {
-        wwr->setCustomScoringSystem(m_scoring_type, m_scoring_int_params);
-    }
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(World::getWorld());
     if (sw)
     {
@@ -471,16 +421,6 @@ bool LobbySettings::isPreservingMode() const
 {
     return m_preserve.find("mode") != m_preserve.end();
 }   // isPreservingMode
-//-----------------------------------------------------------------------------
-
-std::string LobbySettings::getScoringAsString() const
-{
-    std::string msg = "Current scoring is \"" + m_scoring_type;
-    for (int param: m_scoring_int_params)
-        msg += StringUtils::insertValues(" %d", param);
-    msg += "\"";
-    return msg;
-}   // getScoringAsString
 //-----------------------------------------------------------------------------
 
 std::string LobbySettings::getPreservedSettingsAsString() const
