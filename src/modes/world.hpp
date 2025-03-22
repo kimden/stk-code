@@ -376,9 +376,9 @@ public:
             m_eliminated_karts--;
     }
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer) {}
+    virtual std::shared_ptr<Packet> saveCompleteState(std::shared_ptr<STKPeer> peer) { return {}; }
     // ------------------------------------------------------------------------
-    virtual void restoreCompleteState(const BareNetworkString& buffer) {}
+    virtual void restoreCompleteState(const std::shared_ptr<Packet>& buffer) {}
     // ------------------------------------------------------------------------
     /** The code that draws the timer should call this first to know
      *  whether the game mode wants a timer drawn. */
