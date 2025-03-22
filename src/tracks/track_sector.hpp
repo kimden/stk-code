@@ -23,6 +23,7 @@
 
 class BareNetworkString;
 class Track;
+class TrackSectorPacket;
 
 /** This object keeps track of which sector an object is on. A sector is
  *  actually just the graph node (it's called sector to better distinguish
@@ -99,9 +100,9 @@ public:
     // ------------------------------------------------------------------------
     void rewindTo(BareNetworkString* buffer);
     // ------------------------------------------------------------------------
-    void saveCompleteState(BareNetworkString* bns);
+    TrackSectorPacket saveCompleteState();
     // ------------------------------------------------------------------------
-    void restoreCompleteState(const BareNetworkString& b);
+    void restoreCompleteState(const TrackSectorPacket& packet);
 
 };   // TrackSector
 

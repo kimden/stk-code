@@ -92,13 +92,19 @@ enum BackLobbyReason : uint8_t
     BLR_SPECTATING_NEXT_GAME = 5
 };
 
+struct Packet
+{
+    // Needed to dynamic_cast
+    virtual ~Packet() {}
+};
+
 struct Checkable
 {
 private:
-    uint8_t m_state = 0;
+    uint32_t m_state = 0;
 public:
-    bool check(uint8_t which) const { return (m_state >> which) & 1; }
-    void set(uint8_t which, bool value)
+    bool check(uint32_t which) const { return (m_state >> which) & 1; }
+    void set(uint32_t which, bool value)
     {
         if (value)
             m_state |= (1 << which);
@@ -110,25 +116,31 @@ public:
 //---------------------- Initialization ---------------------------------------
 
 #define DEFINE_CLASS(Name) \
-struct Name: public Checkable { \
+struct Name: public Checkable, public Packet { \
     public: \
         void toNetworkString(NetworkString* ns) const; \
         void fromNetworkString(NetworkString* ns);
 
 #define SYNCHRONOUS(Value) bool isSynchronous() { return Value; }
+#define AUX_VAR(Type, Var) Type Var;
 #define DEFINE_FIELD(Type, Var) Type Var;
+#define DEFINE_FIELD_PTR(Type, Var) std::shared_ptr<Type> Var;
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) std::shared_ptr<Type> Var;
 #define DEFINE_FIXED_FIELD(Type, Var, Value) Type Var;
 #define DEFINE_VECTOR(Type, Size, Var) std::vector<Type> Var;
+#define DEFINE_VECTOR_OBJ(Type, Size, Var) std::vector<Type> Var;
 #define END_DEFINE_CLASS(Name) };
 
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
 #undef SYNCHRONOUS
+#undef AUX_VAR
 #undef DEFINE_FIELD
+#undef DEFINE_FIELD_PTR
 #undef DEFINE_FIXED_FIELD
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
+#undef DEFINE_VECTOR_OBJ
 #undef END_DEFINE_CLASS
 
 //---------------------- To NetworkString -------------------------------------
@@ -140,8 +152,14 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 #define SYNCHRONOUS(Value) \
     ns->setSynchronous(Value);
 
+#define AUX_VAR(Type, Var)
+
 #define DEFINE_FIELD(Type, Var) \
     ns->encode<Type>(Var);
+
+#define DEFINE_FIELD_PTR(Type, Var) \
+    if (Var) \
+        ns->encode<Type>(*Var);
 
 // We send it if it exists, and receive only if the condition is true
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
@@ -153,6 +171,11 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 
 #define DEFINE_VECTOR(Type, Size, Value) \
     for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
+        ns->encode<Type>(Value[Value##_cnt]); \
+    }
+
+#define DEFINE_VECTOR_OBJ(Type, Size, Value) \
+    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
         Value[Value##_cnt].toNetworkString(ns); \
     }
 
@@ -162,10 +185,13 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
 #undef SYNCHRONOUS
+#undef AUX_VAR
 #undef DEFINE_FIELD
+#undef DEFINE_FIELD_PTR
 #undef DEFINE_FIXED_FIELD
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
+#undef DEFINE_VECTOR_OBJ
 #undef END_DEFINE_CLASS
 
 //---------------------- From NetworkString -----------------------------------
@@ -176,8 +202,16 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 
 #define SYNCHRONOUS(Value)
 
+#define AUX_VAR(Type, Var)
+
 #define DEFINE_FIELD(Type, Var) \
     ns->decode<Type>(Var);
+
+// Same as optional but unconditional
+#define DEFINE_FIELD_PTR(Type, Var) \
+    Type temp_##Var; \
+    ns->decode<Type>(temp_##Var); \
+    Var = std::make_shared<Type>(temp_##Var); \
 
 // We send it if it exists, and receive only if the condition is true
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
@@ -192,6 +226,12 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 #define DEFINE_VECTOR(Type, Size, Var) \
     Var.resize(Size); \
     for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
+        ns->decode<Type>(Var[Var##_cnt]); \
+    }
+
+#define DEFINE_VECTOR_OBJ(Type, Size, Var) \
+    Var.resize(Size); \
+    for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
         Var[Var##_cnt].fromNetworkString(ns); \
     }
 
@@ -201,7 +241,9 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
 #undef SYNCHRONOUS
+#undef AUX_VAR
 #undef DEFINE_FIELD
+#undef DEFINE_FIELD_PTR
 #undef DEFINE_FIXED_FIELD
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR

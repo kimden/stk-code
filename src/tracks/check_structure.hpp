@@ -137,9 +137,9 @@ public:
     // ------------------------------------------------------------------------
     virtual bool triggeringCheckline() const { return false; }
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns);
+    virtual std::shared_ptr<Packet> saveCompleteState();
     // ------------------------------------------------------------------------
-    virtual void restoreCompleteState(const BareNetworkString& b);
+    virtual void restoreCompleteState(const std::shared_ptr<Packet>& packet);
     // ------------------------------------------------------------------------
     void saveIsActive(int kart_id, BareNetworkString* bns);
     // ------------------------------------------------------------------------
