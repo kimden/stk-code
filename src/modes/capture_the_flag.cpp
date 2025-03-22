@@ -553,16 +553,23 @@ const std::string& CaptureTheFlag::getIdent() const
 }   // getIdent
 
 // ----------------------------------------------------------------------------
-void CaptureTheFlag::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
+std::shared_ptr<Packet> CaptureTheFlag::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
-    FreeForAll::saveCompleteState(bns, peer);
-    bns->addUInt32(m_red_scores).addUInt32(m_blue_scores);
+    auto packet = std::make_shared<CTFWorldCompleteStatePacket>();
+
+    auto sp = FreeForAll::saveCompleteState(peer);
+    packet->ffa_packet = std::dynamic_pointer_cast<FFAWorldCompleteStatePacket>(sp);
+    packet->red_score = m_red_scores;
+    packet->blue_score = m_blue_scores;
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void CaptureTheFlag::restoreCompleteState(const BareNetworkString& b)
+void CaptureTheFlag::restoreCompleteState(const std::shared_ptr<Packet>& packet)
 {
-    FreeForAll::restoreCompleteState(b);
-    m_red_scores = b.getUInt32();
-    m_blue_scores = b.getUInt32();
+    std::shared_ptr<CTFWorldCompleteStatePacket> ctf_packet =
+            std::dynamic_pointer_cast<CTFWorldCompleteStatePacket>(packet);
+    FreeForAll::restoreCompleteState(ctf_packet->ffa_packet);
+    m_red_scores = ctf_packet->red_score;
+    m_blue_scores = ctf_packet->blue_score;
 }   // restoreCompleteState

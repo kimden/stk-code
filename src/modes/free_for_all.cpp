@@ -295,17 +295,26 @@ bool FreeForAll::getKartFFAResult(int kart_id) const
 }   // getKartFFAResult
 
 // ----------------------------------------------------------------------------
-WorldCompleteStatePacket FreeForAll::saveCompleteState(std::shared_ptr<STKPeer> peer)
+std::shared_ptr<Packet> FreeForAll::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
+    auto packet = std::make_shared<FFAWorldCompleteStatePacket>();
     for (unsigned i = 0; i < m_scores.size(); i++)
-        bns->addUInt32(m_scores[i]);
+        packet->scores.push_back(m_scores[i]);
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void FreeForAll::restoreCompleteState(const BareNetworkString& b)
+void FreeForAll::restoreCompleteState(const std::shared_ptr<Packet>& packet)
 {
+    std::shared_ptr<FFAWorldCompleteStatePacket> ffa_packet =
+            std::dynamic_pointer_cast<FFAWorldCompleteStatePacket>(packet);
+    
+    // kimden sincerely hopes here nothing will be broken
+    if (ffa_packet->scores.size() != m_scores.size())
+        Log::error("FreeForAll", "Packet incoming scores size = %d, local scores size = %d",
+                ffa_packet->scores.size(), m_scores.size());
+
     for (unsigned i = 0; i < m_scores.size(); i++)
-        m_scores[i] = b.getUInt32();
+        m_scores[i] = (i >= ffa_packet->scores.size() ? 0 : ffa_packet->scores[i]);
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------

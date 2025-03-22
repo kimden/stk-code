@@ -86,9 +86,9 @@ public:
      *  be too heigh to otherwise trigger he cannon). */
     void setIgnoreHeight(bool b) { m_ignore_height = b;  }
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns) OVERRIDE;
+    virtual std::shared_ptr<Packet> saveCompleteState() OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
+    virtual void restoreCompleteState(const std::shared_ptr<Packet>& packet) OVERRIDE;
     // ------------------------------------------------------------------------
     const Vec3 &getLeftPoint() const { return m_left_point;  }
     // ------------------------------------------------------------------------

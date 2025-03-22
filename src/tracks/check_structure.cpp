@@ -247,23 +247,40 @@ void CheckStructure::trigger(unsigned int kart_index)
 }   // trigger
 
 // ----------------------------------------------------------------------------
-void CheckStructure::saveCompleteState(BareNetworkString* bns)
+std::shared_ptr<Packet> CheckStructure::saveCompleteState()
 {
-    World* world = World::getWorld();
-    for (unsigned int i = 0; i < world->getNumKarts(); i++)
-        bns->add(m_previous_position[i]).addUInt8(m_is_active[i] ? 1 : 0);
-}   // saveCompleteState
-
-// ----------------------------------------------------------------------------
-void CheckStructure::restoreCompleteState(const BareNetworkString& b)
-{
-    m_previous_position.clear();
-    m_is_active.clear();
+    std::shared_ptr<CheckStructurePacket> packet = std::make_shared<CheckStructurePacket>();
     World* world = World::getWorld();
     for (unsigned int i = 0; i < world->getNumKarts(); i++)
     {
-        Vec3 xyz = b.getVec3();
-        bool is_active = b.getUInt8() == 1;
+        CheckStructureSubPacket subpacket;
+        subpacket.previous_position = m_previous_position[i];
+        subpacket.is_active = m_is_active[i];
+        packet->player_check_state.push_back(std::move(subpacket));
+    }
+    return packet;
+}   // saveCompleteState
+
+// ----------------------------------------------------------------------------
+void CheckStructure::restoreCompleteState(const std::shared_ptr<Packet>& packet)
+{
+    std::shared_ptr<CheckStructurePacket> check_packet =
+            std::dynamic_pointer_cast<CheckStructurePacket>(packet);
+
+    m_previous_position.clear();
+    m_is_active.clear();
+    World* world = World::getWorld();
+
+    if (world->getNumKarts() != check_packet->player_check_state.size())
+        Log::error("CheckStructure", "Packet's number of karts are not equal: "
+                "expected %d, received %d",
+                world->getNumKarts(), check_packet->player_check_state.size());
+
+    for (unsigned int i = 0; i < world->getNumKarts(); i++)
+    {
+        CheckStructureSubPacket subpacket = check_packet->player_check_state[i];
+        Vec3 xyz = subpacket.previous_position;
+        bool is_active = subpacket.is_active;
         m_previous_position.push_back(xyz);
         m_is_active.push_back(is_active);
     }

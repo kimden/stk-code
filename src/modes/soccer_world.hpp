@@ -55,6 +55,9 @@ public:
         std::string m_country_code;
         /** Handicap of player. */
         HandicapLevel m_handicap_level;
+
+        ScorerDataPacket saveCompleteState(bool has_soccer_fixes);
+        void restoreCompleteState(const ScorerDataPacket& packet);
     };   // ScorerData
 
 private:
@@ -263,9 +266,9 @@ public:
         return progress;
     }
     // ------------------------------------------------------------------------
-    virtual WorldCompleteStatePacket saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
+    virtual std::shared_ptr<Packet> saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
+    virtual void restoreCompleteState(const std::shared_ptr<Packet>& b) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual bool isGoalPhase() const OVERRIDE
     {

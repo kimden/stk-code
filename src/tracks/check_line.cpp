@@ -254,23 +254,36 @@ start:
 }   // isTriggered
 
 // ----------------------------------------------------------------------------
-void CheckLine::saveCompleteState(BareNetworkString* bns)
+std::shared_ptr<Packet> CheckLine::saveCompleteState()
 {
-    CheckStructure::saveCompleteState(bns);
     World* world = World::getWorld();
-    for (unsigned int i = 0; i < world->getNumKarts(); i++)
-        bns->addUInt8(m_previous_sign[i] ? 1 : 0);
-}   // saveCompleteState
+    
+    auto packet = std::make_shared<CheckLinePacket>();
 
+    auto sp = CheckStructure::saveCompleteState();
+    packet->check_structure_packet = std::dynamic_pointer_cast<CheckStructurePacket>(sp);
+
+    for (unsigned int i = 0; i < world->getNumKarts(); i++)
+    {
+        CheckLineSubPacket subpacket;
+        subpacket.previous_sign = m_previous_sign[i];
+        packet->subpackets.push_back(subpacket);
+    }
+
+    return packet;
+}   // saveCompleteState
 // ----------------------------------------------------------------------------
-void CheckLine::restoreCompleteState(const BareNetworkString& b)
+void CheckLine::restoreCompleteState(const std::shared_ptr<Packet>& packet)
 {
-    CheckStructure::restoreCompleteState(b);
+    std::shared_ptr<CheckLinePacket> cl_packet =
+            std::dynamic_pointer_cast<CheckLinePacket>(packet);
+    CheckStructure::restoreCompleteState(cl_packet->check_structure_packet);
+
     m_previous_sign.clear();
     World* world = World::getWorld();
     for (unsigned int i = 0; i < world->getNumKarts(); i++)
     {
-        bool previous_sign = b.getUInt8() == 1;
+        bool previous_sign = cl_packet->subpackets[i].previous_sign;
         m_previous_sign.push_back(previous_sign);
     }
 }   // restoreCompleteState

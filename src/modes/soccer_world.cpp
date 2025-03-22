@@ -234,7 +234,43 @@ public:
     }
 };   // BallGoalData
 
+//=============================================================================
+
+ScorerDataPacket SoccerWorld::ScorerData::saveCompleteState(bool has_soccer_fixes)
+{
+    ScorerDataPacket packet;
+    packet.id = m_id;
+    packet.correct_goal = m_correct_goal;
+    packet.time = m_time;
+    packet.kart = m_kart;
+    packet.player = m_player;
+    if (has_soccer_fixes)
+    {
+        // kimden: Please get rid of types here.
+        packet.country_code = std::make_shared<std::string>(m_country_code);
+        packet.handicap_level = std::make_shared<uint8_t>(m_handicap_level);
+    }
+    return packet;
+}   // saveCompleteState
 //-----------------------------------------------------------------------------
+
+void SoccerWorld::ScorerData::restoreCompleteState(const ScorerDataPacket& packet)
+{
+    m_id = packet.id;
+    m_correct_goal = packet.correct_goal;
+    m_time = packet.time;
+    m_kart = packet.kart;
+    m_player = packet.player;
+    if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
+        != NetworkConfig::get()->getServerCapabilities().end())
+    {
+        if (auto ptr = packet.country_code)
+            m_country_code = *ptr;
+        if (auto ptr = packet.handicap_level)
+            m_handicap_level = (HandicapLevel)*ptr;
+    }
+}   // restoreCompleteState
+//=============================================================================
 /** Constructor. Sets up the clock mode etc.
  */
 SoccerWorld::SoccerWorld() : WorldWithRank()
@@ -1176,89 +1212,60 @@ void SoccerWorld::enterRaceOverState()
     }
 
 }   // enterRaceOverState
-
 // ----------------------------------------------------------------------------
-WorldCompleteStatePacket SoccerWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
+
+std::shared_ptr<Packet> SoccerWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
+    auto packet = std::make_shared<SoccerWorldCompleteStatePacket>();
+
+    bool has_soccer_fixes =
+            peer->getClientCapabilities().find("soccer_fixes") !=
+            peer->getClientCapabilities().end();
+
     const unsigned red_scorers = (unsigned)m_red_scorers.size();
-    bns->addUInt32(red_scorers);
+    packet->red_scorers_count = red_scorers;
     for (unsigned i = 0; i < red_scorers; i++)
-    {
-        bns->addUInt8((uint8_t)m_red_scorers[i].m_id)
-            .addUInt8(m_red_scorers[i].m_correct_goal)
-            .addFloat(m_red_scorers[i].m_time)
-            .encodeString(m_red_scorers[i].m_kart)
-            .encodeString(m_red_scorers[i].m_player);
-        if (peer->getClientCapabilities().find("soccer_fixes") !=
-            peer->getClientCapabilities().end())
-        {
-            bns->encodeString(m_red_scorers[i].m_country_code)
-                .addUInt8(m_red_scorers[i].m_handicap_level);
-        }
-    }
+        packet->red_scorers.push_back(std::move(m_red_scorers[i].saveCompleteState(has_soccer_fixes)));
 
     const unsigned blue_scorers = (unsigned)m_blue_scorers.size();
-    bns->addUInt32(blue_scorers);
+    packet->blue_scorers_count = blue_scorers;
     for (unsigned i = 0; i < blue_scorers; i++)
-    {
-        bns->addUInt8((uint8_t)m_blue_scorers[i].m_id)
-            .addUInt8(m_blue_scorers[i].m_correct_goal)
-            .addFloat(m_blue_scorers[i].m_time)
-            .encodeString(m_blue_scorers[i].m_kart)
-            .encodeString(m_blue_scorers[i].m_player);
-        if (peer->getClientCapabilities().find("soccer_fixes") !=
-            peer->getClientCapabilities().end())
-        {
-            bns->encodeString(m_blue_scorers[i].m_country_code)
-                .addUInt8(m_blue_scorers[i].m_handicap_level);
-        }
-    }
-    bns->addTime(m_reset_ball_ticks).addTime(m_ticks_back_to_own_goal);
+        packet->blue_scorers.push_back(std::move(m_blue_scorers[i].saveCompleteState(has_soccer_fixes)));
+    
+    packet->reser_ball_ticks = m_reset_ball_ticks;
+    packet->ticks_back_to_own_goal = m_ticks_back_to_own_goal;
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void SoccerWorld::restoreCompleteState(const BareNetworkString& b)
+void SoccerWorld::restoreCompleteState(const std::shared_ptr<Packet>& packet)
 {
+    std::shared_ptr<SoccerWorldCompleteStatePacket> soccer_packet =
+            std::dynamic_pointer_cast<SoccerWorldCompleteStatePacket>(packet);
+
     m_red_scorers.clear();
     m_blue_scorers.clear();
 
-    const unsigned red_size = b.getUInt32();
+    // As we don't know the peer, we assume our has_soccer_fixes based on what
+    // SERVER has told us. This is wrong.
+
+    const unsigned red_size = soccer_packet->red_scorers_count;
     for (unsigned i = 0; i < red_size; i++)
     {
         ScorerData sd;
-        sd.m_id = b.getUInt8();
-        sd.m_correct_goal = b.getUInt8() == 1;
-        sd.m_time = b.getFloat();
-        b.decodeString(&sd.m_kart);
-        b.decodeStringW(&sd.m_player);
-        if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
-            != NetworkConfig::get()->getServerCapabilities().end())
-        {
-            b.decodeString(&sd.m_country_code);
-            sd.m_handicap_level = (HandicapLevel)b.getUInt8();
-        }
+        sd.restoreCompleteState(soccer_packet->red_scorers[i]);
         m_red_scorers.push_back(sd);
     }
 
-    const unsigned blue_size = b.getUInt32();
+    const unsigned blue_size = soccer_packet->blue_scorers_count;
     for (unsigned i = 0; i < blue_size; i++)
     {
         ScorerData sd;
-        sd.m_id = b.getUInt8();
-        sd.m_correct_goal = b.getUInt8() == 1;
-        sd.m_time = b.getFloat();
-        b.decodeString(&sd.m_kart);
-        b.decodeStringW(&sd.m_player);
-        if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
-            != NetworkConfig::get()->getServerCapabilities().end())
-        {
-            b.decodeString(&sd.m_country_code);
-            sd.m_handicap_level = (HandicapLevel)b.getUInt8();
-        }
+        sd.restoreCompleteState(soccer_packet->blue_scorers[i]);
         m_blue_scorers.push_back(sd);
     }
-    m_reset_ball_ticks = b.getTime();
-    m_ticks_back_to_own_goal = b.getTime();
+    m_reset_ball_ticks = soccer_packet->reser_ball_ticks;
+    m_ticks_back_to_own_goal = soccer_packet->ticks_back_to_own_goal;
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------

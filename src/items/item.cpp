@@ -76,8 +76,8 @@ ItemState::ItemState(const ItemStatePacket& packet)
     m_item_id = packet.item_id;
     m_deactive_ticks = packet.deactive_ticks;
     m_used_up_counter = packet.used_up_counter;
-    m_xyz = packet.xyz;
-    m_original_rotation = packet.original_rotation;
+    m_xyz = packet.original_xyz_rotation.xyz;
+    m_original_rotation = packet.original_xyz_rotation.rotation;
     m_previous_owner = NULL;
     int8_t kart_id = packet.previous_owner;
     if (kart_id != -1)
@@ -205,8 +205,8 @@ ItemStatePacket ItemState::saveCompleteState() const
     packet.item_id = m_item_id;
     packet.deactive_ticks = m_deactive_ticks;
     packet.used_up_counter = m_used_up_counter;
-    packet.xyz = m_xyz;
-    packet.original_rotation = m_original_rotation;
+    packet.original_xyz_rotation.xyz = m_xyz;
+    packet.original_xyz_rotation.rotation = m_original_rotation;
     packet.previous_owner = m_previous_owner ?
             m_previous_owner->getWorldKartId() : -1;
 
