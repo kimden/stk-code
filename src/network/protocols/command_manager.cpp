@@ -1130,7 +1130,7 @@ void CommandManager::process_config(Context& context)
     }
     int difficulty = getLobby()->getDifficulty();
     int mode = getLobby()->getGameMode();
-    bool goal_target = (getLobby()->getGameSetup()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
+    bool goal_target = (getGameSetupFromCtx()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
 //    m_aux_goal_aliases[goal_target ? 1 : 0][0]
     std::string msg = "Current config: ";
     auto get_first_if_exists = [&](std::vector<std::string>& v) -> std::string {
@@ -1161,7 +1161,7 @@ void CommandManager::process_config_assign(Context& context)
     const auto& argv = context.m_argv;
     int difficulty = getLobby()->getDifficulty();
     int mode = getLobby()->getGameMode();
-    bool goal_target = (getLobby()->getGameSetup()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
+    bool goal_target = (getGameSetupFromCtx()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
     bool user_chose_difficulty = false;
     bool user_chose_mode = false;
     bool user_chose_target = false;
@@ -2196,7 +2196,7 @@ void CommandManager::process_standings(Context& context)
     }
     if (!isGP && !isGnu)
     {
-        if (getLobby()->getGameSetup()->isGrandPrix())
+        if (getGameSetupFromCtx()->isGrandPrix())
             isGP = true;
         else
             isGnu = true;
@@ -2904,7 +2904,7 @@ void CommandManager::process_resetgp(Context& context)
             error(context);
             return;
         }
-        getLobby()->getGameSetup()->setGrandPrixTrack(number_of_games);
+        getGameSetupFromCtx()->setGrandPrixTrack(number_of_games);
     }
     getGPManager()->resetGrandPrix();
     getLobby()->sendStringToAllPeers("GP is now reset");

@@ -43,7 +43,7 @@
 
 void LobbySettings::setupContextUser()
 {
-    m_game_setup = getLobby()->getGameSetup();
+    m_game_setup = getGameSetupFromCtx();
 
     m_motd = StringUtils::wideToUtf8(
         m_game_setup->readOrLoadFromFile(
