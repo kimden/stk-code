@@ -498,7 +498,7 @@ bool Tournament::hasProfileThatSeesTeamchats(std::shared_ptr<STKPeer> peer) cons
 }   // hasProfileThatSeesTeamchats
 //-----------------------------------------------------------------------------
 
-bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team) const
+bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team)
 {
     for (auto& player : peer->getPlayerProfiles())
     {

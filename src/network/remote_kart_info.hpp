@@ -42,12 +42,19 @@ struct KartTeamSet
 {
     int state;
     KartTeamSet(int x = 0): state(x) {}
-    KartTeamSet add       (KartTeam team)   const { return KartTeamSet(state | (1 << (team + 1)));  }
-    KartTeamSet remove    (KartTeam team)   const { return KartTeamSet(state & ~(1 << (team + 1))); }
-    KartTeamSet flip      (KartTeam team)   const { return KartTeamSet(state ^ (1 << (team + 1)));  }
-    bool        has       (KartTeam team)   const { return ((state >> (team + 1)) & 1);             }
-    KartTeamSet intersect (KartTeamSet rhs) const { return KartTeamSet(state & rhs.state);          }
-    bool        empty     ()                const { return state == 0;                              }
+
+    bool has  (KartTeam team) const { return ((state >> (team + 1)) & 1); }
+    bool empty()              const { return state == 0;                  }
+    
+    KartTeamSet operator + (KartTeam team)   const { return KartTeamSet(state | (1 << (team + 1)));  }
+    KartTeamSet operator - (KartTeam team)   const { return KartTeamSet(state & ~(1 << (team + 1))); }
+    KartTeamSet operator ^ (KartTeam team)   const { return KartTeamSet(state ^ (1 << (team + 1)));  }
+    KartTeamSet operator & (KartTeamSet rhs) const { return KartTeamSet(state & rhs.state);          }
+
+    void add      (KartTeam team)   { state |= (1 << (team + 1));  }
+    void remove   (KartTeam team)   { state &= ~(1 << (team + 1)); }
+    void flip     (KartTeam team)   { state ^= (1 << (team + 1));  }
+    void intersect(KartTeamSet rhs) { state &= rhs.state;          }
 };
 
 /** Handicap per player. */

@@ -252,6 +252,9 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
         {
             if (target->isSpectator())
                 return false;
+
+            if (!Tournament::hasProfileFromTeam(target, target_team))
+                return false;
         }
 
         if (isTournament())
@@ -263,7 +266,7 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
             if (target_team != KART_TEAM_NONE)
             {
                 if (!tournament->hasProfileThatSeesTeamchats(target) &&
-                    !tournament->hasProfileFromTeam(target, target_team))
+                    !Tournament::hasProfileFromTeam(target, target_team))
                     return false;
             }
         }
@@ -275,7 +278,7 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
     {
         // this should be moved into a new function for peer,
         // unless all profiles have the same team forcibly rn
-        bool someone_good = !(getTeamsForPeer(sender).intersect(getTeamsForPeer(target))).empty();
+        bool someone_good = !(getTeamsForPeer(sender) & getTeamsForPeer(target)).empty();
         if (!someone_good && (!isTournament() || !getTournament()->hasProfileThatSeesTeamchats(target)))
             return false;
     }
