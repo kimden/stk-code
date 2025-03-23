@@ -30,6 +30,7 @@
 
 enum KartTeam: int8_t;
 class NetworkPlayerProfile;
+class STKPeer;
 
 class TeamManager: public LobbyContextComponent
 {
@@ -68,6 +69,9 @@ public:
     void clearTemporaryTeams();
     void shuffleTemporaryTeams(const std::map<int, int>& permutation);
     void changeTeam(std::shared_ptr<NetworkPlayerProfile> player);
+
+    // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
+    void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
 
 private:
 

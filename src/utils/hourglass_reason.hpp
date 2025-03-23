@@ -19,9 +19,9 @@
 #ifndef HOURGLASS_REASON_HPP
 #define HOURGLASS_REASON_HPP
 
-enum HourglassReason : int
+enum HourglassReason : int32_t
 {
-    HR_NONE = 0,
+    HR_NONE                           = 0,
     HR_ABSENT_PEER                    = (1 << 0),
     HR_NOT_A_TOURNAMENT_PLAYER        = (1 << 1),
     HR_SPECTATOR_BY_LIMIT             = (1 << 2),

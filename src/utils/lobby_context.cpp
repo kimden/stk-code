@@ -30,6 +30,7 @@
 #include "utils/tournament.hpp"
 #include "utils/lobby_gp_manager.hpp"
 #include "utils/gp_scoring.hpp"
+#include "utils/crown_manager.hpp"
 
 LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
         : m_lobby(lobby)
@@ -45,6 +46,7 @@ LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
     m_chat_manager     = std::make_shared<ChatManager>(this);
     m_team_manager     = std::make_shared<TeamManager>(this);
     m_gp_manager       = std::make_shared<LobbyGPManager>(this);
+    m_crown_manager    = std::make_shared<CrownManager>(this);
     
     if (make_tournament)
         m_tournament   = std::make_shared<Tournament>(this);
@@ -64,6 +66,7 @@ void LobbyContext::setup()
     m_team_manager->setupContextUser();
     m_command_manager->setupContextUser();
     m_gp_manager->setupContextUser();
+    m_crown_manager->setupContextUser();
     
     if (m_tournament)
         m_tournament->setupContextUser();
