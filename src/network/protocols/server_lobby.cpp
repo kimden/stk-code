@@ -220,6 +220,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_lobby_context->setup();
     m_context = m_lobby_context.get();
     m_game_setup->setContext(m_context);
+    m_context->setGameSetup(m_game_setup);
 
     m_current_ai_count.store(0);
 
@@ -238,8 +239,6 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
         m_ranking = std::make_shared<Ranking>();
     }
-    m_result_ns = getNetworkString();
-    m_result_ns->setSynchronous(true);
     m_items_complete_state = new BareNetworkString();
     m_server_id_online.store(0);
     m_difficulty.store(ServerConfig::m_server_difficulty);
@@ -263,7 +262,6 @@ ServerLobby::~ServerLobby()
         // For child process the request manager will keep on running
         unregisterServer(m_process_type == PT_MAIN ? true : false/*now*/);
     }
-    delete m_result_ns;
     delete m_items_complete_state;
     if (getSettings()->isSavingServerConfig())
         ServerConfig::writeServerConfigToDisk();
@@ -1574,6 +1572,8 @@ void ServerLobby::update(int ticks)
 
     handlePlayerDisconnection();
 
+    NetworkString* ns;
+
     switch (m_state.load())
     {
     case SET_PUBLIC_ADDRESS:
@@ -1601,7 +1601,7 @@ void ServerLobby::update(int ticks)
         if (World::getWorld() && RaceEventManager::get() &&
             RaceEventManager::get()->isRunning())
         {
-            checkRaceFinished();
+            checkRaceFinished(ns);
         }
         break;
     case WAIT_FOR_RACE_STOPPED:
@@ -1617,7 +1617,8 @@ void ServerLobby::update(int ticks)
         // result screen and go back to the lobby
         setTimeoutFromNow(15);
         m_state = RESULT_DISPLAY;
-        sendMessageToPeers(m_result_ns, PRM_RELIABLE);
+        sendMessageToPeers(ns, PRM_RELIABLE);
+        delete ns;
         Log::info("ServerLobby", "End of game message sent");
         break;
     case RESULT_DISPLAY:
@@ -2072,7 +2073,7 @@ void ServerLobby::checkIncomingConnectionRequests()
  *  to state RESULT_DISPLAY, during which the race result gui is shown and all
  *  clients can click on 'continue'.
  */
-void ServerLobby::checkRaceFinished()
+void ServerLobby::checkRaceFinished(NetworkString* result)
 {
     assert(RaceEventManager::get()->isRunning());
     assert(World::getWorld());
@@ -2095,19 +2096,20 @@ void ServerLobby::checkRaceFinished()
     GameProtocol::lock()->requestTerminate();
 
     // Save race result before delete the world
-    m_result_ns->clear();
-    m_result_ns->addUInt8(LE_RACE_FINISHED);
+    result = getNetworkString();
+    result->setSynchronous(true);
+    result->addUInt8(LE_RACE_FINISHED);
     std::vector<float> gp_changes;
     if (m_game_setup->isGrandPrix())
     {
-        getGPManager()->updateGPScores(gp_changes, m_result_ns);
+        getGPManager()->updateGPScores(gp_changes, result);
     }
     else if (RaceManager::get()->modeHasLaps())
     {
         int fastest_lap =
             static_cast<LinearWorld*>(World::getWorld())->getFastestLapTicks();
-        m_result_ns->addUInt32(fastest_lap);
-        m_result_ns->encodeString(static_cast<LinearWorld*>(World::getWorld())
+        result->addUInt32(fastest_lap);
+        result->encodeString(static_cast<LinearWorld*>(World::getWorld())
             ->getFastestLapKartName());
     }
 
@@ -2116,7 +2118,7 @@ void ServerLobby::checkRaceFinished()
         ranking_changes_indication = 1;
     if (m_game_setup->isGrandPrix())
         ranking_changes_indication = 1;
-    m_result_ns->addUInt8(ranking_changes_indication);
+    result->addUInt8(ranking_changes_indication);
 
     if (getKartElimination()->isEnabled())
     {
@@ -2132,16 +2134,16 @@ void ServerLobby::checkRaceFinished()
 
     if (getSettings()->isRanked())
     {
-        computeNewRankings();
+        computeNewRankings(result);
         submitRankingsToAddons();
     }
     else if (m_game_setup->isGrandPrix())
     {
         unsigned player_count = RaceManager::get()->getNumPlayers();
-        m_result_ns->addUInt8((uint8_t)player_count);
+        result->addUInt8((uint8_t)player_count);
         for (unsigned i = 0; i < player_count; i++)
         {
-            m_result_ns->addFloat(gp_changes[i]);
+            result->addFloat(gp_changes[i]);
         }
     }
     m_state.store(WAIT_FOR_RACE_STOPPED);
@@ -2155,7 +2157,7 @@ void ServerLobby::checkRaceFinished()
 
 /** Compute the new player's rankings used in ranked servers
  */
-void ServerLobby::computeNewRankings()
+void ServerLobby::computeNewRankings(NetworkString* ns)
 {
     // No ranking for battle mode
     if (!RaceManager::get()->modeHasLaps())
@@ -2193,12 +2195,12 @@ void ServerLobby::computeNewRankings()
     }
 
     // Used to display rating change at the end of a race
-    m_result_ns->addUInt8((uint8_t)player_count);
+    ns->addUInt8((uint8_t)player_count);
     for (unsigned i = 0; i < player_count; i++)
     {
         const uint32_t id = RaceManager::get()->getKartInfo(i).getOnlineId();
         double change = m_ranking->getDelta(id);
-        m_result_ns->addFloat((float)change);
+        ns->addFloat((float)change);
     }
 }   // computeNewRankings
 //-----------------------------------------------------------------------------
@@ -4227,7 +4229,6 @@ void ServerLobby::updateGnuElimination()
 //-----------------------------------------------------------------------------
 void ServerLobby::storeResults()
 {
-#ifdef ENABLE_SQLITE3
     World* w = World::getWorld();
     if (!w)
         return;
@@ -4301,7 +4302,9 @@ void ServerLobby::storeResults()
 
     if (racing_mode)
     {
+#ifdef ENABLE_SQLITE3
         record_fetched = m_db_connector->getBestResult(*m_game_info, &record_exists, &best_user, &best_result);
+#endif
     }
 
     int best_cur_player_idx = -1;
@@ -4444,7 +4447,10 @@ void ServerLobby::storeResults()
     // ffa: elapsed_string << std::setprecision(0) << std::fixed << score;
 
     m_game_info->m_saved_ffa_points.clear();
+
+#ifdef ENABLE_SQLITE3
     m_db_connector->insertManyResults(*m_game_info);
+#endif
     // end of insertions
     if (record_fetched && best_cur_player_idx != -1) // implies racing_mode
     {
@@ -4465,7 +4471,6 @@ void ServerLobby::storeResults()
         if (!message.empty())
             sendStringToAllPeers(message);
     }
-#endif
 }  // storeResults
 //-----------------------------------------------------------------------------
 void ServerLobby::resetToDefaultSettings()

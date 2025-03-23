@@ -40,7 +40,7 @@ void LobbyGPManager::setupContextUser()
 
 void LobbyGPManager::onStartSelection()
 {
-    if (!getLobby()->getGameSetup()->isGrandPrixStarted())
+    if (!getGameSetupFromCtx()->isGrandPrixStarted())
     {
         m_gp_scores.clear();
         m_gp_team_scores.clear();
@@ -51,7 +51,7 @@ void LobbyGPManager::onStartSelection()
 void LobbyGPManager::setScoresToPlayer(std::shared_ptr<NetworkPlayerProfile> player) const
 {
     std::string username = StringUtils::wideToUtf8(player->getName());
-    if (getLobby()->getGameSetup()->isGrandPrix())
+    if (getGameSetupFromCtx()->isGrandPrix())
     {
         auto it = m_gp_scores.find(username);
         if (it != m_gp_scores.end())
@@ -76,7 +76,7 @@ std::string LobbyGPManager::getGrandPrixStandings(bool showIndividual, bool show
             showTeam = true;
     }
 
-    auto game_setup = getLobby()->getGameSetup();
+    auto game_setup = getGameSetupFromCtx();
     int passed = (int)game_setup->getAllTracks().size();
     bool ongoing = false;
     if (getLobby()->isWorldPicked() && !getLobby()->isWorldFinished())
@@ -141,7 +141,7 @@ void LobbyGPManager::resetGrandPrix()
 {
     m_gp_scores.clear();
     m_gp_team_scores.clear();
-    getLobby()->getGameSetup()->stopGrandPrix();
+    getGameSetupFromCtx()->stopGrandPrix();
 
     getLobby()->sendServerInfoToEveryone();
     getLobby()->updatePlayerList();
@@ -174,7 +174,7 @@ void LobbyGPManager::updateGPScores(std::vector<float>& gp_changes, NetworkStrin
     std::string fastest_kart = StringUtils::wideToUtf8(fastest_kart_wide);
 
     // all gp tracks
-    auto game_setup = getLobby()->getGameSetup();
+    auto game_setup = getGameSetupFromCtx();
 
     int points_fl = 0;
     // Commented until used to remove the warning

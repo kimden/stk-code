@@ -36,11 +36,13 @@ class TeamManager;
 class Tournament;
 class LobbyGPManager;
 class CrownManager;
+class GameSetup;
 
 class LobbyContext
 {
 private:
     ServerLobby* m_lobby;
+    GameSetup*   m_game_setup;
     std::shared_ptr<HitProcessor>      m_hit_processor;
     std::shared_ptr<LobbyAssetManager> m_asset_manager;
     std::shared_ptr<Tournament>        m_tournament;
@@ -59,8 +61,10 @@ public:
     LobbyContext(ServerLobby* lobby, bool make_tournament);
 
     void setup();
+    void setGameSetup(GameSetup* game_setup)     { m_game_setup = game_setup; }
 
     ServerLobby*                       getLobby()           const { return m_lobby; }
+    GameSetup*                         getGameSetup()       const { return m_game_setup; }
     std::shared_ptr<HitProcessor>      getHitProcessor()    const { return m_hit_processor; }
     std::shared_ptr<LobbyAssetManager> getAssetManager()    const { return m_asset_manager; }
     bool                               isTournament()       const { return m_tournament.get() != nullptr; }
@@ -81,6 +85,7 @@ class LobbyContextUser
 protected:
     LobbyContext* m_context;
     ServerLobby*                       getLobby()           const { return m_context->getLobby(); }
+    GameSetup*                        getGameSetupFromCtx() const { return m_context->getGameSetup(); }
     std::shared_ptr<HitProcessor>      getHitProcessor()    const { return m_context->getHitProcessor(); }
     std::shared_ptr<LobbyAssetManager> getAssetManager()    const { return m_context->getAssetManager(); }
     bool                               isTournament()       const { return m_context->isTournament(); }

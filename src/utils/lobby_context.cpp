@@ -31,6 +31,7 @@
 #include "utils/lobby_gp_manager.hpp"
 #include "utils/gp_scoring.hpp"
 #include "utils/crown_manager.hpp"
+#include "network/game_setup.hpp"
 
 LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
         : m_lobby(lobby)
