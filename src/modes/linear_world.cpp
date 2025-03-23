@@ -545,11 +545,20 @@ void LinearWorld::newLap(unsigned int kart_index)
             ticks_per_lap = getTimeTicks() - kart_info.m_lap_start_ticks;
     }
 
+    if (raceHasLaps())
+    {
+        if (kart_info.m_finished_laps == 0)
+            kart_info.m_start_time = ticks_per_lap;
+        else if (kart_info.m_finished_laps > 0 && ticks_per_lap < kart_info.m_fastest_lap_ticks)
+            kart_info.m_fastest_lap_ticks = ticks_per_lap;
+    }
+
     const core::stringw &kart_name = kart->getController()->getName();
     bool is_local = kart->getController()->isLocalPlayerController();
     std::string s = StringUtils::timeToString(stk_config->ticks2Time(ticks_per_lap), 3, false, false);
     irr::core::stringw lap_message;
     video::SColor color = video::SColor(255, 255, 255, 255);
+
     if(! (raceHasLaps() && kart_info.m_finished_laps>0 && !isLiveJoinWorld()) ) {
         goto ENDOFNEWLAP;
     }
@@ -560,26 +569,11 @@ void LinearWorld::newLap(unsigned int kart_index)
         m_last_local_index = kart_index;
         lap_message = _C("fastest_lap", "Last lap: %s by %s", s.c_str(), kart_name);
         color = video::SColor(255, 255, 255, 255);
-    }/* else if (m_last_local_index > -1 &&
-               kart->getPosition() > 0 &&
-               m_karts[m_last_local_index].get()->getPosition() > 0 &&
-                   ((kart->getPosition() == 1) ||
-                   (std::abs(kart->getPosition() - m_karts[m_last_local_index].get()->getPosition()) <= 1))){
-        float diff = (stk_config->ticks2Time(ticks_per_lap) - m_last_local_lap)*100;
-        bool sign = (diff > -0.1f);
-        int diffint = std::abs(diff);
-        int diffwhole = diffint / 100;
-        int difffrac = (diffint % 100) / 10;
-        int difffracfrac = diffint % 10;
-        lap_message = _C("fastest_lap", "%s was %s%s.%s%s", kart_name, sign ? "+" : "-", diffwhole, difffrac, difffracfrac);
-        color = video::SColor(255, 255, 0, 0);
-    }*/
-        //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " L " + std::to_string(m_last_local_lap).c_str()).c_str());
-        if (!(NetworkConfig::get()->isServer())) {
-            Log::info("[RunRecord]", "L %s %s %s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks_per_lap)).c_str());
-        }
-        kart->m_current_tyre_age += 1;
-
+    }
+    if (!(NetworkConfig::get()->isServer())) {
+        Log::info("[RunRecord]", "L %s %s %s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks_per_lap)).c_str());
+    }
+    kart->m_current_tyre_age += 1;
     if (ticks_per_lap < m_fastest_lap_ticks ) {
         // Store the temporary string because clang would mess this up
         // (remove the stringw before the wchar_t* is used).
