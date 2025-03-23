@@ -55,6 +55,22 @@ class STKPeer;
 
 class CommandManager: public LobbyContextComponent
 {
+public:
+    enum ModeScope: int
+    {
+        MS_DEFAULT = 1,
+        MS_SOCCER_TOURNAMENT = 2
+        // add more powers of two if needed
+    };
+
+    enum StateScope: int
+    {
+        SS_LOBBY = 1,
+        SS_INGAME = 2,
+        SS_ALWAYS = SS_LOBBY | SS_INGAME
+    };
+
+private:
     struct FileResource
     {
         std::string m_file_name;
@@ -89,20 +105,6 @@ class CommandManager: public LobbyContextComponent
 
     template<typename T>
     void add_to_queue(int x, int mask, bool to_front, std::string& s) const;
-
-    enum ModeScope: int
-    {
-        MS_DEFAULT = 1,
-        MS_SOCCER_TOURNAMENT = 2
-        // add more powers of two if needed
-    };
-
-    enum StateScope: int
-    {
-        SS_LOBBY = 1,
-        SS_INGAME = 2,
-        SS_ALWAYS = SS_LOBBY | SS_INGAME
-    };
 
     struct Command;
 
@@ -249,7 +251,6 @@ private:
     void initAssets();
 
     int getCurrentModeScope();
-    int getCurrentStateScope();
 
     bool isAvailable(std::shared_ptr<Command> c);
 
@@ -383,7 +384,7 @@ public:
         SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
         bool dont_replace = false, int subidx = 0, int substr_l = -1, int substr_r = -1);
 
-    void onResetServer();
+    void onServerSetup();
 
     void onStartSelection();
 

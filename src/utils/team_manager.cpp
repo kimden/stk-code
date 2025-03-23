@@ -18,18 +18,19 @@
 
 #include "utils/team_manager.hpp"
 
-#include "utils/team_utils.hpp"
-#include "network/remote_kart_info.hpp"
 #include "network/network_player_profile.hpp"
 #include "network/protocols/server_lobby.hpp"
-#include "utils/string_utils.hpp"
+#include "network/protocols/server_lobby.hpp"
+#include "network/remote_kart_info.hpp"
 #include "network/server_config.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "utils/crown_manager.hpp"
 #include "utils/lobby_gp_manager.hpp"
 #include "utils/lobby_settings.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/team_utils.hpp"
 #include "utils/tournament.hpp"
-#include "network/protocols/server_lobby.hpp"
 
 void TeamManager::setupContextUser()
 {
@@ -67,7 +68,7 @@ void TeamManager::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, 
         profile->getTemporaryTeam()
     );
 
-    getLobby()->checkNoTeamSpectator(profile->getPeer());
+    checkNoTeamSpectator(profile->getPeer());
 }   // setTeamInLobby
 //-----------------------------------------------------------------------------
 
@@ -84,7 +85,7 @@ void TeamManager::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> 
         profile->getTemporaryTeam()
     );
 
-    getLobby()->checkNoTeamSpectator(profile->getPeer());
+    checkNoTeamSpectator(profile->getPeer());
 }   // setTemporaryTeamInLobby
 //-----------------------------------------------------------------------------
 
@@ -269,7 +270,7 @@ void TeamManager::changeTeam(std::shared_ptr<NetworkPlayerProfile> player)
     auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
     if (isTournament() && !getTournament()->canChangeTeam())
     {
-        Log::info("ServerLobby", "Team change requested by %s, but tournament forbids it.", player->getName().c_str());
+        Log::info("TeamManager", "Team change requested by %s, but tournament forbids it.", player->getName().c_str());
         return;
     }
 
@@ -292,4 +293,31 @@ void TeamManager::changeTeam(std::shared_ptr<NetworkPlayerProfile> player)
         setTeamInLobby(player, KART_TEAM_BLUE);
     }
     getLobby()->updatePlayerList();
-}
+}   // changeTeam
+//-----------------------------------------------------------------------------
+
+void TeamManager::checkNoTeamSpectator(std::shared_ptr<STKPeer> peer)
+{
+    if (!peer)
+        return;
+
+    if (RaceManager::get()->teamEnabled())
+    {
+        bool has_teamed = false;
+        for (auto& other: peer->getPlayerProfiles())
+        {
+            if (other->getTeam() != KART_TEAM_NONE)
+            {
+                has_teamed = true;
+                break;
+            }
+        }
+
+        if (!has_teamed && peer->getAlwaysSpectate() == ASM_NONE)
+            getCrownManager()->setSpectateModeProperly(peer, ASM_NO_TEAM);
+
+        if (has_teamed && peer->getAlwaysSpectate() == ASM_NO_TEAM)
+            getCrownManager()->setSpectateModeProperly(peer, ASM_NONE);
+    }
+}   // checkNoTeamSpectator
+//-----------------------------------------------------------------------------

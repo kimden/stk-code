@@ -130,8 +130,6 @@ private:
 
     bool m_registered_for_once_only;
 
-    bool m_save_server_config;
-
     /** Counts how many peers have finished loading the world. */
     std::map<std::weak_ptr<STKPeer>, bool,
         std::owner_less<std::weak_ptr<STKPeer> > > m_peers_ready;
@@ -178,22 +176,12 @@ private:
 
     std::shared_ptr<Ranking> m_ranking;
 
-    friend CommandManager;
-
     unsigned m_item_seed;
 
     uint64_t m_client_starting_time;
 
     // Calculated before each game started
     unsigned m_ai_count;
-
-    std::set<std::shared_ptr<STKPeer>> m_spectators_by_limit;
-
-    std::map<std::shared_ptr<STKPeer>, int> m_why_peer_cannot_play;
-
-    std::set<std::string> m_temp_banned;
-
-    std::atomic<unsigned> m_current_max_players_in_game;
 
     std::shared_ptr<GameInfo> m_game_info;
 
@@ -216,12 +204,16 @@ private:
 
 public: // I'll see if it should be private later
     void updatePlayerList(bool update_when_reset_server = false);
+    void updateServerOwner(bool force = false);
 
 private:
-    void updateServerOwner(bool force = false);
     void handleServerConfiguration(Event* event);
+
+public: // I'll see if it should be private later
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target);
+
+private:
     void updateMapsForMode();
     bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     void resetPeersReady()
@@ -285,7 +277,6 @@ private:
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
-    std::set<std::shared_ptr<STKPeer>>& getSpectatorsByLimit(bool update = false);
     void kickPlayerWithReason(std::shared_ptr<STKPeer> peer, const char* reason) const;
     void testBannedForIP(std::shared_ptr<STKPeer> peer) const;
     void testBannedForIPv6(std::shared_ptr<STKPeer> peer) const;
@@ -294,11 +285,12 @@ private:
     void writePlayerReport(Event* event);
     bool supportsAI();
     void initTournamentPlayers();
+public:
     void changeColors();
-    bool canRace(std::shared_ptr<STKPeer> peer);
+    void changeLimitForTournament(bool goal_target);
+private:
     bool canVote(std::shared_ptr<STKPeer> peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
-    void changeLimitForTournament(bool goal_target);
 
 public:
              ServerLobby();
@@ -319,7 +311,6 @@ public:
     virtual bool allPlayersReady() const OVERRIDE
                             { return m_state.load() >= WAIT_FOR_RACE_STARTED; }
     virtual bool isRacing() const OVERRIDE { return m_state.load() == RACING; }
-    void setSaveServerConfig(bool val)          { m_save_server_config = val; }
     float getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
     int getDifficulty() const                   { return m_difficulty.load(); }
     int getGameMode() const                      { return m_game_mode.load(); }
@@ -371,12 +362,23 @@ public:
 
     bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }
     bool isWorldFinished() const   { return m_state.load() >= RESULT_DISPLAY; }
+    bool isStateAtLeastRacing() const      { return m_state.load() >= RACING; }
     bool isLegacyGPMode() const;
+    int getCurrentStateScope();
+    bool isChildProcess()                { return m_process_type == PT_CHILD; }
+
+    bool isClientServerHost(const std::shared_ptr<STKPeer>& peer);
+
+    void setTimeoutFromNow(int seconds);
+    void setInfiniteTimeout();
+    bool isInfiniteTimeout() const;
+    bool isTimeoutExpired() const;
+    float getTimeUntilExpiration() const;
+    void onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer);
 
     //-------------------------------------------------------------------------
-    // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
-    void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
-    void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
+    // More auxiliary functions
+    //-------------------------------------------------------------------------
 
     std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
     std::shared_ptr<STKPeer> getServerOwner() const

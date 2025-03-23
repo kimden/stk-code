@@ -33,6 +33,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/chat_manager.hpp"
+#include "utils/crown_manager.hpp"
 #include "utils/file_utils.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/hourglass_reason.hpp"
@@ -814,22 +815,10 @@ int CommandManager::getCurrentModeScope()
 } // getCurrentModeScope
 // ========================================================================
 
-int CommandManager::getCurrentStateScope()
-{
-    auto state = getLobby()->m_state.load();
-    if (state < ServerLobby::WAITING_FOR_START_GAME
-        || state > ServerLobby::RESULT_DISPLAY)
-        return 0;
-    if (state == ServerLobby::WAITING_FOR_START_GAME)
-        return SS_LOBBY;
-    return SS_INGAME;
-} // getCurrentStateScope
-// ========================================================================
-
 bool CommandManager::isAvailable(std::shared_ptr<Command> c)
 {
     return (getCurrentModeScope() & c->m_mode_scope) != 0
-        && (getCurrentStateScope() & c->m_state_scope) != 0;
+        && (getLobby()->getCurrentStateScope() & c->m_state_scope) != 0;
 } // getCurrentModeScope
 // ========================================================================
 
@@ -1118,7 +1107,7 @@ void CommandManager::process_replay(Context& context)
 
 void CommandManager::process_start(Context& context)
 {
-    if (!getSettings()->isOwnerLess() && (context.m_user_permissions & UP_CROWNED) == 0)
+    if (!getCrownManager()->isOwnerLess() && (context.m_user_permissions & UP_CROWNED) == 0)
     {
         context.m_voting = true;
     }
@@ -1141,7 +1130,7 @@ void CommandManager::process_config(Context& context)
     }
     int difficulty = getLobby()->getDifficulty();
     int mode = getLobby()->getGameMode();
-    bool goal_target = (getLobby()->m_game_setup->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
+    bool goal_target = (getLobby()->getGameSetup()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
 //    m_aux_goal_aliases[goal_target ? 1 : 0][0]
     std::string msg = "Current config: ";
     auto get_first_if_exists = [&](std::vector<std::string>& v) -> std::string {
@@ -1172,7 +1161,7 @@ void CommandManager::process_config_assign(Context& context)
     const auto& argv = context.m_argv;
     int difficulty = getLobby()->getDifficulty();
     int mode = getLobby()->getGameMode();
-    bool goal_target = (getLobby()->m_game_setup->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
+    bool goal_target = (getLobby()->getGameSetup()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
     bool user_chose_difficulty = false;
     bool user_chose_mode = false;
     bool user_chose_target = false;
@@ -1271,18 +1260,18 @@ void CommandManager::process_spectate(Context& context)
     }
     if (value >= 1)
     {
-        if (getLobby()->m_process_type == PT_CHILD &&
-            peer->getHostId() == getLobby()->m_client_server_host_id.load())
+        if (getLobby()->isChildProcess() &&
+            getLobby()->isClientServerHost(peer))
         {
             getLobby()->sendStringToPeer(peer, "Graphical client server cannot spectate");
             return;
         }
         AlwaysSpectateMode type = (value == 2 ? ASM_COMMAND_ABSENT : ASM_COMMAND);
-        getLobby()->setSpectateModeProperly(peer, type);
+        getCrownManager()->setSpectateModeProperly(peer, type);
     }
     else
     {
-        getLobby()->setSpectateModeProperly(peer, ASM_NONE);
+        getCrownManager()->setSpectateModeProperly(peer, ASM_NONE);
     }
     getLobby()->updateServerOwner(true);
     getLobby()->updatePlayerList();
@@ -1329,7 +1318,7 @@ void CommandManager::process_addons(Context& context)
         if (!p || !p->isValidated())
             continue;
         if ((!more_own || p != peer) && (p->isWaitingForGame()
-            || !getLobby()->canRace(p) || p->isCommandSpectator()))
+            || !getCrownManager()->canRace(p) || p->isCommandSpectator()))
             continue;
         if (!p->hasPlayerProfiles())
             continue;
@@ -1467,7 +1456,7 @@ void CommandManager::process_checkaddon(Context& context)
     for (auto p : peers)
     {
         if (!p || !p->isValidated() || p->isWaitingForGame()
-            || !getLobby()->canRace(p) || p->isCommandSpectator()
+            || !getCrownManager()->canRace(p) || p->isCommandSpectator()
             || !p->hasPlayerProfiles())
             continue;
         std::string username = p->getMainName();
@@ -1758,7 +1747,7 @@ void CommandManager::process_kick(Context& context)
     if (argv[0] == "kickban")
     {
         Log::info("CommandManager", "%s is now banned", player_name.c_str());
-        getLobby()->m_temp_banned.insert(player_name);
+        getSettings()->tempBan(player_name);
         getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
                 "%s is now banned", player_name.c_str()));
     }
@@ -1786,7 +1775,7 @@ void CommandManager::process_unban(Context& context)
         return;
     }
     Log::info("CommandManager", "%s is now unbanned", player_name.c_str());
-    getLobby()->m_temp_banned.erase(player_name);
+    getSettings()->tempUnban(player_name);
     getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
             "%s is now unbanned", player_name.c_str()));
 } // process_unban
@@ -1814,7 +1803,7 @@ void CommandManager::process_ban(Context& context)
         return;
     }
     Log::info("CommandManager", "%s is now banned", player_name.c_str());
-    getLobby()->m_temp_banned.insert(player_name);
+    getSettings()->tempBan(player_name);
     getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
             "%s is now banned", player_name.c_str()));
 } // process_ban
@@ -2207,7 +2196,7 @@ void CommandManager::process_standings(Context& context)
     }
     if (!isGP && !isGnu)
     {
-        if (getLobby()->m_game_setup->isGrandPrix())
+        if (getLobby()->getGameSetup()->isGrandPrix())
             isGP = true;
         else
             isGnu = true;
@@ -2750,8 +2739,7 @@ void CommandManager::process_timeout(Context& context)
         error(context);
         return;
     }
-    getLobby()->m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
-            (int64_t)(seconds * 1000.0f));
+    getLobby()->setTimeoutFromNow(seconds);
     getLobby()->updatePlayerList();
     getLobby()->sendStringToPeer(peer, "Successfully changed timeout");
 } // process_timeout
@@ -3329,7 +3317,7 @@ void CommandManager::process_role(Context& context)
             StringUtils::utf8ToWide(u));
         std::vector<std::string> missing_assets;
         if (player_peer)
-            missing_assets = getSettings()->getMissingAssets(player_peer);
+            missing_assets = getAssetManager()->getMissingAssets(player_peer);
         bool fail = false;
         switch (role_char)
         {
@@ -3566,7 +3554,7 @@ void CommandManager::process_slots(Context& context)
         error(context, true);
         return;
     }
-    int current = getLobby()->m_current_max_players_in_game.load();
+    int current = getSettings()->getCurrentMaxPlayersInGame();
     getLobby()->sendStringToPeer(peer, "Number of slots is currently " +
             std::to_string(current));
 } // process_slots
@@ -3574,7 +3562,7 @@ void CommandManager::process_slots(Context& context)
 
 void CommandManager::process_slots_assign(Context& context)
 {
-    if (getSettings()->hasOnlyHostRiding())
+    if (getCrownManager()->hasOnlyHostRiding())
     {
         auto peer = context.m_peer.lock(); // may be nullptr, here we don't care
         getLobby()->sendStringToPeer(peer, 
@@ -3598,7 +3586,7 @@ void CommandManager::process_slots_assign(Context& context)
         vote(context, "slots", argv[1]);
         return;
     }
-    getLobby()->m_current_max_players_in_game.store((unsigned)number);
+    getSettings()->setCurrentMaxPlayersInGame((unsigned)number);
     getLobby()->updatePlayerList();
     getLobby()->sendStringToAllPeers("Number of playable slots is now " + argv[1]);
 } // process_slots_assign
@@ -3815,62 +3803,9 @@ void CommandManager::process_why_hourglass(Context& context)
         error(context);
         return;
     }
-    auto it = getLobby()->m_why_peer_cannot_play.find(player_peer);
-    if (it == getLobby()->m_why_peer_cannot_play.end())
-    {
-        Log::error("CommandManager", "Hourglass status undefined for a player!");
-        response = "For some reason, server doesn't know about the hourglass status of this player.";
-    }
-    else
-    {
-        switch (it->second)
-        {
-            case HR_NONE:
-                response = "%s can play (but if hourglass is present, there are not enough slots on the server).";
-                break;
-            case HR_ABSENT_PEER:
-                response = "Player %s is not present on the server.";
-                break;
-            case HR_NOT_A_TOURNAMENT_PLAYER:
-                response = "%s is not a tournament player for this game.";
-                break;
-            case HR_SPECTATOR_BY_LIMIT:
-                response = "Not enough slots to fit %s.";
-                break;
-            case HR_NO_KARTS_AFTER_FILTER:
-                response = "After applying all kart filters, %s doesn't have karts to play.";
-                break;
-            case HR_NO_MAPS_AFTER_FILTER:
-                response = "After applying all map filters, %s doesn't have maps to play.";
-                break;
-            case HR_LACKING_REQUIRED_MAPS:
-                response = "%s lacks required maps.";
-                break;
-            case HR_ADDON_KARTS_PLAY_THRESHOLD:
-                response = "Player %s doesn't have enough addon karts.";
-                break;
-            case HR_ADDON_TRACKS_PLAY_THRESHOLD:
-                response = "Player %s doesn't have enough addon tracks.";
-                break;
-            case HR_ADDON_ARENAS_PLAY_THRESHOLD:
-                response = "Player %s doesn't have enough addon arenas.";
-                break;
-            case HR_ADDON_FIELDS_PLAY_THRESHOLD:
-                response = "Player %s doesn't have enough addon fields.";
-                break;
-            case HR_OFFICIAL_KARTS_PLAY_THRESHOLD:
-                response = "The number of official karts for %s is lower than the threshold.";
-                break;
-            case HR_OFFICIAL_TRACKS_PLAY_THRESHOLD:
-                response = "The number of official tracks for %s is lower than the threshold.";
-                break;
-            default:
-                response = "";
-                break;
-        }
-        response = StringUtils::insertValues(response, player_name.c_str());
-    }
-    getLobby()->sendStringToPeer(peer, response);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            getCrownManager()->getWhyPeerCannotPlayAsString(player_peer),
+            player_name));
 } // process_why_hourglass
 // ========================================================================
 
@@ -4036,7 +3971,7 @@ bool CommandManager::assignRandomTeams(int intended_number,
     int player_number = 0;
     for (auto& p : STKHost::get()->getPeers())
     {
-        if (!getLobby()->canRace(p))
+        if (!getCrownManager()->canRace(p))
             continue;
         if (p->alwaysSpectateButNotNeutral())
             continue;
@@ -4082,7 +4017,7 @@ bool CommandManager::assignRandomTeams(int intended_number,
     getTeamManager()->clearTemporaryTeams();
     for (auto& p : STKHost::get()->getPeers())
     {
-        if (!getLobby()->canRace(p))
+        if (!getCrownManager()->canRace(p))
             continue;
         if (p->alwaysSpectateButNotNeutral())
             continue;
@@ -4223,10 +4158,10 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
 } // hasTypo
 // ========================================================================
 
-void CommandManager::onResetServer()
+void CommandManager::onServerSetup()
 {
     update();
-} // onResetServer
+} // onServerSetup
 // ========================================================================
 
 void CommandManager::onStartSelection()
@@ -4267,7 +4202,7 @@ void CommandManager::Command::changePermissions(int permissions,
 
 std::string CommandManager::getAddonPreferredType() const
 {
-    int mode = getLobby()->m_game_mode.load();
+    int mode = getLobby()->getGameMode();
     if (0 <= mode && mode <= 4)
         return "track";
     if (mode == 6)
