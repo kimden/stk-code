@@ -1464,8 +1464,8 @@ std::shared_ptr<STKPeer> STKHost::findPeerByHostId(uint32_t id) const
         });
     return ret != m_peers.end() ? ret->second : nullptr;
 }   // findPeerByHostId
-
 //-----------------------------------------------------------------------------
+
 std::shared_ptr<STKPeer>
     STKHost::findPeerByName(const core::stringw& name) const
 {
@@ -1486,8 +1486,8 @@ std::shared_ptr<STKPeer>
         });
     return ret != m_peers.end() ? ret->second : nullptr;
 }   // findPeerByName
-
 //-----------------------------------------------------------------------------
+
 std::shared_ptr<STKPeer>
     STKHost::findPeerByWildcard(const core::stringw& name_pattern, std::string& name_found) const
 {

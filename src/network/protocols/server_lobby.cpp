@@ -2073,7 +2073,7 @@ void ServerLobby::checkIncomingConnectionRequests()
  *  to state RESULT_DISPLAY, during which the race result gui is shown and all
  *  clients can click on 'continue'.
  */
-void ServerLobby::checkRaceFinished(NetworkString* result)
+void ServerLobby::checkRaceFinished(NetworkString*& result)
 {
     assert(RaceEventManager::get()->isRunning());
     assert(World::getWorld());
