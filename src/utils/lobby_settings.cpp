@@ -43,15 +43,14 @@
 
 void LobbySettings::setupContextUser()
 {
-    m_game_setup = getGameSetupFromCtx();
 
     m_motd = StringUtils::wideToUtf8(
-        m_game_setup->readOrLoadFromFile(
+        getGameSetupFromCtx()->readOrLoadFromFile(
             (std::string) ServerConfig::m_motd
         )
     );
     m_help_message = StringUtils::wideToUtf8(
-        m_game_setup->readOrLoadFromFile(
+        getGameSetupFromCtx()->readOrLoadFromFile(
             (std::string) ServerConfig::m_help
         )
     );
@@ -456,7 +455,7 @@ void LobbySettings::initializeDefaultVote()
             }
             else
             {
-                if (m_game_setup->isSoccerGoalTarget())
+                if (getGameSetupFromCtx()->isSoccerGoalTarget())
                 {
                     m_default_vote->m_num_laps =
                         (uint8_t)(UserConfigParams::m_num_goals);
@@ -498,7 +497,7 @@ void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
     }
     else if (RaceManager::get()->isSoccerMode())
     {
-        if (m_game_setup->isSoccerGoalTarget())
+        if (getGameSetupFromCtx()->isSoccerGoalTarget())
         {
             if (hasMultiplier())
             {

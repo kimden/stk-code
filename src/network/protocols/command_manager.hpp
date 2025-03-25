@@ -234,6 +234,15 @@ private:
 
     SetTypoFixer m_stf_addon_maps;
 
+    enum TypoFixerType
+    {
+        TFT_PRESENT_USERS,
+        TFT_ALL_MAPS,
+        TFT_ADDON_MAPS
+    };
+
+    const SetTypoFixer& getFixer(TypoFixerType type);
+
     std::vector<std::string> m_current_argv;
 
     // Auxiliary things, should be moved somewhere because they just help
@@ -379,9 +388,14 @@ public:
             std::vector<std::string>& argv, char c, char d, char e, char f,
             int from = 0);
 
+    // A simple version of hasTypo for validating simple arguments.
+    // Returns the opposite bool value.
+    bool validate(Context& ctx, int idx,
+            TypoFixerType fixer_type, bool case_sensitive, bool allow_as_is);
+
     bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
-        SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
+        const SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
         bool dont_replace = false, int subidx = 0, int substr_l = -1, int substr_r = -1);
 
     void onServerSetup();
@@ -396,8 +410,6 @@ public:
 
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
-
-    bool assignRandomTeams(int intended_number, int* final_number, int* player_number);
 
 };
 

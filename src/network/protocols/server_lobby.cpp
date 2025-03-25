@@ -3702,7 +3702,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         {
             int final_number, players_number;
             getTeamManager()->clearTeams();
-            getCommandManager()->assignRandomTeams(2, &final_number, &players_number);
+            getTeamManager()->assignRandomTeams(2, &final_number, &players_number);
         }
         else
         {
