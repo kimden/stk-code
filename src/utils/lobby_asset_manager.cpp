@@ -407,37 +407,37 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
         bad = true;
     }
 
-    if (okt < getAssetManager()->getOfficialKartsThreshold())
+    if (okt < getOfficialKartsThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: bad official kart threshold");
         bad = true;
     }
 
-    if (ott < getAssetManager()->getOfficialTracksThreshold())
+    if (ott < getOfficialTracksThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: bad official track threshold");
         bad = true;
     }
 
-    if (addon_karts < getAssetManager()->getAddonKartsJoinThreshold())
+    if (addon_karts < getAddonKartsJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon karts");
         bad = true;
     }
 
-    if (addon_tracks < getAssetManager()->getAddonTracksJoinThreshold())
+    if (addon_tracks < getAddonTracksJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon tracks");
         bad = true;
     }
 
-    if (addon_arenas < getAssetManager()->getAddonArenasJoinThreshold())
+    if (addon_arenas < getAddonArenasJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon arenas");
         bad = true;
     }
 
-    if (addon_soccers < getAssetManager()->getAddonSoccersJoinThreshold())
+    if (addon_soccers < getAddonSoccersJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon soccers");
         bad = true;
@@ -703,7 +703,7 @@ void LobbyAssetManager::initAvailableTracks()
 {
     m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
     m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
-    getAssetManager()->setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
+    setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
     m_play_requirement_tracks = StringUtils::split(
             ServerConfig::m_play_requirement_tracks_string, ' ', false);
 }   // initAvailableTracks
