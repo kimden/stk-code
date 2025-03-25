@@ -20,7 +20,6 @@
 
 #include "network/network_player_profile.hpp"
 #include "network/protocols/server_lobby.hpp"
-#include "network/protocols/server_lobby.hpp"
 #include "network/remote_kart_info.hpp"
 #include "network/server_config.hpp"
 #include "network/stk_host.hpp"
@@ -32,6 +31,11 @@
 #include "utils/team_utils.hpp"
 #include "utils/tournament.hpp"
 
+namespace
+{
+    static const std::set<std::string> empty_string_set = {};
+}
+
 void TeamManager::setupContextUser()
 {
     m_available_teams = ServerConfig::m_init_available_teams;
@@ -42,17 +46,19 @@ void TeamManager::setupContextUser()
 void TeamManager::setTemporaryTeamInLobby(const std::string& username, int team)
 {
     irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
-    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            wide_player_name);
-    if (player_peer)
+
+    // kimden: this code, as well as findPeerByName, assumes (wrongly) that
+    // there cannot be two profiles with the same name. Fix that pls.
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(wide_player_name);
+    if (!player_peer)
+        return;
+
+    for (auto& profile : player_peer->getPlayerProfiles())
     {
-        for (auto& profile : player_peer.get()->getPlayerProfiles())
+        if (profile->getName() == wide_player_name)
         {
-            if (profile->getName() == wide_player_name)
-            {
-                getTeamManager()->setTemporaryTeamInLobby(profile, team);
-                break;
-            }
+            getTeamManager()->setTemporaryTeamInLobby(profile, team);
+            break;
         }
     }
 }   // setTemporaryTeamInLobby (username)
@@ -72,14 +78,17 @@ void TeamManager::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, 
 }   // setTeamInLobby
 //-----------------------------------------------------------------------------
 
-void TeamManager::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team)
+// Used for racing + FFA, where everything can be defined by a temporary team
+void TeamManager::setTemporaryTeamInLobby(
+        std::shared_ptr<NetworkPlayerProfile> profile, int team)
 {
-    // Used for racing+FFA, where everything can be defined by a temporary team
     profile->setTemporaryTeam(team);
+
     if (RaceManager::get()->teamEnabled())
         profile->setTeam((KartTeam)(TeamUtils::getKartTeamFromIndex(team)));
     else
         profile->setTeam(KART_TEAM_NONE);
+
     setTeamForUsername(
         StringUtils::wideToUtf8(profile->getName()),
         profile->getTemporaryTeam()
@@ -164,22 +173,34 @@ void TeamManager::initCategories()
 }   // initCategories
 //-----------------------------------------------------------------------------
 
-void TeamManager::addPlayerToCategory(const std::string& player, const std::string& category)
+void TeamManager::addPlayerToCategory(
+        const std::string& player, const std::string& category)
 {
     m_player_categories[category].insert(player);
     m_categories_for_player[player].insert(category);
 }   // addPlayerToCategory
 //-----------------------------------------------------------------------------
 
-void TeamManager::erasePlayerFromCategory(const std::string& player, const std::string& category)
+void TeamManager::erasePlayerFromCategory(
+        const std::string& player, const std::string& category)
 {
-    m_player_categories[category].erase(player);
-    m_categories_for_player[player].erase(category);
+    auto& container_for_categ = m_player_categories[category];
+    auto& container_for_player = m_categories_for_player[player];
+
+    container_for_categ.erase(player);
+    container_for_player.erase(category);
+
+    if (container_for_categ.empty())
+        m_player_categories.erase(category);
+
+    if (container_for_player.empty())
+        m_categories_for_player.erase(player);
 }   // erasePlayerFromCategory
 //-----------------------------------------------------------------------------
 
-void TeamManager::makeCategoryVisible(const std::string category, bool value)
+void TeamManager::makeCategoryVisible(const std::string category, int value)
 {
+    m_hidden_categories.set(category, value);
     if (value) {
         m_hidden_categories.erase(category);
     } else {
@@ -194,7 +215,8 @@ bool TeamManager::isCategoryVisible(const std::string category) const
 }   // isCategoryVisible
 //-----------------------------------------------------------------------------
 
-std::vector<std::string> TeamManager::getVisibleCategoriesForPlayer(const std::string& profile_name) const
+std::vector<std::string> TeamManager::getVisibleCategoriesForPlayer(
+        const std::string& profile_name) const
 {
     auto it = m_categories_for_player.find(profile_name);
     if (it == m_categories_for_player.end())
@@ -209,12 +231,11 @@ std::vector<std::string> TeamManager::getVisibleCategoriesForPlayer(const std::s
 }   // getVisibleCategoriesForPlayer
 //-----------------------------------------------------------------------------
 
-
-std::set<std::string> TeamManager::getPlayersInCategory(const std::string& category) const
+const std::set<std::string>& TeamManager::getPlayersInCategory(const std::string& category) const
 {
     auto it = m_player_categories.find(category);
     if (it == m_player_categories.end())
-        return {};
+        return empty_string_set;
 
     return it->second;
 }   // getPlayersInCategory

@@ -21,6 +21,7 @@
 
 #include "irrString.h"
 #include "utils/lobby_context.hpp"
+#include "utils/set_with_flip.hpp"
 #include "utils/types.hpp"
 
 #include <memory>
@@ -46,26 +47,33 @@ public:
     void setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team);
     void applyPermutationToTeams(const std::map<int, int>& permutation);
     std::string getAvailableTeams() const;
-    std::map<std::string, std::set<std::string>> getCategories() const
-                                                { return m_player_categories; }
     void initCategories();
     void addPlayerToCategory(const std::string& player, const std::string& category);
     void erasePlayerFromCategory(const std::string& player, const std::string& category);
-    void makeCategoryVisible(const std::string category, bool value);
+    void makeCategoryVisible(const std::string category, int value);
     bool isCategoryVisible(const std::string category) const;
-    std::vector<std::string> getVisibleCategoriesForPlayer(const std::string& profile_name) const;
-    std::set<std::string> getPlayersInCategory(const std::string& category) const;
+
+    std::vector<std::string> getVisibleCategoriesForPlayer(
+            const std::string& profile_name) const;
+
+    const std::set<std::string>& getPlayersInCategory(
+            const std::string& category) const;
+
     std::string getInternalAvailableTeams() const { return m_available_teams; }
     void setInternalAvailableTeams(std::string& s)   { m_available_teams = s; }
+
     void setTeamForUsername(const std::string& name, int team)
                                             { m_team_for_player[name] = team; }
+
     int getTeamForUsername(const std::string& name);
     void clearTeams()                            { m_team_for_player.clear(); }
+
     bool hasTeam(const std::string& name)
             { return m_team_for_player.find(name) != m_team_for_player.end(); }
 
     bool isInHammerWhitelist(const std::string& str) const
            { return m_hammer_whitelist.find(str) != m_hammer_whitelist.end(); }
+
     void clearTemporaryTeams();
     void shuffleTemporaryTeams(const std::map<int, int>& permutation);
     void changeTeam(std::shared_ptr<NetworkPlayerProfile> player);
@@ -79,9 +87,7 @@ private:
 
     std::map<std::string, std::set<std::string>> m_player_categories;
 
-    std::set<std::string> m_hidden_categories;
-
-    std::set<std::string> m_special_categories;
+    SetWithFlip<std::string> m_hidden_categories;
 
     std::map<std::string, std::set<std::string>> m_categories_for_player;
 

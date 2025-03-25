@@ -2956,13 +2956,16 @@ void CommandManager::process_cat(Context& context)
     }
     if (argv[0] == "catshow")
     {
-        int displayed;
+        int displayed = -1;
         // Validation should happen in LS
-        if (argv.size() != 3 || !StringUtils::parseString(argv[2], &displayed)
-                || displayed < 0 || displayed > 1)
+        if (argv.size() >= 2)
         {
-            error(context);
-            return;
+            if (argv.size() != 3 || !StringUtils::parseString(argv[2], &displayed)
+                    || displayed < -1 || displayed > 1)
+            {
+                error(context);
+                return;
+            }
         }
         std::string category = argv[1];
         getTeamManager()->makeCategoryVisible(category, displayed);
