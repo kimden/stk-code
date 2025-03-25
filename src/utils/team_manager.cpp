@@ -31,6 +31,8 @@
 #include "utils/team_utils.hpp"
 #include "utils/tournament.hpp"
 
+#include <random>
+
 namespace
 {
     static const std::set<std::string> empty_string_set = {};
@@ -341,4 +343,72 @@ void TeamManager::checkNoTeamSpectator(std::shared_ptr<STKPeer> peer)
             getCrownManager()->setSpectateModeProperly(peer, ASM_NONE);
     }
 }   // checkNoTeamSpectator
+//-----------------------------------------------------------------------------
+
+bool TeamManager::assignRandomTeams(int intended_number,
+        int* final_number, int* final_player_number)
+{
+    int teams_number = intended_number;
+    *final_number = teams_number;
+    int player_number = 0;
+    for (auto& p : STKHost::get()->getPeers())
+    {
+        if (!getCrownManager()->canRace(p))
+            continue;
+        if (p->alwaysSpectateButNotNeutral())
+            continue;
+        player_number += p->getPlayerProfiles().size();
+    }
+    if (player_number == 0) {
+        *final_number = teams_number;
+        *final_player_number = player_number;
+        return false;
+    }
+    int max_number_of_teams = TeamUtils::getNumberOfTeams();
+    std::string available_colors_string = getTeamManager()->getAvailableTeams();
+    if (available_colors_string.empty())
+        return false;
+    if (max_number_of_teams > (int)available_colors_string.length())
+        max_number_of_teams = (int)available_colors_string.length();
+    if (teams_number == -1 || teams_number < 1 || teams_number > max_number_of_teams)
+    {
+        teams_number = (int)round(sqrt(player_number));
+        if (teams_number > max_number_of_teams)
+            teams_number = max_number_of_teams;
+        if (player_number > 1 && teams_number <= 1 && max_number_of_teams >= 2)
+            teams_number = 2;
+    }
+
+    *final_number = teams_number;
+    *final_player_number = player_number;
+    std::vector<int> available_colors;
+    std::vector<int> profile_colors;
+    for (const char& c: available_colors_string)
+        available_colors.push_back(TeamUtils::getIndexByCode(std::string(1, c)));
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(available_colors.begin(), available_colors.end(), g);
+    available_colors.resize(teams_number);
+
+    for (int i = 0; i < player_number; ++i)
+        profile_colors.push_back(available_colors[i % teams_number]);
+
+    std::shuffle(profile_colors.begin(), profile_colors.end(), g);
+
+    getTeamManager()->clearTemporaryTeams();
+    for (auto& p : STKHost::get()->getPeers())
+    {
+        if (!getCrownManager()->canRace(p))
+            continue;
+        if (p->alwaysSpectateButNotNeutral())
+            continue;
+        for (auto& profile : p->getPlayerProfiles()) {
+            getTeamManager()->setTemporaryTeamInLobby(profile, profile_colors.back());
+            if (profile_colors.size() > 1) // prevent crash just in case
+                profile_colors.pop_back();
+        }
+    }
+    return true;
+}   // assignRandomTeams
 //-----------------------------------------------------------------------------

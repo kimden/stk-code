@@ -174,7 +174,6 @@ public:
     bool isLegacyGPModeStarted()           const { return m_legacy_gp_mode_started;         }
 
 private:
-    GameSetup* m_game_setup;
 
     int m_battle_hit_capture_limit;
 

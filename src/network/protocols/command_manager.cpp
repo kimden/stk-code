@@ -231,6 +231,18 @@ CommandManager::Command::Command(std::string name,
 } // Command::Command(5)
 // ========================================================================
 
+const SetTypoFixer& CommandManager::getFixer(TypoFixerType type)
+{
+    switch (type)
+    {
+        case TFT_PRESENT_USERS: return m_stf_present_users;
+        case TFT_ALL_MAPS:      return m_stf_all_maps;
+        case TFT_ADDON_MAPS:    return m_stf_addon_maps;
+    }
+    throw std::logic_error("Invalid TypoFixerType " + std::to_string(type));
+}   // getFixer
+//-----------------------------------------------------------------------------
+
 // From the result perspective, it works in the same way as
 // ServerConfig - just as there, there can be two files, one of them
 // overriding another. However, I'm right now lazy to make them use the
@@ -1432,8 +1444,7 @@ void CommandManager::process_checkaddon(Context& context)
         error(context);
         return;
     }
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-        1, m_stf_addon_maps, 3, false, true))
+    if (!validate(context, 1, TFT_ADDON_MAPS, false, true))
         return;
     std::string id = argv[1];
     const unsigned HAS_KART = 1;
@@ -1551,8 +1562,7 @@ void CommandManager::process_id(Context& context)
         error(context);
         return;
     }
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-                1, m_stf_all_maps, 3, false, true))
+    if (!validate(context, 1, TFT_ALL_MAPS, false, true))
         return;
 
     getLobby()->sendStringToPeer(peer, "Server knows this map, copy it below:\n" + argv[1]);
@@ -1657,11 +1667,9 @@ void CommandManager::process_pha(Context& context)
         return;
     }
 
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-        1, m_stf_addon_maps, 3, false, true))
+    if (!validate(context, 1, TFT_ADDON_MAPS, false, true))
         return;
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-        2, m_stf_present_users, 3, false, false))
+    if (!validate(context, 2, TFT_PRESENT_USERS, false, false))
         return;
 
     std::string addon_id = argv[1];
@@ -1713,8 +1721,7 @@ void CommandManager::process_kick(Context& context)
         return;
     }
 
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-        1, m_stf_present_users, 3, false, false))
+    if (!validate(context, 1, TFT_PRESENT_USERS, false, false))
         return;
 
     std::string player_name = argv[1];
@@ -1833,8 +1840,7 @@ void CommandManager::process_pas(Context& context)
     }
     else
     {
-        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-                1, m_stf_present_users, 3, false, false))
+        if (!validate(context, 1, TFT_PRESENT_USERS, false, false))
             return;
         player_name = argv[1];
     }
@@ -2000,11 +2006,9 @@ void CommandManager::process_mute(Context& context)
         return;
     }
 
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-        1, m_stf_present_users, 3, false, false))
+    if (!validate(context, 1, TFT_PRESENT_USERS, false, false))
         return;
 
-    
     std::string player_name = argv[1];
     player_peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(player_name));
 
@@ -2243,8 +2247,7 @@ void CommandManager::process_to(Context& context)
     std::vector<std::string> receivers;
     for (unsigned i = 1; i < argv.size(); ++i)
     {
-        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-            i, m_stf_present_users, 3, false, true))
+        if (!validate(context, i, TFT_PRESENT_USERS, false, true))
             return;
         receivers.push_back(argv[i]);
     }
@@ -2283,9 +2286,10 @@ void CommandManager::process_record(Context& context)
         return;
     }
     bool error = false;
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-                1, m_stf_all_maps, 3, false, true))
+
+    if (!validate(context, 1, TFT_ALL_MAPS, false, true))
         return;
+
     // todo replace with available aliases?
     std::string track_name = argv[1];
     std::string mode_name = (argv[2] == "t" || argv[2] == "tt"
@@ -2760,8 +2764,7 @@ void CommandManager::process_team(Context& context)
         error(context);
         return;
     }
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-                2, m_stf_present_users, 3, false, true))
+    if (!validate(context, 2, TFT_PRESENT_USERS, false, true))
         return;
     std::string player = argv[2];
 
@@ -2877,7 +2880,7 @@ void CommandManager::process_randomteams(Context& context)
             vote(context, "randomteams", "");
         return;
     }
-    if (!assignRandomTeams(teams_number, &final_number, &players_number))
+    if (!getTeamManager()->assignRandomTeams(teams_number, &final_number, &players_number))
     {
         std::string msg;
         if (players_number == 0)
@@ -2929,8 +2932,7 @@ void CommandManager::process_cat(Context& context)
             return;
         }
         std::string category = argv[1];
-        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-            2, m_stf_present_users, 3, false, true))
+        if (!validate(context, 2, TFT_PRESENT_USERS, false, true))
             return;
         std::string player = argv[2];
         getTeamManager()->addPlayerToCategory(player, category);
@@ -2946,8 +2948,7 @@ void CommandManager::process_cat(Context& context)
         }
         std::string category = argv[1];
         std::string player = argv[2];
-        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-            2, m_stf_present_users, 3, false, true))
+        if (!validate(context, 2, TFT_PRESENT_USERS, false, true))
             return;
         player = argv[2];
         getTeamManager()->erasePlayerFromCategory(player, category);
@@ -3289,8 +3290,7 @@ void CommandManager::process_role(Context& context)
     {
         swap(argv[1], argv[2]);
     }
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-        2, m_stf_present_users, 3, false, true))
+    if (!validate(context, 2, TFT_PRESENT_USERS, false, true))
         return;
     std::string role = argv[1];
     std::string username = argv[2];
@@ -3715,8 +3715,7 @@ void CommandManager::process_history_assign(Context& context)
         error(context);
         return;
     }
-    if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-        2, m_stf_all_maps, 3, false, false))
+    if (!validate(context, 2, TFT_ALL_MAPS, false, false))
         return;
     std::string id = argv[2];
     if (!tournament->assignToHistory(index, id))
@@ -3794,8 +3793,7 @@ void CommandManager::process_why_hourglass(Context& context)
     }
     else
     {
-        if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
-                1, m_stf_present_users, 3, false, false))
+        if (!validate(context, 1, TFT_PRESENT_USERS, false, false))
             return;
         player_name = argv[1];
     }
@@ -3966,74 +3964,6 @@ void CommandManager::special(Context& context)
 } // special
 // ========================================================================
 
-bool CommandManager::assignRandomTeams(int intended_number,
-        int* final_number, int* final_player_number)
-{
-    int teams_number = intended_number;
-    *final_number = teams_number;
-    int player_number = 0;
-    for (auto& p : STKHost::get()->getPeers())
-    {
-        if (!getCrownManager()->canRace(p))
-            continue;
-        if (p->alwaysSpectateButNotNeutral())
-            continue;
-        player_number += p->getPlayerProfiles().size();
-    }
-    if (player_number == 0) {
-        *final_number = teams_number;
-        *final_player_number = player_number;
-        return false;
-    }
-    int max_number_of_teams = TeamUtils::getNumberOfTeams();
-    std::string available_colors_string = getTeamManager()->getAvailableTeams();
-    if (available_colors_string.empty())
-        return false;
-    if (max_number_of_teams > (int)available_colors_string.length())
-        max_number_of_teams = (int)available_colors_string.length();
-    if (teams_number == -1 || teams_number < 1 || teams_number > max_number_of_teams)
-    {
-        teams_number = (int)round(sqrt(player_number));
-        if (teams_number > max_number_of_teams)
-            teams_number = max_number_of_teams;
-        if (player_number > 1 && teams_number <= 1 && max_number_of_teams >= 2)
-            teams_number = 2;
-    }
-
-    *final_number = teams_number;
-    *final_player_number = player_number;
-    std::vector<int> available_colors;
-    std::vector<int> profile_colors;
-    for (const char& c: available_colors_string)
-        available_colors.push_back(TeamUtils::getIndexByCode(std::string(1, c)));
-
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(available_colors.begin(), available_colors.end(), g);
-    available_colors.resize(teams_number);
-
-    for (int i = 0; i < player_number; ++i)
-        profile_colors.push_back(available_colors[i % teams_number]);
-
-    std::shuffle(profile_colors.begin(), profile_colors.end(), g);
-
-    getTeamManager()->clearTemporaryTeams();
-    for (auto& p : STKHost::get()->getPeers())
-    {
-        if (!getCrownManager()->canRace(p))
-            continue;
-        if (p->alwaysSpectateButNotNeutral())
-            continue;
-        for (auto& profile : p->getPlayerProfiles()) {
-            getTeamManager()->setTemporaryTeamInLobby(profile, profile_colors.back());
-            if (profile_colors.size() > 1) // prevent crash just in case
-                profile_colors.pop_back();
-        }
-    }
-    return true;
-} // assignRandomTeams
-// ========================================================================
-
 void CommandManager::addUser(std::string& s)
 {
     m_users.insert(s);
@@ -4082,12 +4012,24 @@ void CommandManager::restoreCmdByArgv(std::string& cmd,
             cmd.push_back(e);
         }
     }
-} // restoreCmdByArgv
+}   // restoreCmdByArgv
 // ========================================================================
+
+bool CommandManager::validate(Context& ctx, int idx,
+    TypoFixerType fixer_type, bool case_sensitive, bool allow_as_is)
+{
+    auto peer = ctx.m_peer.lock();
+    const SetTypoFixer& stf = getFixer(fixer_type);
+
+    // We show 3 options by default
+    return !hasTypo(peer, ctx.m_voting, ctx.m_argv, ctx.m_cmd, idx,
+            stf, 3, case_sensitive, allow_as_is);
+}   // validate
+//-----------------------------------------------------------------------------
 
 bool CommandManager::hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
     std::vector<std::string>& argv, std::string& cmd, int idx,
-    SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
+    const SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
     bool dont_replace, int subidx, int substr_l, int substr_r)
 {
     if (!peer.get()) // voted
