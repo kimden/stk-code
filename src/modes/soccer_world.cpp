@@ -580,51 +580,21 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
         else if (!sd.m_correct_goal)
         {
             if (!stopped)
+            {
                 Log::info("SoccerWorld", "SoccerMatchLog: [Goal] %s scored an own goal for %s",
                     player_name.c_str(), team_name.c_str());
+            }
+            
             m_karts[sd.m_id]->getKartModel()
                 ->setAnimation(KartModel::AF_LOSE_START, true/* play_non_loop*/);
         }
         std::shared_ptr<GameInfo> game_info = getGameInfo();
         if (game_info)
         {
-            int sz = game_info->m_player_info.size();
-            game_info->m_player_info.emplace_back(false/* reserved */,
-                                                    true/* game event*/);
-            Log::info("SoccerWorld", "player info size before: %d, after: %d", sz, (int)game_info->m_player_info.size());
-            auto& info = game_info->m_player_info.back();
-            RemoteKartInfo& rki = RaceManager::get()->getKartInfo(sd.m_id);
-            info.m_username = player_name;
-            info.m_result = (sd.m_correct_goal ? 1 : -1);
-            info.m_kart = rki.getKartName();
-            info.m_kart_class = rki.getKartData().m_kart_type;
-            info.m_kart_color = rki.getDefaultKartColor();
-            info.m_team = (int8_t)rki.getKartTeam();
-            if (info.m_team == KartTeam::KART_TEAM_NONE)
-            {
-                auto npp = rki.getNetworkPlayerProfile().lock();
-                if (npp)
-                    info.m_team = npp->getTemporaryTeam() - 1;
-            }
-            info.m_handicap = (uint8_t)rki.getHandicap();
-            info.m_start_position = getStartPosition(sd.m_id);
-            info.m_online_id = rki.getOnlineId();
-            info.m_country_code = rki.getCountryCode();
-            info.m_when_joined = stk_config->ticks2Time(getTicksSinceStart());
-            info.m_when_left = info.m_when_joined;
-            if (rki.isReserved())
-            {
-                // Unfortunately it's unknown which ID the corresponding player
-                // has. Maybe the placement of items for disconnected players
-                // should be changed in GameInfo::m_player_info. I have no idea
-                // right now...
-                info.m_not_full = 1;
-            }
-            else
-            {
-                info.m_not_full = 0;
-                game_info->m_player_info[sd.m_id].m_result += info.m_result;
-            }
+            unsigned start_pos = getStartPosition(sd.m_id);
+            float time_since_start = stk_config->ticks2Time(getTicksSinceStart());
+            game_info->onGoalScored(sd.m_correct_goal, sd.m_player,
+                    sd.m_id, start_pos, time_since_start);
         }
 
         if (stopped)

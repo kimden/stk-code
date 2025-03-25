@@ -436,7 +436,7 @@ void loadServerLobbyFromConfig()
         }
         if (!m_live_players)
             m_team_choosing = false;
-        m_server_configurable = false;
+        // m_server_configurable = false;
     }
     if (modes.second == RaceManager::MAJOR_MODE_GRAND_PRIX)
         m_server_configurable = false;
