@@ -85,6 +85,12 @@ std::function<void(sqlite3_stmt* stmt)> BinderCollection::getBindFunction() cons
 }   // BinderCollection::getBindFunction
 
 //-----------------------------------------------------------------------------
+
+void DatabaseConnector::setupContextUser()
+{
+    initDatabase();
+}   // initDatabase
+//-----------------------------------------------------------------------------
 /** Opens the database, sets its busy handler and variables related to it. */
 void DatabaseConnector::initDatabase()
 {

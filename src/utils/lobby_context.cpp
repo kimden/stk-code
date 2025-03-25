@@ -32,6 +32,7 @@
 #include "utils/gp_scoring.hpp"
 #include "utils/crown_manager.hpp"
 #include "network/game_setup.hpp"
+#include "network/database_connector.hpp"
 
 LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
         : m_lobby(lobby)
@@ -48,6 +49,10 @@ LobbyContext::LobbyContext(ServerLobby* lobby, bool make_tournament)
     m_team_manager     = std::make_shared<TeamManager>(this);
     m_gp_manager       = std::make_shared<LobbyGPManager>(this);
     m_crown_manager    = std::make_shared<CrownManager>(this);
+
+#ifdef ENABLE_SQLITE3
+    m_db_connector     = std::make_shared<DatabaseConnector>(this);
+#endif
     
     if (make_tournament)
         m_tournament   = std::make_shared<Tournament>(this);
@@ -69,6 +74,10 @@ void LobbyContext::setup()
     m_gp_manager->setupContextUser();
     m_crown_manager->setupContextUser();
     
+#ifdef ENABLE_SQLITE3
+    m_db_connector->setupContextUser();
+#endif
+
     if (m_tournament)
         m_tournament->setupContextUser();
 }   // setup

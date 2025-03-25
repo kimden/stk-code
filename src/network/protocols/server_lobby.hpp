@@ -94,8 +94,6 @@ public:
 private:
 
 #ifdef ENABLE_SQLITE3
-    std::shared_ptr<DatabaseConnector> m_db_connector;
-
     void pollDatabase();
 #endif
 
@@ -148,6 +146,9 @@ private:
         std::owner_less<std::weak_ptr<STKPeer> > > m_pending_connection;
 
     std::map<std::string, uint64_t> m_pending_peer_connection;
+
+    /* Saved the last game result */
+    NetworkString* m_result_ns;
 
     /* Used to make sure clients are having same item list at start */
     BareNetworkString* m_items_complete_state;
@@ -246,7 +247,7 @@ private:
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
     void computeNewRankings(NetworkString* ns);
-    void checkRaceFinished(NetworkString*& result);
+    void checkRaceFinished();
     void getHitCaptureLimit();
     void configPeersStartTime();
     void resetServer();
@@ -353,8 +354,6 @@ public:
 
     bool playerReportsTableExists() const;
 
-    void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
-    void saveDisconnectingIdInfo(int id) const;
     void sendServerInfoToEveryone() const;
 
     bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }

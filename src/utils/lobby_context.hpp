@@ -38,6 +38,11 @@ class LobbyGPManager;
 class CrownManager;
 class GameSetup;
 
+#ifdef ENABLE_SQLITE3
+class DatabaseConnector;
+#endif
+
+
 class LobbyContext
 {
 private:
@@ -55,6 +60,10 @@ private:
     std::shared_ptr<TeamManager>       m_team_manager;
     std::shared_ptr<LobbyGPManager>    m_gp_manager;
     std::shared_ptr<CrownManager>      m_crown_manager;
+
+#ifdef ENABLE_SQLITE3
+    std::shared_ptr<DatabaseConnector> m_db_connector;
+#endif
 
 public:
 
@@ -78,6 +87,10 @@ public:
     std::shared_ptr<TeamManager>       getTeamManager()     const { return m_team_manager; }
     std::shared_ptr<LobbyGPManager>    getGPManager()       const { return m_gp_manager; }
     std::shared_ptr<CrownManager>      getCrownManager()    const { return m_crown_manager; }
+
+#ifdef ENABLE_SQLITE3
+    std::shared_ptr<DatabaseConnector> getDbConnector()     const { return m_db_connector; }
+#endif
 };
 
 class LobbyContextUser
@@ -99,6 +112,10 @@ protected:
     std::shared_ptr<TeamManager>       getTeamManager()     const { return m_context->getTeamManager(); }
     std::shared_ptr<LobbyGPManager>    getGPManager()       const { return m_context->getGPManager(); }
     std::shared_ptr<CrownManager>      getCrownManager()    const { return m_context->getCrownManager(); }
+
+#ifdef ENABLE_SQLITE3
+    std::shared_ptr<DatabaseConnector> getDbConnector()     const { return m_context->getDbConnector(); }
+#endif
 
 public:
     void setContext(LobbyContext* context)             { m_context = context; }
