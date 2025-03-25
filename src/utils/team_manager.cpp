@@ -59,7 +59,7 @@ void TeamManager::setTemporaryTeamInLobby(const std::string& username, int team)
     {
         if (profile->getName() == wide_player_name)
         {
-            getTeamManager()->setTemporaryTeamInLobby(profile, team);
+            setTemporaryTeamInLobby(profile, team);
             break;
         }
     }
@@ -365,7 +365,7 @@ bool TeamManager::assignRandomTeams(int intended_number,
         return false;
     }
     int max_number_of_teams = TeamUtils::getNumberOfTeams();
-    std::string available_colors_string = getTeamManager()->getAvailableTeams();
+    std::string available_colors_string = getAvailableTeams();
     if (available_colors_string.empty())
         return false;
     if (max_number_of_teams > (int)available_colors_string.length())
@@ -396,7 +396,7 @@ bool TeamManager::assignRandomTeams(int intended_number,
 
     std::shuffle(profile_colors.begin(), profile_colors.end(), g);
 
-    getTeamManager()->clearTemporaryTeams();
+    clearTemporaryTeams();
     for (auto& p : STKHost::get()->getPeers())
     {
         if (!getCrownManager()->canRace(p))
@@ -404,7 +404,7 @@ bool TeamManager::assignRandomTeams(int intended_number,
         if (p->alwaysSpectateButNotNeutral())
             continue;
         for (auto& profile : p->getPlayerProfiles()) {
-            getTeamManager()->setTemporaryTeamInLobby(profile, profile_colors.back());
+            setTemporaryTeamInLobby(profile, profile_colors.back());
             if (profile_colors.size() > 1) // prevent crash just in case
                 profile_colors.pop_back();
         }
