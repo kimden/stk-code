@@ -606,8 +606,7 @@ void ServerLobby::asynchronousUpdate()
     if (getSettings()->isRanked() && m_state.load() == WAITING_FOR_START_GAME)
         m_ranking->cleanup();
 
-    if (!getSettings()->isLegacyGPMode() || (getSettings()->isLegacyGPMode() &&
-        m_state.load() == WAITING_FOR_START_GAME))
+    if (!getSettings()->isLegacyGPMode() || m_state.load() == WAITING_FOR_START_GAME)
     {
         // Only poll the STK server if server has been registered.
         if (m_server_id_online.load() != 0 &&
@@ -727,7 +726,7 @@ void ServerLobby::asynchronousUpdate()
                 setInfiniteTimeout();
             }
             bool forbid_starting = false;
-            if (getTournament() && getTournament()->forbidStarting())
+            if (isTournament() && getTournament()->forbidStarting())
                 forbid_starting = true;
             
             bool timer_finished = (!forbid_starting && isTimeoutExpired());
@@ -808,16 +807,7 @@ void ServerLobby::asynchronousUpdate()
         }
         if (go_on_race)
         {
-            if (getSettings()->hasFixedLapCount())
-            {
-                winner_vote.m_num_laps = getSettings()->getFixedLapCount();
-                Log::info("ServerLobby", "Enforcing %d lap race", getSettings()->getFixedLapCount());
-            }
-            if (getSettings()->hasFixedDirection())
-            {
-                winner_vote.m_reverse = (getSettings()->getDirection() == 1);
-                Log::info("ServerLobby", "Enforcing direction %d", (int)getSettings()->getDirection());
-            }
+            getSettings()->applyRestrictionsOnWinnerVote(&winner_vote);
             getSettings()->setDefaultVote(winner_vote);
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
@@ -887,7 +877,7 @@ void ServerLobby::asynchronousUpdate()
                 if (peer)
                     peer->addAvailableKartID(i);
             }
-            getHitCaptureLimit();
+            getSettings()->getLobbyHitCaptureLimit();
 
             // Add placeholder players for live join
             addLiveJoinPlaceholder(players);
@@ -2386,8 +2376,8 @@ void ServerLobby::connectionRequested(Event* event)
         return;
     }
 
-    // Reject non-valiated player joinning if WAN server and not disabled
-    // encforement of validation, unless it's player from localhost or lan
+    // Reject non-validated player joinning if WAN server and not disabled
+    // enforcement of validation, unless it's player from localhost or lan
     // And no duplicated online id or split screen players in ranked server
     // AIPeer only from lan and only 1 if ai handling
     std::set<uint32_t> all_online_ids =
@@ -2395,16 +2385,27 @@ void ServerLobby::connectionRequested(Event* event)
     bool duplicated_ranked_player =
         all_online_ids.find(online_id) != all_online_ids.end();
 
-    if (((encrypted_size == 0 || online_id == 0) &&
-        !(peer->getAddress().isPublicAddressLocalhost() ||
-        peer->getAddress().isLAN()) &&
-        NetworkConfig::get()->isWAN() &&
-        getSettings()->isValidatingPlayer()) ||
-        (getSettings()->hasStrictPlayers() &&
-        (player_count != 1 || online_id == 0 || duplicated_ranked_player)) ||
-        (peer->isAIPeer() && !peer->getAddress().isLAN() && !getSettings()->canConnectAiAnywhere()) ||
-        (peer->isAIPeer() &&
-        getSettings()->hasAiHandling() && !m_ai_peer.expired()))
+    bool failed_validation =
+            (encrypted_size == 0 || online_id == 0) &&
+            !(peer->getAddress().isPublicAddressLocalhost() || peer->getAddress().isLAN()) &&
+            NetworkConfig::get()->isWAN() &&
+            getSettings()->isValidatingPlayer();
+
+    bool failed_strictness =
+            getSettings()->hasStrictPlayers() &&
+            (player_count != 1 || online_id == 0 || duplicated_ranked_player);
+
+    bool failed_anywhere_ai =
+            peer->isAIPeer() &&
+            !peer->getAddress().isLAN() &&
+            !getSettings()->canConnectAiAnywhere();
+
+    bool failed_unhandled_ai =
+            peer->isAIPeer() &&
+            getSettings()->hasAiHandling() &&
+            !m_ai_peer.expired();
+
+    if (failed_validation || failed_strictness || failed_anywhere_ai || failed_unhandled_ai)
     {
         NetworkString* message = getNetworkString(2);
         message->setSynchronous(true);
@@ -3068,30 +3069,6 @@ bool ServerLobby::handleAllVotes(PeerVote* winner_vote)
         winner_vote
     );
 }   // handleAllVotes
-
-// ----------------------------------------------------------------------------
-void ServerLobby::getHitCaptureLimit()
-{
-    int hit_capture_limit = std::numeric_limits<int>::max();
-    float time_limit = 0.0f;
-    if (RaceManager::get()->getMinorMode() ==
-        RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
-    {
-        if (getSettings()->getCaptureLimit() > 0)
-            hit_capture_limit = getSettings()->getCaptureLimit();
-        if (getSettings()->getTimeLimitCtf() > 0)
-            time_limit = (float)getSettings()->getTimeLimitCtf();
-    }
-    else
-    {
-        if (getSettings()->getHitLimit() > 0)
-            hit_capture_limit = getSettings()->getHitLimit();
-        if (getSettings()->getTimeLimitFfa() > 0.0f)
-            time_limit = (float)getSettings()->getTimeLimitFfa();
-    }
-    getSettings()->setBattleHitCaptureLimit(hit_capture_limit);
-    getSettings()->setBattleTimeLimit(time_limit);
-}   // getHitCaptureLimit
 
 // ----------------------------------------------------------------------------
 /** Called from the RaceManager of the server when the world is loaded. Marks
@@ -4272,6 +4249,7 @@ void ServerLobby::sendStringToAllPeers(const std::string& s)
     delete chat;
 }   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
+
 bool ServerLobby::canVote(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
@@ -4283,6 +4261,7 @@ bool ServerLobby::canVote(std::shared_ptr<STKPeer> peer) const
     return getTournament()->canVote(peer);
 }   // canVote
 //-----------------------------------------------------------------------------
+
 bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
@@ -4297,6 +4276,7 @@ bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
     return false;
 }   // hasHostRights
 //-----------------------------------------------------------------------------
+
 int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
 {
     int mask = 0;

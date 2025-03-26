@@ -538,6 +538,21 @@ void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
 }   // applyRestrictionsOnVote
 //-----------------------------------------------------------------------------
 
+void LobbySettings::applyRestrictionsOnWinnerVote(PeerVote* winner_vote) const
+{
+    if (hasFixedLapCount())
+    {
+        winner_vote->m_num_laps = getFixedLapCount();
+        Log::info("LobbySettings", "Enforcing %d lap race", getFixedLapCount());
+    }
+    if (hasFixedDirection())
+    {
+        winner_vote->m_reverse = (getDirection() == 1);
+        Log::info("LobbySettings", "Enforcing direction %d", (int)getDirection());
+    }
+}   // applyRestrictionsOnWinnerVote
+//-----------------------------------------------------------------------------
+
 void LobbySettings::encodeDefaultVote(NetworkString* ns) const
 {
     ns->addUInt32(m_winner_peer_id);
@@ -636,3 +651,27 @@ bool LobbySettings::isCooldown() const
     return passed_since_reset < 1000 * m_lobby_cooldown;
 }   // isCooldown
 //-----------------------------------------------------------------------------
+
+void LobbySettings::getLobbyHitCaptureLimit()
+{
+    int hit_capture_limit = std::numeric_limits<int>::max();
+    float time_limit = 0.0f;
+    if (RaceManager::get()->getMinorMode() ==
+        RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+    {
+        if (m_capture_limit > 0)
+            hit_capture_limit = m_capture_limit;
+        if (m_time_limit_ctf > 0)
+            time_limit = (float)m_time_limit_ctf;
+    }
+    else
+    {
+        if (m_hit_limit > 0)
+            hit_capture_limit = m_hit_limit;
+        if (m_time_limit_ffa > 0.0f)
+            time_limit = (float)m_time_limit_ffa;
+    }
+    m_battle_hit_capture_limit = hit_capture_limit;
+    m_battle_time_limit = time_limit;
+}   // getLobbyHitCaptureLimit
+// ----------------------------------------------------------------------------

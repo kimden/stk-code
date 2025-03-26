@@ -248,7 +248,6 @@ private:
     void submitRankingsToAddons();
     void computeNewRankings(NetworkString* ns);
     void checkRaceFinished();
-    void getHitCaptureLimit();
     void configPeersStartTime();
     void resetServer();
     void addWaitingPlayersToGame();

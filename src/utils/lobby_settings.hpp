@@ -83,6 +83,7 @@ public:
     void insertIntoPreserved(const std::string& value);
     void initializeDefaultVote();
     void applyRestrictionsOnVote(PeerVote* vote, Track* t) const;
+    void applyRestrictionsOnWinnerVote(PeerVote* winner_vote) const;
     void encodeDefaultVote(NetworkString* ns) const;
     void setDefaultVote(PeerVote winner_vote);
     PeerVote getDefaultVote() const;
@@ -95,9 +96,9 @@ public:
 
     int getBattleHitCaptureLimit() const { return m_battle_hit_capture_limit; }
     float getBattleTimeLimit() const            { return m_battle_time_limit; }
-    void setBattleHitCaptureLimit(int value)
-                                        { m_battle_hit_capture_limit = value; }
-    void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
+    // void setBattleHitCaptureLimit(int value)
+                                        // { m_battle_hit_capture_limit = value; }
+    // void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
     void setLobbyCooldown(int value)              { m_lobby_cooldown = value; }
 
     bool isCooldown() const;
@@ -119,6 +120,7 @@ public:
                                             { m_temp_banned.insert(username); }
     void tempUnban(const std::string& username)
                                              { m_temp_banned.erase(username); }
+    void getLobbyHitCaptureLimit();
 
     // These were used unchanged from ServerConfig
     bool isLivePlayers()                   const { return m_live_players;                   }
