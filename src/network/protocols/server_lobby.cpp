@@ -385,8 +385,8 @@ void ServerLobby::changeTeam(Event* event)
     if (!checkDataSize(event, 1))
         return;
 
-    NetworkString& data = event->data();
-    uint8_t local_id = data.getUInt8();
+    auto packet = event->getPacket<ChangeTeamPacket>();
+    uint8_t local_id = packet.local_id;
     auto& player = event->getPeer()->getPlayerProfiles().at(local_id);
 
     getTeamManager()->changeTeam(player);
@@ -398,8 +398,8 @@ void ServerLobby::kickHost(Event* event)
     if (!checkDataSize(event, 4))
         return;
 
-    NetworkString& data = event->data();
-    uint32_t host_id = data.getUInt32();
+    auto packet = event->getPacket<KickHostPacket>();
+    uint32_t host_id = packet.host_id;
     std::shared_ptr<STKPeer> target = STKHost::get()->findPeerByHostId(host_id);
     auto initiator = event->getPeerSP();
 
@@ -561,9 +561,9 @@ void ServerLobby::writePlayerReport(Event* event)
         return;
     auto reporter_npp = reporter->getPlayerProfiles()[0];
 
-    uint32_t reporting_host_id = event->data().getUInt32();
-    core::stringw info;
-    event->data().decodeString16(&info);
+    auto packet = event->getPacket<ReportRequestPacket>();
+    uint32_t reporting_host_id = packet.host_id;
+    core::stringw info = packet.info;
     if (info.empty())
         return;
 
@@ -577,9 +577,10 @@ void ServerLobby::writePlayerReport(Event* event)
     if (written)
     {
         NetworkString* success = getNetworkString();
-        success->setSynchronous(true);
-        success->addUInt8(LE_REPORT_PLAYER).addUInt8(1)
-            .encodeString(reporting_npp->getName());
+        ReportSuccessPacket packet2;
+        packet2.success = 1;
+        packet2.reported_name = reporting_npp->getName();
+        packet2.toNetworkString(success);
         event->getPeer()->sendPacket(success, PRM_RELIABLE);
         delete success;
     }
@@ -942,8 +943,9 @@ void ServerLobby::asynchronousUpdate()
             resetPeersReady();
 
             m_state = LOAD_WORLD;
-            NetworkString* load_world_message = getLoadWorldMessage(players,
-                false/*live_join*/);
+            NetworkString* load_world_message;
+            LoadWorldPacket packet = getLoadWorldMessage(players, false/*live_join*/);
+            packet.toNetworkString(load_world_message);
             sendMessageToPeers(load_world_message);
             // updatePlayerList so the in lobby players (if any) can see always
             // spectators join the game
@@ -1086,15 +1088,19 @@ bool ServerLobby::canLiveJoinNow() const
 void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr)
 {
     NetworkString* reset = getNetworkString(2);
-    reset->setSynchronous(true);
-    reset->addUInt8(LE_BACK_LOBBY).addUInt8(blr);
+    BackLobbyPacket packet1;
+    packet1.reason = blr;
+    packet1.toNetworkString(reset);
     peer->sendPacket(reset, PRM_RELIABLE);
     delete reset;
+
     updatePlayerList();
+
     NetworkString* server_info = getNetworkString();
-    server_info->setSynchronous(true);
-    server_info->addUInt8(LE_SERVER_INFO);
+    ServerInfoPacket packet2;
+    //packet2.server_info = ...;
     m_game_setup->addServerInfo(server_info);
+    packet2.toNetworkString(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
 }   // rejectLiveJoin

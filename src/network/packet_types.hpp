@@ -129,6 +129,7 @@ struct Name: public Checkable, public Packet { \
 #define DEFINE_FIXED_FIELD(Type, Var, Value) Type Var;
 #define DEFINE_VECTOR(Type, Size, Var) std::vector<Type> Var;
 #define DEFINE_VECTOR_OBJ(Type, Size, Var) std::vector<Type> Var;
+#define DEFINE_VECTOR_OBJ_PTR(Type, Size, Var) std::vector<std::shared_ptr<Type>> Var;
 #define END_DEFINE_CLASS(Name) };
 
 #include "network/packet_types_base.hpp"
@@ -141,6 +142,7 @@ struct Name: public Checkable, public Packet { \
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
 #undef DEFINE_VECTOR_OBJ
+#undef DEFINE_VECTOR_OBJ_PTR
 #undef END_DEFINE_CLASS
 
 //---------------------- To NetworkString -------------------------------------
@@ -179,6 +181,11 @@ inline void Name::toNetworkString(NetworkString* ns) const \
         Value[Value##_cnt].toNetworkString(ns); \
     }
 
+#define DEFINE_VECTOR_OBJ_PTR(Type, Size, Value) \
+    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
+        Value[Value##_cnt]->toNetworkString(ns); \
+    }
+
 #define END_DEFINE_CLASS(Name) \
 }
 
@@ -192,6 +199,7 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
 #undef DEFINE_VECTOR_OBJ
+#undef DEFINE_VECTOR_OBJ_PTR
 #undef END_DEFINE_CLASS
 
 //---------------------- From NetworkString -----------------------------------
@@ -235,6 +243,14 @@ inline void Name::fromNetworkString(NetworkString* ns) \
         Var[Var##_cnt].fromNetworkString(ns); \
     }
 
+#define DEFINE_VECTOR_OBJ_PTR(Type, Size, Var) \
+    Var.resize(Size); \
+    for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
+        Type temp_##Var; \
+        temp_##Var.fromNetworkString(ns); \
+        Var[Var##_cnt] = std::make_shared<Type>(temp_##Var); \
+    }
+
 #define END_DEFINE_CLASS(Name) \
 }
 
@@ -247,6 +263,8 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 #undef DEFINE_FIXED_FIELD
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
+#undef DEFINE_VECTOR_OBJ
+#undef DEFINE_VECTOR_OBJ_PTR
 #undef END_DEFINE_CLASS
 
 //---------------------- End --------------------------------------------------
