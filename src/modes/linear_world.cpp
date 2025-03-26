@@ -1262,7 +1262,10 @@ std::shared_ptr<Packet> LinearWorld::saveCompleteState(std::shared_ptr<STKPeer> 
     const uint8_t cc = (uint8_t)cm->getCheckStructureCount();
     packet->check_structure_count = cc;
     for (unsigned i = 0; i < cc; i++)
-        packet->check_structures.push_back(cm->getCheckStructure(i)->saveCompleteState());
+    {
+        const auto& item = cm->getCheckStructure(i)->saveCompleteState();
+        packet->check_structures.push_back(std::dynamic_pointer_cast<CheckStructurePacket>(item));
+    }
     return packet;
 }   // saveCompleteState
 
