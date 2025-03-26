@@ -825,10 +825,8 @@ void ClientLobby::handleServerInfo(Event* event)
 void ClientLobby::updatePlayerList(Event* event)
 {
     if (!checkDataSize(event, 1)) return;
-    NetworkString& data = event->data();
 
-    PlayerListPacket list_packet;
-    list_packet.fromNetworkString(&data);
+    auto list_packet = event->getPacket<PlayerListPacket>();
 
     bool waiting = list_packet.game_started;
     if (m_waiting_for_game && !waiting)
@@ -1671,9 +1669,11 @@ void ClientLobby::reportSuccess(Event* event)
 {
     bool succeeded = false;
     core::stringw reporting_name;
-    succeeded = event->data().getUInt8() == 1;
+
+    auto packet = event->getPacket<ReportSuccessPacket>();
+    succeeded = packet.success;
     if (succeeded)
-        event->data().decodeStringW(&reporting_name);
+        event->data().decodeStringW(&packet.reported_name);
     if (succeeded && !reporting_name.empty())
     {
         // I18N: Tell player he has successfully report this named player

@@ -27,6 +27,7 @@
 #include "guiengine/widgets/text_box_widget.hpp"
 #include "online/online_profile.hpp"
 #include "network/network_string.hpp"
+#include "network/packet_types.hpp"
 #include "network/protocols/client_lobby.hpp"
 #include "network/stk_host.hpp"
 #include "states_screens/dialogs/general_text_field_dialog.hpp"
@@ -204,8 +205,10 @@ void NetworkPlayerDialog::onUpdate(float dt)
                 if (info.empty())
                     return false;
                 NetworkString report(PROTOCOL_LOBBY_ROOM);
-                report.addUInt8(LobbyEvent::LE_REPORT_PLAYER)
-                    .addUInt32(host_id).encodeString16(info);
+                ReportRequestPacket packet;
+                packet.host_id = host_id;
+                packet.info = info;
+                packet.toNetworkString(&report);
                 Comm::sendToServer(&report, PRM_RELIABLE);
                 return true;
             });
@@ -248,7 +251,9 @@ GUIEngine::EventPropagation
         else if (selection == m_kick_widget->m_properties[PROP_ID])
         {
             NetworkString kick(PROTOCOL_LOBBY_ROOM);
-            kick.addUInt8(LobbyEvent::LE_KICK_HOST).addUInt32(m_host_id);
+            KickHostPacket packet;
+            packet.host_id = m_host_id;
+            packet.toNetworkString(&kick);
             Comm::sendToServer(&kick, PRM_RELIABLE);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
@@ -257,8 +262,9 @@ GUIEngine::EventPropagation
             selection == m_change_team_widget->m_properties[PROP_ID])
         {
             NetworkString change_team(PROTOCOL_LOBBY_ROOM);
-            change_team.addUInt8(LobbyEvent::LE_CHANGE_TEAM)
-                .addUInt8(m_local_id);
+            ChangeTeamPacket packet;
+            packet.local_id = m_local_id;
+            packet.toNetworkString(&change_team);
             Comm::sendToServer(&change_team, PRM_RELIABLE);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
@@ -272,8 +278,10 @@ GUIEngine::EventPropagation
                 new_handicap = HANDICAP_MEDIUM;
             }
             NetworkString change_handicap(PROTOCOL_LOBBY_ROOM);
-            change_handicap.addUInt8(LobbyEvent::LE_CHANGE_HANDICAP)
-                .addUInt8(m_local_id).addUInt8(new_handicap);
+            ChangeHandicapPacket packet;
+            packet.local_id = m_local_id;
+            packet.handicap = new_handicap;
+            packet.toNetworkString(&change_handicap);
             Comm::sendToServer(&change_handicap, PRM_RELIABLE);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;

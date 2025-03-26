@@ -47,6 +47,7 @@
 #include <vector>
 
 using widestr = irr::core::stringw;
+using widestr16 = irr::core::stringw; // but encodeString16
 
 // Note that bools are encoded using int8_t
 
@@ -206,7 +207,7 @@ DEFINE_CLASS(LinearWorldCompleteStatePacket)
     DEFINE_VECTOR_OBJ(KartInfoPacket, karts_count, kart_infos)
     DEFINE_VECTOR_OBJ(TrackSectorPacket, track_sectors_count, track_sectors)
     DEFINE_FIELD(uint8_t, check_structure_count)
-    DEFINE_VECTOR_OBJ(CheckStructurePacket, check_structure_count, check_structures)
+    DEFINE_VECTOR_OBJ_PTR(CheckStructurePacket, check_structure_count, check_structures)
 END_DEFINE_CLASS(LinearWorldCompleteStatePacket)
 
 // 0: peer->getClientCapabilities().find("soccer_fixes") != peer->getClientCapabilities().end()
@@ -265,5 +266,60 @@ DEFINE_CLASS(LiveJoinPacket)
     DEFINE_FIELD_OPTIONAL(InsideGameInfoPacket, inside_info, check(0)) // RaceManager::get()->supportsLiveJoining()
 END_DEFINE_CLASS(LiveJoinPacket)
 
+
+DEFINE_CLASS(ChatPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CHAT)
+    DEFINE_FIELD(widestr16, message) // use encodeString16 !
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ChatPacket)
+
+DEFINE_CLASS(ChangeTeamPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CHANGE_TEAM)
+    DEFINE_FIELD(uint8_t, local_id)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ChangeTeamPacket)
+
+DEFINE_CLASS(KickHostPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_KICK_HOST)
+    DEFINE_FIELD(uint32_t, host_id)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(KickHostPacket)
+
+DEFINE_CLASS(ReportRequestPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_REPORT_PLAYER)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD(widestr16, info)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ReportRequestPacket)
+
+DEFINE_CLASS(ReportSuccessPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_REPORT_PLAYER)
+    DEFINE_FIELD(bool, success)
+    DEFINE_FIELD(widestr, reported_name)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ReportSuccessPacket)
+
+DEFINE_CLASS(ChangeHandicapPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CHANGE_HANDICAP)
+    DEFINE_FIELD(uint8_t, local_id)
+    DEFINE_FIELD(uint8_t, handicap)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ChangeHandicapPacket)
+
+DEFINE_CLASS(BackLobbyPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_BACK_LOBBY)
+    DEFINE_FIELD(uint8_t, reason)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(BackLobbyPacket)
+
+DEFINE_CLASS(ServerInfoPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_SERVER_INFO)
+    //...
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ServerInfoPacket)
 
 // end
