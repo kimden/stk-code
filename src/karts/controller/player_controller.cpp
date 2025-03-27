@@ -270,9 +270,9 @@ void PlayerController::steer(int ticks, int steer_val)
     // Get the old value, compute the new steering value,
     // and set it at the end of this function
     float steer = m_controls->getSteer();
-    if(stk_config->m_disable_steer_while_unskid &&
-        m_controls->getSkidControl()==KartControl::SC_NONE &&
-       m_kart->getSkidding()->getVisualSkidRotation()!=0)
+    if (STKConfig::get()->m_disable_steer_while_unskid &&
+        m_controls->getSkidControl() == KartControl::SC_NONE &&
+        m_kart->getSkidding()->getVisualSkidRotation() != 0)
     {
         steer = 0;
     }
@@ -280,7 +280,7 @@ void PlayerController::steer(int ticks, int steer_val)
     // Amount the steering is changed for digital devices.
     // If the steering is 'back to straight', a different steering
     // change speed is used.
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
     const float STEER_CHANGE = ( (steer_val<=0 && steer<0) ||
                                  (steer_val>=0 && steer>0)   )
                      ? dt/m_kart->getKartProperties()->getTurnTimeResetSteer()
@@ -420,5 +420,5 @@ core::stringw PlayerController::getName(bool include_handicap_string) const
 // ----------------------------------------------------------------------------
 void PlayerController::displayPenaltyWarning()
 {
-    m_penalty_ticks = stk_config->m_penalty_ticks;
+    m_penalty_ticks = STKConfig::get()->m_penalty_ticks;
 }   // displayPenaltyWarning

@@ -52,7 +52,7 @@ void WorldWithRank::init()
     m_position_setting_initialised = false;
 #endif
     if (!m_custom_scoring)
-        stk_config->getAllScores(&m_score_for_position, getNumKarts());
+        STKConfig::get()->getAllScores(&m_score_for_position, getNumKarts());
     else
         m_custom_scoring->refreshCustomScores(getNumKarts(), m_score_for_position);
 

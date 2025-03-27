@@ -138,6 +138,8 @@ std::shared_ptr<ServerList> ServersManager::getWANRefreshRequest() const
                 return;
             }
 
+            auto& stk_config = STKConfig::get();
+
             const XMLNode *servers_xml = getXMLData()->getNode("servers");
             for (unsigned int i = 0; i < servers_xml->getNumNodes(); i++)
             {
@@ -148,6 +150,7 @@ std::shared_ptr<ServerList> ServersManager::getWANRefreshRequest() const
                 int version = 0;
                 si->get("version", &version);
                 assert(version != 0);
+
                 if (version < stk_config->m_max_server_version ||
                     version > stk_config->m_max_server_version)
                 {
@@ -262,6 +265,9 @@ std::shared_ptr<ServerList> ServersManager::getLANRefreshRequest() const
             // because e.g. a local client would answer as 127.0.0.1 and
             // 192.168.**.
             std::map<irr::core::stringw, std::shared_ptr<Server> > servers_now;
+
+            auto& stk_config = STKConfig::get();
+
             while (StkTime::getMonoTimeMs() - start_time < DURATION)
             {
                 SocketAddress sender;
@@ -340,7 +346,7 @@ std::vector<SocketAddress> ServersManager::getDefaultBroadcastAddresses()
 {
     // Add some common LAN addresses
     std::vector<SocketAddress> result;
-    uint16_t port = stk_config->m_server_discovery_port;
+    uint16_t port = STKConfig::get()->m_server_discovery_port;
     result.emplace_back(std::string("192.168.255.255"), port);
     result.emplace_back(std::string("192.168.0.255"), port);
     result.emplace_back(std::string("192.168.1.255"), port);
@@ -379,7 +385,7 @@ void ServersManager::addAllBroadcastAddresses(const SocketAddress &a, int len,
     {
         unsigned int mask = (1 << len) - 1;
         SocketAddress bcast(a.getIP() | mask,
-            stk_config->m_server_discovery_port);
+            STKConfig::get()->m_server_discovery_port);
         Log::info("Broadcast", "address %s length %d mask %x --> %s",
             a.toString().c_str(),
             len, mask,
@@ -468,7 +474,7 @@ std::vector<SocketAddress> ServersManager::getBroadcastAddresses(bool ipv6)
                 continue;
             used_scope_id.insert(idx);
             SocketAddress socket_address("ff02::1",
-                stk_config->m_server_discovery_port);
+                STKConfig::get()->m_server_discovery_port);
             sockaddr_in6* in6 = (sockaddr_in6*)socket_address.getSockaddr();
             in6->sin6_scope_id = idx;
             result.push_back(socket_address);

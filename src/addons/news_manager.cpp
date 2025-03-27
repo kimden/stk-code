@@ -226,6 +226,8 @@ void NewsManager::downloadNews()
  */
 void NewsManager::checkRedirect(const XMLNode *xml)
 {
+    auto& stk_config = STKConfig::get();
+
     if (stk_config->m_allow_news_redirects)
     {
         // NOTE: Before 0.10 there were just two redirect attributes

@@ -40,6 +40,8 @@ FollowTheLeaderRace::FollowTheLeaderRace() : LinearWorld()
     // after crossing the start line
     RaceManager::get()->setNumLaps(99999);
 
+    auto& stk_config = STKConfig::get();
+
     m_leader_intervals = stk_config->m_leader_intervals;
     for(unsigned int i=0; i<m_leader_intervals.size(); i++)
         m_leader_intervals[i] +=
@@ -60,7 +62,7 @@ void FollowTheLeaderRace::init()
     LinearWorld::init();
     // WorldWithRank determines the score based on getNumKarts(), but since
     // we ignore the leader, the points need to be based on number of karts -1
-    stk_config->getAllScores(&m_score_for_position, getNumKarts() - 1);
+    STKConfig::get()->getAllScores(&m_score_for_position, getNumKarts() - 1);
     getKart(0)->setOnScreenText(_("Leader"));
     getKart(0)->setBoostAI(true);
 }    // init
@@ -80,6 +82,9 @@ FollowTheLeaderRace::~FollowTheLeaderRace()
 void FollowTheLeaderRace::reset(bool restart)
 {
     LinearWorld::reset(restart);
+
+    auto& stk_config = STKConfig::get();
+
     m_last_eliminated_time = 0.0f;
     m_leader_intervals.clear();
     m_leader_intervals    = stk_config->m_leader_intervals;
@@ -114,7 +119,7 @@ const btTransform &FollowTheLeaderRace::getStartTransform(int index)
         return Track::getCurrentTrack()->getStartTransform(index);
 
     // Otherwise the karts will start at the rear starting positions
-    int start_index = stk_config->m_max_karts
+    int start_index = STKConfig::get()->m_max_karts
                     - RaceManager::get()->getNumberOfKarts() + index;
     return Track::getCurrentTrack()->getStartTransform(start_index);
 }   // getStartTransform
@@ -230,7 +235,7 @@ bool FollowTheLeaderRace::isRaceOver()
 void FollowTheLeaderRace::leaderHit()
 {
     int countdown = getTimeTicks();
-    countdown += stk_config->time2Ticks(LEADER_HIT_TIME);
+    countdown += STKConfig::get()->time2Ticks(LEADER_HIT_TIME);
     setTicks(countdown);
     m_leader_hit_count++;
 } // leaderHit

@@ -262,7 +262,7 @@ void resizeSkinning(unsigned number)
             m.pointer());
         glBindTexture(GL_TEXTURE_2D, 0);
         static std::vector<std::array<float, 16> >
-            tmp_buf(stk_config->m_max_skinning_bones);
+            tmp_buf(STKConfig::get()->m_max_skinning_bones);
         g_joint_ptr = tmp_buf.data();
     }
     else
@@ -299,6 +299,8 @@ void resizeSkinning(unsigned number)
 void initSkinning()
 {
     static_assert(sizeof(std::array<float, 16>) == 64, "No padding");
+
+    auto& stk_config = STKConfig::get();
 
     int max_size = 0;
 
@@ -448,7 +450,7 @@ void init()
         int skinning_tbo_limit;
         glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE_ARB, &skinning_tbo_limit);
         
-        g_skinning_use_tbo = skinning_tbo_limit >= stk_config->m_max_skinning_bones << 6;
+        g_skinning_use_tbo = skinning_tbo_limit >= STKConfig::get()->m_max_skinning_bones << 6;
     }
     else
     {
@@ -840,11 +842,11 @@ void addObject(SPMeshNode* node)
         {
             added_for_skinning = true;
             int skinning_offset = g_skinning_offset + node->getTotalJoints();
-            if (skinning_offset > int(stk_config->m_max_skinning_bones))
+            if (skinning_offset > int(STKConfig::get()->m_max_skinning_bones))
             {
                 Log::error("SPBase", "No enough space to render skinned"
                     " mesh %s! Max joints can hold: %d",
-                    node->getName(), stk_config->m_max_skinning_bones);
+                    node->getName(), STKConfig::get()->m_max_skinning_bones);
                 return;
             }
             node->setSkinningOffset(g_skinning_offset);

@@ -137,7 +137,7 @@ void Attachment::set(AttachmentType type, int ticks,
     m_ticks_left       = ticks;
     m_previous_owner   = current_kart;
     m_scaling_end_ticks = World::getWorld()->getTicksSinceStart() +
-        stk_config->time2Ticks(0.7f);
+        STKConfig::get()->time2Ticks(0.7f);
 
     m_initial_speed = 0;
     // A parachute can be attached as result of the usage of an item. In this
@@ -282,6 +282,8 @@ void Attachment::hitBanana(ItemState *item_state)
         m_ticks_left = 0;
         return;
     }
+    
+    auto& stk_config = STKConfig::get();
 
     int leftover_ticks = 0;
 
@@ -401,6 +403,7 @@ void Attachment::hitBanana(ItemState *item_state)
 void Attachment::handleCollisionWithKart(AbstractKart *other)
 {
     Attachment *attachment_other=other->getAttachment();
+    auto& stk_config = STKConfig::get();
 
     if(getType()==Attachment::ATTACH_BOMB)
     {
@@ -605,6 +608,8 @@ void Attachment::updateGraphics(float dt)
 
     if (m_plugin)
         m_plugin->updateGraphics(dt);
+
+    auto& stk_config = STKConfig::get();
 
     if (m_type != ATTACH_NOTHING)
     {

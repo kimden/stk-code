@@ -57,7 +57,7 @@ public:
         if (NetworkConfig::get()->isClient())
         {
             m_controls->setSteer(  m_controls->getSteer()
-                                 * stk_config->m_network_steering_reduction);
+                                 * STKConfig::get()->m_network_steering_reduction);
         }
     }   // update
 

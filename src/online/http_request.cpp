@@ -105,6 +105,8 @@ namespace Online
     void HTTPRequest::setApiURL(const std::string& path,
                                 const std::string &action)
     {
+        auto& stk_config = STKConfig::get();
+
         // Old (0.8.1) API: send to client-user.php, and add action as a parameter
         if (stk_config->m_server_api_version == 1)
         {
@@ -135,7 +137,7 @@ namespace Online
      */
      void HTTPRequest::setAddonsURL(const std::string& path)
      {
-        setURL(stk_config->m_server_addons + "/" + path);
+        setURL(STKConfig::get()->m_server_addons + "/" + path);
      }   // set AddonsURL
 
      // ------------------------------------------------------------------------
