@@ -134,7 +134,7 @@ int GameInfo::onLiveJoinedPlayer(int id, const RemoteKartInfo& rki, World* w)
     info.m_username = StringUtils::wideToUtf8(rki.getPlayerName());
     info.m_kart = rki.getKartName();
     info.m_start_position = w->getStartPosition(id);
-    info.m_when_joined = stk_config->ticks2Time(w->getTicksSinceStart());
+    info.m_when_joined = STKConfig::get()->ticks2Time(w->getTicksSinceStart());
     info.m_country_code = rki.getCountryCode();
     info.m_online_id = rki.getOnlineId();
     info.m_kart_class = rki.getKartData().m_kart_type;
@@ -190,7 +190,7 @@ void GameInfo::saveDisconnectingIdInfo(int id)
         if (getSettings()->isPreservingBattleScores())
             m_saved_ffa_points[StringUtils::wideToUtf8(rki.getPlayerName())] = points;
     }
-    info.m_when_left = stk_config->ticks2Time(w->getTicksSinceStart());
+    info.m_when_left = STKConfig::get()->ticks2Time(w->getTicksSinceStart());
     info.m_start_position = w->getStartPosition(id);
     if (RaceManager::get()->isLinearRaceMode())
     {
@@ -294,7 +294,7 @@ void GameInfo::fillAndStoreResults()
     std::string best_cur_player_name = "";
     double best_cur_time = 1e18;
 
-    double current_game_timestamp = stk_config->ticks2Time(w->getTicksSinceStart());
+    double current_game_timestamp = STKConfig::get()->ticks2Time(w->getTicksSinceStart());
 
     auto& vec = m_player_info;
 

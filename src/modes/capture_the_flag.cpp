@@ -181,7 +181,7 @@ void CaptureTheFlag::updateGraphics(float dt)
     // a point has been scored recently
     const bool scored_recently =
         getTicksSinceStart() > m_last_captured_flag_ticks &&
-        getTicksSinceStart() - m_last_captured_flag_ticks < stk_config->time2Ticks(2.0f);
+        getTicksSinceStart() - m_last_captured_flag_ticks < STKConfig::get()->time2Ticks(2.0f);
     if (m_red_flag_status != m_red_flag->getStatus())
     {
         if (m_red_flag->getHolder() != -1)
@@ -231,7 +231,7 @@ void CaptureTheFlag::update(int ticks)
     for (auto it = m_swatter_reset_kart_ticks.begin();
          it != m_swatter_reset_kart_ticks.end();)
     {
-        if (it->second < getTicksSinceStart() - stk_config->time2Ticks(8.0f))
+        if (it->second < getTicksSinceStart() - STKConfig::get()->time2Ticks(8.0f))
         {
             it = m_swatter_reset_kart_ticks.erase(it);
         }
@@ -417,7 +417,7 @@ void CaptureTheFlag::ctfScored(int kart_id, bool red_team_scored,
     if (game_info)
     {
         unsigned start_pos = getStartPosition(kart_id);
-        float time_since_start = stk_config->ticks2Time(getTicksSinceStart());
+        float time_since_start = STKConfig::get()->ticks2Time(getTicksSinceStart());
         game_info->onFlagCaptured(red_team_scored, name,
                 kart_id, start_pos, time_since_start);
     }

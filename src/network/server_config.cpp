@@ -156,6 +156,8 @@ void loadServerConfigXML(const XMLNode* root, bool default_config)
         return;
     }
 
+    auto& stk_config = STKConfig::get();
+
     int config_file_version = -1;
     if (root->get("version", &config_file_version) < 1 ||
         config_file_version < stk_config->m_min_server_version ||
@@ -308,6 +310,8 @@ void loadServerLobbyFromConfig()
 {
     if (unsupportedGameMode())
         Log::fatal("ServerConfig", "Unsupported game mode");
+
+    auto& stk_config = STKConfig::get();
 
     if (stk_config->time2Ticks(m_flag_return_timeout) > 65535 ||
         m_flag_return_timeout <= 0.0f)

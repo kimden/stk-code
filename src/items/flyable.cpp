@@ -538,7 +538,7 @@ bool Flyable::isOwnerImmunity(const AbstractKart* kart_hit) const
 {
     return m_owner_has_temporary_immunity &&
         kart_hit == m_owner            &&
-        (int)m_ticks_since_thrown < stk_config->time2Ticks(2.0f);
+        (int)m_ticks_since_thrown < STKConfig::get()->time2Ticks(2.0f);
 }   // isOwnerImmunity
 
 // ----------------------------------------------------------------------------

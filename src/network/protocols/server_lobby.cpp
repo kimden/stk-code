@@ -909,6 +909,8 @@ void ServerLobby::asynchronousUpdate()
                 }
             }
 
+            auto& stk_config = STKConfig::get();
+
             NetworkString* load_world_message = getLoadWorldMessage(players,
                 false/*live_join*/);
             m_game_setup->setHitCaptureTime(getSettings()->getBattleHitCaptureLimit(),
@@ -921,7 +923,7 @@ void ServerLobby::asynchronousUpdate()
                 (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL ||
                 RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE))
                 RaceManager::get()->setRecordRace(true);
-            uint16_t flag_deactivated_time = (uint16_t)stk_config->time2Ticks(
+            uint16_t flag_deactivated_time = (uint16_t)STKConfig::get()->time2Ticks(
                 getSettings()->getFlagDeactivatedTime());
             RaceManager::get()->setFlagDeactivatedTicks(flag_deactivated_time);
             configRemoteKart(players, 0);
@@ -979,6 +981,8 @@ NetworkString* ServerLobby::getLoadWorldMessage(
     load_world_message->addUInt32(m_item_seed);
     if (RaceManager::get()->isBattleMode())
     {
+        auto& stk_config = STKConfig::get();
+
         load_world_message->addUInt32(getSettings()->getBattleHitCaptureLimit())
             .addFloat(getSettings()->getBattleTimeLimit());
         uint16_t flag_return_time = (uint16_t)stk_config->time2Ticks(
@@ -1224,6 +1228,8 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     assert(w);
 
     uint64_t live_join_start_time = STKHost::get()->getNetworkTimer();
+
+    auto& stk_config = STKConfig::get();
 
     // Instead of using getTicksSinceStart we caculate the current world ticks
     // only from network timer, because if the server hangs in between the
@@ -2308,6 +2314,9 @@ void ServerLobby::connectionRequested(Event* event)
 
     // Check server version
     int version = data.getUInt32();
+
+    auto& stk_config = STKConfig::get();
+    
     if (version < stk_config->m_min_server_version ||
         version > stk_config->m_max_server_version)
     {
@@ -2618,6 +2627,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     float auto_start_timer = getTimeUntilExpiration();
     message_ack->addUInt8(LE_CONNECTION_ACCEPTED).addUInt32(peer->getHostId())
         .addUInt32(ServerConfig::m_server_version);
+
+    auto& stk_config = STKConfig::get();
 
     message_ack->addUInt16(
         (uint16_t)stk_config->m_network_capabilities.size());
@@ -3503,6 +3514,9 @@ float ServerLobby::getStartupBoostOrPenaltyForKart(uint32_t ping,
     uint64_t now = STKHost::get()->getNetworkTimer();
     uint64_t client_time = now - ping / 2;
     uint64_t server_time = client_time + m_server_delay;
+
+    auto& stk_config = STKConfig::get();
+
     int ticks = stk_config->time2Ticks(
         (float)(server_time - m_server_started_at) / 1000.0f);
     if (ticks < stk_config->time2Ticks(1.0f))

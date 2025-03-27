@@ -238,7 +238,7 @@ void GrandPrixLose::setKarts(std::vector<std::pair<std::string, float> > ident_a
 
 MusicInformation* GrandPrixLose::getInGameMenuMusic() const
 {
-    MusicInformation* mi = stk_config->m_gp_lose_music;
+    MusicInformation* mi = STKConfig::get()->m_gp_lose_music;
     return mi;
 }
 

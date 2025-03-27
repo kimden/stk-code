@@ -278,7 +278,7 @@ STKHost::STKHost(bool server)
 #endif
         addr.port = ServerConfig::m_server_port;
         if (addr.port == 0 && !UserConfigParams::m_random_server_port)
-            addr.port = stk_config->m_server_port;
+            addr.port = STKConfig::get()->m_server_port;
         // Reserve 1 peer to deliver full server message
         int peer_count = ServerConfig::m_server_max_players + 1;
         // 1 more peer to hold ai peer
@@ -811,7 +811,7 @@ void STKHost::mainLoop(ProcessType pt)
         NetworkConfig::get()->isPublicServer())
     {
         ENetAddress eaddr = {};
-        eaddr.port = stk_config->m_server_discovery_port;
+        eaddr.port = STKConfig::get()->m_server_discovery_port;
         direct_socket = new Network(1, 1, 0, 0, &eaddr);
         if (direct_socket->getENetHost() == NULL)
         {

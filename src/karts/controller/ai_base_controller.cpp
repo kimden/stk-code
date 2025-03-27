@@ -234,6 +234,8 @@ bool AIBaseController::disableSlipstreamBonus() const
  */
 void AIBaseController::crashed(const Material *m)
 {
+    auto& stk_config = STKConfig::get();
+
     // Defines how many collision in what time will trigger a rescue.
     // Note that typically it takes ~0.5 seconds for the AI to hit
     // the track again if it is stuck (i.e. time for the push back plus

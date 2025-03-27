@@ -89,7 +89,7 @@ public:
         if (m_is_victory_music)
             return music_manager->getMusicInformation("win_theme.music");
         else
-            return stk_config->m_title_music;
+            return STKConfig::get()->m_title_music;
     }
 
     virtual void onResize() OVERRIDE

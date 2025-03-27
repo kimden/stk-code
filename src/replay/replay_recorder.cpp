@@ -53,6 +53,8 @@ ReplayRecorder::ReplayRecorder()
     m_incorrect_replay = false;
     m_previous_steer   = 0.0f;
 
+    auto& stk_config = STKConfig::get();
+
     assert(stk_config->m_replay_max_frames >= 0);
     m_max_frames = stk_config->m_replay_max_frames;
 }   // ReplayRecorder
@@ -120,8 +122,10 @@ void ReplayRecorder::update(int ticks)
     const bool single_player = RaceManager::get()->getNumPlayers() == 1;
     unsigned int num_karts = world->getNumKarts();
 
+    auto& stk_config = STKConfig::get();
+
     float time = world->getTime();
-    for(unsigned int i=0; i<num_karts; i++)
+    for (unsigned int i = 0; i < num_karts; i++)
     {
         AbstractKart *kart = world->getKart(i);
         // If a single player give up in game menu, stop recording
@@ -178,9 +182,9 @@ void ReplayRecorder::update(int ticks)
             float speed_change = fabsf(kart->getSpeed() - q_prev->m_speed);
             if ( speed_change > stk_config->m_replay_delta_speed )
             {
-                if (speed_change > 4*stk_config->m_replay_delta_speed)
+                if (speed_change > 4 * stk_config->m_replay_delta_speed)
                     force_update = true;
-                else if (speed_change > 2*stk_config->m_replay_delta_speed &&
+                else if (speed_change > 2 * stk_config->m_replay_delta_speed &&
                          time - m_last_saved_time[i] > (stk_config->m_replay_dt/8.0f))
                     force_update = true;
                 else if (time - m_last_saved_time[i] > (stk_config->m_replay_dt/3.0f))

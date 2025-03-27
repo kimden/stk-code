@@ -521,6 +521,9 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 
     if (getTicksSinceStart() < m_ticks_back_to_own_goal)
         return;
+
+    auto& stk_config = STKConfig::get();
+
     m_ticks_back_to_own_goal = getTicksSinceStart() +
         stk_config->time2Ticks(3.0f);
     m_goal_sound->play();
@@ -753,7 +756,8 @@ void SoccerWorld::handlePlayerGoalFromServer(const NetworkString& ns)
         msg = _("%s scored a goal!", sd.m_player);
     else
         msg = _("Oops, %s made an own goal!", sd.m_player);
-    float time = stk_config->ticks2Time(ticks_back_to_own_goal - ticks_now);
+
+    float time = STKConfig::get()->ticks2Time(ticks_back_to_own_goal - ticks_now);
     // May happen if this message is added when spectate started
     if (time > 3.0f)
         time = 3.0f;
@@ -908,6 +912,8 @@ void SoccerWorld::updateBallPosition(int ticks)
 
     if (Track::getCurrentTrack()->hasNavMesh())
     {
+        auto& stk_config = STKConfig::get();
+
         m_ball_track_sector
             ->update(getBallPosition(), true/*ignore_vertical*/);
 

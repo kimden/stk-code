@@ -612,6 +612,8 @@ PowerupManager::PowerupType PowerupManager::getRandomPowerup(unsigned int pos,
     else
         *n=1;
 
+    auto& stk_config = STKConfig::get();
+
     // Prevents early explosive items
     if (World::getWorld() && 
         stk_config->ticks2Time(World::getWorld()->getTicksSinceStart()) <
