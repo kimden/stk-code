@@ -263,7 +263,7 @@ private:
     LoadWorldPacket getLoadWorldMessage(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
         bool live_join) const;
-    void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
+    void setPlayerKarts(const PlayerKartsPacket& packet, std::shared_ptr<STKPeer> peer) const;
     bool handleAssets(Event* event);
 
     bool handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,

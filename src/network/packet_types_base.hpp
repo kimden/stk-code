@@ -49,6 +49,9 @@
 using widestr = irr::core::stringw;
 using widestr16 = irr::core::stringw; // but encodeString16
 
+// temp
+constexpr int IDONT_KNOW = 0;
+
 // Note that bools are encoded using int8_t
 
 DEFINE_CLASS(PlayerListProfilePacket)
@@ -270,7 +273,8 @@ END_DEFINE_CLASS(LiveJoinPacket)
 DEFINE_CLASS(ChatPacket)
     SYNCHRONOUS(true)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_CHAT)
-    DEFINE_FIELD(widestr16, message) // use encodeString16 !
+    DEFINE_FIELD(widestr16, message) // use encodeString16 ! max len is 360
+    DEFINE_FIELD_OPTIONAL(KartTeam, kart_team) // KartTeam is uint8_t
     // send with PRM_RELIABLE
 END_DEFINE_CLASS(ChatPacket)
 
@@ -318,8 +322,52 @@ END_DEFINE_CLASS(BackLobbyPacket)
 DEFINE_CLASS(ServerInfoPacket)
     SYNCHRONOUS(true)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_SERVER_INFO)
-    //...
+    //...kimden: fill this
     // send with PRM_RELIABLE
 END_DEFINE_CLASS(ServerInfoPacket)
+
+DEFINE_CLASS(AssetsPacket)
+    DEFINE_FIELD(uint16_t, karts_number)
+    DEFINE_VECTOR(std::string, karts_number, karts)
+    DEFINE_FIELD(uint16_t, maps_number)
+    DEFINE_VECTOR(std::string, maps_number, maps)
+END_DEFINE_CLASS(AssetsPacket)
+
+DEFINE_CLASS(NewAssetsPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_ASSETS_UPDATE)
+    DEFINE_FIELD(AssetsPacket, assets)
+END_DEFINE_CLASS(NewAssetsPacket)
+
+DEFINE_CLASS(PlayerKartsPacket)
+    DEFINE_FIELD(uint8_t, players_count)
+    DEFINE_VECTOR_OBJ(std::string, players_count, karts)
+
+    // I don't care about compilation for now but don't want extra macroses yet either.
+    DEFINE_VECTOR_OBJ/*_OPTIONAL*/(KartDataPacket, players_count, kart_data/*, IDONT_KNOW*/) // if has "real_addon_karts" in cap AND anything is sent
+END_DEFINE_CLASS(PlayerKartsPacket)
+
+DEFINE_CLASS(LiveJoinRequestPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_LIVE_JOIN)
+    DEFINE_FIELD(bool, is_spectator)
+    DEFINE_FIELD_OPTIONAL(PlayerKartsPacket, player_karts) // is it optional?
+END_DEFINE_CLASS(LiveJoinRequestPacket)
+
+DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CLIENT_LOADED_WORLD)
+END_DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
+
+DEFINE_CLASS(ConnectionRequestedPacket)
+    DEFINE_FIELD(uint32_t, version)
+    DEFINE_FIELD(std::string, user_version)
+    DEFINE_FIELD(uint16_t, capabilities_count)
+    DEFINE_VECTOR(std::string, capabilities_count, capabilities)
+    DEFINE_FIELD(AssetsPacket, assets)
+    DEFINE_FIELD(uint8_t, players_count)
+    DEFINE_FIELD(uint32_t, online_id)
+    DEFINE_FIELD(uint32_t, encrypted_size)
+    // to be continued
+END_DEFINE_CLASS(ConnectionRequestedPacket)
+
+
 
 // end
