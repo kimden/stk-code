@@ -551,7 +551,7 @@ std::vector<SocketAddress> ServersManager::getBroadcastAddresses(bool ipv6)
                     continue;
                 used_scope_id.insert(scope_id);
                 SocketAddress socket_address("ff02::1",
-                    stk_config->m_server_discovery_port);
+                    STKConfig::get()->m_server_discovery_port);
                 in6 = (sockaddr_in6*)socket_address.getSockaddr();
                 in6->sin6_scope_id = scope_id;
                 result.push_back(socket_address);
