@@ -27,7 +27,7 @@ public:
     // ------------------------------------------------------------------------
     KartData(const KartProperties* kp);
     // ------------------------------------------------------------------------
-    KartData(const BareNetworkString& ns);
+    KartData(const KartDataPacket& packet);
     // ------------------------------------------------------------------------
     KartDataPacket encode() const;
 

@@ -24,15 +24,15 @@ KartData::KartData(const KartProperties* kp)
 }   // KartData(KartProperties*)
 
 // ----------------------------------------------------------------------------
-KartData::KartData(const BareNetworkString& ns)
+KartData::KartData(const KartDataPacket& packet)
 {
-    ns.decodeString(&m_kart_type);
+    m_kart_type = packet.kart_type;
     if (!m_kart_type.empty())
     {
-        m_width = ns.getFloat();
-        m_height = ns.getFloat();
-        m_length = ns.getFloat();
-        m_gravity_shift = ns.getVec3();
+        m_width = packet.parameters->width;
+        m_height = packet.parameters->height;
+        m_length = packet.parameters->length;
+        m_gravity_shift = packet.parameters->gravity_shift;
     }
     else
     {
@@ -40,7 +40,7 @@ KartData::KartData(const BareNetworkString& ns)
         m_height = 0.0f;
         m_length = 0.0f;
     }
-}   // KartData(BareNetworkString&)
+}   // KartData(KartDataPacket&)
 
 // ----------------------------------------------------------------------------
 KartDataPacket KartData::encode() const

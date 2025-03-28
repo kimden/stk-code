@@ -367,13 +367,12 @@ void ServerLobby::handleChat(Event* event)
     if (!checkDataSize(event, 1) || !getChatManager()->getChat()) return;
 
     auto peer = event->getPeerSP();
+    auto packet = event->getPacket<ChatPacket>();
 
-    core::stringw message;
-    event->data().decodeString16(&message, 360/*max_len*/);
-
+    core::stringw message = packet.message;
     KartTeam target_team = KART_TEAM_NONE;
-    if (event->data().size() > 0)
-        target_team = (KartTeam)event->data().getUInt8();
+    if (packet.kart_team)
+        target_team = *(packet.kart_team);
 
     getChatManager()->handleNormalChatMessage(peer,
             StringUtils::wideToUtf8(message), target_team);
@@ -387,8 +386,8 @@ void ServerLobby::changeTeam(Event* event)
 
     auto packet = event->getPacket<ChangeTeamPacket>();
     uint8_t local_id = packet.local_id;
-    auto& player = event->getPeer()->getPlayerProfiles().at(local_id);
 
+    auto& player = event->getPeer()->getPlayerProfiles().at(local_id);
     getTeamManager()->changeTeam(player);
 }   // changeTeam
 
@@ -1115,8 +1114,8 @@ void ServerLobby::liveJoinRequest(Event* event)
     // in general, but you know what caused it if smth goes wrong.
 
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
-    const NetworkString& data = event->data();
-    bool spectator = data.getUInt8() == 1;
+    auto packet = event->getPacket<LiveJoinRequestPacket>();
+    bool spectator = packet.is_spectator;
 
     if (!canLiveJoinNow())
     {
@@ -1134,7 +1133,7 @@ void ServerLobby::liveJoinRequest(Event* event)
     if (!spectator)
     {
         auto& spectators_by_limit = getSpectatorsByLimit();
-        setPlayerKarts(data, peer);
+        setPlayerKarts(packet.player_karts, peer);
 
         std::vector<int> used_id;
         for (unsigned i = 0; i < peer->getPlayerProfiles().size(); i++)
@@ -1175,10 +1174,13 @@ void ServerLobby::liveJoinRequest(Event* event)
 
     std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
         getLivePlayers();
-    NetworkString* load_world_message = getLoadWorldMessage(players,
-        true/*live_join*/);
+
+    NetworkString* load_world_message;
+    LoadWorldPacket load_world_packet = getLoadWorldMessage(players, true/*live_join*/);
+    load_world_packet.toNetworkString(load_world_message);
     peer->sendPacket(load_world_message, PRM_RELIABLE);
     delete load_world_message;
+
     peer->updateLastActivity();
 }   // liveJoinRequest
 
@@ -1252,6 +1254,7 @@ int ServerLobby::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
 void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
 {
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
+    auto unused = event->getPacket<FinishedLoadingLiveJoinPacket>();
     if (!canLiveJoinNow())
     {
         rejectLiveJoin(peer, BLR_NO_GAME_FOR_LIVE_JOIN);
@@ -2302,10 +2305,16 @@ void ServerLobby::saveIPBanTable(const SocketAddress& addr)
 bool ServerLobby::handleAssets(Event* event)
 {
     const NetworkString& ns = event->data();
+    auto packet = event->getPacket<NewAssetsPacket>();
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
 
-    std::set<std::string> client_karts, client_maps;
-    getClientAssetsFromNetworkString(ns, client_karts, client_maps);
+    std::set<std::string> client_karts;
+    for (const std::string& item: packet.assets.karts)
+        client_karts.insert(item);
+
+    std::set<std::string> client_maps;
+    for (const std::string& item: packet.assets.maps)
+        client_maps.insert(item);
 
     return handleAssetsAndAddonScores(peer, client_karts, client_maps);
 }   // handleAssets
@@ -2377,7 +2386,7 @@ bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
 void ServerLobby::connectionRequested(Event* event)
 {
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
-    NetworkString& data = event->data();
+    auto packet = event->getPacket<ConnectionRequestedPacket>();
     if (!checkDataSize(event, 14)) return;
 
     peer->cleanPlayerProfiles();
@@ -2399,7 +2408,7 @@ void ServerLobby::connectionRequested(Event* event)
     }
 
     // Check server version
-    int version = data.getUInt32();
+    int version = packet.version;
     if (version < stk_config->m_min_server_version ||
         version > stk_config->m_max_server_version)
     {
@@ -2413,30 +2422,36 @@ void ServerLobby::connectionRequested(Event* event)
         Log::verbose("ServerLobby", "Player refused: wrong server version");
         return;
     }
-    std::string user_version;
-    data.decodeString(&user_version);
+    std::string user_version = packet.user_version;
     event->getPeer()->setUserVersion(user_version);
 
-    unsigned list_caps = data.getUInt16();
+    unsigned list_caps = packet.capabilities_count;
     std::set<std::string> caps;
     for (unsigned i = 0; i < list_caps; i++)
     {
-        std::string cap;
-        data.decodeString(&cap);
+        std::string cap = packet.capabilities[i];
         caps.insert(cap);
     }
     event->getPeer()->setClientCapabilities(caps);
 
     std::set<std::string> client_karts, client_maps;
-    getClientAssetsFromNetworkString(data, client_karts, client_maps);
+
+    std::set<std::string> client_karts;
+    for (const std::string& item: packet.assets.karts)
+        client_karts.insert(item);
+
+    std::set<std::string> client_maps;
+    for (const std::string& item: packet.assets.maps)
+        client_maps.insert(item);
+
     if (!handleAssetsAndAddonScores(event->getPeerSP(), client_karts, client_maps))
         return;
 
-    unsigned player_count = data.getUInt8();
+    unsigned player_count = packet.players_count;
     uint32_t online_id = 0;
     uint32_t encrypted_size = 0;
-    online_id = data.getUInt32();
-    encrypted_size = data.getUInt32();
+    online_id = packet.online_id;
+    encrypted_size = packet.encrypted_size;
 
     // Will be disconnected if banned by IP
     testBannedForIP(peer);
@@ -3961,14 +3976,13 @@ void ServerLobby::addLiveJoinPlaceholder(
 }   // addLiveJoinPlaceholder
 
 //-----------------------------------------------------------------------------
-void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const
+void ServerLobby::setPlayerKarts(const PlayerKartsPacket& packet, std::shared_ptr<STKPeer> peer) const
 {
-    unsigned player_count = ns.getUInt8();
+    unsigned player_count = packet.players_count;
     player_count = std::min(player_count, (unsigned)peer->getPlayerProfiles().size());
     for (unsigned i = 0; i < player_count; i++)
     {
-        std::string kart;
-        ns.decodeString(&kart);
+        std::string kart = packet.karts[i];
         std::string username = StringUtils::wideToUtf8(
             peer->getPlayerProfiles()[i]->getName());
         if (getKartElimination()->isEliminated(username))
@@ -3989,12 +4003,13 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPee
         peer->getPlayerProfiles()[i]->setKartName(
                 getAssetManager()->getKartForBadKartChoice(peer, name, current_kart));
     }
+    /* packet.kart_data should be a pointer later*/
     if (peer->getClientCapabilities().find("real_addon_karts") ==
-        peer->getClientCapabilities().end() || ns.size() == 0)
+        peer->getClientCapabilities().end() || packet.kart_data.empty())
         return;
     for (unsigned i = 0; i < player_count; i++)
     {
-        KartData kart_data(ns);
+        KartData kart_data(packet.kart_data[i]);
         std::string type = kart_data.m_kart_type;
         auto& player = peer->getPlayerProfiles()[i];
         const std::string& kart_id = player->getKartName();
