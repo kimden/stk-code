@@ -283,7 +283,6 @@ private:
     bool supportsAI();
     void initTournamentPlayers();
 public:
-    void changeColors();
     void changeLimitForTournament(bool goal_target);
 private:
     bool canVote(std::shared_ptr<STKPeer> peer) const;
@@ -330,7 +329,6 @@ public:
     bool writeOnePlayerReport(std::shared_ptr<STKPeer> reporter, const std::string& table,
         const std::string& info);
     // int getTrackMaxPlayers(std::string& name) const;
-    void updateGnuElimination();
 
     void sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s);
     void sendStringToAllPeers(const std::string& s);

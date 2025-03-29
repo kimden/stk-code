@@ -54,7 +54,7 @@ public:
     std::string getStandings() const;
     std::string getStartingMessage() const;
     std::string getWarningMessage(bool isEliminated) const;
-    std::string update(std::map<std::string, double>& order);
+    std::string onRaceFinished();
 };
 
 #endif

@@ -3248,7 +3248,10 @@ void CommandManager::process_game(Context& context)
     getSettings()->setFixedLapCount(new_duration);
 
     if (tournament->hasColorsSwapped(new_game_number) ^ tournament->hasColorsSwapped(old_game_number))
-        getLobby()->changeColors();
+    {
+        getTeamManager()->changeColors();
+        getLobby()->updatePlayerList();
+    }
 
     if (tournament->hasGoalsLimit(new_game_number) ^ tournament->hasGoalsLimit(old_game_number))
         getLobby()->changeLimitForTournament(tournament->hasGoalsLimit());
