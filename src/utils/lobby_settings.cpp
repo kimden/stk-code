@@ -208,7 +208,7 @@ int LobbySettings::getFixedLapCount() const
 }   // getFixedLapCount
 //-----------------------------------------------------------------------------
 
-void LobbySettings::setMultiplier(int new_value)
+void LobbySettings::setMultiplier(double new_value)
 {
     m_default_lap_multiplier = new_value;
     m_fixed_lap = -1;
