@@ -412,3 +412,24 @@ bool TeamManager::assignRandomTeams(int intended_number,
     return true;
 }   // assignRandomTeams
 //-----------------------------------------------------------------------------
+
+void TeamManager::changeColors()
+{
+    // We assume here that it's soccer, as it's only called
+    // from tournament command
+    auto peers = STKHost::get()->getPeers();
+    for (auto peer : peers)
+    {
+        if (peer->hasPlayerProfiles())
+        {
+            // kimden: you assume that only [0] can be checked, but in other places
+            // of the code you are somehow not so sure about that... :)
+            auto pp = peer->getPlayerProfiles()[0];
+            if (pp->getTeam() == KART_TEAM_RED)
+                setTeamInLobby(pp, KART_TEAM_BLUE);
+            else if (pp->getTeam() == KART_TEAM_BLUE)
+                setTeamInLobby(pp, KART_TEAM_RED);
+        }
+    }
+}   // changeColors
+//-----------------------------------------------------------------------------

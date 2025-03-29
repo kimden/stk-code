@@ -2049,9 +2049,9 @@ void ServerLobby::checkRaceFinished()
 
     if (getKartElimination()->isEnabled())
     {
-        // ServerLobby's function because we need to take
-        // the list of players from somewhere
-        updateGnuElimination();
+        std::string msg = getKartElimination()->onRaceFinished();
+        if (!msg.empty())
+            sendStringToAllPeers(msg);
     }
 
     if (getSettings()->isStoringResults())
@@ -4137,25 +4137,7 @@ void ServerLobby::handleServerCommand(Event* event)
     getCommandManager()->handleCommand(event, peer);
 }   // handleServerCommand
 //-----------------------------------------------------------------------------
-void ServerLobby::updateGnuElimination()
-{
-    World* w = World::getWorld();
-    assert(w);
-    int player_count = RaceManager::get()->getNumPlayers();
-    std::map<std::string, double> order;
-    for (int i = 0; i < player_count; i++)
-    {
-        std::string username = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(i).getPlayerName());
-        if (w->getKart(i)->isEliminated())
-            order[username] = KartElimination::INF_TIME;
-        else
-            order[username] = RaceManager::get()->getKartRaceTime(i);
-    }
-    std::string msg = getKartElimination()->update(order);
-    if (!msg.empty())
-        sendStringToAllPeers(msg);
-}  // updateGnuElimination
-//-----------------------------------------------------------------------------
+
 void ServerLobby::storeResults()
 {
     if (!m_game_info)
@@ -4167,6 +4149,7 @@ void ServerLobby::storeResults()
     m_game_info->fillAndStoreResults();
 }  // storeResults
 //-----------------------------------------------------------------------------
+
 void ServerLobby::resetToDefaultSettings()
 {
     if (getSettings()->isServerConfigurable() && !getSettings()->isPreservingMode())
@@ -4175,6 +4158,7 @@ void ServerLobby::resetToDefaultSettings()
     getSettings()->onResetToDefaultSettings();
 }  // resetToDefaultSettings
 //-----------------------------------------------------------------------------
+
 void ServerLobby::writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_ptr<STKPeer> reporting, const std::string& info)
 {
 #ifdef ENABLE_SQLITE3
@@ -4212,29 +4196,6 @@ void ServerLobby::writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_
     }
 #endif
 }   // writeOwnReport
-//-----------------------------------------------------------------------------
-void ServerLobby::changeColors()
-{
-    // We assume here that it's soccer, as it's only called
-    // from tournament command
-    auto peers = STKHost::get()->getPeers();
-    for (auto peer : peers)
-    {
-        if (peer->hasPlayerProfiles())
-        {
-            auto pp = peer->getPlayerProfiles()[0];
-            if (pp->getTeam() == KART_TEAM_RED)
-            {
-                getTeamManager()->setTeamInLobby(pp, KART_TEAM_BLUE);
-            }
-            else if (pp->getTeam() == KART_TEAM_BLUE)
-            {
-                getTeamManager()->setTeamInLobby(pp, KART_TEAM_RED);
-            }
-        }
-    }
-    updatePlayerList();
-}   // changeColors
 //-----------------------------------------------------------------------------
 
 void ServerLobby::sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s)
