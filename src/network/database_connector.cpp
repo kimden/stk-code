@@ -173,7 +173,10 @@ bool DatabaseConnector::easySQLQuery(
                                                   std::string null_value) const
 {
     if (!m_db)
+    {
+        Log::error("DatabaseConnector", "easySQLQuery: There is no database!");
         return false;
+    }
     sqlite3_stmt* stmt = NULL;
     int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
     if (ret == SQLITE_OK)
@@ -1160,7 +1163,10 @@ bool DatabaseConnector::getBestResult(const GameInfo& game_info,
                             bool* exists, std::string* user, double* result)
 {
     if (!m_records_table_exists)
+    {
+        Log::error("DatabaseConnector", "getBestResult: records table doesn't exist!");
         return false;
+    }
     std::shared_ptr<BinderCollection> coll = std::make_shared<BinderCollection>();
     // Note that IS is important, as the strings corresponding to value/time
     // limits can be NULL instead. SQLite manual specifies that IS can be used
