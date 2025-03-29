@@ -283,7 +283,7 @@ namespace GUIEngine
         /**
          * \return which music to play at this screen
          */
-        virtual MusicInformation* getMusic() const { return stk_config->m_title_music; }
+        virtual MusicInformation* getMusic() const { return STKConfig::get()->m_title_music; }
 
         /**
          * \return which music to play at this screen, if accessed in "in-game-menu" mode

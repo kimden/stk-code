@@ -113,6 +113,9 @@ void ChildLoop::run()
 
     m_curr_time = StkTime::getMonoTimeMs();
     float left_over_time = 0;
+
+    auto& stk_config = STKConfig::get();
+
     while (!m_abort)
     {
         if (STKHost::existHost() && STKHost::get()->requestedShutdown())

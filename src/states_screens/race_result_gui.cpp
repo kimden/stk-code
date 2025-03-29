@@ -129,6 +129,8 @@ void RaceResultGUI::init()
     m_finish_sound = SFXManager::get()->quickSound(
         human_win ? "race_finish_victory" : "race_finish");
 
+    auto& stk_config = STKConfig::get();
+
     // Play different result music based on player kart positions.
     if (has_human_players)
     {

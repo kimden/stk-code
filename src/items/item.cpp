@@ -59,7 +59,7 @@ ItemState::ItemState(ItemType type, const AbstractKart *owner, int id)
     m_previous_owner = owner;
     m_used_up_counter = -1;
     if (owner)
-        setDeactivatedTicks(stk_config->time2Ticks(1.5f));
+        setDeactivatedTicks(STKConfig::get()->time2Ticks(1.5f));
     else
         setDeactivatedTicks(0);
 }   // ItemState(ItemType)
@@ -90,7 +90,7 @@ void ItemState::setDisappearCounter()
     switch (m_type)
     {
     case ITEM_BUBBLEGUM:
-        m_used_up_counter = stk_config->m_bubblegum_counter; break;
+        m_used_up_counter = STKConfig::get()->m_bubblegum_counter; break;
     case ITEM_EASTER_EGG:
         m_used_up_counter = -1; break;
     default:
@@ -135,6 +135,7 @@ void ItemState::update(int ticks)
  */
 void ItemState::collected(const AbstractKart *kart)
 {
+    auto& stk_config = STKConfig::get();
     if (m_type == ITEM_EASTER_EGG)
     {
         // They will disappear 'forever'
@@ -446,6 +447,8 @@ void Item::updateGraphics(float dt)
         handleNewMesh(getGrahpicalType());
         m_graphical_type = getGrahpicalType();
     }
+
+    auto& stk_config = STKConfig::get();
 
     float time_till_return = stk_config->ticks2Time(getTicksTillReturn());
     bool is_visible = isAvailable() || time_till_return <= 1.0f ||

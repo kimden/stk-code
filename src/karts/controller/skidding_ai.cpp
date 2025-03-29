@@ -224,7 +224,7 @@ unsigned int SkiddingAI::getNextSector(unsigned int index)
  */
 void SkiddingAI::update(int ticks)
 {
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
 
     // Clear stored items if they were deleted (for example a switched nitro)
     if (m_item_to_collect &&
@@ -1182,6 +1182,8 @@ void SkiddingAI::handleItems(const float dt, const Vec3 *aim_point, int last_nod
     //items_to_avoid and items_to_collect now contain the closest item information needed after
     //What matters is (a) if the lists are void ; (b) if they are not, what kind of item it is
    
+    auto& stk_config = STKConfig::get();
+
     switch( m_kart->getPowerup()->getType() )
     {
     case PowerupManager::POWERUP_BUBBLEGUM:
@@ -1373,6 +1375,9 @@ void SkiddingAI::handleBubblegum(int item_skill,
         m_controls->setLookBack(false);
         return;
     }
+
+    auto& stk_config = STKConfig::get();
+
     //if it is a bomb, wait : we may pass it to another kart before the timer runs out
     if (item_skill == 5 && type == Attachment::ATTACH_BOMB)
     {
@@ -1687,6 +1692,8 @@ void SkiddingAI::handleSwatter(int item_skill)
         m_controls->setFire(true);
         return;
     }
+
+    auto& stk_config = STKConfig::get();
     
     // Use swatter to remove bad attachments
     if((item_skill == 4) || (item_skill == 5))
@@ -2053,7 +2060,7 @@ void SkiddingAI::handleAccelerationAndBraking(int ticks)
         return;
     }
 
-    m_controls->setAccel(stk_config->m_ai_acceleration);
+    m_controls->setAccel(STKConfig::get()->m_ai_acceleration);
 
 }   // handleAccelerationAndBraking
 
@@ -2129,35 +2136,37 @@ void SkiddingAI::handleBraking(float max_turn_speed, float min_speed)
 //-----------------------------------------------------------------------------
 void SkiddingAI::handleRaceStart()
 {
-    if( m_start_delay <  0 )
+    if (m_start_delay >= 0)
+        return;
+
+    auto& stk_config = STKConfig::get();
+
+    if (m_enabled_network_ai)
     {
-        if (m_enabled_network_ai)
-        {
-            m_start_delay = 0;
-            return;
-        }
-        // Each kart starts at a different, random time, and the time is
-        // smaller depending on the difficulty.
-        m_start_delay = stk_config->time2Ticks(
-                        m_ai_properties->m_min_start_delay
-                      + (float) rand() / (float) RAND_MAX
-                      * (m_ai_properties->m_max_start_delay -
-                         m_ai_properties->m_min_start_delay)   );
-
-        float false_start_probability =
-               m_superpower == RaceManager::SUPERPOWER_NOLOK_BOSS
-               ? 0.0f  : m_ai_properties->m_false_start_probability;
-
-        // Now check for a false start. If so, add 1 second penalty time.
-        if (rand() < (float) RAND_MAX * false_start_probability)
-        {
-            m_start_delay+=stk_config->m_penalty_ticks;
-            return;
-        }
-        m_kart->setStartupBoost(m_kart->getStartupBoostFromStartTicks(
-            m_start_delay + stk_config->time2Ticks(1.0f)));
         m_start_delay = 0;
+        return;
     }
+    // Each kart starts at a different, random time, and the time is
+    // smaller depending on the difficulty.
+    m_start_delay = stk_config->time2Ticks(
+                    m_ai_properties->m_min_start_delay
+                    + (float) rand() / (float) RAND_MAX
+                    * (m_ai_properties->m_max_start_delay -
+                        m_ai_properties->m_min_start_delay)   );
+
+    float false_start_probability =
+            m_superpower == RaceManager::SUPERPOWER_NOLOK_BOSS
+            ? 0.0f  : m_ai_properties->m_false_start_probability;
+
+    // Now check for a false start. If so, add 1 second penalty time.
+    if (rand() < (float) RAND_MAX * false_start_probability)
+    {
+        m_start_delay += stk_config->m_penalty_ticks;
+        return;
+    }
+    m_kart->setStartupBoost(m_kart->getStartupBoostFromStartTicks(
+        m_start_delay + stk_config->time2Ticks(1.0f)));
+    m_start_delay = 0;
 }   // handleRaceStart
 
 //-----------------------------------------------------------------------------
@@ -2197,7 +2206,7 @@ void SkiddingAI::handleNitroAndZipper(float max_safe_speed)
    
     //Nitro continue to be advantageous during the fadeout (nitro ticks continue to tick in the negatives)
     int nitro_ticks = m_kart->getSpeedIncreaseTicksLeft(MaxSpeed::MS_INCREASE_NITRO);
-    float time_until_fadeout = ( stk_config->ticks2Time(nitro_ticks)
+    float time_until_fadeout = ( STKConfig::get()->ticks2Time(nitro_ticks)
                        + m_kart->getKartProperties()->getNitroFadeOutTime() );
 
     // Because it takes some time after nitro activation to accelerate to the increased max speed,

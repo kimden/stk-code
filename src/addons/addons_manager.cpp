@@ -204,12 +204,14 @@ void AddonsManager::initAddons(const XMLNode *xml)
 
             bool wrong_version=false;
 
+            auto& stk_config = STKConfig::get();
+
             if(addon.getType()=="kart")
-                wrong_version = stk_version <stk_config->m_min_kart_version ||
-                                stk_version >stk_config->m_max_kart_version   ;
+                wrong_version = stk_version < stk_config->m_min_kart_version ||
+                                stk_version > stk_config->m_max_kart_version   ;
             else
-                wrong_version = stk_version <stk_config->m_min_track_version ||
-                                stk_version >stk_config->m_max_track_version   ;
+                wrong_version = stk_version < stk_config->m_min_track_version ||
+                                stk_version > stk_config->m_max_track_version   ;
             // If the add-on is included, behave like it is a wrong version
             if (addon.testIncluded(addon.getMinIncludeVer(), addon.getMaxIncludeVer()))
                 wrong_version = true;
@@ -658,7 +660,7 @@ void AddonsManager::saveInstalled()
     xml_installed << "<?xml version=\"1.0\"?>" << std::endl;
 
     // Get server address from config
-    const std::string server = stk_config->m_server_addons;
+    const std::string server = STKConfig::get()->m_server_addons;
 
     // Find the third slash (end of the domain)
     std::string::size_type index = server.find('/');

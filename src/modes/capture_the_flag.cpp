@@ -181,7 +181,7 @@ void CaptureTheFlag::updateGraphics(float dt)
     // a point has been scored recently
     const bool scored_recently =
         getTicksSinceStart() > m_last_captured_flag_ticks &&
-        getTicksSinceStart() - m_last_captured_flag_ticks < stk_config->time2Ticks(2.0f);
+        getTicksSinceStart() - m_last_captured_flag_ticks < STKConfig::get()->time2Ticks(2.0f);
     if (m_red_flag_status != m_red_flag->getStatus())
     {
         if (m_red_flag->getHolder() != -1)
@@ -231,7 +231,7 @@ void CaptureTheFlag::update(int ticks)
     for (auto it = m_swatter_reset_kart_ticks.begin();
          it != m_swatter_reset_kart_ticks.end();)
     {
-        if (it->second < getTicksSinceStart() - stk_config->time2Ticks(8.0f))
+        if (it->second < getTicksSinceStart() - STKConfig::get()->time2Ticks(8.0f))
         {
             it = m_swatter_reset_kart_ticks.erase(it);
         }
@@ -416,28 +416,10 @@ void CaptureTheFlag::ctfScored(int kart_id, bool red_team_scored,
     std::shared_ptr<GameInfo> game_info = getGameInfo();
     if (game_info)
     {
-        game_info->m_player_info.emplace_back(false/* reserved */,
-                                                true/* game event*/);
-        auto& info = game_info->m_player_info.back();
-        RemoteKartInfo& rki = RaceManager::get()->getKartInfo(kart_id);
-        info.m_username = StringUtils::wideToUtf8(name);
-        info.m_result = (red_team_scored ? 1 : -1);
-        info.m_kart = rki.getKartName();
-        info.m_kart_class = rki.getKartData().m_kart_type;
-        info.m_kart_color = rki.getDefaultKartColor();
-        info.m_team = (int8_t)rki.getKartTeam();
-        if (info.m_team == KartTeam::KART_TEAM_NONE)
-        {
-            auto npp = rki.getNetworkPlayerProfile().lock();
-            if (npp)
-                info.m_team = npp->getTemporaryTeam() - 1;
-        }
-        info.m_handicap = (uint8_t)rki.getHandicap();
-        info.m_start_position = getStartPosition(kart_id);
-        info.m_online_id = rki.getOnlineId();
-        info.m_country_code = rki.getCountryCode();
-        info.m_when_joined = stk_config->ticks2Time(getTicksSinceStart());
-        info.m_when_left = info.m_when_joined;
+        unsigned start_pos = getStartPosition(kart_id);
+        float time_since_start = STKConfig::get()->ticks2Time(getTicksSinceStart());
+        game_info->onFlagCaptured(red_team_scored, name,
+                kart_id, start_pos, time_since_start);
     }
 #ifndef SERVER_ONLY
     // Don't set animation and show message if receiving in live join

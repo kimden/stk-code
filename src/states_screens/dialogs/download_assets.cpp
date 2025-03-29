@@ -59,7 +59,7 @@ public:
     : HTTPRequest("stk-assets.zip", /*priority*/5)
     {
         m_extraction_error = true;
-        std::string download_url = stk_config->m_assets_download_url;
+        std::string download_url = STKConfig::get()->m_assets_download_url;
         download_url += STK_VERSION;
         download_url += "/stk-assets.zip";
         setURL(download_url);

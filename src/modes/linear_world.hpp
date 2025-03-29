@@ -214,7 +214,7 @@ public:
     {
         if (m_kart_info[kart_index].m_start_time == INT_MAX)
             return -1.0;
-        return stk_config->ticks2Time(
+        return STKConfig::get()->ticks2Time(
                 m_kart_info[kart_index].m_start_time);
     }   // getStartTimeForKart
     // ------------------------------------------------------------------------
@@ -222,7 +222,7 @@ public:
     {
         if (m_kart_info[kart_index].m_fastest_lap_ticks == INT_MAX)
             return -1.0;
-        return stk_config->ticks2Time(
+        return STKConfig::get()->ticks2Time(
                 m_kart_info[kart_index].m_fastest_lap_ticks);
     }   // getFastestLapForKart
     // ------------------------------------------------------------------------
@@ -246,7 +246,7 @@ public:
     /** Returns time for the fastest laps */
     float getFastestLap() const
     {
-        return stk_config->ticks2Time(m_fastest_lap_ticks);
+        return STKConfig::get()->ticks2Time(m_fastest_lap_ticks);
     }
     // ------------------------------------------------------------------------
     /** Returns the kart name that made the fastest lap time */

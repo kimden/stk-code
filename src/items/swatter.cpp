@@ -73,6 +73,9 @@ Swatter::Swatter(AbstractKart *kart, int16_t bomb_ticks, int ticks,
     m_bomb_remaining   = bomb_ticks;
     m_scene_node       = NULL;
     m_bomb_scene_node  = NULL;
+
+    auto& stk_config = STKConfig::get();
+
     m_swatter_duration = stk_config->time2Ticks(
         kart->getKartProperties()->getSwatterDuration());
     if (m_bomb_remaining != -1)
@@ -109,6 +112,7 @@ Swatter::~Swatter()
 // ----------------------------------------------------------------------------
 void Swatter::updateGraphics(float dt)
 {
+    auto& stk_config = STKConfig::get();
 #ifndef SERVER_ONLY
     if (m_bomb_remaining != -1)
     {
@@ -243,6 +247,8 @@ bool Swatter::updateAndTestFinished()
     // m_discard_ticks > world ticks
     if (m_bomb_remaining != -1)
         return false;
+
+    auto& stk_config = STKConfig::get();
 
     if (!m_discard_now)
     {

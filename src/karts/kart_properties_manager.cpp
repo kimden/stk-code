@@ -302,6 +302,8 @@ bool KartPropertiesManager::loadKart(const std::string &dir)
         return false;
     }
 
+    auto& stk_config = STKConfig::get();
+
     // If the version of the kart file is not supported,
     // ignore this .kart file
     if (kart_properties->getVersion() < stk_config->m_min_kart_version ||

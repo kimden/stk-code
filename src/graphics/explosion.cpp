@@ -39,6 +39,7 @@ Explosion::Explosion(const Vec3& coord, const char* explosion_sound, const char 
 {
     // short emision time, explosion, not constant flame
 
+    auto& stk_config = STKConfig::get();
     m_explosion_ticks = stk_config->time2Ticks(2.0f);
     m_remaining_ticks = stk_config->time2Ticks(0.1f);
     m_emission_frames = 0;

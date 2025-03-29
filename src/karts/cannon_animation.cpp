@@ -118,7 +118,7 @@ void CannonAnimation::init(Ipo *ipo, const Vec3 &start_left,
     m_current_rotation =
         MiniGLM::compressQuaternion(m_created_transform.getRotation());
     m_curve = new AnimationBase(ipo);
-    m_end_ticks = m_created_ticks + stk_config->time2Ticks(ipo->getEndTime());
+    m_end_ticks = m_created_ticks + STKConfig::get()->time2Ticks(ipo->getEndTime());
 
     // First make sure that left and right points are indeed correct
     // -------------------------------------------------------------
@@ -324,7 +324,7 @@ void CannonAnimation::update(int ticks)
         // Adjust the horizontal location based on steering
         // Use values from getControls directly because in networking steering
         // can be smoothed for remote karts
-        float dt = stk_config->ticks2Time(ticks);
+        float dt = STKConfig::get()->ticks2Time(ticks);
         m_fraction_of_line += m_kart->getControls().getSteer() * dt * 2.0f;
         btClamp(m_fraction_of_line, -1.0f, 1.0f);
     }   // if m_kart

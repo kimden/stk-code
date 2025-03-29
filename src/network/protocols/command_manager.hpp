@@ -55,6 +55,22 @@ class STKPeer;
 
 class CommandManager: public LobbyContextComponent
 {
+public:
+    enum ModeScope: int
+    {
+        MS_DEFAULT = 1,
+        MS_SOCCER_TOURNAMENT = 2
+        // add more powers of two if needed
+    };
+
+    enum StateScope: int
+    {
+        SS_LOBBY = 1,
+        SS_INGAME = 2,
+        SS_ALWAYS = SS_LOBBY | SS_INGAME
+    };
+
+private:
     struct FileResource
     {
         std::string m_file_name;
@@ -89,20 +105,6 @@ class CommandManager: public LobbyContextComponent
 
     template<typename T>
     void add_to_queue(int x, int mask, bool to_front, std::string& s) const;
-
-    enum ModeScope: int
-    {
-        MS_DEFAULT = 1,
-        MS_SOCCER_TOURNAMENT = 2
-        // add more powers of two if needed
-    };
-
-    enum StateScope: int
-    {
-        SS_LOBBY = 1,
-        SS_INGAME = 2,
-        SS_ALWAYS = SS_LOBBY | SS_INGAME
-    };
 
     struct Command;
 
@@ -232,6 +234,15 @@ private:
 
     SetTypoFixer m_stf_addon_maps;
 
+    enum TypoFixerType
+    {
+        TFT_PRESENT_USERS,
+        TFT_ALL_MAPS,
+        TFT_ADDON_MAPS
+    };
+
+    const SetTypoFixer& getFixer(TypoFixerType type);
+
     std::vector<std::string> m_current_argv;
 
     // Auxiliary things, should be moved somewhere because they just help
@@ -249,7 +260,6 @@ private:
     void initAssets();
 
     int getCurrentModeScope();
-    int getCurrentStateScope();
 
     bool isAvailable(std::shared_ptr<Command> c);
 
@@ -378,12 +388,17 @@ public:
             std::vector<std::string>& argv, char c, char d, char e, char f,
             int from = 0);
 
+    // A simple version of hasTypo for validating simple arguments.
+    // Returns the opposite bool value.
+    bool validate(Context& ctx, int idx,
+            TypoFixerType fixer_type, bool case_sensitive, bool allow_as_is);
+
     bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
-        SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
+        const SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
         bool dont_replace = false, int subidx = 0, int substr_l = -1, int substr_r = -1);
 
-    void onResetServer();
+    void onServerSetup();
 
     void onStartSelection();
 
@@ -395,8 +410,6 @@ public:
 
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
-
-    bool assignRandomTeams(int intended_number, int* final_number, int* player_number);
 
 };
 

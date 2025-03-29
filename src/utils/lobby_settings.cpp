@@ -26,6 +26,7 @@
 #include "network/network_string.hpp"
 #include "network/peer_vote.hpp"
 #include "network/server_config.hpp"
+#include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "network/protocols/server_lobby.hpp"
 #include "network/game_setup.hpp"
@@ -39,17 +40,17 @@
 #include "utils/string_utils.hpp"
 #include "utils/tournament.hpp"
 
+
 void LobbySettings::setupContextUser()
 {
-    m_game_setup = getLobby()->getGameSetup();
 
     m_motd = StringUtils::wideToUtf8(
-        m_game_setup->readOrLoadFromFile(
+        getGameSetupFromCtx()->readOrLoadFromFile(
             (std::string) ServerConfig::m_motd
         )
     );
     m_help_message = StringUtils::wideToUtf8(
-        m_game_setup->readOrLoadFromFile(
+        getGameSetupFromCtx()->readOrLoadFromFile(
             (std::string) ServerConfig::m_help
         )
     );
@@ -60,8 +61,11 @@ void LobbySettings::setupContextUser()
     m_legacy_gp_mode_started = false;
 
     m_last_reset = 0;
+    m_save_server_config = true;
 
     m_fixed_direction = ServerConfig::m_fixed_direction;
+
+    m_current_max_players_in_game = ServerConfig::m_max_players_in_game;
 
     setDefaultLapRestrictions();
 
@@ -69,7 +73,6 @@ void LobbySettings::setupContextUser()
     m_allowed_to_start = ServerConfig::m_allowed_to_start;
 
     initAvailableModes();
-    initAvailableTracks();
 
     loadWhiteList();
     loadPreservedSettings();
@@ -93,10 +96,6 @@ void LobbySettings::setupContextUser()
     m_kicks_allowed                  = ServerConfig::m_kicks_allowed;
     m_max_ping                       = ServerConfig::m_max_ping;
     m_min_start_game_players         = ServerConfig::m_min_start_game_players;
-    m_official_karts_play_threshold  = ServerConfig::m_official_karts_play_threshold;
-    m_official_tracks_play_threshold = ServerConfig::m_official_tracks_play_threshold;
-    m_only_host_riding               = ServerConfig::m_only_host_riding;
-    m_owner_less                     = ServerConfig::m_owner_less;
     m_preserve_battle_scores         = ServerConfig::m_preserve_battle_scores;
     m_private_server_password        = ServerConfig::m_private_server_password;
     m_ranked                         = ServerConfig::m_ranked;
@@ -106,7 +105,6 @@ void LobbySettings::setupContextUser()
     m_server_difficulty              = ServerConfig::m_server_difficulty;
     m_server_max_players             = ServerConfig::m_server_max_players;
     m_server_mode                    = ServerConfig::m_server_mode;
-    m_sleeping_server                = ServerConfig::m_sleeping_server;
     m_soccer_goal_target             = ServerConfig::m_soccer_goal_target;
     m_sql_management                 = ServerConfig::m_sql_management;
     m_start_game_counter             = ServerConfig::m_start_game_counter;
@@ -122,18 +120,8 @@ void LobbySettings::setupContextUser()
     m_validating_player              = ServerConfig::m_validating_player;
     m_voting_timeout                 = ServerConfig::m_voting_timeout;
     m_commands_file                  = ServerConfig::m_commands_file;
-    m_addon_karts_join_threshold     = ServerConfig::m_addon_karts_join_threshold;
-    m_addon_tracks_join_threshold    = ServerConfig::m_addon_tracks_join_threshold;
-    m_addon_arenas_join_threshold    = ServerConfig::m_addon_arenas_join_threshold;
-    m_addon_soccers_join_threshold   = ServerConfig::m_addon_soccers_join_threshold;
-    m_addon_arenas_play_threshold    = ServerConfig::m_addon_arenas_play_threshold;
-    m_addon_karts_play_threshold     = ServerConfig::m_addon_karts_play_threshold;
-    m_addon_soccers_play_threshold   = ServerConfig::m_addon_soccers_play_threshold;
-    m_addon_tracks_play_threshold    = ServerConfig::m_addon_tracks_play_threshold;
     m_power_password                 = ServerConfig::m_power_password;
     m_register_table_name            = ServerConfig::m_register_table_name;
-    m_official_karts_threshold       = ServerConfig::m_official_karts_threshold;
-    m_official_tracks_threshold      = ServerConfig::m_official_tracks_threshold;
     m_lobby_cooldown                 = ServerConfig::m_lobby_cooldown;
 }   // setupContextUser
 //-----------------------------------------------------------------------------
@@ -170,16 +158,6 @@ void LobbySettings::initAvailableModes()
         }
     }
 }  // initAvailableModes
-//-----------------------------------------------------------------------------
-
-void LobbySettings::initAvailableTracks()
-{
-    m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
-    m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
-    getAssetManager()->setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
-    m_play_requirement_tracks = StringUtils::split(
-            ServerConfig::m_play_requirement_tracks_string, ' ', false);
-}   // initAvailableTracks
 //-----------------------------------------------------------------------------
 
 void LobbySettings::loadWhiteList()
@@ -362,20 +340,6 @@ std::string LobbySettings::getWhetherShuffledGPGridAsString(bool just_edited) co
 }   // getWhetherShuffledGPGridAsString
 //-----------------------------------------------------------------------------
 
-std::vector<std::string> LobbySettings::getMissingAssets(
-        std::shared_ptr<STKPeer> peer) const
-{
-    if (m_play_requirement_tracks.empty())
-        return {};
-
-    std::vector<std::string> ans;
-    for (const std::string& required_track : m_play_requirement_tracks)
-        if (peer->getClientAssets().second.count(required_track) == 0)
-            ans.push_back(required_track);
-    return ans;
-}   // getMissingAssets
-//-----------------------------------------------------------------------------
-
 void LobbySettings::updateWorldSettings(std::shared_ptr<GameInfo> game_info)
 {
     World::getWorld()->setGameInfo(game_info);
@@ -491,7 +455,7 @@ void LobbySettings::initializeDefaultVote()
             }
             else
             {
-                if (m_game_setup->isSoccerGoalTarget())
+                if (getGameSetupFromCtx()->isSoccerGoalTarget())
                 {
                     m_default_vote->m_num_laps =
                         (uint8_t)(UserConfigParams::m_num_goals);
@@ -516,18 +480,6 @@ void LobbySettings::initializeDefaultVote()
 }   // initializeDefaultVote
 //-----------------------------------------------------------------------------
 
-void LobbySettings::applyGlobalFilter(FilterContext& map_context) const
-{
-    m_global_filter.apply(map_context);
-}   // applyGlobalFilter
-//-----------------------------------------------------------------------------
-
-void LobbySettings::applyGlobalKartsFilter(FilterContext& kart_context) const
-{
-    m_global_karts_filter.apply(kart_context);
-}   // applyGlobalKartsFilter
-//-----------------------------------------------------------------------------
-
 void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
 {
     if (RaceManager::get()->modeHasLaps())
@@ -545,7 +497,7 @@ void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
     }
     else if (RaceManager::get()->isSoccerMode())
     {
-        if (m_game_setup->isSoccerGoalTarget())
+        if (getGameSetupFromCtx()->isSoccerGoalTarget())
         {
             if (hasMultiplier())
             {
@@ -584,6 +536,21 @@ void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
     if (hasFixedDirection())
         vote->m_reverse = (getDirection() == 1);
 }   // applyRestrictionsOnVote
+//-----------------------------------------------------------------------------
+
+void LobbySettings::applyRestrictionsOnWinnerVote(PeerVote* winner_vote) const
+{
+    if (hasFixedLapCount())
+    {
+        winner_vote->m_num_laps = getFixedLapCount();
+        Log::info("LobbySettings", "Enforcing %d lap race", getFixedLapCount());
+    }
+    if (hasFixedDirection())
+    {
+        winner_vote->m_reverse = (getDirection() == 1);
+        Log::info("LobbySettings", "Enforcing direction %d", (int)getDirection());
+    }
+}   // applyRestrictionsOnWinnerVote
 //-----------------------------------------------------------------------------
 
 void LobbySettings::encodeDefaultVote(NetworkString* ns) const
@@ -684,3 +651,27 @@ bool LobbySettings::isCooldown() const
     return passed_since_reset < 1000 * m_lobby_cooldown;
 }   // isCooldown
 //-----------------------------------------------------------------------------
+
+void LobbySettings::getLobbyHitCaptureLimit()
+{
+    int hit_capture_limit = std::numeric_limits<int>::max();
+    float time_limit = 0.0f;
+    if (RaceManager::get()->getMinorMode() ==
+        RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+    {
+        if (m_capture_limit > 0)
+            hit_capture_limit = m_capture_limit;
+        if (m_time_limit_ctf > 0)
+            time_limit = (float)m_time_limit_ctf;
+    }
+    else
+    {
+        if (m_hit_limit > 0)
+            hit_capture_limit = m_hit_limit;
+        if (m_time_limit_ffa > 0.0f)
+            time_limit = (float)m_time_limit_ffa;
+    }
+    m_battle_hit_capture_limit = hit_capture_limit;
+    m_battle_time_limit = time_limit;
+}   // getLobbyHitCaptureLimit
+// ----------------------------------------------------------------------------

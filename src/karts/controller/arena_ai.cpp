@@ -107,6 +107,8 @@ void ArenaAI::update(int ticks)
         m_ticks_since_off_road = 0;
     }
 
+    auto& stk_config = STKConfig::get();
+
     // If the kart needs to be rescued, do it now (and nothing else)
     if (m_ticks_since_off_road > stk_config->time2Ticks(5.0f) &&
         m_kart->isOnGround()                                     )
@@ -357,7 +359,7 @@ void ArenaAI::configSpeed()
     else
     {
         // Otherwise accelerate
-        m_controls->setAccel(stk_config->m_ai_acceleration * handicap);
+        m_controls->setAccel(STKConfig::get()->m_ai_acceleration * handicap);
     }
 }   // configSpeed
 
@@ -395,6 +397,8 @@ bool ArenaAI::gettingUnstuck(int ticks)
     if (!m_is_stuck || m_is_uturn) return false;
 
     resetAfterStop();
+
+    auto& stk_config = STKConfig::get();
     float dt = stk_config->ticks2Time(ticks);
     setSteering(0.0f, dt);
     m_controls->setBrake(true);

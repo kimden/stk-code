@@ -282,6 +282,8 @@ void Powerup::use()
         m_sound_use = SFXManager::get()->createSoundSource("shoot");
     }
 
+    auto& stk_config = STKConfig::get();
+
     m_number--;
     World *world = World::getWorld();
     ItemManager* im = Track::getCurrentTrack()->getItemManager();
@@ -582,6 +584,8 @@ void Powerup::hitBonusBox(const ItemState &item_state)
 
     new_powerup = powerup_manager->getRandomPowerup(position, &n, 
                                                     random_number);
+
+    auto& stk_config = STKConfig::get();
 
     // Always add a new powerup in ITEM_MODE_NEW (or if the kart
     // doesn't have a powerup atm).

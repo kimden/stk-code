@@ -23,6 +23,7 @@
 
 #include "utils/string_utils.hpp"
 #include "utils/time.hpp"
+#include "utils/lobby_context.hpp"
 
 #include <functional>
 #include <iostream>
@@ -105,7 +106,7 @@ std::ostream& operator << (std::ostream& os, const Binder& binder);
  *   of this class, while the logic corresponding to those queries should not
  *   belong here.
  */
-class DatabaseConnector
+class DatabaseConnector: public LobbyContextComponent
 {
 private:
     sqlite3* m_db;
@@ -121,6 +122,10 @@ private:
     uint64_t m_last_poll_db_time;
 
 public:
+    DatabaseConnector(LobbyContext* context): LobbyContextComponent(context) {}
+
+    void setupContextUser() OVERRIDE;
+
     /** Corresponds to the row of IPv4 ban table. */
     struct IpBanTableData
     {

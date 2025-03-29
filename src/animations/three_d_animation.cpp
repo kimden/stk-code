@@ -86,7 +86,7 @@ void ThreeDAnimation::updateWithWorldTicks(bool has_physics)
     if (!m_is_paused)
     {
         int cur_ticks = World::getWorld()->getTicksSinceStart();
-        m_current_time = stk_config->ticks2Time(cur_ticks);
+        m_current_time = STKConfig::get()->ticks2Time(cur_ticks);
     }
 
     AnimationBase::getAt(m_current_time, &xyz, &m_hpr, &scale);     //updates all IPOs

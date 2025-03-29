@@ -225,7 +225,7 @@ void CameraFPS::update(float dt)
 
         // Move the camera with the kart
         btTransform t = m_kart->getSmoothedTrans();
-        if (stk_config->m_camera_follow_skid &&
+        if (STKConfig::get()->m_camera_follow_skid &&
             m_kart->getSkidding()->getVisualSkidRotation() != 0)
         {
             // If the camera should follow the graphical skid, add the

@@ -57,7 +57,7 @@ TrackManager::~TrackManager()
 }   // ~TrackManager
 
 //-----------------------------------------------------------------------------
-std::shared_ptr<TrackManager> TrackManager::get()
+std::shared_ptr<TrackManager>& TrackManager::get()
 {
     static std::shared_ptr<TrackManager> instance = std::make_shared<TrackManager>();
     return instance;
@@ -226,8 +226,10 @@ bool TrackManager::loadTrack(const std::string& dirname)
         return false;
     }
 
-    if (track->getVersion()<stk_config->m_min_track_version ||
-        track->getVersion()>stk_config->m_max_track_version)
+    auto& stk_config = STKConfig::get();
+
+    if (track->getVersion() < stk_config->m_min_track_version ||
+        track->getVersion() > stk_config->m_max_track_version)
     {
         Log::warn("TrackManager", "Track '%s' is not supported "
                         "by this binary, ignored. (Track is version %i, this "

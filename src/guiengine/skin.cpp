@@ -187,6 +187,7 @@ namespace SkinConfig
     static void loadFromFile(std::string file, bool clear_prev_params)
     {
         m_data_path.clear();
+        auto& stk_config = STKConfig::get();
         if (clear_prev_params)
         {
             // Clear global variables

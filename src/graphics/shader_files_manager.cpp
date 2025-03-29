@@ -210,7 +210,7 @@ ShaderFilesManager::SharedShader ShaderFilesManager::loadShader
         code << "precision mediump sampler2DArray;\n";
     }
 #endif
-    code << "#define MAX_BONES " << stk_config->m_max_skinning_bones << "\n";
+    code << "#define MAX_BONES " << STKConfig::get()->m_max_skinning_bones << "\n";
 
     code << getHeader();
 

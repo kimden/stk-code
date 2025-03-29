@@ -95,6 +95,8 @@ void SkidMarks::update(float dt, bool force_skid_marks,
     if (m_kart.isWheeless())
         return;
 
+    auto& stk_config = STKConfig::get();
+
     float f = dt / stk_config->m_skid_fadeout_time;
     auto it = m_left.begin();
     // Don't clean the current skidmarking

@@ -169,7 +169,7 @@ NetworkConfig::NetworkConfig()
 void NetworkConfig::initClientPort()
 {
     m_client_port = UserConfigParams::m_random_client_port ?
-        0 : stk_config->m_client_port;
+        0 : STKConfig::get()->m_client_port;
 }   // initClientPort
 
 // ----------------------------------------------------------------------------
@@ -730,6 +730,9 @@ const std::vector<std::pair<std::string, int> >&
 {
     static std::vector<std::pair<std::string, int> > ipv4_list;
     static std::vector<std::pair<std::string, int> > ipv6_list;
+
+    auto& stk_config = STKConfig::get();
+
     if (ipv4)
     {
         if (ipv4_list.empty())

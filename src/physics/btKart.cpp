@@ -499,6 +499,8 @@ void btKart::updateVehicle( btScalar step )
         m_chassisBody->applyCentralImpulse(downwards_impulse);
     }
 
+    auto& stk_config = STKConfig::get();
+
     // Apply additional impulse set by supertuxkart
     // --------------------------------------------
     if(m_ticks_additional_impulse>0)

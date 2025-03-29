@@ -720,6 +720,7 @@ void PhysicalObject::reset()
 // ----------------------------------------------------------------------------
 void PhysicalObject::handleExplosion(const Vec3& pos, bool direct_hit)
 {
+    auto& stk_config = STKConfig::get();
 
     if(direct_hit)
     {
@@ -740,7 +741,7 @@ void PhysicalObject::handleExplosion(const Vec3& pos, bool direct_hit)
         // = diff*impulseSize/len(diff)^3
         // We use diff*impulseSize/len(diff)^2 here, this makes the impulse
         // somewhat larger, which is actually more fun :)
-        btVector3 impulse=diff*stk_config->m_explosion_impulse_objects/len2;
+        btVector3 impulse = diff * stk_config->m_explosion_impulse_objects / len2;
         m_body->applyCentralImpulse(impulse);
     }
     m_body->activate();

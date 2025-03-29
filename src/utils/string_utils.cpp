@@ -626,7 +626,7 @@ namespace StringUtils
     /** Returns the time (in seconds) as string, based on ticks. */
     std::string ticksTimeToString(int ticks)
     {
-        return timeToString(stk_config->ticks2Time(ticks));
+        return timeToString(STKConfig::get()->ticks2Time(ticks));
     }   // ticksTimeToString(ticks)
 
     // ------------------------------------------------------------------------

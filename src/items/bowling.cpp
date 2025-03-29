@@ -251,5 +251,5 @@ void Bowling::onFireFlyable()
     setAdjustUpVelocity(false);
 
     // should not live forever, auto-destruct after 20 seconds
-    m_max_lifespan = stk_config->time2Ticks(20);
+    m_max_lifespan = STKConfig::get()->time2Ticks(20);
 }   // onFireFlyable

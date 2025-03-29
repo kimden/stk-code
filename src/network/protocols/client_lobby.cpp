@@ -403,6 +403,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
 //-----------------------------------------------------------------------------
 void ClientLobby::update(int ticks)
 {
+    auto& stk_config = STKConfig::get();
     switch (m_state.load())
     {
     case LINKED:

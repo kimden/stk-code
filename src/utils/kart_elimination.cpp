@@ -20,6 +20,10 @@
 
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
+#include "race/race_manager.hpp"
+#include "modes/world.hpp"
+#include "network/protocols/server_lobby.hpp"
+#include "karts/abstract_kart.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -120,9 +124,21 @@ std::string KartElimination::getWarningMessage(bool isEliminated) const
 }   // getWarningMessage
 //-----------------------------------------------------------------------------
 
-std::string KartElimination::update(
-    std::map<std::string, double>& order)
+std::string KartElimination::onRaceFinished()
 {
+    World* w = World::getWorld();
+    assert(w);
+    int player_count = RaceManager::get()->getNumPlayers();
+    std::map<std::string, double> order;
+    for (int i = 0; i < player_count; i++)
+    {
+        std::string username = StringUtils::wideToUtf8(RaceManager::get()->getKartInfo(i).getPlayerName());
+        if (w->getKart(i)->isEliminated())
+            order[username] = KartElimination::INF_TIME;
+        else
+            order[username] = RaceManager::get()->getKartRaceTime(i);
+    }
+
     assert(m_remained != 0);
     if (m_remained < 0)
     {
@@ -162,6 +178,7 @@ std::string KartElimination::update(
         msg += "\nGnu Elimination has finished! "
                "Congratulations to " + m_participants[0] + " !";
     }
+
     return msg;
-}   // update
+}   // onRaceFinished
 //-----------------------------------------------------------------------------

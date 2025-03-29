@@ -136,6 +136,9 @@ void RescueAnimation::init(const btTransform& rescue_transform,
 {
     m_rescue_transform = rescue_transform;
     float timer = m_kart->getKartProperties()->getRescueDuration();
+
+    auto& stk_config = STKConfig::get();
+
     m_end_ticks = m_created_ticks + stk_config->time2Ticks(timer);
     m_rescue_moment = m_created_ticks + stk_config->time2Ticks(timer * 0.4f);
     m_velocity = velocity;
@@ -161,6 +164,8 @@ RescueAnimation::~RescueAnimation()
  */
 void RescueAnimation::update(int ticks)
 {
+    auto& stk_config = STKConfig::get();
+
     if (World::getWorld()->getTicksSinceStart() > m_rescue_moment)
     {
         float dur = stk_config->ticks2Time(m_end_ticks - m_rescue_moment -

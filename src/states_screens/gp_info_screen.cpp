@@ -218,7 +218,7 @@ void GPInfoScreen::init()
         
         m_ai_kart_spinner->setActive(true);
         m_ai_kart_spinner->setValue(num_ai);
-        m_ai_kart_spinner->setMax(stk_config->m_max_karts - local_players);
+        m_ai_kart_spinner->setMax(STKConfig::get()->m_max_karts - local_players);
         m_ai_kart_spinner->setMin(min_ai);
     }   // has_AI
 

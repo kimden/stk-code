@@ -407,7 +407,7 @@ void CreditsScreen::eventCallback(GUIEngine::Widget* widget,
     if (name == "donate")
     {
         // Open donation page
-        Online::LinkHelper::openURL(stk_config->m_donate_url);
+        Online::LinkHelper::openURL(STKConfig::get()->m_donate_url);
     }
 }
 

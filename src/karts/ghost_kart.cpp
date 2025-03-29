@@ -150,6 +150,9 @@ void GhostKart::update(int ticks)
     }
 
     Moveable::updatePosition();
+
+    auto& stk_config = STKConfig::get();
+
     float dt = stk_config->ticks2Time(ticks);
     getKartModel()->update(dt, dt*(m_all_physic_info[idx].m_speed),
         m_all_physic_info[idx].m_steer, m_all_physic_info[idx].m_speed,

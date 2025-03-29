@@ -402,7 +402,7 @@ void CameraNormal::positionCamera(float dt, float above_kart, float cam_angle,
                            fabsf(distance)*tan_up+above_kart,
                            distance);
     btTransform t=m_kart->getSmoothedTrans();
-    if(stk_config->m_camera_follow_skid &&
+    if (STKConfig::get()->m_camera_follow_skid &&
         m_kart->getSkidding()->getVisualSkidRotation()!=0)
     {
         // If the camera should follow the graphical skid, add the

@@ -35,11 +35,19 @@ class ServerLobby;
 class TeamManager;
 class Tournament;
 class LobbyGPManager;
+class CrownManager;
+class GameSetup;
+
+#ifdef ENABLE_SQLITE3
+class DatabaseConnector;
+#endif
+
 
 class LobbyContext
 {
 private:
     ServerLobby* m_lobby;
+    GameSetup*   m_game_setup;
     std::shared_ptr<HitProcessor>      m_hit_processor;
     std::shared_ptr<LobbyAssetManager> m_asset_manager;
     std::shared_ptr<Tournament>        m_tournament;
@@ -51,14 +59,21 @@ private:
     std::shared_ptr<ChatManager>       m_chat_manager;
     std::shared_ptr<TeamManager>       m_team_manager;
     std::shared_ptr<LobbyGPManager>    m_gp_manager;
+    std::shared_ptr<CrownManager>      m_crown_manager;
+
+#ifdef ENABLE_SQLITE3
+    std::shared_ptr<DatabaseConnector> m_db_connector;
+#endif
 
 public:
 
     LobbyContext(ServerLobby* lobby, bool make_tournament);
 
     void setup();
+    void setGameSetup(GameSetup* game_setup)     { m_game_setup = game_setup; }
 
     ServerLobby*                       getLobby()           const { return m_lobby; }
+    GameSetup*                         getGameSetup()       const { return m_game_setup; }
     std::shared_ptr<HitProcessor>      getHitProcessor()    const { return m_hit_processor; }
     std::shared_ptr<LobbyAssetManager> getAssetManager()    const { return m_asset_manager; }
     bool                               isTournament()       const { return m_tournament.get() != nullptr; }
@@ -71,6 +86,11 @@ public:
     std::shared_ptr<ChatManager>       getChatManager()     const { return m_chat_manager; }
     std::shared_ptr<TeamManager>       getTeamManager()     const { return m_team_manager; }
     std::shared_ptr<LobbyGPManager>    getGPManager()       const { return m_gp_manager; }
+    std::shared_ptr<CrownManager>      getCrownManager()    const { return m_crown_manager; }
+
+#ifdef ENABLE_SQLITE3
+    std::shared_ptr<DatabaseConnector> getDbConnector()     const { return m_db_connector; }
+#endif
 };
 
 class LobbyContextUser
@@ -78,6 +98,7 @@ class LobbyContextUser
 protected:
     LobbyContext* m_context;
     ServerLobby*                       getLobby()           const { return m_context->getLobby(); }
+    GameSetup*                        getGameSetupFromCtx() const { return m_context->getGameSetup(); }
     std::shared_ptr<HitProcessor>      getHitProcessor()    const { return m_context->getHitProcessor(); }
     std::shared_ptr<LobbyAssetManager> getAssetManager()    const { return m_context->getAssetManager(); }
     bool                               isTournament()       const { return m_context->isTournament(); }
@@ -90,6 +111,11 @@ protected:
     std::shared_ptr<ChatManager>       getChatManager()     const { return m_context->getChatManager(); }
     std::shared_ptr<TeamManager>       getTeamManager()     const { return m_context->getTeamManager(); }
     std::shared_ptr<LobbyGPManager>    getGPManager()       const { return m_context->getGPManager(); }
+    std::shared_ptr<CrownManager>      getCrownManager()    const { return m_context->getCrownManager(); }
+
+#ifdef ENABLE_SQLITE3
+    std::shared_ptr<DatabaseConnector> getDbConnector()     const { return m_context->getDbConnector(); }
+#endif
 
 public:
     void setContext(LobbyContext* context)             { m_context = context; }

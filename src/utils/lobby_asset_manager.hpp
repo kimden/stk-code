@@ -22,6 +22,7 @@
 #include "network/stk_peer.hpp"
 #include "race/race_manager.hpp"
 #include "utils/lobby_context.hpp"
+#include "utils/track_filter.hpp"
 #include "utils/types.hpp"
 
 #include <memory>
@@ -41,6 +42,7 @@ public:
     void setupContextUser() OVERRIDE;
 
     void init();
+    void initAvailableTracks();
     void updateAddons();
     void updateMapsForMode(RaceManager::MinorRaceModeType mode);
     void onServerSetup();
@@ -78,6 +80,9 @@ public:
     void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
     void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
 
+    void applyGlobalFilter(FilterContext& map_context) const;
+    void applyGlobalKartsFilter(FilterContext& kart_context) const;
+
     std::string getKartForBadKartChoice(
             std::shared_ptr<STKPeer> peer,
             const std::string& username,
@@ -96,6 +101,21 @@ public:
                     { return m_addon_arenas.find(id) != m_addon_arenas.end(); }
     bool hasAddonSoccer(const std::string& id) const
                   { return m_addon_soccers.find(id) != m_addon_soccers.end(); }
+
+    std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer> peer) const;
+
+    float getOfficialKartsPlayThreshold()  const { return m_official_karts_play_threshold;  }
+    float getOfficialTracksPlayThreshold() const { return m_official_tracks_play_threshold; }
+    int getAddonKartsJoinThreshold()       const { return m_addon_karts_join_threshold;     }
+    int getAddonTracksJoinThreshold()      const { return m_addon_tracks_join_threshold;    }
+    int getAddonArenasJoinThreshold()      const { return m_addon_arenas_join_threshold;    }
+    int getAddonSoccersJoinThreshold()     const { return m_addon_soccers_join_threshold;   }
+    int getAddonKartsPlayThreshold()       const { return m_addon_karts_play_threshold;     }
+    int getAddonTracksPlayThreshold()      const { return m_addon_tracks_play_threshold;    }
+    int getAddonArenasPlayThreshold()      const { return m_addon_arenas_play_threshold;    }
+    int getAddonSoccersPlayThreshold()     const { return m_addon_soccers_play_threshold;   }
+    float getOfficialKartsThreshold()      const { return m_official_karts_threshold;       }
+    float getOfficialTracksThreshold()     const { return m_official_tracks_threshold;      }
 
 public:
     /** Official karts and maps available in server. */
@@ -121,6 +141,25 @@ public:
     std::vector<std::string> m_must_have_maps;
 
     std::vector<std::string> m_map_history;
+
+    TrackFilter m_global_filter;
+
+    KartFilter m_global_karts_filter;
+
+    std::vector<std::string> m_play_requirement_tracks;
+
+    float m_official_karts_play_threshold;
+    float m_official_tracks_play_threshold;
+    int m_addon_karts_join_threshold;
+    int m_addon_tracks_join_threshold;
+    int m_addon_arenas_join_threshold;
+    int m_addon_soccers_join_threshold;
+    int m_addon_arenas_play_threshold;
+    int m_addon_karts_play_threshold;
+    int m_addon_soccers_play_threshold;
+    int m_addon_tracks_play_threshold;
+    float m_official_karts_threshold;
+    float m_official_tracks_threshold;
 };
 
 #endif // LOBBY_ASSET_MANAGER_HPP

@@ -104,7 +104,7 @@ void ThreeStrikesBattle::reset(bool restart)
         RaceManager::get()->getDifficulty() == RaceManager::DIFFICULTY_HARD ? 30.0f :
         RaceManager::get()->getDifficulty() == RaceManager::DIFFICULTY_MEDIUM ?
         25.0f : 20.0f;
-    m_next_sta_spawn_ticks = stk_config->time2Ticks(next_spawn_time);
+    m_next_sta_spawn_ticks = STKConfig::get()->time2Ticks(next_spawn_time);
 
     const unsigned int kart_amount = (unsigned int)m_karts.size();
     for(unsigned int n=0; n<kart_amount; n++)
@@ -643,7 +643,7 @@ void ThreeStrikesBattle::spawnSpareTireKarts()
     default:                           inc_factor = 0.55f; lifespan = 27.5f;  break;
     }
 
-    int lifespan_ticks = stk_config->time2Ticks(lifespan);
+    int lifespan_ticks = STKConfig::get()->time2Ticks(lifespan);
     // Spawn spare tire kart when necessary
     m_next_sta_spawn_ticks = int( lifespan_ticks
                                 + getTicksSinceStart() * inc_factor

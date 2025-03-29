@@ -419,7 +419,7 @@ void reportHardwareStats()
     request->addParameter("type", "hwdetect");
     request->addParameter("version", report_version);
     request->addParameter("data", json.toString());
-    const std::string request_url = stk_config->m_server_hardware_report + "/upload/v1/";
+    const std::string request_url = STKConfig::get()->m_server_hardware_report + "/upload/v1/";
     request->setURL(request_url);
     //request->setURL("http://127.0.0.1:8000/upload/v1/");
     request->queue();

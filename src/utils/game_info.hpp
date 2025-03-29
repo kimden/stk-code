@@ -19,15 +19,22 @@
 #ifndef GAME_INFO_HPP
 #define GAME_INFO_HPP
 
+#include "utils/lobby_context.hpp"
+#include "irrString.h"
+
 #include <map>
 #include <string>
 #include <vector>
+
+class RemoteKartInfo;
+class STKPeer;
+class World;
 
 /** A simple structure to store the info about the game.
  *  It includes game settings, the results of individual players, as well as
  *   important team game events like flag captures or goals.
  */
-struct GameInfo
+struct GameInfo: public LobbyContextUser
 {
     struct PlayerInfo
     {
@@ -83,6 +90,18 @@ struct GameInfo
     void setKartCharString(const std::string&& str);
     std::string getPowerupString() const           { return m_powerup_string; }
     std::string getKartCharString() const        { return m_kart_char_string; }
+
+    void fillFromRaceManager();
+    int onLiveJoinedPlayer(int id, const RemoteKartInfo& rki, World* w);
+    void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer);
+    void saveDisconnectingIdInfo(int id);
+    void fillAndStoreResults();
+
+    void onFlagCaptured(bool red_team_scored, const irr::core::stringw& name,
+            int kart_id, unsigned start_pos, float time_since_start);
+
+    void onGoalScored(bool correct_goal, const irr::core::stringw& name,
+            int kart_id, unsigned start_pos, float time_since_start);
 };
 
 #endif

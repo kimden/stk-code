@@ -523,7 +523,7 @@ void RegisterScreen::eventCallback(Widget* widget, const std::string& name,
     else if (name == "password_reset")
     {
         // Open password reset page
-        Online::LinkHelper::openURL(stk_config->m_password_reset_url);
+        Online::LinkHelper::openURL(STKConfig::get()->m_password_reset_url);
     }
     else if (name == "back")
     {

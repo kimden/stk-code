@@ -202,7 +202,7 @@ void EndController::update(int ticks)
     calcSteps();
 
     /*Response handling functions*/
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
     handleSteering(dt);
     handleRescue(dt);
 }   // update

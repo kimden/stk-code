@@ -211,7 +211,7 @@ void Skybox::generateCubeMapFromTextures()
         bool needs_srgb_format = CVS->isDeferredEnabled();
         glBindTexture(GL_TEXTURE_CUBE_MAP, m_cube_map);
 
-        const unsigned tc_flag = squish::kDxt5 | stk_config->m_tc_quality;
+        const unsigned tc_flag = squish::kDxt5 | STKConfig::get()->m_tc_quality;
         if (CVS->isTextureCompressionEnabled())
         {
             unsigned tex_size = GE::get4x4CompressedTextureSize(size, size);

@@ -121,6 +121,8 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
 #  pragma warning(1:4355)
 #endif
 {
+    auto& stk_config = STKConfig::get();
+
     m_max_speed            = new MaxSpeed(this);
     m_terrain_info         = new TerrainInfo();
     m_powerup              = new Powerup(this);
@@ -332,7 +334,7 @@ void Kart::reset()
 
     m_min_nitro_ticks = 0;
     m_energy_to_min_ratio = 0;
-    m_consumption_per_tick = stk_config->ticks2Time(1) *
+    m_consumption_per_tick = STKConfig::get()->ticks2Time(1) *
                              m_kart_properties->getNitroConsumption();
 
     // Reset star effect in case that it is currently being shown.
@@ -609,7 +611,7 @@ void Kart::blockViewWithPlunger()
     if(m_view_blocked_by_plunger<=0 && !isShielded())
     {
         m_view_blocked_by_plunger = (int16_t)
-            stk_config->time2Ticks(m_kart_properties->getPlungerInFaceTime());
+            STKConfig::get()->time2Ticks(m_kart_properties->getPlungerInFaceTime());
     }
     if(isShielded())
     {
@@ -758,7 +760,7 @@ void Kart::createPhysics()
     // -------------------------
     m_vehicle_raycaster.reset(
         new btKartRaycaster(Physics::get()->getPhysicsWorld(),
-                            stk_config->m_smooth_normals &&
+                            STKConfig::get()->m_smooth_normals &&
                             Track::getCurrentTrack()->smoothNormals()));
     m_vehicle.reset(new btKart(m_body.get(), m_vehicle_raycaster.get(), this));
 
@@ -945,6 +947,9 @@ void Kart::finishedRace(float time, bool from_server)
         RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE ||
         RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL  ||
         RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FOLLOW_LEADER;
+
+    auto& stk_config = STKConfig::get();
+
     if (NetworkConfig::get()->isNetworking() && !from_server)
     {
         if (NetworkConfig::get()->isServer())
@@ -1138,6 +1143,8 @@ void Kart::collectedItem(ItemState *item_state)
     float old_energy          = m_collected_energy;
     const Item::ItemType type = item_state->getType();
 
+    auto& stk_config = STKConfig::get();
+
     switch (type)
     {
     case Item::ITEM_BANANA:
@@ -1193,10 +1200,10 @@ void Kart::collectedItem(ItemState *item_state)
  */
 float Kart::getStartupBoostFromStartTicks(int ticks) const
 {
-    int ticks_since_ready = ticks - stk_config->time2Ticks(1.0f);
+    int ticks_since_ready = ticks - STKConfig::get()->time2Ticks(1.0f);
     if (ticks_since_ready < 0)
         return 0.0f;
-    float t = stk_config->ticks2Time(ticks_since_ready);
+    float t = STKConfig::get()->ticks2Time(ticks_since_ready);
     std::vector<float> startup_times = m_kart_properties->getStartupTime();
     for (unsigned int i = 0; i < startup_times.size(); i++)
     {
@@ -1251,7 +1258,7 @@ bool Kart::isNearGround() const
         return false;
     else
         return ((getXYZ().getY() - m_terrain_info->getHoT())
-                 < stk_config->m_near_ground);
+                 < STKConfig::get()->m_near_ground);
 }   // isNearGround
 
 // ------------------------------------------------------------------------
@@ -1261,7 +1268,7 @@ void Kart::setShieldTime(float t)
 {
     if(isShielded())
     {
-        getAttachment()->setTicksLeft(stk_config->time2Ticks(t));
+        getAttachment()->setTicksLeft(STKConfig::get()->time2Ticks(t));
     }
 }   // setShieldTime
 
@@ -1290,7 +1297,7 @@ bool Kart::isShielded() const
 float Kart::getShieldTime() const
 {
     if (isShielded())
-        return stk_config->ticks2Time(getAttachment()->getTicksLeft());
+        return STKConfig::get()->ticks2Time(getAttachment()->getTicksLeft());
     else
         return 0.0f;
 }   // getShieldTime
@@ -1393,6 +1400,8 @@ void Kart::update(int ticks)
     }
     else if (NetworkConfig::get()->roundValuesNow())
         CompressNetworkBody::compress(m_body.get(), m_motion_state.get());
+
+    auto& stk_config = STKConfig::get();
 
     float dt = stk_config->ticks2Time(ticks);
     if (!RewindManager::get()->isRewinding())
@@ -1871,6 +1880,8 @@ bool Kart::setSquash(float time, float slowdown)
         return true;
     }
 
+    auto& stk_config = STKConfig::get();
+
     m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_SQUASH, slowdown,
                              stk_config->time2Ticks(0.1f), 
                              stk_config->time2Ticks(time));
@@ -2217,6 +2228,8 @@ void Kart::handleZipper(const Material *material, bool play_sound)
     // Ignore a zipper that's activated while braking
     if(m_controls.getBrake() || m_speed<0) return;
 
+    auto& stk_config = STKConfig::get();
+
     m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_ZIPPER,
                                      max_speed_increase, speed_gain,
                                      engine_force,
@@ -2284,6 +2297,8 @@ void Kart::updateNitro(int ticks)
         if(m_nitro_sound->getStatus() != SFXBase::SFX_PLAYING && !rewinding)
             m_nitro_sound->play();
 
+        auto& stk_config = STKConfig::get();
+
         m_max_speed->increaseMaxSpeed(MaxSpeed::MS_INCREASE_NITRO,
             m_kart_properties->getNitroMaxSpeedIncrease(),
             m_kart_properties->getNitroEngineForce(),
@@ -2347,6 +2362,7 @@ void Kart::crashed(const Material *m, const Vec3 &normal)
     }
 #endif
 
+    auto& stk_config = STKConfig::get();
     const LinearWorld *lw = dynamic_cast<LinearWorld*>(World::getWorld());
     if(m_kart_properties->getTerrainImpulseType()
                              ==KartProperties::IMPULSE_NORMAL &&
@@ -2610,6 +2626,8 @@ void Kart::updatePhysics(int ticks)
     {
         if (m_startup_boost > 0.0f)
         {
+            auto& stk_config = STKConfig::get();
+
             m_kart_gfx->setCreationRateAbsolute(KartGFX::KGFX_ZIPPER,
                 100.0f * m_startup_boost);
             m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_ZIPPER,
@@ -2830,7 +2848,7 @@ void Kart::updateEnginePowerAndBrakes(int ticks)
                 applyEngineForce(engine_power-braking_power*3);
                 m_brake_ticks += ticks;
                 // Apply the brakes - include the time dependent brake increase
-                float f = 1.0f + stk_config->ticks2Time(m_brake_ticks)
+                float f = 1.0f + STKConfig::get()->ticks2Time(m_brake_ticks)
                                * m_kart_properties->getEngineBrakeTimeIncrease();
                 m_vehicle->setAllBrakes(m_kart_properties->getEngineBrakeFactor() * f);
             }
