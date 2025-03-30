@@ -1667,8 +1667,9 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
     if (argv[0] == "fake")
     {
         std::string new_name = "";
-        if (argv.size() > 1)
-            new_name = argv[1];
+        unsigned offset = argv[0].size() + 1;
+        if (cmd.length() > offset)
+            new_name = cmd.substr(offset);
         RaceManager::setName(new_name);
         core::stringw msg = L"Changed name to ";
         msg += StringUtils::utf8ToWide(new_name);
