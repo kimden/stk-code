@@ -1446,7 +1446,7 @@ std::set<uint32_t> STKHost::getAllPlayerOnlineIds() const
         if (!peer.second->getPlayerProfiles().empty())
         {
             online_ids.insert(
-                peer.second->getPlayerProfiles()[0]->getOnlineId());
+                peer.second->getMainProfile()->getOnlineId());
         }
     }
     lock.unlock();

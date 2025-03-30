@@ -162,7 +162,8 @@ void ChatManager::onPeerDisconnect(std::shared_ptr<STKPeer> peer)
 //-----------------------------------------------------------------------------
 
 void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
-        std::string message, KartTeam target_team)
+        std::string message, KartTeam target_team,
+        const std::shared_ptr<GenericDecorator>& decorator)
 {
     // Update so that the peer is not kicked
     peer->updateLastActivity();
@@ -193,6 +194,10 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
         getLobby()->sendStringToPeer(peer, "Don't try to impersonate others!");
         return;
     }
+
+    std::string new_prefix = StringUtils::wideToUtf8(
+        peer->getMainProfile()->getDecoratedName(decorator)) + ": ";
+    message = new_prefix + message.substr(prefix.length()); 
 
     if (message.size() == 0)
         return;

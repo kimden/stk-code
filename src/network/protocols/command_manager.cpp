@@ -1006,7 +1006,7 @@ void CommandManager::process_auth(Context& context)
                    + command->getFullName();
     else
     {
-        auto profile = peer->getPlayerProfiles()[0];
+        auto profile = peer->getMainProfile();
         std::string username = StringUtils::wideToUtf8(profile->getName());
         int online_id = profile->getOnlineId();
         if (online_id == 0)
@@ -1319,7 +1319,7 @@ void CommandManager::process_addons(Context& context)
     )));
     if (apply_filters)
         getAssetManager()->applyAllFilters(from, false); // happily the type is never karts in this line
-    std::vector<std::pair<std::string, std::vector<std::string>>> result;
+    std::vector<std::pair<std::string, std::vector<std::shared_ptr<NetworkPlayerProfile>>>> result;
     for (const std::string& s: from)
         result.push_back({s, {}});
 
@@ -1335,19 +1335,18 @@ void CommandManager::process_addons(Context& context)
         if (!p->hasPlayerProfiles())
             continue;
         ++num_players;
-        std::string username = p->getMainName();
         const auto& kt = p->getClientAssets();
         const auto& container = (argv[1] == "kart" ? kt.first : kt.second);
         for (auto& pr: result)
             if (container.find(pr.first) == container.end())
-                pr.second.push_back(username);
+                pr.second.push_back(p->getMainProfile());
     }
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(result.begin(), result.end(), g);
     std::stable_sort(result.begin(), result.end(),
-        [](const std::pair<std::string, std::vector<std::string>>& a,
-            const std::pair<std::string, std::vector<std::string>>& b) -> bool {
+        [](const std::pair<std::string, std::vector<std::shared_ptr<NetworkPlayerProfile>>>& a,
+           const std::pair<std::string, std::vector<std::shared_ptr<NetworkPlayerProfile>>>& b) -> bool {
             if (a.second.size() != b.second.size())
                 return a.second.size() > b.second.size();
             return false;
@@ -1367,15 +1366,15 @@ void CommandManager::process_addons(Context& context)
         {
             auto result2 = result;
             result.clear();
-            std::string asking_username = "";
+            std::shared_ptr<NetworkPlayerProfile> asker = {};
             if (peer->hasPlayerProfiles())
-                asking_username = peer->getMainName();
+                asker = peer->getMainProfile();
             for (unsigned i = 0; i < result2.size(); ++i)
             {
                 bool present = false;
                 for (unsigned j = 0; j < result2[i].second.size(); ++j)
                 {
-                    if (result2[i].second[j] == asking_username)
+                    if (result2[i].second[j] == asker)
                     {
                         present = true;
                         break;
@@ -1417,7 +1416,7 @@ void CommandManager::process_addons(Context& context)
                     std::sort(result[i].second.begin(), result[i].second.end());
                     for (unsigned j = 0; j < result[i].second.size(); ++j)
                     {
-                        response += " " + result[i].second[j];
+                        response += " " + getLobby()->encodeProfileNameForPeer(result[i].second[j], peer.get());
                     }
                 }
             }
@@ -1451,7 +1450,7 @@ void CommandManager::process_checkaddon(Context& context)
     const unsigned HAS_MAP = 2;
 
     unsigned server_status = 0;
-    std::vector<std::string> players[4];
+    std::vector<std::shared_ptr<NetworkPlayerProfile>> players[4];
 
     auto asset_manager = getAssetManager();
     if (asset_manager->hasAddonKart(id))
@@ -1470,14 +1469,14 @@ void CommandManager::process_checkaddon(Context& context)
             || !getCrownManager()->canRace(p) || p->isCommandSpectator()
             || !p->hasPlayerProfiles())
             continue;
-        std::string username = p->getMainName();
+
         const auto& kt = p->getClientAssets();
         unsigned status = 0;
         if (kt.first.find(id) != kt.first.end())
             status |= HAS_KART;
         if (kt.second.find(id) != kt.second.end())
             status |= HAS_MAP;
-        players[status].push_back(username);
+        players[status].push_back(p->getMainProfile());
     }
 
     std::string response = "";
@@ -1512,10 +1511,10 @@ void CommandManager::process_checkaddon(Context& context)
                 response += "doesn't have";
             response += " " + item_name[item] + " " + argv[1] + "\n";
 
-            std::vector<std::string> categories[2];
+            std::vector<std::shared_ptr<NetworkPlayerProfile>> categories[2];
             for (unsigned status = 0; status < 4; ++status)
             {
-                for (const std::string& s: players[status])
+                for (const std::shared_ptr<NetworkPlayerProfile>& s: players[status])
                     categories[(status & item ? 1 : 0)].push_back(s);
             }
             for (int i = 0; i < 2; ++i)
@@ -1534,7 +1533,7 @@ void CommandManager::process_checkaddon(Context& context)
                     {
                         if (j)
                             response += ", ";
-                        response += categories[i][j];
+                        response += getLobby()->encodeProfileNameForPeer(categories[i][j], peer.get());
                     }
                     if (categories[i].size() > 5)
                         response += ", ...";
@@ -1892,7 +1891,7 @@ void CommandManager::process_everypas(Context& context)
     if (argv.size() > 2)
         sorting_direction = argv[2];
     std::string response = "Addon scores:";
-    using Pair = std::pair<std::string, std::vector<int>>;
+    using Pair = std::pair<std::shared_ptr<NetworkPlayerProfile>, std::vector<int>>;
     std::vector<Pair> result;
     for (const auto& p: STKHost::get()->getPeers())
     {
@@ -1900,12 +1899,11 @@ void CommandManager::process_everypas(Context& context)
             continue;
         if (!p->hasPlayerProfiles())
             continue;
-        std::string player_name = p->getMainName();
         auto &scores = p->getAddonsScores();
         std::vector<int> overall;
         for (int item = 0; item < AS_TOTAL; item++)
             overall.push_back(scores[item]);
-        result.emplace_back(player_name, overall);
+        result.emplace_back(p->getMainProfile(), overall);
     }
     int sorting_idx = -1;
     if (sorting_type == "kart" || sorting_type == "karts")
@@ -1918,17 +1916,24 @@ void CommandManager::process_everypas(Context& context)
         sorting_idx = 3;
     if (sorting_idx != -1)
     {
+        // Sorting order for equal players WILL DEPEND ON NAME DECORATOR!
+        // This sorting is clearly bad because we ask lobby every time. Change it later.
+        auto lobby = getLobby();
+        std::stable_sort(result.begin(), result.end(), [lobby, peer](const Pair& lhs, const Pair& rhs) -> bool {
+            return lobby->encodeProfileNameForPeer(lhs.first, peer.get())
+                < lobby->encodeProfileNameForPeer(rhs.first, peer.get());
+        });
         if (sorting_direction == "asc")
             std::sort(result.begin(), result.end(), [sorting_idx]
                     (const Pair& lhs, const Pair& rhs) -> bool {
                 int diff = lhs.second[sorting_idx] - rhs.second[sorting_idx];
-                return (diff < 0 || (diff == 0 && lhs.first < rhs.first));
+                return diff < 0;
             });
         else
-            std::sort(result.begin(), result.end(), [sorting_idx]
+            std::stable_sort(result.begin(), result.end(), [sorting_idx]
                     (const Pair& lhs, const Pair& rhs) -> bool {
                 int diff = lhs.second[sorting_idx] - rhs.second[sorting_idx];
-                return (diff > 0 || (diff == 0 && lhs.first < rhs.first));
+                return diff > 0;
             });
     }
     // I don't really know if it should be soccer or field, both are used
@@ -1936,7 +1941,7 @@ void CommandManager::process_everypas(Context& context)
     std::vector<std::string> desc = { "karts", "tracks", "arenas", "fields" };
     for (auto& row: result)
     {
-        response += "\n" + row.first;
+        response += "\n" + getLobby()->encodeProfileNameForPeer(row.first, peer.get());
         bool negative = true;
         for (int item = 0; item < AS_TOTAL; item++)
             negative &= row.second[item] == -1;
@@ -3140,7 +3145,7 @@ void CommandManager::process_register(Context& context)
     }
     if (!peer->hasPlayerProfiles())
         return;
-    int online_id = peer->getPlayerProfiles()[0]->getOnlineId();
+    int online_id = peer->getMainProfile()->getOnlineId();
     if (online_id <= 0)
     {
         getLobby()->sendStringToPeer(peer, "Please join with a valid online STK account.");
@@ -3341,7 +3346,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_RED);
+                        getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_RED);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3361,7 +3366,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_BLUE);
+                        getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_BLUE);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3374,7 +3379,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
+                        getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_NONE);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3385,7 +3390,7 @@ void CommandManager::process_role(Context& context)
                 if (player_peer)
                 {
                     if (player_peer->hasPlayerProfiles())
-                        getTeamManager()->setTeamInLobby(player_peer->getPlayerProfiles()[0], KART_TEAM_NONE);
+                        getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_NONE);
                     getLobby()->sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
@@ -3545,7 +3550,8 @@ void CommandManager::process_test(Context& context)
     std::string username = "Vote";
     if (peer.get() && peer->hasPlayerProfiles())
     {
-        username = peer->getMainName();
+        username = getLobby()->encodeProfileNameForPeer(
+            peer->getMainProfile(), peer.get());
     }
     username = "{" + argv[1].substr(4) + "} " + username;
     getLobby()->sendStringToAllPeers(username + ", " + argv[2] + ", " + argv[3]);
@@ -3807,9 +3813,13 @@ void CommandManager::process_why_hourglass(Context& context)
         error(context);
         return;
     }
+
+    std::string encoded_name = getLobby()->encodeProfileNameForPeer(
+        player_peer->getMainProfile(), peer.get());
+
     getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
             getCrownManager()->getWhyPeerCannotPlayAsString(player_peer),
-            player_name));
+            encoded_name));
 } // process_why_hourglass
 // ========================================================================
 
