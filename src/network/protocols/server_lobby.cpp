@@ -60,6 +60,7 @@
 #include "utils/lobby_settings.hpp"
 #include "utils/lobby_queues.hpp"
 #include "utils/map_vote_handler.hpp"
+#include "utils/name_decorators/generic_decorator.hpp"
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/translation.hpp"
@@ -77,13 +78,14 @@
 namespace
 {
     void encodePlayers(BareNetworkString* bns,
-            std::vector<std::shared_ptr<NetworkPlayerProfile> >& players)
+            std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+            const std::shared_ptr<GenericDecorator>& decorator)
     {
         bns->addUInt8((uint8_t)players.size());
         for (unsigned i = 0; i < players.size(); i++)
         {
             std::shared_ptr<NetworkPlayerProfile>& player = players[i];
-            bns->encodeString(player->getName())
+            bns->encodeString(player->getDecoratedName(decorator))
                 .addUInt32(player->getHostId())
                 .addFloat(player->getDefaultKartColor())
                 .addUInt32(player->getOnlineId())
@@ -239,6 +241,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 
         m_ranking = std::make_shared<Ranking>();
     }
+    m_name_decorator = std::make_shared<GenericDecorator>();
     m_items_complete_state = new BareNetworkString();
     m_server_id_online.store(0);
     m_difficulty.store(ServerConfig::m_server_difficulty);
@@ -371,7 +374,7 @@ void ServerLobby::handleChat(Event* event)
         target_team = (KartTeam)event->data().getUInt8();
 
     getChatManager()->handleNormalChatMessage(peer,
-            StringUtils::wideToUtf8(message), target_team);
+            StringUtils::wideToUtf8(message), target_team, m_name_decorator);
 }   // handleChat
 
 //-----------------------------------------------------------------------------
@@ -509,7 +512,7 @@ void ServerLobby::pollDatabase()
         }
         if (!is_kicked && !p->getPlayerProfiles().empty())
         {
-            uint32_t online_id = p->getPlayerProfiles()[0]->getOnlineId();
+            uint32_t online_id = p->getMainProfile()->getOnlineId();
             for (auto& item: online_id_ban_list)
             {
                 if (item.online_id == online_id)
@@ -556,7 +559,7 @@ void ServerLobby::writePlayerReport(Event* event)
     std::shared_ptr<STKPeer> reporter = event->getPeerSP();
     if (!reporter->hasPlayerProfiles())
         return;
-    auto reporter_npp = reporter->getPlayerProfiles()[0];
+    auto reporter_npp = reporter->getMainProfile();
 
     uint32_t reporting_host_id = event->data().getUInt32();
     core::stringw info;
@@ -567,7 +570,7 @@ void ServerLobby::writePlayerReport(Event* event)
     auto reporting_peer = STKHost::get()->findPeerByHostId(reporting_host_id);
     if (!reporting_peer || !reporting_peer->hasPlayerProfiles())
         return;
-    auto reporting_npp = reporting_peer->getPlayerProfiles()[0];
+    auto reporting_npp = reporting_peer->getMainProfile();
 
     bool written = db_connector->writeReport(reporter, reporter_npp,
             reporting_peer, reporting_npp, info);
@@ -977,7 +980,7 @@ NetworkString* ServerLobby::getLoadWorldMessage(
     load_world_message->addUInt8(LE_LOAD_WORLD);
     getSettings()->encodeDefaultVote(load_world_message);
     load_world_message->addUInt8(live_join ? 1 : 0);
-    encodePlayers(load_world_message, players);
+    encodePlayers(load_world_message, players, m_name_decorator);
     load_world_message->addUInt32(m_item_seed);
     if (RaceManager::get()->isBattleMode())
     {
@@ -1290,7 +1293,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
         // starting of race
         std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
             getLivePlayers();
-        encodePlayers(ns, players);
+        encodePlayers(ns, players, m_name_decorator);
         for (unsigned i = 0; i < players.size(); i++)
             players[i]->getKartData().encode(ns);
     }
@@ -2699,7 +2702,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 
         if (getSettings()->isRanked())
         {
-            getRankingForPlayer(peer->getPlayerProfiles()[0]);
+            getRankingForPlayer(peer->getMainProfile());
         }
     }
 
@@ -2820,7 +2823,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
     for (auto profile : all_profiles)
     {
         PlayerListProfilePacket packet;
-        auto profile_name = profile->getName();
+        auto profile_name = profile->getDecoratedName(m_name_decorator);
 
         // get OS information
         auto version_os = StringUtils::extractVersionOS(profile->getPeer()->getUserVersion());
@@ -3024,8 +3027,11 @@ void ServerLobby::handlePlayerVote(Event* event)
     }
 
     // Store vote:
-    vote.m_player_name = event->getPeer()->getPlayerProfiles()[0]->getName();
+    vote.m_player_name = event->getPeer()->getMainProfile()->getName();
     addVote(event->getPeer()->getHostId(), vote);
+
+    // After adding the vote, show decorated name instead
+    vote.m_player_name = event->getPeer()->getMainProfile()->getDecoratedName(m_name_decorator);
 
     // Now inform all clients about the vote
     NetworkString other = NetworkString(PROTOCOL_LOBBY_ROOM);
@@ -3352,7 +3358,7 @@ void ServerLobby::addWaitingPlayersToGame()
         uint32_t online_id = profile->getOnlineId();
         if (getSettings()->isRanked() && !m_ranking->has(online_id))
         {
-            getRankingForPlayer(peer->getPlayerProfiles()[0]);
+            getRankingForPlayer(peer->getMainProfile());
         }
     }
     // Re-activiate the ai
@@ -4171,7 +4177,7 @@ void ServerLobby::writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_
         reporting = reporter;
     if (!reporter->hasPlayerProfiles())
         return;
-    auto reporter_npp = reporter->getPlayerProfiles()[0];
+    auto reporter_npp = reporter->getMainProfile();
 
     if (info.empty())
         return;
@@ -4179,7 +4185,7 @@ void ServerLobby::writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_
 
     if (!reporting->hasPlayerProfiles())
         return;
-    auto reporting_npp = reporting->getPlayerProfiles()[0];
+    auto reporting_npp = reporting->getMainProfile();
 
     bool written = db_connector->writeReport(reporter, reporter_npp,
             reporting, reporting_npp, info_w);
@@ -4225,6 +4231,16 @@ void ServerLobby::sendStringToAllPeers(const std::string& s)
     sendMessageToPeers(chat, PRM_RELIABLE);
     delete chat;
 }   // sendStringToAllPeers
+//-----------------------------------------------------------------------------
+
+std::string ServerLobby::encodeProfileNameForPeer(
+    std::shared_ptr<NetworkPlayerProfile> npp,
+    STKPeer* peer)
+{
+    if (npp)
+        return StringUtils::wideToUtf8(npp->getDecoratedName(m_name_decorator));
+    return "";
+}   // encodeProfileNameForPeer
 //-----------------------------------------------------------------------------
 
 bool ServerLobby::canVote(std::shared_ptr<STKPeer> peer) const
@@ -4299,7 +4315,7 @@ bool ServerLobby::writeOnePlayerReport(std::shared_ptr<STKPeer> reporter,
         return false;
     if (!reporter->hasPlayerProfiles())
         return false;
-    auto reporter_npp = reporter->getPlayerProfiles()[0];
+    auto reporter_npp = reporter->getMainProfile();
     auto info_w = StringUtils::utf8ToWide(info);
 
     bool written = db_connector->writeReport(reporter, reporter_npp,

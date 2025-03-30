@@ -197,6 +197,12 @@ void STKPeer::setCrypto(std::unique_ptr<Crypto>&& c)
 }   // setCrypto
 // ----------------------------------------------------------------------------
 
+std::shared_ptr<NetworkPlayerProfile> STKPeer::getMainProfile()
+{
+    return m_players[0];
+}   // getMainProfile
+// ----------------------------------------------------------------------------
+
 // A method for convenience only.
 // For now, returns an empty string if there are no profiles.
 // Might be better to throw an exception. I will see later.

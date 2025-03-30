@@ -19,6 +19,9 @@
 #include "network/network_player_profile.hpp"
 #include "network/network_config.hpp"
 #include "network/stk_host.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/name_decorators/generic_decorator.hpp"
+
 
 // ----------------------------------------------------------------------------
 /** Returns true if this player is local, i.e. running on this computer. This
@@ -31,3 +34,12 @@ bool NetworkPlayerProfile::isLocalPlayer() const
     return NetworkConfig::get()->isClient() &&
         m_host_id == STKHost::get()->getMyHostId();
 }   // isLocalPlayer
+
+// ----------------------------------------------------------------------------
+/** Asks decorator for a name to show in a certain conditions.
+ */
+core::stringw NetworkPlayerProfile::getDecoratedName(std::shared_ptr<GenericDecorator> decorator)
+{
+    return StringUtils::utf8ToWide(decorator->decorate(StringUtils::wideToUtf8(m_player_name)));
+}   // getDecoratedName
+// ----------------------------------------------------------------------------

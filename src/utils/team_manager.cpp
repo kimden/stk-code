@@ -424,7 +424,7 @@ void TeamManager::changeColors()
         {
             // kimden: you assume that only [0] can be checked, but in other places
             // of the code you are somehow not so sure about that... :)
-            auto pp = peer->getPlayerProfiles()[0];
+            auto pp = peer->getMainProfile();
             if (pp->getTeam() == KART_TEAM_RED)
                 setTeamInLobby(pp, KART_TEAM_BLUE);
             else if (pp->getTeam() == KART_TEAM_BLUE)
