@@ -2906,54 +2906,65 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         }, pl);
     delete pl;
 }   // updatePlayerList
-
 //-----------------------------------------------------------------------------
+
 void ServerLobby::updateServerOwner(bool force)
 {
-    if (m_state.load() < WAITING_FOR_START_GAME ||
-        m_state.load() > RESULT_DISPLAY ||
-        getCrownManager()->isOwnerLess())
+    ServerState state = m_state.load();
+    if (state < WAITING_FOR_START_GAME || state > RESULT_DISPLAY)
         return;
+
+    if (getCrownManager()->isOwnerLess())
+        return;
+
     if (!force && !m_server_owner.expired())
         return;
+
     auto peers = STKHost::get()->getPeers();
+
+    if (m_process_type != PT_MAIN)
+    {
+        auto id = m_client_server_host_id.load();
+        for (unsigned i = 0; i < peers.size(); )
+        {
+            const auto& peer = peers[i];
+            if (peer->getHostId() != id)
+            {
+                std::swap(peers[i], peers.back());
+                peers.pop_back();
+                continue;
+            }
+            ++i;
+        }
+    }
+
+    for (unsigned i = 0; i < peers.size(); )
+    {
+        const auto& peer = peers[i];
+        if (!peer->isValidated() || peer->isAIPeer())
+        {
+            std::swap(peers[i], peers.back());
+            peers.pop_back();
+            continue;
+        }
+        ++i;
+    }
+
     if (peers.empty())
         return;
-    std::sort(peers.begin(), peers.end(), [](const std::shared_ptr<STKPeer> a,
-        const std::shared_ptr<STKPeer> b)->bool
-        {
-            if (a->isCommandSpectator() ^ b->isCommandSpectator())
-                return b->isCommandSpectator();
-            return a->getRejoinTime() < b->getRejoinTime();
-        });
 
-    std::shared_ptr<STKPeer> owner;
-    for (auto peer: peers)
+    std::shared_ptr<STKPeer> owner = getCrownManager()->getFirstInCrownOrder(peers);
+    if (m_server_owner.expired() || m_server_owner.lock() != owner)
     {
-        // Only matching host id can be server owner in case of
-        // graphics-client-server
-        if (peer->isValidated() && !peer->isAIPeer() &&
-            (m_process_type == PT_MAIN ||
-            peer->getHostId() == m_client_server_host_id.load()))
-        {
-            owner = peer;
-            break;
-        }
+        NetworkString* ns = getNetworkString();
+        ns->setSynchronous(true);
+        ns->addUInt8(LE_SERVER_OWNERSHIP);
+        owner->sendPacket(ns);
+        delete ns;
     }
-    if (owner)
-    {
-        if (m_server_owner.expired() || m_server_owner.lock() != owner)
-        {
-            NetworkString* ns = getNetworkString();
-            ns->setSynchronous(true);
-            ns->addUInt8(LE_SERVER_OWNERSHIP);
-            owner->sendPacket(ns);
-            delete ns;
-        }
-        m_server_owner = owner;
-        m_server_owner_id.store(owner->getHostId());
-        updatePlayerList();
-    }
+    m_server_owner = owner;
+    m_server_owner_id.store(owner->getHostId());
+    updatePlayerList();
 }   // updateServerOwner
 
 //-----------------------------------------------------------------------------
@@ -3620,6 +3631,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         auto assets = peer->getClientAssets();
         if (!peer->isValidated() || assets.second.empty()) // this check will fail hard when I introduce vavriable limits
             continue;
+
         if (getAssetManager()->checkIfNoCommonMaps(assets))
         {
             NetworkString *message = getNetworkString(2);

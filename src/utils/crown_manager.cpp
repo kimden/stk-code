@@ -279,3 +279,32 @@ void CrownManager::setSpectateModeProperly(std::shared_ptr<STKPeer> peer, Always
         getTeamManager()->checkNoTeamSpectator(peer);
 }   // setSpectateModeProperly
 //-----------------------------------------------------------------------------
+
+// This was a sorting comparator in original code.
+// Peers are guaranteed to already be validated and non-AI,
+// and eligible for crown (theoretically)
+std::shared_ptr<STKPeer> CrownManager::getFirstInCrownOrder(
+        const std::vector<std::shared_ptr<STKPeer>>& peers)
+{
+    if (peers.empty()) // Shouldn't happen but just in case
+        return {};
+
+    unsigned best = 0;
+    for (unsigned i = 1; i < peers.size(); ++i)
+        if (defaultOrderComparator(peers[i], peers[best]))
+            best = i;
+
+    return peers[best];
+}   // getFirstInCrownOrder
+//-----------------------------------------------------------------------------
+
+bool CrownManager::defaultOrderComparator(
+        const std::shared_ptr<STKPeer> a,
+        const std::shared_ptr<STKPeer> b)
+{
+    if (a->isCommandSpectator() ^ b->isCommandSpectator())
+        return b->isCommandSpectator();
+
+    return a->getRejoinTime() < b->getRejoinTime();
+}   // defaultOrderComparator
+//-----------------------------------------------------------------------------
