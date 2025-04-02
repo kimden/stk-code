@@ -1272,7 +1272,7 @@ void ClientLobby::backToLobby(Event *event)
         // I18N: Error message shown if only 1 player remains in network
         msg = _("Only 1 player remaining, returning to lobby.");
         break;
-    case BLR_SERVER_ONWER_QUITED_THE_GAME:
+    case BLR_SERVER_OWNER_QUIT_THE_GAME:
         // I18N: Error message shown when all players will go back to lobby
         // when server owner quited the game
         if (!STKHost::get()->isClientServer())

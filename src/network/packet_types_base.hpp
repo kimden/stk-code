@@ -322,6 +322,7 @@ END_DEFINE_CLASS(BackLobbyPacket)
 DEFINE_CLASS(ServerInfoPacket)
     SYNCHRONOUS(true)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_SERVER_INFO)
+    DEFINE_FIELD(uint8_t, placeholder)
     //...kimden: fill this
     // send with PRM_RELIABLE
 END_DEFINE_CLASS(ServerInfoPacket)
@@ -346,6 +347,11 @@ DEFINE_CLASS(PlayerKartsPacket)
     DEFINE_VECTOR_OBJ/*_OPTIONAL*/(KartDataPacket, players_count, kart_data/*, IDONT_KNOW*/) // if has "real_addon_karts" in cap AND anything is sent
 END_DEFINE_CLASS(PlayerKartsPacket)
 
+DEFINE_CLASS(KartSelectionRequestPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_KART_SELECTION)
+    DEFINE_FIELD(PlayerKartsPacket, karts)
+END_DEFINE_CLASS(KartSelectionRequestPacket)
+
 DEFINE_CLASS(LiveJoinRequestPacket)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_LIVE_JOIN)
     DEFINE_FIELD(bool, is_spectator)
@@ -368,6 +374,82 @@ DEFINE_CLASS(ConnectionRequestedPacket)
     // to be continued
 END_DEFINE_CLASS(ConnectionRequestedPacket)
 
+DEFINE_CLASS(KartInfoRequestPacket)
+    // check if synch
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_KART_INFO)
+    DEFINE_FIELD(uint8_t, kart_id)
+END_DEFINE_CLASS(KartInfoRequestPacket)
 
+DEFINE_CLASS(KartInfoPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_KART_INFO)
+    DEFINE_FIELD(uint32_t, live_join_util_ticks)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(widestr, player_name)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD(float, default_kart_color)
+    DEFINE_FIELD(uint32_t, online_id)
+    DEFINE_FIELD(uint8_t, handicap)
+    DEFINE_FIELD(uint8_t, local_player_id)
+    DEFINE_FIELD(std::string, kart_name)
+    DEFINE_FIELD(std::string, country_code)
+    // The field below is present if "real_addon_karts" is in capabilities
+    DEFINE_FIELD_OBJ(KartDataPacket, kart_data)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(KartInfoPacket)
+
+DEFINE_CLASS(ConfigServerPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CONFIG_SERVER)
+    DEFINE_FIELD(uint8_t, difficulty)
+    DEFINE_FIELD(uint8_t, game_mode)
+    DEFINE_FIELD(bool, soccer_goal_target)
+END_DEFINE_CLASS(ConfigServerPacket)
+
+DEFINE_CLASS(ConnectionRefusedPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CONNECTION_REFUSED)
+    DEFINE_FIELD(uint8_t, reason)
+    DEFINE_FIELD_OPTIONAL(std::string, message);
+    // send with PRM_RELIABLE, warning! can be sent unencrypted!
+END_DEFINE_CLASS(ConnectionRefusedPacket)
+
+DEFINE_CLASS(StartGamePacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_START_RACE)
+    DEFINE_FIELD(uint64_t, start_time)
+    DEFINE_FIELD(uint8_t, check_count)
+    DEFINE_FIELD(ItemCompleteStatePacket, item_complete_state) /* this had operator += instead */
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(StartGamePacket)
+
+DEFINE_CLASS(VotePacket) /* vote of a player sent to others */
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_VOTE)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD(PeerVotePacket, vote)
+END_DEFINE_CLASS(VotePacket)
+
+DEFINE_CLASS(VoteRequestPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_VOTE)
+    DEFINE_FIELD(PeerVotePacket, vote)
+END_DEFINE_CLASS(VoteRequestPacket)
+
+DEFINE_CLASS(ServerOwnershipPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_SERVER_OWNERSHIP)
+END_DEFINE_CLASS(ServerOwnershipPacket)
+
+DEFINE_CLASS(ConnectionAcceptedPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CONNECTION_ACCEPTED)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD(uint32_t, server_version)
+    DEFINE_FIELD(uint16_t, capabilities_size)
+    DEFINE_VECTOR(std::string, capabilities_size, capabilities)
+    DEFINE_FIELD(float, auto_start_timer)
+    DEFINE_FIELD(uint32_t, state_frequency)
+    DEFINE_FIELD(bool, chat_allowed)
+    DEFINE_FIELD(bool, reports_allowed)
+END_DEFINE_CLASS(ConnectionAcceptedPacket)
 
 // end

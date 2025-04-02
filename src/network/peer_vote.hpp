@@ -52,13 +52,12 @@ public:
 
     // ------------------------------------------------------
     /** Initialised this object from a data in a network string. */
-    PeerVote(NetworkString &ns)
+    PeerVote(const PeerVotePacket& packet)
     {
-        ns.decodeStringW(&m_player_name);
-        ns.decodeString(&m_track_name);
-        m_num_laps = ns.getUInt8();
-        m_reverse = ns.getUInt8()!=0;
-
+        m_player_name = packet.player_name;
+        m_track_name = packet.track_name;
+        m_num_laps = packet.num_laps;
+        m_reverse = packet.is_reverse;
     }   // PeerVote(NetworkString &)
 
     // ------------------------------------------------------
