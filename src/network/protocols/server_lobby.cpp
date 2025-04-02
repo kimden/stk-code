@@ -1049,7 +1049,9 @@ void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
     reset->addUInt8(LE_BACK_LOBBY).addUInt8(blr);
     peer->sendPacket(reset, PRM_RELIABLE);
     delete reset;
+
     updatePlayerList();
+
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
@@ -2059,7 +2061,10 @@ void ServerLobby::checkRaceFinished()
 
     if (getSettings()->isStoringResults())
     {
-        storeResults();
+        if (m_game_info)
+            m_game_info->fillAndStoreResults();
+        else
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
     }
 
     if (getSettings()->isRanked())
@@ -4156,18 +4161,6 @@ void ServerLobby::handleServerCommand(Event* event)
     
     getCommandManager()->handleCommand(event, peer);
 }   // handleServerCommand
-//-----------------------------------------------------------------------------
-
-void ServerLobby::storeResults()
-{
-    if (!m_game_info)
-    {
-        Log::warn("ServerLobby", "GameInfo is not accessible??");
-        return;
-    }
-
-    m_game_info->fillAndStoreResults();
-}  // storeResults
 //-----------------------------------------------------------------------------
 
 void ServerLobby::resetToDefaultSettings()

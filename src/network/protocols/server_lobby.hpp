@@ -323,7 +323,6 @@ public:
         return std::find(m_ai_profiles.begin(), m_ai_profiles.end(), npp) !=
             m_ai_profiles.end();
     }
-    void storeResults();
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
     void resetToDefaultSettings();
