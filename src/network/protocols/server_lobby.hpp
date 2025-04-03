@@ -149,7 +149,7 @@ private:
     std::map<std::string, uint64_t> m_pending_peer_connection;
 
     /* Saved the last game result */
-    NetworkString* m_result_ns;
+    RaceFinishedPacket m_result_packet;
 
     /* Used to make sure clients are having same item list at start */
     BareNetworkString* m_items_complete_state;
@@ -251,7 +251,7 @@ private:
     bool handleAllVotes(PeerVote* winner);
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
-    void computeNewRankings(NetworkString* ns);
+    PointChangesPacket computeNewRankings();
     void checkRaceFinished();
     void configPeersStartTime();
     void resetServer();

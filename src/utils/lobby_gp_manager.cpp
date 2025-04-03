@@ -163,7 +163,7 @@ void LobbyGPManager::shuffleGPScoresWithPermutation(const std::map<int, int>& pe
 }   // shuffleGPScoresWithPermutation
 //-----------------------------------------------------------------------------
 
-void LobbyGPManager::updateGPScores(std::vector<float>& gp_changes, NetworkString* ns)
+GPScoresPacket LobbyGPManager::updateGPScores(std::vector<float>& gp_changes)
 {
     // fastest lap
     int fastest_lap =
@@ -234,22 +234,26 @@ void LobbyGPManager::updateGPScores(std::vector<float>& gp_changes, NetworkStrin
         overall_times.push_back(overall_time);    
     }
 
-    ns->addUInt32(fastest_lap);
-    ns->encodeString(fastest_kart_wide);
-
-    ns->addUInt8((uint8_t)game_setup->getTotalGrandPrixTracks())
-                .addUInt8((uint8_t)game_setup->getAllTracks().size());
+    GPScoresPacket packet;
+    packet.fastest_lap = fastest_lap;
+    packet.fastest_kart = fastest_kart_wide;
+    packet.total_gp_tracks = (uint8_t)game_setup->getTotalGrandPrixTracks();
+    packet.all_tracks_size = (uint8_t)game_setup->getAllTracks().size();
 
     for (const std::string& gp_track : game_setup->getAllTracks())
-        ns->encodeString(gp_track);
+        packet.all_tracks.push_back(gp_track);
 
-    ns->addUInt8((uint8_t)RaceManager::get()->getNumPlayers());
+    packet.num_players = (uint8_t)RaceManager::get()->getNumPlayers();
     for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
     {
-        ns->addUInt32(last_scores[i])
-                    .addUInt32(cur_scores[i])
-                    .addFloat(overall_times[i]);
+        GPIndividualScorePacket subpacket;
+        subpacket.last_score = last_scores[i];
+        subpacket.cur_score = cur_scores[i];
+        subpacket.overall_time = overall_times[i];
+        packet.scores.push_back(subpacket);
     }
+    
+    return packet;
 }   // updateGPScores
 //-----------------------------------------------------------------------------
 

@@ -61,7 +61,7 @@ public:
 
     void shuffleGPScoresWithPermutation(const std::map<int, int>& permutation);
 
-    void updateGPScores(std::vector<float>& gp_changes, NetworkString* ns);
+    GPScoresPacket updateGPScores(std::vector<float>& gp_changes);
 
     bool trySettingGPScoring(const std::string& input);
 
