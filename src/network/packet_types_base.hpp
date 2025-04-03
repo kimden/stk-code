@@ -334,6 +334,13 @@ DEFINE_CLASS(AssetsPacket)
     DEFINE_VECTOR(std::string, maps_number, maps)
 END_DEFINE_CLASS(AssetsPacket)
 
+DEFINE_CLASS(AssetsPacket2)
+    DEFINE_FIELD(uint16_t, karts_number)
+    DEFINE_FIELD(uint16_t, maps_number)
+    DEFINE_VECTOR(std::string, karts_number, karts)
+    DEFINE_VECTOR(std::string, maps_number, maps)
+END_DEFINE_CLASS(AssetsPacket2)
+
 DEFINE_CLASS(NewAssetsPacket)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_ASSETS_UPDATE)
     DEFINE_FIELD(AssetsPacket, assets)
@@ -451,5 +458,60 @@ DEFINE_CLASS(ConnectionAcceptedPacket)
     DEFINE_FIELD(bool, chat_allowed)
     DEFINE_FIELD(bool, reports_allowed)
 END_DEFINE_CLASS(ConnectionAcceptedPacket)
+
+DEFINE_CLASS(PlayerDisconnectedPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_PLAYER_DISCONNECTED)
+    DEFINE_FIELD(uint8_t, players_size)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_VECTOR(std::string, players_size, names)
+END_DEFINE_CLASS(PlayerDisconnectedPacket)
+
+DEFINE_CLASS(PointChangesPacket)
+    DEFINE_FIELD(uint8_t, player_count)
+    DEFINE_VECTOR(float, player_count, changes)
+END_DEFINE_CLASS(PointChangesPacket)
+
+DEFINE_CLASS(StartSelectionPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_START_SELECTION)
+    DEFINE_FIELD(float, voting_timeout)
+    DEFINE_FIELD(bool, no_kart_selection)
+    DEFINE_FIELD(bool, fixed_length)
+    DEFINE_FIELD(bool, track_voting)
+    DEFINE_FIELD(AssetsPacket2, assets)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(StartSelectionPacket)
+
+DEFINE_CLASS(BadTeamPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_BAD_TEAM)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(BadTeamPacket)
+
+DEFINE_CLASS(RaceFinishedPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_RACE_FINISHED)
+    DEFINE_FIELD_OPTIONAL(uint32_t, fastest_lap, check(0)) /* if linear (incl. gp) */
+    DEFINE_FIELD_OPTIONAL(widestr, fastest_kart_name, check(0)) /* if linear (incl. gp) */
+    DEFINE_FIELD_OPTIONAL(GPScoresPacket, gp_scores, check(1)) /* if gp */
+    DEFINE_FIELD(bool, point_changes_indication)
+    DEFINE_FIELD(PointChangesPacket, point_changes)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(RaceFinishedPacket)
+
+DEFINE_CLASS(GPIndividualScorePacket)
+    DEFINE_FIELD(uint32_t, last_score)
+    DEFINE_FIELD(uint32_t, cur_score)
+    DEFINE_FIELD(float, overall_time)
+END_DEFINE_CLASS(GPIndividualScorePacket)
+
+DEFINE_CLASS(GPScoresPacket)
+    DEFINE_FIELD(uint8_t, total_gp_tracks)
+    DEFINE_FIELD(uint8_t, all_tracks_size)
+    DEFINE_VECTOR(std::string, all_tracks_size, all_tracks)
+    DEFINE_FIELD(uint8_t, num_players)
+    DEFINE_VECTOR(GPIndividualScorePacket, num_players, scores)
+END_DEFINE_CLASS(GPScoresPacket)
 
 // end
