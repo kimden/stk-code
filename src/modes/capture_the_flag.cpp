@@ -341,13 +341,13 @@ void CaptureTheFlag::checkScoring(FlagColor color)
             if (NetworkConfig::get()->isServer())
             {
                 NetworkString p(PROTOCOL_GAME_EVENTS);
-                p.setSynchronous(true);
-                p.addUInt8(GameEventsProtocol::GE_CTF_SCORED)
-                    .addUInt8((int8_t)active_holder)
-                    .addUInt8((red_active) ? 0 : 1 /*red_team_scored*/)
-                    .addUInt16((int16_t)new_kart_score)
-                    .addUInt8((uint8_t)new_red_score)
-                    .addUInt8((uint8_t)new_blue_score);
+                InsideCtfPacket packet;
+                packet.active_holder = (int8_t)active_holder;
+                packet.red_inactive = !red_active;
+                packet.kart_score = (int16_t)new_kart_score;
+                packet.red_score = (uint8_t)new_red_score;
+                packet.blue_score = (uint8_t)new_blue_score;
+                packet.toNetworkString(&p);
                 STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
             }
             ctfScored(active_holder, (red_active) ? false : true /*red_team_scored*/,

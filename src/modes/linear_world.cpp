@@ -1341,26 +1341,26 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
         return;
 
     NetworkString cl(PROTOCOL_GAME_EVENTS);
-    cl.setSynchronous(true);
-    cl.addUInt8(GameEventsProtocol::GE_CHECK_LINE).addUInt8((uint8_t)check_id)
-        .addUInt8((uint8_t)kart_id);
 
-    int8_t finished_laps = (int8_t)m_kart_info[kart_id].m_finished_laps;
-    cl.addUInt8(finished_laps);
+    InsideChecklinePacket packet;
+    packet.kart_id = (uint8_t)kart_id;
+    packet.finished_laps = (int8_t)m_kart_info[kart_id].m_finished_laps;
+    packet.last_triggered_checkline = 
+            (int8_t)m_kart_track_sector[kart_id]->getLastTriggeredCheckline();
 
-    int8_t ltcl =
-        (int8_t)m_kart_track_sector[kart_id]->getLastTriggeredCheckline();
-    cl.addUInt8(ltcl);
-
-    cl.addUInt32(m_fastest_lap_ticks);
-    cl.encodeString(m_fastest_lap_kart_name);
+    packet.fastest_lap_ticks = m_fastest_lap_ticks;
+    packet.fastest_kart_name = m_fastest_lap_kart_name;
 
     CheckManager* cm = Track::getCurrentTrack()->getCheckManager();
     const uint8_t cc = (uint8_t)cm->getCheckStructureCount();
-    cl.addUInt8(cc);
+    packet.check_structure_count = cc;
     for (unsigned i = 0; i < cc; i++)
-        cm->getCheckStructure(i)->saveIsActive(kart_id, &cl);
+    {
+        packet.check_active.push_back(
+                cm->getCheckStructure(i)->saveIsActive(kart_id));
+    }
 
+    packet.toNetworkString(&cl);
     STKHost::get()->sendPacketToAllPeers(&cl, PRM_RELIABLE);
 }   // updateCheckLinesServer
 

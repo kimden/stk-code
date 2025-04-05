@@ -28,7 +28,6 @@
 class AbstractKart;
 class BallGoalData;
 class Controller;
-class NetworkString;
 class TrackObject;
 class TrackSector;
 
@@ -237,9 +236,9 @@ public:
     /** Get the AI who will attack the other team ball chaser. */
     int getAttacker(KartTeam team) const;
     // ------------------------------------------------------------------------
-    void handlePlayerGoalFromServer(const NetworkString& ns);
+    void handlePlayerGoalFromServer(const InternalGoalPacket& packet);
     // ------------------------------------------------------------------------
-    void handleResetBallFromServer(const NetworkString& ns);
+    void handleResetBallFromServer(const ResetBallPacket& packet);
     // ------------------------------------------------------------------------
     virtual bool hasTeam() const OVERRIDE                      { return true; }
     // ------------------------------------------------------------------------

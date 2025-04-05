@@ -141,9 +141,9 @@ public:
     // ------------------------------------------------------------------------
     virtual void restoreCompleteState(const std::shared_ptr<CheckPacket>& packet);
     // ------------------------------------------------------------------------
-    void saveIsActive(int kart_id, BareNetworkString* bns);
+    CheckActivePacket saveIsActive(int kart_id);
     // ------------------------------------------------------------------------
-    void restoreIsActive(int kart_id, const BareNetworkString& b);
+    void restoreIsActive(int kart_id, const CheckActivePacket& packet);
     // ------------------------------------------------------------------------
     int getIndex() const { return m_index; }
     // ------------------------------------------------------------------------

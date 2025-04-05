@@ -32,7 +32,6 @@
 #include <vector>
 
 class NetworkPlayerProfile;
-class NetworkString;
 class PeerVote;
 
 // ============================================================================
