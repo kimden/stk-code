@@ -247,7 +247,7 @@ void CheckStructure::trigger(unsigned int kart_index)
 }   // trigger
 
 // ----------------------------------------------------------------------------
-std::shared_ptr<Packet> CheckStructure::saveCompleteState()
+std::shared_ptr<CheckPacket> CheckStructure::saveCompleteState()
 {
     std::shared_ptr<CheckStructurePacket> packet = std::make_shared<CheckStructurePacket>();
     World* world = World::getWorld();
@@ -262,7 +262,7 @@ std::shared_ptr<Packet> CheckStructure::saveCompleteState()
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void CheckStructure::restoreCompleteState(const std::shared_ptr<Packet>& packet)
+void CheckStructure::restoreCompleteState(const std::shared_ptr<CheckPacket>& packet)
 {
     std::shared_ptr<CheckStructurePacket> check_packet =
             std::dynamic_pointer_cast<CheckStructurePacket>(packet);

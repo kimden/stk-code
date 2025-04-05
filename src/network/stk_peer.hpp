@@ -145,9 +145,12 @@ public:
     // ------------------------------------------------------------------------
     ~STKPeer();
     // ------------------------------------------------------------------------
-    void sendPacket(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE,
+    void sendNetstring(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE,
                     PacketEncryptionMode encrypted = PEM_ENCRYPTED);
     // ------------------------------------------------------------------------
+    void sendPacket(const Packet& packet, PacketReliabilityMode reliable = PRM_RELIABLE,
+                    PacketEncryptionMode encrypted = PEM_ENCRYPTED);
+    ------------------------------------------------------------------------
     void disconnect();
     // ------------------------------------------------------------------------
     void kick();

@@ -266,9 +266,9 @@ public:
         return progress;
     }
     // ------------------------------------------------------------------------
-    virtual std::shared_ptr<Packet> saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
+    virtual std::shared_ptr<WorldPacket> saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void restoreCompleteState(const std::shared_ptr<Packet>& b) OVERRIDE;
+    virtual void restoreCompleteState(const std::shared_ptr<WorldPacket>& b) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual bool isGoalPhase() const OVERRIDE
     {

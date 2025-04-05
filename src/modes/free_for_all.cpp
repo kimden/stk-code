@@ -295,7 +295,7 @@ bool FreeForAll::getKartFFAResult(int kart_id) const
 }   // getKartFFAResult
 
 // ----------------------------------------------------------------------------
-std::shared_ptr<Packet> FreeForAll::saveCompleteState(std::shared_ptr<STKPeer> peer)
+std::shared_ptr<WorldPacket> FreeForAll::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
     auto packet = std::make_shared<FFAWorldCompleteStatePacket>();
     for (unsigned i = 0; i < m_scores.size(); i++)
@@ -303,7 +303,7 @@ std::shared_ptr<Packet> FreeForAll::saveCompleteState(std::shared_ptr<STKPeer> p
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void FreeForAll::restoreCompleteState(const std::shared_ptr<Packet>& packet)
+void FreeForAll::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
     std::shared_ptr<FFAWorldCompleteStatePacket> ffa_packet =
             std::dynamic_pointer_cast<FFAWorldCompleteStatePacket>(packet);

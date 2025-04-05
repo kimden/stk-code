@@ -925,7 +925,7 @@ void STKHost::mainLoop(ProcessType pt)
                             NetworkString msg(PROTOCOL_LOBBY_ROOM);
                             msg.setSynchronous(true);
                             msg.addUInt8(LobbyEvent::LE_BAD_CONNECTION);
-                            p.second->sendPacket(&msg, PRM_RELIABLE);
+                            p.second->sendNetstring(&msg, PRM_RELIABLE);
                         }
                     }
                 }
@@ -1344,7 +1344,7 @@ void STKHost::sendPacketToAllPeersInServer(NetworkString *data, PacketReliabilit
     for (auto p : m_peers)
     {
         if (p.second->isValidated())
-            p.second->sendPacket(data, reliable);
+            p.second->sendNetstring(data, reliable);
     }
 }   // sendPacketToAllPeersInServer
 
@@ -1359,7 +1359,7 @@ void STKHost::sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode re
     for (auto p : m_peers)
     {
         if (p.second->isValidated() && !p.second->isWaitingForGame())
-            p.second->sendPacket(data, reliable);
+            p.second->sendNetstring(data, reliable);
     }
 }   // sendPacketToAllPeers
 
@@ -1379,7 +1379,7 @@ void STKHost::sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *dat
         if (!stk_peer->isSamePeer(peer.get()) && p.second->isValidated() &&
             !p.second->isWaitingForGame())
         {
-            stk_peer->sendPacket(data, reliable);
+            stk_peer->sendNetstring(data, reliable);
         }
     }
 }   // sendPacketExcept
@@ -1400,7 +1400,7 @@ void STKHost::sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPee
         if (!stk_peer->isValidated())
             continue;
         if (predicate(stk_peer))
-            stk_peer->sendPacket(data, reliable);
+            stk_peer->sendNetstring(data, reliable);
     }
 }   // sendPacketToAllPeersWith
 
@@ -1412,7 +1412,7 @@ void STKHost::sendToServer(NetworkString *data, PacketReliabilityMode reliable)
     if (m_peers.empty())
         return;
     assert(NetworkConfig::get()->isClient());
-    m_peers.begin()->second->sendPacket(data, reliable);
+    m_peers.begin()->second->sendNetstring(data, reliable);
 }   // sendToServer
 
 //-----------------------------------------------------------------------------

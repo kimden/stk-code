@@ -360,8 +360,6 @@ public:
                              const std::string& type) const;
 
     bool playerReportsTableExists() const;
-
-    ServerInfoPacket getServerInfoPacket() const;
     void sendServerInfoToEveryone() const;
 
     bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }

@@ -1240,7 +1240,7 @@ void LinearWorld::KartInfo::restoreCompleteState(const KartInfoPacket& packet)
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------
-std::shared_ptr<Packet> LinearWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
+std::shared_ptr<WorldPacket> LinearWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
     auto packet = std::make_shared<LinearWorldCompleteStatePacket>();
 
@@ -1270,7 +1270,7 @@ std::shared_ptr<Packet> LinearWorld::saveCompleteState(std::shared_ptr<STKPeer> 
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void LinearWorld::restoreCompleteState(const std::shared_ptr<Packet>& packet)
+void LinearWorld::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
     std::shared_ptr<LinearWorldCompleteStatePacket> linear_packet =
             std::dynamic_pointer_cast<LinearWorldCompleteStatePacket>(packet);
