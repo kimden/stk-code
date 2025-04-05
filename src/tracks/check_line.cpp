@@ -254,7 +254,7 @@ start:
 }   // isTriggered
 
 // ----------------------------------------------------------------------------
-std::shared_ptr<Packet> CheckLine::saveCompleteState()
+std::shared_ptr<CheckPacket> CheckLine::saveCompleteState()
 {
     World* world = World::getWorld();
     
@@ -273,7 +273,7 @@ std::shared_ptr<Packet> CheckLine::saveCompleteState()
     return packet;
 }   // saveCompleteState
 // ----------------------------------------------------------------------------
-void CheckLine::restoreCompleteState(const std::shared_ptr<Packet>& packet)
+void CheckLine::restoreCompleteState(const std::shared_ptr<CheckPacket>& packet)
 {
     std::shared_ptr<CheckLinePacket> cl_packet =
             std::dynamic_pointer_cast<CheckLinePacket>(packet);

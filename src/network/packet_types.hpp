@@ -96,6 +96,8 @@ struct Packet
 {
     // Needed to dynamic_cast
     virtual ~Packet() {}
+    virtual void toNetworkString(NetworkString* ns) const {}
+    virtual void fromNetworkString(NetworkString* ns) {}
 };
 
 struct Checkable
@@ -118,8 +120,14 @@ public:
 #define DEFINE_CLASS(Name) \
 struct Name: public Checkable, public Packet { \
     public: \
-        void toNetworkString(NetworkString* ns) const; \
-        void fromNetworkString(NetworkString* ns);
+        virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
+        virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
+
+#define DEFINE_DERIVED_CLASS(Name, Parent) \
+struct Name: public Checkable, public Parent { \
+    public: \
+        virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
+        virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
 #define SYNCHRONOUS(Value) bool isSynchronous() { return Value; }
 #define AUX_VAR(Type, Var) Type Var;
@@ -134,6 +142,7 @@ struct Name: public Checkable, public Packet { \
 
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
+#undef DEFINE_DERIVED_CLASS
 #undef SYNCHRONOUS
 #undef AUX_VAR
 #undef DEFINE_FIELD
@@ -149,7 +158,9 @@ struct Name: public Checkable, public Packet { \
 
 #define DEFINE_CLASS(Name) \
 inline void Name::toNetworkString(NetworkString* ns) const \
-{ 
+{
+
+#define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)
 
 #define SYNCHRONOUS(Value) \
     ns->setSynchronous(Value);
@@ -191,6 +202,7 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
+#undef DEFINE_DERIVED_CLASS
 #undef SYNCHRONOUS
 #undef AUX_VAR
 #undef DEFINE_FIELD
@@ -207,6 +219,8 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 #define DEFINE_CLASS(Name) \
 inline void Name::fromNetworkString(NetworkString* ns) \
 { 
+
+#define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)
 
 #define SYNCHRONOUS(Value)
 
@@ -256,6 +270,7 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
+#undef DEFINE_DERIVED_CLASS
 #undef SYNCHRONOUS
 #undef AUX_VAR
 #undef DEFINE_FIELD

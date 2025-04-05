@@ -102,51 +102,67 @@ void GameSetup::loadWorld()
 }   // loadWorld
 
 //-----------------------------------------------------------------------------
-void GameSetup::addServerInfo(NetworkString* ns)
+ServerInfoPacket GameSetup::addServerInfo()
 {
 #ifdef DEBUG
     assert(NetworkConfig::get()->isServer());
 #endif
-    ns->encodeString(m_server_name_utf8);
+    ServerInfoPacket packet;
+
+    packet.server_name = m_server_name_utf8;
+
     auto sl = LobbyProtocol::get<ServerLobby>();
     assert(sl);
-    ns->addUInt8((uint8_t)sl->getDifficulty())
-        .addUInt8((uint8_t)ServerConfig::m_server_max_players)
-        // Reserve for extra spectators
-        .addUInt8(0)
-        .addUInt8((uint8_t)sl->getGameMode());
+    
+    packet.difficulty = (uint8_t)sl->getDifficulty();
+    
+    // probably getSettings()->
+    packet.max_players = (uint8_t)ServerConfig::m_server_max_players;
+
+    packet.extra_spectators_zero = 0;
+    packet.game_mode = (uint8_t)sl->getGameMode();
+
     if (hasExtraServerInfo())
     {
         if (isGrandPrix())
         {
+            // has_extra_server_info is used for current track index
             uint8_t cur_track = (uint8_t)m_tracks.size();
             if (!isGrandPrixStarted())
                 cur_track = 0;
-            ns->addUInt8((uint8_t)2).addUInt8(cur_track)
-                .addUInt8(getExtraServerInfo());
+
+            packet.has_extra_server_info = cur_track;
+            packet.extra_server_info = std::make_shared<uint8_t>(m_extra_server_info);
         }
         else
         {
             // Soccer mode
-            ns->addUInt8((uint8_t)1).addUInt8(getExtraServerInfo());
+            packet.has_extra_server_info = 1;
+            packet.extra_server_info = std::make_shared<uint8_t>(m_extra_server_info);
         }
     }
     else
     {
-        // No extra server info
-        ns->addUInt8((uint8_t)0);
+        packet.has_extra_server_info = 0;
+        packet.extra_server_info = {};
     }
+
     if (ServerConfig::m_owner_less)
     {
-        ns->addUInt8(ServerConfig::m_min_start_game_players)
-            .addFloat(std::max<float>(0.0f, getSettings()->getStartGameCounter()));
+        // probably getSettings()-> also
+        packet.min_start_game_players = ServerConfig::m_min_start_game_players;
+        packet.start_game_counter = std::max<float>(0.0f, getSettings()->getStartGameCounter());
     }
     else
-        ns->addUInt8(0).addFloat(0.0f);
+    {
+        packet.min_start_game_players = 0;
+        packet.start_game_counter = 0.0f;
+    }
 
-    ns->encodeString16(m_message_of_today);
-    ns->addUInt8((uint8_t)getSettings()->isServerConfigurable());
-    ns->addUInt8(getSettings()->isLivePlayers() ? 1 : 0);
+    packet.motd = m_message_of_today;
+    packet.is_configurable = getSettings()->isServerConfigurable();
+    packet.has_live_players = getSettings()->isLivePlayers();
+    return packet;
 }   // addServerInfo
 
 //-----------------------------------------------------------------------------

@@ -553,7 +553,7 @@ const std::string& CaptureTheFlag::getIdent() const
 }   // getIdent
 
 // ----------------------------------------------------------------------------
-std::shared_ptr<Packet> CaptureTheFlag::saveCompleteState(std::shared_ptr<STKPeer> peer)
+std::shared_ptr<WorldPacket> CaptureTheFlag::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
     auto packet = std::make_shared<CTFWorldCompleteStatePacket>();
 
@@ -565,7 +565,7 @@ std::shared_ptr<Packet> CaptureTheFlag::saveCompleteState(std::shared_ptr<STKPee
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void CaptureTheFlag::restoreCompleteState(const std::shared_ptr<Packet>& packet)
+void CaptureTheFlag::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
     std::shared_ptr<CTFWorldCompleteStatePacket> ctf_packet =
             std::dynamic_pointer_cast<CTFWorldCompleteStatePacket>(packet);

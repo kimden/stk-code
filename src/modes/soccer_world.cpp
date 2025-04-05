@@ -707,11 +707,11 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                     if (peer->getClientCapabilities().find("soccer_fixes") !=
                         peer->getClientCapabilities().end())
                     {
-                        peer->sendPacket(&p_1_1, PRM_RELIABLE);
+                        peer->sendNetstring(&p_1_1, PRM_RELIABLE);
                     }
                     else
                     {
-                        peer->sendPacket(&p, PRM_RELIABLE);
+                        peer->sendNetstring(&p, PRM_RELIABLE);
                     }
                 }
             }
@@ -1214,7 +1214,7 @@ void SoccerWorld::enterRaceOverState()
 }   // enterRaceOverState
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<Packet> SoccerWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
+std::shared_ptr<WorldPacket> SoccerWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
     auto packet = std::make_shared<SoccerWorldCompleteStatePacket>();
 
@@ -1238,7 +1238,7 @@ std::shared_ptr<Packet> SoccerWorld::saveCompleteState(std::shared_ptr<STKPeer> 
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void SoccerWorld::restoreCompleteState(const std::shared_ptr<Packet>& packet)
+void SoccerWorld::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
     std::shared_ptr<SoccerWorldCompleteStatePacket> soccer_packet =
             std::dynamic_pointer_cast<SoccerWorldCompleteStatePacket>(packet);
@@ -1375,7 +1375,7 @@ void SoccerWorld::tellCountToEveryoneInGame() const
     chat->encodeString16(StringUtils::utf8ToWide(real_count));
     for (auto& peer : peers)
         if (peer->isValidated() && !peer->isWaitingForGame())
-            peer->sendPacket(chat, PRM_RELIABLE);
+            peer->sendNetstring(chat, PRM_RELIABLE);
 
     delete chat;
 }   // tellCountToEveryoneInGame
@@ -1393,7 +1393,7 @@ void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
     std::string real_count =
             std::to_string(real_red) + " : " + std::to_string(real_blue);
     chat->encodeString16(StringUtils::utf8ToWide(real_count));
-    peer->sendPacket(chat, PRM_RELIABLE);
+    peer->sendNetstring(chat, PRM_RELIABLE);
     delete chat;
 }   // tellCount
 // ----------------------------------------------------------------------------
