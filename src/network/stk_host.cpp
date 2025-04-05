@@ -922,9 +922,10 @@ void STKHost::mainLoop(ProcessType pt)
                                 p.second->getAddress().toString().c_str(),
                                 player_name.c_str(), ap, max_ping);
                             p.second->setWarnedForHighPing(true);
+
                             NetworkString msg(PROTOCOL_LOBBY_ROOM);
-                            msg.setSynchronous(true);
-                            msg.addUInt8(LobbyEvent::LE_BAD_CONNECTION);
+                            BadConnectionPacket packet;
+                            packet.toNetworkString(&msg);
                             p.second->sendNetstring(&msg, PRM_RELIABLE);
                         }
                     }

@@ -178,8 +178,8 @@ void ClientLobby::setup()
 void ClientLobby::doneWithResults()
 {
     NetworkString* done = getNetworkString(1);
-    done->setSynchronous(true);
-    done->addUInt8(LE_RACE_FINISHED_ACK);
+    RaceFinishedAckPacket packet;
+    packet.toNetworkString(done);
     Comm::sendToServer(done, PRM_RELIABLE);
     delete done;
 }   // doneWithResults
@@ -306,9 +306,9 @@ void ClientLobby::addAllPlayers(Event* event)
         STKHost::get()->getNetworkTimerSynchronizer()->enableForceSetTimer();
     }
 
-    NetworkString& data = event->data();
-    uint32_t winner_peer_id = data.getUInt32();
-    PeerVote winner_vote(data);
+    auto packet = event->getPacket<LoadWorldPacket>();
+    uint32_t winner_peer_id = packet.default_vote.winner_peer_id;
+    PeerVote winner_vote(packet.default_vote.default_vote);
 
     m_game_setup->setRace(winner_vote);
     if (!GUIEngine::isNoGraphics())
@@ -316,24 +316,29 @@ void ClientLobby::addAllPlayers(Event* event)
 
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
     peer->cleanPlayerProfiles();
-    m_server_send_live_load_world = data.getUInt8() == 1;
+    m_server_send_live_load_world = packet.live_join;
 
     bool is_spectator = true;
-    std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
-        decodePlayers(data, peer, &is_spectator);
+    std::vector<std::shared_ptr<NetworkPlayerProfile> > players;
+    unsigned player_count = packet.players_size;
+    for (unsigned i = 0; i < player_count; ++i)
+        players.push_back(decodePlayer(packet.all_players[i], peer, &is_spectator));
     setSpectator(is_spectator);
 
-    uint32_t random_seed = data.getUInt32();
-    ItemManager::updateRandomSeed(random_seed);
+    ItemManager::updateRandomSeed(packet.item_seed);
     if (RaceManager::get()->isBattleMode())
     {
-        int hit_capture_limit = data.getUInt32();
-        float time_limit = data.getFloat();
-        m_game_setup->setHitCaptureTime(hit_capture_limit, time_limit);
-        uint16_t flag_return_timeout = data.getUInt16();
-        RaceManager::get()->setFlagReturnTicks(flag_return_timeout);
-        unsigned flag_deactivated_time = data.getUInt16();
-        RaceManager::get()->setFlagDeactivatedTicks(flag_deactivated_time);
+        // kimden: double checking when it's not needed?
+        if (packet.battle_info)
+        {
+            BattleInfoPacket subpacket = *packet.battle_info;
+
+            m_game_setup->setHitCaptureTime(subpacket.battle_hit_capture_limit,
+                                            subpacket.battle_time_limit);
+
+            RaceManager::get()->setFlagReturnTicks(subpacket.flag_return_time);
+            RaceManager::get()->setFlagDeactivatedTicks(subpacket.flag_deactivated_time);
+        }
     }
     getPlayersAddonKartType(data, players);
     configRemoteKart(players, isSpectator() ? 1 :
@@ -370,35 +375,29 @@ void ClientLobby::addAllPlayers(Event* event)
 
 //-----------------------------------------------------------------------------
 /* Get list of players from server and see if we are spectating it. */
-std::vector<std::shared_ptr<NetworkPlayerProfile> >
-  ClientLobby::decodePlayers(const BareNetworkString& data,
+std::shared_ptr<NetworkPlayerProfile>
+  ClientLobby::decodePlayer(const EncodedSinglePlayerPacket& packet,
                              std::shared_ptr<STKPeer> peer,
                              bool* is_spectator) const
 {
-    std::vector<std::shared_ptr<NetworkPlayerProfile> > players;
-    unsigned player_count = data.getUInt8();
-    for (unsigned i = 0; i < player_count; i++)
-    {
-        core::stringw player_name;
-        data.decodeStringW(&player_name);
-        uint32_t host_id = data.getUInt32();
-        float kart_color = data.getFloat();
-        uint32_t online_id = data.getUInt32();
-        HandicapLevel handicap = (HandicapLevel)data.getUInt8();
-        uint8_t local_id = data.getUInt8();
-        KartTeam team = (KartTeam)data.getUInt8();
-        std::string country_code;
-        data.decodeString(&country_code);
-        if (is_spectator && host_id == STKHost::get()->getMyHostId())
-            *is_spectator = false;
-        auto player = std::make_shared<NetworkPlayerProfile>(peer, player_name,
-            host_id, kart_color, online_id, handicap, local_id, team, country_code);
-        std::string kart_name;
-        data.decodeString(&kart_name);
-        player->setKartName(kart_name);
-        players.push_back(player);
-    }
-    return players;
+    core::stringw player_name;
+    data.decodeStringW(&player_name);
+    uint32_t host_id = data.getUInt32();
+    float kart_color = data.getFloat();
+    uint32_t online_id = data.getUInt32();
+    HandicapLevel handicap = (HandicapLevel)data.getUInt8();
+    uint8_t local_id = data.getUInt8();
+    KartTeam team = (KartTeam)data.getUInt8();
+    std::string country_code;
+    data.decodeString(&country_code);
+    if (is_spectator && host_id == STKHost::get()->getMyHostId())
+        *is_spectator = false;
+    auto player = std::make_shared<NetworkPlayerProfile>(peer, player_name,
+        host_id, kart_color, online_id, handicap, local_id, team, country_code);
+    std::string kart_name;
+    data.decodeString(&kart_name);
+    player->setKartName(kart_name);
+    return player;
 }   // decodePlayers
 
 //-----------------------------------------------------------------------------
@@ -1345,8 +1344,10 @@ void ClientLobby::liveJoinAcknowledged(Event* event)
     {
         // Get and update the players list 1 more time in case the was
         // player connection or disconnection
-        std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
-            decodePlayers(data);
+        std::vector<std::shared_ptr<NetworkPlayerProfile> > players;
+        unsigned player_count = data.getUInt8();
+        for (unsigned i = 0; i < player_count; ++i)
+            players.push_back(decodePlayer(data));
         getPlayersAddonKartType(data, players);
         w->resetElimination();
         for (unsigned i = 0; i < players.size(); i++)

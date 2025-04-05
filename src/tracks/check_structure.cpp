@@ -287,14 +287,15 @@ void CheckStructure::restoreCompleteState(const std::shared_ptr<CheckPacket>& pa
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------
-void CheckStructure::saveIsActive(int kart_id, BareNetworkString* bns)
+CheckActivePacket CheckStructure::saveIsActive(int kart_id)
 {
-    bns->addUInt8(m_is_active[kart_id] ? 1 : 0);
+    CheckActivePacket packet;
+    packet.active = m_is_active[kart_id];
+    return packet;
 }   // saveIsActive
 
 // ----------------------------------------------------------------------------
-void CheckStructure::restoreIsActive(int kart_id, const BareNetworkString& b)
+void CheckStructure::restoreIsActive(int kart_id, const CheckActivePacket& packet)
 {
-    bool is_active = b.getUInt8() == 1;
-    m_is_active.at(kart_id) = is_active;
+    m_is_active.at(kart_id) = packet.active;
 }   // restoreIsActive

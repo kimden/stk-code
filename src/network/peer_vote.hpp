@@ -58,7 +58,7 @@ public:
         m_track_name = packet.track_name;
         m_num_laps = packet.num_laps;
         m_reverse = packet.is_reverse;
-    }   // PeerVote(NetworkString &)
+    }   // PeerVote(PeerVotePacket &)
 
     // ------------------------------------------------------
     /** Encodes this vote object into a network string. */

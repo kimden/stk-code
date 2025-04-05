@@ -687,17 +687,24 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
         if (NetworkConfig::get()->isNetworking() &&
             NetworkConfig::get()->isServer())
         {
-            NetworkString p(PROTOCOL_GAME_EVENTS);
-            p.setSynchronous(true);
-            p.addUInt8(GameEventsProtocol::GE_PLAYER_GOAL)
-                .addUInt8((uint8_t)sd.m_id).addUInt8(sd.m_correct_goal)
-                .addUInt8(first_goal).addFloat(sd.m_time)
-                .addTime(m_ticks_back_to_own_goal)
-                .encodeString(sd.m_kart).encodeString(sd.m_player);
+            InternalGoalPacket packet;
+            packet.id = (uint8_t)sd.m_id;
+            packet.correct_goal = sd.m_correct_goal;
+            packet.first_goal = first_goal;
+            packet.time = sd.m_time;
+            packet.ticks_back_to_own_goal = m_ticks_back_to_own_goal;
+            packet.kart = sd.m_kart;
+            packet.player = sd.m_player;
+
             // Added in 1.1, add missing handicap info and country code
-            NetworkString p_1_1 = p;
-            p_1_1.encodeString(sd.m_country_code)
-                .addUInt8(sd.m_handicap_level);
+            InternalGoalPacket packet_1_1 = packet;
+            packet_1_1.country_code = std::make_shared<std::string>(sd.m_country_code);
+            packet_1_1.handicap = std::make_shared<uint8_t>(sd.m_handicap_level);
+
+            NetworkString p(PROTOCOL_GAME_EVENTS);
+            NetworkString p_1_1(PROTOCOL_GAME_EVENTS);
+            packet.toNetworkString(&p);
+            packet.toNetworkString(&p_1_1);
 
             auto peers = STKHost::get()->getPeers();
             for (auto& peer : peers)
@@ -737,10 +744,10 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 }   // onCheckGoalTriggered
 
 //-----------------------------------------------------------------------------
-void SoccerWorld::handleResetBallFromServer(const NetworkString& ns)
+void SoccerWorld::handleResetBallFromServer(const ResetBallPacket& packet)
 {
     int ticks_now = World::getWorld()->getTicksSinceStart();
-    int ticks_back_to_own_goal = ns.getTime();
+    int ticks_back_to_own_goal = packet.reset_ball_ticks;
     if (ticks_now >= ticks_back_to_own_goal)
     {
         Log::warn("SoccerWorld", "Server ticks %d is too close to client ticks "
@@ -751,23 +758,26 @@ void SoccerWorld::handleResetBallFromServer(const NetworkString& ns)
 }   // handleResetBallFromServer
 
 //-----------------------------------------------------------------------------
-void SoccerWorld::handlePlayerGoalFromServer(const NetworkString& ns)
+void SoccerWorld::handlePlayerGoalFromServer(const InternalGoalPacket& packet)
 {
     ScorerData sd = {};
-    sd.m_id = ns.getUInt8();
-    sd.m_correct_goal = ns.getUInt8() == 1;
-    bool first_goal = ns.getUInt8() == 1;
-    sd.m_time = ns.getFloat();
+    sd.m_id = packet.id;
+    sd.m_correct_goal = packet.correct_goal;
+    bool first_goal = packet.first_goal;
+    sd.m_time = packet.time;
     int ticks_now = World::getWorld()->getTicksSinceStart();
-    int ticks_back_to_own_goal = ns.getTime();
-    ns.decodeString(&sd.m_kart);
-    ns.decodeStringW(&sd.m_player);
+    int ticks_back_to_own_goal = packet.ticks_back_to_own_goal;
+    sd.m_kart = packet.kart;
+    sd.m_player = packet.player;
     // Added in 1.1, add missing handicap info and country code
     if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
         != NetworkConfig::get()->getServerCapabilities().end())
     {
-        ns.decodeString(&sd.m_country_code);
-        sd.m_handicap_level = (HandicapLevel)ns.getUInt8();
+        if (packet.country_code)
+            sd.m_country_code = *packet.country_code;
+
+        if (packet.handicap)
+            sd.m_handicap_level = (HandicapLevel)(*packet.handicap);
     }
 
     if (first_goal)
@@ -973,9 +983,9 @@ void SoccerWorld::updateBallPosition(int ticks)
                         stk_config->time2Ticks(2.0f);
 
                     NetworkString p(PROTOCOL_GAME_EVENTS);
-                    p.setSynchronous(true);
-                    p.addUInt8(GameEventsProtocol::GE_RESET_BALL)
-                        .addTime(m_reset_ball_ticks);
+                    ResetBallPacket packet;
+                    packet.reset_ball_ticks = m_reset_ball_ticks;
+                    packet.toNetworkString(&p);
                     STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
                 }
                 else if (!NetworkConfig::get()->isNetworking())
@@ -1364,15 +1374,18 @@ std::pair<int, int> SoccerWorld::getCount() const {
 void SoccerWorld::tellCountToEveryoneInGame() const
 {
     auto peers = STKHost::get()->getPeers();
-    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(17); // LE_CHAT
-    chat->setSynchronous(true);
     auto real_score = getCount();
     int real_red = real_score.first;
     int real_blue = real_score.second;
-    std::string real_count =
-        std::to_string(real_red) + " : " + std::to_string(real_blue);
-    chat->encodeString16(StringUtils::utf8ToWide(real_count));
+    std::string real_count = std::to_string(real_red)
+                  + " : " + std::to_string(real_blue);
+
+    // This should be done using sendStringTo...
+    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(real_count);
+    packet.toNetworkString(chat);
+
     for (auto& peer : peers)
         if (peer->isValidated() && !peer->isWaitingForGame())
             peer->sendNetstring(chat, PRM_RELIABLE);
@@ -1384,15 +1397,19 @@ void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer->isValidated())
         return;
-    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(17); // LE_CHAT
-    chat->setSynchronous(true);
+
     auto real_score = getCount();
     int real_red = real_score.first;
     int real_blue = real_score.second;
     std::string real_count =
             std::to_string(real_red) + " : " + std::to_string(real_blue);
-    chat->encodeString16(StringUtils::utf8ToWide(real_count));
+
+    // This should be done using sendStringTo...
+    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(real_count);
+    packet.toNetworkString(chat);
+
     peer->sendNetstring(chat, PRM_RELIABLE);
     delete chat;
 }   // tellCount

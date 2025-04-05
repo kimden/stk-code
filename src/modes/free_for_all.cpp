@@ -124,21 +124,29 @@ void FreeForAll::handleScoreInServer(int kart_id, int hitter)
         NetworkConfig::get()->isServer())
     {
         NetworkString p(PROTOCOL_GAME_EVENTS);
-        p.setSynchronous(true);
-        p.addUInt8(GameEventsProtocol::GE_BATTLE_KART_SCORE);
+        InsideFfaPacket packet;
+    
         if (kart_id == hitter || hitter == -1)
-            p.addUInt8((uint8_t)kart_id).addUInt16((int16_t)new_score);
+        {
+            packet.hitter_kart = (uint8_t)kart_id;
+            packet.new_score = (int16_t)new_score;
+        }
         else
-            p.addUInt8((uint8_t)hitter).addUInt16((int16_t)new_score);
+        {
+            packet.hitter_kart = (uint8_t)hitter;
+            packet.new_score = (int16_t)new_score;
+        }
+
+        packet.toNetworkString(&p);
         STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
     }
 }   // handleScoreInServer
 
 // ----------------------------------------------------------------------------
-void FreeForAll::setKartScoreFromServer(NetworkString& ns)
+void FreeForAll::setKartScoreFromServer(const InsideFfaPacket& packet)
 {
-    int kart_id = ns.getUInt8();
-    int16_t score = ns.getUInt16();
+    int kart_id = packet.hitter_kart;
+    int16_t score = packet.new_score;
     m_scores.at(kart_id) = score;
 }   // setKartScoreFromServer
 
@@ -351,9 +359,12 @@ void FreeForAll::notifyAboutScoreIfNonzero(int id)
         m_scores[id] != 0)
     {
         NetworkString p(PROTOCOL_GAME_EVENTS);
-        p.setSynchronous(true);
-        p.addUInt8(GameEventsProtocol::GE_BATTLE_KART_SCORE);
-        p.addUInt8((uint8_t)id).addUInt16((int16_t)m_scores[id]);
+
+        InsideFfaPacket packet;
+        packet.hitter_kart = (uint8_t)id;
+        packet.new_score = (int16_t)m_scores[id];
+        packet.toNetworkString(&p);
+        
         STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
     }
 }   // notifyAboutScoreIfNonzero

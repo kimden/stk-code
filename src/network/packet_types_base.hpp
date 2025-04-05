@@ -531,4 +531,77 @@ DEFINE_CLASS(GPScoresPacket)
     DEFINE_VECTOR(GPIndividualScorePacket, num_players, scores)
 END_DEFINE_CLASS(GPScoresPacket)
 
+DEFINE_CLASS(InsideCtfPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_CTF_SCORED)
+    DEFINE_FIELD(uint8_t, active_holder)
+    DEFINE_FIELD(bool, red_inactive) /* actually, red scored */
+    DEFINE_FIELD(uint16_t, kart_score)
+    DEFINE_FIELD(uint8_t, red_score)
+    DEFINE_FIELD(uint8_t, blue_score)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(InsideCtfPacket)
+
+DEFINE_CLASS(InsideFfaPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_BATTLE_KART_SCORE)
+    DEFINE_FIELD(uint8_t, hitter_kart)
+    DEFINE_FIELD(uint16_t, new_score)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(InsideFfaPacket)
+
+/* Separation is needed because it's filled in check structure itself */
+DEFINE_CLASS(CheckActivePacket)
+    DEFINE_FIELD(bool, active)
+END_DEFINE_CLASS(CheckActivePacket)
+
+DEFINE_CLASS(InsideChecklinePacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_CHECK_LINE)
+    DEFINE_FIELD(uint8_t, check_id)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(uint8_t, finished_laps)
+    DEFINE_FIELD(uint8_t, last_triggered_checkline)
+    DEFINE_FIELD(uint32_t, fastest_lap_ticks)
+    DEFINE_FIELD(widestr, fastest_kart_name)
+    DEFINE_FIELD(uint8_t, check_structure_count)
+    DEFINE_VECTOR_OBJ(CheckActivePacket, check_structure_count, check_active)
+END_DEFINE_CLASS(InsideChecklinePacket)
+
+
+DEFINE_CLASS(InternalGoalPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_PLAYER_GOAL)
+    DEFINE_FIELD(uint8_t, id)
+    DEFINE_FIELD(bool, correct_goal)
+    DEFINE_FIELD(bool, first_goal)
+    DEFINE_FIELD(float, time)
+    DEFINE_FIELD(uint32_t, ticks_back_to_own_goal)
+    DEFINE_FIELD(std::string, kart)
+    DEFINE_FIELD(widestr, player)
+    /* what follows is only since 1.1, that is, when capabilities have "soccer_fixes" */
+    DEFINE_FIELD_OPTIONAL(std::string, country_code, check(0))
+    DEFINE_FIELD_OPTIONAL(uint8_t, handicap, check(0))
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(InternalGoalPacket)
+
+DEFINE_CLASS(ResetBallPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_RESET_BALL)
+    DEFINE_FIELD(uint32_t, reset_ball_ticks)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ResetBallPacket)
+
+DEFINE_CLASS(BadConnectionPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LobbyEvent::LE_BAD_CONNECTION)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(BadConnectionPacket)
+
+DEFINE_CLASS(RaceFinishedAckPacket)
+    SYNCHRONOUS(true)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_RACE_FINISHED_ACK)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(RaceFinishedAckPacket)
+
 // end

@@ -144,8 +144,8 @@ private:
     void liveJoinAcknowledged(Event* event);
     void handleKartInfo(Event* event);
     void finishLiveJoin();
-    std::vector<std::shared_ptr<NetworkPlayerProfile> >
-         decodePlayers(const BareNetworkString& data,
+    std::shared_ptr<NetworkPlayerProfile>
+         decodePlayer(const EncodedSinglePlayerPacket& packet,
          std::shared_ptr<STKPeer> peer = nullptr,
          bool* is_spectator = NULL) const;
     void getPlayersAddonKartType(const BareNetworkString& data,
