@@ -39,7 +39,6 @@
 
 class AbstractKart;
 class HitProcessor;
-class NetworkString;
 class SavedGrandPrix;
 class Track;
 
@@ -927,7 +926,7 @@ public:
         return m_num_spare_tire_karts;
     }   // getNumSpareTireKarts
     // ----------------------------------------------------------------------------------------
-    void configGrandPrixResultFromNetwork(NetworkString& ns);
+    void configGrandPrixResultFromNetwork(const GPScoresPacket& packet);
     // ----------------------------------------------------------------------------------------
     void clearNetworkGrandPrixResult();
     // ----------------------------------------------------------------------------------------

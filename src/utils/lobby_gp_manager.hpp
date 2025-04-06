@@ -27,7 +27,6 @@
 #include <queue>
 
 class NetworkPlayerProfile;
-class NetworkString;
 class GPScoring;
 
 struct GPScore

@@ -386,8 +386,8 @@ GUIEngine::EventPropagation
             {
                 // back lobby
                 NetworkString back(PROTOCOL_LOBBY_ROOM);
-                back.setSynchronous(true);
-                back.addUInt8(LobbyEvent::LE_CLIENT_BACK_LOBBY);
+                ClientBackLobbyPacket packet;
+                packet.toNetworkString(&back);
                 STKHost::get()->sendToServer(&back, PRM_RELIABLE);
             }
             else

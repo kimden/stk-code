@@ -29,7 +29,6 @@ class GameSetup;
 class KartElimination;
 class LobbyAssetManager;
 class LobbyQueues;
-class NetworkString;
 class PeerVote;
 class STKPeer;
 class Tournament;

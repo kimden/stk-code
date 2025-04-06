@@ -53,7 +53,6 @@ class LobbySettings;
 class MapVoteHandler;
 class NetworkItemManager;
 class NetworkPlayerProfile;
-class NetworkString;
 class Ranking;
 class SocketAddress;
 class STKPeer;

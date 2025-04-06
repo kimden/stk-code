@@ -92,12 +92,27 @@ enum BackLobbyReason : uint8_t
     BLR_SPECTATING_NEXT_GAME = 5
 };
 
+//---------------------- Basic packet definitions -----------------------------
+
+namespace
+{
+    const std::string SOCCER_FIXES = "soccer_fixes";
+    const std::string REAL_ADDON_KARTS = "real_addon_karts";
+}
+
+
 struct Packet
 {
+    std::function<bool(const std::string&)> m_capability_checker;
+
     // Needed to dynamic_cast
     virtual ~Packet() {}
     virtual void toNetworkString(NetworkString* ns) const {}
     virtual void fromNetworkString(NetworkString* ns) {}
+
+    bool cap(const std::string& name) {
+        return m_capability_checker(name);
+    }
 };
 
 struct Checkable
