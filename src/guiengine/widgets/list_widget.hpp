@@ -28,6 +28,8 @@
 #include "utils/ptr_vector.hpp"
 #include "IGUIElement.h"
 
+#include <utility>
+
 
 namespace irr { namespace gui { class STKModifiedSpriteBank; } }
 
@@ -91,7 +93,7 @@ namespace GUIEngine
         
         /** Leave empty for no header */
         std::vector< Column > m_header;
-        
+
         IListWidgetHeaderListener* m_listener;
 
         bool m_sortable;
@@ -117,6 +119,7 @@ namespace GUIEngine
 
     public:
         typedef irr::gui::CGUISTKListBox::ListItem ListItem;
+        typedef irr::gui::CGUISTKListBox::ListCellCallback ListCellCallback;
         typedef ListItem::ListCell ListCell;
         
         LEAK_CHECK()
@@ -144,8 +147,6 @@ namespace GUIEngine
           * \pre may only be called after the widget has been added to the screen with add()
           */
         void setIcons(irr::gui::STKModifiedSpriteBank* icons, float scale = -1.0f);
-        
-        
         // ---- contents management
         
         /**
@@ -157,10 +158,25 @@ namespace GUIEngine
         void addItem(   const std::string& internal_name,
                         const irr::core::stringw &name,
                         const int icon=-1,
-                        bool center = false);
+                        bool center = false,
+                        float line_height_scale = 1.0f,
+                        bool auto_height = false,
+                        ListCellCallback callback = nullptr,
+                        bool scroll_down = false);
 
         void addItem(   const std::string& internal_name,
-                        const std::vector<ListCell>& contents);
+                        std::vector<irr::gui::GlyphLayout> &name,
+                        const int icon=-1,
+                        bool center = false,
+                        float line_height_scale = 1.0f,
+                        bool auto_height = false,
+                        ListCellCallback callback = nullptr,
+                        bool scroll_down = false);
+
+        void addItem(   const std::string& internal_name,
+                        const std::vector<ListCell>& contents,
+                        bool auto_height = false,
+                        bool scroll_down = false);
 
         /**
           * \brief create a header based on m_header

@@ -379,17 +379,8 @@ bool CGUIStaticText::OnEvent(const SEvent& event)
 }
 
 
-s32 CGUIStaticText::getCluster(int x, int y, std::shared_ptr<std::u32string>* out_orig_str, int* out_glyph_idx)
+s32 CGUIStaticText::getClusterAt(int x, int y, std::shared_ptr<std::u32string>* out_orig_str, int* out_glyph_idx)
 {
-	core::position2di p;
-	p.X = x;
-	p.Y = y;
-	if (p.X < 0 || p.Y < 0)
-		return -1;
-
-	if (m_glyph_layouts.empty())
-		return -1;
-
 	core::rect<s32> draw_pos = AbsoluteRect;
 	IGUISkin* skin = Environment->getSkin();
 	if (!skin)
@@ -402,82 +393,10 @@ s32 CGUIStaticText::getCluster(int x, int y, std::shared_ptr<std::u32string>* ou
 	const core::rect<s32>* clip;
 	getDrawPosition(&draw_pos, &hcenter, &clip);
 
-	core::position2d<float> offset;
-	f32 next_line_height = 0.0f;
-	std::vector<f32> width_per_line;
-	if (!gui::getDrawOffset(draw_pos, hcenter, false, m_glyph_layouts,
-		font->getInverseShaping(), font->getFaceFontMaxHeight(),
-		font->getFaceGlyphMaxHeight(), font->getScale(), clip, &offset,
-		&next_line_height, &width_per_line))
-		return -1;
-
-	// Check if the line is RTL
-	bool rtl = (m_glyph_layouts[0].flags & gui::GLF_RTL_LINE) != 0;
-	if (!hcenter && rtl)
-		offset.X += (s32)(draw_pos.getWidth() - width_per_line[0]);
-
-	unsigned cur_line = 0;
-	bool line_changed = false;
-
-	int idx = -1;
-	core::recti test_rect;
-	test_rect.UpperLeftCorner.X = test_rect.LowerRightCorner.X = (s32)offset.X;
-	test_rect.UpperLeftCorner.Y = (s32)offset.Y;
-	test_rect.LowerRightCorner.Y = (s32)offset.Y + (s32)next_line_height;
-
-	for (unsigned i = 0; i < m_glyph_layouts.size(); i++)
-	{
-		const GlyphLayout& glyph_layout = m_glyph_layouts[i];
-		// Newline handling (from font with face render)
-		if ((glyph_layout.flags & GLF_NEWLINE) != 0)
-		{
-			test_rect.UpperLeftCorner.Y += (int)next_line_height;
-			test_rect.LowerRightCorner.Y += (int)next_line_height;
-			cur_line++;
-			line_changed = true;
-			continue;
-		}
-		if (line_changed)
-		{
-			line_changed = false;
-			rtl = (glyph_layout.flags & gui::GLF_RTL_LINE) != 0;
-			offset.X = float(draw_pos.UpperLeftCorner.X);
-			if (hcenter)
-			{
-				offset.X += (s32)(
-					(draw_pos.getWidth() - width_per_line.at(cur_line)) / 2.f);
-			}
-			else if (rtl)
-			{
-				offset.X +=
-					(s32)(draw_pos.getWidth() - width_per_line.at(cur_line));
-			}
-			test_rect.UpperLeftCorner.X = test_rect.LowerRightCorner.X =
-				(s32)offset.X;
-		}
-		test_rect.LowerRightCorner.X += s32(
-			(f32)glyph_layout.x_advance * font->getInverseShaping() *
-			font->getScale());
-
-		if (test_rect.isPointInside(p))
-		{
-			idx = i;
-			break;
-		}
-	}
-	if (idx == -1)
-		return -1;
-
-	std::shared_ptr<std::u32string> s = m_glyph_layouts[idx].orig_string;
-	if (!s)
-		return -1;
-	unsigned cluster = m_glyph_layouts[idx].cluster.front();
-	if (cluster > s->size())
-		return -1;
-	*out_orig_str = s;
-	if (out_glyph_idx)
-		*out_glyph_idx = idx;
-	return cluster;
+	return calculateClusterAt(x, y, draw_pos,  hcenter, false, m_glyph_layouts,
+							font->getInverseShaping(), font->getFaceFontMaxHeight(),
+							font->getFaceGlyphMaxHeight(), font->getScale(), clip, 
+							out_orig_str, out_glyph_idx);
 }
 
 

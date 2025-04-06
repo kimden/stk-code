@@ -37,6 +37,8 @@
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
+#include <IrrlichtDevice.h>
+
 using namespace GUIEngine;
 
 // ----------------------------------------------------------------------------
@@ -136,17 +138,20 @@ void GhostReplaySelection::loadedFromFile()
     {
         const KartProperties* prop = kart_properties_manager->getKartById(i);
         m_icon_bank->addTextureAsSprite(prop->getIconMaterial()->getTexture());
+        m_icon_tooltips.push_back(prop->getName());
     }
 
     video::ITexture* kart_not_found = irr_driver->getTexture(
                 file_manager->getAsset(FileManager::GUI_ICON, "main_help.png"));
 
     m_icon_unknown_kart = m_icon_bank->addTextureAsSprite(kart_not_found);
+    m_icon_tooltips.push_back(L"");
 
     video::ITexture* lock = irr_driver->getTexture( file_manager->getAsset(
                                         FileManager::GUI_ICON, "gui_lock.png"));
 
     m_icon_lock = m_icon_bank->addTextureAsSprite(lock);
+    m_icon_tooltips.push_back(L"");
 }   // loadedFromFile
 
 // ----------------------------------------------------------------------------
@@ -505,6 +510,25 @@ void GhostReplaySelection::eventCallback(GUIEngine::Widget* widget,
     }
 
 }   // eventCallback
+
+// ----------------------------------------------------------------------------
+void GhostReplaySelection::onUpdate(float delta)
+{
+    irr::gui::CGUISTKListBox *list = m_replay_list_widget->getIrrlichtElement<irr::gui::CGUISTKListBox>();
+
+    const core::position2di mouse_position =
+            irr_driver->getDevice()->getCursorControl()->getPosition();
+    int row = -1, col = -1;
+    if (list->hasElementAt(mouse_position.X, mouse_position.Y, &row, &col)
+        && list->getIcon(row, col) != -1)
+    {
+        m_replay_list_widget->setTooltip(m_icon_tooltips[list->getIcon(row, col)]);
+    }
+    else
+    {
+        m_replay_list_widget->unsetTooltip();
+    }
+}
 
 // ----------------------------------------------------------------------------
 void GhostReplaySelection::onDeleteReplay(std::string& filename)

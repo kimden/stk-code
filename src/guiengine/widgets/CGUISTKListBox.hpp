@@ -13,6 +13,7 @@
 #include "irrArray.h"
 #include <string>
 #include <vector>
+#include <functional>
 
 #include "GlyphLayout.h"
 
@@ -26,7 +27,8 @@ namespace irr
     class CGUISTKListBox : public IGUIElement
     {
     public:
-
+            typedef std::function<bool(CGUISTKListBox* list, int row, int col, 
+                                        irr::SEvent::SMouseInput input, bool is_icon)> ListCellCallback;
             struct ListItem
             {
 
@@ -37,13 +39,25 @@ namespace irr
                     s32 m_icon;
                     std::vector<GlyphLayout> m_glyph_layouts;
                     bool m_center;
+                    ListCellCallback m_callback;
 
-                    ListCell(irr::core::stringw text, s32 icon = -1, int proportion = 1, bool center = false)
+                    ListCell(irr::core::stringw text, s32 icon = -1, int proportion = 1, bool center = false,
+                            ListCellCallback callback = nullptr)
                     {
                         m_text = text;
                         m_proportion = proportion;
                         m_icon = icon;
                         m_center = center;
+                        m_callback = callback;
+                    }
+                    ListCell(std::vector<GlyphLayout> &glyph_layouts, s32 icon = -1, int proportion = 1, bool center = false,
+                            ListCellCallback callback = nullptr)
+                    {
+                        m_glyph_layouts = glyph_layouts;
+                        m_proportion = proportion;
+                        m_icon = icon;
+                        m_center = center;
+                        m_callback = callback;
                     }
                 };
 
@@ -54,7 +68,8 @@ namespace irr
                 int m_current_id;
 
                 bool m_word_wrap = false;
-                float m_line_height_scale = 0.0f;
+                bool m_auto_height = false;
+                float m_line_height_scale = 1.0f;
 
                 // A multicolor extension
                 struct ListItemOverrideColor
@@ -80,7 +95,7 @@ namespace irr
 
             virtual const wchar_t* getCellText(u32 row_num, u32 col_num) const;
 
-            virtual ListItem getItem(u32 id) const;
+            virtual const ListItem& getItem(u32 id) const;
 
             //! clears the list
             virtual void clear();
@@ -111,7 +126,7 @@ namespace irr
             //! returns the id of the new created item
             //virtual u32 addItem(const wchar_t* text, s32 icon);
 
-            virtual u32 addItem(const ListItem & item);
+            virtual u32 addItem(const ListItem & item, bool scroll_down);
 
             //! Returns the icon of an item
             virtual s32 getIcon(u32 row_num, u32 col_num) const;
@@ -170,6 +185,11 @@ namespace irr
             //! Sets whether to draw the background
             virtual void setDrawBackground(bool draw);
 
+            virtual s32  getClusterAt(int row, int col, int x, int y,
+                                    std::shared_ptr<std::u32string>* out_orig_str, int* out_glyph_idx = NULL);
+
+            virtual bool hasElementAt(int x, int y, int *row_num = NULL, int *col_num = NULL);
+
             void setAlternatingDarkness(bool val) { m_alternating_darkness = val; }
             gui::IGUIScrollBar* getScrollBar() const { return ScrollBar; }
             void setDisactivated(bool val)
@@ -189,7 +209,10 @@ namespace irr
             // extracted that function to avoid copy&paste code
             void recalculateIconWidth();
 
-            core::array< ListItem > Items;
+            core::array<ListItem> Items;
+            core::array<std::pair<irr::core::rect<s32>, int>> ItemPositions;
+            core::array<std::pair<irr::core::rect<s32>, bool>> Layouts;
+            core::array<std::pair<int, int>> LayoutPositions;
             s32 Selected;
             s32 ItemHeight;
             s32 ItemHeightOverride;

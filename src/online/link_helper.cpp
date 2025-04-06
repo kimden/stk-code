@@ -55,7 +55,7 @@ namespace Online
             return false;
         std::shared_ptr<std::u32string> s;
         int glyph_idx = -1;
-        int cluster = text->getCluster(mouse.X, mouse.Y, &s, &glyph_idx);
+        int cluster = text->getClusterAt(mouse.X, mouse.Y, &s, &glyph_idx);
         if (cluster == -1 || (unsigned)cluster > s->size())
             return false;
         const std::vector<gui::GlyphLayout>& gls = text->getGlyphLayouts();

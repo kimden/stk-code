@@ -2083,8 +2083,20 @@ void Skin::drawList(const core::recti &rect, Widget* widget, bool focused)
     //drawBoxFromStretchableTexture(widget, rect,
     //                              SkinConfig::m_render_params["list::neutral"],
     //                              widget->m_deactivated, NULL);
+    
+    if (widget->hasTooltip())
+    {
+        const core::position2di mouse_position =
+            irr_driver->getDevice()->getCursorControl()->getPosition();
 
-}   // drawList
+        if (rect.isPointInside(mouse_position))
+        {
+            m_tooltip_at_mouse.push_back(true);
+            m_tooltips.push_back(widget);
+        }
+    }
+
+}   // drawLis
 
 // ----------------------------------------------------------------------------
 /**
