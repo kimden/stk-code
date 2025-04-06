@@ -88,34 +88,43 @@ GUIEngine::EventPropagation
         {
             m_self_destroy = true;
             NetworkString change(PROTOCOL_LOBBY_ROOM);
-            change.addUInt8(LobbyEvent::LE_CONFIG_SERVER);
-            change.addUInt8((uint8_t)m_difficulty_widget
-                ->getSelection(PLAYER_ID_GAME_MASTER));
+
+            ConfigServerPacket packet;
+            packet.difficulty = (uint8_t)m_difficulty_widget->getSelection(PLAYER_ID_GAME_MASTER);
             switch (m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER))
             {
                 case 0:
                 {
-                    change.addUInt8(3).addUInt8(0);
+                    packet.game_mode = 3;
+                    packet.soccer_goal_target = false;
                     break;
                 }
                 case 1:
                 {
-                    change.addUInt8(4).addUInt8(0);
+                    packet.game_mode = 4;
+                    packet.soccer_goal_target = false;
                     break;
                 }
                 case 2:
                 {
                     int v = m_more_options_spinner->getValue();
                     if (v == 0)
-                        change.addUInt8(7).addUInt8(0);
+                    {
+                        packet.game_mode = 7;
+                        packet.soccer_goal_target = false;
+                    }
                     else
-                        change.addUInt8(8).addUInt8(0);
+                    {
+                        packet.game_mode = 8;
+                        packet.soccer_goal_target = false;
+                    }
                     break;
                 }
                 case 3:
                 {
                     int v = m_more_options_spinner->getValue();
-                    change.addUInt8(6).addUInt8((uint8_t)v);
+                    packet.game_mode = 6;
+                    packet.soccer_goal_target = v != 0;
                     break;
                 }
                 default:
@@ -123,6 +132,7 @@ GUIEngine::EventPropagation
                     break;
                 }
             }
+            packet.toNetworkString(&change);
             Comm::sendToServer(&change, PRM_RELIABLE);
             return GUIEngine::EVENT_BLOCK;
         }

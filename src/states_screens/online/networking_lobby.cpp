@@ -863,7 +863,8 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
         {
             // Send a message to the server to start
             NetworkString start(PROTOCOL_LOBBY_ROOM);
-            start.addUInt8(LobbyEvent::LE_REQUEST_BEGIN);
+            RequestBeginPacket packet;
+            packet.toNetworkString(&start);
             Comm::sendToServer(&start, PRM_RELIABLE);
         }
     }
@@ -880,10 +881,9 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
         if (m_client_live_joinable && cl)
         {
             NetworkString start(PROTOCOL_LOBBY_ROOM);
-            start.setSynchronous(true);
-            start.addUInt8(LobbyEvent::LE_LIVE_JOIN)
-                // is spectating
-                .addUInt8(1);
+            LiveJoinRequestPacket packet;
+            packet.is_spectator = true;
+            packet.toNetworkString(&start);
             Comm::sendToServer(&start, PRM_RELIABLE);
             return;
         }

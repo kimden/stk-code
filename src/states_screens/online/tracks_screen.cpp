@@ -734,36 +734,45 @@ void TracksScreen::voteForPlayer()
         UserConfigParams::m_random_arena_item = m_reversed->getState();
 
     NetworkString vote(PROTOCOL_LOBBY_ROOM);
-    vote.addUInt8(LobbyEvent::LE_VOTE);
+
+    PeerVotePacket packet;
+
     core::stringw player_name;
     if (PlayerManager::getCurrentPlayer())
         player_name = PlayerManager::getCurrentPlayer()->getName();
-    vote.encodeString(player_name);
+    
+    packet.player_name = player_name;
+    packet.track_name = m_selected_track->getIdent();
+
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
     {
-        vote.encodeString(m_selected_track->getIdent())
-            .addUInt8(0).addUInt8(m_reversed->getState() ? 1 : 0);
+        packet.num_laps = 0;
+        packet.is_reverse = m_reversed->getState();
     }
     else if (RaceManager::get()->getMinorMode() ==
         RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
     {
-        vote.encodeString(m_selected_track->getIdent())
-            .addUInt8(0).addUInt8(0);
+        packet.num_laps = 0;
+        packet.is_reverse = false;
     }
     else
     {
-        vote.encodeString(m_selected_track->getIdent())
-            .addUInt8(m_laps->getValue())
-            .addUInt8(m_reversed->getState() ? 1 : 0);
+        packet.num_laps = m_laps->getValue();
+        packet.is_reverse = m_reversed->getState();
     }
+
     if (auto lp = LobbyProtocol::get<LobbyProtocol>())
     {
-        vote.reset();
-        vote.skip(2);
-        PeerVote pvote(vote);
+        PeerVote pvote(packet);
         lp->addVote(STKHost::get()->getMyHostId(), pvote);
     }
-    Comm::sendToServer(&vote, PRM_RELIABLE);
+    else
+    {
+        // kimden: I'm not sure if this is the right thing, but seems fine.
+        // Not encoding packet to netstring before if just in case, too.
+        packet.toNetworkString(&vote);
+        Comm::sendToServer(&vote, PRM_RELIABLE);
+    }
 }   // voteForPlayer
 
 // -----------------------------------------------------------------------------

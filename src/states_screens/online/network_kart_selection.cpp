@@ -124,21 +124,15 @@ void NetworkKartSelectionScreen::allPlayersDone()
 
     const uint8_t kart_count = (uint8_t)m_kart_widgets.size();
     NetworkString kart(PROTOCOL_LOBBY_ROOM);
-    if (m_live_join)
-    {
-        kart.setSynchronous(true);
-        kart.addUInt8(LobbyEvent::LE_LIVE_JOIN)
-            // not spectator
-            .addUInt8(0);
-    }
-    else
-        kart.addUInt8(LobbyEvent::LE_KART_SELECTION);
-    kart.addUInt8(kart_count);
+
+    PlayerKartsPacket karts_packet;
+    karts_packet.players_count = kart_count;
+    
     for (unsigned n = 0; n < kart_count; n++)
     {
-        // If server recieve an invalid name, it will auto correct to a random
+        // If server receives an invalid name, it will auto correct to a random
         // kart
-        kart.encodeString(m_kart_widgets[n].m_kart_internal_name);
+        karts_packet.karts.push_back(m_kart_widgets[n].m_kart_internal_name);
     }
 
     NetworkConfig* nc = NetworkConfig::get();
@@ -155,9 +149,24 @@ void NetworkKartSelectionScreen::allPlayersDone()
                 if (kp && kp->isAddon())
                     kart_data = KartData(kp);
             }
-            kart_data.encode(&kart);
+            karts_packet.kart_data.push_back(kart_data.encode());
         }
     }
+
+    if (m_live_join)
+    {
+        LiveJoinRequestPacket packet;
+        packet.is_spectator = false;
+        packet.player_karts = std::make_shared<PlayerKartsPacket>(karts_packet);
+        packet.toNetworkString(&kart);
+    }
+    else
+    {
+        KartSelectionRequestPacket packet;
+        packet.karts = karts_packet;
+        packet.toNetworkString(&kart);
+    }
+
     Comm::sendToServer(&kart, PRM_RELIABLE);
 
     // ---- Switch to assign mode
@@ -188,7 +197,8 @@ bool NetworkKartSelectionScreen::onEscapePressed()
             // server doesn't react in time we exit the server
             m_exit_timeout = StkTime::getMonoTimeMs() + 5000;
             NetworkString back(PROTOCOL_LOBBY_ROOM);
-            back.addUInt8(LobbyEvent::LE_CLIENT_BACK_LOBBY);
+            ClientBackLobbyPacket packet;
+            packet.toNetworkString(&back);
             Comm::sendToServer(&back, PRM_RELIABLE);
         }
         return false;

@@ -555,7 +555,7 @@ void LobbySettings::applyRestrictionsOnWinnerVote(PeerVote* winner_vote) const
 }   // applyRestrictionsOnWinnerVote
 //-----------------------------------------------------------------------------
 
-DefaultVotePacket LobbySettings::encodeDefaultVote(NetworkString* ns) const
+DefaultVotePacket LobbySettings::encodeDefaultVote() const
 {
     DefaultVotePacket packet;
     packet.winner_peer_id = m_winner_peer_id;

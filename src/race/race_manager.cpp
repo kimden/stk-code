@@ -1243,7 +1243,7 @@ void RaceManager::startWatchingReplay(const std::string &track_ident,
 }   // startWatchingReplay
 
 //---------------------------------------------------------------------------------------------
-void RaceManager::configGrandPrixResultFromNetwork(NetworkString& ns)
+void RaceManager::configGrandPrixResultFromNetwork(const GPScoresPacket& packet)
 {
     setMajorMode(MAJOR_MODE_GRAND_PRIX);
     class NetworkGrandPrixData : public GrandPrixData
@@ -1261,15 +1261,13 @@ void RaceManager::configGrandPrixResultFromNetwork(NetworkString& ns)
     };
 
     NetworkGrandPrixData ngpd;
-    unsigned int track_size = ns.getUInt8();
-    unsigned int all_track_size = ns.getUInt8();
+    unsigned int track_size = packet.total_gp_tracks;
+    unsigned int all_track_size = packet.all_tracks_size;
     assert(all_track_size > 0);
     m_track_number = all_track_size -1;
     for (unsigned i = 0; i < all_track_size; i++)
     {
-        std::string t;
-        ns.decodeString(&t);
-        ngpd.addNetworkTrack(t);
+        ngpd.addNetworkTrack(packet.all_tracks[i]);
     }
     while (all_track_size < track_size)
     {
@@ -1283,13 +1281,14 @@ void RaceManager::configGrandPrixResultFromNetwork(NetworkString& ns)
     m_reverse_track.resize(track_size, m_reverse_track[0]);
 
     m_grand_prix = ngpd;
-    unsigned int player_size = ns.getUInt8();
+    unsigned int player_size = packet.num_players;
     assert(player_size == m_kart_status.size());
     for (unsigned i = 0; i < player_size; i++)
     {
-        int last_score = ns.getUInt32();
-        int cur_score = ns.getUInt32();
-        float overall_time = ns.getFloat();
+        const GPIndividualScorePacket& subpacket = packet.scores[i];
+        int last_score = subpacket.last_score;
+        int cur_score = subpacket.cur_score;
+        float overall_time = subpacket.overall_time;
         m_kart_status[i].m_last_score = last_score;
         m_kart_status[i].m_score = cur_score;
         m_kart_status[i].m_overall_time = overall_time;

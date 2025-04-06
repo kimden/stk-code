@@ -116,8 +116,9 @@ DEFINE_CLASS(KartParametersPacket)
     DEFINE_FIELD(Vec3, gravity_shift)
 END_DEFINE_CLASS(KartParametersPacket)
 
+/* This is only read in CL when cap(REAL_ADDON_KARTS) in LoadWorldPacket. Is it like that in other packets? */
 DEFINE_CLASS(KartDataPacket)
-    DEFINE_FIELD(std::string, kart_type)
+    DEFINE_FIELD_OPTIONAL(std::string, kart_type)
     DEFINE_FIELD_OPTIONAL(KartParametersPacket, parameters, !kart_type.empty())
 END_DEFINE_CLASS(KartDataPacket)
 
@@ -219,15 +220,14 @@ DEFINE_DERIVED_CLASS(LinearWorldCompleteStatePacket, WorldPacket)
     DEFINE_VECTOR_OBJ_PTR(CheckStructurePacket, check_structure_count, check_structures)
 END_DEFINE_CLASS(LinearWorldCompleteStatePacket)
 
-// 0: peer->getClientCapabilities().find("soccer_fixes") != peer->getClientCapabilities().end()
 DEFINE_CLASS(ScorerDataPacket)
     DEFINE_FIELD(uint8_t, id)
     DEFINE_FIELD(uint8_t, correct_goal)
     DEFINE_FIELD(float, time)
     DEFINE_FIELD(std::string, kart)
     DEFINE_FIELD(widestr, player)
-    DEFINE_FIELD_OPTIONAL(std::string, country_code, check(0))
-    DEFINE_FIELD_OPTIONAL(uint8_t, handicap_level, check(0))
+    DEFINE_FIELD_OPTIONAL(std::string, country_code, cap(SOCCER_FIXES))
+    DEFINE_FIELD_OPTIONAL(uint8_t, handicap_level, cap(SOCCER_FIXES))
 END_DEFINE_CLASS(ScoreerDataPacket)
 
 DEFINE_DERIVED_CLASS(SoccerWorldCompleteStatePacket, WorldPacket)
@@ -328,8 +328,6 @@ END_DEFINE_CLASS(BackLobbyPacket)
 DEFINE_CLASS(ServerInfoPacket)
     SYNCHRONOUS(true)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_SERVER_INFO)
-    //...kimden: fill this
-    // send with PRM_RELIABLE
     DEFINE_FIELD(std::string, server_name);
     DEFINE_FIELD(uint8_t, difficulty)
     DEFINE_FIELD(uint8_t, max_players)
@@ -342,6 +340,7 @@ DEFINE_CLASS(ServerInfoPacket)
     DEFINE_FIELD(widestr16, motd)
     DEFINE_FIELD(bool, is_configurable)
     DEFINE_FIELD(bool, has_live_players)
+    // send with PRM_RELIABLE
 END_DEFINE_CLASS(ServerInfoPacket)
 
 DEFINE_CLASS(AssetsPacket)
@@ -368,7 +367,7 @@ DEFINE_CLASS(PlayerKartsPacket)
     DEFINE_VECTOR_OBJ(std::string, players_count, karts)
 
     // I don't care about compilation for now but don't want extra macroses yet either.
-    DEFINE_VECTOR_OBJ/*_OPTIONAL*/(KartDataPacket, players_count, kart_data/*, IDONT_KNOW*/) // if has "real_addon_karts" in cap AND anything is sent
+    DEFINE_VECTOR_OBJ/*_OPTIONAL*/(KartDataPacket, players_count, kart_data/*, cap(REAL_ADDON_KARTS) && IDONTKNOW*/) // if has "real_addon_karts" in cap AND anything is sent
 END_DEFINE_CLASS(PlayerKartsPacket)
 
 DEFINE_CLASS(KartSelectionRequestPacket)
@@ -377,9 +376,10 @@ DEFINE_CLASS(KartSelectionRequestPacket)
 END_DEFINE_CLASS(KartSelectionRequestPacket)
 
 DEFINE_CLASS(LiveJoinRequestPacket)
+    SYNCHRONOUS(true)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_LIVE_JOIN)
     DEFINE_FIELD(bool, is_spectator)
-    DEFINE_FIELD_OPTIONAL(PlayerKartsPacket, player_karts) // is it optional?
+    DEFINE_FIELD_OPTIONAL(PlayerKartsPacket, player_karts, check(0)) // check client side for condition!
 END_DEFINE_CLASS(LiveJoinRequestPacket)
 
 DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
@@ -580,8 +580,8 @@ DEFINE_CLASS(InternalGoalPacket)
     DEFINE_FIELD(std::string, kart)
     DEFINE_FIELD(widestr, player)
     /* what follows is only since 1.1, that is, when capabilities have "soccer_fixes" */
-    DEFINE_FIELD_OPTIONAL(std::string, country_code, check(0))
-    DEFINE_FIELD_OPTIONAL(uint8_t, handicap, check(0))
+    DEFINE_FIELD_OPTIONAL(std::string, country_code, cap(SOCCER_FIXES))
+    DEFINE_FIELD_OPTIONAL(uint8_t, handicap, cap(SOCCER_FIXES))
     // send with PRM_RELIABLE
 END_DEFINE_CLASS(InternalGoalPacket)
 
@@ -603,5 +603,20 @@ DEFINE_CLASS(RaceFinishedAckPacket)
     DEFINE_FIXED_FIELD(uint8_t, type, LE_RACE_FINISHED_ACK)
     // send with PRM_RELIABLE
 END_DEFINE_CLASS(RaceFinishedAckPacket)
+
+DEFINE_CLASS(RequestBeginPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_REQUEST_BEGIN)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(RequestBeginPacket)
+
+DEFINE_CLASS(ClientBackLobbyPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, LE_CLIENT_BACK_LOBBY)
+    // send with PRM_RELIABLE
+END_DEFINE_CLASS(ClientBackLobbyPacket)
+
+DEFINE_CLASS(ItemConfirmationPacket)
+    DEFINE_FIXED_FIELD(uint8_t, type, GP_ITEM_CONFIRMATION)
+    DEFINE_FIELD(uint32_t, ticks)
+END_DEFINE_CLASS(ItemConfirmationPacket)
 
 // end

@@ -30,7 +30,6 @@
 #include <string>
 #include <vector>
 
-class NetworkString;
 class ServerLobby;
 class STKPeer;
 

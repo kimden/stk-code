@@ -259,7 +259,11 @@ void GameProtocol::sendItemEventConfirmation(int ticks)
 {
     assert(NetworkConfig::get()->isClient());
     NetworkString *ns = getNetworkString(5);
-    ns->addUInt8(GP_ITEM_CONFIRMATION).addUInt32(ticks);
+
+    ItemConfirmationPacket packet;
+    packet.ticks = ticks;
+    packet.toNetworkString(ns);
+
     // This message can be sent unreliable, it's not critical if it doesn't
     // get delivered, a future update will come through
     Comm::sendToServer(ns, PRM_UNRELIABLE);
