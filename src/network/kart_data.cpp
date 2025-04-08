@@ -26,7 +26,10 @@ KartData::KartData(const KartProperties* kp)
 // ----------------------------------------------------------------------------
 KartData::KartData(const KartDataPacket& packet)
 {
-    m_kart_type = packet.kart_type;
+    m_kart_type = "";
+    if (packet.kart_type)
+        m_kart_type = *packet.kart_type;
+    
     if (!m_kart_type.empty())
     {
         m_width = packet.parameters->width;
@@ -46,7 +49,7 @@ KartData::KartData(const KartDataPacket& packet)
 KartDataPacket KartData::encode() const
 {
     KartDataPacket packet;
-    packet.kart_type = m_kart_type;
+    packet.kart_type = std::make_shared<std::string>(m_kart_type);
     packet.parameters = {};
 
     if (!m_kart_type.empty())
@@ -60,4 +63,4 @@ KartDataPacket KartData::encode() const
     }
 
     return packet;
-}   // encode(BareNetworkString*)
+}   // encode()

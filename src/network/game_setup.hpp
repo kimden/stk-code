@@ -33,6 +33,7 @@
 
 class NetworkPlayerProfile;
 class PeerVote;
+class ServerInfoPacket;
 
 // ============================================================================
 /*! \class GameSetup

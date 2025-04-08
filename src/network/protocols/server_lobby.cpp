@@ -215,7 +215,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         m_ranking = std::make_shared<Ranking>();
     }
     m_name_decorator = std::make_shared<GenericDecorator>();
-    m_items_complete_state = new BareNetworkString();
+    m_nim_complete_state = NimCompleteStatePacket();
     m_server_id_online.store(0);
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
@@ -234,7 +234,6 @@ ServerLobby::~ServerLobby()
         // For child process the request manager will keep on running
         unregisterServer(m_process_type == PT_MAIN ? true : false/*now*/);
     }
-    delete m_items_complete_state;
     if (getSettings()->isSavingServerConfig())
         ServerConfig::writeServerConfigToDisk();
 
@@ -2114,14 +2113,19 @@ void ServerLobby::checkRaceFinished()
  */
 PointChangesPacket ServerLobby::computeNewRankings()
 {
+    unsigned player_count = RaceManager::get()->getNumPlayers();
+
+    // Empty packet for exceptions - unlikely to have though.
+    PointChangesPacket empty_packet;
+    empty_packet.player_count = (uint8_t)player_count;
+    empty_packet.changes = std::vector<float>(player_count, 0.);
+
     // No ranking for battle mode
     if (!RaceManager::get()->modeHasLaps())
-        return;
+        return empty_packet;
 
     World* w = World::getWorld();
     assert(w);
-
-    unsigned player_count = RaceManager::get()->getNumPlayers();
 
     // If all players quitted the race, we assume something went wrong
     // and skip entirely rating and statistics updates.
@@ -2130,7 +2134,7 @@ PointChangesPacket ServerLobby::computeNewRankings()
         if (!w->getKart(i)->isEliminated())
             break;
         if ((i + 1) == player_count)
-            return;
+            return empty_packet;
     }
     
     // Fill the results for the rankings to process
@@ -2145,7 +2149,11 @@ PointChangesPacket ServerLobby::computeNewRankings()
         data.push_back(entry);
     }
 
+    // "LOLAND" changes, accidentally merged into supertuxkart/master
+    // and not noticed for 4 months.
+    // for (int i = 0; i < 64; ++i) {
     m_ranking->computeNewRankings(data, RaceManager::get()->isTimeTrialMode());
+    // }
 
     // Used to display rating change at the end of a race
     PointChangesPacket packet;
@@ -2228,7 +2236,7 @@ void ServerLobby::kickPlayerWithReason(std::shared_ptr<STKPeer> peer, const char
 
     ConnectionRefusedPacket packet;
     packet.reason = RR_BANNED;
-    packet.message = reason;
+    packet.message = std::make_shared<std::string>(reason);
     packet.toNetworkString(ns);
     peer->sendNetstring(ns, PRM_RELIABLE, PEM_UNENCRYPTED);
     
@@ -2279,7 +2287,7 @@ bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
             NetworkString* ns = getNetworkString(2);
             ConnectionRefusedPacket packet;
             packet.reason = RR_INCOMPATIBLE_DATA;
-            packet.message = getSettings()->getIncompatibleAdvice();
+            packet.message = std::make_shared<std::string>(getSettings()->getIncompatibleAdvice());
             packet.toNetworkString(ns);
             peer->sendNetstring(ns, PRM_RELIABLE, PEM_UNENCRYPTED);
 
@@ -2290,7 +2298,6 @@ bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
         Log::verbose("ServerLobby", "Player has incompatible karts / tracks.");
         return false;
     }
-
 
     std::array<int, AS_TOTAL> addons_scores = getAssetManager()->getAddonScores(client_karts, client_maps);
 
@@ -2317,7 +2324,7 @@ bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
 void ServerLobby::connectionRequested(Event* event)
 {
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
-    auto packet = event->getPacket<ConnectionRequestedPacket>();
+    auto conn_packet = event->getPacket<ConnectionRequestedPacket>();
     if (!checkDataSize(event, 14)) return;
 
     peer->cleanPlayerProfiles();
@@ -2341,7 +2348,7 @@ void ServerLobby::connectionRequested(Event* event)
     }
 
     // Check server version
-    int version = packet.version;
+    int version = conn_packet.version;
 
     auto& stk_config = STKConfig::get();
     
@@ -2359,36 +2366,34 @@ void ServerLobby::connectionRequested(Event* event)
         Log::verbose("ServerLobby", "Player refused: wrong server version");
         return;
     }
-    std::string user_version = packet.user_version;
+    std::string user_version = conn_packet.user_version;
     event->getPeer()->setUserVersion(user_version);
 
-    unsigned list_caps = packet.capabilities_count;
+    unsigned list_caps = conn_packet.capabilities_count;
     std::set<std::string> caps;
     for (unsigned i = 0; i < list_caps; i++)
     {
-        std::string cap = packet.capabilities[i];
+        std::string cap = conn_packet.capabilities[i];
         caps.insert(cap);
     }
     event->getPeer()->setClientCapabilities(caps);
 
-    std::set<std::string> client_karts, client_maps;
-
     std::set<std::string> client_karts;
-    for (const std::string& item: packet.assets.karts)
+    for (const std::string& item: conn_packet.assets.karts)
         client_karts.insert(item);
 
     std::set<std::string> client_maps;
-    for (const std::string& item: packet.assets.maps)
+    for (const std::string& item: conn_packet.assets.maps)
         client_maps.insert(item);
 
     if (!handleAssetsAndAddonScores(event->getPeerSP(), client_karts, client_maps))
         return;
 
-    unsigned player_count = packet.players_count;
+    unsigned player_count = conn_packet.players_count;
     uint32_t online_id = 0;
     uint32_t encrypted_size = 0;
-    online_id = packet.online_id;
-    encrypted_size = packet.encrypted_size;
+    online_id = conn_packet.online_id;
+    encrypted_size = conn_packet.encrypted_size;
 
     // Will be disconnected if banned by IP
     testBannedForIP(peer);
@@ -2401,7 +2406,7 @@ void ServerLobby::connectionRequested(Event* event)
 
     if (online_id != 0)
         testBannedForOnlineId(peer, online_id);
-    // Will be disconnected if banned by online id
+
     if (peer->isDisconnected())
         return;
 
@@ -2503,7 +2508,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             NetworkString* ns = getNetworkString(2);
             ConnectionRefusedPacket packet;
             packet.reason = RR_BANNED;
-            packet.message = "Please behave well next time.";
+            packet.message = std::make_shared<std::string>("Please behave well next time.");
             packet.toNetworkString(ns);
             peer->sendNetstring(ns, PRM_RELIABLE, PEM_UNENCRYPTED);
             delete ns;
@@ -3078,10 +3083,10 @@ void ServerLobby::handlePlayerVote(Event* event)
 
     // Now inform all clients about the vote
     NetworkString* ns = getNetworkString();
-    VotePacket packet;
-    packet.host_id = event->getPeer()->getHostId();
-    packet.vote = vote.encode();
-    packet.toNetworkString(ns);
+    VotePacket vote_packet;
+    vote_packet.host_id = event->getPeer()->getHostId();
+    vote_packet.vote = vote.encode();
+    vote_packet.toNetworkString(ns);
     Comm::sendMessageToPeers(ns);
     delete ns;
 
@@ -3342,7 +3347,7 @@ void ServerLobby::configPeersStartTime()
     StartGamePacket packet;
     packet.start_time = start_time;
     packet.check_count = (uint8_t)Track::getCurrentTrack()->getCheckManager()->getCheckStructureCount();
-    packet.item_complete_state = m_items_complete_state; // was operator +=
+    packet.nim_complete_state = m_nim_complete_state; // was operator +=
     packet.toNetworkString(ns);
     Comm::sendMessageToPeers(ns, PRM_RELIABLE);
 
@@ -4173,9 +4178,8 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
 //-----------------------------------------------------------------------------
 void ServerLobby::saveInitialItems(std::shared_ptr<NetworkItemManager> nim)
 {
-    m_items_complete_state->getBuffer().clear();
-    m_items_complete_state->reset();
-    nim->saveCompleteState(m_items_complete_state);
+    // there was m_nim_complete_state->getBuffer().clear(); here
+    m_nim_complete_state = nim->saveCompleteState();
 }   // saveInitialItems
 
 //-----------------------------------------------------------------------------

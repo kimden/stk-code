@@ -42,6 +42,7 @@
 class Crypto;
 class NetworkPlayerProfile;
 class NetworkString;
+class Packet;
 class STKHost;
 class SocketAddress;
 
@@ -148,9 +149,9 @@ public:
     void sendNetstring(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE,
                     PacketEncryptionMode encrypted = PEM_ENCRYPTED);
     // ------------------------------------------------------------------------
-    void sendPacket(const Packet& packet, PacketReliabilityMode reliable = PRM_RELIABLE,
+    void sendPacket(Packet* packet, PacketReliabilityMode reliable = PRM_RELIABLE,
                     PacketEncryptionMode encrypted = PEM_ENCRYPTED);
-    ------------------------------------------------------------------------
+    // ------------------------------------------------------------------------
     void disconnect();
     // ------------------------------------------------------------------------
     void kick();

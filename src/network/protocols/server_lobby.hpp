@@ -151,7 +151,7 @@ private:
     RaceFinishedPacket m_result_packet;
 
     /* Used to make sure clients are having same item list at start */
-    BareNetworkString* m_items_complete_state;
+    NimCompleteStatePacket m_nim_complete_state;
 
     std::atomic<uint32_t> m_server_id_online;
 

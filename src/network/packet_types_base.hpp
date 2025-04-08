@@ -49,9 +49,6 @@
 using widestr = irr::core::stringw;
 using widestr16 = irr::core::stringw; // but encodeString16
 
-// temp
-constexpr int IDONT_KNOW = 0;
-
 // Note that bools are encoded using int8_t
 
 DEFINE_CLASS(PlayerListProfilePacket)
@@ -67,10 +64,10 @@ END_DEFINE_CLASS(PlayerListProfilePacket)
 
 DEFINE_CLASS(PlayerListPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_UPDATE_PLAYER_LIST)
+    DEFINE_TYPE(uint8_t, type, LE_UPDATE_PLAYER_LIST)
     DEFINE_FIELD(bool,          game_started)
     DEFINE_FIELD(uint8_t,       all_profiles_size)
-    DEFINE_VECTOR_OBJ(PlayerListProfilePacket, all_profiles_size, all_profiles)
+    DEFINE_VECTOR_PACKET(PlayerListProfilePacket, all_profiles_size, all_profiles)
 END_DEFINE_CLASS(PlayerListPacket)
 
 DEFINE_CLASS(EncodedSinglePlayerPacket)
@@ -118,20 +115,25 @@ END_DEFINE_CLASS(KartParametersPacket)
 
 /* This is only read in CL when cap(REAL_ADDON_KARTS) in LoadWorldPacket. Is it like that in other packets? */
 DEFINE_CLASS(KartDataPacket)
-    DEFINE_FIELD_OPTIONAL(std::string, kart_type)
-    DEFINE_FIELD_OPTIONAL(KartParametersPacket, parameters, !kart_type.empty())
+    DEFINE_FIELD_OPTIONAL(std::string, kart_type, check(0)) /* I have no idea when */
+    DEFINE_FIELD_OPTIONAL(KartParametersPacket, parameters, check(1) && check(0)) /* check(1) = !kart_type.empty()*/
 END_DEFINE_CLASS(KartDataPacket)
+
+DEFINE_CLASS(MultipleKartDataPacket)
+    AUX_VAR(uint8_t, players_size)
+    DEFINE_VECTOR_PACKET(KartDataPacket, players_size, players_kart_data)
+END_DEFINE_CLASS(MultipleKartDataPacket)
 
 DEFINE_CLASS(LoadWorldPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_LOAD_WORLD)
+    DEFINE_TYPE(uint8_t, type, LE_LOAD_WORLD)
     DEFINE_FIELD(DefaultVotePacket, default_vote)
     DEFINE_FIELD(bool, live_join)
-    DEFINE_FIELD(uint8_t,       players_size)
-    DEFINE_VECTOR_OBJ(EncodedSinglePlayerPacket, players_size, all_players)
+    DEFINE_FIELD(uint8_t, players_size)
+    DEFINE_VECTOR_PACKET(EncodedSinglePlayerPacket, players_size, all_players)
     DEFINE_FIELD(uint32_t, item_seed)
     DEFINE_FIELD_OPTIONAL(BattleInfoPacket, battle_info, check(0)) // RaceManager::get()->isBattleMode()
-    DEFINE_VECTOR_OBJ(KartDataPacket, players_size, players_kart_data)
+    DEFINE_FIELD_OPTIONAL(MultipleKartDataPacket, karts_data, cap(REAL_ADDON_KARTS))
 END_DEFINE_CLASS(LoadWorldPacket)
 
 DEFINE_CLASS(PlacementPacket)
@@ -159,17 +161,17 @@ DEFINE_CLASS(NimCompleteStatePacket)
     DEFINE_FIELD(uint32_t, ticks_since_start)
     DEFINE_FIELD(uint32_t, switch_ticks)
     DEFINE_FIELD(uint32_t, all_items_size)
-    DEFINE_VECTOR_OBJ(ItemCompleteStatePacket, all_items_size, all_items)
+    DEFINE_VECTOR_PACKET(ItemCompleteStatePacket, all_items_size, all_items)
 END_DEFINE_CLASS(NimCompleteStatePacket)
 
-DEFINE_CLASS(KartInfoPacket)
+DEFINE_CLASS(KartInfoInGamePacket)
     DEFINE_FIELD(uint32_t, finished_laps)
     DEFINE_FIELD(uint32_t, ticks_at_last_lap)
     DEFINE_FIELD(uint32_t, lap_start_ticks)
     DEFINE_FIELD(float, estimated_finish)
     DEFINE_FIELD(float, overall_distance)
     DEFINE_FIELD(float, wrong_way_timer)
-END_DEFINE_CLASS(KartInfoPacket)
+END_DEFINE_CLASS(KartInfoInGamePacket)
 
 DEFINE_CLASS(TrackSectorPacket)
     DEFINE_FIELD(uint32_t, current_graph_node)
@@ -192,7 +194,7 @@ END_DEFINE_CLASS(CheckStructureSubPacket)
 
 DEFINE_DERIVED_CLASS(CheckStructurePacket, CheckPacket)
     AUX_VAR(uint32_t, karts_count)
-    DEFINE_VECTOR_OBJ(CheckStructureSubPacket, karts_count, player_check_state)
+    DEFINE_VECTOR_PACKET(CheckStructureSubPacket, karts_count, player_check_state)
 END_DEFINE_CLASS(CheckStructurePacket)
 
 DEFINE_CLASS(CheckLineSubPacket)
@@ -202,7 +204,7 @@ END_DEFINE_CLASS(CheckLineSubPacket)
 DEFINE_DERIVED_CLASS(CheckLinePacket, CheckPacket)
     AUX_VAR(uint32_t, karts_count)
     DEFINE_FIELD_PTR(CheckStructurePacket, check_structure_packet)
-    DEFINE_VECTOR_OBJ(CheckLineSubPacket, karts_count, subpackets)
+    DEFINE_VECTOR_PACKET(CheckLineSubPacket, karts_count, subpackets)
 END_DEFINE_CLASS(CheckLinePacket)
 
 DEFINE_CLASS(WorldPacket)
@@ -213,11 +215,11 @@ DEFINE_DERIVED_CLASS(LinearWorldCompleteStatePacket, WorldPacket)
     AUX_VAR(uint32_t, track_sectors_count)
     DEFINE_FIELD(uint32_t, fastest_lap_ticks)
     DEFINE_FIELD(float, distance_increase)
-    DEFINE_VECTOR_OBJ(PlacementPacket, karts_count, kart_placements)
-    DEFINE_VECTOR_OBJ(KartInfoPacket, karts_count, kart_infos)
-    DEFINE_VECTOR_OBJ(TrackSectorPacket, track_sectors_count, track_sectors)
+    DEFINE_VECTOR_PACKET(PlacementPacket, karts_count, kart_placements)
+    DEFINE_VECTOR_PACKET(KartInfoInGamePacket, karts_count, kart_infos)
+    DEFINE_VECTOR_PACKET(TrackSectorPacket, track_sectors_count, track_sectors)
     DEFINE_FIELD(uint8_t, check_structure_count)
-    DEFINE_VECTOR_OBJ_PTR(CheckStructurePacket, check_structure_count, check_structures)
+    DEFINE_VECTOR_PACKET_PTR(CheckStructurePacket, check_structure_count, check_structures)
 END_DEFINE_CLASS(LinearWorldCompleteStatePacket)
 
 DEFINE_CLASS(ScorerDataPacket)
@@ -228,13 +230,13 @@ DEFINE_CLASS(ScorerDataPacket)
     DEFINE_FIELD(widestr, player)
     DEFINE_FIELD_OPTIONAL(std::string, country_code, cap(SOCCER_FIXES))
     DEFINE_FIELD_OPTIONAL(uint8_t, handicap_level, cap(SOCCER_FIXES))
-END_DEFINE_CLASS(ScoreerDataPacket)
+END_DEFINE_CLASS(ScorerDataPacket)
 
 DEFINE_DERIVED_CLASS(SoccerWorldCompleteStatePacket, WorldPacket)
     DEFINE_FIELD(uint32_t, red_scorers_count)
-    DEFINE_VECTOR_OBJ(ScorerDataPacket, red_scorers_count, red_scorers)
+    DEFINE_VECTOR_PACKET(ScorerDataPacket, red_scorers_count, red_scorers)
     DEFINE_FIELD(uint32_t, blue_scorers_count)
-    DEFINE_VECTOR_OBJ(ScorerDataPacket, blue_scorers_count, blue_scorers)
+    DEFINE_VECTOR_PACKET(ScorerDataPacket, blue_scorers_count, blue_scorers)
     DEFINE_FIELD(uint32_t, reser_ball_ticks)
     DEFINE_FIELD(uint32_t, ticks_back_to_own_goal)
 END_DEFINE_CLASS(SoccerWorldCompleteStatePacket)
@@ -259,13 +261,13 @@ END_DEFINE_CLASS(WorldCompleteStatePacket)
 
 DEFINE_CLASS(InsideGameInfoPacket)
     DEFINE_FIELD(uint8_t, players_size)
-    DEFINE_VECTOR_OBJ(EncodedSinglePlayerPacket, players_size, all_players)
-    DEFINE_VECTOR_OBJ(KartDataPacket, players_size, players_kart_data)
+    DEFINE_VECTOR_PACKET(EncodedSinglePlayerPacket, players_size, all_players)
+    DEFINE_VECTOR_PACKET(KartDataPacket, players_size, players_kart_data)
 END_DEFINE_CLASS(InsideGameInfoPacket)
 
 DEFINE_CLASS(LiveJoinPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_LIVE_JOIN_ACK)
+    DEFINE_TYPE(uint8_t, type, LE_LIVE_JOIN_ACK)
     DEFINE_FIELD(uint64_t, client_starting_time)
     DEFINE_FIELD(uint8_t, check_count);
     DEFINE_FIELD(uint64_t, live_join_start_time)
@@ -275,59 +277,58 @@ DEFINE_CLASS(LiveJoinPacket)
     DEFINE_FIELD_OPTIONAL(InsideGameInfoPacket, inside_info, check(0)) // RaceManager::get()->supportsLiveJoining()
 END_DEFINE_CLASS(LiveJoinPacket)
 
-
 DEFINE_CLASS(ChatPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CHAT)
+    DEFINE_TYPE(uint8_t, type, LE_CHAT)
     DEFINE_FIELD(widestr16, message) // use encodeString16 ! max len is 360
-    DEFINE_FIELD_OPTIONAL(KartTeam, kart_team) // KartTeam is uint8_t
-    // send with PRM_RELIABLE
+    DEFINE_FIELD_OPTIONAL(KartTeam, kart_team, check(0)) /* KartTeam is uint8_t, I have no idea when */
+    RELIABLE()
 END_DEFINE_CLASS(ChatPacket)
 
 DEFINE_CLASS(ChangeTeamPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CHANGE_TEAM)
+    DEFINE_TYPE(uint8_t, type, LE_CHANGE_TEAM)
     DEFINE_FIELD(uint8_t, local_id)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(ChangeTeamPacket)
 
 DEFINE_CLASS(KickHostPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_KICK_HOST)
+    DEFINE_TYPE(uint8_t, type, LE_KICK_HOST)
     DEFINE_FIELD(uint32_t, host_id)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(KickHostPacket)
 
 DEFINE_CLASS(ReportRequestPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_REPORT_PLAYER)
+    DEFINE_TYPE(uint8_t, type, LE_REPORT_PLAYER)
     DEFINE_FIELD(uint32_t, host_id)
     DEFINE_FIELD(widestr16, info)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(ReportRequestPacket)
 
 DEFINE_CLASS(ReportSuccessPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_REPORT_PLAYER)
+    DEFINE_TYPE(uint8_t, type, LE_REPORT_PLAYER)
     DEFINE_FIELD(bool, success)
     DEFINE_FIELD(widestr, reported_name)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(ReportSuccessPacket)
 
 DEFINE_CLASS(ChangeHandicapPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CHANGE_HANDICAP)
+    DEFINE_TYPE(uint8_t, type, LE_CHANGE_HANDICAP)
     DEFINE_FIELD(uint8_t, local_id)
     DEFINE_FIELD(uint8_t, handicap)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(ChangeHandicapPacket)
 
 DEFINE_CLASS(BackLobbyPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_BACK_LOBBY)
+    DEFINE_TYPE(uint8_t, type, LE_BACK_LOBBY)
     DEFINE_FIELD(uint8_t, reason)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(BackLobbyPacket)
 
 DEFINE_CLASS(ServerInfoPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_SERVER_INFO)
+    DEFINE_TYPE(uint8_t, type, LE_SERVER_INFO)
     DEFINE_FIELD(std::string, server_name);
     DEFINE_FIELD(uint8_t, difficulty)
     DEFINE_FIELD(uint8_t, max_players)
@@ -340,7 +341,7 @@ DEFINE_CLASS(ServerInfoPacket)
     DEFINE_FIELD(widestr16, motd)
     DEFINE_FIELD(bool, is_configurable)
     DEFINE_FIELD(bool, has_live_players)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(ServerInfoPacket)
 
 DEFINE_CLASS(AssetsPacket)
@@ -358,32 +359,32 @@ DEFINE_CLASS(AssetsPacket2)
 END_DEFINE_CLASS(AssetsPacket2)
 
 DEFINE_CLASS(NewAssetsPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_ASSETS_UPDATE)
+    DEFINE_TYPE(uint8_t, type, LE_ASSETS_UPDATE)
     DEFINE_FIELD(AssetsPacket, assets)
 END_DEFINE_CLASS(NewAssetsPacket)
 
 DEFINE_CLASS(PlayerKartsPacket)
     DEFINE_FIELD(uint8_t, players_count)
-    DEFINE_VECTOR_OBJ(std::string, players_count, karts)
+    DEFINE_VECTOR(std::string, players_count, karts)
 
     // I don't care about compilation for now but don't want extra macroses yet either.
-    DEFINE_VECTOR_OBJ/*_OPTIONAL*/(KartDataPacket, players_count, kart_data/*, cap(REAL_ADDON_KARTS) && IDONTKNOW*/) // if has "real_addon_karts" in cap AND anything is sent
+    DEFINE_VECTOR_PACKET/*_OPTIONAL*/(KartDataPacket, players_count, kart_data/*, cap(REAL_ADDON_KARTS) && IDONTKNOW*/) // if has "real_addon_karts" in cap AND anything is sent
 END_DEFINE_CLASS(PlayerKartsPacket)
 
 DEFINE_CLASS(KartSelectionRequestPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_KART_SELECTION)
+    DEFINE_TYPE(uint8_t, type, LE_KART_SELECTION)
     DEFINE_FIELD(PlayerKartsPacket, karts)
 END_DEFINE_CLASS(KartSelectionRequestPacket)
 
 DEFINE_CLASS(LiveJoinRequestPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_LIVE_JOIN)
+    DEFINE_TYPE(uint8_t, type, LE_LIVE_JOIN)
     DEFINE_FIELD(bool, is_spectator)
     DEFINE_FIELD_OPTIONAL(PlayerKartsPacket, player_karts, check(0)) // check client side for condition!
 END_DEFINE_CLASS(LiveJoinRequestPacket)
 
 DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CLIENT_LOADED_WORLD)
+    DEFINE_TYPE(uint8_t, type, LE_CLIENT_LOADED_WORLD)
 END_DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
 
 DEFINE_CLASS(ConnectionRequestedPacket)
@@ -400,13 +401,13 @@ END_DEFINE_CLASS(ConnectionRequestedPacket)
 
 DEFINE_CLASS(KartInfoRequestPacket)
     // check if synch
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_KART_INFO)
+    DEFINE_TYPE(uint8_t, type, LE_KART_INFO)
     DEFINE_FIELD(uint8_t, kart_id)
 END_DEFINE_CLASS(KartInfoRequestPacket)
 
 DEFINE_CLASS(KartInfoPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_KART_INFO)
+    DEFINE_TYPE(uint8_t, type, LE_KART_INFO)
     DEFINE_FIELD(uint32_t, live_join_util_ticks)
     DEFINE_FIELD(uint8_t, kart_id)
     DEFINE_FIELD(widestr, player_name)
@@ -418,12 +419,12 @@ DEFINE_CLASS(KartInfoPacket)
     DEFINE_FIELD(std::string, kart_name)
     DEFINE_FIELD(std::string, country_code)
     // The field below is present if "real_addon_karts" is in capabilities
-    DEFINE_FIELD_OBJ(KartDataPacket, kart_data)
-    // send with PRM_RELIABLE
+    DEFINE_FIELD_PACKET(KartDataPacket, kart_data)
+    RELIABLE()
 END_DEFINE_CLASS(KartInfoPacket)
 
 DEFINE_CLASS(ConfigServerPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CONFIG_SERVER)
+    DEFINE_TYPE(uint8_t, type, LE_CONFIG_SERVER)
     DEFINE_FIELD(uint8_t, difficulty)
     DEFINE_FIELD(uint8_t, game_mode)
     DEFINE_FIELD(bool, soccer_goal_target)
@@ -431,41 +432,42 @@ END_DEFINE_CLASS(ConfigServerPacket)
 
 DEFINE_CLASS(ConnectionRefusedPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CONNECTION_REFUSED)
+    DEFINE_TYPE(uint8_t, type, LE_CONNECTION_REFUSED)
     DEFINE_FIELD(uint8_t, reason)
-    DEFINE_FIELD_OPTIONAL(std::string, message);
-    // send with PRM_RELIABLE, warning! can be sent unencrypted!
+    DEFINE_FIELD_OPTIONAL(std::string, message, check(0)) /* I have no idea when */
+    RELIABLE()
+    /* warning! can be sent unencrypted despite reliable! */
 END_DEFINE_CLASS(ConnectionRefusedPacket)
 
 DEFINE_CLASS(StartGamePacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_START_RACE)
+    DEFINE_TYPE(uint8_t, type, LE_START_RACE)
     DEFINE_FIELD(uint64_t, start_time)
     DEFINE_FIELD(uint8_t, check_count)
-    DEFINE_FIELD(ItemCompleteStatePacket, item_complete_state) /* this had operator += instead */
-    // send with PRM_RELIABLE
+    DEFINE_FIELD(NimCompleteStatePacket, nim_complete_state) /* this had operator += instead */
+    RELIABLE()
 END_DEFINE_CLASS(StartGamePacket)
 
 DEFINE_CLASS(VotePacket) /* vote of a player sent to others */
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_VOTE)
+    DEFINE_TYPE(uint8_t, type, LE_VOTE)
     DEFINE_FIELD(uint32_t, host_id)
     DEFINE_FIELD(PeerVotePacket, vote)
 END_DEFINE_CLASS(VotePacket)
 
 DEFINE_CLASS(VoteRequestPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_VOTE)
+    DEFINE_TYPE(uint8_t, type, LE_VOTE)
     DEFINE_FIELD(PeerVotePacket, vote)
 END_DEFINE_CLASS(VoteRequestPacket)
 
 DEFINE_CLASS(ServerOwnershipPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_SERVER_OWNERSHIP)
+    DEFINE_TYPE(uint8_t, type, LE_SERVER_OWNERSHIP)
 END_DEFINE_CLASS(ServerOwnershipPacket)
 
 DEFINE_CLASS(ConnectionAcceptedPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CONNECTION_ACCEPTED)
+    DEFINE_TYPE(uint8_t, type, LE_CONNECTION_ACCEPTED)
     DEFINE_FIELD(uint32_t, host_id)
     DEFINE_FIELD(uint32_t, server_version)
     DEFINE_FIELD(uint16_t, capabilities_size)
@@ -478,7 +480,7 @@ END_DEFINE_CLASS(ConnectionAcceptedPacket)
 
 DEFINE_CLASS(PlayerDisconnectedPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_PLAYER_DISCONNECTED)
+    DEFINE_TYPE(uint8_t, type, LE_PLAYER_DISCONNECTED)
     DEFINE_FIELD(uint8_t, players_size)
     DEFINE_FIELD(uint32_t, host_id)
     DEFINE_VECTOR(std::string, players_size, names)
@@ -491,31 +493,20 @@ END_DEFINE_CLASS(PointChangesPacket)
 
 DEFINE_CLASS(StartSelectionPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_START_SELECTION)
+    DEFINE_TYPE(uint8_t, type, LE_START_SELECTION)
     DEFINE_FIELD(float, voting_timeout)
     DEFINE_FIELD(bool, no_kart_selection)
     DEFINE_FIELD(bool, fixed_length)
     DEFINE_FIELD(bool, track_voting)
     DEFINE_FIELD(AssetsPacket2, assets)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(StartSelectionPacket)
 
 DEFINE_CLASS(BadTeamPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_BAD_TEAM)
-    // send with PRM_RELIABLE
+    DEFINE_TYPE(uint8_t, type, LE_BAD_TEAM)
+    RELIABLE()
 END_DEFINE_CLASS(BadTeamPacket)
-
-DEFINE_CLASS(RaceFinishedPacket)
-    SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_RACE_FINISHED)
-    DEFINE_FIELD_OPTIONAL(uint32_t, fastest_lap, check(0)) /* if linear (incl. gp) */
-    DEFINE_FIELD_OPTIONAL(widestr, fastest_kart_name, check(0)) /* if linear (incl. gp) */
-    DEFINE_FIELD_OPTIONAL(GPScoresPacket, gp_scores, check(1)) /* if gp */
-    DEFINE_FIELD(bool, point_changes_indication)
-    DEFINE_FIELD(PointChangesPacket, point_changes)
-    // send with PRM_RELIABLE
-END_DEFINE_CLASS(RaceFinishedPacket)
 
 DEFINE_CLASS(GPIndividualScorePacket)
     DEFINE_FIELD(uint32_t, last_score)
@@ -531,23 +522,34 @@ DEFINE_CLASS(GPScoresPacket)
     DEFINE_VECTOR(GPIndividualScorePacket, num_players, scores)
 END_DEFINE_CLASS(GPScoresPacket)
 
+DEFINE_CLASS(RaceFinishedPacket)
+    SYNCHRONOUS(true)
+    DEFINE_TYPE(uint8_t, type, LE_RACE_FINISHED)
+    DEFINE_FIELD_OPTIONAL(uint32_t, fastest_lap, check(0)) /* if linear (incl. gp) */
+    DEFINE_FIELD_OPTIONAL(widestr, fastest_kart_name, check(0)) /* if linear (incl. gp) */
+    DEFINE_FIELD_OPTIONAL(GPScoresPacket, gp_scores, check(1)) /* if gp */
+    DEFINE_FIELD(bool, point_changes_indication)
+    DEFINE_FIELD(PointChangesPacket, point_changes)
+    RELIABLE()
+END_DEFINE_CLASS(RaceFinishedPacket)
+
 DEFINE_CLASS(InsideCtfPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_CTF_SCORED)
+    DEFINE_TYPE(uint8_t, type, GE_CTF_SCORED)
     DEFINE_FIELD(uint8_t, active_holder)
     DEFINE_FIELD(bool, red_inactive) /* actually, red scored */
     DEFINE_FIELD(uint16_t, kart_score)
     DEFINE_FIELD(uint8_t, red_score)
     DEFINE_FIELD(uint8_t, blue_score)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(InsideCtfPacket)
 
 DEFINE_CLASS(InsideFfaPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_BATTLE_KART_SCORE)
+    DEFINE_TYPE(uint8_t, type, GE_BATTLE_KART_SCORE)
     DEFINE_FIELD(uint8_t, hitter_kart)
     DEFINE_FIELD(uint16_t, new_score)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(InsideFfaPacket)
 
 /* Separation is needed because it's filled in check structure itself */
@@ -557,7 +559,7 @@ END_DEFINE_CLASS(CheckActivePacket)
 
 DEFINE_CLASS(InsideChecklinePacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_CHECK_LINE)
+    DEFINE_TYPE(uint8_t, type, GE_CHECK_LINE)
     DEFINE_FIELD(uint8_t, check_id)
     DEFINE_FIELD(uint8_t, kart_id)
     DEFINE_FIELD(uint8_t, finished_laps)
@@ -565,13 +567,13 @@ DEFINE_CLASS(InsideChecklinePacket)
     DEFINE_FIELD(uint32_t, fastest_lap_ticks)
     DEFINE_FIELD(widestr, fastest_kart_name)
     DEFINE_FIELD(uint8_t, check_structure_count)
-    DEFINE_VECTOR_OBJ(CheckActivePacket, check_structure_count, check_active)
+    DEFINE_VECTOR_PACKET(CheckActivePacket, check_structure_count, check_active)
 END_DEFINE_CLASS(InsideChecklinePacket)
 
 
 DEFINE_CLASS(InternalGoalPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_PLAYER_GOAL)
+    DEFINE_TYPE(uint8_t, type, GE_PLAYER_GOAL)
     DEFINE_FIELD(uint8_t, id)
     DEFINE_FIELD(bool, correct_goal)
     DEFINE_FIELD(bool, first_goal)
@@ -582,40 +584,40 @@ DEFINE_CLASS(InternalGoalPacket)
     /* what follows is only since 1.1, that is, when capabilities have "soccer_fixes" */
     DEFINE_FIELD_OPTIONAL(std::string, country_code, cap(SOCCER_FIXES))
     DEFINE_FIELD_OPTIONAL(uint8_t, handicap, cap(SOCCER_FIXES))
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(InternalGoalPacket)
 
 DEFINE_CLASS(ResetBallPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, GameEventsProtocol::GE_RESET_BALL)
+    DEFINE_TYPE(uint8_t, type, GE_RESET_BALL)
     DEFINE_FIELD(uint32_t, reset_ball_ticks)
-    // send with PRM_RELIABLE
+    RELIABLE()
 END_DEFINE_CLASS(ResetBallPacket)
 
 DEFINE_CLASS(BadConnectionPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LobbyEvent::LE_BAD_CONNECTION)
-    // send with PRM_RELIABLE
+    DEFINE_TYPE(uint8_t, type, LobbyEvent::LE_BAD_CONNECTION)
+    RELIABLE()
 END_DEFINE_CLASS(BadConnectionPacket)
 
 DEFINE_CLASS(RaceFinishedAckPacket)
     SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_RACE_FINISHED_ACK)
-    // send with PRM_RELIABLE
+    DEFINE_TYPE(uint8_t, type, LE_RACE_FINISHED_ACK)
+    RELIABLE()
 END_DEFINE_CLASS(RaceFinishedAckPacket)
 
 DEFINE_CLASS(RequestBeginPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_REQUEST_BEGIN)
-    // send with PRM_RELIABLE
+    DEFINE_TYPE(uint8_t, type, LE_REQUEST_BEGIN)
+    RELIABLE()
 END_DEFINE_CLASS(RequestBeginPacket)
 
 DEFINE_CLASS(ClientBackLobbyPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_CLIENT_BACK_LOBBY)
-    // send with PRM_RELIABLE
+    DEFINE_TYPE(uint8_t, type, LE_CLIENT_BACK_LOBBY)
+    RELIABLE()
 END_DEFINE_CLASS(ClientBackLobbyPacket)
 
 DEFINE_CLASS(ItemConfirmationPacket)
-    DEFINE_FIXED_FIELD(uint8_t, type, GP_ITEM_CONFIRMATION)
+    DEFINE_TYPE(uint8_t, type, GP_ITEM_CONFIRMATION)
     DEFINE_FIELD(uint32_t, ticks)
 END_DEFINE_CLASS(ItemConfirmationPacket)
 
