@@ -20,9 +20,13 @@
 #define PACKET_TYPES_HPP
 
 #include "network/network_string.hpp"
+#include "network/protocols/game_event_types.hpp"
 #include "utils/cpp2011.hpp"
 
+enum KartTeam: int8_t;
+
 #include <memory>
+#include <functional>
 
 /**
  * IMPORTANT!
@@ -100,21 +104,6 @@ namespace
     const std::string REAL_ADDON_KARTS = "real_addon_karts";
 }
 
-
-struct Packet
-{
-    std::function<bool(const std::string&)> m_capability_checker;
-
-    // Needed to dynamic_cast
-    virtual ~Packet() {}
-    virtual void toNetworkString(NetworkString* ns) const {}
-    virtual void fromNetworkString(NetworkString* ns) {}
-
-    bool cap(const std::string& name) {
-        return m_capability_checker(name);
-    }
-};
-
 struct Checkable
 {
 private:
@@ -130,30 +119,47 @@ public:
     }
 };
 
+struct Packet: public Checkable
+{
+    std::function<bool(const std::string&)> m_capability_checker;
+
+    // Needed to dynamic_cast
+    virtual ~Packet() {}
+    virtual void toNetworkString(NetworkString* ns) const                    {}
+    virtual void fromNetworkString(NetworkString* ns)                        {}
+    virtual bool isSynchronous()                              { return false; }
+    bool cap(const std::string& name)    { return m_capability_checker(name); }
+};
+
+// temp
+constexpr int IDONT_KNOW = 0;
+
 //---------------------- Initialization ---------------------------------------
 
 #define DEFINE_CLASS(Name) \
-struct Name: public Checkable, public Packet { \
+struct Name: public Packet { \
     public: \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
 #define DEFINE_DERIVED_CLASS(Name, Parent) \
-struct Name: public Checkable, public Parent { \
+struct Name: public Parent { \
     public: \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
-#define SYNCHRONOUS(Value) bool isSynchronous() { return Value; }
-#define AUX_VAR(Type, Var) Type Var;
-#define DEFINE_FIELD(Type, Var) Type Var;
-#define DEFINE_FIELD_PTR(Type, Var) std::shared_ptr<Type> Var;
+#define SYNCHRONOUS(Value) bool isSynchronous() OVERRIDE { return Value; }
+#define AUX_VAR(Type, Var)                          Type Var;
+#define DEFINE_FIELD(Type, Var)                     Type Var;
+#define DEFINE_FIELD_PACKET(Type, Var)              Type Var;
+#define DEFINE_FIELD_PTR(Type, Var)                 std::shared_ptr<Type> Var;
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) std::shared_ptr<Type> Var;
-#define DEFINE_FIXED_FIELD(Type, Var, Value) Type Var;
-#define DEFINE_VECTOR(Type, Size, Var) std::vector<Type> Var;
-#define DEFINE_VECTOR_OBJ(Type, Size, Var) std::vector<Type> Var;
-#define DEFINE_VECTOR_OBJ_PTR(Type, Size, Var) std::vector<std::shared_ptr<Type>> Var;
-#define END_DEFINE_CLASS(Name) };
+#define DEFINE_TYPE(Type, Var, Value)               Type Var;
+#define DEFINE_VECTOR(Type, Size, Var)              std::vector<Type> Var;
+#define DEFINE_VECTOR_PACKET(Type, Size, Var)       std::vector<Type> Var;
+#define DEFINE_VECTOR_PACKET_PTR(Type, Size, Var)   std::vector<std::shared_ptr<Type>> Var;
+#define RELIABLE()
+#define END_DEFINE_CLASS(Name)                      };
 
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
@@ -161,142 +167,16 @@ struct Name: public Checkable, public Parent { \
 #undef SYNCHRONOUS
 #undef AUX_VAR
 #undef DEFINE_FIELD
+#undef DEFINE_FIELD_PACKET
 #undef DEFINE_FIELD_PTR
-#undef DEFINE_FIXED_FIELD
+#undef DEFINE_TYPE
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
-#undef DEFINE_VECTOR_OBJ
-#undef DEFINE_VECTOR_OBJ_PTR
+#undef DEFINE_VECTOR_PACKET
+#undef DEFINE_VECTOR_PACKET_PTR
+#undef RELIABLE
 #undef END_DEFINE_CLASS
 
-//---------------------- To NetworkString -------------------------------------
-
-#define DEFINE_CLASS(Name) \
-inline void Name::toNetworkString(NetworkString* ns) const \
-{
-
-#define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)
-
-#define SYNCHRONOUS(Value) \
-    ns->setSynchronous(Value);
-
-#define AUX_VAR(Type, Var)
-
-#define DEFINE_FIELD(Type, Var) \
-    ns->encode<Type>(Var);
-
-#define DEFINE_FIELD_PTR(Type, Var) \
-    if (Var) \
-        ns->encode<Type>(*Var);
-
-// We send it if it exists, and receive only if the condition is true
-#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
-    if (Var) \
-        ns->encode<Type>(*Var);
-
-#define DEFINE_FIXED_FIELD(Type, Var, Value) \
-    ns->encode<Type>(Value);
-
-#define DEFINE_VECTOR(Type, Size, Value) \
-    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
-        ns->encode<Type>(Value[Value##_cnt]); \
-    }
-
-#define DEFINE_VECTOR_OBJ(Type, Size, Value) \
-    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
-        Value[Value##_cnt].toNetworkString(ns); \
-    }
-
-#define DEFINE_VECTOR_OBJ_PTR(Type, Size, Value) \
-    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
-        Value[Value##_cnt]->toNetworkString(ns); \
-    }
-
-#define END_DEFINE_CLASS(Name) \
-}
-
-#include "network/packet_types_base.hpp"
-#undef DEFINE_CLASS
-#undef DEFINE_DERIVED_CLASS
-#undef SYNCHRONOUS
-#undef AUX_VAR
-#undef DEFINE_FIELD
-#undef DEFINE_FIELD_PTR
-#undef DEFINE_FIXED_FIELD
-#undef DEFINE_FIELD_OPTIONAL
-#undef DEFINE_VECTOR
-#undef DEFINE_VECTOR_OBJ
-#undef DEFINE_VECTOR_OBJ_PTR
-#undef END_DEFINE_CLASS
-
-//---------------------- From NetworkString -----------------------------------
-
-#define DEFINE_CLASS(Name) \
-inline void Name::fromNetworkString(NetworkString* ns) \
-{ 
-
-#define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)
-
-#define SYNCHRONOUS(Value)
-
-#define AUX_VAR(Type, Var)
-
-#define DEFINE_FIELD(Type, Var) \
-    ns->decode<Type>(Var);
-
-// Same as optional but unconditional
-#define DEFINE_FIELD_PTR(Type, Var) \
-    Type temp_##Var; \
-    ns->decode<Type>(temp_##Var); \
-    Var = std::make_shared<Type>(temp_##Var); \
-
-// We send it if it exists, and receive only if the condition is true
-#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
-    if (Condition) { \
-        Type temp_##Var; \
-        ns->decode<Type>(temp_##Var); \
-        Var = std::make_shared<Type>(temp_##Var); \
-    }
-
-#define DEFINE_FIXED_FIELD(Type, Var, Value)
-
-#define DEFINE_VECTOR(Type, Size, Var) \
-    Var.resize(Size); \
-    for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
-        ns->decode<Type>(Var[Var##_cnt]); \
-    }
-
-#define DEFINE_VECTOR_OBJ(Type, Size, Var) \
-    Var.resize(Size); \
-    for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
-        Var[Var##_cnt].fromNetworkString(ns); \
-    }
-
-#define DEFINE_VECTOR_OBJ_PTR(Type, Size, Var) \
-    Var.resize(Size); \
-    for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
-        Type temp_##Var; \
-        temp_##Var.fromNetworkString(ns); \
-        Var[Var##_cnt] = std::make_shared<Type>(temp_##Var); \
-    }
-
-#define END_DEFINE_CLASS(Name) \
-}
-
-#include "network/packet_types_base.hpp"
-#undef DEFINE_CLASS
-#undef DEFINE_DERIVED_CLASS
-#undef SYNCHRONOUS
-#undef AUX_VAR
-#undef DEFINE_FIELD
-#undef DEFINE_FIELD_PTR
-#undef DEFINE_FIXED_FIELD
-#undef DEFINE_FIELD_OPTIONAL
-#undef DEFINE_VECTOR
-#undef DEFINE_VECTOR_OBJ
-#undef DEFINE_VECTOR_OBJ_PTR
-#undef END_DEFINE_CLASS
-
-//---------------------- End --------------------------------------------------
+/* Don't forget to send RELIABLE() packets with PRM_RELIABLE */
 
 #endif // PACKET_TYPES_HPP

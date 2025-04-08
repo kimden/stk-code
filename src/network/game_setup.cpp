@@ -24,6 +24,7 @@
 #include "network/network_config.hpp"
 #endif
 #include "network/network_player_profile.hpp"
+#include "network/packet_types.hpp"
 #include "network/peer_vote.hpp"
 #include "network/protocols/server_lobby.hpp"
 #include "network/server_config.hpp"

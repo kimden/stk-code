@@ -139,7 +139,7 @@ void STKPeer::sendNetstring(NetworkString *data, PacketReliabilityMode reliable,
 
 //-----------------------------------------------------------------------------
 
-void STKPeer::sendPacket(const Packet& packet, unsigned capacity, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
+void STKPeer::sendPacket(Packet* packet, unsigned capacity, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
 {
     NetworkString* ns = getNetworkString(capacity);
     packet.toNetworkString(ns);

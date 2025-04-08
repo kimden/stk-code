@@ -1216,9 +1216,9 @@ std::pair<uint32_t, uint32_t> LinearWorld::getGameStartedProgress() const
 }   // getGameStartedProgress
 
 // ----------------------------------------------------------------------------
-KartInfoPacket LinearWorld::KartInfo::saveCompleteState()
+KartInfoInGamePacket LinearWorld::KartInfo::saveCompleteState()
 {
-    KartInfoPacket packet;
+    KartInfoInGamePacket packet;
     packet.finished_laps = m_finished_laps;
     packet.ticks_at_last_lap = m_ticks_at_last_lap;
     packet.lap_start_ticks = m_lap_start_ticks;
@@ -1229,7 +1229,7 @@ KartInfoPacket LinearWorld::KartInfo::saveCompleteState()
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void LinearWorld::KartInfo::restoreCompleteState(const KartInfoPacket& packet)
+void LinearWorld::KartInfo::restoreCompleteState(const KartInfoInGamePacket& packet)
 {
     m_finished_laps = packet.finished_laps;
     m_ticks_at_last_lap = packet.ticks_at_last_lap;
@@ -1366,27 +1366,23 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
 
 // ----------------------------------------------------------------------------
 /* Synchronize with server from the above data. */
-void LinearWorld::updateCheckLinesClient(const BareNetworkString& b)
+void LinearWorld::updateCheckLinesClient(const InsideChecklinePacket& packet)
 {
     // Reserve for future auto checkline correction
-    //int check_id = b.getUInt8();
-    b.getUInt8();
-    int kart_id = b.getUInt8();
+    //int check_id = packet.check_id;
+    
+    int kart_id = packet.kart_id;
+    m_kart_info.at(kart_id).m_finished_laps = packet.finished_laps;
+    m_kart_track_sector.at(kart_id)->setLastTriggeredCheckline(packet.last_triggered_checkline);
 
-    int8_t finished_laps = b.getUInt8();
-    m_kart_info.at(kart_id).m_finished_laps = finished_laps;
+    m_fastest_lap_ticks = packet.fastest_lap_ticks;
+    m_fastest_lap_kart_name = packet.fastest_kart_name;
 
-    int8_t ltcl = b.getUInt8();
-    m_kart_track_sector.at(kart_id)->setLastTriggeredCheckline(ltcl);
-
-    m_fastest_lap_ticks = b.getUInt32();
-    b.decodeStringW(&m_fastest_lap_kart_name);
-
-    const unsigned cc = b.getUInt8();
+    const unsigned cc = packet.check_structure_count;
     if (cc != Track::getCurrentTrack()->getCheckManager()->getCheckStructureCount())
         return;
     for (unsigned i = 0; i < cc; i++)
-        Track::getCurrentTrack()->getCheckManager()->getCheckStructure(i)->restoreIsActive(kart_id, b);
+        Track::getCurrentTrack()->getCheckManager()->getCheckStructure(i)->restoreIsActive(kart_id, packet.check_active[i]);
 
 }   // updateCheckLinesClient
 

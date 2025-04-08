@@ -135,9 +135,9 @@ private:
             m_warn_issued       = 0;
         }   // reset
         // --------------------------------------------------------------------
-        KartInfoPacket saveCompleteState();
+        KartInfoInGamePacket saveCompleteState();
         // --------------------------------------------------------------------
-        void restoreCompleteState(const KartInfoPacket& packet);
+        void restoreCompleteState(const KartInfoInGamePacket& packet);
     };
     // ------------------------------------------------------------------------
 
@@ -282,7 +282,7 @@ public:
     // ------------------------------------------------------------------------
     void updateCheckLinesServer(int check_id, int kart_id);
     // ------------------------------------------------------------------------
-    void updateCheckLinesClient(const BareNetworkString& b);
+    void updateCheckLinesClient(const InsideChecklinePacket& packet);
     // ------------------------------------------------------------------------
     void handleServerCheckStructureCount(unsigned count);
     // ------------------------------------------------------------------------

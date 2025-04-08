@@ -44,14 +44,6 @@ private:
      * asynchronous event update. */
     mutable std::mutex m_world_deleting_mutex;
 
-    /** The type of game events to be forwarded to the server. */
-    enum { GP_CONTROLLER_ACTION,
-           GP_STATE,
-           GP_ITEM_UPDATE,
-           GP_ITEM_CONFIRMATION,
-           GP_ADJUST_TIME
-    };
-
     /** A network string that collects all information from the server to be sent
      *  next. */
     NetworkString *m_data_to_send;
