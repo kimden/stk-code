@@ -27,16 +27,17 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 
 #define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)
 
-#define SYNCHRONOUS(Value) \
-    ns->setSynchronous(Value);
+#define PROTOCOL_TYPE(Type, Sync) \
+    ns->setProtocolType(Type); \
+    if (!m_override_synchronous) \
+        ns->setSynchronous(Sync); \
+    else \
+        ns->setSynchronous(*m_override_synchronous);
 
 #define AUX_VAR(Type, Var)
 
 #define DEFINE_FIELD(Type, Var) \
     ns->encode<Type>(Var);
-
-#define DEFINE_FIELD_PACKET(Type, Var) \
-    Var.toNetworkString(ns);
 
 #define DEFINE_FIELD_PTR(Type, Var) \
     if (Var) \
@@ -55,14 +56,10 @@ inline void Name::toNetworkString(NetworkString* ns) const \
         ns->encode<Type>(Value[Value##_cnt]); \
     }
 
-#define DEFINE_VECTOR_PACKET(Type, Size, Value) \
+#define DEFINE_VECTOR_PTR(Type, Size, Value) \
     for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
-        Value[Value##_cnt].toNetworkString(ns); \
-    }
-
-#define DEFINE_VECTOR_PACKET_PTR(Type, Size, Value) \
-    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
-        Value[Value##_cnt]->toNetworkString(ns); \
+        if (Value[Value##_cnt]) \
+            ns->encode<Type>(Value[Value##_cnt]); \
     }
 
 #define RELIABLE()
@@ -73,16 +70,14 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
 #undef DEFINE_DERIVED_CLASS
-#undef SYNCHRONOUS
+#undef PROTOCOL_TYPE
 #undef AUX_VAR
 #undef DEFINE_FIELD
-#undef DEFINE_FIELD_PACKET
 #undef DEFINE_FIELD_PTR
 #undef DEFINE_TYPE
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
-#undef DEFINE_VECTOR_PACKET
-#undef DEFINE_VECTOR_PACKET_PTR
+#undef DEFINE_VECTOR_PTR
 #undef RELIABLE
 #undef END_DEFINE_CLASS
 
@@ -97,15 +92,12 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 
 #define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)
 
-#define SYNCHRONOUS(Value)
+#define PROTOCOL_TYPE(Type, Sync)
 
 #define AUX_VAR(Type, Var)
 
 #define DEFINE_FIELD(Type, Var) \
     ns->decode<Type>(Var);
-
-#define DEFINE_FIELD_PACKET(Type, Var) \
-    Var.fromNetworkString(ns);
 
 // Same as optional but unconditional
 #define DEFINE_FIELD_PTR(Type, Var) \
@@ -129,17 +121,11 @@ inline void Name::fromNetworkString(NetworkString* ns) \
         ns->decode<Type>(Var[Var##_cnt]); \
     }
 
-#define DEFINE_VECTOR_PACKET(Type, Size, Var) \
-    Var.resize(Size); \
-    for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
-        Var[Var##_cnt].fromNetworkString(ns); \
-    }
-
-#define DEFINE_VECTOR_PACKET_PTR(Type, Size, Var) \
+#define DEFINE_VECTOR_PTR(Type, Size, Var) \
     Var.resize(Size); \
     for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
         Type temp_##Var; \
-        temp_##Var.fromNetworkString(ns); \
+        ns->decode<Type>(temp_##Var); \
         Var[Var##_cnt] = std::make_shared<Type>(temp_##Var); \
     }
 
@@ -151,16 +137,14 @@ inline void Name::fromNetworkString(NetworkString* ns) \
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
 #undef DEFINE_DERIVED_CLASS
-#undef SYNCHRONOUS
+#undef PROTOCOL_TYPE
 #undef AUX_VAR
 #undef DEFINE_FIELD
-#undef DEFINE_FIELD_PACKET
 #undef DEFINE_FIELD_PTR
 #undef DEFINE_TYPE
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
-#undef DEFINE_VECTOR_PACKET
-#undef DEFINE_VECTOR_PACKET_PTR
+#undef DEFINE_VECTOR_PTR
 #undef RELIABLE
 #undef END_DEFINE_CLASS
 

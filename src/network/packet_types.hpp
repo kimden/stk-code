@@ -20,6 +20,7 @@
 #define PACKET_TYPES_HPP
 
 #include "network/network_string.hpp"
+#include "network/protocol.hpp"
 #include "network/protocols/game_event_types.hpp"
 #include "utils/cpp2011.hpp"
 
@@ -121,18 +122,26 @@ public:
 
 struct Packet: public Checkable
 {
+public:
     std::function<bool(const std::string&)> m_capability_checker;
 
     // Needed to dynamic_cast
     virtual ~Packet() {}
     virtual void toNetworkString(NetworkString* ns) const                    {}
     virtual void fromNetworkString(NetworkString* ns)                        {}
-    virtual bool isSynchronous()                              { return false; }
     bool cap(const std::string& name)    { return m_capability_checker(name); }
+
+    void forceSynchronous(bool value)
+                    { m_override_synchronous = std::make_shared<bool>(value); }
+    void unforceSynchronous()                  { m_override_synchronous = {}; }
+
+private:
+    std::shared_ptr<bool> m_override_synchronous;
 };
 
 // temp
 constexpr int IDONT_KNOW = 0;
+constexpr bool UNUSED = false;
 
 //---------------------- Initialization ---------------------------------------
 
@@ -148,32 +157,28 @@ struct Name: public Parent { \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
-#define SYNCHRONOUS(Value) bool isSynchronous() OVERRIDE { return Value; }
+#define PROTOCOL_TYPE(Type, Sync)
 #define AUX_VAR(Type, Var)                          Type Var;
 #define DEFINE_FIELD(Type, Var)                     Type Var;
-#define DEFINE_FIELD_PACKET(Type, Var)              Type Var;
 #define DEFINE_FIELD_PTR(Type, Var)                 std::shared_ptr<Type> Var;
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) std::shared_ptr<Type> Var;
 #define DEFINE_TYPE(Type, Var, Value)               Type Var;
 #define DEFINE_VECTOR(Type, Size, Var)              std::vector<Type> Var;
-#define DEFINE_VECTOR_PACKET(Type, Size, Var)       std::vector<Type> Var;
-#define DEFINE_VECTOR_PACKET_PTR(Type, Size, Var)   std::vector<std::shared_ptr<Type>> Var;
+#define DEFINE_VECTOR_PTR(Type, Size, Var)          std::vector<std::shared_ptr<Type>> Var;
 #define RELIABLE()
 #define END_DEFINE_CLASS(Name)                      };
 
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
 #undef DEFINE_DERIVED_CLASS
-#undef SYNCHRONOUS
+#undef PROTOCOL_TYPE
 #undef AUX_VAR
 #undef DEFINE_FIELD
-#undef DEFINE_FIELD_PACKET
 #undef DEFINE_FIELD_PTR
 #undef DEFINE_TYPE
 #undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
-#undef DEFINE_VECTOR_PACKET
-#undef DEFINE_VECTOR_PACKET_PTR
+#undef DEFINE_VECTOR_PTR
 #undef RELIABLE
 #undef END_DEFINE_CLASS
 

@@ -150,7 +150,7 @@ private:
          bool* is_spectator = NULL) const;
     void getPlayersAddonKartType(const BareNetworkString& data,
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    void getKartsTracksNetworkString(BareNetworkString* ns);
+    AssetsPacket getKartsTracksNetworkString();
     void doInstallAddonsPack();
 public:
              ClientLobby(std::shared_ptr<Server> s);

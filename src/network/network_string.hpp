@@ -463,6 +463,14 @@ public:
     }   // getProtocolType
 
     // ------------------------------------------------------------------------
+    /** Sets the protocol type of this message. */
+    void setProtocolType(ProtocolType type)
+    {
+        m_buffer.at(0) &= PROTOCOL_SYNCHRONOUS;
+        m_buffer.at(0) |= (type & (~PROTOCOL_SYNCHRONOUS));
+    }   // getProtocolType
+
+    // ------------------------------------------------------------------------
     /** Sets if this message is to be sent synchronous or asynchronous. */
     void setSynchronous(bool b)
     {
