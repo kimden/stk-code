@@ -770,7 +770,9 @@ void TracksScreen::voteForPlayer()
     {
         // kimden: I'm not sure if this is the right thing, but seems fine.
         // Not encoding packet to netstring before if just in case, too.
-        packet.toNetworkString(&vote);
+        VoteRequestPacket vr_packet;
+        vr_packet.vote = packet;
+        vr_packet.toNetworkString(&vote);
         Comm::sendToServer(&vote, PRM_RELIABLE);
     }
 }   // voteForPlayer

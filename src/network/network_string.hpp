@@ -134,6 +134,11 @@ public:
         encodeString(s);
     }   // BareNetworkString
     // ------------------------------------------------------------------------
+    void reserve(int capacity)
+    {
+        m_buffer.reserve(capacity);
+    }   // reserve
+    // ------------------------------------------------------------------------
     /** Initialises the string with a sequence of characters. */
     BareNetworkString(const char *data, int len)
     {
@@ -428,12 +433,14 @@ class NetworkString : public BareNetworkString
 {
 public:
     static void unitTesting();
-        
+
+    NetworkString(): BareNetworkString() {}
+
     /** Constructor for a message to be sent. It sets the 
      *  protocol type of this message. It adds 1 byte to the capacity:
      *  1 byte for the protocol type. */
-    NetworkString(ProtocolType type,  int capacity=16)
-        : BareNetworkString(capacity+1)
+    NetworkString(ProtocolType type, int capacity=16)
+        : BareNetworkString(capacity + 1)
     {
         m_buffer.push_back(type);
     }   // NetworkString

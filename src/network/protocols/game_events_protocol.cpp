@@ -72,14 +72,18 @@ bool GameEventsProtocol::notifyEvent(Event* event)
     {
         if (!sw)
             throw std::invalid_argument("No soccer world");
-        sw->handleResetBallFromServer(data);
+
+        auto packet = event->getPacket<ResetBallPacket>();
+        sw->handleResetBallFromServer(packet);
         break;
     }
     case GE_PLAYER_GOAL:
     {
         if (!sw)
             throw std::invalid_argument("No soccer world");
-        sw->handlePlayerGoalFromServer(data);
+
+        auto packet = event->getPacket<InternalGoalPacket>();
+        sw->handlePlayerGoalFromServer(packet);
         break;
     }
     case GE_BATTLE_KART_SCORE:
@@ -141,8 +145,10 @@ bool GameEventsProtocol::notifyEvent(Event* event)
     {
         if (!lw)
             throw std::invalid_argument("No linear world");
+
+        auto packet = event->getPacket<InsideChecklinePacket>();
         if (NetworkConfig::get()->isClient())
-            lw->updateCheckLinesClient(data);
+            lw->updateCheckLinesClient(packet);
         break;
     }
     default:

@@ -533,7 +533,7 @@ NimCompleteStatePacket NetworkItemManager::saveCompleteState() const
         if (m_all_items[i])
         {
             packet.all_items.back().has_item = true;
-            packet.all_items.back().item_state = std::make_shared<ItemStatePacket>(m_all_items[i]->saveCompleteState());
+            packet.all_items.back().item_state = m_all_items[i]->saveCompleteState();
         }
         else
             packet.all_items.back().has_item = false;
@@ -560,7 +560,7 @@ void NetworkItemManager::restoreCompleteState(const NimCompleteStatePacket& pack
         const bool has_item = packet.all_items[i].has_item;
         if (has_item)
         {
-            ItemState* is = new ItemState(*(packet.all_items[i].item_state));
+            ItemState* is = new ItemState(packet.all_items[i].item_state.get_value());
             m_confirmed_state.push_back(is);
         }
         else

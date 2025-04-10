@@ -343,8 +343,8 @@ void ServerLobby::handleChat(Event* event)
 
     core::stringw message = packet.message;
     KartTeam target_team = KART_TEAM_NONE;
-    if (packet.kart_team)
-        target_team = *(packet.kart_team);
+    if (packet.kart_team.has_value())
+        target_team = packet.kart_team.get_value();
 
     getChatManager()->handleNormalChatMessage(peer,
             StringUtils::wideToUtf8(message), target_team, m_name_decorator);
@@ -916,7 +916,7 @@ void ServerLobby::asynchronousUpdate()
             resetPeersReady();
 
             m_state = LOAD_WORLD;
-            NetworkString* ns;
+            NetworkString* ns = getNetworkString();
             LoadWorldPacket packet = getLoadWorldMessage(players, false/*live_join*/);
             packet.toNetworkString(ns);
             Comm::sendMessageToPeers(ns);
@@ -966,7 +966,8 @@ LoadWorldPacket ServerLobby::getLoadWorldMessage(
     for (auto& player: players)
         packet.all_players.push_back(encodePlayer(player, m_name_decorator));
     packet.item_seed = m_item_seed;
-    packet.battle_info = {};
+
+    auto& stk_config = STKConfig::get();
 
     if (RaceManager::get()->isBattleMode())
     {
@@ -979,8 +980,11 @@ LoadWorldPacket ServerLobby::getLoadWorldMessage(
                 getSettings()->getFlagDeactivatedTime());
         packet.battle_info = battle_packet;
     }
+    MultipleKartDataPacket multi_packet;
     for (unsigned i = 0; i < players.size(); i++)
-        packet.players_kart_data.push_back(players[i]->getKartData().encode());
+        multi_packet.players_kart_data.push_back(players[i]->getKartData().encode());
+
+    packet.karts_data = multi_packet;
 
     return packet;
 }   // getLoadWorldMessage
@@ -1039,9 +1043,7 @@ void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
     updatePlayerList();
 
     NetworkString* ns2 = getNetworkString();
-    ServerInfoPacket packet2;
-    //packet2.server_info = ...;
-    m_game_setup->addServerInfo(ns2);
+    ServerInfoPacket packet2 = m_game_setup->addServerInfo();
     packet2.toNetworkString(ns2);
     peer->sendNetstring(ns2, PRM_RELIABLE);
     delete ns2;
@@ -1078,7 +1080,7 @@ void ServerLobby::liveJoinRequest(Event* event)
     if (!spectator)
     {
         auto& spectators_by_limit = getCrownManager()->getSpectatorsByLimit();
-        setPlayerKarts(packet.player_karts, peer);
+        setPlayerKarts(packet.player_karts.get_value(), peer);
 
         std::vector<int> used_id;
         for (unsigned i = 0; i < peer->getPlayerProfiles().size(); i++)
@@ -1284,8 +1286,9 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
     packet.nim_complete_state = nim->saveCompleteState();
     nim->addLiveJoinPeer(peer);
 
-    packet.world_complete_state = w->saveCompleteState(peer);
-    packet.inside_info = {};
+    packet.world_complete_state = std::dynamic_pointer_cast<WorldCompleteStatePacket>
+            (w->saveCompleteState(peer));
+
     if (RaceManager::get()->supportsLiveJoining())
     {
         InsideGameInfoPacket inside_packet;
@@ -1514,6 +1517,8 @@ void ServerLobby::update(int ticks)
 
     handlePlayerDisconnection();
 
+    NetworkString* ns;
+
     switch (m_state.load())
     {
     case SET_PUBLIC_ADDRESS:
@@ -1558,7 +1563,7 @@ void ServerLobby::update(int ticks)
         setTimeoutFromNow(15);
         m_state = RESULT_DISPLAY;
 
-        NetworkString* ns = getNetworkString();
+        ns = getNetworkString();
         m_result_packet.toNetworkString(ns);
         Comm::sendMessageToPeers(ns, PRM_RELIABLE);
         delete ns;
@@ -2053,6 +2058,8 @@ void ServerLobby::checkRaceFinished()
     {
         int fastest_lap =
             static_cast<LinearWorld*>(World::getWorld())->getFastestLapTicks();
+
+        // kimden: you shouldn't expose packet field type like that
         m_result_packet.fastest_lap = fastest_lap;
         m_result_packet.fastest_kart_name = static_cast<LinearWorld*>(World::getWorld())
                 ->getFastestLapKartName();
@@ -2060,8 +2067,7 @@ void ServerLobby::checkRaceFinished()
 
     if (m_game_setup->isGrandPrix())
     {
-        m_result_packet.gp_scores = std::make_shared<GPScoresPacket>(
-                getGPManager()->updateGPScores(gp_changes));
+        m_result_packet.gp_scores = getGPManager()->updateGPScores(gp_changes);
     }
 
     m_result_packet.point_changes_indication = 
@@ -2236,7 +2242,7 @@ void ServerLobby::kickPlayerWithReason(std::shared_ptr<STKPeer> peer, const char
 
     ConnectionRefusedPacket packet;
     packet.reason = RR_BANNED;
-    packet.message = std::make_shared<std::string>(reason);
+    packet.message = reason;
     packet.toNetworkString(ns);
     peer->sendNetstring(ns, PRM_RELIABLE, PEM_UNENCRYPTED);
     
@@ -2287,7 +2293,7 @@ bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
             NetworkString* ns = getNetworkString(2);
             ConnectionRefusedPacket packet;
             packet.reason = RR_INCOMPATIBLE_DATA;
-            packet.message = std::make_shared<std::string>(getSettings()->getIncompatibleAdvice());
+            packet.message = getSettings()->getIncompatibleAdvice();
             packet.toNetworkString(ns);
             peer->sendNetstring(ns, PRM_RELIABLE, PEM_UNENCRYPTED);
 
@@ -2508,7 +2514,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             NetworkString* ns = getNetworkString(2);
             ConnectionRefusedPacket packet;
             packet.reason = RR_BANNED;
-            packet.message = std::make_shared<std::string>("Please behave well next time.");
+            packet.message = std::string("Please behave well next time.");
             packet.toNetworkString(ns);
             peer->sendNetstring(ns, PRM_RELIABLE, PEM_UNENCRYPTED);
             delete ns;

@@ -329,9 +329,9 @@ void ClientLobby::addAllPlayers(Event* event)
     if (RaceManager::get()->isBattleMode())
     {
         // kimden: double checking when it's not needed?
-        if (packet.battle_info)
+        if (packet.battle_info.has_value())
         {
-            BattleInfoPacket subpacket = *packet.battle_info;
+            BattleInfoPacket subpacket = packet.battle_info.get_value();
 
             m_game_setup->setHitCaptureTime(subpacket.battle_hit_capture_limit,
                                             subpacket.battle_time_limit);
@@ -380,23 +380,21 @@ std::shared_ptr<NetworkPlayerProfile>
                              std::shared_ptr<STKPeer> peer,
                              bool* is_spectator) const
 {
-    core::stringw player_name;
-    data.decodeStringW(&player_name);
-    uint32_t host_id = data.getUInt32();
-    float kart_color = data.getFloat();
-    uint32_t online_id = data.getUInt32();
-    HandicapLevel handicap = (HandicapLevel)data.getUInt8();
-    uint8_t local_id = data.getUInt8();
-    KartTeam team = (KartTeam)data.getUInt8();
-    std::string country_code;
-    data.decodeString(&country_code);
+    core::stringw player_name = packet.name;
+    uint32_t host_id = packet.host_id;
+    float kart_color = packet.kart_color;
+    uint32_t online_id = packet.online_id;
+    HandicapLevel handicap = (HandicapLevel)packet.handicap;
+    uint8_t local_id = packet.local_player_id;
+    KartTeam team = (KartTeam)packet.kart_team;
+    std::string country_code = packet.country_code;
     if (is_spectator && host_id == STKHost::get()->getMyHostId())
         *is_spectator = false;
+
     auto player = std::make_shared<NetworkPlayerProfile>(peer, player_name,
         host_id, kart_color, online_id, handicap, local_id, team, country_code);
-    std::string kart_name;
-    data.decodeString(&kart_name);
-    player->setKartName(kart_name);
+
+    player->setKartName(packet.kart_name);
     return player;
 }   // decodePlayers
 
@@ -1159,23 +1157,21 @@ void ClientLobby::startSelection(Event* event)
  */
 void ClientLobby::raceFinished(Event* event)
 {
-    NetworkString &data = event->data();
+    auto packet = event->getPacket<RaceFinishedPacket>();
     Log::info("ClientLobby", "Server notified that the race is finished.");
     LinearWorld* lw = dynamic_cast<LinearWorld*>(World::getWorld());
     if (m_game_setup->isGrandPrix())
     {
-        int t = data.getUInt32();
-        core::stringw kart_name;
-        data.decodeStringW(&kart_name);
+        int t = packet.fastest_lap.get_value();
+        core::stringw kart_name = packet.fastest_kart_name.get_value();
         lw->setFastestLapTicks(t);
         lw->setFastestKartName(kart_name);
-        RaceManager::get()->configGrandPrixResultFromNetwork(data);
+        RaceManager::get()->configGrandPrixResultFromNetwork(packet.gp_scores.get_value());
     }
     else if (RaceManager::get()->modeHasLaps())
     {
-        int t = data.getUInt32();
-        core::stringw kart_name;
-        data.decodeStringW(&kart_name);
+        int t = packet.fastest_lap.get_value();
+        core::stringw kart_name = packet.fastest_kart_name.get_value();
         lw->setFastestLapTicks(t);
         lw->setFastestKartName(kart_name);
     }
@@ -1207,12 +1203,12 @@ void ClientLobby::raceFinished(Event* event)
     if (NetworkConfig::get()->getServerCapabilities().find("ranking_changes")
         != NetworkConfig::get()->getServerCapabilities().end())
     {
-        bool has_ranking_changes = (data.getUInt8() & 1) != 0;
-        if (has_ranking_changes)
+        bool has_ranking_changes = packet.point_changes_indication;
+        if (has_ranking_changes && packet.point_changes.has_value())
         {
-            unsigned count = data.getUInt8();
-            for (unsigned i = 0; i < count; i++)
-                m_ranking_changes.push_back(data.getFloat());
+            PointChangesPacket subpacket = packet.point_changes.get_value();
+            unsigned count = subpacket.player_count;
+            m_ranking_changes = subpacket.changes;
         }
     }
 
@@ -1304,7 +1300,7 @@ void ClientLobby::finishedLoadingWorld()
 {
     NetworkString* ns = getNetworkString(1);
     FinishedLoadingLiveJoinPacket packet;
-    packet.forceSynchronous(m_server_send_live_load_world);
+    packet.m_override_synchronous = m_server_send_live_load_world;
     packet.toNetworkString(ns);
     Comm::sendToServer(ns, PRM_RELIABLE);
     delete ns;
@@ -1339,11 +1335,11 @@ void ClientLobby::liveJoinAcknowledged(Event* event)
         (Track::getCurrentTrack()->getItemManager());
     assert(nim);
     nim->restoreCompleteState(packet.nim_complete_state);
-    w->restoreCompleteState(packet.world_complete_state);
+    w->restoreCompleteState(std::dynamic_pointer_cast<WorldPacket>(packet.world_complete_state));
 
-    if (RaceManager::get()->supportsLiveJoining() && packet.inside_info)
+    if (RaceManager::get()->supportsLiveJoining() && packet.inside_info.has_value())
     {
-        InsideGameInfoPacket subpacket = *packet.inside_info;
+        InsideGameInfoPacket subpacket = packet.inside_info.get_value();
         // Get and update the players list 1 more time in case the was
         // player connection or disconnection
         std::vector<std::shared_ptr<NetworkPlayerProfile> > players;
@@ -1434,9 +1430,9 @@ void ClientLobby::handleKartInfo(Event* event)
     KartData kart_data;
     if (NetworkConfig::get()->getServerCapabilities().find("real_addon_karts") !=
             NetworkConfig::get()->getServerCapabilities().end()
-            && packet.kart_data)
+            && packet.kart_data.has_value())
     {
-        kart_data = KartData(*packet.kart_data);
+        kart_data = packet.kart_data.get_value();
     }
 
     RemoteKartInfo& rki = RaceManager::get()->getKartInfo(kart_id);
@@ -1549,7 +1545,7 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
         packet.message = name + L": " + text;
 
         if (team != KART_TEAM_NONE)
-            packet.kart_team = std::make_shared<KartTeam>(team);
+            packet.kart_team = team;
 
         packet.toNetworkString(chat);
         Comm::sendToServer(chat, PRM_RELIABLE);

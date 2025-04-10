@@ -29,10 +29,10 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 
 #define PROTOCOL_TYPE(Type, Sync) \
     ns->setProtocolType(Type); \
-    if (!m_override_synchronous) \
+    if (!m_override_synchronous.has_value()) \
         ns->setSynchronous(Sync); \
     else \
-        ns->setSynchronous(*m_override_synchronous);
+        ns->setSynchronous(m_override_synchronous.get_value());
 
 #define AUX_VAR(Type, Var)
 
@@ -45,8 +45,8 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 
 // We send it if it exists, and receive only if the condition is true
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
-    if (Var) \
-        ns->encode<Type>(*Var);
+    if (Var.has_value()) \
+        ns->encode<Type>(Var.get_value());
 
 #define DEFINE_TYPE(Type, Var, Value) \
     ns->encode<Type>(Value);
@@ -59,10 +59,10 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 #define DEFINE_VECTOR_PTR(Type, Size, Value) \
     for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
         if (Value[Value##_cnt]) \
-            ns->encode<Type>(Value[Value##_cnt]); \
+            ns->encode<Type>(*(Value[Value##_cnt])); \
     }
 
-#define RELIABLE()
+#define RELIABLE(Value)
 
 #define END_DEFINE_CLASS(Name) \
 }
@@ -110,7 +110,7 @@ inline void Name::fromNetworkString(NetworkString* ns) \
     if (Condition) { \
         Type temp_##Var; \
         ns->decode<Type>(temp_##Var); \
-        Var = std::make_shared<Type>(temp_##Var); \
+        Var = temp_##Var; \
     }
 
 #define DEFINE_TYPE(Type, Var, Value)
@@ -129,7 +129,7 @@ inline void Name::fromNetworkString(NetworkString* ns) \
         Var[Var##_cnt] = std::make_shared<Type>(temp_##Var); \
     }
 
-#define RELIABLE()
+#define RELIABLE(Value)
 
 #define END_DEFINE_CLASS(Name) \
 }
