@@ -246,9 +246,8 @@ ScorerDataPacket SoccerWorld::ScorerData::saveCompleteState(bool has_soccer_fixe
     packet.player = m_player;
     if (has_soccer_fixes)
     {
-        // kimden: Please get rid of types here.
-        packet.country_code = std::make_shared<std::string>(m_country_code);
-        packet.handicap_level = std::make_shared<uint8_t>(m_handicap_level);
+        packet.country_code = m_country_code;
+        packet.handicap_level = m_handicap_level;
     }
     return packet;
 }   // saveCompleteState
@@ -264,10 +263,10 @@ void SoccerWorld::ScorerData::restoreCompleteState(const ScorerDataPacket& packe
     if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
         != NetworkConfig::get()->getServerCapabilities().end())
     {
-        if (auto ptr = packet.country_code)
-            m_country_code = *ptr;
-        if (auto ptr = packet.handicap_level)
-            m_handicap_level = (HandicapLevel)*ptr;
+        if (packet.country_code.has_value())
+            m_country_code = packet.country_code.get_value();
+        if (packet.handicap_level.has_value())
+            m_handicap_level = (HandicapLevel)packet.handicap_level.get_value();
     }
 }   // restoreCompleteState
 //=============================================================================
@@ -698,8 +697,8 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 
             // Added in 1.1, add missing handicap info and country code
             InternalGoalPacket packet_1_1 = packet;
-            packet_1_1.country_code = std::make_shared<std::string>(sd.m_country_code);
-            packet_1_1.handicap = std::make_shared<uint8_t>(sd.m_handicap_level);
+            packet_1_1.country_code = sd.m_country_code;
+            packet_1_1.handicap = sd.m_handicap_level;
 
             NetworkString p(PROTOCOL_GAME_EVENTS);
             NetworkString p_1_1(PROTOCOL_GAME_EVENTS);
@@ -773,11 +772,11 @@ void SoccerWorld::handlePlayerGoalFromServer(const InternalGoalPacket& packet)
     if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
         != NetworkConfig::get()->getServerCapabilities().end())
     {
-        if (packet.country_code)
-            sd.m_country_code = *packet.country_code;
+        if (packet.country_code.has_value())
+            sd.m_country_code = packet.country_code.get_value();
 
-        if (packet.handicap)
-            sd.m_handicap_level = (HandicapLevel)(*packet.handicap);
+        if (packet.handicap.has_value())
+            sd.m_handicap_level = (HandicapLevel)(packet.handicap.get_value());
     }
 
     if (first_goal)

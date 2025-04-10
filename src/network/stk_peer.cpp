@@ -139,10 +139,11 @@ void STKPeer::sendNetstring(NetworkString *data, PacketReliabilityMode reliable,
 
 //-----------------------------------------------------------------------------
 
-void STKPeer::sendPacket(Packet* packet, unsigned capacity, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
+void STKPeer::sendPacket(Packet* packet, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
 {
-    NetworkString* ns = getNetworkString(capacity);
-    packet.toNetworkString(ns);
+    /* kimden: get capacity from the packet itself !!! */
+    NetworkString* ns = new NetworkString();
+    packet->toNetworkString(ns);
     sendNetstring(ns, reliable, encrypted);
     delete ns;
 }   // sendPacket

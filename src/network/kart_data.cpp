@@ -27,15 +27,16 @@ KartData::KartData(const KartProperties* kp)
 KartData::KartData(const KartDataPacket& packet)
 {
     m_kart_type = "";
-    if (packet.kart_type)
-        m_kart_type = *packet.kart_type;
+    if (packet.kart_type.has_value())
+        m_kart_type = packet.kart_type.get_value();
     
     if (!m_kart_type.empty())
     {
-        m_width = packet.parameters->width;
-        m_height = packet.parameters->height;
-        m_length = packet.parameters->length;
-        m_gravity_shift = packet.parameters->gravity_shift;
+        auto value = packet.parameters.get_value();
+        m_width = value.width;
+        m_height = value.height;
+        m_length = value.length;
+        m_gravity_shift = value.gravity_shift;
     }
     else
     {
@@ -49,8 +50,7 @@ KartData::KartData(const KartDataPacket& packet)
 KartDataPacket KartData::encode() const
 {
     KartDataPacket packet;
-    packet.kart_type = std::make_shared<std::string>(m_kart_type);
-    packet.parameters = {};
+    packet.kart_type = m_kart_type;
 
     if (!m_kart_type.empty())
     {
@@ -59,7 +59,8 @@ KartDataPacket KartData::encode() const
         params.height = m_height;
         params.length = m_length;
         params.gravity_shift = m_gravity_shift;
-        packet.parameters = std::make_shared<KartParametersPacket>(params);
+
+        packet.parameters = params;
     }
 
     return packet;

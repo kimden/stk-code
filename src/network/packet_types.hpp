@@ -120,6 +120,20 @@ public:
     }
 };
 
+template<typename T>
+class Optional
+{
+private:
+    std::shared_ptr<T> m_pointer;
+
+public:
+    bool has_value() const                     { return m_pointer != nullptr; }
+    const T& get_value() const                           { return *m_pointer; }
+    void unset() const                                   { m_pointer.reset(); }
+    const T& operator = (const T& value)
+                      { m_pointer = std::make_shared<T>(value); return value; }
+};
+
 struct Packet: public Checkable
 {
 public:
@@ -131,12 +145,8 @@ public:
     virtual void fromNetworkString(NetworkString* ns)                        {}
     bool cap(const std::string& name)    { return m_capability_checker(name); }
 
-    void forceSynchronous(bool value)
-                    { m_override_synchronous = std::make_shared<bool>(value); }
-    void unforceSynchronous()                  { m_override_synchronous = {}; }
-
-private:
-    std::shared_ptr<bool> m_override_synchronous;
+    Optional<bool> m_override_synchronous;
+    Optional<bool> m_override_reliable;
 };
 
 // temp
@@ -161,11 +171,11 @@ struct Name: public Parent { \
 #define AUX_VAR(Type, Var)                          Type Var;
 #define DEFINE_FIELD(Type, Var)                     Type Var;
 #define DEFINE_FIELD_PTR(Type, Var)                 std::shared_ptr<Type> Var;
-#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) std::shared_ptr<Type> Var;
+#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) Optional<Type> Var;
 #define DEFINE_TYPE(Type, Var, Value)               Type Var;
 #define DEFINE_VECTOR(Type, Size, Var)              std::vector<Type> Var;
 #define DEFINE_VECTOR_PTR(Type, Size, Var)          std::vector<std::shared_ptr<Type>> Var;
-#define RELIABLE()
+#define RELIABLE(Value)
 #define END_DEFINE_CLASS(Name)                      };
 
 #include "network/packet_types_base.hpp"
@@ -182,6 +192,6 @@ struct Name: public Parent { \
 #undef RELIABLE
 #undef END_DEFINE_CLASS
 
-/* Don't forget to send RELIABLE() packets with PRM_RELIABLE */
+/* Don't forget to send RELIABLE(Value) packets with PRM_RELIABLE or PRM_UNRELIABLE if false */
 
 #endif // PACKET_TYPES_HPP
