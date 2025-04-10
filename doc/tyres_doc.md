@@ -29,7 +29,7 @@ Then, to model the actual performance change, we can have a continuous response 
 
 ## Part 3: how does TME compute degradation?
 
-In STK, the grip simulation is given by the bullet engine. I experimented long and hard with it, and found it to be no good to touch it. So, I came up with the next best thing: if the front tyres have less grip, this is equivalent to the engine having less power. If the front tyres have less grip, this is equivalent to the kart turning less. (For gameplay reasons, rear tyre degradation also affects top speed. This is a purely game design decision and in real life top speed doesn't really change with tyre degradation).
+In STK, the grip simulation is given by the bullet engine. I experimented long and hard with it, and found it to be no good to touch it. So, I came up with the next best thing: if the rear tyres have less grip, this is equivalent to the engine having less power. If the front tyres have less grip, this is equivalent to the kart turning less. (For gameplay reasons, rear tyre degradation also affects top speed. This is a purely game design decision and in real life top speed doesn't really change with tyre degradation).
 
 The continuous response functions are defined for topspeed and acceleration (given the rear health as input) and for turning (given the front health as input) by linearly interpolated curves in the config file, and they are required to be defined in the interval `[0, 100]`.
 
