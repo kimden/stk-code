@@ -41,7 +41,7 @@ Importantly, linear acceleration isn't computed by blindly taking the described 
 
 Centripetal acceleration is computer with the usual formila, which means speed affects degradation way more than how tight you are turning.
 
-Each kart has two different healths, one for the two rear tyres and another for the two front tyres. It was considered to complex to allow assymmetrical degradation. The tyres start with a configurable amount of health, usually in the thousands (technically the health unit is force xD). Every frame, the degradation is computer with the rolling force, rear force, and front force. The rolling force is substracted from both healths, and the rear/front forces are substrated from their individual healths.
+Each kart has two different healths, one for the two rear tyres and another for the two front tyres. It was considered too complex to allow assymmetrical degradation. The tyres start with a configurable amount of health, usually in the thousands (technically the health unit is force xD). Every frame, the degradation is computer with the rolling force, rear force, and front force. The rolling force is substracted from both healths, and the rear/front forces are substrated from their individual healths.
 
 There are configurable factors such as: how much is rear degradation multiplied by when braking? How much is it multiplied when having offroad slowdown? From what slowdown threshold? How much is front degradation multiplied by when skidding? How much are the tyres damaged if you have a crash/bump with the wall?
 
