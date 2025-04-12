@@ -18,6 +18,7 @@
 
 #include "network/packet_types.hpp"
 #include "network/remote_kart_info.hpp"
+#include "network/network_string.hpp"
 
 //---------------------- To NetworkString -------------------------------------
 

@@ -105,12 +105,3 @@ Event::~Event()
     delete m_data;
 }   // ~Event
 //-----------------------------------------------------------------------------
-
-template<typename T>
-T Event::getPacket()
-{
-    T packet;
-    packet.fromNetworkString(m_data);
-    return packet;
-}   // getPacket
-//-----------------------------------------------------------------------------

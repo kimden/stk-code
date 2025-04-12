@@ -20,7 +20,9 @@
 #define HEADER_CHECK_STRUCTURE_HPP
 
 #include <vector>
+#include <memory>
 
+#include "network/packet_types.hpp"
 #include "utils/aligned_array.hpp"
 #include "utils/vec3.hpp"
 
