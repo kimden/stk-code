@@ -20,6 +20,7 @@
 #define LOBBY_GP_MANAGER_HPP
 
 #include "irrString.h"
+#include "network/packet_types.hpp"
 #include "utils/track_filter.hpp"
 #include "utils/lobby_context.hpp"
 

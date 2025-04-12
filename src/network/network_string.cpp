@@ -248,74 +248,74 @@ std::string BareNetworkString::getLogMessage(const std::string &indent) const
 
 
 template<>
-void BareNetworkString::encode<uint32_t>(const uint32_t& value)
+void NetworkString::encodeSpecific<uint32_t>(const uint32_t& value)
 {
     addUInt32(value);
 }   // encode(uint32_t)
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-void BareNetworkString::decode<uint32_t>(uint32_t& value)
+void NetworkString::decodeSpecific<uint32_t>(uint32_t& value)
 {
     value = getUInt32();
-}   // decode(uint32_t)
+}   // decodeSpecific(uint32_t)
 //-----------------------------------------------------------------------------
 template<>
-void BareNetworkString::encode<uint8_t>(const uint8_t& value)
+void NetworkString::encodeSpecific<uint8_t>(const uint8_t& value)
 {
     addUInt8(value);
 }   // encode(uint8_t)
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-void BareNetworkString::decode<uint8_t>(uint8_t& value)
+void NetworkString::decodeSpecific<uint8_t>(uint8_t& value)
 {
     value = getUInt8();
-}   // decode(uint8_t)
+}   // decodeSpecific(uint8_t)
 //-----------------------------------------------------------------------------
 template<>
-void BareNetworkString::encode<irr::core::stringw>(const irr::core::stringw& value)
+void NetworkString::encodeSpecific<irr::core::stringw>(const irr::core::stringw& value)
 {
     encodeString(value);
 }   // encode(irr::core::stringw)
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-void BareNetworkString::decode<irr::core::stringw>(irr::core::stringw& value)
+void NetworkString::decodeSpecific<irr::core::stringw>(irr::core::stringw& value)
 {
     decodeStringW(&value);
-}   // decode(irr::core::stringw)
+}   // decodeSpecific(irr::core::stringw)
 //-----------------------------------------------------------------------------
 template<>
-void BareNetworkString::encode<std::string>(const std::string& value)
+void NetworkString::encodeSpecific<std::string>(const std::string& value)
 {
     encodeString(value);
 }   // encode(std::string)
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-void BareNetworkString::decode<std::string>(std::string& value)
+void NetworkString::decodeSpecific<std::string>(std::string& value)
 {
     decodeString(&value);
-}   // decode(std::string)
+}   // decodeSpecific(std::string)
 //-----------------------------------------------------------------------------
 template<>
-void BareNetworkString::encode<bool>(const bool& value)
+void NetworkString::encodeSpecific<bool>(const bool& value)
 {
     addUInt8(value ? 1 : 0);
 }   // encode(bool)
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-void BareNetworkString::decode<bool>(bool& value)
+void NetworkString::decodeSpecific<bool>(bool& value)
 {
     value = getUInt8() == 1;
-}   // decode(bool)
+}   // decodeSpecific(bool)
 //-----------------------------------------------------------------------------
 // template<>
-// void BareNetworkString::encode<T>(const T& value)
+// void NetworkString::encodeSpecific<T>(const T& value)
 // {
 
-// }   // encode(T)
+// }   // encodeSpecific(T)
 // //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // template<>
-// void BareNetworkString::decode<T>(T& value)
+// void NetworkString::decodeSpecific<T>(T& value)
 // {
 
-// }   // decode(T)
+// }   // decodeSpecific(T)
 // //-----------------------------------------------------------------------------

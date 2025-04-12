@@ -19,15 +19,20 @@
 #ifndef PACKET_TYPES_HPP
 #define PACKET_TYPES_HPP
 
-#include "network/network_string.hpp"
+// #include "network/network_string.hpp"
 #include "network/protocol.hpp"
 #include "network/protocols/game_event_types.hpp"
 #include "utils/cpp2011.hpp"
+#include "utils/types.hpp"
+#include "utils/vec3.hpp"
 
 enum KartTeam: int8_t;
+class NetworkString;
+class BareNetworkString;
 
 #include <memory>
 #include <functional>
+#include <string>
 
 /**
  * IMPORTANT!
@@ -134,7 +139,7 @@ public:
                       { m_pointer = std::make_shared<T>(value); return value; }
 };
 
-struct Packet: public Checkable
+class Packet: public Checkable
 {
 public:
     std::function<bool(const std::string&)> m_capability_checker;

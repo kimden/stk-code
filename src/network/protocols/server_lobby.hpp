@@ -235,7 +235,7 @@ private:
     }
     void handlePendingConnection();
     void handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
-                                     BareNetworkString& data,
+                                     const Optional<RestConnectionRequestPacket>& opt,
                                      uint32_t online_id,
                                      const irr::core::stringw& online_name,
                                      bool is_pending_connection,

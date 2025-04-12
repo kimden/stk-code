@@ -128,7 +128,12 @@ public:
     PeerDisconnectInfo getPeerDisconnectInfo() const { return m_pdi; }
     // ------------------------------------------------------------------------
     template<typename T>
-    T getPacket();
+    T getPacket()
+    {
+        T packet;
+        packet.fromNetworkString(m_data);
+        return packet;
+    }   // getPacket
     // ------------------------------------------------------------------------
 
 };   // class Event

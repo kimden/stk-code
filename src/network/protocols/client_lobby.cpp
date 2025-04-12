@@ -256,22 +256,6 @@ bool ClientLobby::notifyEventAsynchronous(Event* event)
 }   // notifyEventAsynchronous
 
 //-----------------------------------------------------------------------------
-void ClientLobby::getPlayersAddonKartType(const BareNetworkString& data,
-    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const
-{
-    if (NetworkConfig::get()->getServerCapabilities().find(
-        "real_addon_karts") ==
-        NetworkConfig::get()->getServerCapabilities().end() ||
-        data.size() == 0)
-        return;
-    for (unsigned i = 0; i < players.size(); i++)
-    {
-        KartData kart_data(data);
-        players[i]->setKartData(kart_data);
-    }
-}   // getPlayersAddonKartType
-
-//-----------------------------------------------------------------------------
 void ClientLobby::addAllPlayers(Event* event)
 {
     if (World::getWorld())
@@ -340,7 +324,14 @@ void ClientLobby::addAllPlayers(Event* event)
             RaceManager::get()->setFlagDeactivatedTicks(subpacket.flag_deactivated_time);
         }
     }
-    getPlayersAddonKartType(data, players);
+    if (NetworkConfig::get()->getServerCapabilities().find("real_addon_karts") !=
+        NetworkConfig::get()->getServerCapabilities().end() && packet.karts_data.has_value())
+    {
+        for (unsigned i = 0; i < players.size(); i++)
+        {
+            players[i]->setKartData(KartData(packet.karts_data.get_value().players_kart_data[i]));
+        }
+    }
     configRemoteKart(players, isSpectator() ? 1 :
         (int)NetworkConfig::get()->getNetworkPlayers().size());
     loadWorld();
@@ -407,21 +398,25 @@ void ClientLobby::update(int ticks)
     case LINKED:
     {
         NetworkConfig::get()->clearServerCapabilities();
-        std::string ua = StringUtils::getUserAgentString();
+        std::string user_agent = StringUtils::getUserAgentString();
         if (NetworkConfig::get()->isNetworkAIInstance())
-            ua = "AI";
+            user_agent = "AI";
         NetworkString* ns = getNetworkString();
-        ns->addUInt8(LE_CONNECTION_REQUESTED)
-            .addUInt32(ServerConfig::m_server_version).encodeString(ua)
-            .addUInt16((uint16_t)stk_config->m_network_capabilities.size());
-        for (const std::string& cap : stk_config->m_network_capabilities)
-            ns->encodeString(cap);
 
-        ns (+=) getKartsTracksNetworkString();
+        ConnectionRequestedPacket packet;
+        packet.server_version = (uint32_t)ServerConfig::m_server_version;
+        packet.user_agent = user_agent;
+        packet.capabilities_size = (uint16_t)stk_config->m_network_capabilities.size();
+        for (const std::string& cap : stk_config->m_network_capabilities)
+            packet.capabilities.push_back(cap);
+
+        packet.assets = getKartsTracksPacket();
         assert(!NetworkConfig::get()->isAddingNetworkPlayers());
-        const uint8_t player_count =
-            (uint8_t)NetworkConfig::get()->getNetworkPlayers().size();
-        ns->addUInt8(player_count);
+
+        auto& all_players = NetworkConfig::get()->getNetworkPlayers();
+
+        const uint8_t player_count = (uint8_t)all_players.size();
+        packet.player_count = player_count;
 
         bool encryption = false;
         // Make sure there is a player before calling getCurrentOnlineId
@@ -431,28 +426,28 @@ void ClientLobby::update(int ticks)
             NetworkConfig::get()->isNetworkAIInstance();
         if (lan_ai)
             id = 0;
-        BareNetworkString* rest = new BareNetworkString();
         if (m_server->supportsEncryption() && id != 0)
         {
-            ns->addUInt32(id);
+            packet.id = id;
             encryption = true;
         }
         else
         {
-            ns->addUInt32(id).addUInt32(0);
+            packet.id = id;
+            packet.encrypted_size = 0;
+
             if (id != 0)
-            {
-                ns->encodeString(
-                    PlayerManager::getCurrentOnlineProfile()->getUserName());
-            }
+                packet.player_name = PlayerManager::getCurrentOnlineProfile()->getUserName();
         }
 
-        rest->encodeString(ServerConfig::m_private_server_password)
-            .addUInt8(player_count);
-        for (unsigned i = 0;
-             i < NetworkConfig::get()->getNetworkPlayers().size(); i++)
+        BareNetworkString* rest = new BareNetworkString();
+        RestConnectionRequestPacket subpacket;
+
+        subpacket.private_server_password = ServerConfig::m_private_server_password;
+        subpacket.player_count = player_count;
+        for (unsigned i = 0; i < player_count; i++)
         {
-            auto& p = NetworkConfig::get()->getNetworkPlayers()[i];
+            auto& p = all_players[i];
             PlayerProfile* player = std::get<1>(p);
             core::stringw name = player->getName();
             if (NetworkConfig::get()->isNetworkAIInstance())
@@ -465,13 +460,66 @@ void ClientLobby::update(int ticks)
 #endif
                 name += core::stringw(" ") + StringUtils::toWString(i + 1);
             }
-            rest->encodeString(name).
-                addFloat(player->getDefaultKartColor());
-            // Per-player handicap
-            rest->addUInt8(std::get<2>(p));
+
+            ConnectingPlayerPacket player_packet;
+            player_packet.name = name;
+            player_packet.default_kart_color = player->getDefaultKartColor();
+            player_packet.handicap = std::get<2>(p);
+            subpacket.players.push_back(player_packet);
         }
 
-        finalizeConnectionRequest(ns, rest, encryption);
+        if (encryption)
+        {
+            auto crypto = Crypto::getClientCrypto();
+            Crypto::resetClientAES();
+
+            NetworkString* rest = new NetworkString();
+            subpacket.toNetworkString(rest);
+            if (!crypto->encryptConnectionRequest(*rest))
+            {
+                // Failed
+                packet.encrypted_size = 0;
+                // packet.player_info_unencrypted = subpacket;
+                encryption = false;
+
+                if (id != 0)
+                    packet.player_name = PlayerManager::getCurrentOnlineProfile()->getUserName();
+            }
+            else
+            {
+                packet.encrypted_size = rest->getTotalSize();
+                Log::info("ClientLobby", "Server will validate this online player.");
+
+                EncryptedBuffer eb;
+                eb.buffer = rest->getBuffer();
+                packet.player_info_encrypted = eb;
+            }
+            delete rest;
+
+            packet.toNetworkString(ns);
+            Comm::sendToServer(ns);
+            delete ns;
+
+            if (encryption)
+            {
+                STKHost::get()->getServerPeerForClient()
+                    ->setCrypto(std::move(crypto));
+            }
+        }
+        else
+        {
+            *ns += *rest;
+            delete rest;
+            Comm::sendToServer(ns);
+            delete ns;
+        }
+
+
+
+
+
+
+
         m_state.store(REQUESTING_CONNECTION);
     }
     break;
@@ -534,49 +582,6 @@ void ClientLobby::update(int ticks)
         break;
     }
 }   // update
-
-//-----------------------------------------------------------------------------
-void ClientLobby::finalizeConnectionRequest(NetworkString* header,
-                                            BareNetworkString* rest,
-                                            bool encrypt)
-{
-    if (encrypt)
-    {
-        auto crypto = Crypto::getClientCrypto();
-        Crypto::resetClientAES();
-        BareNetworkString* result = new BareNetworkString();
-        if (!crypto->encryptConnectionRequest(*rest))
-        {
-            // Failed
-            result->addUInt32(0);
-            *result += BareNetworkString(rest->getData(), rest->getTotalSize());
-            encrypt = false;
-        }
-        else
-        {
-            Log::info("ClientLobby", "Server will validate this online player.");
-            result->addUInt32(rest->getTotalSize());
-            *result += BareNetworkString(rest->getData(), rest->getTotalSize());
-        }
-        delete rest;
-        *header += *result;
-        delete result;
-        Comm::sendToServer(header);
-        delete header;
-        if (encrypt)
-        {
-            STKHost::get()->getServerPeerForClient()
-                ->setCrypto(std::move(crypto));
-        }
-    }
-    else
-    {
-        *header += *rest;
-        delete rest;
-        Comm::sendToServer(header);
-        delete header;
-    }
-}   // finalizeConnectionRequest
 
 //-----------------------------------------------------------------------------
 void ClientLobby::receivePlayerVote(Event* event)
@@ -1031,10 +1036,12 @@ void ClientLobby::connectionRefused(Event* event)
 void ClientLobby::startGame(Event* event)
 {
     World::getWorld()->setPhase(WorldStatus::SERVER_READY_PHASE);
-    uint64_t start_time = event->data().getUInt64();
+
+    auto packet = event->getPacket<StartGamePacket>();
+    uint64_t start_time = packet.start_time;
     powerup_manager->setRandomSeed(start_time);
 
-    unsigned check_structure_count = event->data().getUInt8();
+    unsigned check_structure_count = packet.check_count;
     LinearWorld* lw = dynamic_cast<LinearWorld*>(World::getWorld());
     if (lw)
         lw->handleServerCheckStructureCount(check_structure_count);
@@ -1042,7 +1049,7 @@ void ClientLobby::startGame(Event* event)
     NetworkItemManager* nim = dynamic_cast<NetworkItemManager*>
         (Track::getCurrentTrack()->getItemManager());
     assert(nim);
-    nim->restoreCompleteState(event->data());
+    nim->restoreCompleteState(packet.nim_complete_state);
 
     core::stringw err_msg = _("Failed to start the network game.");
     // Different stk process thread may have different stk host
@@ -1207,7 +1214,7 @@ void ClientLobby::raceFinished(Event* event)
         if (has_ranking_changes && packet.point_changes.has_value())
         {
             PointChangesPacket subpacket = packet.point_changes.get_value();
-            unsigned count = subpacket.player_count;
+            // unsigned count = subpacket.player_count;
             m_ranking_changes = subpacket.changes;
         }
     }
@@ -1346,7 +1353,15 @@ void ClientLobby::liveJoinAcknowledged(Event* event)
         unsigned player_count = subpacket.players_size;
         for (unsigned i = 0; i < player_count; ++i)
             players.push_back(decodePlayer(subpacket.all_players[i]));
-        getPlayersAddonKartType(subpacket.players_kart_data, players);
+
+        if (NetworkConfig::get()->getServerCapabilities().find("real_addon_karts") !=
+            NetworkConfig::get()->getServerCapabilities().end())
+        {
+            for (unsigned i = 0; i < players.size(); i++)
+            {
+                players[i]->setKartData(KartData(subpacket.players_kart_data[i]));
+            }
+        }
         w->resetElimination();
         for (unsigned i = 0; i < players.size(); i++)
         {
@@ -1906,7 +1921,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
 }   // handleClientCommand
 
 // ----------------------------------------------------------------------------
-AssetsPacket ClientLobby::getKartsTracksNetworkString()
+AssetsPacket ClientLobby::getKartsTracksPacket()
 {
     std::vector<std::string> all_k;
     for (unsigned i = 0; i < kart_properties_manager->getNumberOfKarts(); i++)
@@ -1936,14 +1951,14 @@ AssetsPacket ClientLobby::getKartsTracksNetworkString()
         packet.maps.push_back(track);
     
     return packet;
-}   // getKartsTracksNetworkString
+}   // getKartsTracksPacket
 
 // ----------------------------------------------------------------------------
 void ClientLobby::updateAssetsToServer()
 {
     NetworkString* ns = getNetworkString(1);
     NewAssetsPacket packet;
-    packet.assets = getKartsTracksNetworkString();
+    packet.assets = getKartsTracksPacket();
     packet.toNetworkString(ns);
     Comm::sendToServer(ns, PRM_RELIABLE);
     delete ns;

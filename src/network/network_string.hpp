@@ -24,6 +24,7 @@
 #define NETWORK_STRING_HPP
 
 #include "network/protocol.hpp"
+#include "network/packet_types.hpp"
 #include "utils/leak_check.hpp"
 #include "utils/types.hpp"
 #include "utils/vec3.hpp"
@@ -38,6 +39,7 @@
 #include <string>
 #include <string.h>
 #include <vector>
+#include <type_traits>
 
 typedef unsigned char uchar;
 
@@ -403,12 +405,6 @@ public:
         return q;
     }   // getQuat
     // ------------------------------------------------------------------------
-    template<typename T>
-    void encode(const T& value);
-    // ------------------------------------------------------------------------
-    template<typename T>
-    void decode(T& value);
-    // ------------------------------------------------------------------------
 
 };   // class BareNetworkString
 
@@ -492,6 +488,49 @@ public:
     {
         return (m_buffer[0] & PROTOCOL_SYNCHRONOUS) == PROTOCOL_SYNCHRONOUS;
     }   // isSynchronous
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void encodeSpecific(const T& value);
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void decodeSpecific(T& value);
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void encodeMaybePacket(const T& value, std::false_type)
+    {
+        encodeSpecific(value);
+    }
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void decodeMaybePacket(T& value, std::false_type)
+    {
+        decodeSpecific(value);
+    }
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void encodeMaybePacket(const T& value, std::true_type)
+    {
+        value.toNetworkString(this);
+    }
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void decodeMaybePacket(T& value, std::true_type)
+    {
+        value.fromNetworkString(this);
+    }
+    // ------------------------------------------------------------------------
+    template <typename T>
+    void encode(const T& value)
+    {
+        encodeMaybePacket(value, std::is_base_of<Packet, T>());
+    }   // encode
+    // ------------------------------------------------------------------------
+    template <typename T>
+    void decode(T& value)
+    {
+        decodeMaybePacket(value, std::is_base_of<Packet, T>());
+    }   // decode
+    // ------------------------------------------------------------------------
 
 };   // class NetworkString
 

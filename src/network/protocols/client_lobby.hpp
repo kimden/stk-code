@@ -126,8 +126,6 @@ private:
     std::set<std::string> m_available_tracks;
 
     void addAllPlayers(Event* event);
-    void finalizeConnectionRequest(NetworkString* header,
-                                   BareNetworkString* rest, bool encrypt);
 
     std::map<PeerDisconnectInfo, irr::core::stringw> m_disconnected_msg;
 
@@ -148,9 +146,8 @@ private:
          decodePlayer(const EncodedSinglePlayerPacket& packet,
          std::shared_ptr<STKPeer> peer = nullptr,
          bool* is_spectator = NULL) const;
-    void getPlayersAddonKartType(const BareNetworkString& data,
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    AssetsPacket getKartsTracksNetworkString();
+
+    AssetsPacket getKartsTracksPacket();
     void doInstallAddonsPack();
 public:
              ClientLobby(std::shared_ptr<Server> s);

@@ -157,7 +157,7 @@ void NetworkKartSelectionScreen::allPlayersDone()
     {
         LiveJoinRequestPacket packet;
         packet.is_spectator = false;
-        packet.player_karts = std::make_shared<PlayerKartsPacket>(karts_packet);
+        packet.player_karts = karts_packet;
         packet.toNetworkString(&kart);
     }
     else

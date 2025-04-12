@@ -2354,7 +2354,7 @@ void ServerLobby::connectionRequested(Event* event)
     }
 
     // Check server version
-    int version = conn_packet.version;
+    int version = conn_packet.server_version;
 
     auto& stk_config = STKConfig::get();
     
@@ -2372,10 +2372,10 @@ void ServerLobby::connectionRequested(Event* event)
         Log::verbose("ServerLobby", "Player refused: wrong server version");
         return;
     }
-    std::string user_version = conn_packet.user_version;
+    std::string user_version = conn_packet.user_agent;
     event->getPeer()->setUserVersion(user_version);
 
-    unsigned list_caps = conn_packet.capabilities_count;
+    unsigned list_caps = conn_packet.capabilities_size;
     std::set<std::string> caps;
     for (unsigned i = 0; i < list_caps; i++)
     {
@@ -2395,10 +2395,10 @@ void ServerLobby::connectionRequested(Event* event)
     if (!handleAssetsAndAddonScores(event->getPeerSP(), client_karts, client_maps))
         return;
 
-    unsigned player_count = conn_packet.players_count;
+    unsigned player_count = conn_packet.player_count;
     uint32_t online_id = 0;
     uint32_t encrypted_size = 0;
-    online_id = conn_packet.online_id;
+    online_id = conn_packet.id;
     encrypted_size = conn_packet.encrypted_size;
 
     // Will be disconnected if banned by IP
@@ -2479,32 +2479,38 @@ void ServerLobby::connectionRequested(Event* event)
     if (getSettings()->hasAiHandling() && peer->isAIPeer())
         m_ai_peer = peer;
 
-    if (encrypted_size != 0)
+    // Second condition was not present before
+    if (encrypted_size != 0 && conn_packet.player_info_encrypted.has_value())
     {
-        m_pending_connection[peer] = std::make_pair(online_id,
-            BareNetworkString(data.getCurrentData(), encrypted_size));
+        NetworkString* ns = new NetworkString();
+        auto encrypted = conn_packet.player_info_encrypted.get_value();
+        encrypted.toNetworkString(ns);
+        m_pending_connection[peer] = std::make_pair(online_id, *(BareNetworkString*)ns);
     }
     else
     {
         core::stringw online_name;
-        if (online_id > 0)
-            data.decodeStringW(&online_name);
-        handleUnencryptedConnection(peer, data, online_id, online_name,
+        if (online_id > 0 && /* ??? */ conn_packet.player_name.has_value())
+            online_name = conn_packet.player_name.get_value();
+        handleUnencryptedConnection(peer, conn_packet.player_info_unencrypted, online_id, online_name,
             false/*is_pending_connection*/);
     }
 }   // connectionRequested
 
 //-----------------------------------------------------------------------------
 void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
-    BareNetworkString& data, uint32_t online_id,
+    const Optional<RestConnectionRequestPacket>& opt, uint32_t online_id,
     const core::stringw& online_name, bool is_pending_connection,
     std::string country_code)
 {
-    if (data.size() < 2) return;
+    if (!opt.has_value())
+        return;
+
+    RestConnectionRequestPacket packet = opt.get_value();
 
     // Check for password
     std::string password;
-    data.decodeString(&password);
+    password = packet.private_server_password;
     const std::string& server_pw = getSettings()->getPrivateServerPassword();
     if (online_id > 0)
     {
@@ -2543,7 +2549,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     // Check again max players and duplicated player in ranked server,
     // if this is a pending connection
     unsigned total_players = 0;
-    unsigned player_count = data.getUInt8();
+    unsigned player_count = packet.player_count;
 
     if (is_pending_connection)
     {
@@ -2593,8 +2599,9 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     std::string utf8_online_name = StringUtils::wideToUtf8(online_name);
     for (unsigned i = 0; i < player_count; i++)
     {
-        core::stringw name;
-        data.decodeStringW(&name);
+        ConnectingPlayerPacket player_packet = packet.players[i];
+
+        core::stringw name = player_packet.name;
         // 30 to make it consistent with stk-addons max user name length
         if (name.empty())
             name = L"unnamed";
@@ -2602,8 +2609,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             name = name.subString(0, 30);
 
         std::string utf8_name = StringUtils::wideToUtf8(name);
-        float default_kart_color = data.getFloat();
-        HandicapLevel handicap = (HandicapLevel)data.getUInt8();
+        float default_kart_color = player_packet.default_kart_color;
+        HandicapLevel handicap = (HandicapLevel)player_packet.handicap;
         auto player = std::make_shared<NetworkPlayerProfile>
             (peer, i == 0 && !online_name.empty() && !peer->isAIPeer() ?
             online_name : name,
@@ -2677,22 +2684,22 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 
     auto& stk_config = STKConfig::get();
     NetworkString* ns = getNetworkString(4);
-    ConnectionAcceptedPacket packet;
+    ConnectionAcceptedPacket ack_packet;
 
     // connection success -- return the host id of peer
     float auto_start_timer = getTimeUntilExpiration();
-    packet.host_id = peer->getHostId();
-    packet.server_version = ServerConfig::m_server_version;
-    packet.capabilities_size = (uint16_t)stk_config->m_network_capabilities.size();
+    ack_packet.host_id = peer->getHostId();
+    ack_packet.server_version = ServerConfig::m_server_version;
+    ack_packet.capabilities_size = (uint16_t)stk_config->m_network_capabilities.size();
     for (const std::string& cap : stk_config->m_network_capabilities)
-        packet.capabilities.push_back(cap);
+        ack_packet.capabilities.push_back(cap);
     
-    packet.auto_start_timer = auto_start_timer;
-    packet.state_frequency = getSettings()->getStateFrequency();
-    packet.chat_allowed = getChatManager()->getChat();
-    packet.reports_allowed = playerReportsTableExists();
+    ack_packet.auto_start_timer = auto_start_timer;
+    ack_packet.state_frequency = getSettings()->getStateFrequency();
+    ack_packet.chat_allowed = getChatManager()->getChat();
+    ack_packet.reports_allowed = playerReportsTableExists();
 
-    packet.toNetworkString(ns);
+    ack_packet.toNetworkString(ns);
 
     peer->setSpectator(false);
 
@@ -3244,9 +3251,24 @@ bool ServerLobby::decryptConnectionRequest(std::shared_ptr<STKPeer> peer,
     if (crypto->decryptConnectionRequest(data))
     {
         peer->setCrypto(std::move(crypto));
+
+        RestConnectionRequestPacket packet;
+        NetworkString* ns = new NetworkString();
+        ns->operator+=(data);
+        try
+        {
+            packet.fromNetworkString(ns);
+            delete ns;
+        }
+        catch (...)
+        {
+            return false;
+        }
+        Optional<RestConnectionRequestPacket> opt;
+        opt = packet;
         Log::info("ServerLobby", "%s validated",
             StringUtils::wideToUtf8(online_name).c_str());
-        handleUnencryptedConnection(peer, data, online_id,
+        handleUnencryptedConnection(peer, opt, online_id,
             online_name, true/*is_pending_connection*/, country_code);
         return true;
     }

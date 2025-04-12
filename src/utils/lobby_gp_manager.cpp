@@ -235,8 +235,6 @@ GPScoresPacket LobbyGPManager::updateGPScores(std::vector<float>& gp_changes)
     }
 
     GPScoresPacket packet;
-    packet.fastest_lap = fastest_lap;
-    packet.fastest_kart = fastest_kart_wide;
     packet.total_gp_tracks = (uint8_t)game_setup->getTotalGrandPrixTracks();
     packet.all_tracks_size = (uint8_t)game_setup->getAllTracks().size();
 

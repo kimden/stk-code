@@ -53,6 +53,11 @@ using widestr16 = irr::core::stringw; // but encodeString16
 
 // Make sure all level 0 packets have protocol set!
 
+DEFINE_CLASS(EncryptedBuffer)
+    AUX_VAR(uint32_t, size)
+    DEFINE_VECTOR(uint8_t, size, buffer)
+END_DEFINE_CLASS(EncryptedBuffer)
+
 DEFINE_CLASS(PlayerListProfilePacket)
     DEFINE_FIELD(uint32_t,    host_id)
     DEFINE_FIELD(uint32_t,    online_id)
@@ -398,18 +403,6 @@ DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
     RELIABLE(true);
 END_DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
 
-DEFINE_CLASS(ConnectionRequestedPacket)
-    DEFINE_FIELD(uint32_t, version)
-    DEFINE_FIELD(std::string, user_version)
-    DEFINE_FIELD(uint16_t, capabilities_count)
-    DEFINE_VECTOR(std::string, capabilities_count, capabilities)
-    DEFINE_FIELD(AssetsPacket, assets)
-    DEFINE_FIELD(uint8_t, players_count)
-    DEFINE_FIELD(uint32_t, online_id)
-    DEFINE_FIELD(uint32_t, encrypted_size)
-    // to be continued
-END_DEFINE_CLASS(ConnectionRequestedPacket)
-
 DEFINE_CLASS(KartInfoRequestPacket)
     PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
     DEFINE_TYPE(uint8_t, type, LE_KART_INFO)
@@ -646,6 +639,36 @@ DEFINE_CLASS(CommandPacket)
     DEFINE_FIELD(std::string, command)
     RELIABLE(true)
 END_DEFINE_CLASS(CommandPacket)
+
+DEFINE_CLASS(ConnectingPlayerPacket)
+    DEFINE_FIELD(widestr, name)
+    DEFINE_FIELD(float, default_kart_color)
+    DEFINE_FIELD(uint8_t, handicap)
+END_DEFINE_CLASS(ConnectingPlayerPacket)
+
+DEFINE_CLASS(RestConnectionRequestPacket)
+    DEFINE_FIELD(std::string, private_server_password)
+    DEFINE_FIELD(uint8_t, player_count)
+    DEFINE_VECTOR(ConnectingPlayerPacket, player_count, players)
+END_DEFINE_CLASS(RestConnectionRequestPacket)
+
+DEFINE_CLASS(ConnectionRequestedPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_CONNECTION_REQUESTED)
+    DEFINE_FIELD(uint32_t, server_version)
+    DEFINE_FIELD(std::string, user_agent)
+    DEFINE_FIELD(uint16_t, capabilities_size)
+    DEFINE_VECTOR(std::string, capabilities_size, capabilities)
+    DEFINE_FIELD(AssetsPacket, assets)
+    DEFINE_FIELD(uint8_t, player_count)
+
+    DEFINE_FIELD(uint32_t, id)
+    DEFINE_FIELD(uint32_t, encrypted_size) // 0 if not encrypted
+    DEFINE_FIELD_OPTIONAL(widestr, player_name, id != 0 && encrypted_size == 0)
+    DEFINE_FIELD_OPTIONAL(EncryptedBuffer, player_info_encrypted, encrypted_size != 0)
+    DEFINE_FIELD_OPTIONAL(RestConnectionRequestPacket, player_info_unencrypted, encrypted_size == 0 && check(4))  /* I really don't know, it can be sent if encryption failed, very bad */ 
+
+END_DEFINE_CLASS(ConnectionRequestedPacket)
 
 
 // end
