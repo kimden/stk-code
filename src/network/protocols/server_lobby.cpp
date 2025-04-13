@@ -1122,7 +1122,7 @@ void ServerLobby::liveJoinRequest(Event* event)
     std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
         getLivePlayers();
 
-    NetworkString* ns;
+    NetworkString* ns = new NetworkString();
     LoadWorldPacket load_world_packet = getLoadWorldMessage(players, true/*live_join*/);
     load_world_packet.toNetworkString(ns);
     peer->sendNetstring(ns, PRM_RELIABLE);
