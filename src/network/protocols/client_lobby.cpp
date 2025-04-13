@@ -479,7 +479,7 @@ void ClientLobby::update(int ticks)
             {
                 // Failed
                 packet.encrypted_size = 0;
-                // packet.player_info_unencrypted = subpacket;
+                packet.player_info_unencrypted = subpacket;
                 encryption = false;
 
                 if (id != 0)
@@ -1921,7 +1921,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
 }   // handleClientCommand
 
 // ----------------------------------------------------------------------------
-AssetsPacket ClientLobby::getKartsTracksPacket()
+AssetsPacket2 ClientLobby::getKartsTracksPacket()
 {
     std::vector<std::string> all_k;
     for (unsigned i = 0; i < kart_properties_manager->getNumberOfKarts(); i++)
@@ -1940,7 +1940,7 @@ AssetsPacket ClientLobby::getKartsTracksPacket()
     if (all_t.size() >= 65536)
         all_t.resize(65535);
 
-    AssetsPacket packet;
+    AssetsPacket2 packet;
     packet.karts_number = (uint16_t)all_k.size();
     packet.maps_number = (uint16_t)all_t.size();
 

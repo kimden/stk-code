@@ -194,6 +194,8 @@ public:
     // ------------------------------------------------------------------------
     int getCurrentOffset() const                   { return m_current_offset; }
     // ------------------------------------------------------------------------
+    void setCurrentOffset(int value) const        { m_current_offset = value; }
+    // ------------------------------------------------------------------------
     /** Returns the remaining length of the network string. */
     unsigned int size() const { return (int)m_buffer.size()-m_current_offset; }
 

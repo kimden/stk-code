@@ -147,7 +147,7 @@ private:
          std::shared_ptr<STKPeer> peer = nullptr,
          bool* is_spectator = NULL) const;
 
-    AssetsPacket getKartsTracksPacket();
+    AssetsPacket2 getKartsTracksPacket();
     void doInstallAddonsPack();
 public:
              ClientLobby(std::shared_ptr<Server> s);
