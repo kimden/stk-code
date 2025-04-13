@@ -34,7 +34,7 @@ class STKPeer;
 class Tournament;
 class Track;
 struct GameInfo;
-struct DefaultVotePacket;
+class DefaultVotePacket;
 
 /** @brief A class that manipulates server settings, such as resetting,
  * scoring, goal policies, etc. Might be split into a few parts later,

@@ -20,7 +20,7 @@
 #define PACKET_TYPES_HPP
 
 // #include "network/network_string.hpp"
-#include "network/protocol.hpp"
+// #include "network/protocol.hpp"
 #include "network/protocols/game_event_types.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/types.hpp"
@@ -110,7 +110,7 @@ namespace
     const std::string REAL_ADDON_KARTS = "real_addon_karts";
 }
 
-struct Checkable
+class Checkable
 {
 private:
     uint32_t m_state = 0;
@@ -161,14 +161,14 @@ constexpr bool UNUSED = false;
 //---------------------- Initialization ---------------------------------------
 
 #define DEFINE_CLASS(Name) \
-struct Name: public Packet { \
+class Name: public Packet { \
     public: \
         virtual ~Name() {} \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
 #define DEFINE_DERIVED_CLASS(Name, Parent) \
-struct Name: public Parent { \
+class Name: public Parent { \
     public: \
         virtual ~Name() {} \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \

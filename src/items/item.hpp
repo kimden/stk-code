@@ -35,7 +35,7 @@
 class BareNetworkString;
 class AbstractKart;
 class LODNode;
-struct ItemStatePacket;
+class ItemStatePacket;
 
 namespace irr
 {
