@@ -308,6 +308,8 @@ std::shared_ptr<WorldPacket> FreeForAll::saveCompleteState(std::shared_ptr<STKPe
     auto packet = std::make_shared<FFAWorldCompleteStatePacket>();
     for (unsigned i = 0; i < m_scores.size(); i++)
         packet->scores.push_back(m_scores[i]);
+
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
