@@ -109,8 +109,13 @@ void Name::fromNetworkString(NetworkString* ns) \
 // We send it if it exists, and receive only if the condition is true
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) \
     if (Condition) { \
+        int temp_prev_offset = ns->getCurrentOffset(); \
         Type temp_##Var; \
-        ns->decode<Type>(temp_##Var); \
+        try { \
+            ns->decode<Type>(temp_##Var); \
+        } catch (...) { \
+            ns->setCurrentOffset(temp_prev_offset); \
+        } \
         Var = temp_##Var; \
     }
 
