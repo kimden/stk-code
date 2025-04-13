@@ -23,7 +23,7 @@
 //---------------------- To NetworkString -------------------------------------
 
 #define DEFINE_CLASS(Name) \
-inline void Name::toNetworkString(NetworkString* ns) const \
+void Name::toNetworkString(NetworkString* ns) const \
 {
 
 #define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)
@@ -88,7 +88,7 @@ inline void Name::toNetworkString(NetworkString* ns) const \
 //---------------------- From NetworkString -----------------------------------
 
 #define DEFINE_CLASS(Name) \
-inline void Name::fromNetworkString(NetworkString* ns) \
+void Name::fromNetworkString(NetworkString* ns) \
 { 
 
 #define DEFINE_DERIVED_CLASS(Name, Parent) DEFINE_CLASS(Name)

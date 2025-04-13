@@ -163,12 +163,14 @@ constexpr bool UNUSED = false;
 #define DEFINE_CLASS(Name) \
 struct Name: public Packet { \
     public: \
+        virtual ~Name() {} \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
 #define DEFINE_DERIVED_CLASS(Name, Parent) \
 struct Name: public Parent { \
     public: \
+        virtual ~Name() {} \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
