@@ -248,6 +248,18 @@ std::string BareNetworkString::getLogMessage(const std::string &indent) const
 
 
 template<>
+void NetworkString::encodeSpecific<uint64_t>(const uint64_t& value)
+{
+    addUInt64(value);
+}   // encode(uint64_t)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void NetworkString::decodeSpecific<uint64_t>(uint64_t& value)
+{
+    value = getUInt64();
+}   // decodeSpecific(uint64_t)
+//-----------------------------------------------------------------------------
+template<>
 void NetworkString::encodeSpecific<uint32_t>(const uint32_t& value)
 {
     addUInt32(value);
@@ -258,6 +270,18 @@ void NetworkString::decodeSpecific<uint32_t>(uint32_t& value)
 {
     value = getUInt32();
 }   // decodeSpecific(uint32_t)
+//-----------------------------------------------------------------------------
+template<>
+void NetworkString::encodeSpecific<uint16_t>(const uint16_t& value)
+{
+    addUInt16(value);
+}   // encode(uint16_t)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void NetworkString::decodeSpecific<uint16_t>(uint16_t& value)
+{
+    value = getUInt16();
+}   // decodeSpecific(uint16_t)
 //-----------------------------------------------------------------------------
 template<>
 void NetworkString::encodeSpecific<uint8_t>(const uint8_t& value)
@@ -307,6 +331,56 @@ void NetworkString::decodeSpecific<bool>(bool& value)
     value = getUInt8() == 1;
 }   // decodeSpecific(bool)
 //-----------------------------------------------------------------------------
+template<>
+void NetworkString::encodeSpecific<Vec3>(const Vec3& value)
+{
+    add(value);
+}   // encode(Vec3)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void NetworkString::decodeSpecific<Vec3>(Vec3& value)
+{
+    value = getVec3();
+}   // decodeSpecific(Vec3)
+//-----------------------------------------------------------------------------
+template<>
+void NetworkString::encodeSpecific<btQuaternion>(const btQuaternion& value)
+{
+    add(value);
+}   // encode(btQuaternion)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void NetworkString::decodeSpecific<btQuaternion>(btQuaternion& value)
+{
+    value = getQuat();
+}   // decodeSpecific(btQuaternion)
+//-----------------------------------------------------------------------------
+template<>
+void NetworkString::encodeSpecific<float>(const float& value)
+{
+    addFloat(value);
+}   // encodeSpecific(float)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void NetworkString::decodeSpecific<float>(float& value)
+{
+    value = getFloat();
+}   // decodeSpecific(float)
+// //-----------------------------------------------------------------------------
+template<>
+void NetworkString::encodeSpecific<KartTeam>(const KartTeam& value)
+{
+    encodeSpecific<uint8_t>((uint8_t)value);
+}   // encodeSpecific(KartTeam)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void NetworkString::decodeSpecific<KartTeam>(KartTeam& value)
+{
+    uint8_t u8;
+    decodeSpecific<uint8_t>(u8);
+    value = (KartTeam)u8;
+}   // decodeSpecific(KartTeam)
+// //-----------------------------------------------------------------------------
 // template<>
 // void NetworkString::encodeSpecific<T>(const T& value)
 // {
