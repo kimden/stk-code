@@ -36,7 +36,7 @@ class STKPeer;
 class GenericDecorator;
 enum KartTeam : int8_t;
 enum HandicapLevel : uint8_t;
-struct EncodedSinglePlayerPacket;
+class EncodedSinglePlayerPacket;
 
 /*! \class NetworkPlayerProfile
  *  \brief Contains the profile of a player.
