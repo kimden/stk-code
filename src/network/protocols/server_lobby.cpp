@@ -3606,6 +3606,8 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     m_game_mode.store(mode);
     updateMapsForMode();
 
+    getSettings()->onServerConfiguration();
+
     auto peers = STKHost::get()->getPeers();
     for (auto& peer : peers)
     {

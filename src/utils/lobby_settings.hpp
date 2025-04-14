@@ -105,6 +105,7 @@ public:
     bool isSavingServerConfig() const          { return m_save_server_config; }
 
     void onServerSetup();
+    void onServerConfiguration();
 
     void tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
                          std::shared_ptr<STKPeer> target) const;

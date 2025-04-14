@@ -603,6 +603,12 @@ void LobbySettings::onServerSetup()
 }   // onServerSetup
 //-----------------------------------------------------------------------------
 
+void LobbySettings::onServerConfiguration()
+{
+    m_last_reset = StkTime::getMonoTimeMs();
+}   // onServerConfiguration
+//-----------------------------------------------------------------------------
+
 void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
                                     std::shared_ptr<STKPeer> target) const
 {
