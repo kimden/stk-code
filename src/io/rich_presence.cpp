@@ -579,7 +579,7 @@ void RichPresence::update(bool force)
     }
     else
     {
-        assets.add("large_text", "SuperTuxKart");
+        assets.add("large_text", "STK Tyre Mod");
         assets.add("large_image", "logo");
         assets.add("small_text", playerName);
         // std::string filename = std::string(basename(player->getIconFilename().c_str()));
