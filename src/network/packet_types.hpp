@@ -177,6 +177,7 @@ class Name: public Parent { \
 #define PROTOCOL_TYPE(Type, Sync)
 #define AUX_VAR(Type, Var)                          Type Var;
 #define DEFINE_FIELD(Type, Var)                     Type Var;
+#define DEFINE_FIELD16(Type, Var)                   Type Var;
 #define DEFINE_FIELD_PTR(Type, Var)                 std::shared_ptr<Type> Var;
 #define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) Optional<Type> Var;
 #define DEFINE_TYPE(Type, Var, Value)               Type Var;
@@ -191,6 +192,7 @@ class Name: public Parent { \
 #undef PROTOCOL_TYPE
 #undef AUX_VAR
 #undef DEFINE_FIELD
+#undef DEFINE_FIELD16
 #undef DEFINE_FIELD_PTR
 #undef DEFINE_TYPE
 #undef DEFINE_FIELD_OPTIONAL
