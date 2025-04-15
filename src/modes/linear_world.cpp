@@ -1196,6 +1196,29 @@ void LinearWorld::serverCheckForWrongDirection(unsigned int i, float dt)
 void LinearWorld::setLastTriggeredCheckline(unsigned int kart_index, int index)
 {
     if (m_kart_info.size() == 0) return;
+    Kart *kart  = m_karts[kart_index].get();
+    KartInfo &kart_info = m_kart_info[kart_index];
+
+    int ticks_since_newlap;
+    if (kart_info.m_finished_laps < 0) // didn't complete first lap yet
+    {
+        // To avoid negative times in countdown mode
+        if (getClockMode() == CLOCK_COUNTDOWN)
+            ticks_since_newlap = stk_config->time2Ticks(RaceManager::get()->getTimeTarget()) - getTimeTicks();
+        else
+            ticks_since_newlap = getTimeTicks();
+    }
+    else //completing subsequent laps
+    {
+        // To avoid negative times in countdown mode
+        if (getClockMode() == CLOCK_COUNTDOWN)
+            ticks_since_newlap = kart_info.m_lap_start_ticks - getTimeTicks();
+        else
+            ticks_since_newlap = getTimeTicks() - kart_info.m_lap_start_ticks;
+    }
+
+    Log::info("[RunRecord]", "M %s %s %d %s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), index, std::to_string(stk_config->ticks2Time(ticks_since_newlap)).c_str());
+
     getTrackSector(kart_index)->setLastTriggeredCheckline(index);
 }   // setLastTriggeredCheckline
 
