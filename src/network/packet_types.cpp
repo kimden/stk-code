@@ -40,6 +40,9 @@ void Name::toNetworkString(NetworkString* ns) const \
 #define DEFINE_FIELD(Type, Var) \
     ns->encode<Type>(Var);
 
+#define DEFINE_FIELD16(Type, Var) \
+    ns->encodeString16(Var);
+
 #define DEFINE_FIELD_PTR(Type, Var) \
     if (Var) \
         ns->encode<Type>(*Var);
@@ -74,6 +77,7 @@ void Name::toNetworkString(NetworkString* ns) const \
 #undef PROTOCOL_TYPE
 #undef AUX_VAR
 #undef DEFINE_FIELD
+#undef DEFINE_FIELD16
 #undef DEFINE_FIELD_PTR
 #undef DEFINE_TYPE
 #undef DEFINE_FIELD_OPTIONAL
@@ -99,6 +103,9 @@ void Name::fromNetworkString(NetworkString* ns) \
 
 #define DEFINE_FIELD(Type, Var) \
     ns->decode<Type>(Var);
+
+#define DEFINE_FIELD16(Type, Var) \
+    ns->decodeString16(&Var);
 
 // Same as optional but unconditional
 #define DEFINE_FIELD_PTR(Type, Var) \
@@ -146,6 +153,7 @@ void Name::fromNetworkString(NetworkString* ns) \
 #undef PROTOCOL_TYPE
 #undef AUX_VAR
 #undef DEFINE_FIELD
+#undef DEFINE_FIELD16
 #undef DEFINE_FIELD_PTR
 #undef DEFINE_TYPE
 #undef DEFINE_FIELD_OPTIONAL

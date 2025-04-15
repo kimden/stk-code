@@ -47,7 +47,6 @@
 #include <vector>
 
 using widestr = irr::core::stringw;
-using widestr16 = irr::core::stringw; // but encodeString16
 
 // Note that bools are encoded using int8_t
 
@@ -287,7 +286,7 @@ END_DEFINE_CLASS(LiveJoinPacket)
 DEFINE_CLASS(ChatPacket)
     PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
     DEFINE_TYPE(uint8_t, type, LE_CHAT)
-    DEFINE_FIELD(widestr16, message) // use encodeString16 ! max len is 360 for server, 1000 for client
+    DEFINE_FIELD16(widestr, message) // use encodeString16 ! max len is 360 for server, 1000 for client
     DEFINE_FIELD_OPTIONAL(KartTeam, kart_team, check(0)) /* KartTeam is uint8_t, I have no idea when */
     RELIABLE(true)
 END_DEFINE_CLASS(ChatPacket)
@@ -310,7 +309,7 @@ DEFINE_CLASS(ReportRequestPacket)
     PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
     DEFINE_TYPE(uint8_t, type, LE_REPORT_PLAYER)
     DEFINE_FIELD(uint32_t, host_id)
-    DEFINE_FIELD(widestr16, info)
+    DEFINE_FIELD16(widestr, info)
     RELIABLE(true)
 END_DEFINE_CLASS(ReportRequestPacket)
 
@@ -349,7 +348,7 @@ DEFINE_CLASS(ServerInfoPacket)
     DEFINE_FIELD_OPTIONAL(uint8_t, extra_server_info, has_extra_server_info)
     DEFINE_FIELD(uint8_t, min_start_game_players)
     DEFINE_FIELD(float, start_game_counter)
-    DEFINE_FIELD(widestr16, motd)
+    DEFINE_FIELD16(widestr, motd)
     DEFINE_FIELD(bool, is_configurable)
     DEFINE_FIELD(bool, has_live_players)
     RELIABLE(true)
