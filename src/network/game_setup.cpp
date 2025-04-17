@@ -132,14 +132,15 @@ ServerInfoPacket GameSetup::addServerInfo()
             if (!isGrandPrixStarted())
                 cur_track = 0;
 
-            packet.has_extra_server_info = cur_track;
-            packet.extra_server_info = m_extra_server_info;
+            packet.has_extra_server_info = 2;
+            packet.extra_server_info.push_back(cur_track);
+            packet.extra_server_info.push_back(m_extra_server_info);
         }
         else
         {
             // Soccer mode
             packet.has_extra_server_info = 1;
-            packet.extra_server_info = m_extra_server_info;
+            packet.extra_server_info.push_back(m_extra_server_info);
         }
     }
     else

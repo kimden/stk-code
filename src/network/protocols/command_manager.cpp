@@ -653,9 +653,8 @@ void CommandManager::setupContextUser()
 
 void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
 {
-    NetworkString& data = event->data();
-    std::string language;
-    data.decodeString(&language);
+    auto packet = event->getPacket<CommandPacket>();
+    std::string language = packet.language;
 
     Context context(event, peer);
     auto& argv = context.m_argv;
@@ -663,7 +662,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     auto& permissions = context.m_user_permissions;
     auto& voting = context.m_voting;
 
-    data.decodeString(&cmd);
+    cmd = packet.command;
     argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
     if (argv.empty())
         return;

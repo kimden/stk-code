@@ -345,7 +345,7 @@ DEFINE_CLASS(ServerInfoPacket)
     DEFINE_FIELD(uint8_t, extra_spectators_zero)
     DEFINE_FIELD(uint8_t, game_mode)
     DEFINE_FIELD(uint8_t, has_extra_server_info) /* can be more than 1 - in gp it's current track number, so not bool */
-    DEFINE_FIELD_OPTIONAL(uint8_t, extra_server_info, has_extra_server_info)
+    DEFINE_VECTOR(uint8_t, has_extra_server_info, extra_server_info)
     DEFINE_FIELD(uint8_t, min_start_game_players)
     DEFINE_FIELD(float, start_game_counter)
     DEFINE_FIELD16(widestr, motd)
