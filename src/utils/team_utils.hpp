@@ -45,21 +45,26 @@ private:
     std::vector<std::string> m_names; // Must contain at least 1 (primary) name
     float m_color;                      // One color only for now
     std::string m_emoji;              // Currently only one emoji
+    std::string m_circle;
 public:
     CustomTeam(std::vector<std::string>& codes,
                std::vector<std::string>& names,
-               float color, std::string& emoji):
-        m_codes(codes), m_names(names), m_color(color), m_emoji(emoji) {}
+               float color, std::string& emoji,
+               const std::string& circle):
+        m_codes(codes), m_names(names), m_color(color), m_emoji(emoji),
+        m_circle(circle) {}
 
     CustomTeam(std::string& code, std::string& name,
-               float color, std::string& emoji):
-        m_codes(1, code), m_names(1, name), m_color(color), m_emoji(emoji) {}
+               float color, std::string& emoji, const std::string& circle):
+        m_codes(1, code), m_names(1, name), m_color(color), m_emoji(emoji),
+        m_circle(circle) {}
 
     std::string getPrimaryCode() const                   { return m_codes[0]; }
     std::string getPrimaryName() const                   { return m_names[0]; }
     std::string getNameWithEmoji() const { return m_emoji + " " + m_names[0]; }
     float getColor() const                                  { return m_color; }
     std::string getEmoji() const                            { return m_emoji; }
+    std::string getCircle() const                          { return m_circle; }
     void addCode(const std::string& code)          { m_codes.push_back(code); }
     void addName(const std::string& name)          { m_names.push_back(name); }
 };
@@ -71,7 +76,9 @@ private:
     std::map<std::string, int> m_finder_by_code;
     std::map<std::string, int> m_finder_by_name;
     void addTeam(std::string hardcoded_code, std::string hardcoded_name,
-                 float hardcoded_color, std::string hardcoded_emoji);
+                 float hardcoded_color,
+                 std::string hardcoded_emoji,
+                 std::string hardcoded_circle);
     void addCode(int idx, std::string hardcoded_code);
     void addName(int idx, std::string hardcoded_name);
 public:
@@ -101,6 +108,9 @@ public:
     static int getIndexFromKartTeam(int8_t team)           { return team + 1; }
     static int8_t getKartTeamFromIndex(int team)
                            { return (team >= 0 && team <= 2 ? team - 1 : -1); }
+
+    static int getClosestIndexByColor(float color,
+            bool only_emojis = false, bool only_circles = false);
 };
 
 

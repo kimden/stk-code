@@ -25,10 +25,12 @@
 #include "utils/no_copy.hpp"
 #include "utils/types.hpp"
 #include <queue>
+#include <memory>
 
 class BareNetworkString;
 class Kart;
 class ShowCurve;
+class CachedCharacteristic;
 
 
 /**
@@ -117,6 +119,9 @@ private:
     /** A read-only pointer to the kart's properties. */
     Kart *m_kart;
 
+    static std::shared_ptr<CachedCharacteristic> m_colors_characteristic;
+    static std::shared_ptr<CachedCharacteristic> getColorsCharacteristic();
+
 public:
          Tyres(Kart *kart);
         ~Tyres() { };
@@ -137,6 +142,8 @@ public:
     float degTurnRadius(float);
     void saveState(BareNetworkString *buffer);
     void rewindTo(BareNetworkString *buffer);
+
+    static float getTyreColor(int compound);
 
 
 };   // Tyres

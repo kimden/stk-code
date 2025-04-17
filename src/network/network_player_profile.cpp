@@ -17,8 +17,11 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "network/network_player_profile.hpp"
+
+#include "karts/tyres.hpp"
 #include "network/network_config.hpp"
 #include "network/stk_host.hpp"
+#include "utils/team_utils.hpp"
 
 // ----------------------------------------------------------------------------
 /** Returns true if this player is local, i.e. running on this computer. This
@@ -31,3 +34,17 @@ bool NetworkPlayerProfile::isLocalPlayer() const
     return NetworkConfig::get()->isClient() &&
         m_host_id == STKHost::get()->getMyHostId();
 }   // isLocalPlayer
+//-----------------------------------------------------------------------------
+
+std::string NetworkPlayerProfile::getTyreCircle() const
+{
+    float intended_color = Tyres::getTyreColor(m_starting_tyre.load()) * 0.01;
+    int team_idx = TeamUtils::getClosestIndexByColor(intended_color, false, true);
+
+    // kimden: don't hardcode minus one, it's not even NO_TEAM. Fix later.
+    if (team_idx == -1)
+        return "";
+    
+    return TeamUtils::getTeamByIndex(team_idx).getCircle() + " ";
+}   // getTyreCircle
+//-----------------------------------------------------------------------------

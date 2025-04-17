@@ -205,6 +205,8 @@ public:
     void setKartData(const KartData& data)              { m_kart_data = data; }
     // ------------------------------------------------------------------------
     const KartData& getKartData() const                 { return m_kart_data; }
+    // ------------------------------------------------------------------------
+    std::string getTyreCircle() const;
 };   // class NetworkPlayerProfile
 
 #endif // HEADER_NETWORK_PLAYER_PROFILE

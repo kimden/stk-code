@@ -18,8 +18,10 @@
 
 #include "tyres.hpp"
 
-#include "karts/kart_properties.hpp"
+#include "karts/cached_characteristic.hpp"
 #include "karts/kart.hpp"
+#include "karts/kart_properties.hpp"
+#include "karts/kart_properties_manager.hpp"
 #include "tracks/track.hpp"
 #include "race/race_manager.hpp"
 #include "network/network_string.hpp"
@@ -28,6 +30,10 @@
 #include "network/network_config.hpp"
 #include <iostream>
 #include <algorithm>
+
+// Despite being declared in base section of the config, it's NOT intended
+// to be overridden or edited by difficulty or kart class.
+std::shared_ptr<CachedCharacteristic> Tyres::m_colors_characteristic = nullptr;
 
 Tyres::Tyres(Kart *kart) {
     m_kart = kart;
@@ -283,10 +289,10 @@ void Tyres::reset() {
     }
 
     bool change_color = UserConfigParams::m_override_kart_color_with_tyre;
-    if (change_color && m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1] > -0.5f) {
-        const float tyre_hue = m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]/100.0f;
+    if (change_color && getTyreColor(m_current_compound) > -0.5f) {
+        const float tyre_hue = getTyreColor(m_current_compound) / 100.0f;
         m_kart->setKartColor(tyre_hue);
-        //printf("Setting color to %f\n", m_kart->getKartProperties()->getTyresDefaultColor()[m_current_compound-1]);
+        //printf("Setting color to %f\n", getTyreColor(m_current_compound));
     }
 
     if (m_reset_fuel) {
@@ -396,3 +402,26 @@ void Tyres::rewindTo(BareNetworkString *buffer)
     m_kart->m_tyres_queue = tmpvec;
 //  printf("Rewinded compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }
+
+//-----------------------------------------------------------------------------
+
+std::shared_ptr<CachedCharacteristic> Tyres::getColorsCharacteristic()
+{
+    if (!m_colors_characteristic)
+    {
+        auto characteristic = kart_properties_manager->getBaseCharacteristic();
+        m_colors_characteristic = std::make_shared<CachedCharacteristic>(characteristic);
+    }
+    return m_colors_characteristic;
+}   // getColorsCharacteristic
+//-----------------------------------------------------------------------------
+
+float Tyres::getTyreColor(int compound)
+{
+    auto res = getColorsCharacteristic()->getTyresDefaultColor();
+    int idx = compound - 1;
+    if (idx < 0 || idx >= res.size())
+        return 0.0f;
+    return res[idx];
+}   // getTyreColor
+//-----------------------------------------------------------------------------

@@ -22,11 +22,13 @@
 
 void TeamsStorage::addTeam(std::string hardcoded_code,
                         std::string hardcoded_name,
-                        float hardcoded_color, std::string hardcoded_emoji)
+                        float hardcoded_color,
+                        std::string hardcoded_emoji,
+                        std::string hardcoded_circle)
 {
     int index = m_teams.size();
     m_teams.emplace_back(hardcoded_code, hardcoded_name,
-                         hardcoded_color, hardcoded_emoji);
+                         hardcoded_color, hardcoded_emoji, hardcoded_circle);
     m_finder_by_code[hardcoded_code] = index;
     m_finder_by_name[hardcoded_name] = index;
 }   // addTeam
@@ -76,19 +78,54 @@ int TeamsStorage::getIndexByName(const std::string& name) const
 
 TeamsStorage::TeamsStorage()
 {
-    addTeam("-", "none",    0.00, "");
-    addTeam("r", "red",     1.00, StringUtils::utf32ToUtf8({0x1f7e5})); // 1
-    addTeam("b", "blue",    0.66, StringUtils::utf32ToUtf8({0x1f7e6})); // 2
-    addTeam("y", "yellow",  0.16, StringUtils::utf32ToUtf8({0x1f7e8})); // 3
-    addTeam("g", "green",   0.33, StringUtils::utf32ToUtf8({0x1f7e9})); // 4
-    addTeam("o", "orange",  0.05, StringUtils::utf32ToUtf8({0x1f7e7})); // 5
-    addTeam("p", "purple",  0.78, StringUtils::utf32ToUtf8({0x1f7ea})); // 6
-    addTeam("c", "cyan",    0.46, StringUtils::utf32ToUtf8({0x1f5fd})); // 7
-    addTeam("m", "magenta", 0.94, StringUtils::utf32ToUtf8({0x1f338})); // 8
-    addTeam("s", "sky",     0.58, StringUtils::utf32ToUtf8({ 0x2604})); // 9
+    addTeam("-", "none",    0.00, "", "");
+    addTeam("r", "red",     1.00, StringUtils::utf32ToUtf8({0x1f7e5}), StringUtils::utf32ToUtf8({0x1f534})); // 1
+    addTeam("b", "blue",    0.66, StringUtils::utf32ToUtf8({0x1f7e6}), StringUtils::utf32ToUtf8({0x1f535})); // 2
+    addTeam("y", "yellow",  0.16, StringUtils::utf32ToUtf8({0x1f7e8}), StringUtils::utf32ToUtf8({0x1f7e1})); // 3
+    addTeam("g", "green",   0.33, StringUtils::utf32ToUtf8({0x1f7e9}), StringUtils::utf32ToUtf8({0x1f7e2})); // 4
+    addTeam("o", "orange",  0.05, StringUtils::utf32ToUtf8({0x1f7e7}), StringUtils::utf32ToUtf8({0x1f7e0})); // 5
+    addTeam("p", "purple",  0.78, StringUtils::utf32ToUtf8({0x1f7ea}), StringUtils::utf32ToUtf8({0x1f7e3})); // 6
+    addTeam("c", "cyan",    0.46, StringUtils::utf32ToUtf8({0x1f5fd}), ""); // 7
+    addTeam("m", "magenta", 0.94, StringUtils::utf32ToUtf8({0x1f338}), ""); // 8
+    addTeam("s", "sky",     0.58, StringUtils::utf32ToUtf8({ 0x2604}), ""); // 9
     addCode(6, "v");
     addName(6, "violet");
     addName(8, "pink");
 }   // TeamsStorage
 //-----------------------------------------------------------------------------
 
+int TeamUtils::getClosestIndexByColor(float color,
+        bool only_emojis, bool only_circles)
+{
+    int idx = -1;
+    float best_value = 0.0f;
+
+    for (int i = 0; i < getNumberOfTeams() + 1; ++i)
+    {
+        if (i == NO_TEAM)
+            continue;
+
+        const auto& team = getTeamByIndex(i);
+
+        if (team.getEmoji().empty() && only_emojis)
+            continue;
+
+        if (team.getCircle().empty() && only_circles)
+            continue;
+
+        float min_color = color;
+        float max_color = team.getColor();
+        if (max_color < min_color)
+            std::swap(max_color, min_color);
+
+        float value = std::min(max_color - min_color, 1.0f + min_color - max_color);
+        if (idx == -1 || value < best_value)
+        {
+            idx = i;
+            best_value = value;
+        }
+    }
+
+    return idx;
+}   // getClosestIndexByColor
+//-----------------------------------------------------------------------------
