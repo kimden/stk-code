@@ -622,11 +622,9 @@ void ClientLobby::receivePlayerVote(Event* event)
  */
 void ClientLobby::disconnectedPlayer(Event* event)
 {
-    if (!checkDataSize(event, 1)) return;
-
-    NetworkString &data = event->data();
-    unsigned disconnected_player_count = data.getUInt8();
-    uint32_t host_id = data.getUInt32();
+    auto packet = event->getPacket<PlayerDisconnectedPacket>();
+    unsigned disconnected_player_count = packet.players_size;
+    uint32_t host_id = packet.host_id;
     m_peers_votes.erase(host_id);
     // If in-game world exists the kart rewinder will know which player
     // disconnects
@@ -639,8 +637,7 @@ void ClientLobby::disconnectedPlayer(Event* event)
         SFXManager::get()->quickSound("appear");
     for (unsigned i = 0; i < disconnected_player_count; i++)
     {
-        std::string name;
-        data.decodeString(&name);
+        std::string name = packet.names[i];
         if (in_game_world)
             continue;
         core::stringw player_name = StringUtils::utf8ToWide(name);
@@ -661,10 +658,7 @@ void ClientLobby::disconnectedPlayer(Event* event)
  */
 void ClientLobby::connectionAccepted(Event* event)
 {
-    // At least 8 bytes should remain now
-    if (!checkDataSize(event, 8)) return;
-
-    NetworkString &data = event->data();
+    auto packet = event->getPacket<ConnectionAcceptedPacket>();
     // Accepted
     // ========
     Log::info("ClientLobby", "The server accepted the connection.");
@@ -680,38 +674,36 @@ void ClientLobby::connectionAccepted(Event* event)
         MessageQueue::add(MessageQueue::MT_GENERIC, msg);
     }
 
-    uint32_t host_id = data.getUInt32();
+    uint32_t host_id = packet.host_id;
     STKHost::get()->setMyHostId(host_id);
     if (auto sl = LobbyProtocol::getByType<ServerLobby>(PT_CHILD))
         sl->setClientServerHostId(host_id);
 
     assert(!NetworkConfig::get()->isAddingNetworkPlayers());
-    uint32_t server_version = data.getUInt32();
+    uint32_t server_version = packet.server_version;
     NetworkConfig::get()->setJoinedServerVersion(server_version);
     assert(server_version != 0);
     m_auto_started = false;
     m_state.store(CONNECTED);
 
-    unsigned list_caps = data.getUInt16();
+    unsigned list_caps = packet.capabilities_size;
     std::set<std::string> caps;
     for (unsigned i = 0; i < list_caps; i++)
     {
-        std::string cap;
-        data.decodeString(&cap);
-        caps.insert(cap);
+        caps.insert(packet.capabilities[i]);
     }
     NetworkConfig::get()->setServerCapabilities(caps);
 
-    float auto_start_timer = data.getFloat();
-    int state_frequency_in_server = data.getUInt32();
+    float auto_start_timer = packet.auto_start_timer;
+    int state_frequency_in_server = packet.state_frequency;
     NetworkConfig::get()->setStateFrequency(state_frequency_in_server);
     if (!GUIEngine::isNoGraphics() &&
         auto_start_timer != std::numeric_limits<float>::max())
         NetworkingLobby::getInstance()->setStartingTimerTo(auto_start_timer);
-    m_server_enabled_chat = data.getUInt8() == 1;
+    m_server_enabled_chat = packet.chat_allowed;
     if (NetworkConfig::get()->getServerCapabilities().find("report_player") !=
         NetworkConfig::get()->getServerCapabilities().end())
-        m_server_enabled_report_player = data.getUInt8() == 1;
+        m_server_enabled_report_player = packet.reports_allowed;
 }   // connectionAccepted
 
 //-----------------------------------------------------------------------------
@@ -728,15 +720,15 @@ void ClientLobby::handleServerInfo(Event* event)
     }
     m_first_connect = false;
 
-    NetworkString &data = event->data();
+    auto packet = event->getPacket<ServerInfoPacket>();
     // Add server info
     uint8_t u_data;
-    data.decodeStringW(&str);
+    str = StringUtils::utf8ToWide(packet.server_name);
     str.removeChars(L"\n\r\t");
 
     NetworkingLobby::getInstance()->setHeader(str);
 
-    u_data = data.getUInt8();
+    u_data = packet.difficulty;
     const core::stringw& difficulty_name =
         RaceManager::get()->getDifficultyName((RaceManager::Difficulty)u_data);
     RaceManager::get()->setDifficulty((RaceManager::Difficulty)u_data);
@@ -744,14 +736,14 @@ void ClientLobby::handleServerInfo(Event* event)
     total_lines += _("Difficulty: %s", difficulty_name);
     total_lines += L"\n";
 
-    unsigned max_player = data.getUInt8();
+    unsigned max_player = packet.max_players;
     //I18N: In the networking lobby
     total_lines += _("Max players: %d", (int)max_player);
     total_lines += L"\n";
 
     // Reserved for extra spectators
-    u_data = data.getUInt8();
-    u_data = data.getUInt8();
+    u_data = packet.extra_spectators_zero;
+    u_data = packet.game_mode;
     auto game_mode = ServerConfig::getLocalGameMode(u_data);
     RaceManager::get()->setMinorMode(game_mode.first);
     // We use single mode in network even it's grand prix
@@ -762,16 +754,16 @@ void ClientLobby::handleServerInfo(Event* event)
     total_lines += _("Game mode: %s", mode_name);
     total_lines += L"\n";
 
-    uint8_t extra_server_info = data.getUInt8();
+    uint8_t extra_server_info = packet.has_extra_server_info;
     bool grand_prix_started = false;
     m_game_setup->resetExtraServerInfo();
     switch (extra_server_info)
     {
         case 0:
             break;
-        case 1:
+        case 1: // soccer
         {
-            u_data = data.getUInt8();
+            u_data = packet.extra_server_info[0];
             core::stringw tl = _("Time limit");
             core::stringw gl = _("Goals limit");
             core::stringw sgt = u_data == 0 ? tl : gl;
@@ -781,11 +773,11 @@ void ClientLobby::handleServerInfo(Event* event)
             total_lines += L"\n";
             break;
         }
-        case 2:
+        case 2: // GP
         {
-            unsigned cur_gp_track = data.getUInt8();
+            unsigned cur_gp_track = packet.extra_server_info[0];
             grand_prix_started = cur_gp_track != 0;
-            unsigned total_gp_track = data.getUInt8();
+            unsigned total_gp_track = packet.extra_server_info[1];
             m_game_setup->setGrandPrixTrack(total_gp_track);
             total_lines += _("Grand prix progress: %d / %d", cur_gp_track,
                 total_gp_track);
@@ -794,8 +786,8 @@ void ClientLobby::handleServerInfo(Event* event)
         }
     }
     // Auto start info
-    unsigned min_players = data.getUInt8();
-    float start_timeout = data.getFloat();
+    unsigned min_players = packet.min_start_game_players;
+    float start_timeout = packet.start_game_counter;
     if (!GUIEngine::isNoGraphics())
     {
         NetworkingLobby::getInstance()->initAutoStartTimer(grand_prix_started,
@@ -803,8 +795,7 @@ void ClientLobby::handleServerInfo(Event* event)
     }
 
     // MOTD
-    core::stringw motd;
-    data.decodeString16(&motd);
+    core::stringw motd = packet.motd;
     if (!motd.empty())
         total_lines += motd;
 
@@ -816,10 +807,10 @@ void ClientLobby::handleServerInfo(Event* event)
     if (!GUIEngine::isNoGraphics())
         NetworkingLobby::getInstance()->addMoreServerInfo(total_lines);
 
-    bool server_config = data.getUInt8() == 1;
+    bool server_config = packet.is_configurable;
     if (!GUIEngine::isNoGraphics())
         NetworkingLobby::getInstance()->toggleServerConfigButton(server_config);
-    m_server_live_joinable = data.getUInt8() == 1;
+    m_server_live_joinable = packet.has_live_players;
     NetworkConfig::get()->setTuxHitboxAddon(m_server_live_joinable);
 }   // handleServerInfo
 
@@ -906,6 +897,7 @@ void ClientLobby::updatePlayerList(Event* event)
 //-----------------------------------------------------------------------------
 void ClientLobby::handleBadTeam()
 {
+    // BadTeamPacket has no more data
     SFXManager::get()->quickSound("anvil");
     //I18N: Display when all players are in red or blue team, which the race
     //will not be allowed to start
@@ -924,6 +916,7 @@ void ClientLobby::handleBadConnection()
 //-----------------------------------------------------------------------------
 void ClientLobby::becomingServerOwner()
 {
+    // ServerOwnershipPacket is empty otherwise, do nothing
     if (STKHost::get()->isClientServer())
         return;
 
@@ -984,8 +977,8 @@ void ClientLobby::handleChat(Event* event)
 void ClientLobby::connectionRefused(Event* event)
 {
     if (!checkDataSize(event, 1)) return;
-    const NetworkString &data = event->data();
-    switch ((RejectReason)data.getUInt8()) // the second byte
+    auto packet = event->getPacket<ConnectionRefusedPacket>();
+    switch ((RejectReason)packet.reason) // the second byte
     {
     case RR_BUSY:
         STKHost::get()->setErrorMessage(
@@ -995,12 +988,15 @@ void ClientLobby::connectionRefused(Event* event)
     {
         core::stringw msg =
             _("Connection refused: You are banned from the server.");
-        core::stringw reason;
-        data.decodeStringW(&reason);
-        if (!reason.empty())
+        
+        if (packet.message.has_value())
         {
-            msg += L"\n";
-            msg += reason;
+            core::stringw reason = StringUtils::utf8ToWide(packet.message.get_value());
+            if (!reason.empty())
+            {
+                msg += L"\n";
+                msg += reason;
+            }
         }
         STKHost::get()->setErrorMessage(msg);
         break;
@@ -1082,25 +1078,26 @@ void ClientLobby::startGame(Event* event)
 void ClientLobby::startSelection(Event* event)
 {
     SFXManager::get()->quickSound("wee");
-    const NetworkString& data = event->data();
-    startVotingPeriod(data.getFloat());
-    bool skip_kart_screen = data.getUInt8() == 1;
-    m_server_auto_game_time = data.getUInt8() == 1;
-    m_server_enabled_track_voting = data.getUInt8() == 1;
-    const unsigned kart_num = data.getUInt16();
-    const unsigned track_num = data.getUInt16();
+    auto packet = event->getPacket<StartSelectionPacket>();
+    startVotingPeriod(packet.voting_timeout);
+    bool skip_kart_screen = packet.no_kart_selection;
+    m_server_auto_game_time = packet.fixed_length;
+    m_server_enabled_track_voting = packet.track_voting;
+
+    // kimden: I think this is already decoded somewhere?
+    // Worth moving to another function anyway.
+    const unsigned kart_num = packet.assets.karts_number;
+    const unsigned track_num = packet.assets.maps_number;
     m_available_karts.clear();
     m_available_tracks.clear();
     for (unsigned i = 0; i < kart_num; i++)
     {
-        std::string kart;
-        data.decodeString(&kart);
+        std::string kart = packet.assets.karts[i];
         m_available_karts.insert(kart);
     }
     for (unsigned i = 0; i < track_num; i++)
     {
-        std::string track;
-        data.decodeString(&track);
+        std::string track = packet.assets.maps[i];
         m_available_tracks.insert(track);
     }
 
@@ -1256,11 +1253,11 @@ void ClientLobby::backToLobby(Event *event)
     else
         exitGameState();
 
-    NetworkString &data = event->data();
+    auto packet = event->getPacket<BackLobbyPacket>();
     core::stringw msg;
     MessageQueue::MessageType mt = MessageQueue::MT_ERROR;
 
-    switch ((BackLobbyReason)data.getUInt8()) // the second byte
+    switch ((BackLobbyReason)packet.reason) // the second byte
     {
     case BLR_NO_GAME_FOR_LIVE_JOIN:
         // I18N: Error message shown if live join or spectate failed in network
