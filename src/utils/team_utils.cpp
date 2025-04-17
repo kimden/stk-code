@@ -98,8 +98,11 @@ int TeamUtils::getClosestIndexByColor(float color,
         bool only_emojis, bool only_circles)
 {
     int idx = -1;
-    float best_value = 0.0f;
+    // If no color, no team is closest
+    if (color <= 0.0f)
+        return idx;
 
+    float best_value = 0.0f;
     for (int i = 0; i < getNumberOfTeams() + 1; ++i)
     {
         if (i == NO_TEAM)
