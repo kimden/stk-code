@@ -137,6 +137,9 @@ public:
     void unset() const                                   { m_pointer.reset(); }
     const T& operator = (const T& value)
                       { m_pointer = std::make_shared<T>(value); return value; }
+
+    T get_or(const T& rhs) const
+                            { return m_pointer != nullptr ? *m_pointer : rhs; }
 };
 
 class Packet: public Checkable
@@ -148,6 +151,7 @@ public:
     virtual ~Packet() {}
     virtual void toNetworkString(NetworkString* ns) const                    {}
     virtual void fromNetworkString(NetworkString* ns)                        {}
+    virtual unsigned expectedCapacity() const                     { return 0; }
     bool cap(const std::string& name)    { return m_capability_checker(name); }
 
     Optional<bool> m_override_synchronous;

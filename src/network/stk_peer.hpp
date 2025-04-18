@@ -28,6 +28,8 @@
 #include "utils/types.hpp"
 #include "utils/constants.hpp"
 
+#include "network/network_string.hpp"
+
 #include <enet/enet.h>
 
 #include <array>
@@ -149,8 +151,30 @@ public:
     void sendNetstring(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE,
                     PacketEncryptionMode encrypted = PEM_ENCRYPTED);
     // ------------------------------------------------------------------------
-    void sendPacket(Packet* packet, PacketReliabilityMode reliable = PRM_RELIABLE,
-                    PacketEncryptionMode encrypted = PEM_ENCRYPTED);
+
+    // std::is_base_of<Packet, T>()
+    template<typename T>
+    void sendPacket(const T& packet, PacketReliabilityMode reliable = PRM_RELIABLE,
+            PacketEncryptionMode encrypted = PEM_ENCRYPTED)
+    {
+        /* kimden: get capacity from the packet itself !!! */
+        unsigned capacity = packet.expectedCapacity();
+        NetworkString* ns = new NetworkString();
+        if (capacity != 0)
+            ns = new NetworkString(ProtocolType::PROTOCOL_NONE, capacity);
+        else
+            ns = new NetworkString();
+
+        packet.toNetworkString(ns);
+        sendNetstring(ns,
+                (PacketReliabilityMode)packet.m_override_reliable.get_or((bool)reliable),
+                encrypted);
+
+        delete ns;
+    }   // sendPacket
+    //-------------------------------------------------------------------------
+    // void sendPacket(Packet* packet, PacketReliabilityMode reliable = PRM_RELIABLE,
+    //                 PacketEncryptionMode encrypted = PEM_ENCRYPTED);
     // ------------------------------------------------------------------------
     void disconnect();
     // ------------------------------------------------------------------------

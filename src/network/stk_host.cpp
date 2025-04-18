@@ -923,10 +923,8 @@ void STKHost::mainLoop(ProcessType pt)
                                 player_name.c_str(), ap, max_ping);
                             p.second->setWarnedForHighPing(true);
 
-                            NetworkString msg(PROTOCOL_LOBBY_ROOM);
                             BadConnectionPacket packet;
-                            packet.toNetworkString(&msg);
-                            p.second->sendNetstring(&msg, PRM_RELIABLE);
+                            p.second->sendPacket(packet);
                         }
                     }
                 }

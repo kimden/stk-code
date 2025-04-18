@@ -138,16 +138,6 @@ void STKPeer::sendNetstring(NetworkString *data, PacketReliabilityMode reliable,
 }   // sendNetstring
 
 //-----------------------------------------------------------------------------
-
-void STKPeer::sendPacket(Packet* packet, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
-{
-    /* kimden: get capacity from the packet itself !!! */
-    NetworkString* ns = new NetworkString();
-    packet->toNetworkString(ns);
-    sendNetstring(ns, reliable, encrypted);
-    delete ns;
-}   // sendPacket
-//-----------------------------------------------------------------------------
 /** Returns if the peer is connected or not.
  */
 bool STKPeer::isConnected() const
