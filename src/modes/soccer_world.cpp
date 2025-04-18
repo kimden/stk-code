@@ -700,10 +700,10 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
             packet_1_1.country_code = sd.m_country_code;
             packet_1_1.handicap = sd.m_handicap_level;
 
-            NetworkString p(PROTOCOL_GAME_EVENTS);
-            NetworkString p_1_1(PROTOCOL_GAME_EVENTS);
-            packet.toNetworkString(&p);
-            packet_1_1.toNetworkString(&p_1_1);
+            // NetworkString p(PROTOCOL_GAME_EVENTS);
+            // NetworkString p_1_1(PROTOCOL_GAME_EVENTS);
+            // packet.toNetworkString(&p);
+            // packet_1_1.toNetworkString(&p_1_1);
 
             auto peers = STKHost::get()->getPeers();
             for (auto& peer : peers)
@@ -713,11 +713,11 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                     if (peer->getClientCapabilities().find("soccer_fixes") !=
                         peer->getClientCapabilities().end())
                     {
-                        peer->sendNetstring(&p_1_1, PRM_RELIABLE);
+                        peer->sendPacket(packet_1_1);
                     }
                     else
                     {
-                        peer->sendNetstring(&p, PRM_RELIABLE);
+                        peer->sendPacket(packet);
                     }
                 }
             }
@@ -1380,16 +1380,12 @@ void SoccerWorld::tellCountToEveryoneInGame() const
                   + " : " + std::to_string(real_blue);
 
     // This should be done using sendStringTo...
-    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
     ChatPacket packet;
     packet.message = StringUtils::utf8ToWide(real_count);
-    packet.toNetworkString(chat);
 
     for (auto& peer : peers)
         if (peer->isValidated() && !peer->isWaitingForGame())
-            peer->sendNetstring(chat, PRM_RELIABLE);
-
-    delete chat;
+            peer->sendPacket(packet);
 }   // tellCountToEveryoneInGame
 // ----------------------------------------------------------------------------
 void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
@@ -1404,13 +1400,9 @@ void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
             std::to_string(real_red) + " : " + std::to_string(real_blue);
 
     // This should be done using sendStringTo...
-    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
     ChatPacket packet;
     packet.message = StringUtils::utf8ToWide(real_count);
-    packet.toNetworkString(chat);
-
-    peer->sendNetstring(chat, PRM_RELIABLE);
-    delete chat;
+    peer->sendPacket(packet);
 }   // tellCount
 // ----------------------------------------------------------------------------
 
