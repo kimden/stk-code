@@ -33,6 +33,7 @@ class BareNetworkString;
 #include <memory>
 #include <functional>
 #include <string>
+#include <map>
 
 /**
  * IMPORTANT!
@@ -142,7 +143,33 @@ public:
                             { return m_pointer != nullptr ? *m_pointer : rhs; }
 };
 
-class Packet: public Checkable
+class Storage
+{
+public:
+    std::map<std::string, std::shared_ptr<void>> m_storage;
+
+    template<typename T>
+    void store(const std::string& key, const T& value)
+    {
+        m_storage[key] = std::static_pointer_cast<void>(std::make_shared<T>(value));
+    }
+
+    template<typename T>
+    T obtain(const std::string& key)
+    {
+        auto it = m_storage.find(key);
+        if (it == m_storage.end())
+            return T(); // exception?
+        
+        auto ptr = std::static_pointer_cast<T>(it->second);
+        if (!ptr)
+            return T(); // exception?
+        
+        return *ptr;
+    }
+};
+
+class Packet: public Checkable, public Storage
 {
 public:
     std::function<bool(const std::string&)> m_capability_checker;
@@ -156,6 +183,8 @@ public:
 
     Optional<bool> m_override_synchronous;
     Optional<bool> m_override_reliable;
+
+    Packet* parent = nullptr;
 };
 
 // temp
@@ -179,7 +208,10 @@ class Name: public Parent { \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
 #define PROTOCOL_TYPE(Type, Sync)
+#define AUX_STORE(Key, Var)
 #define AUX_VAR(Type, Var)                          Type Var;
+#define AUX_VAR_VALUE(Type, Var, Value)             Type Var;
+#define AUX_VAR_FROM_PARENT(Type, Key, Var)         Type Var;
 #define DEFINE_FIELD(Type, Var)                     Type Var;
 #define DEFINE_FIELD16(Type, Var)                   Type Var;
 #define DEFINE_FIELD_PTR(Type, Var)                 std::shared_ptr<Type> Var;
@@ -194,7 +226,10 @@ class Name: public Parent { \
 #undef DEFINE_CLASS
 #undef DEFINE_DERIVED_CLASS
 #undef PROTOCOL_TYPE
+#undef AUX_STORE
 #undef AUX_VAR
+#undef AUX_VAR_VALUE
+#undef AUX_VAR_FROM_PARENT
 #undef DEFINE_FIELD
 #undef DEFINE_FIELD16
 #undef DEFINE_FIELD_PTR

@@ -20,6 +20,32 @@
 #include "network/remote_kart_info.hpp"
 #include "network/network_string.hpp"
 
+namespace
+{
+    template<typename T>
+    void setParentMaybePacket(T& value, Packet* pointer, std::true_type)
+    {
+        Packet* current = &value;
+        current->parent = pointer;
+        for (auto& p: pointer->m_storage)
+        {
+            value.m_storage[p.first] = p.second;
+        }
+    }
+    
+    template<typename T>
+    void setParentMaybePacket(T& value, Packet* pointer, std::false_type)
+    {
+        // Not a packet, do nothing.
+    }
+    
+    template<typename T>
+    void setParent(T& value, Packet* pointer)
+    {
+        setParentMaybePacket(value, pointer, std::is_base_of<Packet, T>());
+    }
+}
+
 //---------------------- To NetworkString -------------------------------------
 
 #define DEFINE_CLASS(Name) \
@@ -35,7 +61,13 @@ void Name::toNetworkString(NetworkString* ns) const \
     else \
         ns->setSynchronous(m_override_synchronous.get_value());
 
+#define AUX_STORE(Key, Var)
+
 #define AUX_VAR(Type, Var)
+
+#define AUX_VAR_VALUE(Type, Var, Value)
+
+#define AUX_VAR_FROM_PARENT(Type, Key, Var)
 
 #define DEFINE_FIELD(Type, Var) \
     ns->encode<Type>(Var);
@@ -56,12 +88,13 @@ void Name::toNetworkString(NetworkString* ns) const \
     ns->encode<Type>(Value);
 
 #define DEFINE_VECTOR(Type, Size, Value) \
-    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
+    for (unsigned Value##_cnt = 0; Value##_cnt < Value.size(); ++Value##_cnt) { \
         ns->encode<Type>(Value[Value##_cnt]); \
     }
 
+/* Might have additional size inconsistencies due to nullptrs being omitted. */
 #define DEFINE_VECTOR_PTR(Type, Size, Value) \
-    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
+    for (unsigned Value##_cnt = 0; Value##_cnt < Value.size(); ++Value##_cnt) { \
         if (Value[Value##_cnt]) \
             ns->encode<Type>(*(Value[Value##_cnt])); \
     }
@@ -75,7 +108,10 @@ void Name::toNetworkString(NetworkString* ns) const \
 #undef DEFINE_CLASS
 #undef DEFINE_DERIVED_CLASS
 #undef PROTOCOL_TYPE
+#undef AUX_STORE
 #undef AUX_VAR
+#undef AUX_VAR_VALUE
+#undef AUX_VAR_FROM_PARENT
 #undef DEFINE_FIELD
 #undef DEFINE_FIELD16
 #undef DEFINE_FIELD_PTR
@@ -99,9 +135,19 @@ void Name::fromNetworkString(NetworkString* ns) \
 
 #define PROTOCOL_TYPE(Type, Sync)
 
+#define AUX_STORE(Key, Var) \
+    store(Key, Var);
+
 #define AUX_VAR(Type, Var)
 
+#define AUX_VAR_VALUE(Type, Var, Value) \
+    Var = (Value);
+
+#define AUX_VAR_FROM_PARENT(Type, Key, Var) \
+    Var = parent->obtain<Type>(Key);
+
 #define DEFINE_FIELD(Type, Var) \
+    setParent(Var, this); \
     ns->decode<Type>(Var);
 
 #define DEFINE_FIELD16(Type, Var) \
@@ -110,6 +156,7 @@ void Name::fromNetworkString(NetworkString* ns) \
 // Same as optional but unconditional
 #define DEFINE_FIELD_PTR(Type, Var) \
     Type temp_##Var; \
+    setParent(temp_##Var, this); \
     ns->decode<Type>(temp_##Var); \
     Var = std::make_shared<Type>(temp_##Var); \
 
@@ -118,6 +165,7 @@ void Name::fromNetworkString(NetworkString* ns) \
     if (Condition) { \
         int temp_prev_offset = ns->getCurrentOffset(); \
         Type temp_##Var; \
+        setParent(temp_##Var, this); \
         try { \
             ns->decode<Type>(temp_##Var); \
         } catch (...) { \
@@ -131,6 +179,7 @@ void Name::fromNetworkString(NetworkString* ns) \
 #define DEFINE_VECTOR(Type, Size, Var) \
     Var.resize(Size); \
     for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
+        setParent(Var[Var##_cnt], this); \
         ns->decode<Type>(Var[Var##_cnt]); \
     }
 
@@ -138,6 +187,7 @@ void Name::fromNetworkString(NetworkString* ns) \
     Var.resize(Size); \
     for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
         Type temp_##Var; \
+        setParent(temp_##Var, this); \
         ns->decode<Type>(temp_##Var); \
         Var[Var##_cnt] = std::make_shared<Type>(temp_##Var); \
     }
@@ -151,7 +201,10 @@ void Name::fromNetworkString(NetworkString* ns) \
 #undef DEFINE_CLASS
 #undef DEFINE_DERIVED_CLASS
 #undef PROTOCOL_TYPE
+#undef AUX_STORE
 #undef AUX_VAR
+#undef AUX_VAR_VALUE
+#undef AUX_VAR_FROM_PARENT
 #undef DEFINE_FIELD
 #undef DEFINE_FIELD16
 #undef DEFINE_FIELD_PTR

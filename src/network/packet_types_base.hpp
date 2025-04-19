@@ -53,7 +53,7 @@ using widestr = irr::core::stringw;
 // Make sure all level 0 packets have protocol set!
 
 DEFINE_CLASS(EncryptedBuffer)
-    AUX_VAR(uint32_t, size)
+    AUX_VAR_FROM_PARENT(uint32_t, "encrypted_size", size) /* ConnectionRequestedPacket::encrypted_size */
     DEFINE_VECTOR(uint8_t, size, buffer)
 END_DEFINE_CLASS(EncryptedBuffer)
 
@@ -126,7 +126,7 @@ DEFINE_CLASS(KartDataPacket)
 END_DEFINE_CLASS(KartDataPacket)
 
 DEFINE_CLASS(MultipleKartDataPacket)
-    AUX_VAR(uint8_t, players_size)
+    AUX_VAR_FROM_PARENT(uint8_t, "players_size", players_size) /* LoadWorldPacket::players_size */
     DEFINE_VECTOR(KartDataPacket, players_size, players_kart_data)
 END_DEFINE_CLASS(MultipleKartDataPacket)
 
@@ -136,6 +136,7 @@ DEFINE_CLASS(LoadWorldPacket)
     DEFINE_FIELD(DefaultVotePacket, default_vote)
     DEFINE_FIELD(bool, live_join)
     DEFINE_FIELD(uint8_t, players_size)
+    AUX_STORE("players_size", players_size)
     DEFINE_VECTOR(EncodedSinglePlayerPacket, players_size, all_players)
     DEFINE_FIELD(uint32_t, item_seed)
     DEFINE_FIELD_OPTIONAL(BattleInfoPacket, battle_info, check(0)) // RaceManager::get()->isBattleMode()
@@ -200,7 +201,7 @@ DEFINE_CLASS(CheckStructureSubPacket)
 END_DEFINE_CLASS(CheckStructureSubPacket)
 
 DEFINE_DERIVED_CLASS(CheckStructurePacket, CheckPacket)
-    AUX_VAR(uint32_t, karts_count)
+    AUX_VAR_FROM_PARENT(uint32_t, "karts_count", karts_count) /* Checklinepacket or Linearworldcompletestatepacket ::karts_count */
     DEFINE_VECTOR(CheckStructureSubPacket, karts_count, player_check_state)
 END_DEFINE_CLASS(CheckStructurePacket)
 
@@ -209,7 +210,7 @@ DEFINE_CLASS(CheckLineSubPacket)
 END_DEFINE_CLASS(CheckLineSubPacket)
 
 DEFINE_DERIVED_CLASS(CheckLinePacket, CheckPacket)
-    AUX_VAR(uint32_t, karts_count)
+    AUX_VAR_FROM_PARENT(uint32_t, "karts_count", karts_count)
     DEFINE_FIELD_PTR(CheckStructurePacket, check_structure_packet)
     DEFINE_VECTOR(CheckLineSubPacket, karts_count, subpackets)
 END_DEFINE_CLASS(CheckLinePacket)
@@ -220,6 +221,8 @@ END_DEFINE_CLASS(WorldPacket)
 DEFINE_DERIVED_CLASS(LinearWorldCompleteStatePacket, WorldPacket)
     AUX_VAR(uint32_t, karts_count)
     AUX_VAR(uint32_t, track_sectors_count)
+    AUX_STORE("karts_count", karts_count)
+    AUX_STORE("track_sectors_count", track_sectors_count)
     DEFINE_FIELD(uint32_t, fastest_lap_ticks)
     DEFINE_FIELD(float, distance_increase)
     DEFINE_VECTOR(PlacementPacket, karts_count, kart_placements)
@@ -240,6 +243,10 @@ DEFINE_CLASS(ScorerDataPacket)
 END_DEFINE_CLASS(ScorerDataPacket)
 
 DEFINE_DERIVED_CLASS(SoccerWorldCompleteStatePacket, WorldPacket)
+    AUX_VAR(uint32_t, karts_count)
+    AUX_VAR(uint32_t, track_sectors_count)
+    AUX_STORE("karts_count", karts_count)
+    AUX_STORE("track_sectors_count", track_sectors_count)
     DEFINE_FIELD(uint32_t, red_scorers_count)
     DEFINE_VECTOR(ScorerDataPacket, red_scorers_count, red_scorers)
     DEFINE_FIELD(uint32_t, blue_scorers_count)
@@ -250,6 +257,9 @@ END_DEFINE_CLASS(SoccerWorldCompleteStatePacket)
 
 DEFINE_DERIVED_CLASS(FFAWorldCompleteStatePacket, WorldPacket)
     AUX_VAR(uint32_t, karts_count)
+    AUX_VAR(uint32_t, track_sectors_count)
+    AUX_STORE("karts_count", karts_count)
+    AUX_STORE("track_sectors_count", track_sectors_count)
     DEFINE_VECTOR(uint32_t, karts_count, scores)
 END_DEFINE_CLASS(FFAWorldCompleteStatePacket)
 
@@ -665,6 +675,7 @@ DEFINE_CLASS(ConnectionRequestedPacket)
 
     DEFINE_FIELD(uint32_t, id)
     DEFINE_FIELD(uint32_t, encrypted_size) // 0 if not encrypted
+    AUX_STORE("encrypted_size", encrypted_size)
     DEFINE_FIELD_OPTIONAL(widestr, player_name, id != 0 && encrypted_size == 0)
     DEFINE_FIELD_OPTIONAL(EncryptedBuffer, player_info_encrypted, encrypted_size != 0)
     DEFINE_FIELD_OPTIONAL(RestConnectionRequestPacket, player_info_unencrypted, encrypted_size == 0)
