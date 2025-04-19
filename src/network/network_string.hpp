@@ -432,7 +432,10 @@ class NetworkString : public BareNetworkString
 public:
     static void unitTesting();
 
-    NetworkString(): BareNetworkString() {}
+    NetworkString(): BareNetworkString()
+    {
+        m_buffer.push_back(ProtocolType::PROTOCOL_NONE);
+    }
 
     /** Constructor for a message to be sent. It sets the 
      *  protocol type of this message. It adds 1 byte to the capacity:
