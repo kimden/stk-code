@@ -157,7 +157,6 @@ public:
     void sendPacket(const T& packet, PacketReliabilityMode reliable = PRM_RELIABLE,
             PacketEncryptionMode encrypted = PEM_ENCRYPTED)
     {
-        /* kimden: get capacity from the packet itself !!! */
         unsigned capacity = packet.expectedCapacity();
         NetworkString* ns = new NetworkString();
         if (capacity != 0)
@@ -168,6 +167,25 @@ public:
         packet.toNetworkString(ns);
         sendNetstring(ns,
                 (PacketReliabilityMode)packet.m_override_reliable.get_or((bool)reliable),
+                encrypted);
+
+        delete ns;
+    }   // sendPacket
+    //-------------------------------------------------------------------------
+
+    void sendPacketPtr(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable = PRM_RELIABLE,
+            PacketEncryptionMode encrypted = PEM_ENCRYPTED)
+    {
+        unsigned capacity = packet->expectedCapacity();
+        NetworkString* ns = new NetworkString();
+        if (capacity != 0)
+            ns = new NetworkString(ProtocolType::PROTOCOL_NONE, capacity);
+        else
+            ns = new NetworkString();
+
+        packet->toNetworkString(ns);
+        sendNetstring(ns,
+                (PacketReliabilityMode)packet->m_override_reliable.get_or((bool)reliable),
                 encrypted);
 
         delete ns;

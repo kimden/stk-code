@@ -60,6 +60,7 @@ class ServerLobby;
 class ChildLoop;
 class SocketAddress;
 class STKPeer;
+class Packet;
 
 using namespace irr;
 
@@ -244,12 +245,12 @@ public:
     //-------------------------------------------------------------------------
     void shutdown();
     //-------------------------------------------------------------------------
-    void sendPacketToAllPeersInServer(NetworkString *data,
+    void sendNetstringToAllPeersInServer(NetworkString *data,
                                       PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
-    void sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE);
+    void sendNetstringToAllPeers(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
-    void sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+    void sendNetstringToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
                                   NetworkString* data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     /** Returns true if this client instance is allowed to control the server.
@@ -271,7 +272,7 @@ public:
     std::shared_ptr<STKPeer> findPeerByName(const core::stringw& name) const;
     std::shared_ptr<STKPeer> findPeerByWildcard(const core::stringw& name_pattern, std::string &name_found) const;
     // ------------------------------------------------------------------------
-    void sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
+    void sendNetstringExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
                           PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     void setupClient(int peer_count, int channel_limit,
@@ -398,6 +399,68 @@ public:
     static BareNetworkString getStunRequest(uint8_t* stun_tansaction_id);
     // ------------------------------------------------------------------------
     ChildLoop* getChildLoop() const { return m_client_loop; }
+    // ------------------------------------------------------------------------
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketPtrToAllPeersInServer(const T& packet, PacketReliabilityMode reliable)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToAllPeersInServer(ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToAllPeers(const T& packet, PacketReliabilityMode reliable)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToAllPeers(ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketExcept(std::shared_ptr<STKPeer> peer, const T& packet,
+                                PacketReliabilityMode reliable)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrExcept(peer, ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+                                        const T& packet, PacketReliabilityMode reliable)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToAllPeersWith(predicate, ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToServer(const T& packet, PacketReliabilityMode reliable)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToServer(ptr2, reliable);
+    }
+    // ------------------------------------------------------------------------
+
+    void sendPacketPtrToAllPeersInServer(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable);
+
+    void sendPacketPtrToAllPeers(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable);
+
+    void sendPacketPtrExcept(std::shared_ptr<STKPeer> peer, std::shared_ptr<Packet> packet,
+                                PacketReliabilityMode reliable);
+
+    void sendPacketPtrToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+                                        std::shared_ptr<Packet> packet, PacketReliabilityMode reliable);
+
+    void sendPacketPtrToServer(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable);
+    //-------------------------------------------------------------------------
 };   // class STKHost
 
 #endif // STK_HOST_HPP

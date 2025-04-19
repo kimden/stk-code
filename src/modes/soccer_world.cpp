@@ -985,7 +985,7 @@ void SoccerWorld::updateBallPosition(int ticks)
                     ResetBallPacket packet;
                     packet.reset_ball_ticks = m_reset_ball_ticks;
                     packet.toNetworkString(&p);
-                    STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+                    STKHost::get()->sendNetstringToAllPeers(&p, PRM_RELIABLE);
                 }
                 else if (!NetworkConfig::get()->isNetworking())
                 {

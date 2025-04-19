@@ -1361,7 +1361,7 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
     }
 
     packet.toNetworkString(&cl);
-    STKHost::get()->sendPacketToAllPeers(&cl, PRM_RELIABLE);
+    STKHost::get()->sendNetstringToAllPeers(&cl, PRM_RELIABLE);
 }   // updateCheckLinesServer
 
 // ----------------------------------------------------------------------------

@@ -138,7 +138,7 @@ void FreeForAll::handleScoreInServer(int kart_id, int hitter)
         }
 
         packet.toNetworkString(&p);
-        STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+        STKHost::get()->sendNetstringToAllPeers(&p, PRM_RELIABLE);
     }
 }   // handleScoreInServer
 
@@ -367,6 +367,6 @@ void FreeForAll::notifyAboutScoreIfNonzero(int id)
         packet.new_score = (int16_t)m_scores[id];
         packet.toNetworkString(&p);
         
-        STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+        STKHost::get()->sendNetstringToAllPeers(&p, PRM_RELIABLE);
     }
 }   // notifyAboutScoreIfNonzero

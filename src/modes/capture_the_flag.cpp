@@ -348,7 +348,7 @@ void CaptureTheFlag::checkScoring(FlagColor color)
                 packet.red_score = (uint8_t)new_red_score;
                 packet.blue_score = (uint8_t)new_blue_score;
                 packet.toNetworkString(&p);
-                STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+                STKHost::get()->sendNetstringToAllPeers(&p, PRM_RELIABLE);
             }
             ctfScored(active_holder, (red_active) ? false : true /*red_team_scored*/,
                 new_kart_score, new_red_score, new_blue_score); 
