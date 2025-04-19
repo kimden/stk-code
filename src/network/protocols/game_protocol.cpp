@@ -245,7 +245,7 @@ void GameProtocol::handleControllerAction(Event *event)
         // is after the server time
         peer->updateLastActivity();
         if (!will_trigger_rewind)
-            STKHost::get()->sendPacketExcept(peer, &data, PRM_UNRELIABLE);
+            STKHost::get()->sendNetstringExcept(peer, &data, PRM_UNRELIABLE);
     }   // if server
 
 }   // handleControllerAction

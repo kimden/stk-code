@@ -913,15 +913,12 @@ void ServerLobby::asynchronousUpdate()
             resetPeersReady();
 
             m_state = LOAD_WORLD;
-            NetworkString* ns = getNetworkString();
             LoadWorldPacket packet = getLoadWorldMessage(players, false/*live_join*/);
-            packet.toNetworkString(ns);
-            Comm::sendMessageToPeers(ns);
+            sendPacketToPeers(packet);
             // updatePlayerList so the in lobby players (if any) can see always
             // spectators join the game
             if (has_always_on_spectators || !previous_spectate_mode.empty())
                 updatePlayerList();
-            delete ns;
 
             if (RaceManager::get()->getMinorMode() ==
                 RaceManager::MINOR_MODE_SOCCER)
@@ -1449,12 +1446,9 @@ void ServerLobby::update(int ticks)
         {
             // Send a notification to all players who may have start live join
             // or spectate to go back to lobby
-            NetworkString* ns = getNetworkString(2);
             BackLobbyPacket packet;
             packet.reason = BLR_NONE;
-            packet.toNetworkString(ns);
-            Comm::sendMessageToPeersInServer(ns, PRM_RELIABLE);
-            delete ns;
+            sendPacketToPeersInServer(packet);
 
             RaceEventManager::get()->stop();
             RaceEventManager::get()->getProtocol()->requestTerminate();
@@ -1484,12 +1478,9 @@ void ServerLobby::update(int ticks)
         m_state.load() == SELECTING &&
         STKHost::get()->getPlayersInGame() == 1)
     {
-        NetworkString* ns = getNetworkString(2);
         BackLobbyPacket packet;
         packet.reason = BLR_ONE_PLAYER_IN_RANKED_MATCH;
-        packet.toNetworkString(ns);
-        Comm::sendMessageToPeers(ns, PRM_RELIABLE);
-        delete ns;
+        sendPacketToPeers(packet);
 
         resetVotingTime();
         // m_game_setup->cancelOneRace();
@@ -1498,8 +1489,6 @@ void ServerLobby::update(int ticks)
     }
 
     handlePlayerDisconnection();
-
-    NetworkString* ns;
 
     switch (m_state.load())
     {
@@ -1545,10 +1534,7 @@ void ServerLobby::update(int ticks)
         setTimeoutFromNow(15);
         m_state = RESULT_DISPLAY;
 
-        ns = getNetworkString();
-        m_result_packet.toNetworkString(ns);
-        Comm::sendMessageToPeers(ns, PRM_RELIABLE);
-        delete ns;
+        sendPacketToPeers(m_result_packet);
 
         Log::info("ServerLobby", "End of game message sent");
         break;
@@ -1559,12 +1545,9 @@ void ServerLobby::update(int ticks)
         {
             // Send a notification to all clients to exit
             // the race result screen
-            NetworkString* ns = getNetworkString(2);
             BackLobbyPacket packet;
             packet.reason = BLR_NONE;
-            packet.toNetworkString(ns);
-            Comm::sendMessageToPeersInServer(ns, PRM_RELIABLE);
-            delete ns;
+            sendPacketToPeersInServer(packet);
 
             m_rs_state.store(RS_ASYNC_RESET);
         }
@@ -1911,18 +1894,15 @@ void ServerLobby::startSelection(const Event *event)
     m_state = SELECTING;
     if (need_to_update || !always_spectate_peers.empty())
     {
-        NetworkString* ns = getNetworkString(2);
         BackLobbyPacket packet;
         packet.reason = BLR_SPECTATING_NEXT_GAME;
-        packet.toNetworkString(ns);
 
-        STKHost::get()->sendPacketToAllPeersWith(
+        sendPacketToAllPeersWith(
             [always_spectate_peers](std::shared_ptr<STKPeer> peer)
             {
                 return always_spectate_peers.find(peer) !=
                 always_spectate_peers.end();
-            }, ns, PRM_RELIABLE);
-        delete ns;
+            }, packet);
 
         updatePlayerList();
     }
@@ -2169,7 +2149,6 @@ void ServerLobby::clientDisconnected(Event* event)
     else
         Log::warn("ServerLobby", "GameInfo is not accessible??");
 
-    NetworkString* ns = getNetworkString(2);
     PlayerDisconnectedPacket packet;
     packet.players_size = (uint8_t)players_on_peer.size();
     packet.host_id = event->getPeer()->getHostId();
@@ -2184,7 +2163,6 @@ void ServerLobby::clientDisconnected(Event* event)
         Log::info("ServerLobby", "%s disconnected", name.c_str());
         getCommandManager()->deleteUser(name);
     }
-    packet.toNetworkString(ns);
 
     unsigned players_number;
     STKHost::get()->updatePlayers(NULL, NULL, &players_number);
@@ -2192,7 +2170,7 @@ void ServerLobby::clientDisconnected(Event* event)
         resetToDefaultSettings();
 
     // Don't show waiting peer disconnect message to in game player
-    STKHost::get()->sendPacketToAllPeersWith([waiting_peer_disconnected]
+    sendPacketToAllPeersWith([waiting_peer_disconnected]
         (std::shared_ptr<STKPeer> p)
         {
             if (!p->isValidated())
@@ -2200,9 +2178,8 @@ void ServerLobby::clientDisconnected(Event* event)
             if (!p->isWaitingForGame() && waiting_peer_disconnected)
                 return false;
             return true;
-        }, ns);
+        }, packet);
     updatePlayerList();
-    delete ns;
 
 #ifdef ENABLE_SQLITE3
     getDbConnector()->writeDisconnectInfoTable(event->getPeerSP());
@@ -2877,11 +2854,8 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         list_packet.all_profiles.push_back(packet);
     }
 
-    NetworkString* ns = getNetworkString();
-    list_packet.toNetworkString(ns);
-
     // Don't send this message to in-game players
-    STKHost::get()->sendPacketToAllPeersWith([game_started]
+    sendPacketToAllPeersWith([game_started]
         (std::shared_ptr<STKPeer> p)
         {
             if (!p->isValidated())
@@ -2889,8 +2863,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             if (!p->isWaitingForGame() && game_started)
                 return false;
             return true;
-        }, ns);
-    delete ns;
+        }, list_packet);
 }   // updatePlayerList
 //-----------------------------------------------------------------------------
 
@@ -3028,13 +3001,10 @@ void ServerLobby::handlePlayerVote(Event* event)
     vote.m_player_name = event->getPeer()->getMainProfile()->getDecoratedName(m_name_decorator);
 
     // Now inform all clients about the vote
-    NetworkString* ns = getNetworkString();
     VotePacket vote_packet;
     vote_packet.host_id = event->getPeer()->getHostId();
     vote_packet.vote = vote.encode();
-    vote_packet.toNetworkString(ns);
-    Comm::sendMessageToPeers(ns);
-    delete ns;
+    sendPacketToPeers(vote_packet);
 
 }   // handlePlayerVote
 
@@ -3304,13 +3274,11 @@ void ServerLobby::configPeersStartTime()
     uint64_t start_time = STKHost::get()->getNetworkTimer() + (uint64_t)2500;
     powerup_manager->setRandomSeed(start_time);
 
-    NetworkString* ns = getNetworkString(10);
     StartGamePacket packet;
     packet.start_time = start_time;
     packet.check_count = (uint8_t)Track::getCurrentTrack()->getCheckManager()->getCheckStructureCount();
     packet.nim_complete_state = m_nim_complete_state; // was operator +=
-    packet.toNetworkString(ns);
-    Comm::sendMessageToPeers(ns, PRM_RELIABLE);
+    sendPacketToPeers(packet);
 
     m_client_starting_time = start_time;
 
@@ -3321,7 +3289,6 @@ void ServerLobby::configPeersStartTime()
     m_server_delay = (uint64_t)(max_ping / 2) + (uint64_t)jitter_tolerance;
     start_time += m_server_delay;
     m_server_started_at = start_time;
-    delete ns;
     m_state = WAIT_FOR_RACE_STARTED;
 
     World::getWorld()->setPhase(WorldStatus::SERVER_READY_PHASE);
@@ -3384,10 +3351,7 @@ void ServerLobby::resetServer()
     resetPeersReady();
     updatePlayerList(true/*update_when_reset_server*/);
 
-    NetworkString* si = getNetworkString();
-    m_game_setup->addServerInfo().toNetworkString(si);
-    Comm::sendMessageToPeersInServer(si);
-    delete si;
+    Comm::sendPacketToPeersInServer(m_game_setup->addServerInfo());
 
     for (auto p : m_peers_ready)
     {
@@ -3680,10 +3644,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         }
     }
 
-    NetworkString* si = getNetworkString();
-    m_game_setup->addServerInfo().toNetworkString(si);
-    Comm::sendMessageToPeers(si);
-    delete si;
+    sendServerInfoToEveryone();
 
     updatePlayerList();
 
@@ -4021,12 +3982,9 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
         else
             exitGameState();
 
-        NetworkString* ns = getNetworkString(2);
         BackLobbyPacket packet;
         packet.reason = BLR_SERVER_OWNER_QUIT_THE_GAME;
-        packet.toNetworkString(ns);
-        Comm::sendMessageToPeersInServer(ns, PRM_RELIABLE);
-        delete ns;
+        sendPacketToPeersInServer(packet);
 
         m_rs_state.store(RS_ASYNC_RESET);
         return;
@@ -4090,12 +4048,9 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
     if (m_process_type == PT_CHILD &&
         event->getPeer()->getHostId() == m_client_server_host_id.load())
     {
-        NetworkString* ns = getNetworkString(2);
         BackLobbyPacket packet;
         packet.reason = BLR_SERVER_OWNER_QUIT_THE_GAME;
-        packet.toNetworkString(ns);
-        Comm::sendMessageToPeersInServer(ns, PRM_RELIABLE);
-        delete ns;
+        sendPacketToPeersInServer(packet);
 
         resetVotingTime();
         resetServer();
@@ -4235,12 +4190,9 @@ void ServerLobby::sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::str
 
 void ServerLobby::sendStringToAllPeers(const std::string& s)
 {
-    NetworkString* ns = getNetworkString();
     ChatPacket packet;
     packet.message = StringUtils::utf8ToWide(s);
-    packet.toNetworkString(ns);
-    sendMessageToPeers(ns, PRM_RELIABLE);
-    delete ns;
+    sendPacketToPeers(packet);
 }   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
 
@@ -4442,10 +4394,7 @@ bool ServerLobby::playerReportsTableExists() const
 
 void ServerLobby::sendServerInfoToEveryone() const
 {
-    NetworkString* si = getNetworkString();
-    m_game_setup->addServerInfo().toNetworkString(si);
-    Comm::sendMessageToPeers(si);
-    delete si;
+    sendPacketToPeers(m_game_setup->addServerInfo());
 }   // sendServerInfoToEveryone
 //-----------------------------------------------------------------------------
 

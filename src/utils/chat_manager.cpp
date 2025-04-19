@@ -234,7 +234,7 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
     packet.message = StringUtils::utf8ToWide(message);
     packet.toNetworkString(chat);
 
-    STKHost::get()->sendPacketToAllPeersWith(
+    STKHost::get()->sendNetstringToAllPeersWith(
         std::bind(&ChatManager::shouldMessageBeSent,
                   this,
                   peer,
