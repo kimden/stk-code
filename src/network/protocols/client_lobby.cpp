@@ -176,11 +176,8 @@ void ClientLobby::setup()
  */
 void ClientLobby::doneWithResults()
 {
-    NetworkString* done = getNetworkString(1);
     RaceFinishedAckPacket packet;
-    packet.toNetworkString(done);
-    sendToServer(done, PRM_RELIABLE);
-    delete done;
+    sendPacketToServer(packet);
 }   // doneWithResults
 
 //-----------------------------------------------------------------------------
@@ -400,7 +397,6 @@ void ClientLobby::update(int ticks)
         std::string user_agent = StringUtils::getUserAgentString();
         if (NetworkConfig::get()->isNetworkAIInstance())
             user_agent = "AI";
-        NetworkString* ns = getNetworkString();
 
         ConnectionRequestedPacket packet;
         packet.server_version = (uint32_t)ServerConfig::m_server_version;
@@ -439,7 +435,6 @@ void ClientLobby::update(int ticks)
                 packet.player_name = PlayerManager::getCurrentOnlineProfile()->getUserName();
         }
 
-        BareNetworkString* rest = new BareNetworkString();
         RestConnectionRequestPacket subpacket;
 
         subpacket.private_server_password = ServerConfig::m_private_server_password;
@@ -495,9 +490,7 @@ void ClientLobby::update(int ticks)
             }
             delete rest;
 
-            packet.toNetworkString(ns);
-            sendToServer(ns);
-            delete ns;
+            sendPacketToServer(packet);
 
             if (encryption)
             {
@@ -507,10 +500,8 @@ void ClientLobby::update(int ticks)
         }
         else
         {
-            *ns += *rest;
-            delete rest;
-            sendToServer(ns);
-            delete ns;
+            packet.player_info_unencrypted = subpacket;
+            sendPacketToServer(packet);
         }
 
 
@@ -559,9 +550,8 @@ void ClientLobby::update(int ticks)
         {
             // Send a message to the server to start
             m_auto_started = true;
-            NetworkString start(PROTOCOL_LOBBY_ROOM);
-            start.addUInt8(LobbyEvent::LE_REQUEST_BEGIN);
-            STKHost::get()->sendToServer(&start, PRM_RELIABLE);
+            RequestBeginPacket packet;
+            STKHost::get()->sendPacketToServer(packet);
         }
         if (m_background_download.joinable())
         {
@@ -1283,12 +1273,9 @@ void ClientLobby::backToLobby(Event *event)
  */
 void ClientLobby::finishedLoadingWorld()
 {
-    NetworkString* ns = getNetworkString(1);
     FinishedLoadingLiveJoinPacket packet;
     packet.m_override_synchronous = m_server_send_live_load_world;
-    packet.toNetworkString(ns);
-    sendToServer(ns, PRM_RELIABLE);
-    delete ns;
+    sendPacketToServer(packet);
 }   // finishedLoadingWorld
 
 //-----------------------------------------------------------------------------
@@ -1394,12 +1381,9 @@ void ClientLobby::finishLiveJoin()
 //-----------------------------------------------------------------------------
 void ClientLobby::requestKartInfo(uint8_t kart_id)
 {
-    NetworkString* ns = getNetworkString(1);
     KartInfoRequestPacket packet;
     packet.kart_id = kart_id;
-    packet.toNetworkString(ns);
-    sendToServer(ns, PRM_RELIABLE);
-    delete ns;
+    sendPacketToServer(packet);
 }   // requestKartInfo
 
 //-----------------------------------------------------------------------------
@@ -1489,7 +1473,6 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
     text = text.trim().removeChars(L"\n\r");
     if (text.size() > 0)
     {
-        NetworkString* chat = getNetworkString();
         ChatPacket packet;
 
         core::stringw name;
@@ -1540,9 +1523,7 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
         if (team != KART_TEAM_NONE)
             packet.kart_team = team;
 
-        packet.toNetworkString(chat);
-        STKHost::get()->sendToServer(chat, PRM_RELIABLE);
-        delete chat;
+        STKHost::get()->sendPacketToServer(packet);
     }
 }   // sendChat
 
@@ -1887,13 +1868,10 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
     else
     {
         // Send for server command
-        NetworkString* cmd_ns = getNetworkString(1);
         CommandPacket packet;
         packet.language = UserConfigParams::m_language;
         packet.command = cmd;
-        packet.toNetworkString(cmd_ns);
-        sendToServer(cmd_ns, PRM_RELIABLE);
-        delete cmd_ns;
+        sendPacketToServer(packet);
     }
 #endif
 }   // handleClientCommand
@@ -1934,12 +1912,9 @@ AssetsPacket2 ClientLobby::getKartsTracksPacket()
 // ----------------------------------------------------------------------------
 void ClientLobby::updateAssetsToServer()
 {
-    NetworkString* ns = getNetworkString(1);
     NewAssetsPacket packet;
     packet.assets = getKartsTracksPacket();
-    packet.toNetworkString(ns);
-    sendToServer(ns, PRM_RELIABLE);
-    delete ns;
+    sendPacketToServer(packet);
 }   // updateAssetsToServer
 
 // ----------------------------------------------------------------------------

@@ -731,8 +731,6 @@ void TracksScreen::voteForPlayer()
     else
         UserConfigParams::m_random_arena_item = m_reversed->getState();
 
-    NetworkString vote(PROTOCOL_LOBBY_ROOM);
-
     PeerVotePacket packet;
 
     core::stringw player_name;
@@ -770,8 +768,7 @@ void TracksScreen::voteForPlayer()
         // Not encoding packet to netstring before if just in case, too.
         VoteRequestPacket vr_packet;
         vr_packet.vote = packet;
-        vr_packet.toNetworkString(&vote);
-        STKHost::get()->sendToServer(&vote, PRM_RELIABLE);
+        STKHost::get()->sendPacketToServer(vr_packet);
     }
 }   // voteForPlayer
 
