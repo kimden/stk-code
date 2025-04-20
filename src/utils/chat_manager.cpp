@@ -54,19 +54,13 @@ void ChatManager::addMutedPlayerFor(std::shared_ptr<STKPeer> peer,
 bool ChatManager::removeMutedPlayerFor(std::shared_ptr<STKPeer> peer,
                                          const std::string& name)
 {
-    // I'm not sure why the implementation was so long
     auto& collection = m_peers_muted_players[std::weak_ptr<STKPeer>(peer)];
-    for (auto it = collection.begin(); it != collection.end(); )
-    {
-        if (*it == name)
-        {
-            it = collection.erase(it);
-            return true;
-        }
-        else
-            it++;
-    }
-    return false;
+    auto it = collection.find(name);
+    if (it == collection.end())
+        return false;
+
+    collection.erase(it);
+    return true;
 }   // removeMutedPlayerFor
 //-----------------------------------------------------------------------------
 
@@ -87,10 +81,17 @@ std::string ChatManager::getMutedPlayersAsString(std::shared_ptr<STKPeer> peer)
     int num_players = 0;
     for (auto& name : m_peers_muted_players[std::weak_ptr<STKPeer>(peer)])
     {
-        response += name;
-        response += " ";
+        response += StringUtils::quoteEscape(name, ' ', '"', '"', '\\');
+        response += ", ";
         ++num_players;
     }
+
+    if (response.size() >= 2)
+    {
+        response.resize(response.size() - 2);
+        response.push_back(' ');
+    }
+
     if (num_players == 0)
         response = "No player has been muted by you";
     else

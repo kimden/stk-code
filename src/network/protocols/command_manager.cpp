@@ -2006,20 +2006,13 @@ void CommandManager::process_mute(Context& context)
         return;
     }
 
-    if (!validate(context, 1, TFT_PRESENT_USERS, false, false))
+    if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
         return;
 
     std::string player_name = argv[1];
-    player_peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(player_name));
-
-    if (!player_peer || player_peer == peer)
-    {
-        error(context);
-        return;
-    }
-
     getChatManager()->addMutedPlayerFor(peer, player_name);
-    getLobby()->sendStringToPeer(peer, "Muted player " + player_name);
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Muted player %s", player_name.c_str()));
 } // process_mute
 // ========================================================================
 
@@ -2040,16 +2033,20 @@ void CommandManager::process_unmute(Context& context)
         return;
     }
 
-    std::string player_name = argv[1];
-
-    if (!getChatManager()->removeMutedPlayerFor(peer, player_name))
-    {
-        error(context);
+    // Should also iterate over those names muted - but later.
+    if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
         return;
-    }
 
-    getLobby()->sendStringToPeer(peer, "Unmuted player " + player_name);
+    std::string player_name = argv[1];
+    std::string msg;
 
+    if (getChatManager()->removeMutedPlayerFor(peer, player_name))
+        msg = "Unmuted player %s";
+    else
+        msg = "Player %s was already unmuted";
+
+    getLobby()->sendStringToPeer(peer, 
+            StringUtils::insertValues(msg, player_name.c_str()));
 } // process_unmute
 // ========================================================================
 
@@ -3995,25 +3992,10 @@ void CommandManager::restoreCmdByArgv(std::string& cmd,
 {
     cmd.clear();
     for (int i = from; i < (int)argv.size(); ++i) {
-        bool quoted = false;
-        if (argv[i].find(c) != std::string::npos || argv[i].empty()) {
-            quoted = true;
-        }
         if (i > from) {
             cmd.push_back(c);
         }
-        if (quoted) {
-            cmd.push_back(d);
-        }
-        for (unsigned j = 0; j < argv[i].size(); ++j) {
-            if (argv[i][j] == d || argv[i][j] == e || argv[i][j] == f) {
-                cmd.push_back(f);
-            }
-            cmd.push_back(argv[i][j]);
-        }
-        if (quoted) {
-            cmd.push_back(e);
-        }
+        cmd += StringUtils::quoteEscape(argv[i], c, d, e, f);
     }
 }   // restoreCmdByArgv
 // ========================================================================
