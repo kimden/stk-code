@@ -123,7 +123,6 @@ void NetworkKartSelectionScreen::allPlayersDone()
     }
 
     const uint8_t kart_count = (uint8_t)m_kart_widgets.size();
-    NetworkString kart(PROTOCOL_LOBBY_ROOM);
 
     PlayerKartsPacket karts_packet;
     karts_packet.players_count = kart_count;
@@ -158,16 +157,15 @@ void NetworkKartSelectionScreen::allPlayersDone()
         LiveJoinRequestPacket packet;
         packet.is_spectator = false;
         packet.player_karts = karts_packet;
-        packet.toNetworkString(&kart);
+        sendPacketToServer(packet);
     }
     else
     {
         KartSelectionRequestPacket packet;
         packet.karts = karts_packet;
-        packet.toNetworkString(&kart);
+        sendPacketToServer(packet);
     }
 
-    Comm::sendToServer(&kart, PRM_RELIABLE);
 
     // ---- Switch to assign mode
     input_manager->getDeviceManager()->setAssignMode(ASSIGN);
@@ -196,10 +194,8 @@ bool NetworkKartSelectionScreen::onEscapePressed()
             // Send go back lobby event to server with an exit timeout, so if
             // server doesn't react in time we exit the server
             m_exit_timeout = StkTime::getMonoTimeMs() + 5000;
-            NetworkString back(PROTOCOL_LOBBY_ROOM);
             ClientBackLobbyPacket packet;
-            packet.toNetworkString(&back);
-            Comm::sendToServer(&back, PRM_RELIABLE);
+            sendPacketToServer(packet);
         }
         return false;
     }

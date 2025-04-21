@@ -201,9 +201,7 @@ void GameEventsProtocol::kartFinishedRace(const NetworkString &ns)
 // ----------------------------------------------------------------------------
 void GameEventsProtocol::sendStartupBoost(uint8_t kart_id)
 {
-    NetworkString *ns = getNetworkString();
-    ns->setSynchronous(true);
-    ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id);
-    Comm::sendToServer(ns, PRM_RELIABLE);
-    delete ns;
+    StartupBoostPacket packet;
+    packet.kart_id = kart_id;
+    sendPacketToServer(packet);
 }   // sendStartupBoost

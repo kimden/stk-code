@@ -258,16 +258,11 @@ void GameProtocol::handleControllerAction(Event *event)
 void GameProtocol::sendItemEventConfirmation(int ticks)
 {
     assert(NetworkConfig::get()->isClient());
-    NetworkString *ns = getNetworkString(5);
 
     ItemConfirmationPacket packet;
     packet.ticks = ticks;
-    packet.toNetworkString(ns);
 
-    // This message can be sent unreliable, it's not critical if it doesn't
-    // get delivered, a future update will come through
-    Comm::sendToServer(ns, PRM_UNRELIABLE);
-    delete ns;
+    sendPacketToServer(packet);
 }   // sendItemEventConfirmation
 
 // ----------------------------------------------------------------------------

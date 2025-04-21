@@ -26,7 +26,6 @@
 #include "utils/aligned_array.hpp"
 #include "utils/vec3.hpp"
 
-class BareNetworkString;
 class CheckManager;
 class Track;
 class XMLNode;

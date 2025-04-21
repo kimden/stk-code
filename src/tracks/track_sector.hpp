@@ -21,9 +21,9 @@
 
 #include "utils/vec3.hpp"
 
-class BareNetworkString;
 class Track;
-class TrackSectorPacket;
+class TrackSectorCompleteStatePacket;
+class TrackSectorSmallPacket;
 
 /** This object keeps track of which sector an object is on. A sector is
  *  actually just the graph node (it's called sector to better distinguish
@@ -96,13 +96,13 @@ public:
     // ------------------------------------------------------------------------
     int getLastValidGraphNode() const { return m_last_valid_graph_node; }
     // ------------------------------------------------------------------------
-    void saveState(BareNetworkString* buffer) const;
+    TrackSectorSmallPacket saveState() const;
     // ------------------------------------------------------------------------
-    void rewindTo(BareNetworkString* buffer);
+    void rewindTo(const TrackSectorSmallPacket& packet);
     // ------------------------------------------------------------------------
-    TrackSectorPacket saveCompleteState();
+    TrackSectorCompleteStatePacket saveCompleteState();
     // ------------------------------------------------------------------------
-    void restoreCompleteState(const TrackSectorPacket& packet);
+    void restoreCompleteState(const TrackSectorCompleteStatePacket& packet);
 
 };   // TrackSector
 

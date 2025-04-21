@@ -123,7 +123,6 @@ void FreeForAll::handleScoreInServer(int kart_id, int hitter)
     if (NetworkConfig::get()->isNetworking() &&
         NetworkConfig::get()->isServer())
     {
-        NetworkString p(PROTOCOL_GAME_EVENTS);
         InsideFfaPacket packet;
     
         if (kart_id == hitter || hitter == -1)
@@ -137,8 +136,7 @@ void FreeForAll::handleScoreInServer(int kart_id, int hitter)
             packet.new_score = (int16_t)new_score;
         }
 
-        packet.toNetworkString(&p);
-        STKHost::get()->sendNetstringToAllPeers(&p, PRM_RELIABLE);
+        STKHost::get()->sendPacketToAllPeers(packet);
     }
 }   // handleScoreInServer
 
@@ -360,13 +358,10 @@ void FreeForAll::notifyAboutScoreIfNonzero(int id)
         NetworkConfig::get()->isServer() &&
         m_scores[id] != 0)
     {
-        NetworkString p(PROTOCOL_GAME_EVENTS);
-
         InsideFfaPacket packet;
         packet.hitter_kart = (uint8_t)id;
         packet.new_score = (int16_t)m_scores[id];
-        packet.toNetworkString(&p);
         
-        STKHost::get()->sendNetstringToAllPeers(&p, PRM_RELIABLE);
+        STKHost::get()->sendPacketToAllPeers(packet);
     }
 }   // notifyAboutScoreIfNonzero

@@ -386,10 +386,8 @@ GUIEngine::EventPropagation
             if (NetworkConfig::get()->isNetworking())
             {
                 // back lobby
-                NetworkString back(PROTOCOL_LOBBY_ROOM);
                 ClientBackLobbyPacket packet;
-                packet.toNetworkString(&back);
-                Comm::sendToServer(&back, PRM_RELIABLE);
+                sendPacketToServer(packet);
             }
             else
             {
