@@ -32,7 +32,6 @@
 
 #include <line3d.h>
 
-class BareNetworkString;
 class AbstractKart;
 class LODNode;
 class ItemStatePacket;

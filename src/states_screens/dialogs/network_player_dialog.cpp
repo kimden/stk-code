@@ -203,12 +203,10 @@ void NetworkPlayerDialog::onUpdate(float dt)
                 core::stringw info = tb->getText();
                 if (info.empty())
                     return false;
-                NetworkString report(PROTOCOL_LOBBY_ROOM);
                 ReportRequestPacket packet;
                 packet.host_id = host_id;
                 packet.info = info;
-                packet.toNetworkString(&report);
-                STKHost::get()->sendToServer(&report, PRM_RELIABLE);
+                STKHost::get()->sendPacketToServer(packet);
                 return true;
             });
         return;
@@ -249,22 +247,18 @@ GUIEngine::EventPropagation
         }
         else if (selection == m_kick_widget->m_properties[PROP_ID])
         {
-            NetworkString kick(PROTOCOL_LOBBY_ROOM);
             KickHostPacket packet;
             packet.host_id = m_host_id;
-            packet.toNetworkString(&kick);
-            STKHost::get()->sendToServer(&kick, PRM_RELIABLE);
+            STKHost::get()->sendPacketToServer(packet);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }
         else if (m_change_team_widget &&
             selection == m_change_team_widget->m_properties[PROP_ID])
         {
-            NetworkString change_team(PROTOCOL_LOBBY_ROOM);
             ChangeTeamPacket packet;
             packet.local_id = m_local_id;
-            packet.toNetworkString(&change_team);
-            STKHost::get()->sendToServer(&change_team, PRM_RELIABLE);
+            STKHost::get()->sendPacketToServer(packet);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }
@@ -276,12 +270,10 @@ GUIEngine::EventPropagation
             {
                 new_handicap = HANDICAP_MEDIUM;
             }
-            NetworkString change_handicap(PROTOCOL_LOBBY_ROOM);
             ChangeHandicapPacket packet;
             packet.local_id = m_local_id;
             packet.handicap = new_handicap;
-            packet.toNetworkString(&change_handicap);
-            STKHost::get()->sendToServer(&change_handicap, PRM_RELIABLE);
+            STKHost::get()->sendPacketToServer(packet);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }

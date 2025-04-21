@@ -86,7 +86,6 @@ GUIEngine::EventPropagation
         else if (selection == m_ok_widget->m_properties[PROP_ID])
         {
             m_self_destroy = true;
-            NetworkString change(PROTOCOL_LOBBY_ROOM);
 
             ConfigServerPacket packet;
             packet.difficulty = (uint8_t)m_difficulty_widget->getSelection(PLAYER_ID_GAME_MASTER);
@@ -131,8 +130,7 @@ GUIEngine::EventPropagation
                     break;
                 }
             }
-            packet.toNetworkString(&change);
-            STKHost::get()->sendToServer(&change, PRM_RELIABLE);
+            STKHost::get()->sendPacketToServer(packet);
             return GUIEngine::EVENT_BLOCK;
         }
     }

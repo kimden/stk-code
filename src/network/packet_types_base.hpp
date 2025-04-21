@@ -181,7 +181,7 @@ DEFINE_CLASS(KartInfoInGamePacket)
     DEFINE_FIELD(float, wrong_way_timer)
 END_DEFINE_CLASS(KartInfoInGamePacket)
 
-DEFINE_CLASS(TrackSectorPacket)
+DEFINE_CLASS(TrackSectorCompleteStatePacket)
     DEFINE_FIELD(uint32_t, current_graph_node)
     DEFINE_FIELD(uint32_t, estimated_valid_graph_node)
     DEFINE_FIELD(uint32_t, last_valid_graph_node)
@@ -190,7 +190,7 @@ DEFINE_CLASS(TrackSectorPacket)
     DEFINE_FIELD(Vec3, latest_valid_track_coords)
     DEFINE_FIELD(bool, on_road)
     DEFINE_FIELD(uint32_t, last_triggered_checkline)
-END_DEFINE_CLASS(TrackSectorPacket)
+END_DEFINE_CLASS(TrackSectorCompleteStatePacket)
 
 DEFINE_CLASS(CheckPacket)
 END_DEFINE_CLASS(CheckPacket)
@@ -227,7 +227,7 @@ DEFINE_DERIVED_CLASS(LinearWorldCompleteStatePacket, WorldPacket)
     DEFINE_FIELD(float, distance_increase)
     DEFINE_VECTOR(PlacementPacket, karts_count, kart_placements)
     DEFINE_VECTOR(KartInfoInGamePacket, karts_count, kart_infos)
-    DEFINE_VECTOR(TrackSectorPacket, track_sectors_count, track_sectors)
+    DEFINE_VECTOR(TrackSectorCompleteStatePacket, track_sectors_count, track_sectors)
     DEFINE_FIELD(uint8_t, check_structure_count)
     DEFINE_VECTOR_PTR(CheckStructurePacket, check_structure_count, check_structures)
 END_DEFINE_CLASS(LinearWorldCompleteStatePacket)
@@ -399,6 +399,7 @@ DEFINE_CLASS(KartSelectionRequestPacket)
     PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
     DEFINE_TYPE(uint8_t, type, LE_KART_SELECTION)
     DEFINE_FIELD(PlayerKartsPacket, karts)
+    RELIABLE(true)
 END_DEFINE_CLASS(KartSelectionRequestPacket)
 
 DEFINE_CLASS(LiveJoinRequestPacket)
@@ -406,6 +407,7 @@ DEFINE_CLASS(LiveJoinRequestPacket)
     DEFINE_TYPE(uint8_t, type, LE_LIVE_JOIN)
     DEFINE_FIELD(bool, is_spectator)
     DEFINE_FIELD_OPTIONAL(PlayerKartsPacket, player_karts, check(0)) // check client side for condition!
+    RELIABLE(true)
 END_DEFINE_CLASS(LiveJoinRequestPacket)
 
 DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
@@ -445,6 +447,7 @@ DEFINE_CLASS(ConfigServerPacket)
     DEFINE_FIELD(uint8_t, difficulty)
     DEFINE_FIELD(uint8_t, game_mode)
     DEFINE_FIELD(bool, soccer_goal_target)
+    RELIABLE(true)
 END_DEFINE_CLASS(ConfigServerPacket)
 
 DEFINE_CLASS(ConnectionRefusedPacket)
@@ -587,6 +590,7 @@ DEFINE_CLASS(InsideChecklinePacket)
     DEFINE_FIELD(widestr, fastest_kart_name)
     DEFINE_FIELD(uint8_t, check_structure_count)
     DEFINE_VECTOR(CheckActivePacket, check_structure_count, check_active)
+    RELIABLE(true)
 END_DEFINE_CLASS(InsideChecklinePacket)
 
 
@@ -641,6 +645,8 @@ DEFINE_CLASS(ItemConfirmationPacket)
     PROTOCOL_TYPE(PROTOCOL_CONTROLLER_EVENTS, false)
     DEFINE_TYPE(uint8_t, type, GP_ITEM_CONFIRMATION)
     DEFINE_FIELD(uint32_t, ticks)
+    /* This message can be sent unreliable, it's not critical if it doesn't
+    get delivered, a future update will come through */
     RELIABLE(false)
 END_DEFINE_CLASS(ItemConfirmationPacket)
 
@@ -683,5 +689,30 @@ DEFINE_CLASS(ConnectionRequestedPacket)
 
 END_DEFINE_CLASS(ConnectionRequestedPacket)
 
+DEFINE_CLASS(StartupBoostPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_STARTUP_BOOST)
+    DEFINE_FIELD(uint8_t, kart_id)
+    RELIABLE(true)
+END_DEFINE_CLASS(StartupBoostPacket)
+
+DEFINE_CLASS(TrackSectorSmallPacket)
+    DEFINE_FIELD(uint16_t, cur_graph_mode)
+    DEFINE_FIELD(float, coord_z)
+END_DEFINE_CLASS(TrackSectorSmallPacket)
+
+
+// todo
+
+DEFINE_CLASS(PluginStatePacket)
+END_DEFINE_CLASS(PluginStatePacket)
+
+DEFINE_CLASS(AttachmentPacket)
+    DEFINE_FIELD(uint8_t, type)
+    DEFINE_FIELD(uint16_t, ticks_left)
+    DEFINE_FIELD_OPTIONAL(uint8_t, previous_owner, type == (ATTACH_BOMB | 64))
+    DEFINE_FIELD_OPTIONAL(uint16_t, initial_speed, (type & 63) == ATTACH_PARACHUTE)
+    DEFINE_FIELD_OPTIONAL(PluginStatePacket, plugin, ((type >> 7) & 1) == 1)
+END_DEFINE_CLASS(AttachmentPacket)
 
 // end

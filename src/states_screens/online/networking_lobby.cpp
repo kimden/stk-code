@@ -861,10 +861,8 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
         else
         {
             // Send a message to the server to start
-            NetworkString start(PROTOCOL_LOBBY_ROOM);
             RequestBeginPacket packet;
-            packet.toNetworkString(&start);
-            STKHost::get()->sendToServer(&start, PRM_RELIABLE);
+            STKHost::get()->sendPacketToServer(packet);
         }
     }
     else if (name == m_config_button->m_properties[PROP_ID])
@@ -879,11 +877,9 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
         auto cl = LobbyProtocol::get<ClientLobby>();
         if (m_client_live_joinable && cl)
         {
-            NetworkString start(PROTOCOL_LOBBY_ROOM);
             LiveJoinRequestPacket packet;
             packet.is_spectator = true;
-            packet.toNetworkString(&start);
-            STKHost::get()->sendToServer(&start, PRM_RELIABLE);
+            STKHost::get()->sendPacketToServer(packet);
             return;
         }
         if (cl)

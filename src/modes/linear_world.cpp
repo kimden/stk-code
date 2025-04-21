@@ -1340,8 +1340,6 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
         NetworkConfig::get()->isClient())
         return;
 
-    NetworkString cl(PROTOCOL_GAME_EVENTS);
-
     InsideChecklinePacket packet;
     packet.kart_id = (uint8_t)kart_id;
     packet.finished_laps = (int8_t)m_kart_info[kart_id].m_finished_laps;
@@ -1360,8 +1358,7 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
                 cm->getCheckStructure(i)->saveIsActive(kart_id));
     }
 
-    packet.toNetworkString(&cl);
-    STKHost::get()->sendNetstringToAllPeers(&cl, PRM_RELIABLE);
+    STKHost::get()->sendPacketToAllPeers(packet);
 }   // updateCheckLinesServer
 
 // ----------------------------------------------------------------------------

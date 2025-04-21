@@ -180,26 +180,28 @@ float TrackSector::getRelativeDistanceToCenter() const
 // ----------------------------------------------------------------------------
 /** Only basket ball is used for rewind for TrackSector so save the minimum.
  */
-void TrackSector::saveState(BareNetworkString* buffer) const
+TrackSectorSmallPacket TrackSector::saveState() const
 {
-    buffer->addUInt16((int16_t)m_current_graph_node);
-    buffer->addFloat(m_current_track_coords.getZ());
+    TrackSectorSmallPacket packet;
+    packet.cur_graph_mode = (int16_t)m_current_graph_node;
+    packet.coord_z = m_current_track_coords.getZ();
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
-void TrackSector::rewindTo(BareNetworkString* buffer)
+void TrackSector::rewindTo(const TrackSectorSmallPacket& packet)
 {
-    int16_t node = buffer->getUInt16();
+    int16_t node = packet.cur_graph_mode;
     m_current_graph_node = node;
-    m_current_track_coords.setZ(buffer->getFloat());
+    m_current_track_coords.setZ(packet.coord_z);
 }   // rewindTo
 
 // ----------------------------------------------------------------------------
 /** Save completely for spectating in linear race
  */
-TrackSectorPacket TrackSector::saveCompleteState()
+TrackSectorCompleteStatePacket TrackSector::saveCompleteState()
 {
-    TrackSectorPacket packet;
+    TrackSectorCompleteStatePacket packet;
     packet.current_graph_node = m_current_graph_node;
     packet.estimated_valid_graph_node = m_estimated_valid_graph_node;
     packet.last_valid_graph_node = m_last_valid_graph_node;
@@ -212,7 +214,7 @@ TrackSectorPacket TrackSector::saveCompleteState()
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void TrackSector::restoreCompleteState(const TrackSectorPacket& packet)
+void TrackSector::restoreCompleteState(const TrackSectorCompleteStatePacket& packet)
 {
     const int max_node = Graph::get()->getNumNodes();
     m_current_graph_node = packet.current_graph_node;

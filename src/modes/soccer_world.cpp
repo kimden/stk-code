@@ -981,11 +981,9 @@ void SoccerWorld::updateBallPosition(int ticks)
                     m_reset_ball_ticks = getTicksSinceStart() +
                         stk_config->time2Ticks(2.0f);
 
-                    NetworkString p(PROTOCOL_GAME_EVENTS);
                     ResetBallPacket packet;
                     packet.reset_ball_ticks = m_reset_ball_ticks;
-                    packet.toNetworkString(&p);
-                    STKHost::get()->sendNetstringToAllPeers(&p, PRM_RELIABLE);
+                    STKHost::get()->sendPacketToAllPeers(packet);
                 }
                 else if (!NetworkConfig::get()->isNetworking())
                 {
