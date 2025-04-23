@@ -88,7 +88,9 @@ bool textLink(CGUISTKListBox* list, int row, int col,
         if ((unsigned)start_cluster >= ia.size() &&
             s->substr(start_cluster - (int)ia.size(), ia.size()) == ia)
         {
+#ifndef SERVER_ONLY
             AddonsPack::install(StringUtils::utf32ToUtf8(url));
+#endif
         }
         else
         {
