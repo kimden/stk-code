@@ -701,6 +701,14 @@ DEFINE_CLASS(TrackSectorSmallPacket)
     DEFINE_FIELD(float, coord_z)
 END_DEFINE_CLASS(TrackSectorSmallPacket)
 
+DEFINE_CLASS(AbstractKartAnimationPacket)
+    DEFINE_FIELD(uint32_t, created_ticks)
+    DEFINE_FIELD(int24_t, transform_compressed_0)
+    DEFINE_FIELD(int24_t, transform_compressed_1)
+    DEFINE_FIELD(int24_t, transform_compressed_2)
+    DEFINE_FIELD(uint32_t, transform_compressed_3)
+END_DEFINE_CLASS(AbstractKartAnimationPacket)
+
 
 // todo
 

@@ -179,25 +179,27 @@ float AbstractKartAnimation::getMaximumHeight(const Vec3& up_vector,
 }   // getMaximumHeight
 
 // ----------------------------------------------------------------------------
-void AbstractKartAnimation::saveState(BareNetworkString* buffer)
+AbstractKartAnimationPacket AbstractKartAnimation::saveState()
 {
-    buffer->addUInt32(m_created_ticks);
-    buffer->addInt24(m_created_transform_compressed[0])
-        .addInt24(m_created_transform_compressed[1])
-        .addInt24(m_created_transform_compressed[2])
-        .addUInt32(m_created_transform_compressed[3]);
+    AbstractKartAnimationPacket packet;
+    packet.created_ticks = m_created_ticks;
+    packet.transform_compressed_0 = m_created_transform_compressed[0];
+    packet.transform_compressed_1 = m_created_transform_compressed[1];
+    packet.transform_compressed_2 = m_created_transform_compressed[2];
+    packet.transform_compressed_3 = m_created_transform_compressed[3];
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
 /** Used in constructor of sub-class as no virtual function can be used there.
  */
-void AbstractKartAnimation::restoreBasicState(BareNetworkString* buffer)
+void AbstractKartAnimation::restoreBasicState(const AbstractKartAnimationPacket& packet)
 {
-    m_created_ticks = buffer->getUInt32();
-    m_created_transform_compressed[0] = buffer->getInt24();
-    m_created_transform_compressed[1] = buffer->getInt24();
-    m_created_transform_compressed[2] = buffer->getInt24();
-    m_created_transform_compressed[3] = buffer->getUInt32();
+    m_created_ticks = packet.created_ticks;
+    m_created_transform_compressed[0] = packet.transform_compressed_0;
+    m_created_transform_compressed[1] = packet.transform_compressed_1;
+    m_created_transform_compressed[2] = packet.transform_compressed_2;
+    m_created_transform_compressed[3] = packet.transform_compressed_3;
     m_created_transform =
         MiniGLM::decompressbtTransform(m_created_transform_compressed);
 }   // restoreBasicState
