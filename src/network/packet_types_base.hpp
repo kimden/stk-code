@@ -709,6 +709,28 @@ DEFINE_CLASS(AbstractKartAnimationPacket)
     DEFINE_FIELD(uint32_t, transform_compressed_3)
 END_DEFINE_CLASS(AbstractKartAnimationPacket)
 
+DEFINE_CLASS(MaxSpeedSpeedIncreasePacket)
+    DEFINE_FIELD(uint16_t, max_add_speed)
+    DEFINE_FIELD(uint16_t, duration)
+    DEFINE_FIELD(uint16_t, fade_out_time)
+    DEFINE_FIELD(uint16_t, engine_force)
+END_DEFINE_CLASS(MaxSpeedSpeedIncreasePacket)
+
+DEFINE_CLASS(MaxSpeedSpeedDecreasePacket)
+    DEFINE_FIELD(uint16_t, max_speed_fraction)
+    DEFINE_FIELD(float, current_fraction)
+    DEFINE_FIELD(uint16_t, fade_in_ticks)
+    DEFINE_FIELD(uint16_t, duration)
+END_DEFINE_CLASS(MaxSpeedSpeedDecreasePacket)
+
+/* I will search for a proper function later */
+DEFINE_CLASS(MaxSpeedPacket)
+    DEFINE_FIELD(uint8_t, slowdown_mask)
+    DEFINE_VECTOR(MaxSpeedSpeedDecreasePacket, __builtin_popcount(slowdown_mask), slowdowns)
+    DEFINE_FIELD(uint8_t, speedup_mask)
+    DEFINE_VECTOR(MaxSpeedSpeedIncreasePacket, __builtin_popcount(speedup_mask), speedups)
+END_DEFINE_CLASS(MaxSpeedPacket)
+
 
 // todo
 
