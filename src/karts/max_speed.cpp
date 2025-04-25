@@ -219,29 +219,23 @@ void MaxSpeed::SpeedIncrease::update(int ticks)
 }   // SpeedIncrease::update
 
 // ----------------------------------------------------------------------------
-void MaxSpeed::SpeedIncrease::saveState(BareNetworkString *buffer) const
+MaxSpeedSpeedIncreasePacket MaxSpeed::SpeedIncrease::saveState() const
 {
-    buffer->addUInt16(m_max_add_speed);
-    buffer->addUInt16(m_duration);
-    buffer->addUInt16(m_fade_out_time);
-    buffer->addUInt16(m_engine_force);
+    MaxSpeedSpeedIncreasePacket packet;
+    packet.max_add_speed = m_max_add_speed;
+    packet.duration = m_duration;
+    packet.fade_out_time = m_fade_out_time;
+    packet.engine_force = m_engine_force;
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
-void MaxSpeed::SpeedIncrease::rewindTo(BareNetworkString *buffer,
-                                       bool is_active)
+void MaxSpeed::SpeedIncrease::rewindTo(const MaxSpeedSpeedIncreasePacket& packet)
 {
-    if(is_active)
-    {
-        m_max_add_speed   = buffer->getUInt16();
-        m_duration        = buffer->getUInt16();
-        m_fade_out_time   = buffer->getUInt16();
-        m_engine_force    = buffer->getUInt16();
-    }
-    else   // make sure to disable this category
-    {
-        reset();
-    }
+    m_max_add_speed   = packet.max_add_speed;
+    m_duration        = packet.duration;
+    m_fade_out_time   = packet.fade_out_time;
+    m_engine_force    = packet.engine_force;
 }   // rewindTo
 
 // ----------------------------------------------------------------------------
@@ -336,31 +330,25 @@ void MaxSpeed::SpeedDecrease::update(int ticks)
  *  if the speed decrease is not active.
  *  \param buffer Buffer which will store the state information.
  */
-void MaxSpeed::SpeedDecrease::saveState(BareNetworkString *buffer) const
+MaxSpeedSpeedDecreasePacket MaxSpeed::SpeedDecrease::saveState() const
 {
-    buffer->addUInt16(m_max_speed_fraction);
-    buffer->addFloat(m_current_fraction);
-    buffer->addUInt16(m_fade_in_ticks);
-    buffer->addUInt16(m_duration);
+    MaxSpeedSpeedDecreasePacket packet;
+    packet.max_speed_fraction = m_max_speed_fraction;
+    packet.current_fraction = m_current_fraction;
+    packet.fade_in_ticks = m_fade_in_ticks;
+    packet.duration = m_duration;
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
 /** Restores a previously saved state for an active speed decrease category.
  */
-void MaxSpeed::SpeedDecrease::rewindTo(BareNetworkString *buffer,
-                                       bool is_active)
+void MaxSpeed::SpeedDecrease::rewindTo(const MaxSpeedSpeedDecreasePacket& packet)
 {
-    if(is_active)
-    {
-        m_max_speed_fraction = buffer->getUInt16();
-        m_current_fraction   = buffer->getFloat();
-        m_fade_in_ticks      = buffer->getUInt16();
-        m_duration           = buffer->getUInt16();
-    }
-    else   // make sure it is not active
-    {
-        reset();
-    }
+    m_max_speed_fraction = packet.max_speed_fraction;
+    m_current_fraction   = packet.current_fraction;
+    m_fade_in_ticks      = packet.fade_in_ticks;
+    m_duration           = packet.duration;
 }   // rewindTo
 
 // ----------------------------------------------------------------------------
@@ -458,8 +446,10 @@ void MaxSpeed::update(int ticks)
 /** Saves the speed data in a network string for rewind.
  *  \param buffer Pointer to the network string to store the data.
  */
-void MaxSpeed::saveState(BareNetworkString *buffer) const
+MaxSpeedPacket MaxSpeed::saveState() const
 {
+    MaxSpeedPacket packet;
+
     // Save the slowdown states
     // ------------------------
     // Get the bit pattern of all active slowdowns
@@ -472,7 +462,7 @@ void MaxSpeed::saveState(BareNetworkString *buffer) const
         if (m_speed_decrease[i].isActive()) 
             active_slowdown |= b;
     }
-    buffer->addUInt8(active_slowdown);
+    packet.slowdown_mask = active_slowdown;
 
     for(unsigned int i=MS_DECREASE_MIN, b=1; i<MS_DECREASE_MAX; i++, b <<= 1)
     {
@@ -482,7 +472,7 @@ void MaxSpeed::saveState(BareNetworkString *buffer) const
             continue;
         }
         else if (active_slowdown & b)
-            m_speed_decrease[i].saveState(buffer);
+            packet.slowdowns.push_back(m_speed_decrease[i].saveState());
     }
 
     // Now save the speedup state
@@ -494,25 +484,28 @@ void MaxSpeed::saveState(BareNetworkString *buffer) const
         if(m_speed_increase[i].isActive())
             active_speedups |= b;
     }
-    buffer->addUInt8(active_speedups);
+    packet.speedup_mask = active_speedups;
     for(unsigned int i=MS_INCREASE_MIN, b=1; i<MS_INCREASE_MAX; i++, b <<= 1)
     {
         if(active_speedups & b)
-            m_speed_increase[i].saveState(buffer);
+            packet.speedups.push_back(m_speed_increase[i].saveState());
     }
 
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
 /** Restore a saved state.
  *  \param buffer Saved state.
  */
-void MaxSpeed::rewindTo(BareNetworkString *buffer)
+void MaxSpeed::rewindTo(const MaxSpeedPacket& packet)
 {
     // Restore the slowdown states
     // ---------------------------
     // Get the bit pattern of all active slowdowns
-    uint8_t active_slowdown = buffer->getUInt8();
+    uint8_t active_slowdown = packet.slowdown_mask;
+
+    unsigned idx = 0;
 
     for(unsigned int i=MS_DECREASE_MIN, b=1; i<MS_DECREASE_MAX; i++, b <<= 1)
     {
@@ -522,16 +515,25 @@ void MaxSpeed::rewindTo(BareNetworkString *buffer)
             continue;
         }
         else
-            m_speed_decrease[i].rewindTo(buffer, (active_slowdown & b) == b);
+        {
+            if ((active_slowdown & b) == b)
+                m_speed_decrease[i].rewindTo(packet.slowdowns[idx++]);
+            else
+                m_speed_decrease[i].reset();
+        }
     }
 
     // Restore the speedup state
     // --------------------------
     // Get the bit pattern of all active speedups
-    uint8_t active_speedups = buffer->getUInt8();
+    idx = 0;
+    uint8_t active_speedups = packet.speedup_mask;
     for(unsigned int i=MS_INCREASE_MIN, b=1; i<MS_INCREASE_MAX; i++, b <<= 1)
     {
-        m_speed_increase[i].rewindTo(buffer, (active_speedups & b) == b);
+        if ((active_speedups & b) == b)
+            m_speed_increase[i].rewindTo(packet.speedups[idx++]);
+        else
+            m_speed_increase[i].reset();
     }
     // Make sure to update the physics
     update(0);

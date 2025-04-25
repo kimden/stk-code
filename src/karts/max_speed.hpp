@@ -26,6 +26,8 @@
 
 class AbstractKart;
 class BareNetworkString;
+class MaxSpeedSpeedIncreasePacket;
+class MaxSpeedSpeedDecreasePacket;
 
 class MaxSpeed
 {
@@ -101,8 +103,8 @@ private:
         }   // reset
         // --------------------------------------------------------------------
         void update(int ticks);
-        void saveState(BareNetworkString *buffer) const;
-        void rewindTo(BareNetworkString *buffer, bool is_active);
+        MaxSpeedSpeedIncreasePacket saveState() const;
+        void rewindTo(const MaxSpeedSpeedIncreasePacket& packet);
         // --------------------------------------------------------------------
         /** Returns the current speedup for this category. */
         float getSpeedIncrease() const {return m_current_speedup;}
@@ -158,8 +160,8 @@ private:
         }   //reset
         // --------------------------------------------------------------------
         void update(int ticks);
-        void saveState(BareNetworkString *buffer) const;
-        void rewindTo(BareNetworkString *buffer, bool is_active);
+        MaxSpeedSpeedDecreasePacket saveState() const;
+        void rewindTo(const MaxSpeedSpeedDecreasePacket& packet);
         // --------------------------------------------------------------------
         /** Returns the current slowdown fracftion, taking a 'fade in'
          *  into account. */
@@ -199,8 +201,9 @@ public:
     int   isSpeedDecreaseActive(unsigned int category);
     void  update(int ticks);
     void  reset();
-    void  saveState(BareNetworkString *buffer) const;
-    void  rewindTo(BareNetworkString *buffer);
+
+    MaxSpeedPacket saveState() const;
+    void  rewindTo(const MaxSpeedPacket& packet);
     // ------------------------------------------------------------------------
     /** Sets the minimum speed a kart should have. This is used to guarantee
      *  that e.g. zippers on ramps will always fast enough for the karts to
