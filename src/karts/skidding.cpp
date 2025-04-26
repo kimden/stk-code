@@ -99,24 +99,26 @@ void Skidding::reset()
  *  m_skid_bonus_ready
  *  \param buffer Buffer for the state information. 
  */
-void Skidding::saveState(BareNetworkString *buffer)
+SkiddingStatePacket Skidding::saveState()
 {
-    buffer->addUInt8(m_skid_state);
-    buffer->addUInt16(m_skid_time);
-    buffer->addFloat(m_skid_factor);
-    buffer->addFloat(m_visual_rotation);
+    SkiddingStatePacket packet;
+    packet.skid_state = m_skid_state;
+    packet.skid_time = m_skid_time;
+    packet.skid_factor = m_skid_factor;
+    packet.visual_rotation = m_visual_rotation;
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
 /** Restores the skidding state of a kart.
  *  \param buffer Buffer with state information. 
  */
-void Skidding::rewindTo(BareNetworkString *buffer)
+void Skidding::rewindTo(const SkiddingStatePacket& packet)
 {
-    m_skid_state = (SkidState)buffer->getUInt8();
-    m_skid_time = buffer->getUInt16();
-    m_skid_factor = buffer->getFloat();
-    m_visual_rotation = buffer->getFloat();
+    m_skid_state = (SkidState)packet.skid_state;
+    m_skid_time = packet.skid_time;
+    m_skid_factor = packet.skid_factor;
+    m_visual_rotation = packet.visual_rotation;
 }   // rewindTo
 
 // ----------------------------------------------------------------------------

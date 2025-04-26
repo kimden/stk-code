@@ -395,6 +395,7 @@ void ProtocolManager::update(int ticks)
             Log::error("ProtocolManager",
                 "Synchronous event error from %s: %s", name.c_str(), e.what());
             Log::error("ProtocolManager", (*i)->data().getLogMessage().c_str());
+            throw e;
         }
         m_sync_events_to_process.lock();
         if (can_be_deleted)

@@ -24,6 +24,7 @@
 #define NETWORK_STRING_HPP
 
 #include "network/protocol.hpp"
+#include "network/packet_types.hpp"
 #include "utils/leak_check.hpp"
 #include "utils/types.hpp"
 #include "utils/vec3.hpp"
@@ -38,6 +39,7 @@
 #include <string>
 #include <string.h>
 #include <vector>
+#include <type_traits>
 
 typedef unsigned char uchar;
 
@@ -134,6 +136,11 @@ public:
         encodeString(s);
     }   // BareNetworkString
     // ------------------------------------------------------------------------
+    void reserve(int capacity)
+    {
+        m_buffer.reserve(capacity);
+    }   // reserve
+    // ------------------------------------------------------------------------
     /** Initialises the string with a sequence of characters. */
     BareNetworkString(const char *data, int len)
     {
@@ -186,6 +193,8 @@ public:
     }   // getCurrentData
     // ------------------------------------------------------------------------
     int getCurrentOffset() const                   { return m_current_offset; }
+    // ------------------------------------------------------------------------
+    void setCurrentOffset(int value) const        { m_current_offset = value; }
     // ------------------------------------------------------------------------
     /** Returns the remaining length of the network string. */
     unsigned int size() const { return (int)m_buffer.size()-m_current_offset; }
@@ -398,12 +407,6 @@ public:
         return q;
     }   // getQuat
     // ------------------------------------------------------------------------
-    template<typename T>
-    void encode(const T& value);
-    // ------------------------------------------------------------------------
-    template<typename T>
-    void decode(T& value);
-    // ------------------------------------------------------------------------
 
 };   // class BareNetworkString
 
@@ -428,12 +431,17 @@ class NetworkString : public BareNetworkString
 {
 public:
     static void unitTesting();
-        
+
+    NetworkString(): BareNetworkString()
+    {
+        m_buffer.push_back(ProtocolType::PROTOCOL_NONE);
+    }
+
     /** Constructor for a message to be sent. It sets the 
      *  protocol type of this message. It adds 1 byte to the capacity:
      *  1 byte for the protocol type. */
-    NetworkString(ProtocolType type,  int capacity=16)
-        : BareNetworkString(capacity+1)
+    NetworkString(ProtocolType type, int capacity=16)
+        : BareNetworkString(capacity + 1)
     {
         m_buffer.push_back(type);
     }   // NetworkString
@@ -463,6 +471,14 @@ public:
     }   // getProtocolType
 
     // ------------------------------------------------------------------------
+    /** Sets the protocol type of this message. */
+    void setProtocolType(ProtocolType type)
+    {
+        m_buffer.at(0) &= PROTOCOL_SYNCHRONOUS;
+        m_buffer.at(0) |= (type & (~PROTOCOL_SYNCHRONOUS));
+    }   // getProtocolType
+
+    // ------------------------------------------------------------------------
     /** Sets if this message is to be sent synchronous or asynchronous. */
     void setSynchronous(bool b)
     {
@@ -477,6 +493,49 @@ public:
     {
         return (m_buffer[0] & PROTOCOL_SYNCHRONOUS) == PROTOCOL_SYNCHRONOUS;
     }   // isSynchronous
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void encodeSpecific(const T& value);
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void decodeSpecific(T& value);
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void encodeMaybePacket(const T& value, std::false_type)
+    {
+        encodeSpecific(value);
+    }
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void decodeMaybePacket(T& value, std::false_type)
+    {
+        decodeSpecific(value);
+    }
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void encodeMaybePacket(const T& value, std::true_type)
+    {
+        value.toNetworkString(this);
+    }
+    // ------------------------------------------------------------------------
+    template<typename T>
+    void decodeMaybePacket(T& value, std::true_type)
+    {
+        value.fromNetworkString(this);
+    }
+    // ------------------------------------------------------------------------
+    template <typename T>
+    void encode(const T& value)
+    {
+        encodeMaybePacket(value, std::is_base_of<Packet, T>());
+    }   // encode
+    // ------------------------------------------------------------------------
+    template <typename T>
+    void decode(T& value)
+    {
+        decodeMaybePacket(value, std::is_base_of<Packet, T>());
+    }   // decode
+    // ------------------------------------------------------------------------
 
 };   // class NetworkString
 

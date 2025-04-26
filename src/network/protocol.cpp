@@ -98,7 +98,7 @@ void Protocol::requestTerminate()
 */
 void Protocol::sendMessageToPeers(NetworkString *message, PacketReliabilityMode reliable) const
 {
-    STKHost::get()->sendPacketToAllPeers(message, reliable);
+    STKHost::get()->sendNetstringToAllPeers(message, reliable);
 }   // sendMessageToPeers
 
 // ----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ void Protocol::sendMessageToPeers(NetworkString *message, PacketReliabilityMode 
 void Protocol::sendMessageToPeersInServer(NetworkString* message,
                                           PacketReliabilityMode reliable) const
 {
-    STKHost::get()->sendPacketToAllPeersInServer(message, reliable);
+    STKHost::get()->sendNetstringToAllPeersInServer(message, reliable);
 }   // sendMessageToPeersInServer
 
 // ----------------------------------------------------------------------------
@@ -119,4 +119,44 @@ void Protocol::sendMessageToPeersInServer(NetworkString* message,
 void Protocol::sendToServer(NetworkString *message, PacketReliabilityMode reliable)
 {
     STKHost::get()->sendToServer(message, reliable);
-}   // sendMessage
+}   // sendToServer
+// ----------------------------------------------------------------------------
+
+/** Sends a packet to all validated peers in game, encrypt the message if
+ *  needed.
+ *  \param packet The packet.
+ *  \param reliable Whether it should be send reliably.
+ *                  Keep in mind that the packet might override this setting.
+*/
+void Protocol::sendPacketPtrToPeers(std::shared_ptr<Packet> packet,
+        PacketReliabilityMode reliable) const
+{
+    STKHost::get()->sendPacketPtrToAllPeers(packet, reliable);
+}   // sendPacketPtrToPeers
+// ----------------------------------------------------------------------------
+void Protocol::sendPacketPtrToPeersInServer(std::shared_ptr<Packet> packet,
+        PacketReliabilityMode reliable) const
+{
+    STKHost::get()->sendPacketPtrToAllPeersInServer(packet, reliable);
+}   // sendPacketPtrToPeersInServer
+// ----------------------------------------------------------------------------
+void Protocol::sendPacketPtrToServer(std::shared_ptr<Packet> packet,
+        PacketReliabilityMode reliable)
+{
+    STKHost::get()->sendPacketPtrToServer(packet, reliable);
+}   // sendPacketPtrToServer
+// ----------------------------------------------------------------------------
+
+void Protocol::sendPacketPtrExcept(std::shared_ptr<STKPeer> peer, std::shared_ptr<Packet> packet,
+                            PacketReliabilityMode reliable)
+{
+    STKHost::get()->sendPacketPtrExcept(peer, packet, reliable);
+}   // sendPacketPtrToServer
+// ----------------------------------------------------------------------------
+
+void Protocol::sendPacketPtrToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+                                    std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
+{
+    STKHost::get()->sendPacketPtrToAllPeersWith(predicate, packet, reliable);
+}   // sendPacketPtrToServer
+// ----------------------------------------------------------------------------

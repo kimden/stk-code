@@ -24,7 +24,7 @@
 #include "utils/no_copy.hpp"
 #include "utils/types.hpp"
 
-class BareNetworkString;
+class SkiddingStatePacket;
 class Kart;
 class ShowCurve;
 
@@ -111,8 +111,8 @@ public:
     float updateGraphics(float dt);
     void update(int dt, bool is_on_ground, float steer,
                 KartControl::SkidControl skidding);
-    void saveState(BareNetworkString *buffer);
-    void rewindTo(BareNetworkString *buffer);
+    SkiddingStatePacket saveState();
+    void rewindTo(const SkiddingStatePacket& packet);
     // ------------------------------------------------------------------------
     /** Determines how much the graphics model of the kart should be rotated
      *  additionally (for skidding), depending on how long the kart has been

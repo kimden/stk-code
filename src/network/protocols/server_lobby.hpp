@@ -53,7 +53,6 @@ class LobbySettings;
 class MapVoteHandler;
 class NetworkItemManager;
 class NetworkPlayerProfile;
-class NetworkString;
 class Ranking;
 class SocketAddress;
 class STKPeer;
@@ -149,10 +148,10 @@ private:
     std::map<std::string, uint64_t> m_pending_peer_connection;
 
     /* Saved the last game result */
-    NetworkString* m_result_ns;
+    RaceFinishedPacket m_result_packet;
 
     /* Used to make sure clients are having same item list at start */
-    BareNetworkString* m_items_complete_state;
+    NimCompleteStatePacket m_nim_complete_state;
 
     std::atomic<uint32_t> m_server_id_online;
 
@@ -234,7 +233,7 @@ private:
     }
     void handlePendingConnection();
     void handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
-                                     BareNetworkString& data,
+                                     const Optional<RestConnectionRequestPacket>& opt,
                                      uint32_t online_id,
                                      const irr::core::stringw& online_name,
                                      bool is_pending_connection,
@@ -249,7 +248,7 @@ private:
     bool handleAllVotes(PeerVote* winner);
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
-    void computeNewRankings(NetworkString* ns);
+    PointChangesPacket computeNewRankings();
     void checkRaceFinished();
     void configPeersStartTime();
     void resetServer();
@@ -258,10 +257,10 @@ private:
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    NetworkString* getLoadWorldMessage(
+    LoadWorldPacket getLoadWorldMessage(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
         bool live_join) const;
-    void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
+    void setPlayerKarts(const PlayerKartsPacket& packet, std::shared_ptr<STKPeer> peer) const;
     bool handleAssets(Event* event);
 
     bool handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
@@ -360,7 +359,6 @@ public:
                              const std::string& type) const;
 
     bool playerReportsTableExists() const;
-
     void sendServerInfoToEveryone() const;
 
     bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }

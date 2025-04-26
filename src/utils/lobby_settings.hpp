@@ -29,12 +29,12 @@ class GameSetup;
 class KartElimination;
 class LobbyAssetManager;
 class LobbyQueues;
-class NetworkString;
 class PeerVote;
 class STKPeer;
 class Tournament;
 class Track;
 struct GameInfo;
+class DefaultVotePacket;
 
 /** @brief A class that manipulates server settings, such as resetting,
  * scoring, goal policies, etc. Might be split into a few parts later,
@@ -84,7 +84,7 @@ public:
     void initializeDefaultVote();
     void applyRestrictionsOnVote(PeerVote* vote, Track* t) const;
     void applyRestrictionsOnWinnerVote(PeerVote* winner_vote) const;
-    void encodeDefaultVote(NetworkString* ns) const;
+    DefaultVotePacket encodeDefaultVote() const;
     void setDefaultVote(PeerVote winner_vote);
     PeerVote getDefaultVote() const;
     bool isInWhitelist(const std::string& username) const;

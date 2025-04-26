@@ -1,11 +1,11 @@
 #ifndef KART_DATA_HPP
 #define KART_DATA_HPP
 
+#include "network/packet_types.hpp"
 #include "utils/vec3.hpp"
 
 #include <string>
 
-class BareNetworkString;
 class KartProperties;
 
 class KartData
@@ -26,9 +26,9 @@ public:
     // ------------------------------------------------------------------------
     KartData(const KartProperties* kp);
     // ------------------------------------------------------------------------
-    KartData(const BareNetworkString& ns);
+    KartData(const KartDataPacket& packet);
     // ------------------------------------------------------------------------
-    void encode(BareNetworkString* ns) const;
+    KartDataPacket encode() const;
 
 };   // class KartData
 

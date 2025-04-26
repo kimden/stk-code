@@ -30,7 +30,6 @@
 #include <string>
 #include <vector>
 
-class NetworkString;
 class ServerLobby;
 class STKPeer;
 
@@ -50,8 +49,8 @@ public:
     bool tryApplyingMapFilters();
     std::string getRandomAvailableMap();
 
-    void encodePlayerKartsAndCommonMaps(
-            NetworkString* ns, const std::set<std::string>& all_k);
+    AssetsPacket2 encodePlayerKartsAndCommonMaps(
+            const std::set<std::string>& all_k);
 
     bool handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
             const std::set<std::string>& client_karts,

@@ -244,7 +244,7 @@ void GameProtocol::handleControllerAction(Event *event)
         // is after the server time
         peer->updateLastActivity();
         if (!will_trigger_rewind)
-            STKHost::get()->sendPacketExcept(peer, &data, PRM_UNRELIABLE);
+            STKHost::get()->sendNetstringExcept(peer, &data, PRM_UNRELIABLE);
     }   // if server
 
 }   // handleControllerAction
@@ -257,12 +257,11 @@ void GameProtocol::handleControllerAction(Event *event)
 void GameProtocol::sendItemEventConfirmation(int ticks)
 {
     assert(NetworkConfig::get()->isClient());
-    NetworkString *ns = getNetworkString(5);
-    ns->addUInt8(GP_ITEM_CONFIRMATION).addUInt32(ticks);
-    // This message can be sent unreliable, it's not critical if it doesn't
-    // get delivered, a future update will come through
-    sendToServer(ns, PRM_UNRELIABLE);
-    delete ns;
+
+    ItemConfirmationPacket packet;
+    packet.ticks = ticks;
+
+    sendPacketToServer(packet);
 }   // sendItemEventConfirmation
 
 // ----------------------------------------------------------------------------
