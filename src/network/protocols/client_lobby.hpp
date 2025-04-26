@@ -34,7 +34,6 @@ enum PeerDisconnectInfo : unsigned int;
 enum KartTeam : int8_t;
 enum HandicapLevel : uint8_t;
 
-class BareNetworkString;
 class Server;
 
 namespace Online

@@ -700,11 +700,6 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
             packet_1_1.country_code = sd.m_country_code;
             packet_1_1.handicap = sd.m_handicap_level;
 
-            // NetworkString p(PROTOCOL_GAME_EVENTS);
-            // NetworkString p_1_1(PROTOCOL_GAME_EVENTS);
-            // packet.toNetworkString(&p);
-            // packet_1_1.toNetworkString(&p_1_1);
-
             auto peers = STKHost::get()->getPeers();
             for (auto& peer : peers)
             {

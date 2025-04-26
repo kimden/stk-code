@@ -6,7 +6,6 @@
 
 #include <string>
 
-class BareNetworkString;
 class KartProperties;
 
 class KartData
