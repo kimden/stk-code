@@ -731,6 +731,35 @@ DEFINE_CLASS(MaxSpeedPacket)
     DEFINE_VECTOR(MaxSpeedSpeedIncreasePacket, __builtin_popcount(speedup_mask), speedups)
 END_DEFINE_CLASS(MaxSpeedPacket)
 
+DEFINE_CLASS(SkiddingStatePacket)
+    DEFINE_FIELD(uint8_t, skid_state)
+    DEFINE_FIELD(uint16_t, skid_time)
+    DEFINE_FIELD(float, skid_factor)
+    DEFINE_FIELD(float, visual_rotation)
+END_DEFINE_CLASS(SkiddingStatePacket)
+
+// DEFINE_CLASS(ItemEventInfoPacket)
+//     DEFINE_FIELD(uint8_t, type)
+//     DEFINE_FIELD(uint32_t, ticks)
+//     DEFINE_FIELD_OPTIONAL(uint8_t, kart_id, type != IEI_SWITCH)
+//     DEFINE_FIELD_OPTIONAL(uint16_t, index, type != IEI_SWITCH)
+//     DEFINE_FIELD_OPTIONAL(uint16_t, index, type != IEI_SWITCH && type == IEI_NEW)
+
+//     assert(NetworkConfig::get()->isServer());
+//     buffer->addUInt8(m_type).addTime(m_ticks);
+//     if (m_type != IEI_SWITCH)
+//     {
+//         // Only new item and collecting items need the index and kart id:
+//         buffer->addUInt8(m_kart_id).addUInt16(m_index);
+//         if (m_type == IEI_NEW)
+//         {
+//             buffer->add(m_xyz);
+//             buffer->add(m_normal);
+//         }
+//         else if (m_type == IEI_COLLECT)
+//             buffer->addUInt16(m_ticks_till_return);
+//     }
+// END_DEFINE_CLASS(ItemEventInfoPacket)
 
 // todo
 
