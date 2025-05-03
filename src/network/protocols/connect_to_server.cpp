@@ -838,7 +838,7 @@ cleanup:
         address = *m_server->getIPV6Address();
     else
         address = m_server->getAddress();
-    address.setPort(stk_config->m_server_discovery_port);
+    address.setPort(STKConfig::get()->m_server_discovery_port);
     nw->sendRawPacket(s, address);
     SocketAddress sender;
     const int LEN = 2048;

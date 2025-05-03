@@ -218,7 +218,7 @@ bool Plunger::hit(Kart *kart, PhysicalObject *obj)
     }
     else
     {
-        m_keep_alive = (int16_t)stk_config->time2Ticks(m_owner->getKartProperties()
+        m_keep_alive = (int16_t)STKConfig::get()->time2Ticks(m_owner->getKartProperties()
             ->getPlungerBandDuration());
         if(kart)
         {

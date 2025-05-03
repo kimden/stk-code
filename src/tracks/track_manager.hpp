@@ -92,7 +92,7 @@ public:
                 TrackManager();
                ~TrackManager();
 
-    static std::shared_ptr<TrackManager> get();
+    static std::shared_ptr<TrackManager>& get();
     static void removeTrackSearchDirs();
     static void addTrackSearchDir(const std::string &dir);
 

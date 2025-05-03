@@ -479,7 +479,7 @@ void LocalPlayerController::doCrashHaptics() {
     int now = World::getWorld()->getTicksSinceStart();
     int lastCrash = m_last_crash;
     m_last_crash = now;
-    if ((now - lastCrash) < stk_config->time2Ticks(0.2f))
+    if ((now - lastCrash) < STKConfig::get()->time2Ticks(0.2f))
         return;
 
     float strength =

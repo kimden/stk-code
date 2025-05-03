@@ -120,6 +120,8 @@ void RaceManager::clear()
  */
 RaceManager::RaceManager()
 {
+    auto& stk_config = STKConfig::get();
+
     // Several code depends on this, e.g. kart_properties
     assert(DIFFICULTY_FIRST == 0);
     m_num_karts          = UserConfigParams::m_default_num_karts;
@@ -444,7 +446,7 @@ void RaceManager::startNew(bool from_overworld)
     }   // if grand prix
 
     // command line parameters: negative numbers=all karts
-    if(m_num_karts < 0 ) m_num_karts = stk_config->m_max_karts;
+    if(m_num_karts < 0 ) m_num_karts = STKConfig::get()->m_max_karts;
     if((size_t)m_num_karts < m_player_karts.size())
         m_num_karts = (int)m_player_karts.size();
 

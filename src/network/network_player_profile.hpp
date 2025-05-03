@@ -33,6 +33,7 @@
 #include <string>
 
 class STKPeer;
+class GenericDecorator;
 enum KartTeam : int8_t;
 enum HandicapLevel : uint8_t;
 
@@ -188,6 +189,10 @@ public:
     void setKartData(const KartData& data)              { m_kart_data = data; }
     // ------------------------------------------------------------------------
     const KartData& getKartData() const                 { return m_kart_data; }
+    // ------------------------------------------------------------------------
+    core::stringw getDecoratedName(std::shared_ptr<GenericDecorator> decorator);
+    // ------------------------------------------------------------------------
+
 };   // class NetworkPlayerProfile
 
 #endif // HEADER_NETWORK_PLAYER_PROFILE

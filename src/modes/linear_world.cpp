@@ -200,7 +200,7 @@ void LinearWorld::update(int ticks)
     if (getPhase() == RACE_PHASE &&
         m_finish_timeout != std::numeric_limits<float>::max())
     {
-        m_finish_timeout -= stk_config->ticks2Time(ticks);
+        m_finish_timeout -= STKConfig::get()->ticks2Time(ticks);
         if (m_finish_timeout < 0.0f)
         {
             endRaceEarly();
@@ -532,7 +532,7 @@ void LinearWorld::newLap(unsigned int kart_index)
     {
         // To avoid negative times in countdown mode
         if (getClockMode() == CLOCK_COUNTDOWN)
-            ticks_per_lap = stk_config->time2Ticks(RaceManager::get()->getTimeTarget()) - getTimeTicks();
+            ticks_per_lap = STKConfig::get()->time2Ticks(RaceManager::get()->getTimeTarget()) - getTimeTicks();
         else
             ticks_per_lap = getTimeTicks();
     }
@@ -676,7 +676,7 @@ void LinearWorld::getKartsDisplayInfo(
         // Don't compare times when crossing the start line first
         if(laps_of_leader>0                                                &&
            (getTimeTicks() - getTicksAtLapForKart(kart->getWorldKartId())  <
-            stk_config->time2Ticks(8)                                      ||
+            STKConfig::get()->time2Ticks(8)                                ||
             rank_info.lap != laps_of_leader)                               &&
             raceHasLaps())
         {  // Display for 5 seconds

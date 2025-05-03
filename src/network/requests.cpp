@@ -105,7 +105,7 @@ void PollServerRequest::afterOperation()
         return;
     sl->resetSuccessPollTime();
     if (!sl->isWaitingForStartGame() &&
-        !sl->allowJoinedPlayersWaiting())
+        sl->isLegacyGPMode())
     {
         sl->replaceKeys(keys);
         return;

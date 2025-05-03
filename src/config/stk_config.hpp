@@ -35,6 +35,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <memory>
 
 class KartProperties;
 class MusicInformation;
@@ -291,11 +292,12 @@ private:
 public:
     STKConfig();
     ~STKConfig();
+    static std::shared_ptr<STKConfig>& get();
     void init_defaults();
     void getAllData(const XMLNode * root);
     void load(const std::string &filename);
     void initMusicFiles();
-    void  getAllScores(std::vector<int> *all_scores, int num_karts);
+    void  getAllScores(std::vector<int> *all_scores, int num_karts) const;
     // ------------------------------------------------------------------------
     /** Returns the default kart properties for each kart. */
     const KartProperties &
@@ -306,21 +308,20 @@ public:
      *  \throw out_of_range if there is no data for 'type'.
      *  \param type Type of kart (e.g. heavy, medium, ...).
      */
-    const KartProperties& getKartProperties(const std::string &type)
+    const KartProperties& getKartProperties(const std::string &type) const
     {
         return *m_kart_properties.at(type);
     }   // getKartProperties
     // ------------------------------------------------------------------------
     /** Converts a tick value (in physics time step size) into seconds. */
-    float ticks2Time(int ticks) { return float(ticks)/m_physics_fps; }
+    float ticks2Time(int ticks) const { return float(ticks)/m_physics_fps; }
     // ------------------------------------------------------------------------
     /** Converts a time value into ticks (of physics time steps). */
-    int time2Ticks(float t) { return int(t * m_physics_fps);  }
+    int time2Ticks(float t) const { return int(t * m_physics_fps);  }
     // ------------------------------------------------------------------------
     /** Returns the physics frame per seconds rate. */
     int getPhysicsFPS() const { return m_physics_fps; }
 }
 ;   // STKConfig
 
-extern STKConfig* stk_config;
 #endif

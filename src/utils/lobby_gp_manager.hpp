@@ -28,6 +28,7 @@
 
 class NetworkPlayerProfile;
 class NetworkString;
+class GPScoring;
 
 struct GPScore
 {
@@ -62,10 +63,18 @@ public:
 
     void updateGPScores(std::vector<float>& gp_changes, NetworkString* ns);
 
+    bool trySettingGPScoring(const std::string& input);
+
+    void updateWorldScoring() const;
+
+    std::string getScoringAsString() const;
+
 private:
     std::map<std::string, GPScore> m_gp_scores;
 
     std::map<int, GPScore> m_gp_team_scores;
+
+    std::shared_ptr<GPScoring> m_gp_scoring;
 
 };
 

@@ -56,6 +56,8 @@ namespace StringUtils
     std::string                     toLowerCase(const std::string&);
     std::vector<std::string>        splitQuoted(const std::string& s, char c,
                                         char d, char e, char f);
+    std::string                     quoteEscape(const std::string& s, char c,
+                                        char d, char e, char f);
     std::vector<std::string>        split(const std::string& s, char c,
                                           bool keepSplitChar=false);
     std::vector<std::u32string>     split(const std::u32string& s, char32_t c,

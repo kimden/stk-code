@@ -102,7 +102,7 @@ void RubberBall::onFireFlyable()
 
     // Do not adjust the up velocity
     setAdjustUpVelocity(false);
-    m_max_lifespan       = stk_config->time2Ticks(9999);
+    m_max_lifespan       = STKConfig::get()->time2Ticks(9999);
     m_target             = NULL;
     m_aiming_at_target   = false;
     m_fast_ping          = false;
@@ -297,6 +297,8 @@ void RubberBall::getNextControlPoint()
  */
 void RubberBall::init(const XMLNode &node, scene::IMesh *rubberball)
 {
+    auto& stk_config = STKConfig::get();
+
     m_st_interval                   =   1.0f;
     m_st_squash_duration            =   3.0f;
     m_st_squash_slowdown            =   0.5f;
@@ -451,9 +453,9 @@ bool RubberBall::updateAndDelete(int ticks)
     // Flyable::update for basket balls.
     TerrainInfo::update(next_xyz + getNormal()*vertical_offset, -getNormal());
 
-    m_height_timer += stk_config->ticks2Time(ticks);
+    m_height_timer += STKConfig::get()->ticks2Time(ticks);
 #ifdef PRINT_BALL_TIME_TO_TARGET
-    m_hit_timer += stk_config->ticks2Time(ticks);
+    m_hit_timer += STKConfig::get()->ticks2Time(ticks);
 #endif
     float height    = updateHeight()+m_extend.getY()*0.5f;
     
@@ -531,7 +533,7 @@ void RubberBall::moveTowardsTarget(Vec3 *next_xyz, int ticks)
         *next_xyz = getXYZ() - getNormal()*m_previous_height;
     else
     {
-        float dt = stk_config->ticks2Time(ticks);
+        float dt = STKConfig::get()->ticks2Time(ticks);
         *next_xyz = getXYZ() - getNormal()*m_previous_height
                              + (dt*m_speed / diff.length())*diff;
     }
@@ -569,7 +571,7 @@ void RubberBall::updateWeightedSpeed(int ticks)
     // Get the speed depending on difficulty but not on kart type/handicap
     float targeted_speed = kp->getEngineGenericMaxSpeed();
 
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
 
     //Calculate the targeted weighted speed
     if (m_distance_to_target <= m_st_min_offset_distance)
@@ -619,7 +621,7 @@ void RubberBall::interpolate(Vec3 *next_xyz, int ticks)
 {
     // If we have reached or overshot the next control point, move to the
     // the next section of the spline
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
     m_t += m_t_increase * dt;
     if(m_t > 1.0f)
     {
@@ -906,7 +908,7 @@ bool RubberBall::hit(Kart* kart, PhysicalObject* object)
         // To avoid the shield being destroyed the first frame
         // and the kart being squashed afterwards, we give
         // the kart a temporary immunity to basket-ball squashing.
-        kart->setBasketSquashImmunityTicks(stk_config->time2Ticks(0.2f));
+        kart->setBasketSquashImmunityTicks(STKConfig::get()->time2Ticks(0.2f));
             
         return false;
     }

@@ -207,7 +207,11 @@ void setNitro(int amount)
 void addAttachment(Attachment::AttachmentType type)
 {
     World* world = World::getWorld();
-    if (world == NULL) return;
+    if (world == NULL)
+        return;
+
+    auto& stk_config = STKConfig::get();
+
     for (unsigned int i = 0; i < world->getNumKarts(); i++)
     {
         Kart *kart = world->getLocalPlayerKart(i);

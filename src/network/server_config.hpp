@@ -795,6 +795,11 @@ namespace ServerConfig
             SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "start-allowed",
             "Whether the game can be started immediately when the server is opened."));
 
+    SERVER_CFG_PREFIX IntServerConfigParam m_lobby_cooldown
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0, "lobby-cooldown",
+        "Timeout in seconds during which you cannot start the next game, "
+        "regardless of hammers, votes, or buttons pressed."));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;

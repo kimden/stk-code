@@ -193,7 +193,7 @@ void Moveable::createBody(float mass, btTransform& trans,
     btRigidBody::btRigidBodyConstructionInfo info(mass, m_motion_state.get(),
                                                   shape, inertia);
     info.m_restitution = restitution;
-    info.m_friction = stk_config->m_default_moveable_friction;
+    info.m_friction = STKConfig::get()->m_default_moveable_friction;
 
     // Then create a rigid body
     // ------------------------

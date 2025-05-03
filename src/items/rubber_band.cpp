@@ -299,8 +299,8 @@ void RubberBand::update(int ticks)
         m_owner->increaseMaxSpeed(MaxSpeed::MS_INCREASE_RUBBER,
             kp->getPlungerBandSpeedIncrease(),
             /*engine_force*/ 0.0f,
-            /*duration*/stk_config->time2Ticks(0.1f),
-            stk_config->time2Ticks(kp->getPlungerBandFadeOutTime()));
+            /*duration*/STKConfig::get()->time2Ticks(0.1f),
+            STKConfig::get()->time2Ticks(kp->getPlungerBandFadeOutTime()));
         if(m_attached_state==RB_TO_KART)
             m_hit_kart->getBody()->applyCentralForce(diff*(-force));
     }

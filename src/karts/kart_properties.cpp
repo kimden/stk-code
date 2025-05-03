@@ -234,20 +234,22 @@ void KartProperties::load(const std::string &filename, const std::string &node)
     const XMLNode* root = new XMLNode(filename);
     std::string kart_type;
 
+    auto& stk_config = STKConfig::get();
+
     if (root->get("type", &kart_type))
     {
         // Handle the case that kart_type might be incorrect
         try
         {
-            copyFrom(&stk_config->getKartProperties(kart_type));
+            copyFrom(&(stk_config->getKartProperties(kart_type)));
         }
         catch (std::out_of_range &)
         {
-            copyFrom(&stk_config->getDefaultKartProperties());
+            copyFrom(&(stk_config->getDefaultKartProperties()));
         }   // try .. catch
     }
     else
-        copyFrom(&stk_config->getDefaultKartProperties());
+        copyFrom(&(stk_config->getDefaultKartProperties()));
 
     // m_kart_model must be initialised after assigning the default
     // values from stk_config (otherwise all kart_properties will

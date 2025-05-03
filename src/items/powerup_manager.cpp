@@ -907,6 +907,8 @@ PowerupManager::PowerupType PowerupManager::getRandomPowerup(unsigned int pos,
     {
         *n = 1;
     }
+    
+    auto& stk_config = STKConfig::get();
 
     // Prevents some items early on:
     // - Cakes right after the start destroy too much and too easily

@@ -737,7 +737,7 @@ std::vector<std::pair<core::dimension2du, unsigned> >
         }
     }
 
-    const unsigned tc_flag = squish::kDxt5 | stk_config->m_tc_quality;
+    const unsigned tc_flag = squish::kDxt5 | STKConfig::get()->m_tc_quality;
     for (auto& size : mipmap_sizes)
     {
         size.second = squish::GetStorageRequirements(

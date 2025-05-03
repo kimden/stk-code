@@ -556,7 +556,7 @@ void RaceGUIBase::update(float dt)
         // already 1 second ahead of time when crossing finished line)
         if (k->getNetworkConfirmedFinishTicks() > 0
             && w->getTicksSinceStart() >
-            k->getNetworkConfirmedFinishTicks() + stk_config->time2Ticks(1.0f))
+            k->getNetworkConfirmedFinishTicks() + STKConfig::get()->time2Ticks(1.0f))
         {
             m_enabled_network_spectator = true;
             cl->setSpectator(true);
@@ -632,6 +632,8 @@ void RaceGUIBase::drawGlobalMusicDescription()
     
     const int fheight = font->getDimension(L"X").Height;
     
+    auto& stk_config = STKConfig::get();
+
     float race_time =
         stk_config->ticks2Time(World::getWorld()->getMusicDescriptionTicks());
 
@@ -1299,13 +1301,13 @@ void RaceGUIBase::drawPlungerInFace(const Camera *camera, float dt)
         m_plunger_speed     = core::vector2df(0, 0);
     }
 
-    if(World::getWorld()->getPhase()!=World::IN_GAME_MENU_PHASE)
+    if (World::getWorld()->getPhase() != World::IN_GAME_MENU_PHASE)
     {
         m_plunger_move_time -= dt;
-        if(m_plunger_move_time < dt && m_plunger_state!=PLUNGER_STATE_FAST)
+        if (m_plunger_move_time < dt && m_plunger_state != PLUNGER_STATE_FAST)
         {
             const float fast_time = 0.3f;
-            if(kart->getBlockedByPlungerTicks()<stk_config->time2Ticks(fast_time))
+            if (kart->getBlockedByPlungerTicks() < STKConfig::get()->time2Ticks(fast_time))
             {
                 // First time we reach faste state: select random target point
                 // at top of screen and set speed accordingly

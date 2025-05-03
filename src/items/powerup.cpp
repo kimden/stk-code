@@ -172,7 +172,7 @@ Material *Powerup::getIcon(bool wide) const
         // If not in one of the mini-powerup-specific states,
         // We assume that the mini_state is MINI_SELECT for correct display
         // This may not always be true in networking mode right after item collection.
-        int cycle_ticks = stk_config->time2Ticks(0.65f);
+        int cycle_ticks = STKConfig::get()->time2Ticks(0.65f);
         int cycle_value = World::getWorld()->getTicksSinceStart() % (3 * cycle_ticks);
         if (cycle_value < cycle_ticks)
             return powerup_manager->getMiniIcon(0+wide_offset);
@@ -193,6 +193,8 @@ Material *Powerup::getIcon(bool wide) const
 void Powerup::use()
 {
     const KartProperties *kp = m_kart->getKartProperties();
+
+    auto stk_config = STKConfig::get();
 
     // The player gets an achievement point for using a powerup
     if (m_type != PowerupManager::POWERUP_NOTHING      &&
@@ -440,7 +442,7 @@ int Powerup::useBubblegum(bool mini)
         if(!m_kart->isGumShielded()) //if the previous shield had been used up.
         {
                 m_kart->getAttachment()->set(type,
-                    stk_config->time2Ticks(kp->getBubblegumShieldDuration() * mini_factor));
+                    STKConfig::get()->time2Ticks(kp->getBubblegumShieldDuration() * mini_factor));
         }
         // Using a bubble gum while still having a gum shield. In this case,
         // half of the remaining time of the active shield is added. The maximum
@@ -453,7 +455,7 @@ int Powerup::useBubblegum(bool mini)
         else
         {
             m_kart->getAttachment()->set(type,
-                stk_config-> time2Ticks(kp->getBubblegumShieldDuration() * mini_factor
+                STKConfig::get()->time2Ticks(kp->getBubblegumShieldDuration() * mini_factor
                                        + (m_kart->getShieldTime() / 2.0f)) );
         }
         sound_type = 2;
@@ -580,7 +582,7 @@ void Powerup::hitBonusBox(const ItemState &item_state)
     // is divided by 10, meaning even if there is one frame difference,
     // the client will still have a 90% chance to correctly predict the
     // item.
-    const int time = world->getTicksSinceStart() / stk_config->time2Ticks(0.083334f);
+    const int time = world->getTicksSinceStart() / STKConfig::get()->time2Ticks(0.083334f);
 
     // A bitmask storing which random buckets have been used
     uint32_t buckets_mask = m_kart->getPowerupMask();
@@ -603,7 +605,7 @@ void Powerup::hitBonusBox(const ItemState &item_state)
         // This steps occurs after the previous one to ensure that
         // the random number is equally likely to be in any part of
         // the weights list
-        if (stk_config->m_full_random)
+        if (STKConfig::get()->m_full_random)
             break; 
 
         // Determine the random number's bucket
@@ -623,6 +625,8 @@ void Powerup::hitBonusBox(const ItemState &item_state)
 
     new_powerup = powerup_manager->getRandomPowerup(position, &n, 
                                                     random_number);
+
+    auto& stk_config = STKConfig::get();
 
     // Always add a new powerup in ITEM_MODE_NEW (or if the kart
     // doesn't have a powerup atm).

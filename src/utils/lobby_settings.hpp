@@ -22,7 +22,6 @@
 #include "irrString.h"
 #include "utils/lobby_context.hpp"
 #include "utils/team_utils.hpp"
-#include "utils/track_filter.hpp"
 
 #include <memory>
 
@@ -48,9 +47,7 @@ public:
     void setupContextUser() OVERRIDE;
     ~LobbySettings();
 
-    void initAvailableTracks();
     void initAvailableModes();
-    bool loadCustomScoring(std::string& scoring);
     void loadWhiteList();
     void loadPreservedSettings();
     bool hasConsentOnReplays() const           { return m_consent_on_replays; }
@@ -63,7 +60,7 @@ public:
     bool hasFixedLapCount() const;
     int getMultiplier() const;
     int getFixedLapCount() const;
-    void setMultiplier(int new_value);
+    void setMultiplier(double new_value);
     void setFixedLapCount(int new_value);
     void resetLapRestrictions();
     void setDefaultLapRestrictions();
@@ -78,18 +75,15 @@ public:
     bool isGPGridShuffled() const;
     void setGPGridShuffled(bool value);
     std::string getWhetherShuffledGPGridAsString(bool just_edited = false) const;
-    std::vector<std::string> getMissingAssets(std::shared_ptr<STKPeer> peer) const;
     void updateWorldSettings(std::shared_ptr<GameInfo> game_info);
     void onResetToDefaultSettings();
     bool isPreservingMode() const;
-    std::string getScoringAsString() const;
     std::string getPreservedSettingsAsString() const;
     void eraseFromPreserved(const std::string& value);
     void insertIntoPreserved(const std::string& value);
     void initializeDefaultVote();
-    void applyGlobalFilter(FilterContext& map_context) const;
-    void applyGlobalKartsFilter(FilterContext& kart_context) const;
     void applyRestrictionsOnVote(PeerVote* vote, Track* t) const;
+    void applyRestrictionsOnWinnerVote(PeerVote* winner_vote) const;
     void encodeDefaultVote(NetworkString* ns) const;
     void setDefaultVote(PeerVote winner_vote);
     PeerVote getDefaultVote() const;
@@ -102,14 +96,33 @@ public:
 
     int getBattleHitCaptureLimit() const { return m_battle_hit_capture_limit; }
     float getBattleTimeLimit() const            { return m_battle_time_limit; }
-    void setBattleHitCaptureLimit(int value)
-                                        { m_battle_hit_capture_limit = value; }
-    void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
+    // void setBattleHitCaptureLimit(int value)
+                                        // { m_battle_hit_capture_limit = value; }
+    // void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
+    void setLobbyCooldown(int value)              { m_lobby_cooldown = value; }
+
+    bool isCooldown() const;
+    bool isSavingServerConfig() const          { return m_save_server_config; }
+    void setSaveServerConfig(bool val)          { m_save_server_config = val; }
 
     void onServerSetup();
+    void onServerConfiguration();
 
     void tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
                          std::shared_ptr<STKPeer> target) const;
+
+    unsigned getCurrentMaxPlayersInGame() const
+                                      { return m_current_max_players_in_game; }
+    void setCurrentMaxPlayersInGame(unsigned value)
+                                     { m_current_max_players_in_game = value; }
+
+    bool isTempBanned(const std::string& username)
+                { return m_temp_banned.find(username) != m_temp_banned.end(); }
+    void tempBan(const std::string& username)
+                                            { m_temp_banned.insert(username); }
+    void tempUnban(const std::string& username)
+                                             { m_temp_banned.erase(username); }
+    void getLobbyHitCaptureLimit();
 
     // These were used unchanged from ServerConfig
     bool isLivePlayers()                   const { return m_live_players;                   }
@@ -130,10 +143,6 @@ public:
     bool hasKicksAllowed()                 const { return m_kicks_allowed;                  }
     int getMaxPing()                       const { return m_max_ping;                       }
     int getMinStartGamePlayers()           const { return m_min_start_game_players;         }
-    float getOfficialKartsPlayThreshold()  const { return m_official_karts_play_threshold;  }
-    float getOfficialTracksPlayThreshold() const { return m_official_tracks_play_threshold; }
-    bool hasOnlyHostRiding()               const { return m_only_host_riding;               }
-    bool isOwnerLess()                     const { return m_owner_less;                     }
     bool isPreservingBattleScores()        const { return m_preserve_battle_scores;         }
     std::string getPrivateServerPassword() const { return m_private_server_password;        }
     bool isRanked()                        const { return m_ranked;                         }
@@ -143,7 +152,6 @@ public:
     int getServerDifficulty()              const { return m_server_difficulty;              }
     int getServerMaxPlayers()              const { return m_server_max_players;             }
     int getServerMode()                    const { return m_server_mode;                    }
-    bool isSleepingServer()                const { return m_sleeping_server;                }
     bool isSoccerGoalTargetInConfig()      const { return m_soccer_goal_target;             }
     bool hasSqlManagement()                const { return m_sql_management;                 }
     float getStartGameCounter()            const { return m_start_game_counter;             }
@@ -159,29 +167,21 @@ public:
     bool isValidatingPlayer()              const { return m_validating_player;              }
     float getVotingTimeout()               const { return m_voting_timeout;                 }
     std::string getCommandsFile()          const { return m_commands_file;                  }
-    int getAddonKartsJoinThreshold()       const { return m_addon_karts_join_threshold;     }
-    int getAddonTracksJoinThreshold()      const { return m_addon_tracks_join_threshold;    }
-    int getAddonArenasJoinThreshold()      const { return m_addon_arenas_join_threshold;    }
-    int getAddonSoccersJoinThreshold()     const { return m_addon_soccers_join_threshold;   }
-    int getAddonKartsPlayThreshold()       const { return m_addon_karts_play_threshold;     }
-    int getAddonTracksPlayThreshold()      const { return m_addon_tracks_play_threshold;    }
-    int getAddonArenasPlayThreshold()      const { return m_addon_arenas_play_threshold;    }
-    int getAddonSoccersPlayThreshold()     const { return m_addon_soccers_play_threshold;   }
     std::string getPowerPassword()         const { return m_power_password;                 }
     std::string getRegisterTableName()     const { return m_register_table_name;            }
-    float getOfficialKartsThreshold()      const { return m_official_karts_threshold;       }
-    float getOfficialTracksThreshold()     const { return m_official_tracks_threshold;      }
+    int getLobbyCooldown()                 const { return m_lobby_cooldown;                 }
+
+    // This one might not get into the config (as it originated from official
+    // code's GP, where it is useless unless you want to make a private
+    // server), however, it might be useful regardless
+    bool isLegacyGPMode()                  const { return m_legacy_gp_mode;                 }
+    bool isLegacyGPModeStarted()           const { return m_legacy_gp_mode_started;         }
 
 private:
-    GameSetup* m_game_setup;
-
-// These are fine here ========================================================
 
     int m_battle_hit_capture_limit;
 
     float m_battle_time_limit;
-
-    std::vector<std::string> m_play_requirement_tracks;
 
     std::set<std::string> m_config_available_tracks;
 
@@ -191,23 +191,17 @@ private:
 
     std::string m_help_message;
 
+    uint64_t m_last_reset;
+
     std::set<int> m_available_difficulties;
 
     std::set<int> m_available_modes;
-
-    TrackFilter m_global_filter;
-
-    KartFilter m_global_karts_filter;
 
     int m_fixed_lap;
 
     int m_fixed_direction;
 
     double m_default_lap_multiplier;
-
-    std::vector<int> m_scoring_int_params;
-
-    std::string m_scoring_type;
 
     std::set<std::string> m_usernames_white_list;
 
@@ -238,10 +232,6 @@ private:
     bool m_kicks_allowed;
     int m_max_ping;
     int m_min_start_game_players;
-    float m_official_karts_play_threshold;
-    float m_official_tracks_play_threshold;
-    bool m_only_host_riding;
-    bool m_owner_less;
     bool m_preserve_battle_scores;
     std::string m_private_server_password;
     bool m_ranked;
@@ -251,7 +241,6 @@ private:
     int m_server_difficulty;
     int m_server_max_players;
     int m_server_mode;
-    bool m_sleeping_server;
     bool m_soccer_goal_target;
     bool m_sql_management;
     float m_start_game_counter;
@@ -267,19 +256,26 @@ private:
     bool m_validating_player;
     float m_voting_timeout;
     std::string m_commands_file;
-    int m_addon_karts_join_threshold;
-    int m_addon_tracks_join_threshold;
-    int m_addon_arenas_join_threshold;
-    int m_addon_soccers_join_threshold;
-    int m_addon_arenas_play_threshold;
-    int m_addon_karts_play_threshold;
-    int m_addon_soccers_play_threshold;
-    int m_addon_tracks_play_threshold;
     std::string m_power_password;
     std::string m_register_table_name;
-    float m_official_karts_threshold;
-    float m_official_tracks_threshold;
+    int m_lobby_cooldown;
 
+    bool m_save_server_config;
+
+    // Special, temporarily public
+public:
+
+    bool m_legacy_gp_mode;
+
+    // This one corresponds to m_game_setup->isGrandPrixStarted()
+    bool m_legacy_gp_mode_started;
+
+    // Special, temporarily public END
+private:
+
+    unsigned m_current_max_players_in_game;
+
+    std::set<std::string> m_temp_banned;
 
 // These should be moved to voting manager ====================================
 

@@ -383,5 +383,5 @@ core::stringw PlayerController::getName(bool include_handicap_string) const
 // ----------------------------------------------------------------------------
 void PlayerController::displayPenaltyWarning()
 {
-    m_penalty_ticks = stk_config->m_penalty_ticks;
+    m_penalty_ticks = STKConfig::get()->m_penalty_ticks;
 }   // displayPenaltyWarning

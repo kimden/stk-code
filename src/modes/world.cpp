@@ -889,7 +889,7 @@ void World::resetAllKarts()
             (*i)->getMaterial() && (*i)->getMaterial()->hasGravity() ?
             (*i)->getNormal() * -g : Vec3(0, -g, 0));
     }
-    for(int i=0; i<stk_config->getPhysicsFPS(); i++)
+    for (int i = 0; i < STKConfig::get()->getPhysicsFPS(); i++)
         Physics::get()->update(1);
 
     for ( KartList::iterator i=m_karts.begin(); i!=m_karts.end(); i++)
@@ -972,7 +972,7 @@ void World::updateTimeTargetSound()
     }
 
     if (time_left <= (RaceManager::get()->isFollowMode() ? 3 : 5) &&
-            getTimeTicks() % stk_config->time2Ticks(1.0f) == 0 &&
+            getTimeTicks() % STKConfig::get()->time2Ticks(1.0f) == 0 &&
             !World::getWorld()->isRaceOver() && time_left > 0)
     {
         SFXManager::get()->quickSound("pre_start_race");
@@ -1186,7 +1186,7 @@ void World::update(int ticks)
     PROFILER_POP_CPU_MARKER();
 
     PROFILER_PUSH_CPU_MARKER("World::update (Track object manager)", 0x20, 0x7F, 0x40);
-    Track::getCurrentTrack()->getTrackObjectManager()->update(stk_config->ticks2Time(ticks));
+    Track::getCurrentTrack()->getTrackObjectManager()->update(STKConfig::get()->ticks2Time(ticks));
     PROFILER_POP_CPU_MARKER();
 
     PROFILER_PUSH_CPU_MARKER("World::update (Kart::upate)", 0x40, 0x7F, 0x00);

@@ -139,6 +139,8 @@ void TrackInfoScreen::init()
 {
     m_record_this_race = false;
 
+    auto& stk_config = STKConfig::get();
+
     const int max_arena_players = std::min(m_track->getMaxArenaPlayers(), unsigned(stk_config->m_max_karts));
     const int local_players     = RaceManager::get()->getNumLocalPlayers();
     const bool has_laps         = RaceManager::get()->modeHasLaps();

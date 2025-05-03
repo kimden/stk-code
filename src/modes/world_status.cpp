@@ -79,6 +79,9 @@ void WorldStatus::reset(bool restart)
     m_auxiliary_ticks = 0;
     m_count_up_ticks  = 0;
     m_start_music_ticks = -1;
+
+    auto& stk_config = STKConfig::get();
+
     // how long to display the 'music' message
     m_race_ticks =
         stk_config->time2Ticks(stk_config->m_music_credit_time);
@@ -159,6 +162,9 @@ void WorldStatus::startEngines()
 void WorldStatus::setClockMode(const ClockType mode, const float initial_time)
 {
     m_clock_mode = mode;
+
+    auto& stk_config = STKConfig::get();
+
     m_time_ticks = stk_config->time2Ticks(initial_time);
     m_time       = stk_config->ticks2Time(m_time_ticks);
 }   // setClockMode
@@ -209,6 +215,7 @@ void WorldStatus::update(int ticks)
  */
 void WorldStatus::updateTime(int ticks)
 {
+    auto& stk_config = STKConfig::get();
     switch (m_phase.load())
     {
         // Note: setup phase must be a separate phase, since the race_manager
@@ -509,6 +516,8 @@ void WorldStatus::updateTime(int ticks)
  */
 void WorldStatus::setTime(const float time)
 {
+    auto& stk_config = STKConfig::get();
+
     int new_time_ticks = stk_config->time2Ticks(time);
     m_time_ticks       = new_time_ticks;
     m_time             = stk_config->ticks2Time(new_time_ticks);
@@ -521,7 +530,7 @@ void WorldStatus::setTime(const float time)
 void WorldStatus::setTicks(int ticks)
 {
     m_time_ticks = ticks;
-    m_time = stk_config->ticks2Time(ticks);
+    m_time = STKConfig::get()->ticks2Time(ticks);
 }   // setTicks
 
 //-----------------------------------------------------------------------------
@@ -531,6 +540,7 @@ void WorldStatus::setTicks(int ticks)
 void WorldStatus::setTicksForRewind(int ticks)
 {
     m_count_up_ticks = ticks;
+    auto& stk_config = STKConfig::get();
     if (RaceManager::get()->hasTimeTarget())
     {
         m_time_ticks = stk_config->time2Ticks(RaceManager::get()->getTimeTarget()) -
@@ -587,6 +597,8 @@ void WorldStatus::unpause()
  */
 void WorldStatus::endLiveJoinWorld(int ticks_now)
 {
+    auto& stk_config = STKConfig::get();
+
     m_live_join_ticks = ticks_now;
     m_live_join_world = false;
     m_auxiliary_ticks = 0;
