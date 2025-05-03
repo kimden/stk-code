@@ -940,6 +940,24 @@ void ClientLobby::handleChat(Event* event)
     SFXManager::get()->quickSound("plopp");
     core::stringw message;
     event->data().decodeString16(&message);
+
+    // === kimden's disclaimer about the message privacy ===
+    // There is currently no peer to peer messaging in STK implemented.
+    // Clients' messages can be spied on, either by the server who has
+    // to have access to all messages in any case, or by the bots who are
+    // technically able to be not shown as present on the server in certain
+    // circumstances (or by players hiding as much as bots, but that will be
+    // prevented later).
+    // This code version does NOT log messages neither on the server side,
+    // nor on the bots' side. I am aware that anyone can copy, change, and
+    // do whatever with this code. I do not bear any responsibility if anyone
+    // starts to spy on your messages this way.
+    // === end of disclaimer ===
+
+    // Human client is supposed to see the messages, while bots are not.
+    if (!NetworkConfig::get()->isNetworkAIInstance())
+        Log::info("ClientLobby", "%s", StringUtils::wideToUtf8(message).c_str());
+
     if (GUIEngine::isNoGraphics())
         return;
     if (message.size() > 0)
