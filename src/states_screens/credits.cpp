@@ -410,7 +410,7 @@ void CreditsScreen::eventCallback(GUIEngine::Widget* widget,
     if (name == "stk-website")
     {
         // Open stk website main page
-        Online::LinkHelper::openURL(stk_config->m_stk_website_url);
+        Online::LinkHelper::openURL(STKConfig::get()->m_stk_website_url);
     }
 }
 

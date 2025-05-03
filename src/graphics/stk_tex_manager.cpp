@@ -292,6 +292,7 @@ void STKTexManager::reloadAllTextures(bool mesh_texture_only)
             if (mi)
                 icons.insert(fs->getAbsolutePath(mi->getFullPath()).c_str());
         }
+        auto track_manager = TrackManager::get();
         for (auto d : *track_manager->getAllTrackDirs())
         {
             if (!d.empty() && d.back() == '/')
