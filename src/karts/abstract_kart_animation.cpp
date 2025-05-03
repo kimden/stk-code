@@ -151,7 +151,7 @@ float AbstractKartAnimation::getAnimationTimer() const
     World* w = World::getWorld();
     if (!w)
         return 0.0f;
-    return stk_config->ticks2Time(m_end_ticks - w->getTicksSinceStart());
+    return STKConfig::get()->ticks2Time(m_end_ticks - w->getTicksSinceStart());
 }   // getAnimationTimer
 
 // ----------------------------------------------------------------------------

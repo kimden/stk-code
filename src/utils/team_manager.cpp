@@ -18,18 +18,25 @@
 
 #include "utils/team_manager.hpp"
 
-#include "utils/team_utils.hpp"
-#include "network/remote_kart_info.hpp"
 #include "network/network_player_profile.hpp"
 #include "network/protocols/server_lobby.hpp"
-#include "utils/string_utils.hpp"
+#include "network/remote_kart_info.hpp"
 #include "network/server_config.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "utils/crown_manager.hpp"
 #include "utils/lobby_gp_manager.hpp"
 #include "utils/lobby_settings.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/team_utils.hpp"
 #include "utils/tournament.hpp"
-#include "network/protocols/server_lobby.hpp"
+
+#include <random>
+
+namespace
+{
+    static const std::set<std::string> empty_string_set = {};
+}
 
 void TeamManager::setupContextUser()
 {
@@ -41,17 +48,19 @@ void TeamManager::setupContextUser()
 void TeamManager::setTemporaryTeamInLobby(const std::string& username, int team)
 {
     irr::core::stringw wide_player_name = StringUtils::utf8ToWide(username);
-    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            wide_player_name);
-    if (player_peer)
+
+    // kimden: this code, as well as findPeerByName, assumes (wrongly) that
+    // there cannot be two profiles with the same name. Fix that pls.
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(wide_player_name);
+    if (!player_peer)
+        return;
+
+    for (auto& profile : player_peer->getPlayerProfiles())
     {
-        for (auto& profile : player_peer.get()->getPlayerProfiles())
+        if (profile->getName() == wide_player_name)
         {
-            if (profile->getName() == wide_player_name)
-            {
-                getTeamManager()->setTemporaryTeamInLobby(profile, team);
-                break;
-            }
+            setTemporaryTeamInLobby(profile, team);
+            break;
         }
     }
 }   // setTemporaryTeamInLobby (username)
@@ -67,24 +76,27 @@ void TeamManager::setTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, 
         profile->getTemporaryTeam()
     );
 
-    getLobby()->checkNoTeamSpectator(profile->getPeer());
+    checkNoTeamSpectator(profile->getPeer());
 }   // setTeamInLobby
 //-----------------------------------------------------------------------------
 
-void TeamManager::setTemporaryTeamInLobby(std::shared_ptr<NetworkPlayerProfile> profile, int team)
+// Used for racing + FFA, where everything can be defined by a temporary team
+void TeamManager::setTemporaryTeamInLobby(
+        std::shared_ptr<NetworkPlayerProfile> profile, int team)
 {
-    // Used for racing+FFA, where everything can be defined by a temporary team
     profile->setTemporaryTeam(team);
+
     if (RaceManager::get()->teamEnabled())
         profile->setTeam((KartTeam)(TeamUtils::getKartTeamFromIndex(team)));
     else
         profile->setTeam(KART_TEAM_NONE);
+
     setTeamForUsername(
         StringUtils::wideToUtf8(profile->getName()),
         profile->getTemporaryTeam()
     );
 
-    getLobby()->checkNoTeamSpectator(profile->getPeer());
+    checkNoTeamSpectator(profile->getPeer());
 }   // setTemporaryTeamInLobby
 //-----------------------------------------------------------------------------
 
@@ -163,22 +175,34 @@ void TeamManager::initCategories()
 }   // initCategories
 //-----------------------------------------------------------------------------
 
-void TeamManager::addPlayerToCategory(const std::string& player, const std::string& category)
+void TeamManager::addPlayerToCategory(
+        const std::string& player, const std::string& category)
 {
     m_player_categories[category].insert(player);
     m_categories_for_player[player].insert(category);
 }   // addPlayerToCategory
 //-----------------------------------------------------------------------------
 
-void TeamManager::erasePlayerFromCategory(const std::string& player, const std::string& category)
+void TeamManager::erasePlayerFromCategory(
+        const std::string& player, const std::string& category)
 {
-    m_player_categories[category].erase(player);
-    m_categories_for_player[player].erase(category);
+    auto& container_for_categ = m_player_categories[category];
+    auto& container_for_player = m_categories_for_player[player];
+
+    container_for_categ.erase(player);
+    container_for_player.erase(category);
+
+    if (container_for_categ.empty())
+        m_player_categories.erase(category);
+
+    if (container_for_player.empty())
+        m_categories_for_player.erase(player);
 }   // erasePlayerFromCategory
 //-----------------------------------------------------------------------------
 
-void TeamManager::makeCategoryVisible(const std::string category, bool value)
+void TeamManager::makeCategoryVisible(const std::string category, int value)
 {
+    m_hidden_categories.set(category, value);
     if (value) {
         m_hidden_categories.erase(category);
     } else {
@@ -193,7 +217,8 @@ bool TeamManager::isCategoryVisible(const std::string category) const
 }   // isCategoryVisible
 //-----------------------------------------------------------------------------
 
-std::vector<std::string> TeamManager::getVisibleCategoriesForPlayer(const std::string& profile_name) const
+std::vector<std::string> TeamManager::getVisibleCategoriesForPlayer(
+        const std::string& profile_name) const
 {
     auto it = m_categories_for_player.find(profile_name);
     if (it == m_categories_for_player.end())
@@ -208,12 +233,11 @@ std::vector<std::string> TeamManager::getVisibleCategoriesForPlayer(const std::s
 }   // getVisibleCategoriesForPlayer
 //-----------------------------------------------------------------------------
 
-
-std::set<std::string> TeamManager::getPlayersInCategory(const std::string& category) const
+const std::set<std::string>& TeamManager::getPlayersInCategory(const std::string& category) const
 {
     auto it = m_player_categories.find(category);
     if (it == m_player_categories.end())
-        return {};
+        return empty_string_set;
 
     return it->second;
 }   // getPlayersInCategory
@@ -269,7 +293,7 @@ void TeamManager::changeTeam(std::shared_ptr<NetworkPlayerProfile> player)
     auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
     if (isTournament() && !getTournament()->canChangeTeam())
     {
-        Log::info("ServerLobby", "Team change requested by %s, but tournament forbids it.", player->getName().c_str());
+        Log::info("TeamManager", "Team change requested by %s, but tournament forbids it.", player->getName().c_str());
         return;
     }
 
@@ -292,4 +316,120 @@ void TeamManager::changeTeam(std::shared_ptr<NetworkPlayerProfile> player)
         setTeamInLobby(player, KART_TEAM_BLUE);
     }
     getLobby()->updatePlayerList();
-}
+}   // changeTeam
+//-----------------------------------------------------------------------------
+
+void TeamManager::checkNoTeamSpectator(std::shared_ptr<STKPeer> peer)
+{
+    if (!peer)
+        return;
+
+    if (RaceManager::get()->teamEnabled())
+    {
+        bool has_teamed = false;
+        for (auto& other: peer->getPlayerProfiles())
+        {
+            if (other->getTeam() != KART_TEAM_NONE)
+            {
+                has_teamed = true;
+                break;
+            }
+        }
+
+        if (!has_teamed && peer->getAlwaysSpectate() == ASM_NONE)
+            getCrownManager()->setSpectateModeProperly(peer, ASM_NO_TEAM);
+
+        if (has_teamed && peer->getAlwaysSpectate() == ASM_NO_TEAM)
+            getCrownManager()->setSpectateModeProperly(peer, ASM_NONE);
+    }
+}   // checkNoTeamSpectator
+//-----------------------------------------------------------------------------
+
+bool TeamManager::assignRandomTeams(int intended_number,
+        int* final_number, int* final_player_number)
+{
+    int teams_number = intended_number;
+    *final_number = teams_number;
+    int player_number = 0;
+    for (auto& p : STKHost::get()->getPeers())
+    {
+        if (!getCrownManager()->canRace(p))
+            continue;
+        if (p->alwaysSpectateButNotNeutral())
+            continue;
+        player_number += p->getPlayerProfiles().size();
+    }
+    if (player_number == 0) {
+        *final_number = teams_number;
+        *final_player_number = player_number;
+        return false;
+    }
+    int max_number_of_teams = TeamUtils::getNumberOfTeams();
+    std::string available_colors_string = getAvailableTeams();
+    if (available_colors_string.empty())
+        return false;
+    if (max_number_of_teams > (int)available_colors_string.length())
+        max_number_of_teams = (int)available_colors_string.length();
+    if (teams_number == -1 || teams_number < 1 || teams_number > max_number_of_teams)
+    {
+        teams_number = (int)round(sqrt(player_number));
+        if (teams_number > max_number_of_teams)
+            teams_number = max_number_of_teams;
+        if (player_number > 1 && teams_number <= 1 && max_number_of_teams >= 2)
+            teams_number = 2;
+    }
+
+    *final_number = teams_number;
+    *final_player_number = player_number;
+    std::vector<int> available_colors;
+    std::vector<int> profile_colors;
+    for (const char& c: available_colors_string)
+        available_colors.push_back(TeamUtils::getIndexByCode(std::string(1, c)));
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(available_colors.begin(), available_colors.end(), g);
+    available_colors.resize(teams_number);
+
+    for (int i = 0; i < player_number; ++i)
+        profile_colors.push_back(available_colors[i % teams_number]);
+
+    std::shuffle(profile_colors.begin(), profile_colors.end(), g);
+
+    clearTemporaryTeams();
+    for (auto& p : STKHost::get()->getPeers())
+    {
+        if (!getCrownManager()->canRace(p))
+            continue;
+        if (p->alwaysSpectateButNotNeutral())
+            continue;
+        for (auto& profile : p->getPlayerProfiles()) {
+            setTemporaryTeamInLobby(profile, profile_colors.back());
+            if (profile_colors.size() > 1) // prevent crash just in case
+                profile_colors.pop_back();
+        }
+    }
+    return true;
+}   // assignRandomTeams
+//-----------------------------------------------------------------------------
+
+void TeamManager::changeColors()
+{
+    // We assume here that it's soccer, as it's only called
+    // from tournament command
+    auto peers = STKHost::get()->getPeers();
+    for (auto peer : peers)
+    {
+        if (peer->hasPlayerProfiles())
+        {
+            // kimden: you assume that only [0] can be checked, but in other places
+            // of the code you are somehow not so sure about that... :)
+            auto pp = peer->getMainProfile();
+            if (pp->getTeam() == KART_TEAM_RED)
+                setTeamInLobby(pp, KART_TEAM_BLUE);
+            else if (pp->getTeam() == KART_TEAM_BLUE)
+                setTeamInLobby(pp, KART_TEAM_RED);
+        }
+    }
+}   // changeColors
+//-----------------------------------------------------------------------------

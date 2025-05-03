@@ -131,7 +131,7 @@ Camera::Camera(CameraType type, int camera_index, Kart* kart)
 
     if (RaceManager::get()->getNumLocalPlayers() > 1)
     {
-        m_fov = DEGREE_TO_RAD * stk_config->m_camera_fov
+        m_fov = DEGREE_TO_RAD * STKConfig::get()->m_camera_fov
           [RaceManager::get()->getNumLocalPlayers() - 1];
     }
     else

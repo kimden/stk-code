@@ -54,19 +54,13 @@ void ChatManager::addMutedPlayerFor(std::shared_ptr<STKPeer> peer,
 bool ChatManager::removeMutedPlayerFor(std::shared_ptr<STKPeer> peer,
                                          const std::string& name)
 {
-    // I'm not sure why the implementation was so long
     auto& collection = m_peers_muted_players[std::weak_ptr<STKPeer>(peer)];
-    for (auto it = collection.begin(); it != collection.end(); )
-    {
-        if (*it == name)
-        {
-            it = collection.erase(it);
-            return true;
-        }
-        else
-            it++;
-    }
-    return false;
+    auto it = collection.find(name);
+    if (it == collection.end())
+        return false;
+
+    collection.erase(it);
+    return true;
 }   // removeMutedPlayerFor
 //-----------------------------------------------------------------------------
 
@@ -87,10 +81,17 @@ std::string ChatManager::getMutedPlayersAsString(std::shared_ptr<STKPeer> peer)
     int num_players = 0;
     for (auto& name : m_peers_muted_players[std::weak_ptr<STKPeer>(peer)])
     {
-        response += name;
-        response += " ";
+        response += StringUtils::quoteEscape(name, ' ', '"', '"', '\\');
+        response += ", ";
         ++num_players;
     }
+
+    if (response.size() >= 2)
+    {
+        response.resize(response.size() - 2);
+        response.push_back(' ');
+    }
+
     if (num_players == 0)
         response = "No player has been muted by you";
     else
@@ -162,7 +163,8 @@ void ChatManager::onPeerDisconnect(std::shared_ptr<STKPeer> peer)
 //-----------------------------------------------------------------------------
 
 void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
-        std::string message, KartTeam target_team)
+        std::string message, KartTeam target_team,
+        const std::shared_ptr<GenericDecorator>& decorator)
 {
     // Update so that the peer is not kicked
     peer->updateLastActivity();
@@ -193,6 +195,10 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
         getLobby()->sendStringToPeer(peer, "Don't try to impersonate others!");
         return;
     }
+
+    std::string new_prefix = StringUtils::wideToUtf8(
+        peer->getMainProfile()->getDecoratedName(decorator)) + ": ";
+    message = new_prefix + message.substr(prefix.length()); 
 
     if (message.size() == 0)
         return;
@@ -252,6 +258,9 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
         {
             if (target->isSpectator())
                 return false;
+
+            if (!Tournament::hasProfileFromTeam(target, target_team))
+                return false;
         }
 
         if (isTournament())
@@ -263,7 +272,7 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
             if (target_team != KART_TEAM_NONE)
             {
                 if (!tournament->hasProfileThatSeesTeamchats(target) &&
-                    !tournament->hasProfileFromTeam(target, target_team))
+                    !Tournament::hasProfileFromTeam(target, target_team))
                     return false;
             }
         }
@@ -275,7 +284,7 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
     {
         // this should be moved into a new function for peer,
         // unless all profiles have the same team forcibly rn
-        bool someone_good = !(getTeamsForPeer(sender).intersect(getTeamsForPeer(target))).empty();
+        bool someone_good = !(getTeamsForPeer(sender) & getTeamsForPeer(target)).empty();
         if (!someone_good && (!isTournament() || !getTournament()->hasProfileThatSeesTeamchats(target)))
             return false;
     }

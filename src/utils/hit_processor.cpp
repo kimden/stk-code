@@ -97,7 +97,7 @@ void HitProcessor::sendTeammateHitMsg(std::string& s)
         return;
 
     int ticks = w->getTicksSinceStart();
-    if (ticks - m_last_hit_msg > stk_config->time2Ticks(g_hit_message_delay))
+    if (ticks - m_last_hit_msg > STKConfig::get()->time2Ticks(g_hit_message_delay))
     {
         m_last_hit_msg = ticks;
         getLobby()->sendStringToAllPeers(s);
@@ -123,7 +123,7 @@ void HitProcessor::handleTeammateHits()
     // currently only bowling balls have their creation time registered
     // so cakes will always count
 
-    if (m_ticks_since_thrown > stk_config->time2Ticks(MAX_BOWL_TEAMMATE_HIT_TIME))
+    if (m_ticks_since_thrown > STKConfig::get()->time2Ticks(MAX_BOWL_TEAMMATE_HIT_TIME))
         return;
 
     if (showTeammateHits())
@@ -258,7 +258,7 @@ void HitProcessor::handleSwatterHit(unsigned int ownerID, unsigned int victimID,
         // if this is the first kart hit and the swatter is in use
         // for less than 3s, the attacker also gets an anvil
         if (!has_hit_kart
-                && ticks_active < stk_config->time2Ticks(3.0f)
+                && ticks_active < STKConfig::get()->time2Ticks(3.0f)
                 && success)
         {
             // we cannot do this here, will be done in update()
@@ -345,7 +345,7 @@ void HitProcessor::punishKart(Kart* kart, float value, float value2)
 
     auto time_used = kart->getKartProperties()->getAnvilDuration();
     kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
-        stk_config->time2Ticks(time_used) * value + leftover_ticks);
+        STKConfig::get()->time2Ticks(time_used) * value + leftover_ticks);
 
     auto factor = kart->getKartProperties()->getAnvilSpeedFactor();
     kart->adjustSpeed(factor / value);

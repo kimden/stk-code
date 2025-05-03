@@ -67,6 +67,25 @@ using namespace irr;
 
 #include <IrrlichtDevice.h>
 
+namespace
+{
+    const wchar_t* g_long_time    = L"99:99:99.999";
+    const wchar_t* g_medium_time  = L"99:99:99.999";
+    const wchar_t* g_long_laps    = L"999/999";
+    const wchar_t* g_medium_laps  = L"9/9";
+    const wchar_t* g_minus        = L"-";
+
+    // standard values, if you change them you also have to change
+    // bool display_hours = true in string_utils.hpp
+
+    // const wchar_t* g_long_time    = L"99:99.999";
+    // const wchar_t* g_medium_time  = L"99.999";
+    // const wchar_t* g_long_laps    = L"99/99";
+    // const wchar_t* g_medium_laps  = L"9/9";
+    // const wchar_t* g_minus        = L"-";
+    
+}   // namespace
+
 /** The constructor is called before anything is attached to the scene node.
  *  So rendering to a texture can be done here. But world is not yet fully
  *  created, so only the race manager can be accessed safely.
@@ -117,25 +136,25 @@ void RaceGUI::initSize()
     // Determine maximum length of the rank/lap text, in order to
     // align those texts properly on the right side of the viewport.
     gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-    core::dimension2du area = font->getDimension(L"99:99:99.999");
+    core::dimension2du area = font->getDimension(g_long_time);
     m_timer_width = area.Width;
     m_font_height = area.Height;
 
-    area = font->getDimension(L"99:99:99.999");
+    area = font->getDimension(g_medium_time);
     m_small_precise_timer_width = area.Width;
 
-    area = font->getDimension(L"99:99:99.999");
+    area = font->getDimension(g_long_time);
     m_big_precise_timer_width = area.Width;
 
-    area = font->getDimension(L"-");
+    area = font->getDimension(g_minus);
     m_negative_timer_additional_width = area.Width;
 
     if (RaceManager::get()->getMinorMode()==RaceManager::MINOR_MODE_FOLLOW_LEADER ||
         RaceManager::get()->isBattleMode()     ||
         RaceManager::get()->getNumLaps() > 9)
-        m_lap_width = font->getDimension(L"99/99").Width;
+        m_lap_width = font->getDimension(g_long_laps).Width;
     else
-        m_lap_width = font->getDimension(L"9/9").Width;
+        m_lap_width = font->getDimension(g_medium_laps).Width;
 }   // initSize
 
 //-----------------------------------------------------------------------------

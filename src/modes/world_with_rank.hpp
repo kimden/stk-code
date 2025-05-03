@@ -24,6 +24,7 @@
 
 class Kart;
 class TrackSector;
+class GPScoring;
 
 /**
  *  A WorldWithRank is a world where the karts are ranked. This is the base
@@ -48,11 +49,7 @@ protected:
      *  0 based, so using race-position - 1. */
     std::vector<int> m_score_for_position;
 
-    bool m_custom_scoring;
-
-    std::vector<int> m_custom_scoring_params;
-
-    std::string m_custom_scoring_type;
+    std::shared_ptr<GPScoring> m_custom_scoring;
 
     std::map<int, float> m_race_times;
 
@@ -74,9 +71,7 @@ protected:
     void updateSectorForKarts();
 
 public:
-                  WorldWithRank() : World() {
-                       m_custom_scoring = false;
-                  }
+                  WorldWithRank() : World() {}
     virtual      ~WorldWithRank();
     /** call just after instanciating. can't be moved to the contructor as child
         classes must be instanciated, otherwise polymorphism will fail and the
@@ -115,7 +110,7 @@ public:
     // ------------------------------------------------------------------------
     int getSectorForKart(const Kart *kart) const;
     // ------------------------------------------------------------------------
-    void setCustomScoringSystem(std::string& type, std::vector<int>& params);
+    void setCustomScoringSystem(std::shared_ptr<GPScoring> scoring);
     // ------------------------------------------------------------------------
     void refreshCustomScores(int num_karts);
     // ------------------------------------------------------------------------

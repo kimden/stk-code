@@ -196,7 +196,7 @@ ItemManager::ItemManager()
     m_switch_to.reserve(ItemState::ITEM_COUNT);
     for(unsigned int i=ItemState::ITEM_FIRST; i<ItemState::ITEM_COUNT; i++)
         m_switch_to.push_back((ItemState::ItemType)i);
-    setSwitchItems(stk_config->m_switch_items);
+    setSwitchItems(STKConfig::get()->m_switch_items);
 
     if(Graph::get())
     {
@@ -603,7 +603,7 @@ void ItemManager::switchItemsInternal(std::vector<ItemState*> &all_items)
     // if the items are already switched (m_switch_ticks >=0)
     // then switch back, and set m_switch_ticks to -1 to indicate
     // that the items are now back to normal.
-    m_switch_ticks = m_switch_ticks < 0 ? stk_config->m_item_switch_ticks : -1;
+    m_switch_ticks = m_switch_ticks < 0 ? STKConfig::get()->m_item_switch_ticks : -1;
 
 }   // switchItems
 

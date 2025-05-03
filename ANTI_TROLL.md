@@ -1,6 +1,6 @@
 ## Info on experimental anti-troll system
 If activated, a timer is kept for all players. System can be activated in xml config or in the lobby with command:
-\admin troll [0,1]
+/troll [0,1]
 
 Timer is increased by the amount of time when
 * a player drives in the wrong way
@@ -19,7 +19,7 @@ Config can be controlled in xml file like this:
     <!-- Set values for anti-troll system -->
     <!-- If true, use anti troll system
          This can also be controlled with server command:
-         \admin troll [0,1] -->
+         /troll [0,1] -->
     <use-anti-troll-system value="true" />
     <!-- Warn string to show to player -->
     <troll-warn-message value="WARNING: You troll, you get kicked !!" />

@@ -268,7 +268,7 @@ public:
         if (t > 0)
         {
             m_additional_rotation =
-                rot_in_y_axis / (stk_config->ticks2Time(t));
+                rot_in_y_axis / (STKConfig::get()->ticks2Time(t));
         }
         m_ticks_additional_rotation = t;
     }   // setTimedTorque

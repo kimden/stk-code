@@ -45,6 +45,7 @@
 class BareNetworkString;
 class CommandManager;
 class DatabaseConnector;
+class GenericDecorator;
 class HitProcessor;
 class KartElimination;
 class LobbyAssetManager;
@@ -95,8 +96,6 @@ public:
 private:
 
 #ifdef ENABLE_SQLITE3
-    std::shared_ptr<DatabaseConnector> m_db_connector;
-
     void pollDatabase();
 #endif
 
@@ -130,8 +129,6 @@ private:
     std::atomic_bool m_server_has_loaded_world;
 
     bool m_registered_for_once_only;
-
-    bool m_save_server_config;
 
     /** Counts how many peers have finished loading the world. */
     std::map<std::weak_ptr<STKPeer>, bool,
@@ -179,7 +176,7 @@ private:
 
     std::shared_ptr<Ranking> m_ranking;
 
-    friend CommandManager;
+    std::shared_ptr<GenericDecorator> m_name_decorator;
 
     unsigned m_item_seed;
 
@@ -187,14 +184,6 @@ private:
 
     // Calculated before each game started
     unsigned m_ai_count;
-
-    std::set<std::shared_ptr<STKPeer>> m_spectators_by_limit;
-
-    std::map<std::shared_ptr<STKPeer>, int> m_why_peer_cannot_play;
-
-    std::set<std::string> m_temp_banned;
-
-    std::atomic<unsigned> m_current_max_players_in_game;
 
     std::shared_ptr<GameInfo> m_game_info;
 
@@ -217,12 +206,16 @@ private:
 
 public: // I'll see if it should be private later
     void updatePlayerList(bool update_when_reset_server = false);
+    void updateServerOwner(bool force = false);
 
 private:
-    void updateServerOwner(bool force = false);
     void handleServerConfiguration(Event* event);
+
+public: // I'll see if it should be private later
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         int difficulty, int mode, bool soccer_goal_target, int gp_track_count);
+
+private:
     void updateMapsForMode();
     bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     void resetPeersReady()
@@ -257,9 +250,8 @@ private:
     bool handleAllVotes(PeerVote* winner);
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
-    void computeNewRankings();
+    void computeNewRankings(NetworkString* ns);
     void checkRaceFinished();
-    void getHitCaptureLimit();
     void configPeersStartTime();
     void resetServer();
     void addWaitingPlayersToGame();
@@ -287,7 +279,6 @@ private:
     void handleKartInfo(Event* event);
     void clientInGameWantsToBackLobby(Event* event);
     void clientSelectingAssetsWantsToBackLobby(Event* event);
-    std::set<std::shared_ptr<STKPeer>>& getSpectatorsByLimit(bool update = false);
     void kickPlayerWithReason(std::shared_ptr<STKPeer> peer, const char* reason) const;
     void testBannedForIP(std::shared_ptr<STKPeer> peer) const;
     void testBannedForIPv6(std::shared_ptr<STKPeer> peer) const;
@@ -296,11 +287,11 @@ private:
     void writePlayerReport(Event* event);
     bool supportsAI();
     void initTournamentPlayers();
-    void changeColors();
-    bool canRace(std::shared_ptr<STKPeer> peer);
+public:
+    void changeLimitForTournament(bool goal_target);
+private:
     bool canVote(std::shared_ptr<STKPeer> peer) const;
     bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
-    void changeLimitForTournament(bool goal_target);
 
 public:
              ServerLobby();
@@ -322,7 +313,6 @@ public:
                             { return m_state.load() >= WAIT_FOR_RACE_STARTED; }
     virtual bool isRacing() const OVERRIDE { return m_state.load() == RACING; }
     bool allowJoinedPlayersWaiting() const;
-    void setSaveServerConfig(bool val)          { m_save_server_config = val; }
     uint8_t getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
     int getDifficulty() const                   { return m_difficulty.load(); }
     int getGameMode() const                      { return m_game_mode.load(); }
@@ -336,7 +326,6 @@ public:
         return std::find(m_ai_profiles.begin(), m_ai_profiles.end(), npp) !=
             m_ai_profiles.end();
     }
-    void storeResults();
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
     void resetToDefaultSettings();
@@ -345,10 +334,17 @@ public:
     bool writeOnePlayerReport(std::shared_ptr<STKPeer> reporter, const std::string& table,
         const std::string& info);
     // int getTrackMaxPlayers(std::string& name) const;
-    void updateGnuElimination();
 
     void sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s);
+
+    // TODO: When using different decorators for everyone, you would need
+    // a structure to store "player profile" placeholders in a string, so that
+    // you can apply decorators at the very last moment inside sendStringToAllPeers
+    // and similar functions.
     void sendStringToAllPeers(const std::string& s);
+    std::string encodeProfileNameForPeer(
+        std::shared_ptr<NetworkPlayerProfile> npp,
+        STKPeer* peer);
 
     int getPermissions(std::shared_ptr<STKPeer> peer) const;
     bool isSoccerGoalTarget() const;
@@ -368,13 +364,27 @@ public:
 
     bool playerReportsTableExists() const;
 
-    void saveDisconnectingPeerInfo(std::shared_ptr<STKPeer> peer) const;
-    void saveDisconnectingIdInfo(int id) const;
     void sendServerInfoToEveryone() const;
 
-    // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
-    void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
-    void setSpectateModeProperly(std::shared_ptr<STKPeer> peer, AlwaysSpectateMode mode);
+    bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }
+    bool isWorldFinished() const   { return m_state.load() >= RESULT_DISPLAY; }
+    bool isStateAtLeastRacing() const      { return m_state.load() >= RACING; }
+    bool isLegacyGPMode() const;
+    int getCurrentStateScope();
+    bool isChildProcess()                { return m_process_type == PT_CHILD; }
+
+    bool isClientServerHost(const std::shared_ptr<STKPeer>& peer);
+
+    void setTimeoutFromNow(int seconds);
+    void setInfiniteTimeout();
+    bool isInfiniteTimeout() const;
+    bool isTimeoutExpired() const;
+    float getTimeUntilExpiration() const;
+    void onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer);
+
+    //-------------------------------------------------------------------------
+    // More auxiliary functions
+    //-------------------------------------------------------------------------
 
     std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
     std::shared_ptr<STKPeer> getServerOwner() const

@@ -291,7 +291,7 @@ void Referee::selectReadySetGo(int rsg)
  */
 void Referee::setAnimationFrameWithCreatedTicks(int created_ticks)
 {
-    float dur = stk_config->ticks2Time(
+    float dur = STKConfig::get()->ticks2Time(
         World::getWorld()->getTicksSinceStart() - created_ticks);
     dur *= 25.0f;
     float ref_dur = (float)(m_st_last_rescue_frame - m_st_first_rescue_frame);

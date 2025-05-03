@@ -558,7 +558,7 @@ void RaceGUIBase::update(float dt)
         // already 1 second ahead of time when crossing finished line)
         if (k->getNetworkConfirmedFinishTicks() > 0
             && w->getTicksSinceStart() >
-            k->getNetworkConfirmedFinishTicks() + stk_config->time2Ticks(1.0f))
+            k->getNetworkConfirmedFinishTicks() + STKConfig::get()->time2Ticks(1.0f))
         {
             m_enabled_network_spectator = true;
             cl->setSpectator(true);
@@ -634,6 +634,8 @@ void RaceGUIBase::drawGlobalMusicDescription()
     
     const int fheight = font->getDimension(L"X").Height;
     
+    auto& stk_config = STKConfig::get();
+
     float race_time =
         stk_config->ticks2Time(World::getWorld()->getMusicDescriptionTicks());
 

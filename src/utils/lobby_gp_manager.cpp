@@ -18,10 +18,11 @@
 
 #include "utils/lobby_gp_manager.hpp"
 
-#include "network/server_config.hpp"
-#include "utils/string_utils.hpp"
+#include "karts/kart.hpp"
+#include "modes/linear_world.hpp"
+#include "modes/world.hpp"
+#include "modes/world_with_rank.hpp"
 #include "network/game_setup.hpp"
-#include "network/protocols/server_lobby.hpp"
 #include "network/network_player_profile.hpp"
 #include "modes/world.hpp"
 #include "karts/kart.hpp"
@@ -29,16 +30,22 @@
 #include "modes/world_with_rank.hpp"
 #include "modes/linear_world.hpp"
 #include "network/network_string.hpp"
+#include "network/protocols/server_lobby.hpp"
+#include "network/server_config.hpp"
+#include "utils/gp_scoring.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/team_manager.hpp"
 
 void LobbyGPManager::setupContextUser()
 {
-    
+    if (!trySettingGPScoring(ServerConfig::m_gp_scoring))
+        m_gp_scoring = {};
 }   // setupContextUser
 //-----------------------------------------------------------------------------
 
 void LobbyGPManager::onStartSelection()
 {
-    if (!getLobby()->getGameSetup()->isGrandPrixStarted())
+    if (!getGameSetupFromCtx()->isGrandPrixStarted())
     {
         m_gp_scores.clear();
         m_gp_team_scores.clear();
@@ -49,7 +56,7 @@ void LobbyGPManager::onStartSelection()
 void LobbyGPManager::setScoresToPlayer(std::shared_ptr<NetworkPlayerProfile> player) const
 {
     std::string username = StringUtils::wideToUtf8(player->getName());
-    if (getLobby()->getGameSetup()->isGrandPrix())
+    if (getGameSetupFromCtx()->isGrandPrix())
     {
         auto it = m_gp_scores.find(username);
         if (it != m_gp_scores.end())
@@ -74,14 +81,27 @@ std::string LobbyGPManager::getGrandPrixStandings(bool showIndividual, bool show
             showTeam = true;
     }
 
-    auto game_setup = getLobby()->getGameSetup();
-    uint8_t passed = (uint8_t)game_setup->getAllTracks().size();
+    auto game_setup = getGameSetupFromCtx();
+    int passed = (int)game_setup->getAllTracks().size();
+    bool ongoing = false;
+    if (getLobby()->isWorldPicked() && !getLobby()->isWorldFinished())
+    {
+        --passed;
+        ongoing = true;
+    }
+    
     uint8_t total = game_setup->getExtraServerInfo();
-    if (passed != 0)
-        response << " after " << (int)passed << " of " << (int)total << " games:\n";
+    if (passed != 0 || ongoing)
+    {
+        response << " after " << (int)passed << " of " << (int)total << " games";
+        if (ongoing)
+            response << " (before this game)";
+    }
     else
-        response << ", " << (int)total << " games:\n";
+        response << ", " << (int)total << " games";
 
+    response << ":\n";
+    
     if (showIndividual)
     {
         std::vector<std::pair<GPScore, std::string>> results;
@@ -126,7 +146,7 @@ void LobbyGPManager::resetGrandPrix()
 {
     m_gp_scores.clear();
     m_gp_team_scores.clear();
-    getLobby()->getGameSetup()->stopGrandPrix();
+    getGameSetupFromCtx()->stopGrandPrix();
 
     getLobby()->sendServerInfoToEveryone();
     getLobby()->updatePlayerList();
@@ -159,7 +179,7 @@ void LobbyGPManager::updateGPScores(std::vector<float>& gp_changes, NetworkStrin
     std::string fastest_kart = StringUtils::wideToUtf8(fastest_kart_wide);
 
     // all gp tracks
-    auto game_setup = getLobby()->getGameSetup();
+    auto game_setup = getGameSetupFromCtx();
 
     int points_fl = 0;
     // Commented until used to remove the warning
@@ -236,4 +256,42 @@ void LobbyGPManager::updateGPScores(std::vector<float>& gp_changes, NetworkStrin
                     .addFloat(overall_times[i]);
     }
 }   // updateGPScores
+//-----------------------------------------------------------------------------
+
+bool LobbyGPManager::trySettingGPScoring(const std::string& input)
+{
+    std::shared_ptr<GPScoring> new_scoring;
+    
+    try
+    {
+        new_scoring = GPScoring::createFromIntParamString(input);
+    }
+    catch (std::logic_error& ex)
+    {
+        Log::warn("Failed to create GP scoring from string (%s): %s",
+                input.c_str(), ex.what());
+        return false;
+    }
+
+    std::swap(m_gp_scoring, new_scoring);
+    return true;
+}   // trySettingGPScoring
+//-----------------------------------------------------------------------------
+
+void LobbyGPManager::updateWorldScoring() const
+{
+    WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
+    if (wwr)
+        wwr->setCustomScoringSystem(m_gp_scoring);
+}   // updateWorldScoring
+//-----------------------------------------------------------------------------
+
+std::string LobbyGPManager::getScoringAsString() const
+{
+    std::string msg = "Current scoring is \"";
+    if (m_gp_scoring)
+        msg += m_gp_scoring->toString();
+    msg += "\"";
+    return msg;
+}   // getScoringAsString
 //-----------------------------------------------------------------------------

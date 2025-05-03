@@ -21,6 +21,8 @@
 #include "karts/tyres.hpp"
 #include "network/network_config.hpp"
 #include "network/stk_host.hpp"
+#include "utils/name_decorators/generic_decorator.hpp"
+#include "utils/string_utils.hpp"
 #include "utils/team_utils.hpp"
 
 // ----------------------------------------------------------------------------
@@ -48,3 +50,11 @@ std::string NetworkPlayerProfile::getTyreCircle() const
     return TeamUtils::getTeamByIndex(team_idx).getCircle() + " ";
 }   // getTyreCircle
 //-----------------------------------------------------------------------------
+
+/** Asks decorator for a name to show in a certain conditions.
+ */
+core::stringw NetworkPlayerProfile::getDecoratedName(std::shared_ptr<GenericDecorator> decorator)
+{
+    return StringUtils::utf8ToWide(decorator->decorate(StringUtils::wideToUtf8(m_player_name)));
+}   // getDecoratedName
+// ----------------------------------------------------------------------------

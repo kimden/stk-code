@@ -43,7 +43,7 @@
  *  \param Kart Pointer to the kart for which this camera is used.
  */
 CameraNormal::CameraNormal(Camera::CameraType type,  int camera_index, 
-                           Kart* kart) 
+                           Kart* kart)
             : Camera(type, camera_index, kart), m_camera_offset(0., 0., 0.)
 {
     m_distance = kart ? UserConfigParams::m_camera_distance : 1000.0f;
@@ -402,7 +402,7 @@ void CameraNormal::positionCamera(float dt, float above_kart, float cam_angle,
                            fabsf(distance)*tan_up+above_kart,
                            distance);
     btTransform t=m_kart->getSmoothedTrans();
-    if(stk_config->m_camera_follow_skid &&
+    if (STKConfig::get()->m_camera_follow_skid &&
         m_kart->getSkidding()->getVisualSkidRotation()!=0)
     {
         // If the camera should follow the graphical skid, add the

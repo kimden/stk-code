@@ -145,6 +145,8 @@ void Skidding::checkSmoothing()
  */
 float Skidding::updateSteering(float steer, int ticks)
 {
+    auto& stk_config = STKConfig::get();
+
     float dt = stk_config->ticks2Time(ticks);
     float skid_time_float = stk_config->ticks2Time(m_skid_time);
     float steer_result = 0.0f;
@@ -325,6 +327,8 @@ float Skidding::updateGraphics(float dt)
 void Skidding::update(int ticks, bool is_on_ground,
                       float steering, KartControl::SkidControl skidding)
 {
+    auto& stk_config = STKConfig::get();
+
     float dt = stk_config->ticks2Time(ticks);
 
     m_remaining_jump_time -= dt;
@@ -586,7 +590,7 @@ unsigned int Skidding::getSkidLevel(const KartProperties *kp) const
     unsigned int level = 0;
     for (level = 0; level < kp->getSkidBonusSpeed().size(); level++)
     {
-        if (stk_config->ticks2Time(m_skid_time) <=
+        if (STKConfig::get()->ticks2Time(m_skid_time) <=
             kp->getSkidTimeTillBonus()[level])
             break;
     }

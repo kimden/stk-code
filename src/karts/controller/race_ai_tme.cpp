@@ -340,7 +340,7 @@ void TyreModAI::computeRacingLine(unsigned int current_node, unsigned int max) {
 void TyreModAI::update(int ticks)
 {
     //feenableexcept(FE_INVALID | FE_OVERFLOW);
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
     computeRacingLine(m_track_node, 100);
 
     m_controls->setLookBack(false);

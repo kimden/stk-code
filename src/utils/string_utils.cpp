@@ -222,7 +222,31 @@ namespace StringUtils
             exit(1);
         }
     }   // split
+    //-------------------------------------------------------------------------
 
+    std::string quoteEscape(const std::string& s, char c,
+                                   char d, char e, char f)
+    {
+        std::string ans = "";
+        bool quoted = false;
+
+        if (s.find(c) != std::string::npos || s.empty())
+            quoted = true;
+
+        if (quoted)
+            ans.push_back(d);
+
+        for (unsigned j = 0; j < s.size(); ++j) {
+            if (s[j] == d || s[j] == e || s[j] == f) {
+                ans.push_back(f);
+            }
+            ans.push_back(s[j]);
+        }
+        if (quoted)
+            ans.push_back(e);
+
+        return ans;
+    }   // quoteEscape
     //-------------------------------------------------------------------------
     /** Splits a string into substrings separated by a certain character, and
      *  returns a std::vector of all those substring. E.g.:
@@ -626,7 +650,7 @@ namespace StringUtils
     /** Returns the time (in seconds) as string, based on ticks. */
     std::string ticksTimeToString(int ticks)
     {
-        return timeToString(stk_config->ticks2Time(ticks));
+        return timeToString(STKConfig::get()->ticks2Time(ticks));
     }   // ticksTimeToString(ticks)
 
     // ------------------------------------------------------------------------
@@ -1256,7 +1280,7 @@ namespace StringUtils
                 utf8::utf32to16(chars, chars + input.size(),
                     back_inserter(wchar_line));
             }
-            else if (sizeof(wchar_t) == sizeof(char32_t))
+            else if (sizeof(wchar_t) == sizeof(char32_t) && !input.empty())
             {
                 wchar_line.resize(input.size());
                 memcpy(wchar_line.data(), input.c_str(),

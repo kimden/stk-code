@@ -639,7 +639,7 @@ public:
     Difficulty getDifficulty() const { return m_difficulty; }
     // ----------------------------------------------------------------------------------------
     /** Returns the specified difficulty as a string. */
-    std::string getDifficultyAsString(Difficulty diff) const
+    static std::string getDifficultyAsString(Difficulty diff)
     {
         switch(diff)
         {

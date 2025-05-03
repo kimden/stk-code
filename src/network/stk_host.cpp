@@ -283,7 +283,7 @@ STKHost::STKHost(bool server)
 #endif
         addr.port = ServerConfig::m_server_port;
         if (addr.port == 0 && !UserConfigParams::m_random_server_port)
-            addr.port = stk_config->m_server_port;
+            addr.port = STKConfig::get()->m_server_port;
         // Reserve 1 peer to deliver full server message
         int peer_count = ServerConfig::m_server_max_players + 1;
         // 1 more peer to hold ai peer
@@ -816,7 +816,7 @@ void STKHost::mainLoop(ProcessType pt)
         NetworkConfig::get()->isPublicServer())
     {
         ENetAddress eaddr = {};
-        eaddr.port = stk_config->m_server_discovery_port;
+        eaddr.port = STKConfig::get()->m_server_discovery_port;
         direct_socket = new Network(1, 1, 0, 0, &eaddr);
         if (direct_socket->getENetHost() == NULL)
         {
@@ -872,7 +872,7 @@ void STKHost::mainLoop(ProcessType pt)
             std::unique_lock<std::mutex> peer_lock(m_peers_mutex);
             const float timeout = ServerConfig::m_validation_timeout;
             bool need_ping = false;
-            if (sl && (!sl->isRacing() || sl->allowJoinedPlayersWaiting()) &&
+            if (sl && (!sl->isRacing() || !sl->isLegacyGPMode()) &&
                 last_ping_time < StkTime::getMonoTimeMs())
             {
                 // If not racing, send an reliable packet at the 10 packets
@@ -960,7 +960,7 @@ void STKHost::mainLoop(ProcessType pt)
             for (auto it = m_peers.begin(); it != m_peers.end();)
             {
                 if (!ping_packet.getBuffer().empty() &&
-                    (!sl->allowJoinedPlayersWaiting() ||
+                    (sl->isLegacyGPMode() ||
                     !sl->isRacing() || it->second->isWaitingForGame()))
                 {
                     ENetPacket* packet = enet_packet_create(ping_packet.getData(),
@@ -1451,7 +1451,7 @@ std::set<uint32_t> STKHost::getAllPlayerOnlineIds() const
         if (!peer.second->getPlayerProfiles().empty())
         {
             online_ids.insert(
-                peer.second->getPlayerProfiles()[0]->getOnlineId());
+                peer.second->getMainProfile()->getOnlineId());
         }
     }
     lock.unlock();
@@ -1469,8 +1469,8 @@ std::shared_ptr<STKPeer> STKHost::findPeerByHostId(uint32_t id) const
         });
     return ret != m_peers.end() ? ret->second : nullptr;
 }   // findPeerByHostId
-
 //-----------------------------------------------------------------------------
+
 std::shared_ptr<STKPeer>
     STKHost::findPeerByName(const core::stringw& name) const
 {
@@ -1491,8 +1491,8 @@ std::shared_ptr<STKPeer>
         });
     return ret != m_peers.end() ? ret->second : nullptr;
 }   // findPeerByName
-
 //-----------------------------------------------------------------------------
+
 std::shared_ptr<STKPeer>
     STKHost::findPeerByWildcard(const core::stringw& name_pattern, std::string& name_found) const
 {

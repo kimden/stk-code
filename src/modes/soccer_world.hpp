@@ -271,7 +271,7 @@ public:
     virtual bool isGoalPhase() const OVERRIDE
     {
         int diff = m_ticks_back_to_own_goal - getTicksSinceStart();
-        return diff > 0 && diff < stk_config->time2Ticks(3.0f);
+        return diff > 0 && diff < STKConfig::get()->time2Ticks(3.0f);
     }
     // ------------------------------------------------------------------------
     Kart* getKartAtDrawingPosition(unsigned int p) const OVERRIDE

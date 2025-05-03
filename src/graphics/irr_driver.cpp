@@ -522,6 +522,8 @@ begin:
                 UserConfigParams::m_scale_rtts_factor;
             GE::getGEConfig()->m_pbr =
                 UserConfigParams::m_dynamic_lights;
+            GE::getGEConfig()->m_ibl =
+                !UserConfigParams::m_degraded_IBL;
 #endif
         }
         else
@@ -1140,6 +1142,7 @@ void IrrDriver::applyResolutionSettings(bool recreate_device)
     // Input manager set first so it recieves SDL joystick event
     // Re-init GUI engine
     GUIEngine::init(m_device, m_video_driver, StateManager::get());
+    GUIEngine::reserveLoadingIcons(3);
     // If not recreate device we need to add the previous joystick manually
     if (!recreate_device)
         input_manager->addJoystick();
@@ -1848,10 +1851,12 @@ void IrrDriver::setAmbientLight(const video::SColorf &light, bool force_SH_compu
 {
 #ifndef SERVER_ONLY
     video::SColorf color = light;
-    color.r = powf(color.r, 1.0f / 2.2f);
-    color.g = powf(color.g, 1.0f / 2.2f);
-    color.b = powf(color.b, 1.0f / 2.2f);
-    
+    if (m_video_driver->getDriverType() != EDT_VULKAN)
+    {
+        color.r = powf(color.r, 1.0f / 2.2f);
+        color.g = powf(color.g, 1.0f / 2.2f);
+        color.b = powf(color.b, 1.0f / 2.2f);
+    }
     m_scene_manager->setAmbientLight(color);
     m_renderer->setAmbientLight(light, force_SH_computation);    
 #endif
