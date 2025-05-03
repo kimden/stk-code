@@ -43,7 +43,7 @@
  *  \param Kart Pointer to the kart for which this camera is used.
  */
 CameraNormal::CameraNormal(Camera::CameraType type,  int camera_index, 
-                           Kart* kart) 
+                           Kart* kart)
             : Camera(type, camera_index, kart), m_camera_offset(0., 0., 0.)
 {
     m_distance = kart ? UserConfigParams::m_camera_distance : 1000.0f;

@@ -232,7 +232,7 @@ Item::Item(ItemType type, const Vec3& xyz, const Vec3& normal,
     m_was_available_previously = true;
     // Prevent appear animation at start
     m_animation_start_ticks = -9999;
-    m_distance_2        = 1.2f;
+    m_distance_2        = ItemManager::getCollectDistanceSquared(type);
     initItem(type, xyz, normal);
     m_graphical_type    = getGraphicalType();
 
