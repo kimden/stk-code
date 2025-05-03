@@ -72,6 +72,10 @@
 #include <IGUIContextMenu.h>
 
 #include <cmath>
+#ifndef SERVER_ONLY
+#include <ge_main.hpp>
+#include <ge_vulkan_driver.hpp>
+#endif
 
 using namespace irr;
 using namespace gui;
@@ -100,6 +104,8 @@ enum DebugMenuCommand
     DEBUG_PROFILER_WRITE_REPORT,
     DEBUG_FONT_DUMP_GLYPH_PAGE,
     DEBUG_FONT_RELOAD,
+    DEBUG_GE_PBR,
+    DEBUG_GE_IBL,
     DEBUG_SP_RESET,
     DEBUG_SP_TOGGLE_CULLING,
     DEBUG_SP_WN_VIZ,
@@ -322,11 +328,20 @@ bool handleContextMenuAction(s32 cmd_id)
     {
     case DEBUG_GRAPHICS_RELOAD_SHADERS:
 #ifndef SERVER_ONLY
+    {
         Log::info("Debug", "Reloading shaders...");
-        SP::SPShaderManager::get()->unloadAll();
-        ShaderBase::killShaders();
-        ShaderFilesManager::getInstance()->removeAllShaderFiles();
-        SP::SPShaderManager::get()->initAll();
+        GE::GEVulkanDriver* vk = GE::getVKDriver();
+        if (vk)
+            vk->reloadShaders();
+        else
+        {
+            SP::SPShaderManager::get()->unloadAll();
+            ShaderBase::killShaders();
+            ShaderFilesManager::getInstance()->removeAllShaderFiles();
+            SP::SPShaderManager::get()->initAll();
+        }
+        break;
+    }
 #endif
         break;
     case DEBUG_GRAPHICS_RELOAD_TEXTURES:
@@ -376,6 +391,33 @@ bool handleContextMenuAction(s32 cmd_id)
         physics->setDebugMode(IrrDebugDrawer::DM_NO_KARTS_GRAPHICS);
         break;
     }
+    case DEBUG_GE_PBR:
+#ifndef SERVER_ONLY
+    {
+        GE::GEVulkanDriver* vk = GE::getVKDriver();
+        if (vk)
+        {
+            UserConfigParams::m_dynamic_lights = !UserConfigParams::m_dynamic_lights;
+            GE::getGEConfig()->m_pbr = UserConfigParams::m_dynamic_lights;
+            vk->updateDriver(false/*scale_changed*/, true/*pbr_changed*/);
+        }
+        break;
+    }
+#endif
+    case DEBUG_GE_IBL:
+#ifndef SERVER_ONLY
+    {
+        GE::GEVulkanDriver* vk = GE::getVKDriver();
+        if (vk)
+        {
+            UserConfigParams::m_degraded_IBL = !UserConfigParams::m_degraded_IBL;
+            GE::getGEConfig()->m_ibl = !UserConfigParams::m_degraded_IBL;
+            vk->updateDriver(false/*scale_changed*/, false/*pbr_changed*/,
+                true/*ibl_changed*/);
+        }
+        break;
+    }
+#endif
     case DEBUG_SP_RESET:
         irr_driver->resetDebugModes();
         if (physics)
@@ -1281,8 +1323,10 @@ bool onEvent(const SEvent &event)
             sub->addItem(L"Clear nitro (Delete)", DEBUG_NITRO_CLEAR );
             sub->addItem(L"Clear attachment (Delete)", DEBUG_ATTACHMENT_NOTHING);
 
-            mnu->addItem(L"SP debug >",-1,true, true);
+            mnu->addItem(L"SP / GE debug >",-1,true, true);
             sub = mnu->getSubMenu(6);
+            sub->addItem(L"Toggle GE PBR", DEBUG_GE_PBR);
+            sub->addItem(L"Toggle GE IBL", DEBUG_GE_IBL);
             sub->addItem(L"Reset SP debug", DEBUG_SP_RESET);
             sub->addItem(L"Toggle culling", DEBUG_SP_TOGGLE_CULLING);
             sub->addItem(L"Draw world normal in texture", DEBUG_SP_WN_VIZ);
