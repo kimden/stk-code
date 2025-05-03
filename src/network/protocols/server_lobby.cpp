@@ -2125,9 +2125,7 @@ void ServerLobby::computeNewRankings(NetworkString* ns)
         data.push_back(entry);
     }
 
-    for (int i = 0; i < 64; ++i) {
-        m_ranking->computeNewRankings(data, RaceManager::get()->isTimeTrialMode());
-    }
+    m_ranking->computeNewRankings(data, RaceManager::get()->isTimeTrialMode());
 
     // Used to display rating change at the end of a race
     ns->addUInt8((uint8_t)player_count);
