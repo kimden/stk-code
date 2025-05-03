@@ -3,7 +3,9 @@
 [![Windows build status](https://github.com/kimden/stk-code/actions/workflows/windows.yml/badge.svg)](https://github.com/kimden/stk-code/actions/workflows/windows.yml)
 [![Switch build status](https://github.com/kimden/stk-code/actions/workflows/switch.yml/badge.svg)](https://github.com/kimden/stk-code/actions/workflows/switch.yml)
 
-This repository contains a **modified** version of SuperTuxKart (STK), mainly intended for server-side usage. Most important changes are listed [here](/FORK_CHANGES.md). Standard version of STK can be found [here](https://github.com/supertuxkart/stk-code/), and the changes between it and latest commits of this repo can be found [here](https://github.com/supertuxkart/stk-code/compare/master...kimden:stk-code:master).
+This repository contains a **modified** version of SuperTuxKart (STK), mainly intended for server-side usage, but you can also use it as a client.
+
+Most important changes are listed [here](/FORK_CHANGES.md). Standard version of STK can be found [here](https://github.com/supertuxkart/stk-code/), and the changes between it and latest commits of this repo can be found [here](https://github.com/supertuxkart/stk-code/compare/master...kimden:stk-code:master).
 
 ## Important branches
 
