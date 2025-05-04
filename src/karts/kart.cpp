@@ -1135,7 +1135,7 @@ void Kart::finishedRace(float time, bool from_server)
     //we need it to be incremented because of the position
     // in the call tree of the linear_world.cpp module,
     // so just add one here
-    std::tuple<unsigned int, unsigned int> tmp_tuple = {m_tyres->m_current_compound, m_current_tyre_age+1};
+    std::tuple<unsigned int, unsigned int> tmp_tuple = std::make_tuple(m_tyres->m_current_compound, m_current_tyre_age+1);
     m_stint.push_back(tmp_tuple);
     m_current_tyre_age = 0;
 
@@ -1366,7 +1366,7 @@ void Kart::collectedItem(ItemState *item_state)
                 m_stint.erase(m_stint.begin());
             }
 
-            std::tuple<unsigned int, unsigned int> tmp_tuple = {m_tyres->m_current_compound, m_current_tyre_age};
+            std::tuple<unsigned int, unsigned int> tmp_tuple = std::make_tuple(m_tyres->m_current_compound, m_current_tyre_age);
             m_stint.push_back(tmp_tuple);
             m_current_tyre_age = 0;
 
