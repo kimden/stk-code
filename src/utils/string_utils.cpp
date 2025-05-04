@@ -39,6 +39,7 @@
 #include <cwchar>
 #include <exception>
 #include <iomanip>
+#include <sstream>
 
 extern std::string g_android_main_user_agent;
 
