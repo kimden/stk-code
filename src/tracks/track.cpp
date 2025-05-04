@@ -530,7 +530,7 @@ void Track::loadTrackInfo()
     m_fog_height_start      = 0.0f;
     m_fog_height_end        = 100.0f;
     m_gravity               = 9.80665f;
-    m_friction              = stk_config->m_default_track_friction;
+    m_friction              = STKConfig::get()->m_default_track_friction;
     m_smooth_normals        = false;
     m_godrays               = false;
     m_godrays_opacity       = 1.0f;
@@ -709,7 +709,7 @@ void Track::getMusicInformation(std::vector<std::string>&       filenames,
 
     if (m_music.empty() && !isInternal() && !m_is_cutscene)
     {
-        m_music.push_back(stk_config->m_default_music);
+        m_music.push_back(STKConfig::get()->m_default_music);
 
         Log::warn("track",
             "Music information for track '%s' replaced by default music.\n",
@@ -1681,7 +1681,7 @@ void Track::update(int ticks)
             m_current_track[PT_CHILD] = child_track;
         }
     }
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
     m_check_manager->update(dt);
     m_item_manager->update(ticks);
 
@@ -1999,7 +1999,7 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
         {
             // In a FTL race the non-leader karts are placed at the end of the
             // field, so we need all start positions.
-            m_start_transforms.resize(stk_config->m_max_karts);
+            m_start_transforms.resize(STKConfig::get()->m_max_karts);
         }
         else
             m_start_transforms.resize(RaceManager::get()->getNumberOfKarts());
@@ -2523,15 +2523,16 @@ void Track::handleSky(const XMLNode &xml_node, const std::string &filename)
 #endif   // !SERVER_ONLY
             {
 #ifndef SERVER_ONLY
+                std::string fullpath;
                 if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
                 {
                     io::path p = file_manager->searchTexture(v[i]).c_str();
                     if (!p.empty())
                     {
-                        io::path fullpath = file_manager->getFileSystem()
+                        fullpath = file_manager->getFileSystem()
                             ->getAbsolutePath(p).c_str();
                         GE::getGEConfig()->m_ondemand_load_texture_paths.
-                            insert(fullpath.c_str());
+                            insert(fullpath);
                     }
                 }
 #endif
@@ -2541,6 +2542,13 @@ void Track::handleSky(const XMLNode &xml_node, const std::string &filename)
                     t->grab();
                     obj = t;
                 }
+#ifndef SERVER_ONLY
+                if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
+                {
+                    GE::getGEConfig()->m_ondemand_load_texture_paths.erase(
+                        fullpath);
+                }
+#endif
             }
             if (obj)
             {

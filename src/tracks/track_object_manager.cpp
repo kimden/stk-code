@@ -70,6 +70,9 @@ void TrackObjectManager::init()
 {
     int moveable_objects = 0;
     bool warned = false;
+
+    auto& stk_config = STKConfig::get();
+
     for (unsigned i = 0; i < m_all_objects.m_contents_vector.size(); i++)
     {
         TrackObject* curr = m_all_objects.m_contents_vector[i];

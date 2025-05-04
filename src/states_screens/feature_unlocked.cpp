@@ -758,7 +758,7 @@ void FeatureUnlockedCutScene::continueButtonPressed()
         {
             // simulate all the steps of the animation until we reach the end
             onUpdate(0.4f);
-            World::getWorld()->updateWorld(stk_config->time2Ticks(0.4f));
+            World::getWorld()->updateWorld(STKConfig::get()->time2Ticks(0.4f));
         }
     }
     else
@@ -784,6 +784,7 @@ void FeatureUnlockedCutScene::eventCallback(GUIEngine::Widget* widget,
 
 MusicInformation* FeatureUnlockedCutScene::getInGameMenuMusic() const
 {
-    MusicInformation* mi = stk_config->m_unlock_music;
+    MusicInformation* mi = STKConfig::get()->m_unlock_music;
     return mi;
-}
+}   // getInGameMenuMusic
+//-----------------------------------------------------------------------------

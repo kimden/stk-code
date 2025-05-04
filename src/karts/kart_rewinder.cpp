@@ -430,7 +430,7 @@ void KartRewinder::restoreState(BareNetworkString *buffer, int count)
             float timed_rotation_y = buffer->getFloat();
             // Set timed rotation divides by time_rot
             m_vehicle->setTimedRotation(time_rot,
-                stk_config->ticks2Time(time_rot) * timed_rotation_y);
+                STKConfig::get()->ticks2Time(time_rot) * timed_rotation_y);
         }
         else
             m_vehicle->setTimedRotation(0, 0.0f);

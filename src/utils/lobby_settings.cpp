@@ -26,6 +26,7 @@
 #include "network/network_string.hpp"
 #include "network/peer_vote.hpp"
 #include "network/server_config.hpp"
+#include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "network/protocols/server_lobby.hpp"
 #include "network/game_setup.hpp"
@@ -39,24 +40,32 @@
 #include "utils/string_utils.hpp"
 #include "utils/tournament.hpp"
 
+
 void LobbySettings::setupContextUser()
 {
-    m_game_setup = getLobby()->getGameSetup();
 
     m_motd = StringUtils::wideToUtf8(
-        m_game_setup->readOrLoadFromFile(
+        getGameSetupFromCtx()->readOrLoadFromFile(
             (std::string) ServerConfig::m_motd
         )
     );
     m_help_message = StringUtils::wideToUtf8(
-        m_game_setup->readOrLoadFromFile(
+        getGameSetupFromCtx()->readOrLoadFromFile(
             (std::string) ServerConfig::m_help
         )
     );
     m_shuffle_gp = ServerConfig::m_shuffle_gp;
     m_consent_on_replays = false;
+    
+    m_legacy_gp_mode = false;
+    m_legacy_gp_mode_started = false;
+
+    m_last_reset = 0;
+    m_save_server_config = true;
 
     m_fixed_direction = ServerConfig::m_fixed_direction;
+
+    m_current_max_players_in_game = ServerConfig::m_max_players_in_game;
 
     setDefaultLapRestrictions();
 
@@ -64,9 +73,7 @@ void LobbySettings::setupContextUser()
     m_allowed_to_start = ServerConfig::m_allowed_to_start;
 
     initAvailableModes();
-    initAvailableTracks();
-    std::string scoring = ServerConfig::m_gp_scoring;
-    loadCustomScoring(scoring);
+
     loadWhiteList();
     loadPreservedSettings();
 
@@ -89,10 +96,6 @@ void LobbySettings::setupContextUser()
     m_kicks_allowed                  = ServerConfig::m_kicks_allowed;
     m_max_ping                       = ServerConfig::m_max_ping;
     m_min_start_game_players         = ServerConfig::m_min_start_game_players;
-    m_official_karts_play_threshold  = ServerConfig::m_official_karts_play_threshold;
-    m_official_tracks_play_threshold = ServerConfig::m_official_tracks_play_threshold;
-    m_only_host_riding               = ServerConfig::m_only_host_riding;
-    m_owner_less                     = ServerConfig::m_owner_less;
     m_preserve_battle_scores         = ServerConfig::m_preserve_battle_scores;
     m_private_server_password        = ServerConfig::m_private_server_password;
     m_ranked                         = ServerConfig::m_ranked;
@@ -102,7 +105,6 @@ void LobbySettings::setupContextUser()
     m_server_difficulty              = ServerConfig::m_server_difficulty;
     m_server_max_players             = ServerConfig::m_server_max_players;
     m_server_mode                    = ServerConfig::m_server_mode;
-    m_sleeping_server                = ServerConfig::m_sleeping_server;
     m_soccer_goal_target             = ServerConfig::m_soccer_goal_target;
     m_sql_management                 = ServerConfig::m_sql_management;
     m_start_game_counter             = ServerConfig::m_start_game_counter;
@@ -118,18 +120,9 @@ void LobbySettings::setupContextUser()
     m_validating_player              = ServerConfig::m_validating_player;
     m_voting_timeout                 = ServerConfig::m_voting_timeout;
     m_commands_file                  = ServerConfig::m_commands_file;
-    m_addon_karts_join_threshold     = ServerConfig::m_addon_karts_join_threshold;
-    m_addon_tracks_join_threshold    = ServerConfig::m_addon_tracks_join_threshold;
-    m_addon_arenas_join_threshold    = ServerConfig::m_addon_arenas_join_threshold;
-    m_addon_soccers_join_threshold   = ServerConfig::m_addon_soccers_join_threshold;
-    m_addon_arenas_play_threshold    = ServerConfig::m_addon_arenas_play_threshold;
-    m_addon_karts_play_threshold     = ServerConfig::m_addon_karts_play_threshold;
-    m_addon_soccers_play_threshold   = ServerConfig::m_addon_soccers_play_threshold;
-    m_addon_tracks_play_threshold    = ServerConfig::m_addon_tracks_play_threshold;
     m_power_password                 = ServerConfig::m_power_password;
     m_register_table_name            = ServerConfig::m_register_table_name;
-    m_official_karts_threshold       = ServerConfig::m_official_karts_threshold;
-    m_official_tracks_threshold      = ServerConfig::m_official_tracks_threshold;
+    m_lobby_cooldown                 = ServerConfig::m_lobby_cooldown;
 }   // setupContextUser
 //-----------------------------------------------------------------------------
 
@@ -165,60 +158,6 @@ void LobbySettings::initAvailableModes()
         }
     }
 }  // initAvailableModes
-//-----------------------------------------------------------------------------
-
-void LobbySettings::initAvailableTracks()
-{
-    m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
-    m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
-    getAssetManager()->setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
-    m_play_requirement_tracks = StringUtils::split(
-            ServerConfig::m_play_requirement_tracks_string, ' ', false);
-}   // initAvailableTracks
-//-----------------------------------------------------------------------------
-
-bool LobbySettings::loadCustomScoring(std::string& scoring)
-{
-    std::set<std::string> available_scoring_types = {
-            "standard", "default", "", "inc", "fixed", "linear-gap", "exp-gap"
-    };
-    auto previous_params = m_scoring_int_params;
-    auto previous_type = m_scoring_type;
-    m_scoring_int_params.clear();
-    m_scoring_type = "";
-    if (!scoring.empty())
-    {
-        std::vector<std::string> params = StringUtils::split(scoring, ' ');
-        if (params.empty())
-        {
-            m_scoring_type = "";
-            return true;
-        }
-        m_scoring_type = params[0];
-        if (available_scoring_types.count(m_scoring_type) == 0)
-        {
-            Log::warn("ServerLobby", "Unknown scoring type %s, "
-                    "fallback.", m_scoring_type.c_str());
-            m_scoring_int_params = previous_params;
-            m_scoring_type = previous_type;
-            return false;
-        }
-        for (unsigned i = 1; i < params.size(); i++)
-        {
-            int param;
-            if (!StringUtils::fromString(params[i], param))
-            {
-                Log::warn("ServerLobby", "Unable to parse integer from custom "
-                        "scoring data, fallback.");
-                m_scoring_int_params = previous_params;
-                m_scoring_type = previous_type;
-                return false;
-            }
-            m_scoring_int_params.push_back(param);
-        }
-    }
-    return true;
-}   // loadCustomScoring
 //-----------------------------------------------------------------------------
 
 void LobbySettings::loadWhiteList()
@@ -269,7 +208,7 @@ int LobbySettings::getFixedLapCount() const
 }   // getFixedLapCount
 //-----------------------------------------------------------------------------
 
-void LobbySettings::setMultiplier(int new_value)
+void LobbySettings::setMultiplier(double new_value)
 {
     m_default_lap_multiplier = new_value;
     m_fixed_lap = -1;
@@ -401,28 +340,9 @@ std::string LobbySettings::getWhetherShuffledGPGridAsString(bool just_edited) co
 }   // getWhetherShuffledGPGridAsString
 //-----------------------------------------------------------------------------
 
-std::vector<std::string> LobbySettings::getMissingAssets(
-        std::shared_ptr<STKPeer> peer) const
-{
-    if (m_play_requirement_tracks.empty())
-        return {};
-
-    std::vector<std::string> ans;
-    for (const std::string& required_track : m_play_requirement_tracks)
-        if (peer->getClientAssets().second.count(required_track) == 0)
-            ans.push_back(required_track);
-    return ans;
-}   // getMissingAssets
-//-----------------------------------------------------------------------------
-
 void LobbySettings::updateWorldSettings(std::shared_ptr<GameInfo> game_info)
 {
     World::getWorld()->setGameInfo(game_info);
-    WorldWithRank *wwr = dynamic_cast<WorldWithRank*>(World::getWorld());
-    if (wwr)
-    {
-        wwr->setCustomScoringSystem(m_scoring_type, m_scoring_int_params);
-    }
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(World::getWorld());
     if (sw)
     {
@@ -465,16 +385,6 @@ bool LobbySettings::isPreservingMode() const
 {
     return m_preserve.find("mode") != m_preserve.end();
 }   // isPreservingMode
-//-----------------------------------------------------------------------------
-
-std::string LobbySettings::getScoringAsString() const
-{
-    std::string msg = "Current scoring is \"" + m_scoring_type;
-    for (int param: m_scoring_int_params)
-        msg += StringUtils::insertValues(" %d", param);
-    msg += "\"";
-    return msg;
-}   // getScoringAsString
 //-----------------------------------------------------------------------------
 
 std::string LobbySettings::getPreservedSettingsAsString() const
@@ -545,7 +455,7 @@ void LobbySettings::initializeDefaultVote()
             }
             else
             {
-                if (m_game_setup->isSoccerGoalTarget())
+                if (getGameSetupFromCtx()->isSoccerGoalTarget())
                 {
                     m_default_vote->m_num_laps =
                         (uint8_t)(UserConfigParams::m_num_goals);
@@ -570,18 +480,6 @@ void LobbySettings::initializeDefaultVote()
 }   // initializeDefaultVote
 //-----------------------------------------------------------------------------
 
-void LobbySettings::applyGlobalFilter(FilterContext& map_context) const
-{
-    m_global_filter.apply(map_context);
-}   // applyGlobalFilter
-//-----------------------------------------------------------------------------
-
-void LobbySettings::applyGlobalKartsFilter(FilterContext& kart_context) const
-{
-    m_global_karts_filter.apply(kart_context);
-}   // applyGlobalKartsFilter
-//-----------------------------------------------------------------------------
-
 void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
 {
     if (RaceManager::get()->modeHasLaps())
@@ -599,7 +497,7 @@ void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
     }
     else if (RaceManager::get()->isSoccerMode())
     {
-        if (m_game_setup->isSoccerGoalTarget())
+        if (getGameSetupFromCtx()->isSoccerGoalTarget())
         {
             if (hasMultiplier())
             {
@@ -638,6 +536,21 @@ void LobbySettings::applyRestrictionsOnVote(PeerVote* vote, Track* t) const
     if (hasFixedDirection())
         vote->m_reverse = (getDirection() == 1);
 }   // applyRestrictionsOnVote
+//-----------------------------------------------------------------------------
+
+void LobbySettings::applyRestrictionsOnWinnerVote(PeerVote* winner_vote) const
+{
+    if (hasFixedLapCount())
+    {
+        winner_vote->m_num_laps = getFixedLapCount();
+        Log::info("LobbySettings", "Enforcing %d lap race", getFixedLapCount());
+    }
+    if (hasFixedDirection())
+    {
+        winner_vote->m_reverse = (getDirection() == 1);
+        Log::info("LobbySettings", "Enforcing direction %d", (int)getDirection());
+    }
+}   // applyRestrictionsOnWinnerVote
 //-----------------------------------------------------------------------------
 
 void LobbySettings::encodeDefaultVote(NetworkString* ns) const
@@ -684,8 +597,16 @@ void LobbySettings::onServerSetup()
     m_battle_time_limit = 0.0f;
     m_winner_peer_id = 0;
 
+    m_last_reset = StkTime::getMonoTimeMs();
+
     NetworkConfig::get()->setTuxHitboxAddon(m_live_players);
 }   // onServerSetup
+//-----------------------------------------------------------------------------
+
+void LobbySettings::onServerConfiguration()
+{
+    m_last_reset = StkTime::getMonoTimeMs();
+}   // onServerConfiguration
 //-----------------------------------------------------------------------------
 
 void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
@@ -729,3 +650,34 @@ void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
     }
 }   // tryKickingAnotherPeer
 //-----------------------------------------------------------------------------
+
+bool LobbySettings::isCooldown() const
+{
+    int64_t passed_since_reset = (int64_t)StkTime::getMonoTimeMs() - m_last_reset;
+    return passed_since_reset < 1000 * m_lobby_cooldown;
+}   // isCooldown
+//-----------------------------------------------------------------------------
+
+void LobbySettings::getLobbyHitCaptureLimit()
+{
+    int hit_capture_limit = std::numeric_limits<int>::max();
+    float time_limit = 0.0f;
+    if (RaceManager::get()->getMinorMode() ==
+        RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+    {
+        if (m_capture_limit > 0)
+            hit_capture_limit = m_capture_limit;
+        if (m_time_limit_ctf > 0)
+            time_limit = (float)m_time_limit_ctf;
+    }
+    else
+    {
+        if (m_hit_limit > 0)
+            hit_capture_limit = m_hit_limit;
+        if (m_time_limit_ffa > 0.0f)
+            time_limit = (float)m_time_limit_ffa;
+    }
+    m_battle_hit_capture_limit = hit_capture_limit;
+    m_battle_time_limit = time_limit;
+}   // getLobbyHitCaptureLimit
+// ----------------------------------------------------------------------------

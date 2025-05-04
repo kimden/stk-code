@@ -28,6 +28,9 @@ SmoothNetworkBody::SmoothNetworkBody(bool enable)
     m_enabled = enable;
     m_smooth_rotation = true;
     m_adjust_vertical_offset = true;
+
+    auto& stk_config = STKConfig::get();
+
     m_min_adjust_length = stk_config->m_snb_min_adjust_length;
     m_max_adjust_length = stk_config->m_snb_max_adjust_length;
     m_min_adjust_speed = stk_config->m_snb_min_adjust_speed;

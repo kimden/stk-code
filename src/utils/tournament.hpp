@@ -92,7 +92,10 @@ public:
                                      std::shared_ptr<STKPeer> target) const;
 
     bool hasProfileThatSeesTeamchats(std::shared_ptr<STKPeer> peer) const;
-    bool hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team) const;
+
+    // Technically this should be either in STKPeer or in TeamManager,
+    // quick fix is to just make it static
+    static bool hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team);
 
 private:
 

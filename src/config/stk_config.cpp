@@ -30,7 +30,6 @@
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
 
-STKConfig* stk_config=0;
 float STKConfig::UNDEFINED = -99.9f;
 
 //-----------------------------------------------------------------------------
@@ -88,6 +87,13 @@ STKConfig::~STKConfig()
     }
 }   // ~STKConfig
 
+//-----------------------------------------------------------------------------
+
+std::shared_ptr<STKConfig>& STKConfig::get()
+{
+    static std::shared_ptr<STKConfig> instance = std::make_shared<STKConfig>();
+    return instance;
+}   // get
 //-----------------------------------------------------------------------------
 /** Loads the stk configuration file. After loading it checks if all necessary
  *  values are actually defined, otherwise an error message is printed and STK
@@ -525,7 +531,7 @@ void STKConfig::getAllData(const XMLNode * root)
         switch_node->get("items", &m_switch_items    );
         float f;
         if( switch_node->get("time",  &f) )
-            m_item_switch_ticks = stk_config->time2Ticks(f);
+            m_item_switch_ticks = STKConfig::get()->time2Ticks(f);
     }
 
     if(const XMLNode *bubblegum_node= root->getNode("bubblegum"))
@@ -562,6 +568,7 @@ void STKConfig::getAllData(const XMLNode * root)
 
     if (const XMLNode *urls = root->getNode("urls"))
     {
+        urls->get("stk-website", &m_stk_website_url);
         urls->get("donate", &m_donate_url);
         urls->get("password-reset", &m_password_reset_url);
         urls->get("assets-download", &m_assets_download_url);
@@ -706,7 +713,7 @@ void STKConfig::initMusicFiles()
  *         for each position.
  * \param num_karts Number of karts.
  */
-void  STKConfig::getAllScores(std::vector<int> *all_scores, int num_karts)
+void  STKConfig::getAllScores(std::vector<int> *all_scores, int num_karts) const
 {
     std::vector<int> sorted_score_increase;
 

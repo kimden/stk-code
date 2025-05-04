@@ -52,6 +52,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -98,7 +99,7 @@ std::unordered_map<unsigned, std::pair<core::vector3df,
 // ----------------------------------------------------------------------------
 std::unordered_set<SPMeshBuffer*> g_instances;
 // ----------------------------------------------------------------------------
-std::array<GLuint, ST_COUNT> g_samplers;
+std::array<GLuint, ST_COUNT> g_samplers = {{ }};
 // ----------------------------------------------------------------------------
 // Check sp_shader.cpp for the name
 std::array<GLuint, 1> sp_prefilled_tex;
@@ -262,7 +263,7 @@ void resizeSkinning(unsigned number)
             m.pointer());
         glBindTexture(GL_TEXTURE_2D, 0);
         static std::vector<std::array<float, 16> >
-            tmp_buf(stk_config->m_max_skinning_bones);
+            tmp_buf(STKConfig::get()->m_max_skinning_bones);
         g_joint_ptr = tmp_buf.data();
     }
     else
@@ -299,6 +300,8 @@ void resizeSkinning(unsigned number)
 void initSkinning()
 {
     static_assert(sizeof(std::array<float, 16>) == 64, "No padding");
+
+    auto& stk_config = STKConfig::get();
 
     int max_size = 0;
 
@@ -448,7 +451,7 @@ void init()
         int skinning_tbo_limit;
         glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE_ARB, &skinning_tbo_limit);
         
-        g_skinning_use_tbo = skinning_tbo_limit >= stk_config->m_max_skinning_bones << 6;
+        g_skinning_use_tbo = skinning_tbo_limit >= STKConfig::get()->m_max_skinning_bones << 6;
     }
     else
     {
@@ -472,6 +475,18 @@ void init()
     glBindBufferBase(GL_UNIFORM_BUFFER, 2, sp_fog_ubo);
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    initSamplers();
+}   // init
+
+// ----------------------------------------------------------------------------
+void initSamplers()
+{
+    if (std::all_of(g_samplers.begin(), g_samplers.end() - 1,
+        [](int value) { return value != 0; }))
+    {
+        glDeleteSamplers((unsigned)g_samplers.size() - 1, g_samplers.data());
+        g_samplers.fill(0);
+    }
 
     for (unsigned st = ST_NEAREST; st < ST_COUNT; st++)
     {
@@ -605,7 +620,7 @@ void init()
                 break;
         }
     }
-}   // init
+}   // initSamplers
 
 // ----------------------------------------------------------------------------
 void destroy()
@@ -638,7 +653,7 @@ void destroy()
     }
     glDeleteBuffers(1, &sp_fog_ubo);
     glDeleteSamplers((unsigned)g_samplers.size() - 1, g_samplers.data());
-
+    g_samplers.fill(0);
 }   // destroy
 
 // ----------------------------------------------------------------------------
@@ -840,11 +855,11 @@ void addObject(SPMeshNode* node)
         {
             added_for_skinning = true;
             int skinning_offset = g_skinning_offset + node->getTotalJoints();
-            if (skinning_offset > int(stk_config->m_max_skinning_bones))
+            if (skinning_offset > int(STKConfig::get()->m_max_skinning_bones))
             {
                 Log::error("SPBase", "No enough space to render skinned"
                     " mesh %s! Max joints can hold: %d",
-                    node->getName(), stk_config->m_max_skinning_bones);
+                    node->getName(), STKConfig::get()->m_max_skinning_bones);
                 return;
             }
             node->setSkinningOffset(g_skinning_offset);

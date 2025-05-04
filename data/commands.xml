@@ -1139,6 +1139,28 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="cooldown"
+             usage="/cooldown"
+             permissions-verbose="everyone"
+             description="The number of seconds during which the kart/map selection cannot be started."
+             permissions="UP_EVERYONE"
+             state-scope="SS_ALWAYS"
+    >
+        <command name="="
+                 usage="/cooldown (int >= 0)"
+                 omit-name="true"
+                 permissions-verbose="hammers"
+                 description="Allows to set the timeout during which the kart/map selection cannot be started."
+                 permissions="UP_HAMMER"
+        />
+    </command>
+    <command name="temp"
+             usage="/temp"
+             permissions-verbose="hammers"
+             description="test"
+             permissions="UP_HAMMER"
+             state-scope="SS_ALWAYS"
+    />
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions-verbose="everyone (client command)"

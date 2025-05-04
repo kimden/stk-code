@@ -869,7 +869,7 @@ int handleCmdLinePreliminary()
     std::string s;
     if(CommandLine::has("--stk-config", &s))
     {
-        stk_config->load(file_manager->getAsset(s));
+        STKConfig::get()->load(file_manager->getAsset(s));
         Log::info("main", "STK config will be read from %s.",s.c_str());
     }
     if(CommandLine::has("--render-driver", &s))
@@ -1682,6 +1682,7 @@ int handleCmdLine(bool has_server_config, bool has_parent_process)
 
     if(CommandLine::has("--numkarts", &n) ||CommandLine::has("-k", &n))
     {
+        auto& stk_config = STKConfig::get();
         UserConfigParams::m_default_num_karts = n;
         if(UserConfigParams::m_default_num_karts > stk_config->m_max_karts)
         {
@@ -1862,8 +1863,6 @@ void initUserConfig()
     }
 
     translations            = new Translations();   // needs file_manager
-    stk_config              = new STKConfig();      // in case of --stk-config
-                                                    // command line parameters
 }   // initUserConfig
 
 //=============================================================================
@@ -1890,6 +1889,7 @@ void clearGlobalVariables()
 //=============================================================================
 void initRest()
 {
+    GUIEngine::reserveLoadingIcons(2);
     SP::setMaxTextureSize();
     irr_driver = new IrrDriver();
 
@@ -1945,7 +1945,7 @@ void initRest()
     }
 #endif
 
-    stk_config->initMusicFiles();
+    STKConfig::get()->initMusicFiles();
     // This only initialises the non-network part of the add-ons manager. The
     // online section of the add-ons manager will be initialised from a
     // separate thread running in network HTTP.
@@ -2247,7 +2247,7 @@ int main(int argc, char *argv[])
         handleCmdLinePreliminary();
 
         // ServerConfig will use stk_config for server version testing
-        stk_config->load(file_manager->getAsset("stk_config.xml"));
+        STKConfig::get()->load(file_manager->getAsset("stk_config.xml"));
         NetworkConfig::initSystemIP();
         // Client port depends on user config file and stk_config
         NetworkConfig::get()->initClientPort();
@@ -2312,6 +2312,7 @@ int main(int argc, char *argv[])
         wiimote_manager = new WiimoteManager();
 #endif
 
+        GUIEngine::reserveLoadingIcons(4);
         int parent_pid;
         bool has_parent_process = false;
         if (CommandLine::has("--parent-process", &parent_pid))
@@ -2677,7 +2678,7 @@ int main(int argc, char *argv[])
     {
         Log::closeOutputFiles();
 #endif
-#ifndef ANDROID
+#if !defined(ANDROID) && !defined(ASAN_STK)
         fclose(stderr);
         fclose(stdout);
 #endif
@@ -2827,7 +2828,6 @@ static void cleanSuperTuxKart()
  */
 static void cleanUserConfig()
 {
-    if(stk_config)              delete stk_config;
     if(translations)            delete translations;
     if (user_config)
     {

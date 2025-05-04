@@ -104,6 +104,9 @@ void Physics::init(const Vec3 &world_min, const Vec3 &world_max)
 
     // Get the solver settings from the config file
     btContactSolverInfo& info = m_dynamics_world->getSolverInfo();
+
+    auto& stk_config = STKConfig::get();
+
     info.m_numIterations = stk_config->m_solver_iterations;
     info.m_splitImpulse  = stk_config->m_solver_split_impulse;
     info.m_splitImpulsePenetrationThreshold =
@@ -194,6 +197,8 @@ void Physics::update(int ticks)
     // one physic step only.
     double start;
     if(UserConfigParams::m_physics_debug) start = StkTime::getRealTime();
+
+    auto& stk_config = STKConfig::get();
 
     m_dynamics_world->stepSimulation(stk_config->ticks2Time(1), 1,
                                      stk_config->ticks2Time(1)      );
@@ -578,6 +583,8 @@ void Physics::KartKartCollision(Kart *kart_a,
     }
 
     float lean_factor = std::min(1.25f, std::max(f_right, f_left)) * 0.8f;
+
+    auto& stk_config = STKConfig::get();
 
     // First push one kart to the left (if there is not already
     // an impulse happening - one collision might cause more

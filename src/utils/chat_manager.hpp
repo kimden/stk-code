@@ -31,6 +31,7 @@
 class STKPeer;
 enum KartTeam : int8_t;
 struct KartTeamSet;
+class GenericDecorator;
 
 class ChatManager: public LobbyContextComponent
 {
@@ -78,7 +79,8 @@ public:
     int getChatConsecutiveInterval() const { return m_chat_consecutive_interval; }
 
     void handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
-            std::string message, KartTeam target_team);
+            std::string message, KartTeam target_team,
+            const std::shared_ptr<GenericDecorator>& decorator);
 
     bool shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
                              std::shared_ptr<STKPeer> target,

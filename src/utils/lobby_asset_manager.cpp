@@ -39,6 +39,7 @@
 void LobbyAssetManager::setupContextUser()
 {
     init();
+    initAvailableTracks();
     updateAddons();
 }   // setupContextUser
 //-----------------------------------------------------------------------------
@@ -65,6 +66,19 @@ void LobbyAssetManager::init()
         if (!t->isAddon())
             m_official_kts.second.insert(t->getIdent());
     }
+
+    m_official_karts_play_threshold  = ServerConfig::m_official_karts_play_threshold;
+    m_official_tracks_play_threshold = ServerConfig::m_official_tracks_play_threshold;
+    m_addon_karts_join_threshold     = ServerConfig::m_addon_karts_join_threshold;
+    m_addon_tracks_join_threshold    = ServerConfig::m_addon_tracks_join_threshold;
+    m_addon_arenas_join_threshold    = ServerConfig::m_addon_arenas_join_threshold;
+    m_addon_soccers_join_threshold   = ServerConfig::m_addon_soccers_join_threshold;
+    m_addon_arenas_play_threshold    = ServerConfig::m_addon_arenas_play_threshold;
+    m_addon_karts_play_threshold     = ServerConfig::m_addon_karts_play_threshold;
+    m_addon_soccers_play_threshold   = ServerConfig::m_addon_soccers_play_threshold;
+    m_addon_tracks_play_threshold    = ServerConfig::m_addon_tracks_play_threshold;
+    m_official_karts_threshold       = ServerConfig::m_official_karts_threshold;
+    m_official_tracks_threshold      = ServerConfig::m_official_tracks_threshold;
 }   // init
 //-----------------------------------------------------------------------------
 
@@ -353,14 +367,14 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
 
     Log::info("LobbyAssetManager", "Player has the following addons: %d/%d(%d) karts,"
         " %d/%d(%d) tracks, %d/%d(%d) arenas, %d/%d(%d) soccer fields.",
-        addon_karts, settings->getAddonKartsJoinThreshold(),
-                     settings->getAddonKartsPlayThreshold(),
-        addon_tracks, settings->getAddonTracksJoinThreshold(),
-                      settings->getAddonTracksPlayThreshold(),
-        addon_arenas, settings->getAddonArenasJoinThreshold(),
-                      settings->getAddonArenasPlayThreshold(),
-        addon_soccers, settings->getAddonSoccersJoinThreshold(),
-                       settings->getAddonSoccersPlayThreshold());
+        addon_karts, getAddonKartsJoinThreshold(),
+                     getAddonKartsPlayThreshold(),
+        addon_tracks, getAddonTracksJoinThreshold(),
+                      getAddonTracksPlayThreshold(),
+        addon_arenas, getAddonArenasJoinThreshold(),
+                      getAddonArenasPlayThreshold(),
+        addon_soccers, getAddonSoccersJoinThreshold(),
+                       getAddonSoccersPlayThreshold());
 
     bool bad = false;
 
@@ -393,37 +407,37 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
         bad = true;
     }
 
-    if (okt < getSettings()->getOfficialKartsThreshold())
+    if (okt < getOfficialKartsThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: bad official kart threshold");
         bad = true;
     }
 
-    if (ott < getSettings()->getOfficialTracksThreshold())
+    if (ott < getOfficialTracksThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: bad official track threshold");
         bad = true;
     }
 
-    if (addon_karts < getSettings()->getAddonKartsJoinThreshold())
+    if (addon_karts < getAddonKartsJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon karts");
         bad = true;
     }
 
-    if (addon_tracks < getSettings()->getAddonTracksJoinThreshold())
+    if (addon_tracks < getAddonTracksJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon tracks");
         bad = true;
     }
 
-    if (addon_arenas < getSettings()->getAddonArenasJoinThreshold())
+    if (addon_arenas < getAddonArenasJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon arenas");
         bad = true;
     }
 
-    if (addon_soccers < getSettings()->getAddonSoccersJoinThreshold())
+    if (addon_soccers < getAddonSoccersJoinThreshold())
     {
         Log::verbose("LobbyAssetManager", "Bad player: too little addon soccers");
         bad = true;
@@ -614,7 +628,7 @@ void LobbyAssetManager::applyAllFilters(std::set<std::string>& maps, bool use_hi
     map_context.wildcards = m_map_history;
     map_context.applied_at_selection_start = true;
     map_context.elements = maps;
-    getSettings()->applyGlobalFilter(map_context);
+    applyGlobalFilter(map_context);
     
     if (use_history)
     {
@@ -636,7 +650,7 @@ void LobbyAssetManager::applyAllKartFilters(const std::string& username, std::se
     kart_context.applied_at_selection_start = !afterSelection;
     kart_context.elements = karts;
 
-    getSettings()->applyGlobalKartsFilter(kart_context);
+    applyGlobalKartsFilter(kart_context);
     getQueues()->applyFrontKartFilters(kart_context);
     swap(karts, kart_context.elements);
 }   // applyAllKartFilters
@@ -671,4 +685,40 @@ std::string LobbyAssetManager::getKartForBadKartChoice(
     std::advance(it, rg.get((int)karts.size()));
     return *it;
 }   // getKartForRandomKartChoice
+//-----------------------------------------------------------------------------
+
+void LobbyAssetManager::applyGlobalFilter(FilterContext& map_context) const
+{
+    m_global_filter.apply(map_context);
+}   // applyGlobalFilter
+//-----------------------------------------------------------------------------
+
+void LobbyAssetManager::applyGlobalKartsFilter(FilterContext& kart_context) const
+{
+    m_global_karts_filter.apply(kart_context);
+}   // applyGlobalKartsFilter
+//-----------------------------------------------------------------------------
+
+void LobbyAssetManager::initAvailableTracks()
+{
+    m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
+    m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
+    setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
+    m_play_requirement_tracks = StringUtils::split(
+            ServerConfig::m_play_requirement_tracks_string, ' ', false);
+}   // initAvailableTracks
+//-----------------------------------------------------------------------------
+
+std::vector<std::string> LobbyAssetManager::getMissingAssets(
+        std::shared_ptr<STKPeer> peer) const
+{
+    if (m_play_requirement_tracks.empty())
+        return {};
+
+    std::vector<std::string> ans;
+    for (const std::string& required_track : m_play_requirement_tracks)
+        if (peer->getClientAssets().second.count(required_track) == 0)
+            ans.push_back(required_track);
+    return ans;
+}   // getMissingAssets
 //-----------------------------------------------------------------------------

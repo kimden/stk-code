@@ -644,6 +644,8 @@ void SlipStream::updateBonusTexture()
     if (!CVS->isGLSL())
     {
         float a = m_bonus_time * 255.0f;
+        if (a < 0.0f)
+            a = 0.0f;
         if (a > 255.0f)
             a = 255.0f;
         m_bonus_node->getMaterial(0).getRenderInfo()->getVertexColor()
@@ -869,7 +871,7 @@ void SlipStream::update(int ticks)
         updateQuad();
     }
 
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
 #ifndef SERVER_ONLY
     if (!GUIEngine::isNoGraphics())
     {
@@ -1063,7 +1065,7 @@ void SlipStream::update(int ticks)
 
         m_slipstream_time = 0.0f;
         m_bonus_active = true;
-        m_speed_increase_duration = stk_config->time2Ticks(m_bonus_time);
+        m_speed_increase_duration = STKConfig::get()->time2Ticks(m_bonus_time);
         m_speed_increase_ticks = World::getWorld()->getTicksSinceStart();
     }
 
@@ -1138,7 +1140,7 @@ void SlipStream::updateSpeedIncrease()
         const KartProperties* kp = m_kart->getKartProperties();
         float speed_increase = kp->getSlipstreamMaxSpeedIncrease();
         float add_power = kp->getSlipstreamAddPower();
-        int fade_out = stk_config->time2Ticks(kp->getSlipstreamFadeOutTime());
+        int fade_out = STKConfig::get()->time2Ticks(kp->getSlipstreamFadeOutTime());
         m_kart->instantSpeedIncrease(
             MaxSpeed::MS_INCREASE_SLIPSTREAM, speed_increase,
             speed_increase, add_power, m_speed_increase_duration, fade_out);

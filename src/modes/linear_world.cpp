@@ -200,7 +200,7 @@ void LinearWorld::update(int ticks)
     if (getPhase() == RACE_PHASE &&
         m_finish_timeout != std::numeric_limits<float>::max())
     {
-        m_finish_timeout -= stk_config->ticks2Time(ticks);
+        m_finish_timeout -= STKConfig::get()->ticks2Time(ticks);
         if (m_finish_timeout < 0.0f)
         {
             endRaceEarly();
@@ -532,7 +532,7 @@ void LinearWorld::newLap(unsigned int kart_index)
     {
         // To avoid negative times in countdown mode
         if (getClockMode() == CLOCK_COUNTDOWN)
-            ticks_per_lap = stk_config->time2Ticks(RaceManager::get()->getTimeTarget()) - getTimeTicks();
+            ticks_per_lap = STKConfig::get()->time2Ticks(RaceManager::get()->getTimeTarget()) - getTimeTicks();
         else
             ticks_per_lap = getTimeTicks();
     }
@@ -552,6 +552,8 @@ void LinearWorld::newLap(unsigned int kart_index)
         else if (kart_info.m_finished_laps > 0 && ticks_per_lap < kart_info.m_fastest_lap_ticks)
             kart_info.m_fastest_lap_ticks = ticks_per_lap;
     }
+
+    auto& stk_config = STKConfig::get();
 
     const core::stringw &kart_name = kart->getController()->getName();
     bool is_local = kart->getController()->isLocalPlayerController();
@@ -684,7 +686,7 @@ void LinearWorld::getKartsDisplayInfo(
         // Don't compare times when crossing the start line first
         if(laps_of_leader>0                                                &&
            (getTimeTicks() - getTicksAtLapForKart(kart->getWorldKartId())  <
-            stk_config->time2Ticks(8)                                      ||
+            STKConfig::get()->time2Ticks(8)                                ||
             rank_info.lap != laps_of_leader)                               &&
             raceHasLaps())
         {  // Display for 5 seconds
@@ -1198,6 +1200,7 @@ void LinearWorld::setLastTriggeredCheckline(unsigned int kart_index, int index)
     if (m_kart_info.size() == 0) return;
     Kart *kart  = m_karts[kart_index].get();
     KartInfo &kart_info = m_kart_info[kart_index];
+    auto& stk_config = STKConfig::get();
 
     int ticks_since_newlap;
     if (kart_info.m_finished_laps < 0) // didn't complete first lap yet

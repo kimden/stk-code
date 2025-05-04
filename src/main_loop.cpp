@@ -457,6 +457,8 @@ void MainLoop::run()
         PROFILER_PUSH_CPU_MARKER("Main loop", 0xFF, 0x00, 0xF7);
         TimePoint frame_start = std::chrono::steady_clock::now();
 
+        auto& stk_config = STKConfig::get();
+
         left_over_time += getLimitedDt();
         int num_steps   = stk_config->time2Ticks(left_over_time);
         float dt = stk_config->ticks2Time(1);

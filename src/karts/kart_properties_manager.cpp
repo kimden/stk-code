@@ -25,6 +25,7 @@
 #include "config/stk_config.hpp"
 #include "config/user_config.hpp"
 #include "graphics/irr_driver.hpp"
+#include "graphics/material_manager.hpp"
 #include "guiengine/engine.hpp"
 #include "io/file_manager.hpp"
 #include "karts/kart_properties.hpp"
@@ -207,6 +208,7 @@ void KartPropertiesManager::loadAllKarts(bool loading_icon)
         // --------------------------------------------
         std::set<std::string> result;
         file_manager->listFiles(result, *dir);
+        GUIEngine::reserveLoadingIcons(result.size());
         for(std::set<std::string>::const_iterator subdir=result.begin();
             subdir!=result.end(); subdir++)
         {
@@ -301,6 +303,8 @@ bool KartPropertiesManager::loadKart(const std::string &dir)
                     config_filename.c_str(), err.what());
         return false;
     }
+
+    auto& stk_config = STKConfig::get();
 
     // If the version of the kart file is not supported,
     // ignore this .kart file
@@ -655,7 +659,8 @@ void KartPropertiesManager::getRandomKartList(int count,
             std::vector<int> karts_in_group =
                 getKartsInGroup(UserConfigParams::m_last_used_kart_group);
 
-            assert(karts_in_group.size() > 0);
+            if (karts_in_group.empty())
+                karts_in_group = getKartsInGroup(DEFAULT_GROUP_NAME);
 
             // first try not to use a kart already used by a player
             for (unsigned int i=0; i<karts_in_group.size(); i++)
@@ -753,7 +758,8 @@ void KartPropertiesManager::onDemandLoadKartTextures(
         {
             for (auto& dir : ingame_karts_folder)
             {
-                if (StringUtils::startsWith(full_path, dir))
+                if (StringUtils::startsWith(full_path, dir) &&
+                    material_manager->getMaterialFor(tex.second))
                 {
                     in_use = true;
                     break;

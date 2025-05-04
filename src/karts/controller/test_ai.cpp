@@ -228,7 +228,7 @@ unsigned int SkiddingAI::getNextSector(unsigned int index)
  */
 void SkiddingAI::update(int ticks)
 {
-    float dt = stk_config->ticks2Time(ticks);
+    float dt = STKConfig::get()->ticks2Time(ticks);
     // This is used to enable firing an item backwards.
     m_controls->setLookBack(false);
     m_controls->setNitro(false);
@@ -1194,6 +1194,8 @@ void SkiddingAI::handleItems(const float dt)
     // -------------------
     float min_bubble_time = 2.0f;
 
+    auto& stk_config = STKConfig::get();
+
     switch( m_kart->getPowerup()->getType() )
     {
     case PowerupManager::POWERUP_BUBBLEGUM:
@@ -1530,36 +1532,37 @@ void SkiddingAI::handleAcceleration(int ticks)
         return;
     }
 
-    m_controls->setAccel(stk_config->m_ai_acceleration);
+    m_controls->setAccel(STKConfig::get()->m_ai_acceleration);
 
 }   // handleAcceleration
 
 //-----------------------------------------------------------------------------
 void SkiddingAI::handleRaceStart()
 {
-    if( m_start_delay <  0 )
-    {
-        // Each kart starts at a different, random time, and the time is
-        // smaller depending on the difficulty.
-        m_start_delay = stk_config->time2Ticks(
-                        m_ai_properties->m_min_start_delay
-                      + (float) rand() / RAND_MAX
-                      * (m_ai_properties->m_max_start_delay -
-                         m_ai_properties->m_min_start_delay)   );
+    if (m_start_delay >= 0)
+        return;
 
-        float false_start_probability =
-               m_superpower == RaceManager::SUPERPOWER_NOLOK_BOSS
-               ? 0.0f  : m_ai_properties->m_false_start_probability;
+    auto& stk_config = STKConfig::get();
+    // Each kart starts at a different, random time, and the time is
+    // smaller depending on the difficulty.
+    m_start_delay = stk_config->time2Ticks(
+                    m_ai_properties->m_min_start_delay
+                    + (float) rand() / RAND_MAX
+                    * (m_ai_properties->m_max_start_delay -
+                        m_ai_properties->m_min_start_delay)   );
+
+    float false_start_probability =
+            m_superpower == RaceManager::SUPERPOWER_NOLOK_BOSS
+            ? 0.0f  : m_ai_properties->m_false_start_probability;
 
         // Now check for a false start. If so, add 1 second penalty time.
-        if (rand() < RAND_MAX * false_start_probability)
-        {
-            m_start_delay+=stk_config->m_penalty_ticks;
-            return;
-        }
-        m_kart->setStartupBoostFromStartTicks(m_start_delay + stk_config->time2Ticks(1.0f));
-        m_start_delay = 0;
+    if (rand() < RAND_MAX * false_start_probability)
+    {
+        m_start_delay += stk_config->m_penalty_ticks;
+        return;
     }
+    m_kart->setStartupBoostFromStartTicks(m_start_delay + stk_config->time2Ticks(1.0f));
+    m_start_delay = 0;
 }   // handleRaceStart
 
 //-----------------------------------------------------------------------------

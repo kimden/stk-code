@@ -24,6 +24,7 @@
 #include "tracks/graph.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_sector.hpp"
+#include "utils/gp_scoring.hpp"
 #include "utils/log.hpp"
 
 #include <iostream>
@@ -51,9 +52,9 @@ void WorldWithRank::init()
     m_position_setting_initialised = false;
 #endif
     if (!m_custom_scoring)
-        stk_config->getAllScores(&m_score_for_position, getNumKarts());
+        STKConfig::get()->getAllScores(&m_score_for_position, getNumKarts());
     else
-        refreshCustomScores(getNumKarts());
+        m_custom_scoring->refreshCustomScores(getNumKarts(), m_score_for_position);
 
     Track *track = Track::getCurrentTrack();
     // Don't init track sector if navmesh is not found in arena
@@ -231,37 +232,13 @@ int WorldWithRank::getScoreForPosition(int p)
  */
 int WorldWithRank::getScoreForPosition(int p, float time)
 {
-    assert(p - 1 >= 0);
-    assert(p - 1 < (int)m_score_for_position.size());
-    m_race_times[p] = time;
     if (!m_custom_scoring)
-        return m_score_for_position[p - 1];
-    if (m_custom_scoring_type == "inc" || m_custom_scoring_type == "fixed")
-        return m_score_for_position[p - 1];
-    if (m_custom_scoring_type == "linear-gap"
-        || m_custom_scoring_type == "exp-gap")
     {
-        double delta = time - m_race_times[1];
-        if (m_custom_scoring_type == "exp-gap")
-        {
-            if (m_race_times[1] < 1e-6) // just in case
-                return 0;
-            delta = log(time / m_race_times[1]) / log(2);
-        }
-        double points = m_custom_scoring_params[2] * 0.001;
-        bool continuous = (m_custom_scoring_params[5] != 0);
-        double time_step = m_custom_scoring_params[3] * 0.001;
-        double decrease = m_custom_scoring_params[4] * 0.001;
-        delta /= time_step;
-        if (!continuous)
-            delta = floor(delta);
-        points -= delta * decrease;
-        if (points < 0.0)
-            points = 0.0;
-        return round(points);
+        if (p - 1 >= 0 && p - 1 < (int)m_score_for_position.size())
+            return m_score_for_position[p - 1];
+        return 0;
     }
-    Log::error("WorldWithRank", "Unknown scoring type: %s. Giving 0 points", m_custom_scoring_type.c_str());
-    return 0;
+    return m_custom_scoring->getScoreForPosition(p, time, m_race_times, m_score_for_position);
 }   // getScoreForPosition
 
 //-----------------------------------------------------------------------------
@@ -274,14 +251,10 @@ int WorldWithRank::getScoreForPosition(int p, float time)
  */
 bool WorldWithRank::canGetScoreForPosition(int p)
 {
-    if (m_custom_scoring_type == "linear-gap"
-        || m_custom_scoring_type == "exp-gap")
-    {
-        if (p == 1 || m_race_times.count(1))
-            return true;
-        return false;
-    }
-    return true;
+    if (!m_custom_scoring)
+        return true;
+    
+    return m_custom_scoring->canGetScoreForPosition(p, m_race_times);
 }   // canGetScoreForPosition
 
 //-----------------------------------------------------------------------------
@@ -328,53 +301,22 @@ void WorldWithRank::updateSectorForKarts()
 }   // updateSectorForKarts
 //-----------------------------------------------------------------------------
 
-void WorldWithRank::setCustomScoringSystem(std::string& type, std::vector<int>& params)
+void WorldWithRank::setCustomScoringSystem(std::shared_ptr<GPScoring> scoring)
 {
-    m_custom_scoring_type = type;
-    m_custom_scoring_params = params;
-    if (type == "" || type == "standard" || type == "default") {
-        m_custom_scoring = false;
+    m_custom_scoring = scoring;
+    if (m_custom_scoring && m_custom_scoring->isStandard()) {
+        m_custom_scoring.reset();
         return;
     }
-    m_custom_scoring = true;
-    refreshCustomScores(getNumKarts());
+    m_custom_scoring->refreshCustomScores(getNumKarts(), m_score_for_position);
 }   // setCustomScoringSystem
-//-----------------------------------------------------------------------------
-
-void WorldWithRank::refreshCustomScores(int num_karts)
-{
-    if (m_custom_scoring_type == "inc")
-    {
-        m_score_for_position.clear();
-        for (unsigned i = 2; i < m_custom_scoring_params.size(); i++)
-            m_score_for_position.push_back(m_custom_scoring_params[i]);
-        m_score_for_position.resize(num_karts, 0);
-        std::sort(m_score_for_position.begin(), m_score_for_position.end());
-        for (unsigned i = 1; i < m_score_for_position.size(); i++)
-            m_score_for_position[i] += m_score_for_position[i - 1];
-        std::reverse(m_score_for_position.begin(), m_score_for_position.end());
-    }
-    else if (m_custom_scoring_type == "fixed")
-    {
-        m_score_for_position.clear();
-        for (unsigned i = 2; i < m_custom_scoring_params.size(); i++)
-            m_score_for_position.push_back(m_custom_scoring_params[i]);
-        m_score_for_position.resize(num_karts, 0);
-    }
-    else if (m_custom_scoring_type == "linear-gap"
-        || m_custom_scoring_type == "exp-gap")
-    {
-        m_score_for_position.clear();
-        m_score_for_position.resize(num_karts, 0);
-    }
-}   // refreshCustomScores
 //-----------------------------------------------------------------------------
 
 int WorldWithRank::getFastestLapPoints() const
 {
     if (!m_custom_scoring)
         return 0;
-    return m_custom_scoring_params[1];
+    return m_custom_scoring->getFastestLapPoints();
 }   // getFastestLapPoints
 //-----------------------------------------------------------------------------
 
@@ -382,6 +324,6 @@ int WorldWithRank::getPolePoints() const
 {
     if (!m_custom_scoring)
         return 0;
-    return m_custom_scoring_params[0];
+    return m_custom_scoring->getPolePoints();
 }   // getPolePoints
 //-----------------------------------------------------------------------------

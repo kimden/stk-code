@@ -221,8 +221,8 @@ void Tournament::initTournamentPlayers()
                 type == "B" ? m_blue_players :
                 m_referees);
 
-            auto categories = getTeamManager()->getCategories();
-            for (const std::string& member: categories[cat_name])
+            const auto& players = getTeamManager()->getPlayersInCategory(cat_name);
+            for (const std::string& member: players)
                 dest.insert(member);
         }
         else if (type == "R") 
@@ -498,7 +498,7 @@ bool Tournament::hasProfileThatSeesTeamchats(std::shared_ptr<STKPeer> peer) cons
 }   // hasProfileThatSeesTeamchats
 //-----------------------------------------------------------------------------
 
-bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team) const
+bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team)
 {
     for (auto& player : peer->getPlayerProfiles())
     {

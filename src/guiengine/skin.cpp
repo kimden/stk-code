@@ -187,6 +187,7 @@ namespace SkinConfig
     static void loadFromFile(std::string file, bool clear_prev_params)
     {
         m_data_path.clear();
+        auto& stk_config = STKConfig::get();
         if (clear_prev_params)
         {
             // Clear global variables
@@ -1840,7 +1841,16 @@ void Skin::drawSpinnerChild(const core::recti &rect, Widget* widget,
         return;
 
     SpinnerWidget* spinner = dynamic_cast<SpinnerWidget*>(widget->m_event_handler);
-    bool spinner_focused = spinner->isFocusedForPlayer(PLAYER_ID_GAME_MASTER);
+    
+    bool spinner_focused = false;
+    for (unsigned i = 1; i < MAX_PLAYER_COUNT + 1; i++)
+    {
+        if (spinner->isFocusedForPlayer(i - 1))
+        {
+            spinner_focused = true;
+            break;
+        }
+    }
 
     if (pressed || (spinner->isButtonSelected(right) && spinner_focused))
     {
