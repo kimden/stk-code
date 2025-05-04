@@ -1135,7 +1135,8 @@ void Kart::finishedRace(float time, bool from_server)
     //we need it to be incremented because of the position
     // in the call tree of the linear_world.cpp module,
     // so just add one here
-    m_stint.push_back({m_tyres->m_current_compound, m_current_tyre_age+1});
+    std::tuple<unsigned int, unsigned int> tmp_tuple = {m_tyres->m_current_compound, m_current_tyre_age+1};
+    m_stint.push_back(tmp_tuple);
     m_current_tyre_age = 0;
 
     const bool is_linear_race = RaceManager::get()->isLinearRaceMode();
@@ -1364,7 +1365,9 @@ void Kart::collectedItem(ItemState *item_state)
             if ((std::get<0>(m_stint[0]) == 0) && (std::get<1>(m_stint[0]) == 0)) {
                 m_stint.erase(m_stint.begin());
             }
-            m_stint.push_back({m_tyres->m_current_compound, m_current_tyre_age});
+
+            std::tuple<unsigned int, unsigned int> tmp_tuple = {m_tyres->m_current_compound, m_current_tyre_age};
+            m_stint.push_back(tmp_tuple);
             m_current_tyre_age = 0;
 
             unsigned prev_compound = m_tyres->m_current_compound;
