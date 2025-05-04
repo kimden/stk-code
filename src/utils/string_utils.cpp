@@ -819,7 +819,7 @@ namespace StringUtils
         std::vector<std::tuple<unsigned, unsigned>> retval;
         std::vector<std::string> items = splitString(x, ',');
         for (int i = 0; i < items.size(); i++) {
-            retval.push_back({0, 0});
+            retval.push_back(std::make_tuple(0, 0)};
             if (items[i].at(0) == ' ') items[i].erase(0, 1);
             switch (items[i].at(0)) {
             case 'S':
