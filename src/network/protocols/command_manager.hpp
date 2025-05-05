@@ -245,15 +245,6 @@ private:
 
     std::vector<std::string> m_current_argv;
 
-    // Auxiliary things, should be moved somewhere because they just help
-    // in commands but have nothing to do with CM itself
-
-    std::vector<std::vector<std::string>> m_aux_mode_aliases;
-    std::vector<std::vector<std::string>> m_aux_difficulty_aliases;
-    std::vector<std::vector<std::string>> m_aux_goal_aliases;
-
-    // End of auxiliary things
-
     void initCommandsInfo();
     void initCommands();
 

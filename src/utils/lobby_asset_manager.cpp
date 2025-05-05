@@ -634,10 +634,10 @@ void LobbyAssetManager::applyAllFilters(std::set<std::string>& maps, bool use_hi
     {
         if (isTournament())
             getTournament()->applyFiltersForThisGame(map_context);
-        map_context.wildcards = m_map_history;
+        
         getQueues()->applyFrontMapFilters(map_context);
     }
-    swap(maps, map_context.elements);
+    std::swap(maps, map_context.elements);
 }   // applyAllFilters
 //-----------------------------------------------------------------------------
 

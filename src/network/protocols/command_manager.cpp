@@ -60,6 +60,15 @@
 
 namespace
 {
+    static const std::string g_addon_prefix = "addon_";
+
+    static const std::string g_type_kart   = "kart";
+    static const std::string g_type_map    = "map";
+
+    static const std::string g_type_track  = "track";
+    static const std::string g_type_arena  = "arena";
+    static const std::string g_type_soccer = "soccer";
+
     const std::vector<std::string> g_queue_names = {
         "", "mqueue", "mcyclic", "mboth",
         "kqueue", "qregular", "", "",
@@ -113,6 +122,33 @@ namespace
     } // another_cyclic_queue
     // ====================================================================
     
+
+    // Auxiliary things, should be moved somewhere because they just help
+    // in commands but have nothing to do with CM itself
+    
+    static std::vector<std::vector<std::string>> g_aux_mode_aliases = {
+            {"m0"},
+            {"m1"},
+            {"m2"},
+            {"m3", "normal", "normal-race", "race"},
+            {"m4", "tt", "time-trial", "trial"},
+            {"m5"},
+            {"m6", "soccer", "football"},
+            {"m7", "ffa", "free-for-all", "free", "for", "all"},
+            {"m8", "ctf", "capture-the-flag", "capture", "the", "flag"}
+    };
+    static std::vector<std::vector<std::string>> g_aux_difficulty_aliases = {
+            {"d0", "novice", "easy"},
+            {"d1", "intermediate", "medium"},
+            {"d2", "expert", "hard"},
+            {"d3", "supertux", "super", "best"}
+    };
+    static std::vector<std::vector<std::string>> g_aux_goal_aliases = {
+            {"tl", "time-limit", "time", "minutes"},
+            {"gl", "goal-limit", "goal", "goals"}
+    };
+
+    // End of auxiliary things
 } // namespace
 
 EnumExtendedReader CommandManager::mode_scope_reader({
@@ -405,7 +441,7 @@ void CommandManager::initCommandsInfo()
     delete root;
     delete root2;
 } // initCommandsInfo
-// ========================================================================
+//-----------------------------------------------------------------------------
 
 void CommandManager::initCommands()
 {
@@ -415,13 +451,15 @@ void CommandManager::initCommands()
 
     initCommandsInfo();
 
-    auto applyFunctionIfPossible = [&](std::string&& name, void (CommandManager::*f)(Context& context)) {
-        if (mp.count(name) == 0)
+    auto applyFunctionIfPossible = [&](std::string&& name, void (CM::*f)(Context& context)) {
+        auto it = mp.find(name);
+        if (it == mp.end())
             return;
-        std::shared_ptr<Command> command = mp[name].lock();
-        if (!command) {
+
+        std::shared_ptr<Command> command = it->second.lock();
+        if (!command)
             return;
-        }
+
         command->changeFunction(f);
     };
     // special permissions according to ServerConfig options
@@ -592,8 +630,8 @@ void CommandManager::initAssets()
     std::map<std::string, int> what_exists;
     for (std::string& s: all_t)
     {
-        if (StringUtils::startsWith(s, "addon_"))
-            what_exists[s.substr(6)] |= 2;
+        if (StringUtils::startsWith(s, g_addon_prefix))
+            what_exists[s.substr(g_addon_prefix.size())] |= 2;
         else
             what_exists[s] |= 1;
     }
@@ -602,21 +640,21 @@ void CommandManager::initAssets()
         if (p.second != 3)
         {
             bool is_addon = (p.second == 2);
-            std::string value = (is_addon ? "addon_" : "") + p.first;
+            std::string value = (is_addon ? g_addon_prefix : "") + p.first;
             m_stf_all_maps.add(p.first, value);
-            m_stf_all_maps.add("addon_" + p.first, value);
+            m_stf_all_maps.add(g_addon_prefix + p.first, value);
             if (is_addon)
             {
                 m_stf_addon_maps.add(p.first, value);
-                m_stf_addon_maps.add("addon_" + p.first, value);
+                m_stf_addon_maps.add(g_addon_prefix + p.first, value);
             }
         }
         else
         {
             m_stf_all_maps.add(p.first, p.first);
-            m_stf_all_maps.add("addon_" + p.first, "addon_" + p.first);
-            m_stf_addon_maps.add(p.first, "addon_" + p.first);
-            m_stf_addon_maps.add("addon_" + p.first, "addon_" + p.first);
+            m_stf_all_maps.add(g_addon_prefix + p.first, g_addon_prefix + p.first);
+            m_stf_addon_maps.add(p.first, g_addon_prefix + p.first);
+            m_stf_addon_maps.add(g_addon_prefix + p.first, g_addon_prefix + p.first);
         }
     }
 } // initAssets
@@ -626,28 +664,6 @@ void CommandManager::setupContextUser()
 {
     initCommands();
     initAssets();
-
-    m_aux_mode_aliases = {
-            {"m0"},
-            {"m1"},
-            {"m2"},
-            {"m3", "normal", "normal-race", "race"},
-            {"m4", "tt", "time-trial", "trial"},
-            {"m5"},
-            {"m6", "soccer", "football"},
-            {"m7", "ffa", "free-for-all", "free", "for", "all"},
-            {"m8", "ctf", "capture-the-flag", "capture", "the", "flag"}
-    };
-    m_aux_difficulty_aliases = {
-            {"d0", "novice", "easy"},
-            {"d1", "intermediate", "medium"},
-            {"d2", "expert", "hard"},
-            {"d3", "supertux", "super", "best"}
-    };
-    m_aux_goal_aliases = {
-            {"tl", "time-limit", "time", "minutes"},
-            {"gl", "goal-limit", "goal", "goals"}
-    };
 } // CommandManager
 // ========================================================================
 
@@ -904,7 +920,10 @@ void CommandManager::error(Context& context, bool is_error)
     }
     msg = command->getUsage();
     if (msg.empty())
-        msg = "An error occurred while invoking command \"" + command->getFullName() + "\".";
+        msg = StringUtils::insertValues("An error occurred "
+                "while invoking command \"%s\".",
+                command->getFullName().c_str());
+
     if (is_error)
         msg += "\n/!\\ Please report this error to the server owner";
     getLobby()->sendStringToPeer(peer, msg);
@@ -1143,7 +1162,7 @@ void CommandManager::process_config(Context& context)
     int difficulty = getLobby()->getDifficulty();
     int mode = getLobby()->getGameMode();
     bool goal_target = (getGameSetupFromCtx()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
-//    m_aux_goal_aliases[goal_target ? 1 : 0][0]
+//    g_aux_goal_aliases[goal_target ? 1 : 0][0]
     std::string msg = "Current config: ";
     auto get_first_if_exists = [&](std::vector<std::string>& v) -> std::string {
         if (v.size() < 2)
@@ -1151,11 +1170,11 @@ void CommandManager::process_config(Context& context)
         return v[1];
     };
     msg += " ";
-    msg += get_first_if_exists(m_aux_mode_aliases[mode]);
+    msg += get_first_if_exists(g_aux_mode_aliases[mode]);
     msg += " ";
-    msg += get_first_if_exists(m_aux_difficulty_aliases[difficulty]);
+    msg += get_first_if_exists(g_aux_difficulty_aliases[difficulty]);
     msg += " ";
-    msg += get_first_if_exists(m_aux_goal_aliases[goal_target ? 1 : 0]);
+    msg += get_first_if_exists(g_aux_goal_aliases[goal_target ? 1 : 0]);
     if (!getSettings()->isServerConfigurable())
         msg += " (not configurable)";
     getLobby()->sendStringToPeer(peer, msg);
@@ -1180,28 +1199,28 @@ void CommandManager::process_config_assign(Context& context)
     // bool gp = false;
     for (unsigned i = 1; i < argv.size(); i++)
     {
-        for (unsigned j = 0; j < m_aux_mode_aliases.size(); ++j) {
+        for (unsigned j = 0; j < g_aux_mode_aliases.size(); ++j) {
             if (j <= 2 || j == 5) {
                 // Switching to GP or modes 2, 5 is not supported yet
                 continue;
             }
-            for (std::string& alias: m_aux_mode_aliases[j]) {
+            for (std::string& alias: g_aux_mode_aliases[j]) {
                 if (argv[i] == alias) {
                     mode = j;
                     user_chose_mode = true;
                 }
             }
         }
-        for (unsigned j = 0; j < m_aux_difficulty_aliases.size(); ++j) {
-            for (std::string& alias: m_aux_difficulty_aliases[j]) {
+        for (unsigned j = 0; j < g_aux_difficulty_aliases.size(); ++j) {
+            for (std::string& alias: g_aux_difficulty_aliases[j]) {
                 if (argv[i] == alias) {
                     difficulty = j;
                     user_chose_difficulty = true;
                 }
             }
         }
-        for (unsigned j = 0; j < m_aux_goal_aliases.size(); ++j) {
-            for (std::string& alias: m_aux_goal_aliases[j]) {
+        for (unsigned j = 0; j < g_aux_goal_aliases.size(); ++j) {
+            for (std::string& alias: g_aux_goal_aliases[j]) {
                 if (argv[i] == alias) {
                     goal_target = (bool)j;
                     user_chose_target = true;
@@ -1224,11 +1243,11 @@ void CommandManager::process_config_assign(Context& context)
         // Definitely not the best format as there are extra words,
         // but I'll think how to resolve it
         if (user_chose_mode)
-            vote(context, "config mode", m_aux_mode_aliases[mode][0]);
+            vote(context, "config mode", g_aux_mode_aliases[mode][0]);
         if (user_chose_difficulty)
-            vote(context, "config difficulty", m_aux_difficulty_aliases[difficulty][0]);
+            vote(context, "config difficulty", g_aux_difficulty_aliases[difficulty][0]);
         if (user_chose_target)
-            vote(context, "config target", m_aux_goal_aliases[goal_target ? 1 : 0][0]);
+            vote(context, "config target", g_aux_goal_aliases[goal_target ? 1 : 0][0]);
         return;
     }
     getLobby()->handleServerConfiguration(peer, difficulty, mode, goal_target);
@@ -1312,10 +1331,10 @@ void CommandManager::process_addons(Context& context)
     // removed const reference so that I can modify `from`
     // without changing the original container, we copy everything anyway
     std::set<std::string> from =
-        (argv[1] == "kart" ? asset_manager->getAddonKarts() :
-        (argv[1] == "track" ? asset_manager->getAddonTracks() :
-        (argv[1] == "arena" ? asset_manager->getAddonArenas() :
-        /*argv[1] == "soccer" ?*/ asset_manager->getAddonSoccers()
+        (argv[1] == g_type_kart ? asset_manager->getAddonKarts() :
+        (argv[1] == g_type_track ? asset_manager->getAddonTracks() :
+        (argv[1] == g_type_arena ? asset_manager->getAddonArenas() :
+        /*argv[1] == g_type_soccer ?*/ asset_manager->getAddonSoccers()
     )));
     if (apply_filters)
         getAssetManager()->applyAllFilters(from, false); // happily the type is never karts in this line
@@ -1336,7 +1355,7 @@ void CommandManager::process_addons(Context& context)
             continue;
         ++num_players;
         const auto& kt = p->getClientAssets();
-        const auto& container = (argv[1] == "kart" ? kt.first : kt.second);
+        const auto& container = (argv[1] == g_type_kart ? kt.first : kt.second);
         for (auto& pr: result)
             if (container.find(pr.first) == container.end())
                 pr.second.push_back(p->getMainProfile());
@@ -1391,12 +1410,13 @@ void CommandManager::process_addons(Context& context)
             bool nothing = true;
             for (const std::string& s: all_have)
             {
-                if (s.length() < 6 || s.substr(0, 6) != "addon_")
+                if (s.length() < g_addon_prefix.size() ||
+                        s.substr(0, g_addon_prefix.size()) != g_addon_prefix)
                     continue;
                 response.push_back(nothing ? ':' : ',');
                 nothing = false;
                 response.push_back(' ');
-                response += s.substr(6);
+                response += s.substr(g_addon_prefix.size());
             }
             if (response.length() > 100)
                 response += "\nTotal: " + std::to_string(all_have.size());
@@ -1410,9 +1430,13 @@ void CommandManager::process_addons(Context& context)
                 response += ". More addons to install:";
                 for (unsigned i = 0; i < result.size(); ++i)
                 {
-                    response += "\n/installaddon " + result[i].first.substr(6) + " , missing for "
-                        + std::to_string(result[i].second.size())
-                        + " player(s):";
+                    response += "\n";
+                    response += StringUtils::insertValues(
+                            "/installaddon %s , missing for %d player(s):",
+                            result[i].first.substr(g_addon_prefix.size()).c_str(),
+                            result[i].second.size()
+                    );
+
                     std::sort(result[i].second.begin(), result[i].second.end());
                     for (unsigned j = 0; j < result[i].second.size(); ++j)
                     {
@@ -1422,8 +1446,10 @@ void CommandManager::process_addons(Context& context)
             }
         }
     } else {
-        response = "No one in the lobby can play. Found "
-            + std::to_string(all_have.size()) + " assets on the server.";
+        response = StringUtils::insertValues(
+                "No one in the lobby can play. "
+                "Found %d assets on the server.",
+                all_have.size());
     }
     getLobby()->sendStringToPeer(peer, response);
 } // process_addons
@@ -1482,8 +1508,8 @@ void CommandManager::process_checkaddon(Context& context)
     std::string response = "";
     std::string item_name[3];
     bool needed[3];
-    item_name[HAS_KART] = "kart";
-    item_name[HAS_MAP] = "map";
+    item_name[HAS_KART] = g_type_kart;
+    item_name[HAS_MAP] = g_type_map;
     needed[HAS_KART] = (players[HAS_KART].size() + players[HAS_MAP | HAS_KART].size() > 0);
     needed[HAS_MAP] = (players[HAS_MAP].size() + players[HAS_MAP | HAS_KART].size() > 0);
     if (server_status & HAS_KART)
@@ -1493,7 +1519,10 @@ void CommandManager::process_checkaddon(Context& context)
 
     if (!needed[HAS_KART] && !needed[HAS_MAP])
     {
-        response = "Neither server nor clients have addon " + argv[1] + " installed";
+        response = StringUtils::insertValues(
+                "Neither server nor clients have addon %s installed",
+                argv[1].c_str()
+        );
     }
     else
     {
@@ -1578,11 +1607,16 @@ void CommandManager::process_lsa(Context& context)
     }
     std::string response = "";
     auto& argv = context.m_argv;
-    bool has_options = argv.size() > 1 &&
-        (argv[1].compare("-track") == 0 ||
-        argv[1].compare("-arena") == 0 ||
-        argv[1].compare("-kart") == 0 ||
-        argv[1].compare("-soccer") == 0);
+
+    // "-" left from the 'vanilla' code. Not sure if it's worth it.
+    bool has_options = argv.size() > 1 && (
+        argv[1].compare("-" + g_type_track) == 0 ||
+        argv[1].compare("-" + g_type_arena) == 0 ||
+        argv[1].compare("-" + g_type_kart) == 0 ||
+        argv[1].compare("-" + g_type_soccer) == 0
+    );
+
+    // kimden: what is this, remove
     if (argv.size() == 1 || argv.size() > 3 || argv[1].size() < 3 ||
         (argv.size() == 2 && (argv[1].size() < 3 || has_options)) ||
         (argv.size() == 3 && (!has_options || argv[2].size() < 3)))
@@ -1594,10 +1628,10 @@ void CommandManager::process_lsa(Context& context)
     std::string text = "";
     if (argv.size() > 1)
     {
-        if (argv[1].compare("-track") == 0 ||
-            argv[1].compare("-arena") == 0 ||
-            argv[1].compare("-kart") == 0 ||
-            argv[1].compare("-soccer") == 0)
+        if (argv[1].compare("-" + g_type_track) == 0 ||
+            argv[1].compare("-" + g_type_arena) == 0 ||
+            argv[1].compare("-" + g_type_kart) == 0 ||
+            argv[1].compare("-" + g_type_soccer) == 0)
             type = argv[1].substr(1);
         if ((argv.size() == 2 && type.empty()) || argv.size() == 3)
             text = argv[argv.size() - 1];
@@ -1605,26 +1639,22 @@ void CommandManager::process_lsa(Context& context)
 
     std::set<std::string> total_addons;
     auto asset_manager = getAssetManager();
-    if (type.empty() || // not specify addon type
-       (!type.empty() && type.compare("kart") == 0)) // list kart addon
+    if (type.empty() || type.compare(g_type_kart) == 0)
     {
         const auto& collection = asset_manager->getAddonKarts();
         total_addons.insert(collection.begin(), collection.end());
     }
-    if (type.empty() || // not specify addon type
-       (!type.empty() && type.compare("track") == 0))
+    if (type.empty() || type.compare(g_type_track) == 0)
     {
         const auto& collection = asset_manager->getAddonTracks();
         total_addons.insert(collection.begin(), collection.end());
     }
-    if (type.empty() || // not specify addon type
-       (!type.empty() && type.compare("arena") == 0))
+    if (type.empty() || type.compare(g_type_arena) == 0)
     {
         const auto& collection = asset_manager->getAddonArenas();
         total_addons.insert(collection.begin(), collection.end());
     }
-    if (type.empty() || // not specify addon type
-       (!type.empty() && type.compare("soccer") == 0))
+    if (type.empty() || type.compare(g_type_soccer) == 0)
     {
         const auto& collection = asset_manager->getAddonSoccers();
         total_addons.insert(collection.begin(), collection.end());
@@ -1632,11 +1662,10 @@ void CommandManager::process_lsa(Context& context)
     std::string msg = "";
     for (auto& addon : total_addons)
     {
-        // addon_ (6 letters)
-        if (!text.empty() && addon.find(text, 6) == std::string::npos)
+        if (!text.empty() && addon.find(text, g_addon_prefix.size()) == std::string::npos)
             continue;
 
-        msg += addon.substr(6);
+        msg += addon.substr(g_addon_prefix.size());
         msg += ", ";
     }
     if (msg.empty())
@@ -1672,8 +1701,8 @@ void CommandManager::process_pha(Context& context)
         return;
 
     std::string addon_id = argv[1];
-    if (StringUtils::startsWith(addon_id, "addon_"))
-        addon_id = addon_id.substr(6);
+    if (StringUtils::startsWith(addon_id, g_addon_prefix))
+        addon_id = addon_id.substr(g_addon_prefix.size());
     std::string player_name = argv[2];
     std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
         StringUtils::utf8ToWide(player_name));
@@ -1858,16 +1887,16 @@ void CommandManager::process_pas(Context& context)
     }
     else
     {
-        std::string msg = player_name;
-        msg += "'s addon score:";
+        std::string msg = StringUtils::insertValues("%s's addon score:",
+                player_name.c_str());
         if (scores[AS_KART] != -1)
-            msg += " karts: " + StringUtils::toString(scores[AS_KART]) + ",";
+            msg += StringUtils::insertValues(" karts: %d,", scores[AS_KART]);
         if (scores[AS_TRACK] != -1)
-            msg += " tracks: " + StringUtils::toString(scores[AS_TRACK]) + ",";
+            msg += StringUtils::insertValues(" tracks: %d,", scores[AS_TRACK]);
         if (scores[AS_ARENA] != -1)
-            msg += " arenas: " + StringUtils::toString(scores[AS_ARENA]) + ",";
+            msg += StringUtils::insertValues(" arenas: %d,", scores[AS_ARENA]);
         if (scores[AS_SOCCER] != -1)
-            msg += " fields: " + StringUtils::toString(scores[AS_SOCCER]) + ",";
+            msg += StringUtils::insertValues(" fields: %d,", scores[AS_SOCCER]);
         msg.pop_back();
         response = msg;
     }
@@ -1906,13 +1935,13 @@ void CommandManager::process_everypas(Context& context)
         result.emplace_back(p->getMainProfile(), overall);
     }
     int sorting_idx = -1;
-    if (sorting_type == "kart" || sorting_type == "karts")
+    if (sorting_type == g_type_kart || sorting_type == g_type_kart + "s")
         sorting_idx = 0;
-    if (sorting_type == "track" || sorting_type == "tracks")
+    if (sorting_type == g_type_track || sorting_type == g_type_track + "s")
         sorting_idx = 1;
-    if (sorting_type == "arena" || sorting_type == "arenas")
+    if (sorting_type == g_type_arena || sorting_type == g_type_arena + "s")
         sorting_idx = 2;
-    if (sorting_type == "soccer" || sorting_type == "soccers")
+    if (sorting_type == g_type_soccer || sorting_type == g_type_soccer + "s")
         sorting_idx = 3;
     if (sorting_idx != -1)
     {
@@ -1938,21 +1967,23 @@ void CommandManager::process_everypas(Context& context)
     }
     // I don't really know if it should be soccer or field, both are used
     // in different situations
-    std::vector<std::string> desc = { "karts", "tracks", "arenas", "fields" };
+    std::vector<std::string> desc = {g_type_kart, g_type_track, g_type_arena, g_type_soccer};
     for (auto& row: result)
     {
-        response += "\n" + getLobby()->encodeProfileNameForPeer(row.first, peer.get());
+        response += "\n";
+        std::string decorated_name = getLobby()->encodeProfileNameForPeer(row.first, peer.get());
+
         bool negative = true;
         for (int item = 0; item < AS_TOTAL; item++)
             negative &= row.second[item] == -1;
         if (negative)
-            response += " has no addons";
+            response += StringUtils::insertValues("%s has no addons", decorated_name.c_str());
         else
         {
-            std::string msg = "'s addon score:";
+            std::string msg = StringUtils::insertValues("%s's addon score:", decorated_name.c_str());
             for (int i = 0; i < AS_TOTAL; i++)
                 if (row.second[i] != -1)
-                    msg += " " + desc[i] + ": " + StringUtils::toString(row.second[i]) + ",";
+                    msg += StringUtils::insertValues(" %ss: %d,", desc[i].c_str(), row.second[i]);
             msg.pop_back();
             response += msg;
         }
@@ -2510,6 +2541,8 @@ void CommandManager::process_queue_push(Context& context)
             }
             auto& cell = context.m_argv[2 + p.index];
             suffix_length = cell.length() - p.value.length() - prefix_length;
+
+            // kimden: this looks horrendous but I remember it was worth it back then
             if (hasTypo(peer, context.m_voting, context.m_argv, context.m_cmd,
                         2 + p.index, m_stf_all_maps, 3, false, false, false, subidx,
                         prefix_length, cell.length() - suffix_length))
@@ -2539,10 +2572,14 @@ void CommandManager::process_queue_push(Context& context)
                 add_to_queue<TrackFilter>(x, mask, to_front, filter_text);
             }
 
-            msg += "Pushed { " + filter_text + " }"
-                            + " to the " + (to_front ? "front" : "back")
-                            + " of " + get_queue_name(x) + ", current queue size: "
-                            + std::to_string(get_queue(x).size()) + "\n";
+            msg += StringUtils::insertValues(
+                    "Pushed { %s } to the %s of %s, current queue size: %d",
+                    filter_text.c_str(),
+                    (to_front ? "front" : "back"),
+                    get_queue_name(x).c_str(),
+                    get_queue(x).size()
+            );
+            msg += "\n";
         }
     }
 
@@ -3564,8 +3601,9 @@ void CommandManager::process_slots(Context& context)
         return;
     }
     int current = getSettings()->getCurrentMaxPlayersInGame();
-    getLobby()->sendStringToPeer(peer, "Number of slots is currently " +
-            std::to_string(current));
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Number of slots is currently %d",
+            current));
 } // process_slots
 // ========================================================================
 
@@ -3597,7 +3635,9 @@ void CommandManager::process_slots_assign(Context& context)
     }
     getSettings()->setCurrentMaxPlayersInGame((unsigned)number);
     getLobby()->updatePlayerList();
-    getLobby()->sendStringToAllPeers("Number of playable slots is now " + argv[1]);
+    getLobby()->sendStringToAllPeers(StringUtils::insertValues(
+            "Number of playable slots is now %s",
+            number));
 } // process_slots_assign
 // ========================================================================
 
@@ -3609,7 +3649,9 @@ void CommandManager::process_time(Context& context)
         error(context, true);
         return;
     }
-    getLobby()->sendStringToPeer(peer, "Server time: " + StkTime::getLogTime());
+    getLobby()->sendStringToPeer(peer, StringUtils::insertValues(
+            "Server time: %s",
+            StkTime::getLogTime().c_str()));
 } // process_time
 // ========================================================================
 
@@ -4144,12 +4186,12 @@ std::string CommandManager::getAddonPreferredType() const
 {
     int mode = getLobby()->getGameMode();
     if (0 <= mode && mode <= 4)
-        return "track";
+        return g_type_track;
     if (mode == 6)
-        return "soccer";
+        return g_type_soccer;
     if (7 <= mode && mode <= 8)
-        return "arena";
-    return "track"; // default choice
+        return g_type_arena;
+    return g_type_track; // default choice
 } // getAddonPreferredType
 // ========================================================================
 

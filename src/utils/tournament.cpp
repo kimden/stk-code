@@ -45,8 +45,10 @@ void Tournament::setupContextUser()
 
 void Tournament::applyFiltersForThisGame(FilterContext& track_context)
 {
-    track_context.wildcards = m_arenas;
+    std::vector<std::string> prev_wildcards = m_arenas;
+    std::swap(track_context.wildcards, prev_wildcards);
     m_track_filters[m_game].apply(track_context);
+    std::swap(track_context.wildcards, prev_wildcards);
 }   // applyFiltersForThisGame
 //-----------------------------------------------------------------------------
 
