@@ -57,6 +57,12 @@ struct GameInfo: public LobbyContextUser
         double      m_game_duration  = -1;
         int         m_handicap       = 0;
         std::string m_country_code   = "";
+
+        // Added with version 3a
+        std::string m_vote_track_name = "";
+        int         m_vote_num_laps   = -1;
+        int         m_vote_reverse    = -1;
+
         std::string m_other_info     = "";
 
         PlayerInfo(bool reserved = false, bool game_event = false):

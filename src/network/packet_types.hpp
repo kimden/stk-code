@@ -21,6 +21,7 @@
 
 // #include "network/network_string.hpp"
 // #include "network/protocol.hpp"
+#include "irrString.h"
 #include "network/protocols/game_event_types.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/types.hpp"
@@ -34,7 +35,9 @@ class BareNetworkString;
 #include <functional>
 #include <string>
 #include <map>
+#include <vector>
 
+using widestr = irr::core::stringw;
 /**
  * IMPORTANT!
  * This class is meant to describe the overall structure of network packets
@@ -169,6 +172,8 @@ public:
     }
 };
 
+enum PacketTypeId: uint16_t;
+
 class Packet: public Checkable, public Storage
 {
 public:
@@ -176,6 +181,9 @@ public:
 
     // Needed to dynamic_cast
     virtual ~Packet() {}
+
+    // 0 = NONE, but I haven't declared it yet
+    virtual PacketTypeId packetTypeId() const { return (PacketTypeId)0; }
     virtual void toNetworkString(NetworkString* ns) const                    {}
     virtual void fromNetworkString(NetworkString* ns)                        {}
     virtual unsigned expectedCapacity() const                     { return 0; }
@@ -191,12 +199,58 @@ public:
 constexpr int IDONT_KNOW = 0;
 constexpr bool UNUSED = false;
 
+
+//---------------------- Enum type id ---------------------------------------
+
+#define DEFINE_CLASS(Name) PTID_##Name, \
+
+#define DEFINE_DERIVED_CLASS(Name, Parent) PTID_##Name, \
+
+#define PROTOCOL_TYPE(Type, Sync)
+#define AUX_STORE(Key, Var)
+#define AUX_VAR(Type, Var)
+#define AUX_VAR_VALUE(Type, Var, Value)
+#define AUX_VAR_FROM_PARENT(Type, Key, Var)
+#define DEFINE_FIELD(Type, Var)
+#define DEFINE_FIELD16(Type, Var)
+#define DEFINE_FIELD_PTR(Type, Var)
+#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition)
+#define DEFINE_TYPE(Type, Var, Value)
+#define DEFINE_VECTOR(Type, Size, Var)
+#define DEFINE_VECTOR_PTR(Type, Size, Var)
+#define RELIABLE(Value)
+#define END_DEFINE_CLASS(Name)
+
+enum PacketTypeId: uint16_t
+{
+    PTID_NONE = 0,
+#include "network/packet_types_base.hpp"
+};
+
+#undef DEFINE_CLASS
+#undef DEFINE_DERIVED_CLASS
+#undef PROTOCOL_TYPE
+#undef AUX_STORE
+#undef AUX_VAR
+#undef AUX_VAR_VALUE
+#undef AUX_VAR_FROM_PARENT
+#undef DEFINE_FIELD
+#undef DEFINE_FIELD16
+#undef DEFINE_FIELD_PTR
+#undef DEFINE_TYPE
+#undef DEFINE_FIELD_OPTIONAL
+#undef DEFINE_VECTOR
+#undef DEFINE_VECTOR_PTR
+#undef RELIABLE
+#undef END_DEFINE_CLASS
+
 //---------------------- Initialization ---------------------------------------
 
 #define DEFINE_CLASS(Name) \
 class Name: public Packet { \
     public: \
         virtual ~Name() {} \
+        virtual PacketTypeId packetTypeId() const OVERRIDE { return PTID_##Name; } \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
@@ -204,6 +258,7 @@ class Name: public Packet { \
 class Name: public Parent { \
     public: \
         virtual ~Name() {} \
+        virtual PacketTypeId packetTypeId() const OVERRIDE { return PTID_##Name; } \
         virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
         virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
@@ -241,5 +296,7 @@ class Name: public Parent { \
 #undef END_DEFINE_CLASS
 
 /* Don't forget to send RELIABLE(Value) packets with PRM_RELIABLE or PRM_UNRELIABLE if false */
+
+//---------------------- End ---------------------------------------
 
 #endif // PACKET_TYPES_HPP
