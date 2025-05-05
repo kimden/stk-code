@@ -40,14 +40,6 @@
  * you can use either a #define or using = to pass it anyway.
  */
 
-#include "irrString.h"
-#include "utils/types.hpp"
-
-#include <string>
-#include <vector>
-
-using widestr = irr::core::stringw;
-
 // Note that bools are encoded using int8_t
 
 // Make sure all level 0 packets have protocol set!
@@ -286,7 +278,7 @@ DEFINE_CLASS(LiveJoinPacket)
     PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
     DEFINE_TYPE(uint8_t, type, LE_LIVE_JOIN_ACK)
     DEFINE_FIELD(uint64_t, client_starting_time)
-    DEFINE_FIELD(uint8_t, check_count);
+    DEFINE_FIELD(uint8_t, check_count)
     DEFINE_FIELD(uint64_t, live_join_start_time)
     DEFINE_FIELD(uint32_t, last_live_join_util_ticks)
     DEFINE_FIELD(NimCompleteStatePacket, nim_complete_state)
@@ -351,7 +343,7 @@ END_DEFINE_CLASS(BackLobbyPacket)
 DEFINE_CLASS(ServerInfoPacket)
     PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
     DEFINE_TYPE(uint8_t, type, LE_SERVER_INFO)
-    DEFINE_FIELD(std::string, server_name);
+    DEFINE_FIELD(std::string, server_name)
     DEFINE_FIELD(uint8_t, difficulty)
     DEFINE_FIELD(uint8_t, max_players)
     DEFINE_FIELD(uint8_t, extra_spectators_zero)
@@ -413,7 +405,7 @@ END_DEFINE_CLASS(LiveJoinRequestPacket)
 DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
     PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, UNUSED)
     DEFINE_TYPE(uint8_t, type, LE_CLIENT_LOADED_WORLD)
-    RELIABLE(true);
+    RELIABLE(true)
 END_DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
 
 DEFINE_CLASS(KartInfoRequestPacket)
