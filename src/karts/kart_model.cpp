@@ -28,6 +28,7 @@
 #include "graphics/b3d_mesh_loader.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/lod_node.hpp"
+#include "graphics/light.hpp"
 #include "graphics/material.hpp"
 #include "graphics/material_manager.hpp"
 #include "graphics/mesh_tools.hpp"
@@ -46,11 +47,16 @@
 #include "utils/constants.hpp"
 #include "utils/log.hpp"
 
+#include "IMeshCache.h"
 #include "IMeshManipulator.h"
+#include "ILightSceneNode.h"
+#include "IVideoDriver.h"
+
 #include <algorithm>
 #include <ge_animation.hpp>
 #include <ge_render_info.hpp>
 #include <ge_spm.hpp>
+#include <ge_spm_buffer.hpp>
 
 #define SKELETON_DEBUG 0
 
@@ -529,7 +535,9 @@ scene::ISceneNode* KartModel::attachModel(bool animated_models, bool human_playe
                 irr_driver->addMesh(obj.getModel(), "kart_headlight",
                 parent, getRenderInfo());
 #ifndef SERVER_ONLY
-            if (human_player && CVS->isGLSL() && CVS->isDeferredEnabled())
+            bool supports_light = (CVS->isGLSL() && CVS->isDeferredEnabled()) ||
+                irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN;
+            if (human_player && supports_light)
             {
                 obj.setLight(headlight_model, each_energy, each_radius);
             }
@@ -573,10 +581,28 @@ scene::ISceneNode* KartModel::attachModel(bool animated_models, bool human_playe
 void HeadlightObject::setLight(scene::ISceneNode* parent,
                                           float energy, float radius)
 {
+    bool is_vk = irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN;
+    if (m_spotlight == 1)
+        energy *= 2.0f;
     m_node = irr_driver->addLight(core::vector3df(0.0f, 0.0f, 0.0f),
         energy, radius, m_headlight_color.getRed() / 255.f,
         m_headlight_color.getGreen() / 255.f,
         m_headlight_color.getBlue() / 255.f, false/*sun*/, parent);
+    if (is_vk && m_spotlight == 1)
+    {
+        scene::ILightSceneNode* ln = static_cast<scene::ILightSceneNode*>(m_node);
+        ln->setLightType(video::ELT_SPOT);
+        video::SLight& data = ln->getLightData();
+        data.InnerCone = 30.0f / 180.0f * M_PI;
+        data.OuterCone = 45.0f / 180.0f * M_PI;
+    }
+    else if (m_spotlight == 1)
+    {
+        LightNode* ln = static_cast<LightNode*>(m_node);
+        Spotlight& sl = ln->getSpotlightData();
+        sl.m_inner_cone = 30.0f / 180.0f * M_PI;
+        sl.m_outer_cone = 45.0f / 180.0f * M_PI;
+    }
     m_node->grab();
 }   // setLight
 
@@ -704,6 +730,7 @@ bool KartModel::loadModels(const KartProperties &kart_properties)
             mesh->freeMeshVertexBuffer();
     }
 
+    std::set<scene::IMesh*> spotlight_meshes;
     for (unsigned int i = 0; i < m_headlight_objects.size(); i++)
     {
         HeadlightObject& obj = m_headlight_objects[i];
@@ -711,6 +738,31 @@ bool KartModel::loadModels(const KartProperties &kart_properties)
         scene::IMesh* mesh = irr_driver->getMesh(full_name);
         if (!mesh)
             continue;
+#ifndef SERVER_ONLY
+        bool spotlight = spotlight_meshes.find(mesh) != spotlight_meshes.end();
+        GE::GESPM* spm = dynamic_cast<GE::GESPM*>(mesh);
+        SP::SPMesh* spspm = dynamic_cast<SP::SPMesh*>(mesh);
+        if (obj.getSpotlight() == -1)
+        {
+            if (spm)
+            {
+                if (!spotlight && handleSpotlight(spm))
+                {
+                    spotlight_meshes.insert(spm);
+                    spotlight = true;
+                }
+            }
+            else if (spspm)
+            {
+                if (!spotlight && handleSPSpotlight(spspm))
+                {
+                    spotlight_meshes.insert(spspm);
+                    spotlight = true;
+                }
+            }
+            obj.setSpotlight(spotlight);
+        }
+#endif
         obj.setModel(mesh);
 #ifndef SERVER_ONLY
         SP::uploadSPM(obj.getModel());
@@ -888,8 +940,12 @@ void KartModel::loadHeadlights(const XMLNode &node)
             child->get("model", &model);
             video::SColor headlight_color(-1);
             child->get("color", &headlight_color);
+            bool is_spotlight = false;
+            int spotlight = -1;
+            if (child->get("spotlight", &is_spotlight))
+                spotlight = is_spotlight;
             m_headlight_objects.push_back(HeadlightObject(model, location,
-                bone_name, headlight_color));
+                bone_name, headlight_color, spotlight));
         }
         else
         {
@@ -1404,3 +1460,51 @@ const core::matrix4& KartModel::getInverseBoneMatrix
         return unused;
     return ret->second;
 }   // getInverseBoneMatrix
+
+//-----------------------------------------------------------------------------
+bool KartModel::handleSpotlight(GE::GESPM* spm)
+{
+#ifndef SERVER_ONLY
+    unsigned count = spm->getMeshBufferCount();
+    bool spotlight = false;
+    for (int i = count - 1; i >= 0; i--)
+    {
+        GE::GESPMBuffer* b = static_cast<GE::GESPMBuffer*>(spm->getMeshBuffer(i));
+        b->destroyVertexIndexBuffer();
+        video::SMaterial& m = b->getMaterial();
+        std::string t;
+        if (m.getTexture(0))
+            t = m.getTexture(0)->getFullPath().c_str();
+        if (t.find("stk_conelight_a.png") != std::string::npos)
+        {
+            spotlight = true;
+            spm->removeMeshBuffer(i);
+        }
+    }
+    spm->finalize();
+    irr_driver->getSceneManager()->getMeshCache()->meshCacheChanged();
+    return spotlight;
+#endif
+}   // handleSpotlight
+
+// ----------------------------------------------------------------------------
+bool KartModel::handleSPSpotlight(SP::SPMesh* spm)
+{
+    unsigned count = spm->getMeshBufferCount();
+    bool spotlight = false;
+    for (int i = count - 1; i >= 0; i--)
+    {
+        SP::SPMeshBuffer* b = static_cast<SP::SPMeshBuffer*>(spm->getMeshBuffer(i));
+        const auto& materials = b->getAllSTKMaterials();
+        for (unsigned i = 0; i < materials.size(); i++)
+        {
+            Material* m = materials[i];
+            if (m && m->getSamplerPath(0).find("stk_conelight_a.png") != std::string::npos)
+            {
+                spotlight = true;
+                b->disableForMaterial(i);
+            }
+        }
+    }
+    return spotlight;
+}   // handleSPSpotlight

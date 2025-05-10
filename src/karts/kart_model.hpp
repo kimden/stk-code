@@ -31,7 +31,8 @@ namespace irr
                       class ISceneNode; class IMeshSceneNode; }
 }
 using namespace irr;
-namespace GE { class GERenderInfo; }
+namespace GE { class GERenderInfo; class GESPM; }
+namespace SP { class SPMesh; }
 
 #include "utils/no_copy.hpp"
 #include "utils/vec3.hpp"
@@ -113,16 +114,19 @@ private:
     /** Attach to which bone in kart model if not empty. */
     std::string m_bone_name;
 
+    int m_spotlight;
 public:
 
     HeadlightObject()
     {
         m_model    = NULL;
         m_node     = NULL;
+        m_spotlight = -1;
     }   // HeadlightObject
     // ------------------------------------------------------------------------
     HeadlightObject(const std::string& filename, const core::matrix4& location,
-                    const std::string& bone_name, const video::SColor& color)
+                    const std::string& bone_name, const video::SColor& color,
+                    int spotlight)
     {
         m_filename = filename;
         m_location = location;
@@ -130,6 +134,7 @@ public:
         m_node     = NULL;
         m_bone_name = bone_name;
         m_headlight_color = color;
+        m_spotlight = spotlight;
     }   // HeadlightObjects
     // ------------------------------------------------------------------------
     const std::string& getFilename() const { return m_filename; }
@@ -150,6 +155,10 @@ public:
     const core::matrix4& getLocation() const { return m_location; }
     // ------------------------------------------------------------------------
     const std::string& getBoneName() const { return m_bone_name; }
+    // ------------------------------------------------------------------------
+    int getSpotlight() const { return m_spotlight; }
+    // ------------------------------------------------------------------------
+    void setSpotlight(bool spot) { m_spotlight = spot; }
     // ------------------------------------------------------------------------
 };   // class HeadlightObject
 
@@ -339,6 +348,10 @@ private:
         node->setRotation(rotation);
         node->setScale(scale);
     }
+    // ------------------------------------------------------------------------
+    bool handleSpotlight(GE::GESPM* spm);
+    // ------------------------------------------------------------------------
+    bool handleSPSpotlight(SP::SPMesh* spm);
 
 public:
                   KartModel(bool is_master);
