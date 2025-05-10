@@ -626,9 +626,9 @@ void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
     // Ignore kicking ai peer if ai handling is on
     if (target && (!hasAiHandling() || !target->isAIPeer()))
     {
-        if (target->isAngryHost())
+        if (target->hammerLevel() > 0)
         {
-            getLobby()->sendStringToPeer(initiator, "This player is the owner of this server, "
+            getLobby()->sendStringToPeer(initiator, "This player holds admin rights of this server, "
                 "and is protected from your actions now");
             return;
         }

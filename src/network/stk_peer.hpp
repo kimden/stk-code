@@ -139,7 +139,7 @@ protected:
 
     std::array<int, AS_TOTAL> m_addons_scores;
 
-    std::atomic_bool m_angry_host;
+    std::atomic_int m_angry_host;
 public:
     STKPeer(ENetPeer *enet_peer, STKHost* host, uint32_t host_id);
     // ------------------------------------------------------------------------
@@ -379,9 +379,9 @@ public:
             m_always_spectate.store(ASM_NONE);
     }
     // ------------------------------------------------------------------------
-    bool isAngryHost() const                    { return m_angry_host.load(); }
+    int hammerLevel() const                    { return m_angry_host.load(); }
     // ------------------------------------------------------------------------
-    void setAngryHost(bool val)                    { m_angry_host.store(val); }
+    void setAngryHost(int val)                    { m_angry_host.store(val); }
     // ------------------------------------------------------------------------
     std::shared_ptr<NetworkPlayerProfile> getMainProfile();
     // ------------------------------------------------------------------------

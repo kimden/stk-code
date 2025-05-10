@@ -2830,9 +2830,10 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
 
         // get OS information
         auto version_os = StringUtils::extractVersionOS(profile->getPeer()->getUserVersion());
-        bool angry_host = profile->getPeer()->isAngryHost();
+        int angry_host = profile->getPeer()->hammerLevel();
         std::string os_type_str = version_os.second;
         std::string utf8_profile_name = StringUtils::wideToUtf8(profile_name);
+
         // Add a Mobile emoji for mobile OS
         if (getSettings()->isExposingMobile() &&
                 (os_type_str == "iOS" || os_type_str == "Android"))
@@ -2843,7 +2844,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             profile_name = StringUtils::utf32ToWide({ 0x231B }) + profile_name;
 
         // Add a hammer emoji for angry host
-        if (angry_host)
+        for (int i = angry_host; i > 0; --i)
             profile_name = StringUtils::utf32ToWide({0x1F528}) + profile_name;
 
         std::string prefix = "";
@@ -4262,10 +4263,13 @@ bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
         return false;
+
     if (peer == m_server_owner.lock())
         return true;
-    if (peer->isAngryHost())
+
+    if (peer->hammerLevel() > 0)
         return true;
+
     if (isTournament())
         return getTournament()->hasHostRights(peer);
 
@@ -4295,7 +4299,8 @@ int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
         if (getCrownManager()->hasOnlyHostRiding())
             mask |= CommandPermissions::PE_SINGLE;
     }
-    if (peer->isAngryHost())
+    int hammer_level = peer->hammerLevel();
+    if (hammer_level >= 1)
     {
         mask |= CommandPermissions::PE_HAMMER;
     }

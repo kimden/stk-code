@@ -264,7 +264,7 @@ void LobbyAssetManager::eraseAssetsWithPeers(
 bool LobbyAssetManager::tryApplyingMapFilters()
 {
     std::set<std::string> available_tracks_fallback = m_available_kts.second;
-    applyAllFilters(m_available_kts.second, true);
+    applyAllMapFilters(m_available_kts.second, true);
 
    /* auto iter = m_available_kts.second.begin();
     while (iter != m_available_kts.second.end())
@@ -561,7 +561,7 @@ std::string LobbyAssetManager::getRandomMap() const
     for (const std::string& s: m_entering_kts.second) {
         items.insert(s);
     }
-    applyAllFilters(items, false);
+    applyAllMapFilters(items, false);
     if (items.empty())
         return "";
     RandomGenerator rg;
@@ -579,7 +579,7 @@ std::string LobbyAssetManager::getRandomAddonMap() const
         if (t->isAddon())
             items.insert(s);
     }
-    applyAllFilters(items, false);
+    applyAllMapFilters(items, false);
     if (items.empty())
         return "";
     RandomGenerator rg;
@@ -601,7 +601,7 @@ void LobbyAssetManager::gameFinishedOn(const std::string& map_name)
 }   // gameFinishedOn
 //-----------------------------------------------------------------------------
 
-void LobbyAssetManager::applyAllFilters(std::set<std::string>& maps, bool use_history) const
+void LobbyAssetManager::applyAllMapFilters(std::set<std::string>& maps, bool use_history) const
 {
     unsigned max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
@@ -638,7 +638,7 @@ void LobbyAssetManager::applyAllFilters(std::set<std::string>& maps, bool use_hi
         getQueues()->applyFrontMapFilters(map_context);
     }
     std::swap(maps, map_context.elements);
-}   // applyAllFilters
+}   // applyAllMapFilters
 //-----------------------------------------------------------------------------
 
 void LobbyAssetManager::applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection) const

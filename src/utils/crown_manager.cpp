@@ -104,9 +104,11 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
     }
 
     std::sort(peers.begin(), peers.end(),
-        [](const std::shared_ptr<STKPeer>& a,
-            const std::shared_ptr<STKPeer>& b)
-        { return a->getRejoinTime() < b->getRejoinTime(); });
+        [](const std::shared_ptr<STKPeer>& a, const std::shared_ptr<STKPeer>& b)
+        {
+            return defaultOrderComparator(a, b);
+        }
+    );
 
     unsigned player_count = 0;
 
@@ -220,7 +222,7 @@ bool CrownManager::canRace(std::shared_ptr<STKPeer> peer)
         return false;
     }
     
-    getAssetManager()->applyAllFilters(maps, true);
+    getAssetManager()->applyAllMapFilters(maps, true);
     getAssetManager()->applyAllKartFilters(username, karts, false);
 
     if (karts.empty())
@@ -291,20 +293,28 @@ std::shared_ptr<STKPeer> CrownManager::getFirstInCrownOrder(
 
     unsigned best = 0;
     for (unsigned i = 1; i < peers.size(); ++i)
-        if (defaultOrderComparator(peers[i], peers[best]))
+        if (defaultCrownComparator(peers[i], peers[best]))
             best = i;
 
     return peers[best];
 }   // getFirstInCrownOrder
 //-----------------------------------------------------------------------------
 
-bool CrownManager::defaultOrderComparator(
+bool CrownManager::defaultCrownComparator(
         const std::shared_ptr<STKPeer> a,
         const std::shared_ptr<STKPeer> b)
 {
     if (a->isCommandSpectator() ^ b->isCommandSpectator())
         return b->isCommandSpectator();
 
+    return defaultOrderComparator(a, b);
+}   // defaultCrownComparator
+//-----------------------------------------------------------------------------
+
+bool CrownManager::defaultOrderComparator(
+        const std::shared_ptr<STKPeer> a,
+        const std::shared_ptr<STKPeer> b)
+{
     return a->getRejoinTime() < b->getRejoinTime();
 }   // defaultOrderComparator
 //-----------------------------------------------------------------------------

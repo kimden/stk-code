@@ -696,6 +696,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     {
         if (argv.size() == 1 || argv[1] == "vote")
         {
+            // kimden: all error strings in this function should be done in error(context) way
             getLobby()->sendStringToPeer(peer, "Usage: /vote (a command with arguments)");
             return;
         }
@@ -706,6 +707,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         voting = true;
         action = "vote for";
     }
+
     bool restored = false;
     for (int i = 0; i <= 5; ++i) {
         if (argv[0] == std::to_string(i)) {
@@ -822,7 +824,9 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     std::string new_cmd = p.first + " " + p.second;
                     auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
                     CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
-                    std::string msg2 = "Command \"/" + new_cmd + "\" has been successfully voted";
+                    std::string msg2 = StringUtils::insertValues(
+                            "Command \"/%s\" has been successfully voted",
+                            new_cmd.c_str());
                     getLobby()->sendStringToAllPeers(msg2);
                     Context new_context(event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
                     execute(executed_command, new_context);
@@ -884,7 +888,9 @@ void CommandManager::update()
                 std::string new_cmd = p.first + " " + p.second;
                 auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
                 CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
-                std::string msg = "Command \"/" + new_cmd + "\" has been successfully voted";
+                std::string msg = StringUtils::insertValues(
+                        "Command \"/%s\" has been successfully voted",
+                        new_cmd.c_str());
                 getLobby()->sendStringToAllPeers(msg);
                 // Happily the name of the votable coincides with the command full name
                 std::shared_ptr<Command> command = m_full_name_to_command[votable_pairs.first].lock();
@@ -981,8 +987,9 @@ void CommandManager::process_text(Context& context)
     }
     auto it = m_text_response.find(command->getFullName());
     if (it == m_text_response.end())
-        response = "Error: a text command " + command->getFullName()
-            + " is defined without text";
+        response = StringUtils::insertValues(
+                "Error: a text command %s is defined without text",
+                command->getFullName().c_str());
     else
         response = it->second;
     getLobby()->sendStringToPeer(peer, response);
@@ -1001,8 +1008,9 @@ void CommandManager::process_file(Context& context)
     }
     auto it = m_file_resources.find(command->getFullName());
     if (it == m_file_resources.end())
-        response = "Error: file not found for a file command "
-            + command->getFullName();
+        response = StringUtils::insertValues(
+                "Error: file not found for a file command %s",
+                command->getFullName().c_str());
     else
         response = it->second.get();
     getLobby()->sendStringToPeer(peer, response);
@@ -1021,8 +1029,9 @@ void CommandManager::process_auth(Context& context)
     }
     auto it = m_auth_resources.find(command->getFullName());
     if (it == m_auth_resources.end())
-        response = "Error: auth method not found for a command "
-                   + command->getFullName();
+        response = StringUtils::insertValues(
+                "Error: auth method not found for a command %s",
+                command->getFullName().c_str());
     else
     {
         auto profile = peer->getMainProfile();
@@ -1337,7 +1346,7 @@ void CommandManager::process_addons(Context& context)
         /*argv[1] == g_type_soccer ?*/ asset_manager->getAddonSoccers()
     )));
     if (apply_filters)
-        getAssetManager()->applyAllFilters(from, false); // happily the type is never karts in this line
+        getAssetManager()->applyAllMapFilters(from, false); // happily the type is never karts in this line
     std::vector<std::pair<std::string, std::vector<std::shared_ptr<NetworkPlayerProfile>>>> result;
     for (const std::string& s: from)
         result.push_back({s, {}});
@@ -1761,7 +1770,7 @@ void CommandManager::process_kick(Context& context)
         error(context);
         return;
     }
-    if (player_peer->isAngryHost())
+    if (player_peer->hammerLevel() > 0)
     {
         getLobby()->sendStringToPeer(peer, "This player is the owner of "
             "this server, and is protected from your actions now");
@@ -2360,7 +2369,7 @@ void CommandManager::process_power(Context& context)
         error(context, true);
         return;
     }
-    if (peer->isAngryHost())
+    if (peer->hammerLevel() > 0)
     {
         peer->setAngryHost(false);
         getLobby()->sendStringToPeer(peer, "You are now a normal player");

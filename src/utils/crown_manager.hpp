@@ -53,7 +53,10 @@ public:
     std::shared_ptr<STKPeer> getFirstInCrownOrder(
             const std::vector<std::shared_ptr<STKPeer>>& peers);
 
-    bool defaultOrderComparator(const std::shared_ptr<STKPeer> a,
+    static bool defaultCrownComparator(const std::shared_ptr<STKPeer> a,
+                                const std::shared_ptr<STKPeer> b);
+
+    static bool defaultOrderComparator(const std::shared_ptr<STKPeer> a,
                                 const std::shared_ptr<STKPeer> b);
 
 private:

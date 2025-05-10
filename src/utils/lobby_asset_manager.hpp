@@ -77,7 +77,7 @@ public:
     void setMustHaveMaps(const std::string& input);
     void gameFinishedOn(const std::string& map_name);
 
-    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
+    void applyAllMapFilters(std::set<std::string>& maps, bool use_history) const;
     void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
 
     void applyGlobalFilter(FilterContext& map_context) const;
