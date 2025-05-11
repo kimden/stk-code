@@ -379,9 +379,9 @@ public:
             m_always_spectate.store(ASM_NONE);
     }
     // ------------------------------------------------------------------------
-    int hammerLevel() const                    { return m_angry_host.load(); }
+    int hammerLevel() const                     { return m_angry_host.load(); }
     // ------------------------------------------------------------------------
-    void setAngryHost(int val)                    { m_angry_host.store(val); }
+    void setHammerLevel(int val)                   { m_angry_host.store(val); }
     // ------------------------------------------------------------------------
     std::shared_ptr<NetworkPlayerProfile> getMainProfile();
     // ------------------------------------------------------------------------
