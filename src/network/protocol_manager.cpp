@@ -453,8 +453,16 @@ void ProtocolManager::asynchronousUpdate()
             const std::string& name = (*i)->getPeer()->getAddress().toString();
             Log::error("ProtocolManager", "Asynchronous event "
                 "error from %s: %s", name.c_str(), e.what());
-            Log::error("ProtocolManager",
-                (*i)->data().getLogMessage().c_str());
+            
+            if (*i != nullptr)
+            {
+                // kimden: make sure you don't cause it to be nullptr yourself
+                Log::error("ProtocolManager", (*i)->data().getLogMessage().c_str());
+            }
+            else
+            {
+                Log::error("ProtocolManager", "data is null, cannot get log message!");
+            }
         }
 
         m_async_events_to_process.lock();
