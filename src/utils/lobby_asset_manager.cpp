@@ -601,10 +601,14 @@ void LobbyAssetManager::gameFinishedOn(const std::string& map_name)
 }   // gameFinishedOn
 //-----------------------------------------------------------------------------
 
-void LobbyAssetManager::applyAllMapFilters(std::set<std::string>& maps, bool use_history) const
+void LobbyAssetManager::applyAllMapFilters(std::set<std::string>& maps, bool use_history, int known_number) const
 {
     unsigned max_player = 0;
-    STKHost::get()->updatePlayers(&max_player);
+    if (known_number >= 0) // Careful with unsigned if you edit
+        max_player = known_number;
+    else
+        STKHost::get()->updatePlayers(&max_player);
+
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
     {
         auto it = maps.begin();

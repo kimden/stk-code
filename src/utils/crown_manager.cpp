@@ -61,7 +61,7 @@ void CrownManager::setupContextUser()
 
 std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool update)
 {
-    if (!update)
+  if (!update)
         return m_spectators_by_limit;
 
     m_why_peer_cannot_play.clear();
@@ -132,7 +132,7 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
         {
             if (peer->alwaysSpectate() || peer->isWaitingForGame())
                 ignore = true;
-            else if (!canRace(peer))
+            else if (!canRace(peer, player_count + (unsigned)peer->getPlayerProfiles().size()))
             {
                 m_spectators_by_limit.insert(peer);
                 ignore = true;
@@ -155,7 +155,7 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
 
 //-----------------------------------------------------------------------------
 
-bool CrownManager::canRace(std::shared_ptr<STKPeer> peer)
+bool CrownManager::canRace(std::shared_ptr<STKPeer> peer, int known_number)
 {
     auto it = m_why_peer_cannot_play.find(peer);
     if (it != m_why_peer_cannot_play.end())
@@ -222,7 +222,7 @@ bool CrownManager::canRace(std::shared_ptr<STKPeer> peer)
         return false;
     }
     
-    getAssetManager()->applyAllMapFilters(maps, true);
+    getAssetManager()->applyAllMapFilters(maps, true, known_number);
     getAssetManager()->applyAllKartFilters(username, karts, false);
 
     if (karts.empty())

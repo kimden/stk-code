@@ -40,7 +40,7 @@ public:
 
     std::set<std::shared_ptr<STKPeer>>& getSpectatorsByLimit(bool update = false);
 
-    bool canRace(std::shared_ptr<STKPeer> peer);
+    bool canRace(std::shared_ptr<STKPeer> peer, int known_number = -1);
     bool hasOnlyHostRiding()               const { return m_only_host_riding; }
     bool isOwnerLess()                     const { return m_owner_less;       }
     bool isSleepingServer()                const { return m_sleeping_server;  }
