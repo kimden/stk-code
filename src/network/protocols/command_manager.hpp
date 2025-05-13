@@ -418,6 +418,9 @@ public:
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
 
+    void shift(std::string& cmd, std::vector<std::string>& argv,
+        const std::string& username, int count);
+
 };
 
 #endif // COMMAND_MANAGER_HPP
