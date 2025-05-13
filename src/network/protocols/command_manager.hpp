@@ -235,6 +235,8 @@ private:
 
     std::map<std::string, bool> m_user_saved_voting;
 
+    std::map<std::string, std::weak_ptr<STKPeer>> m_user_saved_acting_peer;
+
     std::map<std::string, std::pair<int, int>> m_user_last_correct_argument;
 
     std::map<std::string, CommandDescription> m_config_descriptions;

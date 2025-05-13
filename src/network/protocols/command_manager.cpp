@@ -736,6 +736,10 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
     }
 
+    std::string acting_username = "";
+    if (target_peer_strong->hasPlayerProfiles())
+        acting_username = target_peer_strong->getMainName();
+
     if (argv[0] == "vote")
     {
         if (argv.size() == 1 || argv[1] == "vote")
@@ -763,6 +767,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     return;
                 CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
                 voting = m_user_saved_voting[username];
+                target_peer = m_user_saved_acting_peer[username];
                 restored = true;
                 break;
             } else {
@@ -813,11 +818,22 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
             context.say("You don't have permissions to " + action + " this command");
             return;
         }
-        int mask = (permissions & command->m_permissions);
+        int mask = ((permissions & command->m_permissions) & (~MASK_MANIPULATION));
         if (mask == 0)
         {
             context.say("You don't have permissions to " + action + " this command");
             return;
+        }
+        // kimden: both might be nullptr, which means different things
+        if (target_peer.lock() != peer)
+        {
+            int mask_manip = (permissions & command->m_permissions & MASK_MANIPULATION);
+            if (mask_manip == 0)
+            {
+                context.say("You don't have permissions to " + action
+                        + " this command for another person");
+                return;
+            }
         }
         int mask_without_voting = (mask & ~PE_VOTED);
         if (mask != PE_NONE && mask_without_voting == PE_NONE)
@@ -842,7 +858,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         {
             auto response = it->second.process(m_users);
             std::map<std::string, int> counts = response.first;
-            std::string msg = username + " voted \"/" + cmd + "\", there are";
+            std::string msg = acting_username + " voted \"/" + cmd + "\", there are";
             if (counts.size() == 1)
                 msg += " " + std::to_string(counts.begin()->second) + " such votes";
             else
@@ -3848,6 +3864,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
             response += "Argument \"" + text + "\" may be invalid";
 
         m_user_saved_voting[username] = voting;
+        m_user_saved_acting_peer[username] = acting_peer;
 
         if (allow_as_is)
         {
