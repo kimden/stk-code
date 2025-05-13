@@ -197,6 +197,11 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions-verbose="everyone"
              description="Enters the hammer mode if the password is correct."
     />
+    <command name="power2"
+             usage="/power2 (password)"
+             permissions-verbose="everyone"
+             description="Enters the hammer x2 mode if the password is correct."
+    />
     <command name="length"
              usage="/length"
              permissions-verbose="everyone"
@@ -991,6 +996,11 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/vote (command with arguments, without “/”)"
              permissions-verbose="everyone"
              description="Casts a vote for the provided command, if it can be voted. Only useful for those players who can enforce their command but opt to vote instead of forcing; for those players who cannot invoke the command alone, /(command) is equivalent to /vote (command)."
+    />
+    <command name="as"
+             usage="/as (username) (command with arguments, without “/”)"
+             permissions-verbose="everyone"
+             description="Tries to invoke a command as if you were another player. Some commands allow it (e.g. to see which addons another person has to install), some don't."
     />
     <command name="mimiz"
              usage="/mimiz [text]"

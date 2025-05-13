@@ -4303,6 +4303,8 @@ int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
     if (hammer_level >= 1)
     {
         mask |= CommandPermissions::PE_HAMMER;
+        if (hammer_level >= 2)
+            mask |= CommandPermissions::PE_MANIPULATOR;
     }
     else if (getTournament() && getTournament()->hasHammerRights(peer))
     {

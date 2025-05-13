@@ -110,9 +110,13 @@ private:
 
     struct Context
     {
+        ServerLobby* m_lobby;
+
         Event* m_event;
 
         std::weak_ptr<STKPeer> m_peer;
+
+        std::weak_ptr<STKPeer> m_target_peer;
 
         std::vector<std::string> m_argv;
 
@@ -124,15 +128,25 @@ private:
 
         bool m_voting;
 
-        Context(Event* event, std::shared_ptr<STKPeer> peer):
-                m_event(event), m_peer(peer), m_argv(),
+        Context(ServerLobby* lobby, Event* event, std::shared_ptr<STKPeer> peer):
+                m_lobby(lobby),
+                m_event(event), m_peer(peer), m_target_peer(peer), m_argv(),
                 m_cmd(""), m_user_permissions(0), m_voting(false) {}
 
-        Context(Event* event, std::shared_ptr<STKPeer> peer,
+        Context(ServerLobby* lobby, Event* event, std::shared_ptr<STKPeer> peer,
             std::vector<std::string>& argv, std::string& cmd,
             int user_permissions, bool voting):
-                m_event(event), m_peer(peer), m_argv(argv),
+                m_lobby(lobby),
+                m_event(event), m_peer(peer), m_target_peer(peer), m_argv(argv),
                 m_cmd(cmd), m_user_permissions(user_permissions), m_voting(voting) {}
+
+        std::shared_ptr<STKPeer> peer();
+        std::shared_ptr<STKPeer> peerMaybeNull();
+        std::shared_ptr<STKPeer> actingPeer();
+        std::shared_ptr<STKPeer> actingPeerMaybeNull();
+        std::shared_ptr<Command> command();
+
+        void say(const std::string& s);
     };
 
     struct CommandDescription
@@ -221,6 +235,8 @@ private:
     std::map<std::string, std::vector<std::string>> m_user_command_replacements;
 
     std::map<std::string, bool> m_user_saved_voting;
+
+    std::map<std::string, std::weak_ptr<STKPeer>> m_user_saved_acting_peer;
 
     std::map<std::string, std::pair<int, int>> m_user_last_correct_argument;
 
@@ -384,7 +400,7 @@ public:
     bool validate(Context& ctx, int idx,
             TypoFixerType fixer_type, bool case_sensitive, bool allow_as_is);
 
-    bool hasTypo(std::shared_ptr<STKPeer> peer, bool voting,
+    bool hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_ptr<STKPeer> peer, bool voting,
         std::vector<std::string>& argv, std::string& cmd, int idx,
         const SetTypoFixer& stf, int top, bool case_sensitive, bool allow_as_is,
         bool dont_replace = false, int subidx = 0, int substr_l = -1, int substr_r = -1);
@@ -401,6 +417,9 @@ public:
 
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
+
+    void shift(std::string& cmd, std::vector<std::string>& argv,
+        const std::string& username, int count);
 
 };
 
