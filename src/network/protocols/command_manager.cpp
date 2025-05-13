@@ -187,6 +187,7 @@ EnumExtendedReader CommandManager::permission_reader({
     {"PE_VOTED_NORMAL", PE_VOTED_NORMAL},
     {"PE_VOTED", PE_VOTED},
     {"UP_CONSOLE", UP_CONSOLE},
+    {"UP_MANIPULATOR", UP_MANIPULATOR},
     {"UP_HAMMER", UP_HAMMER},
     {"UP_SINGLE", UP_SINGLE},
     {"UP_CROWNED", UP_CROWNED},
@@ -707,54 +708,12 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     permissions = getLobby()->getPermissions(peer);
     voting = false;
     std::string action = "invoke";
+
     std::string username = "";
-    if (peer->hasPlayerProfiles())
-        username = peer->getMainName();
-
-    if (argv[0] == "as")
-    {
-        std::shared_ptr<STKPeer> new_target_peer = {};
-        if (argv.size() >= 2)
-        {
-            if (hasTypo(peer, peer, voting, argv, cmd, 1, getFixer(TFT_PRESENT_USERS), 3, false, false))
-                return;
-
-            new_target_peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(argv[1]));
-        }
-
-        if (!new_target_peer || argv.size() <= 2)
-        {
-            context.say("Usage: /as (username) (another command with arguments)");
-            return;
-        }
-        target_peer = new_target_peer;
-        target_peer_strong = new_target_peer;
-        std::reverse(argv.begin(), argv.end());
-        argv.pop_back();
-        argv.pop_back();
-        std::reverse(argv.begin(), argv.end());
-        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
-    }
-
     std::string acting_username = "";
-    if (target_peer_strong->hasPlayerProfiles())
-        acting_username = target_peer_strong->getMainName();
 
-    if (argv[0] == "vote")
-    {
-        if (argv.size() == 1 || argv[1] == "vote")
-        {
-            // kimden: all error strings in this function should be done in error(context) way
-            context.say("Usage: /vote (a command with arguments)");
-            return;
-        }
-        std::reverse(argv.begin(), argv.end());
-        argv.pop_back();
-        std::reverse(argv.begin(), argv.end());
-        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
-        voting = true;
-        action = "vote for";
-    }
+    username = (peer->hasPlayerProfiles() ? peer->getMainName() : "");
+    acting_username = (target_peer_strong && target_peer_strong->hasPlayerProfiles() ? target_peer_strong->getMainName() : "");
 
     bool restored = false;
     for (int i = 0; i <= 5; ++i) {
@@ -768,6 +727,8 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
                 voting = m_user_saved_voting[username];
                 target_peer = m_user_saved_acting_peer[username];
+                target_peer_strong = target_peer.lock();
+                acting_username = (target_peer_strong && target_peer_strong->hasPlayerProfiles() ? target_peer_strong->getMainName() : "");
                 restored = true;
                 break;
             } else {
@@ -783,9 +744,61 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
             }
         }
     }
+
     m_user_command_replacements.erase(username);
     if (!restored)
         m_user_last_correct_argument.erase(username);
+
+    while (!argv.empty())
+    {
+        if (argv[0] == "as")
+        {
+            std::shared_ptr<STKPeer> new_target_peer = {};
+            if (argv.size() >= 2)
+            {
+                if (hasTypo(target_peer.lock(), peer, voting, argv, cmd, 1, getFixer(TFT_PRESENT_USERS), 3, false, false))
+                    return;
+
+                new_target_peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(argv[1]));
+            }
+
+            if (!new_target_peer || argv.size() <= 2)
+            {
+                context.say("Usage: /as (username) (another command with arguments)");
+                return;
+            }
+            target_peer = new_target_peer;
+            target_peer_strong = new_target_peer;
+            acting_username = (target_peer_strong && target_peer_strong->hasPlayerProfiles() ? target_peer_strong->getMainName() : "");
+            shift(cmd, argv, username, 2);
+            continue;
+        }
+        else if (argv[0] == "vote")
+        {
+            if (argv.size() == 1 || argv[1] == "vote")
+            {
+                // kimden: all error strings in this function should be done in error(context) way
+                context.say("Usage: /vote (a command with arguments)");
+                return;
+            }
+            shift(cmd, argv, username, 1);
+            voting = true;
+            action = "vote for";
+            continue;
+        }
+        break;
+    }
+
+    if (peer && target_peer.expired())
+    {
+        // kimden: save username before player leaves?
+        context.say(StringUtils::insertValues(
+                "The person from whose name you tried to invoke "
+                "the command has left or rejoined. The command was:\n/%s",
+                cmd.c_str()
+        ));
+        return;
+    }
 
     std::shared_ptr<Command> current_command = m_root_command;
     std::shared_ptr<Command> executed_command;
@@ -3397,7 +3410,7 @@ void CommandManager::process_mimiz(Context& context)
 void CommandManager::process_test(Context& context)
 {
     auto& argv = context.m_argv;
-    auto acting_peer = context.actingPeer();
+    auto acting_peer = context.actingPeerMaybeNull();
     if (argv.size() == 1)
     {
         context.say("/test is now deprecated. Use /test *2 [something] [something]");
@@ -3814,7 +3827,7 @@ bool CommandManager::validate(Context& ctx, int idx,
     const SetTypoFixer& stf = getFixer(fixer_type);
 
     // We show 3 options by default
-    return !hasTypo(ctx.actingPeer(), ctx.peer(), ctx.m_voting, ctx.m_argv, ctx.m_cmd, idx,
+    return !hasTypo(ctx.actingPeerMaybeNull(), ctx.peerMaybeNull(), ctx.m_voting, ctx.m_argv, ctx.m_cmd, idx,
             stf, 3, case_sensitive, allow_as_is);
 }   // validate
 //-----------------------------------------------------------------------------
@@ -3827,8 +3840,8 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
     if (!acting_peer.get()) // voted
         return false;
     std::string username = "";
-    if (acting_peer->hasPlayerProfiles())
-        username = acting_peer->getMainName();
+    if (peer->hasPlayerProfiles())
+        username = peer->getMainName();
     auto it = m_user_last_correct_argument.find(username);
     if (it != m_user_last_correct_argument.end() &&
             std::make_pair(idx, subidx) <= it->second)
@@ -3945,8 +3958,8 @@ std::shared_ptr<STKPeer> CommandManager::Context::peer()
 
 std::shared_ptr<STKPeer> CommandManager::Context::peerMaybeNull()
 {
-    if (m_peer.expired())
-        throw std::logic_error("Peer is expired");
+    // if (m_peer.expired())
+    //     throw std::logic_error("Peer is expired");
 
     auto peer = m_peer.lock();
     return peer;
@@ -3968,8 +3981,8 @@ std::shared_ptr<STKPeer> CommandManager::Context::actingPeer()
 
 std::shared_ptr<STKPeer> CommandManager::Context::actingPeerMaybeNull()
 {
-    if (m_target_peer.expired())
-        throw std::logic_error("Target peer is expired");
+    // if (m_target_peer.expired())
+    //     throw std::logic_error("Target peer is expired");
 
     auto acting_peer = m_target_peer.lock();
     return acting_peer;
@@ -4064,3 +4077,20 @@ void CommandManager::add_to_queue(int x, int mask, bool to_front, std::string& s
     }
 } // add_to_queue
 // ========================================================================
+
+void CommandManager::shift(std::string& cmd, std::vector<std::string>& argv,
+        const std::string& username, int count)
+{
+    std::reverse(argv.begin(), argv.end());
+    argv.resize(argv.size() - count);
+    std::reverse(argv.begin(), argv.end());
+
+    // auto it = m_user_last_correct_argument.find(username);
+    // if (it != m_user_last_correct_argument.end())
+    //     it->second.first -= count;
+
+    m_user_last_correct_argument[username].first -= count;
+
+    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+}   // shift
+//-----------------------------------------------------------------------------

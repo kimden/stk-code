@@ -47,13 +47,15 @@ enum CommandPermissions : unsigned int
     PE_MANIPULATOR         = UU_MANIPULATOR | UU_OWN_COMMANDS | UU_OTHERS_COMMANDS,
     PE_CONSOLE             = UU_CONSOLE     | UU_OWN_COMMANDS | UU_OTHERS_COMMANDS,
 
-    PE_VOTED               = PE_VOTED_SPECTATOR | PE_VOTED_NORMAL,
-    UP_CONSOLE             = PE_CONSOLE,
-    UP_HAMMER              = UP_CONSOLE | PE_HAMMER,
-    UP_SINGLE              = UP_HAMMER  | PE_SINGLE,
-    UP_CROWNED             = UP_SINGLE  | PE_CROWNED,
-    UP_NORMAL              = UP_CROWNED | PE_USUAL,
-    UP_EVERYONE            = UP_NORMAL  | PE_SPECTATOR,
+    // By default, commands cannot be invoked by other people (who can only invoke OWN commands)
+    PE_VOTED               = (PE_VOTED_SPECTATOR | PE_VOTED_NORMAL) & (~UU_OWN_COMMANDS),
+    UP_CONSOLE             = (PE_CONSOLE)                           & (~UU_OWN_COMMANDS),
+    UP_MANIPULATOR         = (UP_CONSOLE     | PE_MANIPULATOR)      & (~UU_OWN_COMMANDS),
+    UP_HAMMER              = (UP_MANIPULATOR | PE_HAMMER)           & (~UU_OWN_COMMANDS),
+    UP_SINGLE              = (UP_HAMMER      | PE_SINGLE)           & (~UU_OWN_COMMANDS),
+    UP_CROWNED             = (UP_SINGLE      | PE_CROWNED)          & (~UU_OWN_COMMANDS),
+    UP_NORMAL              = (UP_CROWNED     | PE_USUAL)            & (~UU_OWN_COMMANDS),
+    UP_EVERYONE            = (UP_NORMAL      | PE_SPECTATOR)        & (~UU_OWN_COMMANDS),
 
     MASK_MANIPULATION      = UU_OWN_COMMANDS | UU_OTHERS_COMMANDS,
 };
