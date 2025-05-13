@@ -143,6 +143,7 @@ private:
         std::shared_ptr<STKPeer> peer();
         std::shared_ptr<STKPeer> peerMaybeNull();
         std::shared_ptr<STKPeer> actingPeer();
+        std::shared_ptr<STKPeer> actingPeerMaybeNull();
         std::shared_ptr<Command> command();
 
         void say(const std::string& s);

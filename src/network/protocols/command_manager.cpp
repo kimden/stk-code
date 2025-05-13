@@ -1228,7 +1228,7 @@ void CommandManager::process_config(Context& context)
 
 void CommandManager::process_config_assign(Context& context)
 {
-    auto acting_peer = context.actingPeer();
+    auto acting_peer = context.actingPeerMaybeNull();
     if (!getSettings()->isServerConfigurable())
     {
         context.say("Server is not configurable, this command cannot be invoked.");
@@ -1756,7 +1756,7 @@ void CommandManager::process_pha(Context& context)
 void CommandManager::process_kick(Context& context)
 {
     auto& argv = context.m_argv;
-    auto acting_peer = context.actingPeer();
+    auto acting_peer = context.actingPeerMaybeNull();
     if (argv.size() < 2)
     {
         error(context);
@@ -2075,7 +2075,7 @@ void CommandManager::process_listmute(Context& context)
 void CommandManager::process_gnu(Context& context)
 {
     auto& argv = context.m_argv;
-    auto acting_peer = context.actingPeer();
+    auto acting_peer = context.actingPeerMaybeNull();
     if (argv[0] != "gnu")
     {
         argv[0] = "gnu";
@@ -3964,6 +3964,16 @@ std::shared_ptr<STKPeer> CommandManager::Context::actingPeer()
 
     return acting_peer;
 }   // actingPeer
+//-----------------------------------------------------------------------------
+
+std::shared_ptr<STKPeer> CommandManager::Context::actingPeerMaybeNull()
+{
+    if (m_target_peer.expired())
+        throw std::logic_error("Target peer is expired");
+
+    auto acting_peer = m_target_peer.lock();
+    return acting_peer;
+}   // actingPeerMaybeNull
 //-----------------------------------------------------------------------------
 
 std::shared_ptr<CommandManager::Command> CommandManager::Context::command()
