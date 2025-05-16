@@ -381,6 +381,18 @@ void NetworkString::decodeSpecific<KartTeam>(KartTeam& value)
     value = (KartTeam)u8;
 }   // decodeSpecific(KartTeam)
 // //-----------------------------------------------------------------------------
+template<>
+void NetworkString::encodeSpecific<int24_t>(const int24_t& value)
+{
+    addInt24(value.value);
+}   // encodeSpecific(KartTeam)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void NetworkString::decodeSpecific<int24_t>(int24_t& value)
+{
+    value.value = getInt24();
+}   // decodeSpecific(KartTeam)
+// //-----------------------------------------------------------------------------
 // template<>
 // void NetworkString::encodeSpecific<T>(const T& value)
 // {

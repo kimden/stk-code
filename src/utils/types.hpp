@@ -38,4 +38,10 @@
         #endif
     #endif
 
+    struct int24_t
+    {
+        uint32_t value;
+        operator uint32_t() { return value; }
+    };
+
 #endif
