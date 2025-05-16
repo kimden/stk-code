@@ -454,7 +454,7 @@ void ProtocolManager::asynchronousUpdate()
             Log::error("ProtocolManager", "Asynchronous event "
                 "error from %s: %s", name.c_str(), e.what());
             
-            if (*i != nullptr)
+            if (*i != nullptr && (*i)->hasValidData())
             {
                 // kimden: make sure you don't cause it to be nullptr yourself
                 Log::error("ProtocolManager", (*i)->data().getLogMessage().c_str());
