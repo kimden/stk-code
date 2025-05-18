@@ -121,6 +121,7 @@ void LobbySettings::setupContextUser()
     m_voting_timeout                 = ServerConfig::m_voting_timeout;
     m_commands_file                  = ServerConfig::m_commands_file;
     m_power_password                 = ServerConfig::m_power_password;
+    m_power_password_level_2         = ServerConfig::m_power_password_level_2;
     m_register_table_name            = ServerConfig::m_register_table_name;
     m_lobby_cooldown                 = ServerConfig::m_lobby_cooldown;
 }   // setupContextUser
@@ -681,3 +682,14 @@ void LobbySettings::getLobbyHitCaptureLimit()
     m_battle_time_limit = time_limit;
 }   // getLobbyHitCaptureLimit
 // ----------------------------------------------------------------------------
+
+std::string LobbySettings::getPowerPassword(int level) const
+{
+    if (level == 1)
+        return m_power_password;
+    if (level == 2)
+        return m_power_password_level_2;
+    
+    Log::error("LobbySettings", "Invoked getPowerPassword with level = %d", level);
+    return "";
+}

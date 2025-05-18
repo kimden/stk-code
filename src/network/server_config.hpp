@@ -739,6 +739,12 @@ namespace ServerConfig
         "Allows server owner (not crowned player!) to go to power mode "
         "to kick players using GUI and not be kicked, empty to disable."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_power_password_level_2
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "power-password-level-2",
+        "Allows server owner (not crowned player!) to use power commands, "
+        "and also invoke any command as any other user, empty to disable."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_ai_anywhere
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ai-anywhere",
         "If true this server will allow AI instance to be connected from "
