@@ -2334,9 +2334,9 @@ void CommandManager::process_power(Context& context)
         online_id = profiles[0]->getOnlineId();
     }
 
-    std::string password = getSettings()->getPowerPassword();
+    std::string password = getSettings()->getPowerPassword(new_level);
     bool bad_password = (password.empty() || argv.size() <= 1 || argv[1] != password);
-    bool good_player = (getTeamManager()->isInHammerWhitelist(username)
+    bool good_player = (getTeamManager()->isInHammerWhitelist(username, new_level)
             && online_id != 0);
     if (bad_password && !good_player)
     {
@@ -2344,7 +2344,7 @@ void CommandManager::process_power(Context& context)
         return;
     }
     acting_peer->setHammerLevel(new_level);
-    context.say("Now you finally have the power!");
+    context.say("Now you have the power!");
     getLobby()->updatePlayerList();
 } // process_power
 // ========================================================================

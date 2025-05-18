@@ -166,7 +166,7 @@ public:
     bool isValidatingPlayer()              const { return m_validating_player;              }
     float getVotingTimeout()               const { return m_voting_timeout;                 }
     std::string getCommandsFile()          const { return m_commands_file;                  }
-    std::string getPowerPassword()         const { return m_power_password;                 }
+    std::string getPowerPassword(int level) const;
     std::string getRegisterTableName()     const { return m_register_table_name;            }
     int getLobbyCooldown()                 const { return m_lobby_cooldown;                 }
 
@@ -256,6 +256,7 @@ private:
     float m_voting_timeout;
     std::string m_commands_file;
     std::string m_power_password;
+    std::string m_power_password_level_2;
     std::string m_register_table_name;
     int m_lobby_cooldown;
 

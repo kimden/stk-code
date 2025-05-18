@@ -127,6 +127,7 @@ void TeamManager::initCategories()
     std::string category = "";
     bool isTeam = false;
     bool isHammerWhitelisted = false;
+    int level; // Used only when isHammerWhitelisted
     for (std::string& s: tokens)
     {
         if (s.empty())
@@ -152,12 +153,17 @@ void TeamManager::initCategories()
         else if (s[0] == '^')
         {
             isHammerWhitelisted = true;
+            level = 1;
+            if (s.length() >= 2 && s[1] == '^')
+                level = 2;
         }
         else
         {
             if (isHammerWhitelisted)
             {
                 m_hammer_whitelist.insert(s);
+                if (level >= 2)
+                    m_hammer_whitelist_level_2.insert(s);
             }
             else
             {
@@ -250,6 +256,17 @@ int TeamManager::getTeamForUsername(const std::string& name)
         return TeamUtils::NO_TEAM;
     return it->second;
 }   // getTeamForUsername
+//-----------------------------------------------------------------------------
+
+bool TeamManager::isInHammerWhitelist(const std::string& str, int level) const
+{
+    if (level == 1)
+        return m_hammer_whitelist.find(str) != m_hammer_whitelist.end();
+    else if (level == 2) 
+        return m_hammer_whitelist_level_2.find(str) != m_hammer_whitelist_level_2.end();
+
+    return false;
+}   // isInHammerWhitelist
 //-----------------------------------------------------------------------------
 
 void TeamManager::clearTemporaryTeams()
