@@ -695,6 +695,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     auto& argv = context.m_argv;
     auto& cmd = context.m_cmd;
     auto& permissions = context.m_user_permissions;
+    auto& acting_permissions = context.m_acting_user_permissions;
     auto& voting = context.m_voting;
     auto& target_peer = context.m_target_peer;
     std::shared_ptr<STKPeer> target_peer_strong = context.m_target_peer.lock();
@@ -708,6 +709,8 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     permissions = getLobby()->getPermissions(peer);
     voting = false;
     std::string action = "invoke";
+
+    acting_permissions = getLobby()->getPermissions(target_peer_strong);
 
     std::string username = "";
     std::string acting_username = "";
@@ -729,6 +732,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 target_peer = m_user_saved_acting_peer[username];
                 target_peer_strong = target_peer.lock();
                 acting_username = (target_peer_strong && target_peer_strong->hasPlayerProfiles() ? target_peer_strong->getMainName() : "");
+                acting_permissions = getLobby()->getPermissions(target_peer_strong);
                 restored = true;
                 break;
             } else {
@@ -770,6 +774,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
             target_peer = new_target_peer;
             target_peer_strong = new_target_peer;
             acting_username = (target_peer_strong && target_peer_strong->hasPlayerProfiles() ? target_peer_strong->getMainName() : "");
+            acting_permissions = getLobby()->getPermissions(target_peer_strong);
             shift(cmd, argv, username, 2);
             continue;
         }
@@ -831,6 +836,9 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
             context.say("You don't have permissions to " + action + " this command");
             return;
         }
+
+        // Note that we use caller's permissions to determine if the command can be invoked,
+        // and during its invocation, we use acting peer's permissions.
         int mask = ((permissions & command->m_permissions) & (~MASK_MANIPULATION));
         if (mask == 0)
         {
@@ -898,7 +906,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                             "Command \"/%s\" has been successfully voted",
                             new_cmd.c_str());
                     getLobby()->sendStringToAllPeers(msg2);
-                    Context new_context(getLobby(), event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
+                    Context new_context(getLobby(), event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, UP_EVERYONE, false);
                     execute(executed_command, new_context);
                 }
             }
@@ -968,7 +976,7 @@ void CommandManager::update()
                 }
                 // We don't know the event though it is only needed in
                 // ServerLobby::startSelection where it is nullptr when they vote
-                Context new_context(getLobby(), nullptr, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, false);
+                Context new_context(getLobby(), nullptr, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, UP_EVERYONE, false);
                 execute(command, new_context);
             }
         }
@@ -1125,7 +1133,7 @@ void CommandManager::process_commands(Context& context)
         auto ptr = command->m_name_to_subcommand[argv[i]].lock();
         if (!ptr)
             break;
-        if ((context.m_user_permissions & ptr->m_permissions) != 0
+        if ((context.m_acting_user_permissions & ptr->m_permissions) != 0
                 && isAvailable(ptr))
             command = ptr;
         else
@@ -1148,13 +1156,13 @@ void CommandManager::process_commands(Context& context)
     std::map<std::string, int> res;
     for (std::shared_ptr<Command>& subcommand: command->m_subcommands)
     {
-        if ((context.m_user_permissions & subcommand->m_permissions) != 0
+        if ((context.m_acting_user_permissions & subcommand->m_permissions) != 0
                 && isAvailable(subcommand))
         {
             bool subcommands_available = false;
             for (auto& c: subcommand->m_subcommands)
             {
-                if ((context.m_user_permissions & c->m_permissions) != 0
+                if ((context.m_acting_user_permissions & c->m_permissions) != 0
                         && isAvailable(c))
                     subcommands_available = true;
             }
@@ -1202,7 +1210,7 @@ void CommandManager::process_replay(Context& context)
 
 void CommandManager::process_start(Context& context)
 {
-    if (!getCrownManager()->isOwnerLess() && (context.m_user_permissions & UP_CROWNED) == 0)
+    if (!getCrownManager()->isOwnerLess() && (context.m_acting_user_permissions & UP_CROWNED) == 0)
     {
         context.m_voting = true;
     }

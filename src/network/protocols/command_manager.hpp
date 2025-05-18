@@ -126,19 +126,22 @@ private:
 
         int m_user_permissions;
 
+        int m_acting_user_permissions;
+
         bool m_voting;
 
         Context(ServerLobby* lobby, Event* event, std::shared_ptr<STKPeer> peer):
                 m_lobby(lobby),
                 m_event(event), m_peer(peer), m_target_peer(peer), m_argv(),
-                m_cmd(""), m_user_permissions(0), m_voting(false) {}
+                m_cmd(""), m_user_permissions(0), m_acting_user_permissions(0), m_voting(false) {}
 
         Context(ServerLobby* lobby, Event* event, std::shared_ptr<STKPeer> peer,
             std::vector<std::string>& argv, std::string& cmd,
-            int user_permissions, bool voting):
+            int user_permissions, int acting_user_permissions, bool voting):
                 m_lobby(lobby),
                 m_event(event), m_peer(peer), m_target_peer(peer), m_argv(argv),
-                m_cmd(cmd), m_user_permissions(user_permissions), m_voting(voting) {}
+                m_cmd(cmd), m_user_permissions(user_permissions),
+                m_acting_user_permissions(acting_user_permissions), m_voting(voting) {}
 
         std::shared_ptr<STKPeer> peer();
         std::shared_ptr<STKPeer> peerMaybeNull();
