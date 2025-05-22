@@ -499,7 +499,6 @@ void Kart::reset()
     // Reset animations and wheels
     m_kart_model->reset();
     if (m_kart_model.get()->getRenderInfo() != NULL) {
-        printf("INITIAL COLOR: %f, Saved: %f\n", m_kart_model.get()->getRenderInfo()->getHue(), m_initial_color);
         if (m_initial_color == 0.0f && m_kart_model.get()->getRenderInfo()->getHue() != 0.0f) {
             m_initial_color = m_kart_model.get()->getRenderInfo()->getHue();
         }

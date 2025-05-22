@@ -257,8 +257,6 @@ void RaceManager::setPlayerHandicap(unsigned int player_id, HandicapLevel handic
 void RaceManager::setPlayerStartingTyre(unsigned int player_id, unsigned starting_tyre)
 {
     assert(player_id < m_player_karts.size());
-
-    printf("Race Manager set, tyre: %u\n", starting_tyre);
     m_player_karts[player_id].setStartingTyre(starting_tyre);
 }   // setPlayerStartingTyre
 
@@ -354,13 +352,15 @@ void RaceManager::setTrack(const std::string& track)
 
 void RaceManager::setFuelAndQueueInfo(float fuel, float regen, float stop, float weight, float rate, int amount_1, int amount_2, int amount_3)
 {
-    printf("FUEL INFO WAS JUST SET:\n"
+    printf("FUEL+ALLOC INFO WAS JUST SET:\n"
            "\t fuel        %f\n"
            "\t fuel regen  %f\n"
            "\t fuel stop   %f\n"
            "\t fuel weight %f\n"
-           "\t fuel rate   %f\n------\n\n",
-           fuel, regen, stop, weight, rate);
+           "\t fuel rate   %f\n",
+           "\t tyre alloc  %d %d %d\n",
+           "------\n\n",
+           fuel, regen, stop, weight, rate, amount_1, amount_2, amount_3);
     m_fuel_info[0] = fuel;
     m_fuel_info[1] = regen;
     m_fuel_info[2] = stop;

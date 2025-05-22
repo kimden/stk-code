@@ -151,15 +151,9 @@ public:
     // ------------------------------------------------------------------------
     void setHandicap(HandicapLevel h) { m_handicap.store(h); }
     // ------------------------------------------------------------------------
-    unsigned getStartingTyre() const {
-        printf("NPP get, tyre: %u\n", m_starting_tyre.load());
-        return m_starting_tyre.load();
-    }
+    unsigned getStartingTyre() const { return m_starting_tyre.load(); }
     // ------------------------------------------------------------------------
-    void setStartingTyre(unsigned t) {
-        m_starting_tyre.store(t);
-        printf("NPP set, tyre: %u\n", t);
-    };
+    void setStartingTyre(unsigned t) { m_starting_tyre.store(t); };
     // ------------------------------------------------------------------------
     /** Returns the name of this player. */
     const irr::core::stringw& getName() const         { return m_player_name; }

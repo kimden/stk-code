@@ -126,9 +126,7 @@ public:
     void setNetworkPlayer(bool value)        { m_network_player = value;  }
     void setDefaultKartColor(float value) { m_default_kart_color = value; }
     void setHandicap(HandicapLevel value)    { m_handicap = value;        }
-    void setStartingTyre(unsigned value)    { m_starting_tyre = value;
-                                              printf("RKI set, tyre: %u\n", value);
-                                            }
+    void setStartingTyre(unsigned value)    { m_starting_tyre = value; }
     void setOnlineId(uint32_t id)            { m_online_id = id;          }
     uint32_t getHostId() const               { return m_host_id;          }
     int  getLocalPlayerId() const            { return m_local_player_id;  }
