@@ -26,6 +26,7 @@
 #include "karts/kart.hpp"
 #include "karts/cannon_animation.hpp"
 #include "karts/controller/controller.hpp"
+#include "karts/tyres.hpp"
 #include "karts/ghost_kart.hpp"
 #include "karts/kart_properties.hpp"
 #include "graphics/material.hpp"
@@ -572,10 +573,7 @@ void LinearWorld::newLap(unsigned int kart_index)
         lap_message = _C("fastest_lap", "Last lap: %s by %s", s.c_str(), kart_name);
         color = video::SColor(255, 255, 255, 255);
     }
-    if (!(NetworkConfig::get()->isServer())) {
-        Log::info("[RunRecord]", "L %s %s %s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks_per_lap)).c_str());
-    }
-    kart->m_current_tyre_age += 1;
+    kart->m_tyres->commandLap(ticks_per_lap);
     if (ticks_per_lap < m_fastest_lap_ticks ) {
         // Store the temporary string because clang would mess this up
         // (remove the stringw before the wchar_t* is used).

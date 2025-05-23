@@ -113,7 +113,7 @@ public:
 
     float m_current_temp;
     float m_heat_cycle_count;
-    float m_lap_count;
+    int m_lap_count;
 
 private:
     /** A read-only pointer to the kart's properties. */
@@ -143,6 +143,10 @@ public:
     void saveState(BareNetworkString *buffer);
     void rewindTo(BareNetworkString *buffer);
 
+    void commandEnd(void);
+    void commandLap(int ticks);
+    void commandChange(int compound, int time);
+
     static float getTyreColor(int compound);
 
 
@@ -152,4 +156,3 @@ public:
 #endif
 
 /* EOF */
-

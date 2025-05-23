@@ -22,11 +22,13 @@
 #include "karts/kart.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
+#include "karts/max_speed.hpp"
 #include "tracks/track.hpp"
 #include "race/race_manager.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include "config/user_config.hpp"
+#include "config/stk_config.hpp"
 #include "network/network_config.hpp"
 #include <iostream>
 #include <algorithm>
@@ -425,3 +427,91 @@ float Tyres::getTyreColor(int compound)
     return res[idx];
 }   // getTyreColor
 //-----------------------------------------------------------------------------
+void Tyres::commandLap(int ticks) {
+    if (!(NetworkConfig::get()->isServer())) {
+        auto& stk_config = STKConfig::get();
+        Log::info("[RunRecord]", "L %s %s %s\n", m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks)).c_str());
+    }
+    m_lap_count += 1;
+}
+void Tyres::commandEnd(void) {
+    if (!(NetworkConfig::get()->isServer())){
+        Log::info("[RunRecord]", "E %s %s\n", m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str());
+    }
+    auto stint = m_kart->getStints();
+    if ((std::get<0>(stint[0]) == 0) && (std::get<1>(stint[0]) == 0)) {
+        stint.erase(stint.begin());
+    }
+
+    //In theory, the lap age will be incremented after
+    // we need it to be incremented because of the position
+    // in the call tree of the linear_world.cpp module,
+    // so just add one here
+    std::tuple<unsigned int, unsigned int> tmp_tuple = std::make_tuple(m_current_compound, m_lap_count+1);
+    stint.push_back(tmp_tuple);
+    m_kart->setStints(stint);
+    m_lap_count = 0;
+}
+
+void Tyres::commandChange(int compound, int time) {
+    auto& stk_config = STKConfig::get();
+    if (compound == 123) {
+        // 123 is the code for a refueling
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+        m_kart->m_is_refueling = true;
+        return;
+    }
+
+    auto stint = m_kart->getStints();
+    if ((std::get<0>(stint[0]) == 0) && (std::get<1>(stint[0]) == 0)) {
+        stint.erase(stint.begin());
+    }
+
+    std::tuple<unsigned int, unsigned int> tmp_tuple = std::make_tuple(m_current_compound, m_lap_count);
+    stint.push_back(tmp_tuple);
+    m_kart->setStints(stint);
+    m_lap_count = 0;
+
+    unsigned prev_compound = m_current_compound;
+    float prev_trac = m_current_life_traction/m_c_max_life_traction;
+    float prev_tur = m_current_life_turning/m_c_max_life_turning;
+    
+    if (compound >= 1) {
+        m_current_compound = ((compound-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber())+1;
+    } else {
+        m_current_compound = rand() % (int)m_kart->getKartProperties()->getTyresCompoundNumber();
+    }
+    if (!(NetworkConfig::get()->isServer())){
+        Log::info("[RunRecord]", "C %s %s %s %s\n", m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(time).c_str(), std::to_string(time).c_str());
+    }
+
+    m_reset_compound = false;
+    m_reset_fuel = false;
+    Tyres::reset();
+
+    if (/*m_kart->m_is_under_tme_ruleset*/ true) {
+        if (!m_kart->m_tyres_queue.empty() && !(m_kart->m_tyres_queue.size() < m_current_compound)) { /*Empty queue just means it wasn't initialized*/
+            bool a = !(m_kart->m_tyres_queue.size() < prev_compound);
+            bool b = m_kart->m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP) && !m_kart->m_is_refueling;
+            bool c = prev_trac > 0.98f && prev_tur > 0.98f;
+
+            if (a && (b || c)) {
+                // If we come from another stop, and the penalty still didn't wear off, just return the previous compound, as we probably made a mistake.
+                if (m_kart->m_tyres_queue[prev_compound-1] > -1) { /*-1 marks infinite*/
+                    m_kart->m_tyres_queue[prev_compound-1] += 1;
+                }
+            }
+            if (m_kart->m_tyres_queue[m_current_compound-1] == 0){
+                /*Penalty for pitting with no available compound*/
+                m_kart->m_is_disqualified = true;
+                m_current_life_turning *= 0.2;
+                m_current_life_traction *= 0.2;
+            } else if (m_kart->m_tyres_queue.size() >= m_current_compound && m_kart->m_tyres_queue[m_current_compound-1] > 0){
+                m_kart->m_tyres_queue[m_current_compound-1] -= 1;
+            } else { }
+        }
+    }
+    if (time > 0) {
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+    }
+}
