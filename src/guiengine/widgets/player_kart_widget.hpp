@@ -43,7 +43,7 @@ namespace GUIEngine
         /** Whether this player confirmed their selection */
         bool m_ready;
         /** If the player is handicapped. */
-        HandicapLevel m_handicap;
+        uint8_t m_handicap;
         unsigned m_starting_tyre;
 
         /** widget coordinates */
@@ -140,7 +140,7 @@ namespace GUIEngine
 
         // ------------------------------------------------------------------------
         /** \return handicap */
-        HandicapLevel getHandicap();
+        uint8_t getHandicap();
         unsigned getStartingTyre();
 
         // -------------------------------------------------------------------------
@@ -173,7 +173,7 @@ namespace GUIEngine
         /** \brief Event callback from ISpinnerConfirmListener */
         virtual GUIEngine::EventPropagation onSpinnerConfirmed();
         // -------------------------------------------------------------------------
-        void setHandicapForNetwork(HandicapLevel x);
+        void setHandicapForNetwork(uint8_t x);
         void setTyreForNetwork(unsigned x);
         // -------------------------------------------------------------------------
         void updateSizeNow(int x, int y, int w, int h)

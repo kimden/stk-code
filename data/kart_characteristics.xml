@@ -520,53 +520,53 @@ TEMPLATE
     <!-- Per-player settings/handicaps (or boosts) -->
     <player-characteristics>
         <characteristic name="normal" />
-        <characteristic name="handicap-4">
-            <engine power="*0.96" max-speed="*0.96" brake-factor="*0.96" />
-            <skid bonus-speed="*0.96 *0.96 *0.96" bonus-force="*0.96 *0.96 *0.96" />
-            <zipper force="*0.96" speed-gain="*0.96" max-speed-increase="*0.96" />
-            <startup boost="*0.96 *0.96" />
-            <nitro engine-force="*0.96" max-speed-increase="*0.96" />
-            <slipstream add-power="*0.96" max-speed-increase="*0.96"/>
-        </characteristic>
-        <characteristic name="handicap-8">
-            <engine power="*0.92" max-speed="*0.92" brake-factor="*0.92" />
-            <skid bonus-speed="*0.92 *0.92 *0.92" bonus-force="*0.92 *0.92 *0.92" />
-            <zipper force="*0.92" speed-gain="*0.92" max-speed-increase="*0.92" />
-            <startup boost="*0.92 *0.92" />
-            <nitro engine-force="*0.92" max-speed-increase="*0.92" />
-            <slipstream add-power="*0.92" max-speed-increase="*0.92"/>
-        </characteristic>
-        <characteristic name="handicap-12">
-            <engine power="*0.88" max-speed="*0.88" brake-factor="*0.88" />
-            <skid bonus-speed="*0.88 *0.88 *0.88" bonus-force="*0.88 *0.88 *0.88" />
-            <zipper force="*0.88" speed-gain="*0.88" max-speed-increase="*0.88" />
-            <startup boost="*0.88 *0.88" />
-            <nitro engine-force="*0.88" max-speed-increase="*0.88" />
-            <slipstream add-power="*0.88" max-speed-increase="*0.88"/>
-        </characteristic>
-        <characteristic name="handicap-16">
-            <engine power="*0.84" max-speed="*0.84" brake-factor="*0.84" />
-            <skid bonus-speed="*0.84 *0.84 *0.84" bonus-force="*0.84 *0.84 *0.84" />
-            <zipper force="*0.84" speed-gain="*0.84" max-speed-increase="*0.84" />
-            <startup boost="*0.84 *0.84" />
-            <nitro engine-force="*0.84" max-speed-increase="*0.84" />
-            <slipstream add-power="*0.84" max-speed-increase="*0.84"/>
-        </characteristic>
-        <characteristic name="handicap-20">
-            <engine power="*0.80" max-speed="*0.80" brake-factor="*0.80" />
-            <skid bonus-speed="*0.80 *0.80 *0.80" bonus-force="*0.80 *0.80 *0.80" />
-            <zipper force="*0.80" speed-gain="*0.80" max-speed-increase="*0.80" />
-            <startup boost="*0.80 *0.80" />
-            <nitro engine-force="*0.80" max-speed-increase="*0.80" />
-            <slipstream add-power="*0.80" max-speed-increase="*0.80"/>
-        </characteristic>
-        <characteristic name="handicap-24">
-            <engine power="*0.76" max-speed="*0.76" brake-factor="*0.76" />
-            <skid bonus-speed="*0.76 *0.76 *0.76" bonus-force="*0.76 *0.76 *0.76" />
-            <zipper force="*0.76" speed-gain="*0.76" max-speed-increase="*0.76" />
-            <startup boost="*0.76 *0.76" />
-            <nitro engine-force="*0.76" max-speed-increase="*0.76" />
-            <slipstream add-power="*0.76" max-speed-increase="*0.76"/>
-        </characteristic>
+        <characteristic name="handicap-0.5"> <engine power="*.995" max-speed="*.995" brake-factor="*.995" /> </characteristic>
+        <characteristic name="handicap-1.0"> <engine power="*.990" max-speed="*.990" brake-factor="*.990" /> </characteristic>
+        <characteristic name="handicap-1.5"> <engine power="*.985" max-speed="*.985" brake-factor="*.985" /> </characteristic>
+        <characteristic name="handicap-2.0"> <engine power="*.980" max-speed="*.980" brake-factor="*.980" /> </characteristic>
+        <characteristic name="handicap-2.5"> <engine power="*.975" max-speed="*.975" brake-factor="*.975" /> </characteristic>
+        <characteristic name="handicap-3.0"> <engine power="*.970" max-speed="*.970" brake-factor="*.970" /> </characteristic>
+        <characteristic name="handicap-3.5"> <engine power="*.965" max-speed="*.965" brake-factor="*.965" /> </characteristic>
+        <characteristic name="handicap-4.0"> <engine power="*.960" max-speed="*.960" brake-factor="*.960" /> </characteristic>
+        <characteristic name="handicap-4.5"> <engine power="*.955" max-speed="*.955" brake-factor="*.955" /> </characteristic>
+        <characteristic name="handicap-5.0"> <engine power="*.950" max-speed="*.950" brake-factor="*.950" /> </characteristic>
+        <characteristic name="handicap-5.5"> <engine power="*.945" max-speed="*.945" brake-factor="*.945" /> </characteristic>
+        <characteristic name="handicap-6.0"> <engine power="*.940" max-speed="*.940" brake-factor="*.940" /> </characteristic>
+        <characteristic name="handicap-6.5"> <engine power="*.935" max-speed="*.935" brake-factor="*.935" /> </characteristic>
+        <characteristic name="handicap-7.0"> <engine power="*.930" max-speed="*.930" brake-factor="*.930" /> </characteristic>
+        <characteristic name="handicap-7.5"> <engine power="*.925" max-speed="*.925" brake-factor="*.925" /> </characteristic>
+        <characteristic name="handicap-8.0"> <engine power="*.920" max-speed="*.920" brake-factor="*.920" /> </characteristic>
+        <characteristic name="handicap-8.5"> <engine power="*.915" max-speed="*.915" brake-factor="*.915" /> </characteristic>
+        <characteristic name="handicap-9.0"> <engine power="*.910" max-speed="*.910" brake-factor="*.910" /> </characteristic>
+        <characteristic name="handicap-9.5"> <engine power="*.905" max-speed="*.905" brake-factor="*.905" /> </characteristic>
+        <characteristic name="handicap-10.0"> <engine power="*.900" max-speed="*.900" brake-factor="*.900" /> </characteristic>
+        <characteristic name="handicap-10.5"> <engine power="*.895" max-speed="*.895" brake-factor="*.895" /> </characteristic>
+        <characteristic name="handicap-11.0"> <engine power="*.890" max-speed="*.890" brake-factor="*.890" /> </characteristic>
+        <characteristic name="handicap-11.5"> <engine power="*.885" max-speed="*.885" brake-factor="*.885" /> </characteristic>
+        <characteristic name="handicap-12.0"> <engine power="*.880" max-speed="*.880" brake-factor="*.880" /> </characteristic>
+        <characteristic name="handicap-12.5"> <engine power="*.875" max-speed="*.875" brake-factor="*.875" /> </characteristic>
+        <characteristic name="handicap-13.0"> <engine power="*.870" max-speed="*.870" brake-factor="*.870" /> </characteristic>
+        <characteristic name="handicap-13.5"> <engine power="*.865" max-speed="*.865" brake-factor="*.865" /> </characteristic>
+        <characteristic name="handicap-14.0"> <engine power="*.860" max-speed="*.860" brake-factor="*.860" /> </characteristic>
+        <characteristic name="handicap-14.5"> <engine power="*.855" max-speed="*.855" brake-factor="*.855" /> </characteristic>
+        <characteristic name="handicap-15.0"> <engine power="*.850" max-speed="*.850" brake-factor="*.850" /> </characteristic>
+        <characteristic name="handicap-15.5"> <engine power="*.845" max-speed="*.845" brake-factor="*.845" /> </characteristic>
+        <characteristic name="handicap-16.0"> <engine power="*.840" max-speed="*.840" brake-factor="*.840" /> </characteristic>
+        <characteristic name="handicap-16.5"> <engine power="*.835" max-speed="*.835" brake-factor="*.835" /> </characteristic>
+        <characteristic name="handicap-17.0"> <engine power="*.830" max-speed="*.830" brake-factor="*.830" /> </characteristic>
+        <characteristic name="handicap-17.5"> <engine power="*.825" max-speed="*.825" brake-factor="*.825" /> </characteristic>
+        <characteristic name="handicap-18.0"> <engine power="*.820" max-speed="*.820" brake-factor="*.820" /> </characteristic>
+        <characteristic name="handicap-18.5"> <engine power="*.815" max-speed="*.815" brake-factor="*.815" /> </characteristic>
+        <characteristic name="handicap-19.0"> <engine power="*.810" max-speed="*.810" brake-factor="*.810" /> </characteristic>
+        <characteristic name="handicap-19.5"> <engine power="*.805" max-speed="*.805" brake-factor="*.805" /> </characteristic>
+        <characteristic name="handicap-20.0"> <engine power="*.800" max-speed="*.800" brake-factor="*.800" /> </characteristic>
+        <characteristic name="handicap-20.5"> <engine power="*.795" max-speed="*.795" brake-factor="*.795" /> </characteristic>
+        <characteristic name="handicap-21.0"> <engine power="*.790" max-speed="*.790" brake-factor="*.790" /> </characteristic>
+        <characteristic name="handicap-21.5"> <engine power="*.785" max-speed="*.785" brake-factor="*.785" /> </characteristic>
+        <characteristic name="handicap-22.0"> <engine power="*.780" max-speed="*.780" brake-factor="*.780" /> </characteristic>
+        <characteristic name="handicap-22.5"> <engine power="*.775" max-speed="*.775" brake-factor="*.775" /> </characteristic>
+        <characteristic name="handicap-23.0"> <engine power="*.770" max-speed="*.770" brake-factor="*.770" /> </characteristic>
+        <characteristic name="handicap-23.5"> <engine power="*.765" max-speed="*.765" brake-factor="*.765" /> </characteristic>
+        <characteristic name="handicap-24.0"> <engine power="*.760" max-speed="*.760" brake-factor="*.760" /> </characteristic>
     </player-characteristics>
 </characteristics>

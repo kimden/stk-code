@@ -119,13 +119,12 @@ GUIEngine::EventPropagation
             const unsigned pid = m_profiles->getValue();
             assert(pid < PlayerManager::get()->getNumPlayers());
             PlayerProfile* p = m_available_players[pid];
-            const HandicapLevel h = m_handicap->getState() ?
-                HANDICAP_4 : HANDICAP_NONE;
+            const uint8_t h = m_handicap->getState() ? 1 : 0;
             const unsigned t = m_starting_tyre->getValue();
             if (NetworkConfig::get()->addNetworkPlayer(m_device, p, h, t))
             {
                 core::stringw name = p->getName();
-                if (h != HANDICAP_NONE)
+                if (h != 0)
                     name = _("%s (handicapped)", name);
                 NetworkingLobby::getInstance()->addSplitscreenPlayer(name);
                 m_self_destroy = true;

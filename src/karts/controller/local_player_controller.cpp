@@ -65,7 +65,7 @@
  */
 LocalPlayerController::LocalPlayerController(Kart *kart,
                                              const int local_player_id,
-                                             HandicapLevel h)
+                                             uint8_t h)
                      : PlayerController(kart)
 {
     m_last_crash = 0;
@@ -463,8 +463,10 @@ core::stringw LocalPlayerController::getName(bool include_handicap_string) const
         return PlayerController::getName();
 
     core::stringw name = m_player->getProfile()->getName();
-    if (include_handicap_string && m_handicap != HANDICAP_NONE)
-        name = _("%s (handicapped)", name);
+    if (include_handicap_string && m_handicap != 0) {
+        int x = m_handicap;
+        name = _("%s (handicapped %s.%s%)", name, (int)x/2, (int)((float)x/2.0f*10.0f) % 10);
+    }
 
     return name;
 }   // getName

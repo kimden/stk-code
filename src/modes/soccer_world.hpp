@@ -54,7 +54,7 @@ public:
         /** Country code of player. */
         std::string m_country_code;
         /** Handicap of player. */
-        HandicapLevel m_handicap_level;
+        uint8_t m_handicap_level;
     };   // ScorerData
 
 private:

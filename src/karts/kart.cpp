@@ -111,7 +111,7 @@
 #endif
 
 void Kart::loadKartProperties(const std::string& new_ident,
-                                      HandicapLevel handicap, unsigned starting_tyre,
+                                      uint8_t handicap, unsigned starting_tyre,
                                       std::shared_ptr<GE::GERenderInfo> ri,
                                       const KartData& kart_data)
 {
@@ -215,7 +215,7 @@ void Kart::loadKartProperties(const std::string& new_ident,
  */
 Kart::Kart (const std::string& ident, unsigned int world_kart_id,
             int position, const btTransform& init_transform,
-            HandicapLevel handicap, unsigned starting_tyre, std::shared_ptr<GE::GERenderInfo> ri)
+            uint8_t handicap, unsigned starting_tyre, std::shared_ptr<GE::GERenderInfo> ri)
      : Moveable()
 {
     m_world_kart_id   = world_kart_id;
@@ -359,7 +359,7 @@ void Kart::initSound()
 
 // ----------------------------------------------------------------------------
 void Kart::changeKart(const std::string& new_ident,
-                      HandicapLevel handicap, unsigned starting_tyre,
+                      uint8_t handicap, unsigned starting_tyre,
                       std::shared_ptr<GE::GERenderInfo> ri,
                       const KartData& kart_data)
 {

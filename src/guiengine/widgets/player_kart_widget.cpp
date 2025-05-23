@@ -53,7 +53,7 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
     m_associated_player = associated_player;
     x_speed = y_speed = w_speed = h_speed = 1.0f;
     m_ready = false;
-    m_handicap = HANDICAP_NONE;
+    m_handicap = 0;
     m_starting_tyre = 2;
     m_not_updated_yet = true;
 
@@ -82,32 +82,28 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
     // ---- Handicap spinner
     if (true) //UserConfigParams::m_per_player_difficulty)
     {
+
         m_handicap_spinner = NULL;
 
-        m_handicap_spinner = new SpinnerWidget(/* gauge */ false);
+        m_handicap_spinner = new SpinnerWidget(/* gauge */ true);
         m_handicap_spinner->m_w = player_name_w;
         m_handicap_spinner->m_h = player_name_h;
-
-        m_handicap_spinner->setPlayerID(m_player_id);
-        m_handicap_spinner->setPlayerIDSupport(true);
 
         core::stringw label = _("No handicap");
         m_handicap_spinner->addLabel(label);
         m_handicap_spinner->setValue(label);
         // I18N: 'Handicap' indicates that per-player handicaps are
         //       activated for this kart (i.e. it will drive slower)
-        label = _("Handicap (4%)");
-        m_handicap_spinner->addLabel(label);
-        label = _("Handicap (8%)");
-        m_handicap_spinner->addLabel(label);
-        label = _("Handicap (12%)");
-        m_handicap_spinner->addLabel(label);
-        label = _("Handicap (16%)");
-        m_handicap_spinner->addLabel(label);
-        label = _("Handicap (20%)");
-        m_handicap_spinner->addLabel(label);
-        label = _("Handicap (24%)");
-        m_handicap_spinner->addLabel(label);
+        for (int i = 1; i < HANDICAP_COUNT; i++) {
+            std::ostringstream out;
+            out.precision(1);
+            out << std::fixed << (float)i/2.0f;
+            label = _("Handicap (%s%)", out.str().c_str());
+            m_handicap_spinner->addLabel(label);
+        }
+
+        m_handicap_spinner->setPlayerID(m_player_id);
+        m_handicap_spinner->setPlayerIDSupport(true);
     }
 
     m_starting_tyre_spinner = NULL;
@@ -538,7 +534,7 @@ bool PlayerKartWidget::isReady()
 
 // ------------------------------------------------------------------------
 /** \return Handicap */
-HandicapLevel PlayerKartWidget::getHandicap()
+uint8_t PlayerKartWidget::getHandicap()
 {
     assert(m_magic_number == 0x33445566);
     return m_handicap;
@@ -727,45 +723,17 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
         originator == handicapSpinnerID)
     {
         int spinner_value = m_handicap_spinner->getValue();
+
         if (spinner_value == 0)
         {
-            m_handicap = HANDICAP_NONE;
+            m_handicap = 0;
             m_model_view->unsetBadge(ANCHOR_BADGE);
-            m_kart_stats->setValues(kart_properties_manager->getKart(m_kart_internal_name), HANDICAP_NONE);
+            m_kart_stats->setValues(kart_properties_manager->getKart(m_kart_internal_name), 0);
         }
         else
         {
-            if (spinner_value == 1)
-            {
-                m_handicap = HANDICAP_4;
-                m_model_view->setBadge(ANCHOR_BADGE);
-            }
-            else if (spinner_value == 2)
-            {
-                m_handicap = HANDICAP_8;
-                m_model_view->setBadge(ANCHOR_BADGE);
-            }
-            else if (spinner_value == 3)
-            {
-                m_handicap = HANDICAP_12;
-                m_model_view->setBadge(ANCHOR_BADGE);
-            }
-            else if (spinner_value == 4)
-            {
-                m_handicap = HANDICAP_16;
-                m_model_view->setBadge(ANCHOR_BADGE);
-            }
-            else if (spinner_value == 5)
-            {
-                m_handicap = HANDICAP_20;
-                m_model_view->setBadge(ANCHOR_BADGE);
-            }
-            else // spinner_value == 6
-            {
-                m_handicap = HANDICAP_24;
-                m_model_view->setBadge(ANCHOR_BADGE);
-            }
-
+            m_handicap = spinner_value;
+            m_model_view->setBadge(ANCHOR_BADGE);
             m_kart_stats->setValues(kart_properties_manager->getKart(m_kart_internal_name), m_handicap);
         }
     } // handicapSpinnerID
@@ -865,15 +833,15 @@ EventPropagation PlayerKartWidget::onSpinnerConfirmed()
 }   // onSpinnerConfirmed
 
 // -------------------------------------------------------------------------
-void PlayerKartWidget::setHandicapForNetwork(HandicapLevel x)
+void PlayerKartWidget::setHandicapForNetwork(uint8_t x)
 {
     m_handicap = x;
-    if (x != HANDICAP_NONE) m_model_view->setBadge(ANCHOR_BADGE);
+    if (x != 0) m_model_view->setBadge(ANCHOR_BADGE);
     m_kart_stats->setValues(
         kart_properties_manager->getKart(m_kart_internal_name),
         x);
     core::stringw label;
-    if (x != HANDICAP_NONE) label = _("%s (handicapped)", m_player_ident_spinner->getCustomText());
+    if (x != 0) label = _("%s (handicapped %s.%s%)", m_player_ident_spinner->getCustomText(), (int)x/2, (int)((float)x/2.0f*10.0f) % 10);
     else label = _("%s", m_player_ident_spinner->getCustomText());
     m_player_ident_spinner->setCustomText(label);
 }   // enableHandicapForNetwork

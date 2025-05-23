@@ -2556,7 +2556,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 
         std::string utf8_name = StringUtils::wideToUtf8(name);
         float default_kart_color = data.getFloat();
-        HandicapLevel handicap = (HandicapLevel)data.getUInt8();
+        uint8_t handicap = (uint8_t)data.getUInt8();
         unsigned starting_tyre = data.getUInt8();
         auto player = std::make_shared<NetworkPlayerProfile>
             (peer, i == 0 && !online_name.empty() && !peer->isAIPeer() ?
@@ -2672,7 +2672,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             name += core::stringw(" ") + StringUtils::toWString(i + 1);
             
             m_ai_profiles.push_back(std::make_shared<NetworkPlayerProfile>
-                (peer, name, peer->getHostId(), 0.0f, 0, HANDICAP_NONE, 2,
+                (peer, name, peer->getHostId(), 0.0f, 0, 0, 2,
                 player_count + i, KART_TEAM_NONE, ""));
         }
     }
@@ -3812,7 +3812,7 @@ void ServerLobby::changeHandicapAndTyre(Event* event)
         Log::warn("ServerLobby", "Wrong handicap %d.", handicap_id);
         return;
     }
-    HandicapLevel h = (HandicapLevel)handicap_id;
+    uint8_t h = (uint8_t)handicap_id;
     player->setHandicap(h);
 
     uint8_t tyre_id = data.getUInt8();

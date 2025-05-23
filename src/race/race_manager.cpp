@@ -244,7 +244,7 @@ void RaceManager::setKartTeam(unsigned int player_id, KartTeam team)
 //---------------------------------------------------------------------------------------------
 /** Sets the handicap for a player.
  */
-void RaceManager::setPlayerHandicap(unsigned int player_id, HandicapLevel handicap)
+void RaceManager::setPlayerHandicap(unsigned int player_id, uint8_t handicap)
 {
     assert(player_id < m_player_karts.size());
 
@@ -534,7 +534,7 @@ void RaceManager::startNew(bool from_overworld)
         for(unsigned int i = 0; i < m_num_ghost_karts; i++)
         {
             m_kart_status.push_back(KartStatus(ReplayPlay::get()->getGhostKartName(i),
-                i, -1, -1, init_gp_rank, KT_GHOST, HANDICAP_NONE, 2));
+                i, -1, -1, init_gp_rank, KT_GHOST, 0, 2));
             init_gp_rank ++;
         }
     }
@@ -545,7 +545,7 @@ void RaceManager::startNew(bool from_overworld)
     for(unsigned int i = 0; i < ai_kart_count; i++)
     {
         m_kart_status.push_back(KartStatus(m_ai_kart_list[i], i, -1, -1,
-            init_gp_rank, KT_AI, HANDICAP_NONE, 2));
+            init_gp_rank, KT_AI, 0, 2));
         init_gp_rank ++;
         if(UserConfigParams::m_ftl_debug)
         {
@@ -1294,7 +1294,7 @@ void RaceManager::startWatchingReplay(const std::string &track_ident,
     for(int i = 0; i < m_num_karts; i++)
     {
         m_kart_status.push_back(KartStatus(ReplayPlay::get()->getGhostKartName(i),
-            i, -1, -1, init_gp_rank, KT_GHOST, HANDICAP_NONE, 2));
+            i, -1, -1, init_gp_rank, KT_GHOST, 0, 2));
         init_gp_rank ++;
     }
 

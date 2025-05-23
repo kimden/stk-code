@@ -60,7 +60,7 @@ private:
 
     int m_last_crash;
 
-    HandicapLevel m_handicap;
+    uint8_t m_handicap;
 
     SFXBase     *m_wee_sound;
     SFXBuffer   *m_bzzt_sound;
@@ -80,7 +80,7 @@ private:
 public:
                  LocalPlayerController(Kart *kart,
                                        const int local_player_id,
-                                       HandicapLevel h);
+                                       uint8_t h);
                 ~LocalPlayerController();
     void         update            (int ticks) OVERRIDE;
     bool         action            (PlayerAction action, int value,

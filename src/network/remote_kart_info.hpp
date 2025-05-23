@@ -58,17 +58,7 @@ struct KartTeamSet
 };
 
 /** Handicap per player. */
-enum HandicapLevel : uint8_t
-{
-    HANDICAP_NONE = 0,
-    HANDICAP_4 = 1,
-    HANDICAP_8 = 2,
-    HANDICAP_12 = 3,
-    HANDICAP_16 = 4,
-    HANDICAP_20 = 5,
-    HANDICAP_24 = 6,
-    HANDICAP_COUNT = 7
-};
+const int HANDICAP_COUNT = 49;
 
 class NetworkPlayerProfile;
 
@@ -81,7 +71,7 @@ class RemoteKartInfo
         uint32_t            m_host_id;
         KartTeam            m_kart_team;
         bool                m_network_player;
-        HandicapLevel       m_handicap;
+        uint8_t       m_handicap;
         unsigned            m_starting_tyre;
         float               m_default_kart_color;
         uint32_t            m_online_id;
@@ -96,7 +86,7 @@ public:
                     m_local_player_id(player_id), m_global_player_id(-1),
                     m_host_id(host_id), m_kart_team(KART_TEAM_NONE),
                     m_network_player(network),
-                    m_handicap(HANDICAP_NONE),
+                    m_handicap(0),
                     m_starting_tyre(2),
                     m_default_kart_color(0.0f), m_online_id(0)
      {}
@@ -105,7 +95,7 @@ public:
                     m_global_player_id(-1),
                     m_host_id(std::numeric_limits<uint32_t>::max()),
                     m_kart_team(KART_TEAM_NONE), m_network_player(false),
-                    m_handicap(HANDICAP_NONE),
+                    m_handicap(0),
                     m_starting_tyre(2),
                     m_default_kart_color(0.0f), m_online_id(0)
      {}
@@ -113,7 +103,7 @@ public:
                     m_local_player_id(-1), m_global_player_id(-1),
                     m_host_id(std::numeric_limits<uint32_t>::max()),
                     m_kart_team(KART_TEAM_NONE), m_network_player(false),
-                    m_handicap(HANDICAP_NONE),
+                    m_handicap(0),
                     m_starting_tyre(2),
                     m_default_kart_color(0.0f), m_online_id(0)
      {}
@@ -125,7 +115,7 @@ public:
     void setKartTeam(KartTeam team)      { m_kart_team = team;      }
     void setNetworkPlayer(bool value)        { m_network_player = value;  }
     void setDefaultKartColor(float value) { m_default_kart_color = value; }
-    void setHandicap(HandicapLevel value)    { m_handicap = value;        }
+    void setHandicap(uint8_t value)    { m_handicap = value;        }
     void setStartingTyre(unsigned value)    { m_starting_tyre = value; }
     void setOnlineId(uint32_t id)            { m_online_id = id;          }
     uint32_t getHostId() const               { return m_host_id;          }
@@ -135,7 +125,7 @@ public:
     const std::string& getKartName() const   { return m_kart_name;        }
     const irr::core::stringw& getPlayerName() const { return m_user_name; }
     KartTeam getKartTeam() const               { return m_kart_team;      }
-    HandicapLevel getHandicap() const        { return m_handicap;         }
+    uint8_t getHandicap() const        { return m_handicap;         }
     unsigned getStartingTyre() const        { return m_starting_tyre;         }
     float getDefaultKartColor() const      { return m_default_kart_color; }
     uint32_t getOnlineId() const           { return m_online_id;          }

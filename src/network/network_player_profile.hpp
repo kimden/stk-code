@@ -35,7 +35,6 @@
 class STKPeer;
 class GenericDecorator;
 enum KartTeam : int8_t;
-enum HandicapLevel : uint8_t;
 
 /*! \class NetworkPlayerProfile
  *  \brief Contains the profile of a player.
@@ -56,7 +55,7 @@ private:
     uint32_t m_online_id;
 
     /** Handicap level of this player. */
-    std::atomic<HandicapLevel> m_handicap;
+    std::atomic<uint8_t> m_handicap;
 
     /** Handicap level of this player. */
     std::atomic<unsigned> m_starting_tyre;
@@ -97,7 +96,7 @@ public:
         m_host_id               = std::numeric_limits<uint32_t>::max();
         m_default_kart_color    = 0.0f;
         m_online_id             = 0;
-        m_handicap.store((HandicapLevel)0);
+        m_handicap.store((uint8_t)0);
         m_starting_tyre.store(2);
         m_local_player_id       = 0;
         m_team.store(team);
@@ -108,7 +107,7 @@ public:
     NetworkPlayerProfile(std::shared_ptr<STKPeer> peer,
                          const irr::core::stringw &name, uint32_t host_id,
                          float default_kart_color, uint32_t online_id,
-                         HandicapLevel handicap, unsigned starting_tyre,
+                         uint8_t handicap, unsigned starting_tyre,
                          uint8_t local_player_id, KartTeam team,
                          const std::string& country_code)
     {
@@ -147,9 +146,9 @@ public:
     uint8_t getLocalPlayerId() const              { return m_local_player_id; }
     // ------------------------------------------------------------------------
     /** Returns the player's handicap. */
-    HandicapLevel getHandicap() const { return m_handicap.load(); }
+    uint8_t getHandicap() const { return m_handicap.load(); }
     // ------------------------------------------------------------------------
-    void setHandicap(HandicapLevel h) { m_handicap.store(h); }
+    void setHandicap(uint8_t h) { m_handicap.store(h); }
     // ------------------------------------------------------------------------
     unsigned getStartingTyre() const { return m_starting_tyre.load(); }
     // ------------------------------------------------------------------------

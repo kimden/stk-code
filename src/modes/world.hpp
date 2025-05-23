@@ -98,7 +98,7 @@ private:
     std::shared_ptr<Kart> createKartWithTeam
         (const std::string &kart_ident, int index, int local_player_id,
         int global_player_id, RaceManager::KartType type,
-        HandicapLevel handicap, unsigned starting_tyre);
+        uint8_t handicap, unsigned starting_tyre);
 
 protected:
 
@@ -148,7 +148,7 @@ protected:
     virtual std::shared_ptr<Kart> createKart
         (const std::string &kart_ident, int index, int local_player_id,
         int global_player_id, RaceManager::KartType type,
-        HandicapLevel handicap, unsigned starting_tyre);
+        uint8_t handicap, unsigned starting_tyre);
 
     /** Pointer to the race GUI. The race GUI is handled by world. */
     RaceGUIBase *m_race_gui;

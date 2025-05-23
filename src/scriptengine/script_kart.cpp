@@ -144,7 +144,7 @@ namespace Scripting
         void changeKart(int idKart, std::string* new_id)
         {
             ::Kart* kart = World::getWorld()->getKart(idKart);
-            HandicapLevel hl = kart->getHandicap();
+            uint8_t hl = kart->getHandicap();
             unsigned tl = kart->getStartingTyre();
             auto ri = kart->getKartModel()->getRenderInfo();
             kart->changeKart(*new_id, hl, tl, ri);

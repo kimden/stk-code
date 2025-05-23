@@ -281,7 +281,7 @@ GUIEngine::EventPropagation
             return GUIEngine::EVENT_BLOCK;
         } else if (m_accept_widget && selection == m_accept_widget->m_properties[PROP_ID]) {
             unsigned new_tyre = m_tyre_widget->getValue();
-            unsigned new_handicap = (HandicapLevel)(m_handicap_widget->getValue() % HANDICAP_COUNT);
+            unsigned new_handicap = (uint8_t)(m_handicap_widget->getValue() % HANDICAP_COUNT);
             NetworkString change_handicap(PROTOCOL_LOBBY_ROOM);
             change_handicap.addUInt8(LobbyEvent::LE_CHANGE_HANDICAP_AND_TYRE)
                 .addUInt8(m_local_id).addUInt8(new_handicap).addUInt8(new_tyre);

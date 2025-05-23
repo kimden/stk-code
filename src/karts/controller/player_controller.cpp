@@ -376,12 +376,13 @@ core::stringw PlayerController::getName(bool include_handicap_string) const
         const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(
             m_kart->getWorldKartId());
         name = rki.getPlayerName();
-        if (include_handicap_string && rki.getHandicap() != HANDICAP_NONE)
+        if (include_handicap_string && rki.getHandicap() != 0)
         {
 #ifdef SERVER_ONLY
             name += L" (handicapped)";
 #else
-            name = _("%s (handicapped)", name);
+            int x = rki.getHandicap();
+            name = _("%s (handicapped %s.%s%)", name, (int)x/2, (int)((float)x/2.0f*10.0f) % 10);
 #endif
         }
     }

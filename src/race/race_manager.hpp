@@ -280,7 +280,7 @@ public:
         /** Boosted status (AI only). */
         bool        m_boosted_ai;
         /** The handicap for this player. */
-        HandicapLevel m_handicap;
+        uint8_t m_handicap;
 
         unsigned m_starting_tyre;
         /** Kart color of player (used in gp win / lose screen). */
@@ -288,7 +288,7 @@ public:
         KartStatus(const std::string& ident, const int& prev_finish_pos,
                    int local_player_id, int global_player_id,
                    int init_gp_rank, KartType kt,
-                   HandicapLevel handicap, unsigned starting_tyre) :
+                   uint8_t handicap, unsigned starting_tyre) :
                    m_ident(ident), m_score(0), m_last_score(0),
                    m_overall_time(0.0f), m_last_time(0.0f),
                    m_kart_type(kt),
@@ -423,7 +423,7 @@ public:
 
     /** Sets the handicap for a player.
      */
-    void setPlayerHandicap(unsigned int player_id, HandicapLevel handicap);
+    void setPlayerHandicap(unsigned int player_id, uint8_t handicap);
 
     void setPlayerStartingTyre(unsigned int player_id, unsigned starting_tyre);
 
@@ -719,7 +719,7 @@ public:
         return m_kart_status[kart].m_kart_type;
     }   // getKartType
     // ----------------------------------------------------------------------------------------
-    HandicapLevel getPlayerHandicap(int kart) const
+    uint8_t getPlayerHandicap(int kart) const
     {
         return m_kart_status[kart].m_handicap;
     }   // getPlayerHandicap
@@ -936,7 +936,7 @@ public:
     void addSpareTireKart(const std::string& name)
     {
         m_kart_status.push_back(KartStatus(name, 0, -1, -1,
-            -1, KT_SPARE_TIRE, HANDICAP_NONE, 2));
+            -1, KT_SPARE_TIRE, 0, 2));
         m_num_spare_tire_karts++;
         m_num_karts++;
     }   // addSpareTireKart

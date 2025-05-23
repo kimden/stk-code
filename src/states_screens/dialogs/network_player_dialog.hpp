@@ -35,7 +35,6 @@ namespace GUIEngine
 }
 
 class RankingCallback;
-enum HandicapLevel : uint8_t;
 
 /**
  * \brief Dialog that handle player in network lobby
@@ -50,7 +49,7 @@ private:
 
     const uint8_t m_local_id;
 
-    HandicapLevel m_handicap;
+    uint8_t m_handicap;
 
     unsigned m_starting_tyre_scalar;
 
@@ -93,7 +92,7 @@ public:
     NetworkPlayerDialog(uint32_t host_id, uint32_t online_id, uint8_t local_id,
                         const core::stringw& name,
                         const std::string& country_code,
-                        bool allow_change_team, HandicapLevel h, unsigned t)
+                        bool allow_change_team, uint8_t h, unsigned t)
         : ModalDialog(0.8f,0.8f), m_host_id(host_id), m_online_id(online_id),
           m_local_id(local_id), m_handicap(h), m_starting_tyre_scalar(t),
           m_name(name), m_country_code(country_code),

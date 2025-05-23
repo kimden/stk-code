@@ -463,7 +463,7 @@ void World::createRaceGUI()
 std::shared_ptr<Kart> World::createKart
     (const std::string &kart_ident, int index, int local_player_id,
     int global_player_id, RaceManager::KartType kart_type,
-    HandicapLevel handicap, unsigned starting_tyre)
+    uint8_t handicap, unsigned starting_tyre)
 {
     unsigned int gk = 0;
     if (RaceManager::get()->hasGhostKarts())
@@ -1562,7 +1562,7 @@ unsigned int World::getNumberOfRescuePositions() const
 std::shared_ptr<Kart> World::createKartWithTeam
     (const std::string &kart_ident, int index, int local_player_id,
     int global_player_id, RaceManager::KartType kart_type,
-    HandicapLevel handicap, unsigned starting_tyre)
+    uint8_t handicap, unsigned starting_tyre)
 {
     int cur_red = getTeamNum(KART_TEAM_RED);
     int cur_blue = getTeamNum(KART_TEAM_BLUE);

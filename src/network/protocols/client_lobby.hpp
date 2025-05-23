@@ -32,7 +32,6 @@
 
 enum PeerDisconnectInfo : unsigned int;
 enum KartTeam : int8_t;
-enum HandicapLevel : uint8_t;
 
 class BareNetworkString;
 class Server;
@@ -48,7 +47,7 @@ struct LobbyPlayer
     int m_local_player_id;
     uint32_t m_host_id;
     KartTeam m_kart_team;
-    HandicapLevel m_handicap;
+    uint8_t m_handicap;
     unsigned m_starting_tyre;
     uint32_t m_online_id;
     /* Icon used in networking lobby, see NetworkingLobby::loadedFromFile. */

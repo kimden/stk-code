@@ -1624,8 +1624,10 @@ void RaceResultGUI::drawTeamScorers(KartTeam team, int x, int y, int height)
         const bool own_goal = !(scorers.at(i).m_correct_goal);
 
         scorer_text = scorers.at(i).m_player;
-        if (scorers.at(i).m_handicap_level != HANDICAP_NONE)
-            scorer_text = _("%s (handicapped)", scorer_text);
+        if (scorers.at(i).m_handicap_level != 0) {
+            int x = scorers.at(i).m_handicap_level;
+            scorer_text = _("%s (handicapped %s.%s%)", scorer_text, (int)x/2, (int)((float)x/2.0f*10.0f) % 10);;
+        }
 
         if (own_goal)
         {
@@ -2359,7 +2361,7 @@ void RaceResultGUI::displayBenchmarkSummary()
                                                       : _("Dynamic lighting: OFF");
     value = StringUtils::toWString(UserConfigParams::m_dynamic_lights ?
                           UserConfigParams::m_scale_rtts_factor * 100 : 100);
-    info_text[3] = _("Render resolution: %s%%", value);
+    info_text[3] = _("Render resolution: %s%", value);
     info_text[4] = UserConfigParams::m_mlaa ? _("Anti-aliasing: ON")
                                             : _("Anti-aliasing : OFF");
     info_text[5] = UserConfigParams::m_degraded_IBL ? _("Image-based lighting: OFF")

@@ -76,14 +76,14 @@ KartStatsWidget::KartStatsWidget(core::recti area, const int player_id,
         m_children.push_back(skill_bar);
     }
 
-    setValues(props, HANDICAP_NONE);
+    setValues(props, 0);
 
     move(area.UpperLeftCorner.X, area.UpperLeftCorner.Y,
          area.getWidth(), area.getHeight());
 }   // KartStatsWidget
 
 // -----------------------------------------------------------------------------
-void KartStatsWidget::setValues(const KartProperties* props, HandicapLevel h)
+void KartStatsWidget::setValues(const KartProperties* props, uint8_t h)
 {
     // If props is NULL (e.g., when kart selection is "?" (random)),
     // skip this function to avoid errors.

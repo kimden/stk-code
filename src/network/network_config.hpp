@@ -110,7 +110,7 @@ private:
     /** Used by client server to determine if the child server is created. */
     std::string m_server_id_file;
 
-    std::vector<std::tuple<InputDevice*, PlayerProfile*, HandicapLevel, unsigned> > m_network_players;
+    std::vector<std::tuple<InputDevice*, PlayerProfile*, uint8_t, unsigned> > m_network_players;
 
     NetworkConfig();
 
@@ -203,7 +203,7 @@ public:
     // ------------------------------------------------------------------------
     void unsetNetworking();
     // ------------------------------------------------------------------------
-    std::vector<std::tuple<InputDevice*, PlayerProfile*, HandicapLevel, unsigned> >&
+    std::vector<std::tuple<InputDevice*, PlayerProfile*, uint8_t, unsigned> >&
                         getNetworkPlayers()       { return m_network_players; }
     // ------------------------------------------------------------------------
     bool isAddingNetworkPlayers() const
@@ -212,7 +212,7 @@ public:
     void doneAddingNetworkPlayers()   { m_done_adding_network_players = true; }
     // ------------------------------------------------------------------------
     bool addNetworkPlayer(InputDevice* device, PlayerProfile* profile,
-                          HandicapLevel h, unsigned t)
+                          uint8_t h, unsigned t)
     {
         for (auto& p : m_network_players)
         {

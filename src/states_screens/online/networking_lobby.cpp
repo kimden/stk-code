@@ -924,7 +924,7 @@ void NetworkingLobby::tearDown()
         NetworkConfig::get()->cleanNetworkPlayers();
         NetworkConfig::get()->addNetworkPlayer(
             input_manager->getDeviceManager()->getLatestUsedDevice(),
-            PlayerManager::getCurrentPlayer(), HANDICAP_NONE, 2);
+            PlayerManager::getCurrentPlayer(), 0, 2);
         NetworkConfig::get()->doneAddingNetworkPlayers();
     }
 

@@ -731,7 +731,7 @@ void SoccerWorld::handlePlayerGoalFromServer(const NetworkString& ns)
         != NetworkConfig::get()->getServerCapabilities().end())
     {
         ns.decodeString(&sd.m_country_code);
-        sd.m_handicap_level = (HandicapLevel)ns.getUInt8();
+        sd.m_handicap_level = (uint8_t)ns.getUInt8();
     }
 
     if (first_goal)
@@ -1229,7 +1229,7 @@ void SoccerWorld::restoreCompleteState(const BareNetworkString& b)
             != NetworkConfig::get()->getServerCapabilities().end())
         {
             b.decodeString(&sd.m_country_code);
-            sd.m_handicap_level = (HandicapLevel)b.getUInt8();
+            sd.m_handicap_level = (uint8_t)b.getUInt8();
         }
         m_red_scorers.push_back(sd);
     }
@@ -1247,7 +1247,7 @@ void SoccerWorld::restoreCompleteState(const BareNetworkString& b)
             != NetworkConfig::get()->getServerCapabilities().end())
         {
             b.decodeString(&sd.m_country_code);
-            sd.m_handicap_level = (HandicapLevel)b.getUInt8();
+            sd.m_handicap_level = (uint8_t)b.getUInt8();
         }
         m_blue_scorers.push_back(sd);
     }

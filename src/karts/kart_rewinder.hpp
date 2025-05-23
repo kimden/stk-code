@@ -35,7 +35,7 @@ private:
 public:
     KartRewinder(const std::string& ident, unsigned int world_kart_id,
                  int position, const btTransform& init_transform,
-                 HandicapLevel handicap, unsigned starting_tyre,
+                 uint8_t handicap, unsigned starting_tyre,
                  std::shared_ptr<GE::GERenderInfo> ri);
     ~KartRewinder() {}
     virtual void saveTransform() OVERRIDE;

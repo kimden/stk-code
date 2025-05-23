@@ -19,7 +19,7 @@
         <spacer height="3%" width="50"/>
 
         <label id="handicap-label" proportion="1" width="90%" align="center" text_align="center" word_wrap="true" text="Handicap"/>
-        <spinner id="handicap" min_value="0" max_value="10" width="90%" align="center">
+        <gauge id="handicap" min_value="0" max_value="48" width="90%" align="center">
 
         <label id="starting-tyre-label" proportion="1" width="90%" align="center" text_align="center" word_wrap="true" text="Tyre"/>
         <spinner id="starting-tyre" min_value="0" max_value="10" width="90%" align="center">

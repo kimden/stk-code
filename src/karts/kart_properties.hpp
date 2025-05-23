@@ -193,7 +193,7 @@ private:
 
     void  load              (const std::string &filename,
                              const std::string &node);
-    void combineCharacteristics(HandicapLevel h);
+    void combineCharacteristics(uint8_t h);
 
     void setWheelBase(float kart_length)
     {
@@ -208,12 +208,12 @@ private:
     std::vector<std::string> handleOnDemandLoadTexture();
 public:
     /** Returns the string representation of a handicap level. */
-    static std::string      getHandicapAsString(HandicapLevel h);
+    static std::string      getHandicapAsString(uint8_t h);
 
           KartProperties    (const std::string &filename="");
          ~KartProperties    ();
     void  copyForPlayer     (const KartProperties *source,
-                             HandicapLevel h = HANDICAP_NONE);
+                             uint8_t h = 0);
     void  adjustForOnlineAddonKart(const KartProperties* source);
     void  updateForOnlineKart(const std::string& id, const Vec3& gravity_shift,
                               float kart_length)
@@ -232,7 +232,7 @@ public:
     void initKartWithDifferentType(const std::string& type)
     {
         m_kart_type = type;
-        combineCharacteristics(HANDICAP_NONE);
+        combineCharacteristics(0);
     }
     // ------------------------------------------------------------------------
     /** Returns the characteristics for this kart. */

@@ -384,7 +384,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
         uint32_t host_id = data.getUInt32();
         float kart_color = data.getFloat();
         uint32_t online_id = data.getUInt32();
-        HandicapLevel handicap = (HandicapLevel)data.getUInt8();
+        uint8_t handicap = (uint8_t)data.getUInt8();
         unsigned starting_tyre = data.getUInt8();
         uint8_t local_id = data.getUInt8();
         KartTeam team = (KartTeam)data.getUInt8();
@@ -867,7 +867,7 @@ void ClientLobby::updatePlayerList(Event* event)
         lp.m_host_id = packet.host_id;
         lp.m_online_id = packet.online_id;
         uint8_t local_id = packet.local_player_id;
-        lp.m_handicap = HANDICAP_NONE;
+        lp.m_handicap = 0;
         lp.m_starting_tyre = 2;
         lp.m_local_player_id = local_id;
         lp.m_user_name = packet.profile_name;
@@ -889,8 +889,8 @@ void ClientLobby::updatePlayerList(Event* event)
             lp.m_icon_id = 5;
         if (ready)
             lp.m_icon_id = 4;
-        lp.m_handicap = (HandicapLevel)packet.handicap;
-        if (lp.m_handicap != HANDICAP_NONE)
+        lp.m_handicap = (uint8_t)packet.handicap;
+        if (lp.m_handicap != 0)
         {
             lp.m_user_name = _("%s (handicapped)", lp.m_user_name);
         }
@@ -1446,7 +1446,7 @@ void ClientLobby::handleKartInfo(Event* event)
     uint32_t host_id = data.getUInt32();
     float kart_color = data.getFloat();
     uint32_t online_id = data.getUInt32();
-    HandicapLevel h = (HandicapLevel)data.getUInt8();
+    uint8_t h = (uint8_t)data.getUInt8();
     unsigned t = data.getUInt8();
     uint8_t local_id = data.getUInt8();
     std::string kart_name;

@@ -54,21 +54,19 @@
 
 float KartProperties::UNDEFINED = -99.9f;
 
-std::string KartProperties::getHandicapAsString(HandicapLevel h)
+std::string KartProperties::getHandicapAsString(uint8_t h)
 {
     switch(h)
     {
-    case HANDICAP_NONE: return "normal";   break;
-    case HANDICAP_4:    return "handicap-4"; break;
-    case HANDICAP_8:    return "handicap-8"; break;
-    case HANDICAP_12:   return "handicap-12"; break;
-    case HANDICAP_16:   return "handicap-16"; break;
-    case HANDICAP_20:   return "handicap-20"; break;
-    case HANDICAP_24:   return "handicap-24"; break;
-
-    default:  assert(false);
+    case 0:
+        return "normal";
+    default:
+        std::ostringstream out;
+        out.precision(1);
+        out << std::fixed << (float)h/2.0f;
+        // Returns handicap-0.5 for h=1
+        return "handicap-" + out.str();
     }
-    return "";
 }
 
 /** The constructor initialises all values with invalid values. It can later
@@ -149,7 +147,7 @@ KartProperties::~KartProperties()
  *         values.
  */
 void KartProperties::copyForPlayer(const KartProperties *source,
-                                   HandicapLevel h)
+                                   uint8_t h)
 {
     if (!source)
     {
@@ -286,7 +284,7 @@ void KartProperties::load(const std::string &filename, const std::string &node)
         }
         getAllData(root);
         m_characteristic = std::make_shared<XmlCharacteristic>(root);
-        combineCharacteristics(HANDICAP_NONE);
+        combineCharacteristics(0);
     }
     catch(std::exception& err)
     {
@@ -436,7 +434,7 @@ void KartProperties::adjustForOnlineAddonKart(const KartProperties* source)
 }  // adjustForOnlineAddonKart
 
 //-----------------------------------------------------------------------------
-void KartProperties::combineCharacteristics(HandicapLevel handicap)
+void KartProperties::combineCharacteristics(uint8_t handicap)
 {
     m_combined_characteristic = std::make_shared<CombinedCharacteristic>();
     m_combined_characteristic->addCharacteristic(kart_properties_manager->

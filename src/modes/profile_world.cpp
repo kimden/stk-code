@@ -107,7 +107,7 @@ void ProfileWorld::setProfileModeLaps(int laps)
 std::shared_ptr<Kart> ProfileWorld::createKart
     (const std::string &kart_ident, int index, int local_player_id,
     int global_player_id, RaceManager::KartType kart_type,
-    HandicapLevel handicap, unsigned starting_tyre)
+    uint8_t handicap, unsigned starting_tyre)
 {
     btTransform init_pos   = getStartTransform(index);
 
