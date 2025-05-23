@@ -490,25 +490,82 @@ void Tyres::commandChange(int compound, int time) {
     Tyres::reset();
 
     if (/*m_kart->m_is_under_tme_ruleset*/ true) {
-        if (!m_kart->m_tyres_queue.empty() && !(m_kart->m_tyres_queue.size() < m_current_compound)) { /*Empty queue just means it wasn't initialized*/
-            bool a = !(m_kart->m_tyres_queue.size() < prev_compound);
-            bool b = m_kart->m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP) && !m_kart->m_is_refueling;
-            bool c = prev_trac > 0.98f && prev_tur > 0.98f;
+        if (!m_kart->m_tyres_queue.empty() && m_kart->m_tyres_queue.size() >= m_current_compound) { /*Empty queue just means it wasn't initialized*/
+            bool pitting_for_same = prev_compound == m_current_compound;
+            bool old_tyres_were_fresh = prev_trac > 0.98f && prev_tur > 0.98f;
+            bool new_tyre_is_available = m_kart->m_tyres_queue[m_current_compound-1] != 0;
+            bool new_tyre_is_infinite = m_kart->m_tyres_queue[m_current_compound-1] == -1;
+            bool prev_tyre_is_infinite = m_kart->m_tyres_queue[prev_compound-1] == -1;
 
-            if (a && (b || c)) {
-                // If we come from another stop, and the penalty still didn't wear off, just return the previous compound, as we probably made a mistake.
-                if (m_kart->m_tyres_queue[prev_compound-1] > -1) { /*-1 marks infinite*/
-                    m_kart->m_tyres_queue[prev_compound-1] += 1;
-                }
+
+            // This system is extremely lenient, it will never take away a tyre from the user unless it's clearly breaking the rules and it can't be "corrected for the user".
+            // TODO: This system adds a bit of spice by penalizing if you mess up, but instead the stop could just never happen if the tyre isn't available.
+            //       That should be made configurable in the game settings.
+
+            // Apologies for the logic table, but I found this to be the most maintainable since there are so many edge cases:
+            // pitting_for_same old_tyres_were_fresh new_tyre_is_available
+            // 000
+            // 010
+            // 001
+            // 011
+            // 100
+            // 110
+            // 101
+            // 111
+            bool should_disqualify;
+            bool reduce_current;
+            bool return_old;
+            if        (!pitting_for_same && !old_tyres_were_fresh && !new_tyre_is_available){
+                // We're pitting for a different compound, from a worn tyre, and there is no new tyre available.
+                // Penalize the player.
+                should_disqualify = true ; reduce_current = false; return_old = false;
+            } else if (!pitting_for_same &&  old_tyres_were_fresh && !new_tyre_is_available){
+                // We're pitting for a different compound, from a new tyre, and there is no new tyre available.
+                // Since the tyre is new, return it, but still penalize
+                should_disqualify = true ; reduce_current = false; return_old = true ;
+            } else if (!pitting_for_same && !old_tyres_were_fresh &&  new_tyre_is_available){
+                // We're pitting for a different compound, from a worn tyre, and there is a new tyre available.
+                // Regular pit stop, mount a new tyre and throw away the old one.
+                should_disqualify = false; reduce_current = true ; return_old = false;
+            } else if (!pitting_for_same &&  old_tyres_were_fresh &&  new_tyre_is_available){
+                // We're pitting for a different compound, from a fresh tyre, and there is a new tyre available.
+                // Regular pit stop, mount a new tyre, but return the old one as it's fresh.
+                should_disqualify = false; reduce_current = true ; return_old = true ;
+            } else if ( pitting_for_same && !old_tyres_were_fresh && !new_tyre_is_available){
+                // We're pitting for the same compound, from a worn tyre, and there is no new tyre available.
+                // Penalize the player.
+                should_disqualify = true ; reduce_current = false; return_old = false;
+            } else if ( pitting_for_same &&  old_tyres_were_fresh && !new_tyre_is_available){
+                // We're pitting for the same compound, from a fresh tyre, and there is no new tyre available.
+                // This is equivalent to not changing tyres at all, so just forgive the player and take no action.
+                should_disqualify = false; reduce_current = false; return_old = false;
+            } else if ( pitting_for_same && !old_tyres_were_fresh &&  new_tyre_is_available){
+                // We're pitting for the same compound, from a worn tyre, and there is a new tyre available.
+                // Regular pit stop, mount a new tyre and throw away the old one.
+                should_disqualify = false ; reduce_current = true ; return_old = false;
+            } else if ( pitting_for_same &&  old_tyres_were_fresh &&  new_tyre_is_available){
+                // We're pitting for the same compound, from a fresh tyre, and there is a new tyre available.
+                // This is still equivalent to not changing tyres at all, so just forgive the player and take no action.
+                should_disqualify = false; reduce_current = false; return_old = false;
+            } 
+
+            // This just checks if it's safe to write/read from the corresponding index
+            bool prev_compound_has_alloc = m_kart->m_tyres_queue.size() >= prev_compound;
+    
+            if (prev_compound_has_alloc && return_old && !prev_tyre_is_infinite) {
+                m_kart->m_tyres_queue[prev_compound-1] += 1;
             }
-            if (m_kart->m_tyres_queue[m_current_compound-1] == 0){
+
+            if (reduce_current && !new_tyre_is_infinite) {
+                m_kart->m_tyres_queue[m_current_compound-1] -= 1;
+            }
+
+            if (should_disqualify) {
                 /*Penalty for pitting with no available compound*/
                 m_kart->m_is_disqualified = true;
-                m_current_life_turning *= 0.2;
-                m_current_life_traction *= 0.2;
-            } else if (m_kart->m_tyres_queue.size() >= m_current_compound && m_kart->m_tyres_queue[m_current_compound-1] > 0){
-                m_kart->m_tyres_queue[m_current_compound-1] -= 1;
-            } else { }
+                m_current_life_turning *= 0.5;
+                m_current_life_traction *= 0.5;
+            }
         }
     }
     if (time > 0) {
