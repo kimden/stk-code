@@ -133,6 +133,8 @@ protected:
 
     std::string m_user_version;
 
+    std::atomic_int8_t m_room_number;
+
     /** List of client capabilities set when connecting it, to determine
      *  features available in same version. */
     std::set<std::string> m_client_capabilities;
@@ -386,6 +388,12 @@ public:
     std::shared_ptr<NetworkPlayerProfile> getMainProfile();
     // ------------------------------------------------------------------------
     std::string getMainName() const;
+    // ------------------------------------------------------------------------
+    int8_t getRoomNumber()                   { return m_room_number.load(); }
+    // ------------------------------------------------------------------------
+    void setRoomNumber(int8_t idx)              { m_room_number.store(idx); }
+    // ------------------------------------------------------------------------
+    void resetRoomNumber()                       { m_room_number.store(-1); }
     // ------------------------------------------------------------------------
 };   // STKPeer
 
