@@ -502,52 +502,17 @@ void Tyres::commandChange(int compound, int time) {
             // TODO: This system adds a bit of spice by penalizing if you mess up, but instead the stop could just never happen if the tyre isn't available.
             //       That should be made configurable in the game settings.
 
-            // Apologies for the logic table, but I found this to be the most maintainable since there are so many edge cases:
-            // pitting_for_same old_tyres_were_fresh new_tyre_is_available
-            // 000
-            // 010
-            // 001
-            // 011
-            // 100
-            // 110
-            // 101
-            // 111
-            bool should_disqualify;
-            bool reduce_current;
-            bool return_old;
-            if        (!pitting_for_same && !old_tyres_were_fresh && !new_tyre_is_available){
-                // We're pitting for a different compound, from a worn tyre, and there is no new tyre available.
-                // Penalize the player.
-                should_disqualify = true ; reduce_current = false; return_old = false;
-            } else if (!pitting_for_same &&  old_tyres_were_fresh && !new_tyre_is_available){
-                // We're pitting for a different compound, from a new tyre, and there is no new tyre available.
-                // Since the tyre is new, return it, but still penalize
-                should_disqualify = true ; reduce_current = false; return_old = true ;
-            } else if (!pitting_for_same && !old_tyres_were_fresh &&  new_tyre_is_available){
-                // We're pitting for a different compound, from a worn tyre, and there is a new tyre available.
-                // Regular pit stop, mount a new tyre and throw away the old one.
-                should_disqualify = false; reduce_current = true ; return_old = false;
-            } else if (!pitting_for_same &&  old_tyres_were_fresh &&  new_tyre_is_available){
-                // We're pitting for a different compound, from a fresh tyre, and there is a new tyre available.
-                // Regular pit stop, mount a new tyre, but return the old one as it's fresh.
-                should_disqualify = false; reduce_current = true ; return_old = true ;
-            } else if ( pitting_for_same && !old_tyres_were_fresh && !new_tyre_is_available){
-                // We're pitting for the same compound, from a worn tyre, and there is no new tyre available.
-                // Penalize the player.
-                should_disqualify = true ; reduce_current = false; return_old = false;
-            } else if ( pitting_for_same &&  old_tyres_were_fresh && !new_tyre_is_available){
-                // We're pitting for the same compound, from a fresh tyre, and there is no new tyre available.
-                // This is equivalent to not changing tyres at all, so just forgive the player and take no action.
-                should_disqualify = false; reduce_current = false; return_old = false;
-            } else if ( pitting_for_same && !old_tyres_were_fresh &&  new_tyre_is_available){
-                // We're pitting for the same compound, from a worn tyre, and there is a new tyre available.
-                // Regular pit stop, mount a new tyre and throw away the old one.
-                should_disqualify = false ; reduce_current = true ; return_old = false;
-            } else if ( pitting_for_same &&  old_tyres_were_fresh &&  new_tyre_is_available){
-                // We're pitting for the same compound, from a fresh tyre, and there is a new tyre available.
-                // This is still equivalent to not changing tyres at all, so just forgive the player and take no action.
-                should_disqualify = false; reduce_current = false; return_old = false;
-            } 
+            // Accidental pitstop for the same compound while it is unused is not punished (see below)
+            bool same_pitstop_twice = (pitting_for_same && old_tyres_were_fresh);
+
+            // Penalize the player if there is no new tyre, except when trying to make the same pitstop again
+            bool should_disqualify = (!new_tyre_is_available && !same_pitstop_twice);
+
+            // Take one compound if it existed, except when trying to make the same pitstop again
+            bool reduce_current = (new_tyre_is_available && !same_pitstop_twice);
+
+            // Return the compound if it was unused (e.g. just pitted before) but we select another one
+            bool return_old = (!pitting_for_same && old_tyres_were_fresh);
 
             // This just checks if it's safe to write/read from the corresponding index
             bool prev_compound_has_alloc = m_kart->m_tyres_queue.size() >= prev_compound;
