@@ -2879,6 +2879,10 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         for (int i = angry_host; i > 0; --i)
             profile_name = StringUtils::utf32ToWide({0x1F528}) + profile_name;
 
+        profile_name = StringUtils::utf8ToWide(
+            StringUtils::insertValues("<%s> ", (int)profile->getPeer()->getRoomNumber()
+        )) + profile_name;
+
         std::string prefix = "";
         for (const std::string& category: getTeamManager()->getVisibleCategoriesForPlayer(utf8_profile_name))
         {

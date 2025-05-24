@@ -370,6 +370,7 @@ private:
     void process_countteams(Context& context);
     void process_net(Context& context);
     void process_everynet(Context& context);
+    void process_room(Context& context);
 
     // Temporary command
     void process_temp250318(Context& context);
