@@ -241,23 +241,21 @@ void LobbyAssetManager::onServerSetup()
 void LobbyAssetManager::eraseAssetsWithPeers(
         const std::vector<std::shared_ptr<STKPeer>>& peers)
 {
-    std::set<std::string> karts_erase, tracks_erase;
+    std::set<std::string> karts_erase, maps_erase;
     for (const auto& peer: peers)
     {
         if (peer)
         {
             peer->eraseServerKarts(m_available_kts.first, karts_erase);
-            peer->eraseServerTracks(m_available_kts.second, tracks_erase);
+            peer->eraseServerTracks(m_available_kts.second, maps_erase);
         }
     }
     for (const std::string& kart_erase : karts_erase)
-    {
         m_available_kts.first.erase(kart_erase);
-    }
-    for (const std::string& track_erase : tracks_erase)
-    {
-        m_available_kts.second.erase(track_erase);
-    }
+
+    for (const std::string& map_erase : maps_erase)
+        m_available_kts.second.erase(map_erase);
+
 } // eraseAssetsWithPeers
 //-----------------------------------------------------------------------------
 
@@ -347,7 +345,7 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
     }
     ott = ott / (float)m_official_kts.second.size();
 
-    std::set<std::string> karts_erase, tracks_erase;
+    std::set<std::string> karts_erase, maps_erase;
     for (const std::string& server_kart : m_entering_kts.first)
     {
         if (client_karts.find(server_kart) == client_karts.end())
@@ -359,7 +357,7 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
     {
         if (client_tracks.find(server_track) == client_tracks.end())
         {
-            tracks_erase.insert(server_track);
+            maps_erase.insert(server_track);
         }
     }
 
@@ -401,7 +399,7 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
         bad = true;
     }
 
-    if (tracks_erase.size() == m_entering_kts.second.size())
+    if (maps_erase.size() == m_entering_kts.second.size())
     {
         Log::verbose("LobbyAssetManager", "Bad player: no common tracks with server");
         bad = true;
@@ -464,42 +462,33 @@ std::array<int, AS_TOTAL> LobbyAssetManager::getAddonScores(
     size_t addon_soccer = 0;
 
     for (auto& kart : m_addon_kts.first)
-    {
         if (client_karts.find(kart) != client_karts.end())
             addon_kart++;
-    }
+
     for (auto& track : m_addon_kts.second)
-    {
         if (client_tracks.find(track) != client_tracks.end())
             addon_track++;
-    }
+
     for (auto& arena : m_addon_arenas)
-    {
         if (client_tracks.find(arena) != client_tracks.end())
             addon_arena++;
-    }
+
     for (auto& soccer : m_addon_soccers)
-    {
         if (client_tracks.find(soccer) != client_tracks.end())
             addon_soccer++;
-    }
 
     if (!m_addon_kts.first.empty())
-    {
         addons_scores[AS_KART] = addon_kart;
-    }
+
     if (!m_addon_kts.second.empty())
-    {
         addons_scores[AS_TRACK] = addon_track;
-    }
+
     if (!m_addon_arenas.empty())
-    {
         addons_scores[AS_ARENA] = addon_arena;
-    }
+
     if (!m_addon_soccers.empty())
-    {
         addons_scores[AS_SOCCER] = addon_soccer;
-    }
+
     return addons_scores;
 }   // getAddonScores
 //-----------------------------------------------------------------------------
@@ -513,15 +502,15 @@ std::string LobbyAssetManager::getAnyMapForVote()
 bool LobbyAssetManager::checkIfNoCommonMaps(
         const std::pair<std::set<std::string>, std::set<std::string>>& assets)
 {
-    std::set<std::string> tracks_erase;
+    std::set<std::string> maps_erase;
     for (const std::string& server_track : m_available_kts.second)
     {
         if (assets.second.find(server_track) == assets.second.end())
         {
-            tracks_erase.insert(server_track);
+            maps_erase.insert(server_track);
         }
     }
-    return tracks_erase.size() == m_available_kts.second.size();
+    return maps_erase.size() == m_available_kts.second.size();
 }   // checkIfNoCommonMaps
 //-----------------------------------------------------------------------------
 
@@ -701,6 +690,46 @@ void LobbyAssetManager::applyGlobalKartsFilter(FilterContext& kart_context) cons
 {
     m_global_karts_filter.apply(kart_context);
 }   // applyGlobalKartsFilter
+//-----------------------------------------------------------------------------
+
+int LobbyAssetManager::checkCanPlay(std::shared_ptr<STKPeer> peer, int known_number)
+{
+    if (!getMissingAssets(peer).empty())
+        return HR_LACKING_REQUIRED_MAPS;
+
+    if (peer->addon_karts_count < getAddonKartsPlayThreshold())
+        return HR_ADDON_KARTS_PLAY_THRESHOLD;
+
+    if (peer->addon_tracks_count < getAddonTracksPlayThreshold())
+        return HR_ADDON_TRACKS_PLAY_THRESHOLD;
+
+    if (peer->addon_arenas_count < getAddonArenasPlayThreshold())
+        return HR_ADDON_ARENAS_PLAY_THRESHOLD;
+
+    if (peer->addon_soccers_count < getAddonSoccersPlayThreshold())
+        return HR_ADDON_FIELDS_PLAY_THRESHOLD;
+
+    std::set<std::string> karts = peer->getClientAssets().first;
+    std::set<std::string> maps = peer->getClientAssets().second;
+
+    float karts_fraction = officialKartsFraction(karts);
+    if (karts_fraction < getOfficialKartsPlayThreshold())
+        return HR_OFFICIAL_KARTS_PLAY_THRESHOLD;
+
+    float maps_fraction = officialMapsFraction(maps);
+    if (maps_fraction < getOfficialTracksPlayThreshold())
+        return HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
+
+    applyAllKartFilters(peer->getMainName(), karts, false);
+    if (karts.empty())
+        return HR_NO_KARTS_AFTER_FILTER;
+
+    applyAllMapFilters(maps, true, known_number);
+    if (maps.empty())
+        return HR_NO_MAPS_AFTER_FILTER;
+
+    return HR_NONE;
+}   // checkCanPlay
 //-----------------------------------------------------------------------------
 
 void LobbyAssetManager::initAvailableTracks()

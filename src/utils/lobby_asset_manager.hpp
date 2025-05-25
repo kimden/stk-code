@@ -84,6 +84,8 @@ public:
     void applyGlobalFilter(FilterContext& map_context) const;
     void applyGlobalKartsFilter(FilterContext& kart_context) const;
 
+    int checkCanPlay(std::shared_ptr<STKPeer> peer, int known_number);
+
     std::string getKartForBadKartChoice(
             std::shared_ptr<STKPeer> peer,
             const std::string& username,
