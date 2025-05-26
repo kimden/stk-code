@@ -533,7 +533,7 @@ void Kart::reset()
     m_finished_race        = false;
     m_eliminated           = false;
     m_finish_time          = 0.0f;
-    m_stint                = {std::make_tuple(0, 0)};
+    m_stints                = {std::make_tuple(0, 0)};
     m_bubblegum_ticks      = 0;
     m_bubblegum_torque_sign = true;
     m_invulnerable_ticks   = 0;

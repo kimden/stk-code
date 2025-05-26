@@ -304,8 +304,6 @@ protected:
 
     float           m_finish_time;
 
-    std::vector<std::tuple<unsigned, unsigned>> m_stint;
-
      /** The amount of energy collected with nitro cans. Note that it
       *  must be float, since dt is subtraced in each timestep. */
     float         m_collected_energy;
@@ -416,6 +414,10 @@ public:
     /** Handles speed increase and capping due to powerup, terrain, ... */
     MaxSpeed *m_max_speed;
 
+
+    std::vector<std::tuple<unsigned, unsigned>> m_stints;
+    std::vector<std::tuple<unsigned, unsigned>> getStints () const { return m_stints; }    
+    void setStints (std::vector<std::tuple<unsigned, unsigned>> x) { m_stints = x; }  
 
     bool m_is_refueling;
     float m_target_refuel;
@@ -900,8 +902,6 @@ public:
     /** Returns the finished time for a kart. */
     virtual float getFinishTime () const { return m_finish_time; }
     // ----------------------------------------------------------------------------------------
-    virtual std::vector<std::tuple<unsigned, unsigned>> getStints () const { return m_stint; }    
-    virtual void setStints (std::vector<std::tuple<unsigned, unsigned>> x) { m_stint = x; }  
     /** Returns true if this kart has finished the race. */
     virtual bool hasFinishedRace () const { return m_finished_race; }
     // -----------------------------------------------------------------------------------------

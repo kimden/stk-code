@@ -20,9 +20,14 @@
 
 #include "modes/world_with_rank.hpp"
 #include "utils/aligned_array.hpp"
+#include "network/crypto_openssl.hpp"
+#include "karts/tyres.hpp"
+#include "karts/kart.hpp"
+
 
 #include <climits>
 #include <vector>
+#include <tuple>
 
 class SFXBase;
 
@@ -228,6 +233,14 @@ public:
             return -1.0;
         return STKConfig::get()->ticks2Time(
                 m_kart_info[kart_index].m_fastest_lap_ticks);
+    }   // getFastestLapForKart
+    // ------------------------------------------------------------------------
+    std::string getStintsForKart(unsigned int kart_index) const
+    {
+        Kart *kart  = m_karts[kart_index].get();
+        std::vector<std::tuple<unsigned, unsigned>> tmp = kart->getStints();
+        return Crypto::base64(kart->m_tyres->encodeStints(tmp));
+
     }   // getFastestLapForKart
     // ------------------------------------------------------------------------
     float getWorstFinishTime() const

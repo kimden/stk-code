@@ -350,6 +350,9 @@ void GameInfo::fillAndStoreResults()
                 finish_timeout = linear_world->getWorstFinishTime();
                 info.m_sog_time = linear_world->getStartTimeForKart(i);
                 info.m_autofinish = (info.m_result < finish_timeout ? 0 : 1);
+                info.m_other_info += "TME:";
+                info.m_other_info += linear_world->getStintsForKart(i);
+                info.m_other_info += ";";
             }
             else
                 Log::error("GameInfo", "storeResults: racing mode but LinearWorld is not found");

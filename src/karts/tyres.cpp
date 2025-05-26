@@ -537,3 +537,32 @@ void Tyres::commandChange(int compound, int time) {
         m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
     }
 }
+
+std::vector<uint8_t> Tyres::encodeStints(std::vector<std::tuple<unsigned, unsigned>>& s) {
+    std::vector<uint8_t> r;
+    r.push_back(1); // version
+    if (s.size() > 255) {
+        r[0] = 0;
+        return r;
+    }
+    r.push_back(s.size());
+    for (unsigned i = 0; i < s.size(); i++) {
+        r.push_back(std::get<0>(s[i])); // compound number
+        r.push_back(std::get<1>(s[i])); // compound length
+    }
+    return r;
+}
+
+std::vector<std::tuple<unsigned, unsigned>> Tyres::decodeStints(std::vector<uint8_t>& a) {
+    std::vector<std::tuple<unsigned, unsigned>> r;
+    unsigned version = a[0];
+    if (version != 1) {
+        r.push_back(std::make_tuple(-1, -1));
+        return r;
+    }
+    unsigned count = a[1];
+    for (unsigned i = 0; i < count; i++){
+        r.push_back(std::make_tuple(a[2+2*i], a[2+2*i+1]));
+    }
+    return r;
+}
