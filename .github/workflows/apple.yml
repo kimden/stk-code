@@ -85,7 +85,9 @@ jobs:
         run: |
           mkdir -p build
           cd build
+          CFLAGS="-mmacosx-version-min=10.13" CXXFLAGS="-mmacosx-version-min=10.13" LINKFLAGS="-mmacosx-version-min=10.13" LDFLAGS="-mmacosx-version-min=10.13" \
           cmake .. -DCCTOOLS_PREFIX=/opt/cctools -DCCTOOLS_ARCH=${{ matrix.arch }} -DCCTOOLS_PLATFORM=${{ matrix.platform }} \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 \
           -DRT=/opt/cctools/darwin/libclang_rt.${{ env.rt }}.a -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-cctools.cmake -DCHECK_ASSETS=OFF
       - name: Build
         run: |

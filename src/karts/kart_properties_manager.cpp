@@ -31,6 +31,7 @@
 #include "karts/kart_properties.hpp"
 #include "karts/xml_characteristic.hpp"
 #include "utils/log.hpp"
+#include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 
 #include <algorithm>
@@ -687,8 +688,8 @@ void KartPropertiesManager::getRandomKartList(int count,
 
             assert(random_kart_queue.size() > 0);
 
-            std::random_shuffle(random_kart_queue.begin(),
-                                random_kart_queue.end()   );
+            std::shuffle(random_kart_queue.begin(),
+                         random_kart_queue.end(), GlobalMt19937::get());
         }
 
         while (count > 0 && random_kart_queue.size() > 0)

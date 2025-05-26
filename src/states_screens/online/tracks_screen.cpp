@@ -44,6 +44,7 @@
 #include "states_screens/track_info_screen.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -702,7 +703,7 @@ void TracksScreen::buildTrackList()
                            IconButtonWidget::ICON_PATH_TYPE_RELATIVE);
 
     tracks_widget->updateItemDisplay();
-    std::random_shuffle( m_random_track_list.begin(), m_random_track_list.end() );
+    std::shuffle( m_random_track_list.begin(), m_random_track_list.end(), GlobalMt19937::get() );
 }   // buildTrackList
 
 // -----------------------------------------------------------------------------
