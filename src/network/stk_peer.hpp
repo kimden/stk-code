@@ -278,7 +278,7 @@ public:
     const std::set<std::string>& getClientCapabilities() const
                                               { return m_client_capabilities; }
     // ------------------------------------------------------------------------
-    bool isAIPeer() const                    { return m_user_version == "AI"; }
+    bool isAIPeer() const                    { return false; /*m_user_version == "AI";*/ }
     // ------------------------------------------------------------------------
     void setPacketLoss(int loss)                 { m_packet_loss.store(loss); }
     // ------------------------------------------------------------------------

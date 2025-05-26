@@ -107,7 +107,7 @@ LinearWorld::~LinearWorld()
 void LinearWorld::reset(bool restart)
 {
     WorldWithRank::reset(restart);
-    m_finish_timeout = std::numeric_limits<float>::max();
+    m_finish_timeout = 50;
     m_worst_finish_time = std::numeric_limits<float>::max();
     m_last_lap_sfx_played  = false;
     m_last_lap_sfx_playing = false;
