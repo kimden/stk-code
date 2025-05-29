@@ -40,7 +40,7 @@ void CrownManager::setupContextUser()
 
 std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool update)
 {
-  if (!update)
+    if (!update)
         return m_spectators_by_limit;
 
     m_why_peer_cannot_play.clear();
@@ -73,7 +73,7 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
 
     for (int i = 0; i < (int)peers.size(); ++i)
     {
-        if (!peers[i]->isValidated())
+        if (!peers[i]->isValidated() || (ServerConfig::m_ai_handling && peers[i]->isAIPeer()))
         {
             std::swap(peers[i], peers.back());
             peers.pop_back();
