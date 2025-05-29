@@ -3488,6 +3488,11 @@ void Kart::updateSliding()
             wheel.m_frictionSlip = m_kart_properties->getFrictionSlip();
         }
         m_vehicle->setSliding(false);
+        // FOR GRIP BASED TURNING
+        // GRIP_BASED_TURNING
+        // TME TURN
+        // TYRE MOD EDITION
+        //m_vehicle->setSliding(true);
 
     }
 
@@ -3525,6 +3530,11 @@ void Kart::updateSliding()
     }   // for i < numWheels
 
     m_vehicle->setSliding(enable_sliding);
+    // FOR GRIP BASED TURNING
+    // GRIP_BASED_TURNING
+    // TME TURN
+    // TYRE MOD EDITION
+    m_vehicle->setSliding(true);
 }   // updateSliding
 
 // ----------------------------------------------------------------------------
