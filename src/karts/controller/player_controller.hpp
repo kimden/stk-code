@@ -34,6 +34,7 @@ protected:
     bool           m_prev_nitro;
 
     int            m_penalty_ticks;
+    int            m_cruise_cooldown_ticks;
 
     virtual void  steer(int steer_val);
 

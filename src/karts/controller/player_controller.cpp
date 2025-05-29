@@ -47,6 +47,7 @@ PlayerController::PlayerController(Kart *kart)
                 : Controller(kart)
 {
     m_penalty_ticks = 0;
+    m_cruise_cooldown_ticks = 0;
 }   // PlayerController
 
 //-----------------------------------------------------------------------------
@@ -68,6 +69,7 @@ void PlayerController::reset()
     m_prev_accel    = 0;
     m_prev_nitro    = false;
     m_penalty_ticks = 0;
+    m_cruise_cooldown_ticks = 0;
 }   // reset
 
 // ----------------------------------------------------------------------------
@@ -205,9 +207,10 @@ bool PlayerController::action(PlayerAction action, int value, bool dry_run)
         {
             SET_OR_TEST_GETTER(Brake, false);
             SET_OR_TEST_GETTER(Accel, m_prev_accel/32768.0f);
+            // CRUISE MODE
             // Nitro does not depend on wether we are accelerating in TME
             // If we are accelerating, and accel is less than 40%, set it to 40%.
-            // This is because above 45%, fuel usage increases by 200%
+            // This is because above 45%, fuel usage increases by 100%
             SET_OR_TEST_GETTER(Nitro, m_prev_nitro);
         }
         break;
@@ -215,12 +218,14 @@ bool PlayerController::action(PlayerAction action, int value, bool dry_run)
         // This basically keeps track whether the button still is being pressed
         SET_OR_TEST(m_prev_nitro, value != 0 );
 
+        // CRUISE MODE
         // Nitro does not depend on wether we are accelerating in TME
         // If we are accelerating, and accel is less than 40%, set it to 40%.
-        // This is because above 45%, fuel usage increases by 200%
+        // This is because above 45%, fuel usage increases by 100%
         SET_OR_TEST_GETTER(Nitro, ((value!=0)) );
-        if (value!=0) {
+        if (value!=0 && m_cruise_cooldown_ticks <= 0) {
             if (m_prev_accel/32768.0f < 0.4f) SET_OR_TEST_GETTER(Accel, 0.4f);
+            m_cruise_cooldown_ticks = STKConfig::get()->time2Ticks(1.0f);
         }
         break;
     case PA_RESCUE:
@@ -298,6 +303,8 @@ void PlayerController::skidBonusTriggered()
 void PlayerController::update(int ticks)
 {
     steer(m_steer_val);
+
+    if (m_cruise_cooldown_ticks > 0) m_cruise_cooldown_ticks -= ticks;
 
     if (World::getWorld()->isStartPhase())
     {
