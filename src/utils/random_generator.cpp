@@ -66,3 +66,12 @@ int RandomGenerator::get(int n)
 }   // get
 
 #endif // if 0
+
+//-----------------------------------------------------------------------------
+
+std::mt19937& GlobalMt19937::get()
+{
+    static std::shared_ptr<std::mt19937> instance = std::make_shared<std::mt19937>(0xDEADBEEF);
+    return *instance;
+}   // get
+//-----------------------------------------------------------------------------

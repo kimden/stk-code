@@ -151,7 +151,7 @@ build_deps()
                  -DFREETYPE_INCLUDE_DIRS="$DIRNAME/deps-$ARCH_OPTION/freetype/include/" \
                  -DHB_HAVE_GLIB=OFF -DHB_HAVE_GOBJECT=OFF -DHB_HAVE_ICU=OFF       \
                  -DHB_HAVE_FREETYPE=ON -DHB_BUILD_SUBSET=OFF                      \
-                 -DCMAKE_C_FLAGS="-fpic -O3 -g" -DCMAKE_CXX_FLAGS="-std=gnu++0x -fpic -O3 -g" &&
+                 -DCMAKE_C_FLAGS="-fpic -O3 -g" -DCMAKE_CXX_FLAGS="-std=gnu++17 -fpic -O3 -g" &&
         make -j $(($(nproc) + 1))
         check_error
         mkdir -p "$DIRNAME/deps-$ARCH_OPTION/harfbuzz/include/harfbuzz"
