@@ -65,6 +65,7 @@ namespace
 
 
 //-----------------------------------------------------------------------------
+
 void GameInfo::setPowerupString(const std::string&& str)
 {
     if (str == g_default_powerup_string)
@@ -72,8 +73,8 @@ void GameInfo::setPowerupString(const std::string&& str)
     else
         m_powerup_string = str;
 }   // setPowerupString
-
 //-----------------------------------------------------------------------------
+
 void GameInfo::setKartCharString(const std::string&& str)
 {
     if (str == g_default_kart_char_string)

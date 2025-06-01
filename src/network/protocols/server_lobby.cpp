@@ -2165,7 +2165,7 @@ void ServerLobby::clientDisconnected(Event* event)
         if (w)
             m_game_info->saveDisconnectingPeerInfo(peer);
     }
-    else
+    else if (m_state.load() != WAITING_FOR_START_GAME)
         Log::warn("ServerLobby", "GameInfo is not accessible??");
 
     NetworkString* msg = getNetworkString(2);
@@ -3811,7 +3811,7 @@ void ServerLobby::handlePlayerDisconnection() const
 
         if (m_game_info)
             m_game_info->saveDisconnectingIdInfo(i);
-        else
+        else if (m_state.load() != WAITING_FOR_START_GAME)
             Log::warn("ServerLobby", "GameInfo is not accessible??");
 
         rki.makeReserved();
