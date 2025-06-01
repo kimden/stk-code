@@ -606,6 +606,7 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("availableteams =", &CM::process_available_teams_assign);
     applyFunctionIfPossible("cooldown", &CM::process_cooldown);
     applyFunctionIfPossible("cooldown =", &CM::process_cooldown_assign);
+    applyFunctionIfPossible("countteams", &CM::process_countteams);
     applyFunctionIfPossible("temp", &CM::process_temp250318);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
@@ -3752,6 +3753,13 @@ void CommandManager::process_cooldown_assign(Context& context)
             "Set cooldown for starting the game to %d",
             new_cooldown));
 } // process_cooldown_assign
+// ========================================================================
+
+void CommandManager::process_countteams(Context& context)
+{
+    context.say(StringUtils::insertValues("Teams composition: %s",
+            getTeamManager()->countTeamsAsString().c_str()));
+} // process_cooldown
 // ========================================================================
 
 void CommandManager::process_temp250318(Context& context)

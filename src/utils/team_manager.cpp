@@ -420,7 +420,8 @@ bool TeamManager::assignRandomTeams(int intended_number,
             continue;
         if (p->alwaysSpectateButNotNeutral())
             continue;
-        for (auto& profile : p->getPlayerProfiles()) {
+        for (auto& profile : p->getPlayerProfiles())
+        {
             setTemporaryTeamInLobby(profile, profile_colors.back());
             if (profile_colors.size() > 1) // prevent crash just in case
                 profile_colors.pop_back();
@@ -428,6 +429,55 @@ bool TeamManager::assignRandomTeams(int intended_number,
     }
     return true;
 }   // assignRandomTeams
+//-----------------------------------------------------------------------------
+
+std::string TeamManager::countTeamsAsString()
+{
+    std::vector<int> counts(TeamUtils::getNumberOfTeams() + 1, 0);
+    int cant_play = 0;
+    for (auto& p : STKHost::get()->getPeers())
+    {
+        if (!getCrownManager()->canRace(p))
+        {
+            ++cant_play;
+            continue;
+        }
+        if (p->alwaysSpectateButNotNeutral())
+        {
+            ++cant_play;
+            continue;
+        }
+        for (auto& profile : p->getPlayerProfiles())
+            ++counts[profile->getTemporaryTeam()];
+    }
+    std::vector<std::pair<int, int>> sorted;
+    for (int i = 0; i < counts.size(); ++i)
+        if (counts[i] > 0)
+            sorted.emplace_back(-counts[i], i);
+
+    std::sort(sorted.begin(), sorted.end());
+    std::string res = "";
+
+    for (int i = 0; i < sorted.size(); ++i)
+    {
+        if (i)
+            res += ", ";
+
+        std::string emoji = TeamUtils::getTeamByIndex(sorted[i].second).getEmoji();
+        if (emoji.empty())
+            emoji = "_";
+
+        res += StringUtils::insertValues("%s\u00d7%s", emoji.c_str(), -sorted[i].first);
+    }
+
+    if (cant_play > 0)
+    {
+        res += ", can't play ";
+        res += StringUtils::insertValues("\u00d7%s", cant_play);
+    }
+
+    return res;
+}   // countTeamsAsString
 //-----------------------------------------------------------------------------
 
 void TeamManager::changeColors()

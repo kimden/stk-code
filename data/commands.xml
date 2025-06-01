@@ -1196,6 +1196,13 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="countteams"
+             usage="/countteams"
+             description="Shows the number of people in each team."
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             state-scope="SS_ALWAYS"
+    />
     <command name="temp"
              usage="/temp"
              permissions-verbose="hammers"
