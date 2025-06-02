@@ -246,6 +246,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_server_id_online.store(0);
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
+    m_reset_to_default_mode_later.store(false);
 
     m_game_info = {};
 }   // ServerLobby
@@ -638,6 +639,9 @@ void ServerLobby::asynchronousUpdate()
         if (NetworkConfig::get()->isLAN())
         {
             m_state = WAITING_FOR_START_GAME;
+            if (m_reset_to_default_mode_later.exchange(false))
+                handleServerConfiguration(NULL);
+
             updatePlayerList();
             STKHost::get()->startListening();
             return;
@@ -670,6 +674,9 @@ void ServerLobby::asynchronousUpdate()
         if (m_game_setup->isGrandPrixStarted() || m_registered_for_once_only)
         {
             m_state = WAITING_FOR_START_GAME;
+            if (m_reset_to_default_mode_later.exchange(false))
+                handleServerConfiguration(NULL);
+
             updatePlayerList();
             break;
         }
@@ -689,6 +696,9 @@ void ServerLobby::asynchronousUpdate()
                 if (!getSettings()->isLegacyGPMode())
                     m_registered_for_once_only = true;
                 m_state = WAITING_FOR_START_GAME;
+                if (m_reset_to_default_mode_later.exchange(false))
+                    handleServerConfiguration(NULL);
+
                 updatePlayerList();
             }
         }
@@ -3396,6 +3406,11 @@ void ServerLobby::resetServer()
     setup();
     m_state = NetworkConfig::get()->isLAN() ?
         WAITING_FOR_START_GAME : REGISTER_SELF_ADDRESS;
+
+    if (m_state.load() == WAITING_FOR_START_GAME)
+        if (m_reset_to_default_mode_later.exchange(false))
+            handleServerConfiguration(NULL);
+
     updatePlayerList();
 }   // resetServer
 
@@ -4165,7 +4180,12 @@ void ServerLobby::handleServerCommand(Event* event)
 void ServerLobby::resetToDefaultSettings()
 {
     if (getSettings()->isServerConfigurable() && !getSettings()->isPreservingMode())
-        handleServerConfiguration(NULL);
+    {
+        if (m_state == WAITING_FOR_START_GAME)
+            handleServerConfiguration(NULL);
+        else
+            m_reset_to_default_mode_later.store(true);
+    }
 
     getSettings()->onResetToDefaultSettings();
 }  // resetToDefaultSettings

@@ -186,6 +186,8 @@ private:
 
     std::shared_ptr<GameInfo> m_game_info;
 
+    std::atomic<bool> m_reset_to_default_mode_later;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);
