@@ -21,7 +21,6 @@
 #include "network/event.hpp"
 #include "network/network_string.hpp"
 #include "network/protocol_manager.hpp"
-#include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 
 /** \brief Constructor
@@ -89,34 +88,3 @@ void Protocol::requestTerminate()
     if (auto pm = ProtocolManager::lock())
         pm->requestTerminate(shared_from_this());
 }   // requestTerminate
-
-// ----------------------------------------------------------------------------
-/** Sends a message to all validated peers in game, encrypt the message if
- *  needed. The message is composed of a 1-byte message (usually the message
- *  type) followed by the actual message.
- *  \param message The actual message content.
-*/
-void Protocol::sendMessageToPeers(NetworkString *message, PacketReliabilityMode reliable) const
-{
-    STKHost::get()->sendPacketToAllPeers(message, reliable);
-}   // sendMessageToPeers
-
-// ----------------------------------------------------------------------------
-/** Sends a message to all validated peers in server, encrypt the message if
- *  needed. The message is composed of a 1-byte message (usually the message
- *  type) followed by the actual message.
- *  \param message The actual message content.
-*/
-void Protocol::sendMessageToPeersInServer(NetworkString* message,
-                                          PacketReliabilityMode reliable) const
-{
-    STKHost::get()->sendPacketToAllPeersInServer(message, reliable);
-}   // sendMessageToPeersInServer
-
-// ----------------------------------------------------------------------------
-/** Sends a message from a client to the server.
- */
-void Protocol::sendToServer(NetworkString *message, PacketReliabilityMode reliable)
-{
-    STKHost::get()->sendToServer(message, reliable);
-}   // sendMessage

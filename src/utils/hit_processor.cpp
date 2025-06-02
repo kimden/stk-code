@@ -20,8 +20,8 @@
 #include "karts/abstract_kart.hpp"
 #include "karts/kart_properties.hpp"
 #include "modes/world.hpp"
-#include "network/protocols/server_lobby.hpp"
 #include "network/server_config.hpp"
+#include "utils/communication.hpp"
 #include "utils/hit_processor.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/string_utils.hpp"
@@ -100,7 +100,7 @@ void HitProcessor::sendTeammateHitMsg(std::string& s)
     if (ticks - m_last_hit_msg > STKConfig::get()->time2Ticks(g_hit_message_delay))
     {
         m_last_hit_msg = ticks;
-        getLobby()->sendStringToAllPeers(s);
+        Comm::sendStringToAllPeers(s);
     }
 }   // sendTeammateHitMsg
 //-----------------------------------------------------------------------------

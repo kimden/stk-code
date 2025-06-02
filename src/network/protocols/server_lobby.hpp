@@ -334,13 +334,10 @@ public:
         const std::string& info);
     // int getTrackMaxPlayers(std::string& name) const;
 
-    void sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s);
-
     // TODO: When using different decorators for everyone, you would need
     // a structure to store "player profile" placeholders in a string, so that
     // you can apply decorators at the very last moment inside sendStringToAllPeers
     // and similar functions.
-    void sendStringToAllPeers(const std::string& s);
     std::string encodeProfileNameForPeer(
         std::shared_ptr<NetworkPlayerProfile> npp,
         STKPeer* peer);

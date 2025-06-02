@@ -15,6 +15,7 @@
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "race/race_manager.hpp"
+#include "utils/communication.hpp"
 
 #include <stdint.h>
 
@@ -118,7 +119,7 @@ bool GameEventsProtocol::notifyEvent(Event* event)
             NetworkString *ns = getNetworkString();
             ns->setSynchronous(true);
             ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id).addFloat(f);
-            sendMessageToPeers(ns, PRM_RELIABLE);
+            Comm::sendMessageToPeers(ns, PRM_RELIABLE);
             delete ns;
         }
         else
@@ -164,7 +165,7 @@ void GameEventsProtocol::kartFinishedRace(AbstractKart *kart, float time)
     ns->setSynchronous(true);
     ns->addUInt8(GE_KART_FINISHED_RACE).addUInt8(kart->getWorldKartId())
        .addFloat(time);
-    sendMessageToPeers(ns, PRM_RELIABLE);
+    Comm::sendMessageToPeers(ns, PRM_RELIABLE);
     delete ns;
 }   // kartFinishedRace
 
@@ -198,6 +199,6 @@ void GameEventsProtocol::sendStartupBoost(uint8_t kart_id)
     NetworkString *ns = getNetworkString();
     ns->setSynchronous(true);
     ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id);
-    sendToServer(ns, PRM_RELIABLE);
+    Comm::sendToServer(ns, PRM_RELIABLE);
     delete ns;
 }   // sendStartupBoost

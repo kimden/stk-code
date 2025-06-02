@@ -32,6 +32,7 @@
 #include "network/game_setup.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/game_info.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
@@ -620,7 +621,7 @@ void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
 
     if (!hasKicksAllowed())
     {
-        getLobby()->sendStringToPeer(initiator, "Kicking players is not allowed on this server");
+        Comm::sendStringToPeer(initiator, "Kicking players is not allowed on this server");
         return;
     }
 
@@ -629,7 +630,7 @@ void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
     {
         if (target->hammerLevel() > 0)
         {
-            getLobby()->sendStringToPeer(initiator, "This player holds admin rights of this server, "
+            Comm::sendStringToPeer(initiator, "This player holds admin rights of this server, "
                 "and is protected from your actions now");
             return;
         }

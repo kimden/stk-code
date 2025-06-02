@@ -44,6 +44,7 @@
 #include "states_screens/track_info_screen.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -761,7 +762,7 @@ void TracksScreen::voteForPlayer()
         PeerVote pvote(vote);
         lp->addVote(STKHost::get()->getMyHostId(), pvote);
     }
-    STKHost::get()->sendToServer(&vote, PRM_RELIABLE);
+    Comm::sendToServer(&vote, PRM_RELIABLE);
 }   // voteForPlayer
 
 // -----------------------------------------------------------------------------

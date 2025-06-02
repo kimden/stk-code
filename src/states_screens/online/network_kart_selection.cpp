@@ -30,6 +30,7 @@
 #include "states_screens/state_manager.hpp"
 #include "states_screens/online/networking_lobby.hpp"
 #include "states_screens/online/tracks_screen.hpp"
+#include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -157,7 +158,7 @@ void NetworkKartSelectionScreen::allPlayersDone()
             kart_data.encode(&kart);
         }
     }
-    STKHost::get()->sendToServer(&kart, PRM_RELIABLE);
+    Comm::sendToServer(&kart, PRM_RELIABLE);
 
     // ---- Switch to assign mode
     input_manager->getDeviceManager()->setAssignMode(ASSIGN);
@@ -188,7 +189,7 @@ bool NetworkKartSelectionScreen::onEscapePressed()
             m_exit_timeout = StkTime::getMonoTimeMs() + 5000;
             NetworkString back(PROTOCOL_LOBBY_ROOM);
             back.addUInt8(LobbyEvent::LE_CLIENT_BACK_LOBBY);
-            STKHost::get()->sendToServer(&back, PRM_RELIABLE);
+            Comm::sendToServer(&back, PRM_RELIABLE);
         }
         return false;
     }

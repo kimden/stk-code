@@ -26,7 +26,6 @@
 #include "karts/abstract_kart.hpp"
 #include "guiengine/engine.hpp"
 #include "config/stk_config.hpp"
-// #include "modes/linear_world.hpp"
 
 #include "utils/hit_processor.hpp"
 #include "utils/log.hpp" //TODO: remove after debugging is done

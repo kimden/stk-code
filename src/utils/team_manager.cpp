@@ -451,14 +451,14 @@ std::string TeamManager::countTeamsAsString()
             ++counts[profile->getTemporaryTeam()];
     }
     std::vector<std::pair<int, int>> sorted;
-    for (int i = 0; i < counts.size(); ++i)
+    for (int i = 0; i < (int)counts.size(); ++i)
         if (counts[i] > 0)
             sorted.emplace_back(-counts[i], i);
 
     std::sort(sorted.begin(), sorted.end());
     std::string res = "";
 
-    for (int i = 0; i < sorted.size(); ++i)
+    for (int i = 0; i < (int)sorted.size(); ++i)
     {
         if (i)
             res += ", ";

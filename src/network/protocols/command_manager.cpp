@@ -33,6 +33,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/chat_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/crown_manager.hpp"
 #include "utils/file_utils.hpp"
 #include "utils/hit_processor.hpp"
@@ -894,7 +895,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     first_time = false;
                 }
             }
-            getLobby()->sendStringToAllPeers(msg);
+            Comm::sendStringToAllPeers(msg);
             auto res = response.second;
             if (!res.empty())
             {
@@ -906,7 +907,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     std::string msg2 = StringUtils::insertValues(
                             "Command \"/%s\" has been successfully voted",
                             new_cmd.c_str());
-                    getLobby()->sendStringToAllPeers(msg2);
+                    Comm::sendStringToAllPeers(msg2);
                     Context new_context(getLobby(), event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, UP_EVERYONE, false);
                     execute(executed_command, new_context);
                 }
@@ -967,7 +968,7 @@ void CommandManager::update()
                 std::string msg = StringUtils::insertValues(
                         "Command \"/%s\" has been successfully voted",
                         new_cmd.c_str());
-                getLobby()->sendStringToAllPeers(msg);
+                Comm::sendStringToAllPeers(msg);
                 // Happily the name of the votable coincides with the command full name
                 std::shared_ptr<Command> command = m_full_name_to_command[votable_pairs.first].lock();
                 if (!command)
@@ -1199,7 +1200,7 @@ void CommandManager::process_replay(Context& context)
             current_state ^= 1;
 
         getSettings()->setConsentOnReplays(current_state);
-        getLobby()->sendStringToAllPeers(std::string("Recording ghost replays is now ")
+        Comm::sendStringToAllPeers(std::string("Recording ghost replays is now ")
                 + (current_state ? "on" : "off"));
     }
     else
@@ -2163,12 +2164,12 @@ void CommandManager::process_gnu(Context& context)
     if (kart == "off")
     {
         kart_elimination->disable();
-        getLobby()->sendStringToAllPeers("Gnu Elimination is now off");
+        Comm::sendStringToAllPeers("Gnu Elimination is now off");
     }
     else
     {
         kart_elimination->enable(kart);
-        getLobby()->sendStringToAllPeers(kart_elimination->getStartingMessage());
+        Comm::sendStringToAllPeers(kart_elimination->getStartingMessage());
     }
 } // process_gnu
 // ========================================================================
@@ -2374,7 +2375,7 @@ void CommandManager::process_length_multi(Context& context)
     }
     double value = std::max<double>(0.0, temp_double);
     getSettings()->setMultiplier(value);
-    getLobby()->sendStringToAllPeers(StringUtils::insertValues(
+    Comm::sendStringToAllPeers(StringUtils::insertValues(
                 "Game length is now %f x default", value));
 } // process_length_multi
 // ========================================================================
@@ -2390,20 +2391,20 @@ void CommandManager::process_length_fixed(Context& context)
     }
     int value = std::max<int>(0, temp_int);
     getSettings()->setFixedLapCount(value);
-    getLobby()->sendStringToAllPeers(StringUtils::insertValues(
+    Comm::sendStringToAllPeers(StringUtils::insertValues(
                 "Game length is now %d", value));
 } // process_length_fixed
 // ========================================================================
 void CommandManager::process_length_clear(Context& context)
 {
     getSettings()->resetLapRestrictions();
-    getLobby()->sendStringToAllPeers("Game length will be chosen by players");
+    Comm::sendStringToAllPeers("Game length will be chosen by players");
 } // process_length_clear
 // ========================================================================
 
 void CommandManager::process_direction(Context& context)
 {
-    getLobby()->sendStringToAllPeers(getSettings()->getDirectionAsString());
+    Comm::sendStringToAllPeers(getSettings()->getDirectionAsString());
 } // process_direction
 // ========================================================================
 
@@ -2421,7 +2422,7 @@ void CommandManager::process_direction_assign(Context& context)
         error(context);
         return;
     }
-    getLobby()->sendStringToAllPeers(getSettings()->getDirectionAsString(true));
+    Comm::sendStringToAllPeers(getSettings()->getDirectionAsString(true));
 } // process_direction_assign
 // ========================================================================
 
@@ -2535,7 +2536,7 @@ void CommandManager::process_queue_push(Context& context)
     }
 
     msg.pop_back();
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_push
 // ========================================================================
@@ -2585,7 +2586,7 @@ void CommandManager::process_queue_pop(Context& context)
         }
     }
     msg.pop_back();
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_pop
 // ========================================================================
@@ -2613,7 +2614,7 @@ void CommandManager::process_queue_clear(Context& context)
         }
     }
     msg.pop_back();
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_clear
 // ========================================================================
@@ -2653,7 +2654,7 @@ void CommandManager::process_queue_shuffle(Context& context)
         }
     }
     msg.pop_back();
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_shuffle
 // ========================================================================
@@ -2676,7 +2677,7 @@ void CommandManager::process_allowstart_assign(Context& context)
         return;
     }
     getSettings()->setAllowedToStart(argv[1] != "0");
-    getLobby()->sendStringToAllPeers(getSettings()->getAllowedToStartAsString(true));
+    Comm::sendStringToAllPeers(getSettings()->getAllowedToStartAsString(true));
 } // process_allowstart_assign
 // ========================================================================
 
@@ -2696,7 +2697,7 @@ void CommandManager::process_shuffle_assign(Context& context)
         return;
     }
     getSettings()->setGPGridShuffled(argv[1] != "0");
-    getLobby()->sendStringToAllPeers(getSettings()->getWhetherShuffledGPGridAsString(true));
+    Comm::sendStringToAllPeers(getSettings()->getWhetherShuffledGPGridAsString(true));
 } // process_shuffle_assign
 // ========================================================================
 
@@ -2858,7 +2859,7 @@ void CommandManager::process_resetgp(Context& context)
         getGameSetupFromCtx()->setGrandPrixTrack(number_of_games);
     }
     getGPManager()->resetGrandPrix();
-    getLobby()->sendStringToAllPeers("GP is now reset");
+    Comm::sendStringToAllPeers("GP is now reset");
 } // process_resetgp
 // ========================================================================
 
@@ -2950,7 +2951,7 @@ void CommandManager::process_troll_assign(Context& context)
         hit_processor->setAntiTroll(true);
         msg = "Trolls will be kicked";
     }
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
 } // process_troll_assign
 // ========================================================================
 
@@ -2985,7 +2986,7 @@ void CommandManager::process_hitmsg_assign(Context& context)
         hit_processor->setShowTeammateHits(true);
         msg = "Teammate hits will be sent to all players";
     }
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
 } // process_hitmsg_assign
 // ========================================================================
 
@@ -3022,7 +3023,7 @@ void CommandManager::process_teamhit_assign(Context& context)
         hit_processor->setTeammateHitMode(true);
         msg = "Teammate hits are punished now";
     }
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
 } // process_teamhit_assign
 // ========================================================================
 
@@ -3040,7 +3041,7 @@ void CommandManager::process_scoring_assign(Context& context)
     std::string cmd2;
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     if (getGPManager()->trySettingGPScoring(cmd2))
-        getLobby()->sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
+        Comm::sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
     else
         context.say("Scoring could not be parsed from \"" + cmd2 + "\"");
 } // process_scoring_assign
@@ -3174,7 +3175,7 @@ void CommandManager::process_game(Context& context)
         msg += StringUtils::insertValues(" %d seconds", new_addition);
         getSettings()->setFixedLapCount(getSettings()->getFixedLapCount() + 1);
     }
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
     Log::info("CommandManager", "SoccerMatchLog: Game number changed from %d to %d",
         old_game_number, new_game_number);
 } // process_game
@@ -3247,7 +3248,7 @@ void CommandManager::process_role(Context& context)
                 {
                     if (player_peer->hasPlayerProfiles())
                         getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_RED);
-                    getLobby()->sendStringToPeer(player_peer,
+                    Comm::sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
@@ -3267,7 +3268,7 @@ void CommandManager::process_role(Context& context)
                 {
                     if (player_peer->hasPlayerProfiles())
                         getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_BLUE);
-                    getLobby()->sendStringToPeer(player_peer,
+                    Comm::sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
@@ -3280,7 +3281,7 @@ void CommandManager::process_role(Context& context)
                 {
                     if (player_peer->hasPlayerProfiles())
                         getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_NONE);
-                    getLobby()->sendStringToPeer(player_peer,
+                    Comm::sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
@@ -3291,7 +3292,7 @@ void CommandManager::process_role(Context& context)
                 {
                     if (player_peer->hasPlayerProfiles())
                         getTeamManager()->setTeamInLobby(player_peer->getMainProfile(), KART_TEAM_NONE);
-                    getLobby()->sendStringToPeer(player_peer,
+                    Comm::sendStringToPeer(player_peer,
                             StringUtils::insertValues(role_changed, Conversions::roleCharToString(role_char)));
                 }
                 break;
@@ -3335,7 +3336,7 @@ void CommandManager::process_stop(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->stop();
-    getLobby()->sendStringToAllPeers("The game is stopped.");
+    Comm::sendStringToAllPeers("The game is stopped.");
     Log::info("CommandManager", "SoccerMatchLog: The game is stopped");
 } // process_stop
 // ========================================================================
@@ -3352,7 +3353,7 @@ void CommandManager::process_go(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->resume();
-    getLobby()->sendStringToAllPeers("The game is resumed.");
+    Comm::sendStringToAllPeers("The game is resumed.");
     Log::info("CommandManager", "SoccerMatchLog: The game is resumed");
 } // process_go
 // ========================================================================
@@ -3369,7 +3370,7 @@ void CommandManager::process_lobby(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->allToLobby();
-    getLobby()->sendStringToAllPeers("The game will be restarted.");
+    Comm::sendStringToAllPeers("The game will be restarted.");
 } // process_lobby
 // ========================================================================
 
@@ -3443,7 +3444,7 @@ void CommandManager::process_test(Context& context)
             acting_peer->getMainProfile(), acting_peer.get());
     }
     username = "{" + argv[1].substr(4) + "} " + username;
-    getLobby()->sendStringToAllPeers(username + ", " + argv[2] + ", " + argv[3]);
+    Comm::sendStringToAllPeers(username + ", " + argv[2] + ", " + argv[3]);
 } // process_test
 // ========================================================================
 
@@ -3482,7 +3483,7 @@ void CommandManager::process_slots_assign(Context& context)
     }
     getSettings()->setCurrentMaxPlayersInGame((unsigned)number);
     getLobby()->updatePlayerList();
-    getLobby()->sendStringToAllPeers(StringUtils::insertValues(
+    Comm::sendStringToAllPeers(StringUtils::insertValues(
             "Number of playable slots is now %s",
             number));
 } // process_slots_assign
@@ -3548,7 +3549,7 @@ void CommandManager::process_preserve_assign(Context& context)
             "'%s' is now preserved on server reset", argv[1].c_str());
         getSettings()->insertIntoPreserved(argv[1]);
     }
-    getLobby()->sendStringToAllPeers(msg);
+    Comm::sendStringToAllPeers(msg);
 } // process_preserve_assign
 // ========================================================================
 
@@ -3875,7 +3876,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
     if (closest_commands.empty())
     {
         // kimden: HERE IT SHOULD BE SENT TO ANOTHER PEER
-        getLobby()->sendStringToPeer(peer, "Command " + cmd + " not found");
+        Comm::sendStringToPeer(peer, "Command " + cmd + " not found");
         return true;
     }
     bool no_zeros = closest_commands[0].second != 0;
@@ -3913,7 +3914,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
         }
         argv[idx] = initial_argument;
         CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
-        getLobby()->sendStringToPeer(peer, response);
+        Comm::sendStringToPeer(peer, response);
         return true;
     }
 
@@ -4024,7 +4025,7 @@ void CommandManager::Context::say(const std::string& s)
         throw std::logic_error("Context::say: Peer has expired");
 
     auto peer = m_peer.lock();
-    m_lobby->sendStringToPeer(peer, s);
+    Comm::sendStringToPeer(peer, s);
 }   // say
 //-----------------------------------------------------------------------------
 
