@@ -368,6 +368,8 @@ private:
     void process_cooldown(Context& context);
     void process_cooldown_assign(Context& context);
     void process_countteams(Context& context);
+    void process_net(Context& context);
+    void process_everynet(Context& context);
 
     // Temporary command
     void process_temp250318(Context& context);

@@ -1203,6 +1203,19 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     />
+    <command name="network"
+             usage="/network [username]"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             description="Prints the network statistics for a player."
+             aliases="net"
+    />
+    <command name="everynet"
+             usage="/everynet"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             description="Prints the network statistics for all players."
+    />
     <command name="temp"
              usage="/temp"
              permissions-verbose="hammers"

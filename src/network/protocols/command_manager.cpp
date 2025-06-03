@@ -608,6 +608,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("cooldown", &CM::process_cooldown);
     applyFunctionIfPossible("cooldown =", &CM::process_cooldown_assign);
     applyFunctionIfPossible("countteams", &CM::process_countteams);
+    applyFunctionIfPossible("network", &CM::process_net);
+    applyFunctionIfPossible("everynet", &CM::process_everynet);
     applyFunctionIfPossible("temp", &CM::process_temp250318);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
@@ -3761,6 +3763,102 @@ void CommandManager::process_countteams(Context& context)
     context.say(StringUtils::insertValues("Teams composition: %s",
             getTeamManager()->countTeamsAsString().c_str()));
 } // process_cooldown
+// ========================================================================
+
+void CommandManager::process_net(Context& context)
+{
+    std::string response;
+    std::string player_name;
+    auto& argv = context.m_argv;
+    auto acting_peer = context.actingPeer();
+
+    if (argv.size() < 2)
+    {
+        if (acting_peer->getPlayerProfiles().empty())
+        {
+            Log::warn("CommandManager", "net: no existing player profiles??");
+            error(context);
+            return;
+        }
+        player_name = acting_peer->getMainName();
+    }
+    else
+    {
+        if (!validate(context, 1, TFT_PRESENT_USERS, false, false))
+            return;
+        player_name = argv[1];
+    }
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
+        StringUtils::utf8ToWide(player_name));
+    if (player_name.empty() || !player_peer)
+    {
+        error(context);
+        return;
+    }
+
+    auto enet_peer = player_peer->getENetPeer();
+    std::string decorated_name = getLobby()->encodeProfileNameForPeer(
+            player_peer->getMainProfile(), acting_peer.get());
+
+    context.say(StringUtils::insertValues(
+        "%s's network: ping: %s, packet loss: %s",
+        decorated_name.c_str(),
+        player_peer->getAveragePing(),
+        player_peer->getPacketLoss()
+    ));
+} // process_net
+// ========================================================================
+
+void CommandManager::process_everynet(Context& context)
+{
+    auto acting_peer = context.actingPeer();
+    auto argv = context.m_argv;
+
+    std::string response = "Network stats:";
+    using Pair = std::pair<std::shared_ptr<NetworkPlayerProfile>, std::vector<int>>;
+    std::vector<Pair> result;
+    for (const auto& p: STKHost::get()->getPeers())
+    {
+        // if (p->isAIPeer())
+        //     continue;
+        if (!p->hasPlayerProfiles())
+            continue;
+        
+        auto enet_peer = p->getENetPeer();
+        std::vector<int> overall;
+        overall.push_back(p->getAveragePing());
+        overall.push_back(p->getPacketLoss());
+        
+        result.emplace_back(p->getMainProfile(), overall);
+    }
+
+    // Sorting order for equal players WILL DEPEND ON NAME DECORATOR!
+    // This sorting is clearly bad because we ask lobby every time. Change it later.
+    auto lobby = getLobby();
+    std::stable_sort(result.begin(), result.end(), [lobby, acting_peer](const Pair& lhs, const Pair& rhs) -> bool {
+        return lobby->encodeProfileNameForPeer(lhs.first, acting_peer.get())
+            < lobby->encodeProfileNameForPeer(rhs.first, acting_peer.get());
+    });
+    std::sort(result.begin(), result.end(), [](const Pair& lhs, const Pair& rhs) -> bool {
+        int diff = lhs.second[0] - rhs.second[0];
+        return diff > 0;
+    });
+    for (auto& row: result)
+    {
+        response += "\n";
+        std::string decorated_name = getLobby()->encodeProfileNameForPeer(row.first, acting_peer.get());
+
+        std::string msg = StringUtils::insertValues(
+            "%s's network: ping: %s, packet loss: %s",
+            decorated_name.c_str(),
+            row.second[0],
+            row.second[1]
+        );
+
+        response += msg;
+    }
+    context.say(response);
+} // process_everynet
 // ========================================================================
 
 void CommandManager::process_temp250318(Context& context)
