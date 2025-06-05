@@ -137,7 +137,7 @@ jobs:
           $CXX --version
           mkdir "build"
           cd "build"
-          CFLAGS="-mmacosx-version-min=10.9" CXXFLAGS="-mmacosx-version-min=10.9" LINKFLAGS="-mmacosx-version-min=10.9" LDFLAGS="-mmacosx-version-min=10.9" /usr/local/opt/cmake/bin/cmake .. -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DSERVER_ONLY=$SERVER_ONLY -DCHECK_ASSETS=off -DBUILD_RECORDER=off;
+          CFLAGS="-mmacosx-version-min=10.13" CXXFLAGS="-mmacosx-version-min=10.13" LINKFLAGS="-mmacosx-version-min=10.13" LDFLAGS="-mmacosx-version-min=10.13" /usr/local/opt/cmake/bin/cmake .. -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DSERVER_ONLY=$SERVER_ONLY -DCHECK_ASSETS=off -DBUILD_RECORDER=off;
       - name: Build and install
         working-directory: build
         run: |
