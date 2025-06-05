@@ -111,7 +111,7 @@ set(USE_SQLITE3 FALSE CACHE BOOL "")
 set(USE_CRYPTO_OPENSSL FALSE CACHE BOOL "")
 set(IOS_LAUNCHSCREEN ${DEPS_PATH}/ios-icon/launch_screen.storyboard)
 set(IOS_IMAGES_XCASSETS ${DEPS_PATH}/ios-icon/Images.xcassets)
-set(SDK_NAME_VERSION_FLAGS "-miphoneos-version-min=10.13" FORCE)
+set(SDK_NAME_VERSION_FLAGS "-miphoneos-version-min=10.0")
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13 CACHE STRING "Set CMake deployment target" FORCE)
 
 set(CMAKE_XCODE_ATTRIBUTE_ARCHS[sdk=iphoneos*] "arm64")
