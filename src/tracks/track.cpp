@@ -80,6 +80,7 @@
 #include "tracks/track_object_manager.hpp"
 #include "utils/constants.hpp"
 #include "utils/log.hpp"
+#include "utils/random_generator.hpp"
 #include "mini_glm.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
@@ -2534,7 +2535,13 @@ void Track::loadObjects(const XMLNode* root, const std::string& path,
         }
 
     }   // for i<root->getNumNodes()
-}
+}   // loadObjects
+//-----------------------------------------------------------------------------
+
+void Track::shuffleStartTransforms()
+{
+    std::shuffle(m_start_transforms.begin(), m_start_transforms.end(), GlobalMt19937::get());
+}   // shuffleStartTransforms
 
 //-----------------------------------------------------------------------------
 /** Handles a sky-dome or sky-box. It takes the xml node with the

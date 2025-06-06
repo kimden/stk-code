@@ -58,7 +58,7 @@ if(APPLE AND NOT DLOPEN_MOLTENVK)
 endif()
 
 if(UNIX OR MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
 endif()
 
 set(GE_SOURCES

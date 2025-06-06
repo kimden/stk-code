@@ -354,7 +354,7 @@ void ArenasScreen::buildTrackList()
         w->addItem(_("Random Arena"), "random_track", "/gui/icons/track_random.png");
     w->updateItemDisplay();
 
-    std::random_shuffle( m_random_arena_list.begin(), m_random_arena_list.end() );
+    std::shuffle( m_random_arena_list.begin(), m_random_arena_list.end(), GlobalMt19937::get() );
 }
 
 // ------------------------------------------------------------------------------------------------------
