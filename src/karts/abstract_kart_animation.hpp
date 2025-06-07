@@ -105,11 +105,11 @@ public:
     void handleResetRace()   { m_end_ticks = std::numeric_limits<int>::max(); }
     // ------------------------------------------------------------------------
     /* Used to recreate animation in \ref KartRewinder. */
-    virtual void saveState(BareNetworkString* buffer);
+    virtual AbstractKartAnimationPacket saveState();
     // ------------------------------------------------------------------------
     /* Called when kart animation is the same in kart state, which make sure
      * for example the end or created ticks are the same. */
-    virtual void restoreState(BareNetworkString* buffer)
+    virtual void restoreState(const AbstractKartAnimationPacket& buffer)
                                                  { restoreBasicState(buffer); }
 };   // AbstractKartAnimation
 

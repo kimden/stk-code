@@ -72,34 +72,37 @@ bool GameEventsProtocol::notifyEvent(Event* event)
     {
         if (!sw)
             throw std::invalid_argument("No soccer world");
-        sw->handleResetBallFromServer(data);
+
+        auto packet = event->getPacket<ResetBallPacket>();
+        sw->handleResetBallFromServer(packet);
         break;
     }
     case GE_PLAYER_GOAL:
     {
         if (!sw)
             throw std::invalid_argument("No soccer world");
-        sw->handlePlayerGoalFromServer(data);
+
+        auto packet = event->getPacket<InternalGoalPacket>();
+        sw->handlePlayerGoalFromServer(packet);
         break;
     }
     case GE_BATTLE_KART_SCORE:
     {
         if (!ffa)
             throw std::invalid_argument("No free-for-all world");
-        ffa->setKartScoreFromServer(data);
+
+        auto packet = event->getPacket<InsideFfaPacket>();
+        ffa->setKartScoreFromServer(packet);
         break;
     }
     case GE_CTF_SCORED:
     {
         if (!ctf)
             throw std::invalid_argument("No CTF world");
-        uint8_t kart_id = data.getUInt8();
-        bool red_team_scored = data.getUInt8() == 1;
-        int16_t new_kart_scores = data.getUInt16();
-        int new_red_scores = data.getUInt8();
-        int new_blue_scores = data.getUInt8();
-        ctf->ctfScored(kart_id, red_team_scored, new_kart_scores,
-            new_red_scores, new_blue_scores);
+
+        auto packet = event->getPacket<InsideCtfPacket>();
+        ctf->ctfScored(packet.active_holder, packet.red_inactive, packet.kart_score,
+            packet.red_score, packet.blue_score);
         break;
     }
     case GE_STARTUP_BOOST:
@@ -142,8 +145,10 @@ bool GameEventsProtocol::notifyEvent(Event* event)
     {
         if (!lw)
             throw std::invalid_argument("No linear world");
+
+        auto packet = event->getPacket<InsideChecklinePacket>();
         if (NetworkConfig::get()->isClient())
-            lw->updateCheckLinesClient(data);
+            lw->updateCheckLinesClient(packet);
         break;
     }
     default:
@@ -196,9 +201,7 @@ void GameEventsProtocol::kartFinishedRace(const NetworkString &ns)
 // ----------------------------------------------------------------------------
 void GameEventsProtocol::sendStartupBoost(uint8_t kart_id)
 {
-    NetworkString *ns = getNetworkString();
-    ns->setSynchronous(true);
-    ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id);
-    Comm::sendToServer(ns, PRM_RELIABLE);
-    delete ns;
+    StartupBoostPacket packet;
+    packet.kart_id = kart_id;
+    sendPacketToServer(packet);
 }   // sendStartupBoost

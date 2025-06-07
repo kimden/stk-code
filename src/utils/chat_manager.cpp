@@ -224,9 +224,8 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
     if (target_team == KART_TEAM_BLUE || (team_speaker && team_mode && teams.has(KART_TEAM_BLUE)))
         message = g_blue_team + message;
 
-    NetworkString* chat = getLobby()->getNetworkString();
-    chat->setSynchronous(true);
-    chat->addUInt8(LobbyEvent::LE_CHAT).encodeString16(StringUtils::utf8ToWide(message));
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(message);
 
     STKHost::get()->sendPacketToAllPeersWith(
         std::bind(&ChatManager::shouldMessageBeSent,
@@ -235,9 +234,8 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
                   std::placeholders::_1,
                   game_started,
                   target_team
-        ), chat
+        ), packet
     );
-    delete chat;
 
     peer->updateLastMessage();
 }   // handleNormalChatMessage

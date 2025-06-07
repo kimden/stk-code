@@ -22,6 +22,7 @@
 #include "utils/string_utils.hpp"
 #include "utils/name_decorators/generic_decorator.hpp"
 
+#include "network/packet_types.hpp"
 
 // ----------------------------------------------------------------------------
 /** Returns true if this player is local, i.e. running on this computer. This
@@ -43,3 +44,19 @@ core::stringw NetworkPlayerProfile::getDecoratedName(std::shared_ptr<GenericDeco
     return StringUtils::utf8ToWide(decorator->decorate(StringUtils::wideToUtf8(m_player_name)));
 }   // getDecoratedName
 // ----------------------------------------------------------------------------
+
+EncodedSinglePlayerPacket NetworkPlayerProfile::getPacket() const
+{
+    EncodedSinglePlayerPacket packet;
+    packet.name            = getName();
+    packet.host_id         = getHostId();
+    packet.kart_color      = getDefaultKartColor();
+    packet.online_id       = getOnlineId();
+    packet.handicap        = getHandicap();
+    packet.local_player_id = getLocalPlayerId();
+    packet.kart_team       = getTeam();
+    packet.country_code    = getCountryCode();
+    packet.kart_name       = getKartName();
+    return packet;
+}   // getPacket
+//-----------------------------------------------------------------------------

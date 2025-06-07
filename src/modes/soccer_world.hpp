@@ -28,7 +28,6 @@
 class AbstractKart;
 class BallGoalData;
 class Controller;
-class NetworkString;
 class TrackObject;
 class TrackSector;
 
@@ -55,6 +54,9 @@ public:
         std::string m_country_code;
         /** Handicap of player. */
         HandicapLevel m_handicap_level;
+
+        ScorerDataPacket saveCompleteState(bool has_soccer_fixes);
+        void restoreCompleteState(const ScorerDataPacket& packet);
     };   // ScorerData
 
 private:
@@ -234,9 +236,9 @@ public:
     /** Get the AI who will attack the other team ball chaser. */
     int getAttacker(KartTeam team) const;
     // ------------------------------------------------------------------------
-    void handlePlayerGoalFromServer(const NetworkString& ns);
+    void handlePlayerGoalFromServer(const InternalGoalPacket& packet);
     // ------------------------------------------------------------------------
-    void handleResetBallFromServer(const NetworkString& ns);
+    void handleResetBallFromServer(const ResetBallPacket& packet);
     // ------------------------------------------------------------------------
     virtual bool hasTeam() const OVERRIDE                      { return true; }
     // ------------------------------------------------------------------------
@@ -263,10 +265,9 @@ public:
         return progress;
     }
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns,
-                                   std::shared_ptr<STKPeer> peer) OVERRIDE;
+    virtual std::shared_ptr<WorldPacket> saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
+    virtual void restoreCompleteState(const std::shared_ptr<WorldPacket>& b) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual bool isGoalPhase() const OVERRIDE
     {

@@ -73,24 +73,24 @@ void sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s)
     {
         sendStringToAllPeers(s);
         return;
-    }
-    NetworkString* chat = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(LE_CHAT);
-    chat->setSynchronous(true);
-    chat->encodeString16(StringUtils::utf8ToWide(s));
-    peer->sendPacket(chat, PRM_RELIABLE);
-    delete chat;
+    } 
+    NetworkString* ns = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM);
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(s);
+    packet.toNetworkString(ns);
+    peer->sendPacket(ns, PRM_RELIABLE);
+    delete ns;
 }   // sendStringToPeer
 //-----------------------------------------------------------------------------
 
 void sendStringToAllPeers(const std::string& s)
 {
-    NetworkString* chat = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(LE_CHAT);
-    chat->setSynchronous(true);
-    chat->encodeString16(StringUtils::utf8ToWide(s));
-    sendMessageToPeers(chat, PRM_RELIABLE);
-    delete chat;
+    NetworkString* ns = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM);
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(s);
+    packet.toNetworkString(ns);
+    sendMessageToPeers(ns, PRM_RELIABLE);
+    delete ns;
 }   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
 }   // namespace Comm

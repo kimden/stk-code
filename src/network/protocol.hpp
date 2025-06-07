@@ -27,10 +27,12 @@
 
 #include <memory>
 #include <stddef.h>
+#include <functional>
 
 class Event;
 class NetworkString;
 class STKPeer;
+class Packet;
 
 
 /** \enum ProtocolType
@@ -119,6 +121,73 @@ public:
     NetworkString* getNetworkString(size_t capacity = 16) const;
     bool checkDataSize(Event* event, unsigned int minimum_size);
 
+    // ----------------------------------------------------------------------------
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToPeers(const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE) const
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToPeers(ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToPeersInServer(const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE) const
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToPeersInServer(ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToServer(const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToServer(ptr2, reliable);
+    }
+
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketExcept(std::shared_ptr<STKPeer> peer, const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrExcept(peer, ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+            const T& packet, PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return sendPacketPtrToAllPeersWith(predicate, ptr2, reliable);
+    }
+    // ----------------------------------------------------------------------------
+    void sendPacketPtrToPeers(std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE) const;
+
+    void sendPacketPtrToPeersInServer(std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE) const;
+
+    void sendPacketPtrToServer(std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE);
+
+    void sendPacketPtrExcept(std::shared_ptr<STKPeer> peer, std::shared_ptr<Packet> packet,
+                                PacketReliabilityMode reliable = PRM_RELIABLE);
+
+    void sendPacketPtrToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+                                        std::shared_ptr<Packet> packet, PacketReliabilityMode reliable = PRM_RELIABLE);
+    // ----------------------------------------------------------------------------
     virtual void requestStart();
     virtual void requestTerminate();
     // ------------------------------------------------------------------------

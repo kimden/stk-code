@@ -32,8 +32,8 @@
 #include <vector>
 
 class NetworkPlayerProfile;
-class NetworkString;
 class PeerVote;
+class ServerInfoPacket;
 
 // ============================================================================
 /*! \class GameSetup
@@ -94,7 +94,7 @@ public:
         m_extra_server_info = tracks_no;
     }
     // ------------------------------------------------------------------------
-    void addServerInfo(NetworkString* ns);
+    ServerInfoPacket addServerInfo();
     // ------------------------------------------------------------------------
     void loadWorld();
     // ------------------------------------------------------------------------
