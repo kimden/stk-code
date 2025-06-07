@@ -29,6 +29,7 @@
 class RemoteKartInfo;
 class STKPeer;
 class World;
+class PeerVote;
 
 /** A simple structure to store the info about the game.
  *  It includes game settings, the results of individual players, as well as
@@ -36,6 +37,15 @@ class World;
  */
 struct GameInfo: public LobbyContextUser
 {
+    struct PlayerVoteInfo
+    {
+        std::string m_vote_map               = ""; // not yet in db
+        int         m_vote_limit             = -1; // not yet in db
+        std::string m_vote_reverse           = ""; // not yet in db
+        std::vector<std::string> m_vote_kart = {}; // not yet in db
+                      // Make sure there's only one kart at the end
+    };
+
     struct PlayerInfo
     {
         bool        m_reserved;
@@ -57,11 +67,7 @@ struct GameInfo: public LobbyContextUser
         double      m_game_duration  = -1;
         int         m_handicap       = 0;
         std::string m_country_code   = "";
-
-        std::string m_vote_map       = "";
-        int         m_vote_limit     = -1;
-        std::string m_vote_reverse   = "";
-        std::string m_vote_kart      = "";
+        PlayerVoteInfo m_vote_info;
 
         std::string m_other_info     = "";
 
@@ -84,6 +90,9 @@ struct GameInfo: public LobbyContextUser
     int         m_flag_deactivated_time;
     int         m_difficulty;
     std::string m_timestamp;
+    std::string m_room_number; // not yet in db
+
+    std::map<uint32_t, PlayerVoteInfo> m_pre_game_data;
 
     // First RaceManager->getNumPlayers() elements in m_player_info
     // correspond to RaceManager->m_player_karts with the same index
@@ -108,6 +117,11 @@ struct GameInfo: public LobbyContextUser
 
     void onGoalScored(bool correct_goal, const irr::core::stringw& name,
             int kart_id, unsigned start_pos, float time_since_start);
+
+    void addVote(std::shared_ptr<STKPeer>& peer, PeerVote& vote);
+
+    void setKarts(std::shared_ptr<STKPeer>& peer,
+                  std::vector<std::string>& final_kart_names);
 };
 
 #endif
