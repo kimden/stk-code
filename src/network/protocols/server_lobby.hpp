@@ -66,25 +66,33 @@ namespace Online
     class Request;
 }
 
-class PlayingLobby
+/* The state for a small finite state machine. */
+enum ServerState : unsigned int
+{
+    SET_PUBLIC_ADDRESS,       // Waiting to receive its public ip address
+    REGISTER_SELF_ADDRESS,    // Register with STK online server
+    WAITING_FOR_START_GAME,   // In lobby, waiting for (auto) start game
+    SELECTING,                // kart, track, ... selection started
+    LOAD_WORLD,               // Server starts loading world
+    WAIT_FOR_WORLD_LOADED,    // Wait for clients and server to load world
+    WAIT_FOR_RACE_STARTED,    // Wait for all clients to have started the race
+    RACING,                   // racing
+    WAIT_FOR_RACE_STOPPED,    // Wait server for stopping all race protocols
+    RESULT_DISPLAY,           // Show result screen
+    ERROR_LEAVE,              // shutting down server
+    EXITING
+};
+
+enum SelectionPhase: unsigned int
+{
+    BEFORE_SELECTION = 0,
+    LOADING_WORLD = 1,
+    AFTER_GAME = 2,
+};
+
+class PlayingLobby: public LobbyContextUser
 {
 public:
-    /* The state for a small finite state machine. */
-    enum ServerState : unsigned int
-    {
-        SET_PUBLIC_ADDRESS,       // Waiting to receive its public ip address
-        REGISTER_SELF_ADDRESS,    // Register with STK online server
-        WAITING_FOR_START_GAME,   // In lobby, waiting for (auto) start game
-        SELECTING,                // kart, track, ... selection started
-        LOAD_WORLD,               // Server starts loading world
-        WAIT_FOR_WORLD_LOADED,    // Wait for clients and server to load world
-        WAIT_FOR_RACE_STARTED,    // Wait for all clients to have started the race
-        RACING,                   // racing
-        WAIT_FOR_RACE_STOPPED,    // Wait server for stopping all race protocols
-        RESULT_DISPLAY,           // Show result screen
-        ERROR_LEAVE,              // shutting down server
-        EXITING
-    };
 
     /* The state used in multiple threads when reseting server. */
     enum ResetState : unsigned int
@@ -169,11 +177,26 @@ private:
         }
     }
 
+private:
+    void updateMapsForMode();
+    NetworkString* getLoadWorldMessage(
+        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+        bool live_join) const;
+
+    void liveJoinRequest(Event* event);
+    void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
+    bool canLiveJoinNow() const;
+    bool canVote(std::shared_ptr<STKPeer> peer) const;
+    bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
+    bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
+    bool supportsAI();
+
 public:
+    PlayingLobby();
+    ~PlayingLobby();
+    void setup();
     ServerState getCurrentState() const { return m_state.load(); }
-    virtual bool allPlayersReady() const OVERRIDE
-                            { return m_state.load() >= WAIT_FOR_RACE_STARTED; }
-    virtual bool isRacing() const OVERRIDE { return m_state.load() == RACING; }
+    bool isRacing() const                  { return m_state.load() == RACING; }
     int getDifficulty() const                   { return m_difficulty.load(); }
     int getGameMode() const                      { return m_game_mode.load(); }
     int getLobbyPlayers() const              { return m_lobby_players.load(); }
@@ -193,28 +216,29 @@ public:
     void doErrorLeave()                         { m_state.store(ERROR_LEAVE); }
     bool isWaitingForStartGame() const
                            { return m_state.load() == WAITING_FOR_START_GAME; }
-    
-    void doErrorLeave()                         { m_state.store(ERROR_LEAVE); }
-    bool isWaitingForStartGame() const
-                           { return m_state.load() == WAITING_FOR_START_GAME; }
+public:
+
+    void setTimeoutFromNow(int seconds);
+    void setInfiniteTimeout();
+    bool isInfiniteTimeout() const;
+    bool isTimeoutExpired() const;
+    float getTimeUntilExpiration() const;
+    void onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer);
+    int getPermissions(std::shared_ptr<STKPeer> peer) const;
+    int getCurrentStateScope();
+    void resetToDefaultSettings();
+    void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
 };
 
 class ServerLobby : public LobbyProtocol, public LobbyContextUser
 {
-public:
-    enum SelectionPhase: unsigned int
-    {
-        BEFORE_SELECTION = 0,
-        LOADING_WORLD = 1,
-        AFTER_GAME = 2,
-    };
 private:
 
 #ifdef ENABLE_SQLITE3
     void pollDatabase();
 #endif
 
-    std::vector<PlayingLobby> m_rooms;
+    std::vector<std::shared_ptr<PlayingLobby>> m_rooms;
 
     bool m_registered_for_once_only;
 
@@ -246,97 +270,58 @@ private:
     std::shared_ptr<GenericDecorator> m_name_decorator;
 
 private:
-    void resetPeersReady()
-    {
-        for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
-        {
-            if (it->first.expired())
-            {
-                it = m_peers_ready.erase(it);
-            }
-            else
-            {
-                it->second = false;
-                it++;
-            }
-        }
-    }
+
+#define Reworking "This method was moved to PlayingRoom but is still used for ServerLobby. This has to be changed,"
 
 public:
-    ServerState getCurrentState() const { return m_state.load(); }
-    virtual bool allPlayersReady() const OVERRIDE
-                            { return m_state.load() >= WAIT_FOR_RACE_STARTED; }
-    virtual bool isRacing() const OVERRIDE { return m_state.load() == RACING; }
-    int getDifficulty() const                   { return m_difficulty.load(); }
-    int getGameMode() const                      { return m_game_mode.load(); }
-    int getLobbyPlayers() const              { return m_lobby_players.load(); }
+    [[deprecated(Reworking)]]
+    ServerState getCurrentState() const { return m_rooms[0]->getCurrentState(); }
+
+    [[deprecated(Reworking)]]
+    virtual bool isRacing() const OVERRIDE { return m_rooms[0]->isRacing(); }
+
+    [[deprecated(Reworking)]]
+    int getDifficulty() const                   { return m_rooms[0]->getDifficulty(); }
+
+    [[deprecated(Reworking)]]
+    int getGameMode() const                      { return m_rooms[0]->getGameMode(); }
+
+    [[deprecated(Reworking)]]
+    int getLobbyPlayers() const              { return m_rooms[0]->getLobbyPlayers(); }
+
+    [[deprecated(Reworking)]]
     bool isAIProfile(const std::shared_ptr<NetworkPlayerProfile>& npp) const
     {
-        return std::find(m_ai_profiles.begin(), m_ai_profiles.end(), npp) !=
-            m_ai_profiles.end();
+        return m_rooms[0]->isAIProfile(npp);
     }
-    void erasePeerReady(std::shared_ptr<STKPeer> peer)
-                                                 { m_peers_ready.erase(peer); }
-    bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }
-    bool isWorldFinished() const   { return m_state.load() >= RESULT_DISPLAY; }
-    bool isStateAtLeastRacing() const      { return m_state.load() >= RACING; }
-    std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
+
+    [[deprecated(Reworking)]]
+    bool isWorldPicked() const         { return m_rooms[0]->isWorldPicked(); }
+
+    [[deprecated(Reworking)]]
+    bool isWorldFinished() const   { return m_rooms[0]->isWorldFinished(); }
+
+    [[deprecated(Reworking)]]
+    bool isStateAtLeastRacing() const      { return m_rooms[0]->isStateAtLeastRacing(); }
+
+    [[deprecated(Reworking)]]
+    std::shared_ptr<GameInfo> getGameInfo() const       { return m_rooms[0]->getGameInfo(); }
+
+    [[deprecated(Reworking)]]
     std::shared_ptr<STKPeer> getServerOwner() const
-                                              { return m_server_owner.lock(); }
-    void doErrorLeave()                         { m_state.store(ERROR_LEAVE); }
-    bool isWaitingForStartGame() const
-                           { return m_state.load() == WAITING_FOR_START_GAME; }
-    
-    void doErrorLeave()                         { m_state.store(ERROR_LEAVE); }
-    bool isWaitingForStartGame() const
-                           { return m_state.load() == WAITING_FOR_START_GAME; }
-};
+                                              { return m_rooms[0]->getServerOwner(); }
 
-class ServerLobby : public LobbyProtocol, public LobbyContextUser
-{
-public:
-    enum SelectionPhase: unsigned int
+    [[deprecated(Reworking)]]
+    void doErrorLeave()
     {
-        BEFORE_SELECTION = 0,
-        LOADING_WORLD = 1,
-        AFTER_GAME = 2,
-    };
+        for (auto& room: m_rooms)
+            room->doErrorLeave();
+    }
+
+    [[deprecated(Reworking)]]
+    bool isWaitingForStartGame() const { return m_rooms[0]->isWaitingForStartGame(); }
+
 private:
-
-#ifdef ENABLE_SQLITE3
-    void pollDatabase();
-#endif
-
-    std::vector<PlayingLobby> m_rooms;
-
-    bool m_registered_for_once_only;
-
-    std::weak_ptr<Online::Request> m_server_registering;
-
-    std::mutex m_keys_mutex;
-
-    std::map<uint32_t, KeyData> m_keys;
-
-    std::map<std::weak_ptr<STKPeer>,
-        std::pair<uint32_t, BareNetworkString>,
-        std::owner_less<std::weak_ptr<STKPeer> > > m_pending_connection;
-
-    std::map<std::string, uint64_t> m_pending_peer_connection;
-
-    std::atomic<uint32_t> m_server_id_online;
-
-    std::atomic<uint32_t> m_client_server_host_id;
-
-    std::atomic<uint64_t> m_last_success_poll_time;
-
-    uint64_t m_last_unsuccess_poll_time;
-    
-    // Other units previously used in ServerLobby
-    std::shared_ptr<LobbyContext> m_lobby_context;
-
-    std::shared_ptr<Ranking> m_ranking;
-
-    std::shared_ptr<GenericDecorator> m_name_decorator;
 
     // connection management
     void clientDisconnected(Event* event);
@@ -367,8 +352,7 @@ public: // I'll see if it should be private later
         int difficulty, int mode, bool soccer_goal_target);
 
 private:
-    void updateMapsForMode();
-    bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
+    // bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     void handlePendingConnection();
     void handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
                                      BareNetworkString& data,
@@ -395,9 +379,6 @@ private:
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    NetworkString* getLoadWorldMessage(
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
-        bool live_join) const;
     void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
     bool handleAssets(Event* event);
 
@@ -406,9 +387,8 @@ private:
             const std::set<std::string>& client_maps);
     
     void handleServerCommand(Event* event);
-    void liveJoinRequest(Event* event);
-    void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
-    bool canLiveJoinNow() const;
+    // void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
+    // bool canLiveJoinNow() const;
     int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
                       unsigned local_id);
     void handleKartInfo(Event* event);
@@ -420,13 +400,13 @@ private:
     void testBannedForOnlineId(std::shared_ptr<STKPeer> peer, uint32_t online_id) const;
     void getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_id);
     void writePlayerReport(Event* event);
-    bool supportsAI();
+    // bool supportsAI();
     void initTournamentPlayers();
 public:
     void changeLimitForTournament(bool goal_target);
 private:
-    bool canVote(std::shared_ptr<STKPeer> peer) const;
-    bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
+    // bool canVote(std::shared_ptr<STKPeer> peer) const;
+    // bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
 
 public:
              ServerLobby();
@@ -444,13 +424,13 @@ public:
     void updateBanList();
     bool waitingForPlayers() const;
     float getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
-    void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
+    // void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
     void saveIPBanTable(const SocketAddress& addr);
     void listBanTable();
     void initServerStatsTable();
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
-    void resetToDefaultSettings();
+    // void resetToDefaultSettings();
     void writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_ptr<STKPeer> reporting,
         const std::string& info);
     bool writeOnePlayerReport(std::shared_ptr<STKPeer> reporter, const std::string& table,
@@ -465,7 +445,7 @@ public:
         std::shared_ptr<NetworkPlayerProfile> npp,
         STKPeer* peer);
 
-    int getPermissions(std::shared_ptr<STKPeer> peer) const;
+    // int getPermissions(std::shared_ptr<STKPeer> peer) const;
     bool isSoccerGoalTarget() const;
 
 #ifdef ENABLE_SQLITE3
@@ -484,17 +464,10 @@ public:
     void sendServerInfoToEveryone() const;
 
     bool isLegacyGPMode() const;
-    int getCurrentStateScope();
+    // int getCurrentStateScope();
     bool isChildProcess()                { return m_process_type == PT_CHILD; }
 
     bool isClientServerHost(const std::shared_ptr<STKPeer>& peer);
-
-    void setTimeoutFromNow(int seconds);
-    void setInfiniteTimeout();
-    bool isInfiniteTimeout() const;
-    bool isTimeoutExpired() const;
-    float getTimeUntilExpiration() const;
-    void onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer);
 
     //-------------------------------------------------------------------------
     // More auxiliary functions

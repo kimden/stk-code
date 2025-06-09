@@ -168,8 +168,6 @@ public:
     virtual void setup() OVERRIDE;
     virtual void update(int ticks) OVERRIDE;
     virtual void asynchronousUpdate() OVERRIDE {}
-    virtual bool allPlayersReady() const OVERRIDE
-                                           { return m_state.load() >= RACING; }
     bool waitingForServerRespond() const
                             { return m_state.load() == REQUESTING_CONNECTION; }
     bool isLobbyReady() const                      { return !m_first_connect; }

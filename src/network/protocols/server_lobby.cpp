@@ -174,6 +174,74 @@ namespace
 // We use max priority for all server requests to avoid downloading of addons
 // icons blocking the poll request in all-in-one graphical client server
 
+PlayingLobby::PlayingLobby()
+{
+    m_lobby_players.store(0);
+    m_current_ai_count.store(0);
+    m_rs_state.store(RS_NONE);
+    m_server_owner_id.store(-1);
+    m_state = SET_PUBLIC_ADDRESS;
+    m_items_complete_state = new BareNetworkString();
+    m_difficulty.store(ServerConfig::m_server_difficulty);
+    m_game_mode.store(ServerConfig::m_server_mode);
+    m_reset_to_default_mode_later.store(false);
+
+    m_game_info = {};
+}   // PlayingLobby
+//-----------------------------------------------------------------------------
+
+PlayingLobby::~PlayingLobby()
+{
+    delete m_items_complete_state;
+}   // ~PlayingLobby
+//-----------------------------------------------------------------------------
+
+[[deprecated("STKHost and GameSetup are used in a room method.")]]
+void PlayingLobby::setup()
+{
+    m_item_seed = 0;
+    m_client_starting_time = 0;
+    m_ai_count = 0;
+
+    auto players = STKHost::get()->getPlayersForNewGame();
+    auto game_setup = getGameSetup();
+    if (game_setup->isGrandPrix() && !game_setup->isGrandPrixStarted())
+    {
+        for (auto player : players)
+            player->resetGrandPrixData();
+    }
+    if (!game_setup->isGrandPrix() || !game_setup->isGrandPrixStarted())
+    {
+        for (auto player : players)
+            player->setKartName("");
+    }
+    if (auto ai = m_ai_peer.lock())
+    {
+        for (auto player : ai->getPlayerProfiles())
+            player->setKartName("");
+    }
+    for (auto ai : m_ai_profiles)
+        ai->setKartName("");
+
+    updateMapsForMode();
+
+    m_server_has_loaded_world.store(false);
+    // Initialise the data structures to detect if all clients and 
+    // the server are ready:
+    resetPeersReady();
+    setInfiniteTimeout();
+    m_server_started_at = m_server_delay = 0;
+    m_game_info = {};
+
+    Log::info("PlayingLobby", "Resetting room to its initial state.");
+}   // PlayingLobby::setup()
+//-----------------------------------------------------------------------------
+
+
+
+
+
+
 /** This is the central game setup protocol running in the server. It is
  *  mostly a finite state machine. Note that all nodes in ellipses and light
  *  grey background are actual states; nodes in boxes and white background 
@@ -216,7 +284,6 @@ namespace
 ServerLobby::ServerLobby() : LobbyProtocol()
 {
     m_client_server_host_id.store(0);
-    m_lobby_players.store(0);
 
     m_lobby_context = std::make_shared<LobbyContext>(this, (bool)ServerConfig::m_soccer_tournament);
     m_lobby_context->setup();
@@ -224,15 +291,10 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_game_setup->setContext(m_context);
     m_context->setGameSetup(m_game_setup);
 
-    m_current_ai_count.store(0);
-
-    m_rs_state.store(RS_NONE);
     m_last_success_poll_time.store(StkTime::getMonoTimeMs() + 30000);
     m_last_unsuccess_poll_time = StkTime::getMonoTimeMs();
-    m_server_owner_id.store(-1);
     m_registered_for_once_only = false;
     setHandleDisconnections(true);
-    m_state = SET_PUBLIC_ADDRESS;
     if (ServerConfig::m_ranked)
     {
         Log::info("ServerLobby", "This server will submit ranking scores to "
@@ -242,16 +304,16 @@ ServerLobby::ServerLobby() : LobbyProtocol()
         m_ranking = std::make_shared<Ranking>();
     }
     m_name_decorator = std::make_shared<GenericDecorator>();
-    m_items_complete_state = new BareNetworkString();
     m_server_id_online.store(0);
-    m_difficulty.store(ServerConfig::m_server_difficulty);
-    m_game_mode.store(ServerConfig::m_server_mode);
-    m_reset_to_default_mode_later.store(false);
 
-    m_game_info = {};
+    m_rooms.emplace_back();
+
+    for (auto& room: m_rooms)
+        room->setContext(m_context);
 }   // ServerLobby
 
 //-----------------------------------------------------------------------------
+
 /** Destructor.
  */
 ServerLobby::~ServerLobby()
@@ -261,7 +323,9 @@ ServerLobby::~ServerLobby()
         // For child process the request manager will keep on running
         unregisterServer(m_process_type == PT_MAIN ? true : false/*now*/);
     }
-    delete m_items_complete_state;
+    for (auto& room: m_rooms)
+        room.reset();
+    m_rooms.clear();
     if (getSettings()->isSavingServerConfig())
         ServerConfig::writeServerConfigToDisk();
 
@@ -282,7 +346,8 @@ void ServerLobby::initServerStatsTable()
 //-----------------------------------------------------------------------------
 /** Calls the corresponding method from LobbyAssetManager
  *  whenever server is reset or game mode is changed. */
-void ServerLobby::updateMapsForMode()
+[[deprecated("Asset managers should be separate for different rooms.")]]
+void PlayingLobby::updateMapsForMode()
 {
     getAssetManager()->updateMapsForMode(
         ServerConfig::getLocalGameMode(m_game_mode.load()).first
@@ -293,43 +358,14 @@ void ServerLobby::updateMapsForMode()
 void ServerLobby::setup()
 {
     LobbyProtocol::setup();
-    m_item_seed = 0;
-    m_client_starting_time = 0;
-    m_ai_count = 0;
-    auto players = STKHost::get()->getPlayersForNewGame();
-    if (m_game_setup->isGrandPrix() && !m_game_setup->isGrandPrixStarted())
-    {
-        for (auto player : players)
-            player->resetGrandPrixData();
-    }
-    if (!m_game_setup->isGrandPrix() || !m_game_setup->isGrandPrixStarted())
-    {
-        for (auto player : players)
-            player->setKartName("");
-    }
-    if (auto ai = m_ai_peer.lock())
-    {
-        for (auto player : ai->getPlayerProfiles())
-            player->setKartName("");
-    }
-    for (auto ai : m_ai_profiles)
-        ai->setKartName("");
+    for (auto& room: m_rooms)
+        room->setup();
 
     StateManager::get()->resetActivePlayers();
     getAssetManager()->onServerSetup();
     getSettings()->onServerSetup();
-    updateMapsForMode();
 
-    m_server_has_loaded_world.store(false);
-
-    // Initialise the data structures to detect if all clients and 
-    // the server are ready:
-    resetPeersReady();
-    setInfiniteTimeout();
-    m_server_started_at = m_server_delay = 0;
     getCommandManager()->onServerSetup();
-    m_game_info = {};
-
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -1004,7 +1040,7 @@ void ServerLobby::asynchronousUpdate()
 }   // asynchronousUpdate
 
 //-----------------------------------------------------------------------------
-NetworkString* ServerLobby::getLoadWorldMessage(
+NetworkString* PlayingLobby::getLoadWorldMessage(
     std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
     bool live_join) const
 {
@@ -1036,7 +1072,7 @@ NetworkString* ServerLobby::getLoadWorldMessage(
 //-----------------------------------------------------------------------------
 /** Returns true if server can be live joined or spectating
  */
-bool ServerLobby::canLiveJoinNow() const
+bool PlayingLobby::canLiveJoinNow() const
 {
     bool live_join = getSettings()->isLivePlayers() && worldIsActive();
     if (!live_join)
@@ -1075,7 +1111,7 @@ bool ServerLobby::canLiveJoinNow() const
 /** \ref STKPeer peer will be reset back to the lobby with reason
  *  \ref BackLobbyReason blr
  */
-void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr)
+void PlayingLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr)
 {
     NetworkString* reset = getNetworkString(2);
     reset->setSynchronous(true);
@@ -1088,7 +1124,7 @@ void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
-    m_game_setup->addServerInfo(server_info);
+    getGameSetup()->addServerInfo(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
 
@@ -1099,7 +1135,7 @@ void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
 /** This message is like kartSelectionRequested, but it will send the peer
  *  load world message if he can join the current started game.
  */
-void ServerLobby::liveJoinRequest(Event* event)
+void PlayingLobby::liveJoinRequest(Event* event)
 {
     // I moved some data getters ahead of some returns. This should be fine
     // in general, but you know what caused it if smth goes wrong.
@@ -4164,7 +4200,7 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
 }   // clientSelectingAssetsWantsToBackLobby
 
 //-----------------------------------------------------------------------------
-void ServerLobby::saveInitialItems(std::shared_ptr<NetworkItemManager> nim)
+void PlayingLobby::saveInitialItems(std::shared_ptr<NetworkItemManager> nim)
 {
     m_items_complete_state->getBuffer().clear();
     m_items_complete_state->reset();
@@ -4172,13 +4208,13 @@ void ServerLobby::saveInitialItems(std::shared_ptr<NetworkItemManager> nim)
 }   // saveInitialItems
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::supportsAI()
+bool PlayingLobby::supportsAI()
 {
     return getGameMode() == 3 || getGameMode() == 4;
 }   // supportsAI
 
 //-----------------------------------------------------------------------------
-bool ServerLobby::checkPeersReady(bool ignore_ai_peer, SelectionPhase phase)
+bool PlayingLobby::checkPeersReady(bool ignore_ai_peer, SelectionPhase phase)
 {
     bool all_ready = true;
     bool someone_races = false;
@@ -4215,7 +4251,7 @@ void ServerLobby::handleServerCommand(Event* event)
 }   // handleServerCommand
 //-----------------------------------------------------------------------------
 
-void ServerLobby::resetToDefaultSettings()
+void PlayingLobby::resetToDefaultSettings()
 {
     if (getSettings()->isServerConfigurable() && !getSettings()->isPreservingMode())
     {
@@ -4278,7 +4314,7 @@ std::string ServerLobby::encodeProfileNameForPeer(
 }   // encodeProfileNameForPeer
 //-----------------------------------------------------------------------------
 
-bool ServerLobby::canVote(std::shared_ptr<STKPeer> peer) const
+bool PlayingLobby::canVote(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
         return false;
@@ -4290,7 +4326,7 @@ bool ServerLobby::canVote(std::shared_ptr<STKPeer> peer) const
 }   // canVote
 //-----------------------------------------------------------------------------
 
-bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
+bool PlayingLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
         return false;
@@ -4308,7 +4344,7 @@ bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
 }   // hasHostRights
 //-----------------------------------------------------------------------------
 
-int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
+int PlayingLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
 {
     int mask = 0;
     if (!peer)
@@ -4481,7 +4517,7 @@ bool ServerLobby::isLegacyGPMode() const
 }   // isLegacyGPMode
 //-----------------------------------------------------------------------------
 
-int ServerLobby::getCurrentStateScope()
+int PlayingLobby::getCurrentStateScope()
 {
     auto state = m_state.load();
     if (state < WAITING_FOR_START_GAME
@@ -4499,32 +4535,32 @@ bool ServerLobby::isClientServerHost(const std::shared_ptr<STKPeer>& peer)
 }   // isClientServerHost
 //-----------------------------------------------------------------------------
 
-void ServerLobby::setTimeoutFromNow(int seconds)
+void PlayingLobby::setTimeoutFromNow(int seconds)
 {
     m_timeout.store((int64_t)StkTime::getMonoTimeMs() +
             (int64_t)(seconds * 1000.0f));
 }   // setTimeoutFromNow
 //-----------------------------------------------------------------------------
 
-void ServerLobby::setInfiniteTimeout()
+void PlayingLobby::setInfiniteTimeout()
 {
     m_timeout.store(std::numeric_limits<int64_t>::max());
 }   // setInfiniteTimeout
 //-----------------------------------------------------------------------------
 
-bool ServerLobby::isInfiniteTimeout() const
+bool PlayingLobby::isInfiniteTimeout() const
 {
     return m_timeout.load() == std::numeric_limits<int64_t>::max();
 }   // isInfiniteTimeout
 //-----------------------------------------------------------------------------
 
-bool ServerLobby::isTimeoutExpired() const
+bool PlayingLobby::isTimeoutExpired() const
 {
     return m_timeout.load() < (int64_t)StkTime::getMonoTimeMs();
 }   // isTimeoutExpired
 //-----------------------------------------------------------------------------
 
-float ServerLobby::getTimeUntilExpiration() const
+float PlayingLobby::getTimeUntilExpiration() const
 {
     int64_t timeout = m_timeout.load();
     if (timeout == std::numeric_limits<int64_t>::max())
@@ -4534,10 +4570,10 @@ float ServerLobby::getTimeUntilExpiration() const
 }   // getTimeUntilExpiration
 //-----------------------------------------------------------------------------
 
-void ServerLobby::onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer)
+void PlayingLobby::onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer)
 {
     auto state = m_state.load();
-    if (state >= ServerLobby::SELECTING && state < ServerLobby::RACING)
+    if (state >= ServerState::SELECTING && state < ServerState::RACING)
     {
         erasePeerReady(peer);
         peer->setWaitingForGame(true);

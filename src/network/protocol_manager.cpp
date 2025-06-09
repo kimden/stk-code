@@ -87,9 +87,9 @@ std::shared_ptr<ProtocolManager> ProtocolManager::createInstance()
                     auto sl = LobbyProtocol::get<ServerLobby>();
                     if (sl)
                     {
-                        ServerLobby::ServerState ss = sl->getCurrentState();
-                        if (!(ss >= ServerLobby::WAIT_FOR_WORLD_LOADED &&
-                            ss <= ServerLobby::RACING))
+                        ServerState ss = sl->getCurrentState();
+                        if (!(ss >= ServerState::WAIT_FOR_WORLD_LOADED &&
+                            ss <= ServerState::RACING))
                         {
                             delete event_top;
                             continue;
