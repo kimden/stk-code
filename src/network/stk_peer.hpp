@@ -393,7 +393,7 @@ public:
     // ------------------------------------------------------------------------
     void setRoomNumber(int8_t idx)              { m_room_number.store(idx); }
     // ------------------------------------------------------------------------
-    void resetRoomNumber()                       { m_room_number.store(-1); }
+    void resetRoomNumber()                       { m_room_number.store(0); }
     // ------------------------------------------------------------------------
 };   // STKPeer
 

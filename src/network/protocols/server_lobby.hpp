@@ -22,6 +22,7 @@
 #include "karts/controller/player_controller.hpp"
 #include "network/protocols/lobby_protocol.hpp"
 #include "network/requests.hpp" // only needed in header as long as KeyData is there
+#include "network/server_enums.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/hourglass_reason.hpp"
 #include "utils/lobby_context.hpp"
@@ -61,174 +62,13 @@ class Tournament;
 enum AlwaysSpectateMode: uint8_t;
 struct GameInfo;
 
+// class PlayingRoom;
+#include "network/protocols/playing_room.hpp"
+
 namespace Online
 {
     class Request;
 }
-
-/* The state for a small finite state machine. */
-enum ServerState : unsigned int
-{
-    SET_PUBLIC_ADDRESS,       // Waiting to receive its public ip address
-    REGISTER_SELF_ADDRESS,    // Register with STK online server
-    WAITING_FOR_START_GAME,   // In lobby, waiting for (auto) start game
-    SELECTING,                // kart, track, ... selection started
-    LOAD_WORLD,               // Server starts loading world
-    WAIT_FOR_WORLD_LOADED,    // Wait for clients and server to load world
-    WAIT_FOR_RACE_STARTED,    // Wait for all clients to have started the race
-    RACING,                   // racing
-    WAIT_FOR_RACE_STOPPED,    // Wait server for stopping all race protocols
-    RESULT_DISPLAY,           // Show result screen
-    ERROR_LEAVE,              // shutting down server
-    EXITING
-};
-
-enum SelectionPhase: unsigned int
-{
-    BEFORE_SELECTION = 0,
-    LOADING_WORLD = 1,
-    AFTER_GAME = 2,
-};
-
-class PlayingLobby: public LobbyContextUser
-{
-public:
-
-    /* The state used in multiple threads when reseting server. */
-    enum ResetState : unsigned int
-    {
-        RS_NONE,       // Default state
-        RS_WAITING,    // Waiting for reseting finished
-        RS_ASYNC_RESET // Finished reseting server in main thread, now async thread
-    };
-
-private:
-    std::atomic<ServerState> m_state;
-
-    std::atomic<ResetState> m_rs_state;
-
-    /** Hold the next connected peer for server owner if current one expired
-     * (disconnected). */
-    std::weak_ptr<STKPeer> m_server_owner;
-
-    /** AI peer which holds the list of reserved AI for dedicated server. */
-    std::weak_ptr<STKPeer> m_ai_peer;
-
-    /** AI profiles for all-in-one graphical client server, this will be a
-     *  fixed count thorough the live time of server, which its value is
-     *  configured in NetworkConfig. */
-    std::vector<std::shared_ptr<NetworkPlayerProfile> > m_ai_profiles;
-
-    std::atomic<uint32_t> m_server_owner_id;
-
-    /** Keeps track of the server state. */
-    std::atomic_bool m_server_has_loaded_world;
-
-    /** Counts how many peers have finished loading the world. */
-    std::map<std::weak_ptr<STKPeer>, bool,
-        std::owner_less<std::weak_ptr<STKPeer> > > m_peers_ready;
-
-    /** Timeout counter for various state. */
-    std::atomic<int64_t> m_timeout;
-
-    /* Saved the last game result */
-    NetworkString* m_result_ns;
-
-    /* Used to make sure clients are having same item list at start */
-    BareNetworkString* m_items_complete_state;
-
-    std::atomic<int> m_difficulty;
-
-    std::atomic<int> m_game_mode;
-
-    std::atomic<int> m_lobby_players;
-
-    std::atomic<int> m_current_ai_count;
-
-    uint64_t m_server_started_at;
-    
-    uint64_t m_server_delay;
-
-    unsigned m_item_seed;
-
-    uint64_t m_client_starting_time;
-
-    // Calculated before each game started
-    unsigned m_ai_count;
-
-    std::shared_ptr<GameInfo> m_game_info;
-
-    std::atomic<bool> m_reset_to_default_mode_later;
-
-private:
-    void resetPeersReady()
-    {
-        for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
-        {
-            if (it->first.expired())
-            {
-                it = m_peers_ready.erase(it);
-            }
-            else
-            {
-                it->second = false;
-                it++;
-            }
-        }
-    }
-
-private:
-    void updateMapsForMode();
-    NetworkString* getLoadWorldMessage(
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
-        bool live_join) const;
-
-    void liveJoinRequest(Event* event);
-    void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
-    bool canLiveJoinNow() const;
-    bool canVote(std::shared_ptr<STKPeer> peer) const;
-    bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
-    bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
-    bool supportsAI();
-
-public:
-    PlayingLobby();
-    ~PlayingLobby();
-    void setup();
-    ServerState getCurrentState() const { return m_state.load(); }
-    bool isRacing() const                  { return m_state.load() == RACING; }
-    int getDifficulty() const                   { return m_difficulty.load(); }
-    int getGameMode() const                      { return m_game_mode.load(); }
-    int getLobbyPlayers() const              { return m_lobby_players.load(); }
-    bool isAIProfile(const std::shared_ptr<NetworkPlayerProfile>& npp) const
-    {
-        return std::find(m_ai_profiles.begin(), m_ai_profiles.end(), npp) !=
-            m_ai_profiles.end();
-    }
-    void erasePeerReady(std::shared_ptr<STKPeer> peer)
-                                                 { m_peers_ready.erase(peer); }
-    bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }
-    bool isWorldFinished() const   { return m_state.load() >= RESULT_DISPLAY; }
-    bool isStateAtLeastRacing() const      { return m_state.load() >= RACING; }
-    std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
-    std::shared_ptr<STKPeer> getServerOwner() const
-                                              { return m_server_owner.lock(); }
-    void doErrorLeave()                         { m_state.store(ERROR_LEAVE); }
-    bool isWaitingForStartGame() const
-                           { return m_state.load() == WAITING_FOR_START_GAME; }
-public:
-
-    void setTimeoutFromNow(int seconds);
-    void setInfiniteTimeout();
-    bool isInfiniteTimeout() const;
-    bool isTimeoutExpired() const;
-    float getTimeUntilExpiration() const;
-    void onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer);
-    int getPermissions(std::shared_ptr<STKPeer> peer) const;
-    int getCurrentStateScope();
-    void resetToDefaultSettings();
-    void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
-};
 
 class ServerLobby : public LobbyProtocol, public LobbyContextUser
 {
@@ -238,7 +78,7 @@ private:
     void pollDatabase();
 #endif
 
-    std::vector<std::shared_ptr<PlayingLobby>> m_rooms;
+    std::vector<std::shared_ptr<PlayingRoom>> m_rooms;
 
     bool m_registered_for_once_only;
 
@@ -329,11 +169,11 @@ private:
     // kart selection
     void kartSelectionRequested(Event* event);
     // Track(s) votes
-    void handlePlayerVote(Event *event);
-    void playerFinishedResult(Event *event);
+    // void handlePlayerVote(Event *event);
+    // void playerFinishedResult(Event *event);
     void registerServer(bool first_time);
-    void finishedLoadingWorldClient(Event *event);
-    void finishedLoadingLiveJoinClient(Event *event);
+    // void finishedLoadingWorldClient(Event *event);
+    // void finishedLoadingLiveJoinClient(Event *event);
     void kickHost(Event* event);
     void changeTeam(Event* event);
     void handleChat(Event* event);
@@ -391,9 +231,9 @@ private:
     // bool canLiveJoinNow() const;
     int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
                       unsigned local_id);
-    void handleKartInfo(Event* event);
-    void clientInGameWantsToBackLobby(Event* event);
-    void clientSelectingAssetsWantsToBackLobby(Event* event);
+    // void handleKartInfo(Event* event);
+    // void clientInGameWantsToBackLobby(Event* event);
+    // void clientSelectingAssetsWantsToBackLobby(Event* event);
     void kickPlayerWithReason(std::shared_ptr<STKPeer> peer, const char* reason) const;
     void testBannedForIP(std::shared_ptr<STKPeer> peer) const;
     void testBannedForIPv6(std::shared_ptr<STKPeer> peer) const;
@@ -418,11 +258,11 @@ public:
     virtual void update(int ticks) OVERRIDE;
     virtual void asynchronousUpdate() OVERRIDE;
 
-    void startSelection(const Event *event=NULL);
+    // void startSelection(const Event *event=NULL);
     void checkIncomingConnectionRequests();
     void finishedLoadingWorld() OVERRIDE;
     void updateBanList();
-    bool waitingForPlayers() const;
+    // bool waitingForPlayers() const;
     float getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
     // void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
     void saveIPBanTable(const SocketAddress& addr);

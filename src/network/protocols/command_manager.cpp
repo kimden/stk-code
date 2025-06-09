@@ -1356,8 +1356,7 @@ void CommandManager::process_spectate(Context& context)
     }
     if (value >= 1)
     {
-        if (getLobby()->isChildProcess() &&
-            getLobby()->isClientServerHost(acting_peer))
+        if (getLobby()->isChildProcess() && getLobby()->isClientServerHost(acting_peer))
         {
             context.say("Graphical client server cannot spectate");
             return;

@@ -297,7 +297,7 @@ bool ProtocolManager::OneProtocolType::notifyEvent(Event *event)
     if (m_protocols.empty()) return false;
 
     // Either all protocols of a certain type handle connects, or none.
-    // So we tet only one of them
+    // So we test only one of them
     if (event->getType() == EVENT_TYPE_CONNECTED &&
         !m_protocols[0]->handleConnects()) return false;
     if (event->getType() == EVENT_TYPE_DISCONNECTED &&
