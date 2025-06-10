@@ -128,6 +128,11 @@ private:
     bool hasHostRights(std::shared_ptr<STKPeer> peer) const;
     bool checkPeersReady(bool ignore_ai_peer, SelectionPhase phase);
     bool supportsAI();
+    void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
+    int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
+                      unsigned local_id);
+    void resetServer();
+    void addWaitingPlayersToGame();
 
 public:
     PlayingRoom();
@@ -168,6 +173,9 @@ public: // were public before and SL doesn't call them
     void resetToDefaultSettings();
     void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
     bool waitingForPlayers() const;
+    void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+                             std::shared_ptr<NetworkPlayerProfile> player,
+                             const std::string& type) const;
 
 public: // SL needs to call them
     void playerFinishedResult(Event *event);
@@ -179,6 +187,7 @@ public: // SL needs to call them
     void clientSelectingAssetsWantsToBackLobby(Event* event);
     void handlePlayerVote(Event *event);
     void startSelection(const Event *event=NULL); // was public already
+    void kartSelectionRequested(Event* event);
 };
 
 #endif // PLAYING_ROOM_HPP

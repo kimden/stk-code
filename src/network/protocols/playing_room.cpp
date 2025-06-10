@@ -46,6 +46,14 @@
 #include "utils/tournament.hpp"
 #include "utils/crown_manager.hpp"
 #include "utils/communication.hpp"
+#include "network/protocols/server_lobby.hpp"
+#include "network/protocols/command_manager.hpp"
+#include "utils/team_manager.hpp"
+#include "utils/lobby_queues.hpp"
+#include "utils/kart_elimination.hpp"
+#include "network/network_config.hpp"
+#include "utils/lobby_gp_manager.hpp"
+#include "network/protocols/game_protocol.hpp"
 
 namespace
 {
@@ -80,6 +88,51 @@ namespace
             World::getWorld()->getPhase() == WorldStatus::RACE_PHASE;
     }   // worldIsActive
     //-------------------------------------------------------------------------
+
+    NetworkString* getNetworkString(size_t capacity = 16)
+    {
+        return new NetworkString(PROTOCOL_LOBBY_ROOM, capacity);
+    }   // getNetworkString
+    //-------------------------------------------------------------------------
+
+    /** Get a list of current ingame players for live join or spectate.
+     */
+    std::vector<std::shared_ptr<NetworkPlayerProfile> > getLivePlayers()
+    {
+        std::vector<std::shared_ptr<NetworkPlayerProfile> > players;
+        for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+        {
+            const RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
+            std::shared_ptr<NetworkPlayerProfile> player =
+                rki.getNetworkPlayerProfile().lock();
+            if (!player)
+            {
+                if (RaceManager::get()->modeHasLaps())
+                {
+                    player = std::make_shared<NetworkPlayerProfile>(
+                        nullptr, rki.getPlayerName(),
+                        std::numeric_limits<uint32_t>::max(),
+                        rki.getDefaultKartColor(),
+                        rki.getOnlineId(), rki.getHandicap(),
+                        rki.getLocalPlayerId(), KART_TEAM_NONE,
+                        rki.getCountryCode());
+                    player->setKartName(rki.getKartName());
+                }
+                else
+                {
+                    player = NetworkPlayerProfile::getReservedProfile(
+                        RaceManager::get()->getMinorMode() ==
+                        RaceManager::MINOR_MODE_FREE_FOR_ALL ?
+                        KART_TEAM_NONE : rki.getKartTeam());
+                }
+            }
+            players.push_back(player);
+        }
+        return players;
+    }   // getLivePlayers
+    //-------------------------------------------------------------------------
+
+    
 }   // namespace
 //=============================================================================
 
@@ -165,7 +218,7 @@ NetworkString* PlayingRoom::getLoadWorldMessage(
     load_world_message->addUInt8(LE_LOAD_WORLD);
     getSettings()->encodeDefaultVote(load_world_message);
     load_world_message->addUInt8(live_join ? 1 : 0);
-    encodePlayers(load_world_message, players, m_name_decorator);
+    encodePlayers(load_world_message, players, getLobby()->getNameDecorator());
     load_world_message->addUInt32(m_item_seed);
     if (RaceManager::get()->isBattleMode())
     {
@@ -235,7 +288,7 @@ void PlayingRoom::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
     peer->sendPacket(reset, PRM_RELIABLE);
     delete reset;
 
-    updatePlayerList();
+    getLobby()->updatePlayerList();
 
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
@@ -419,7 +472,7 @@ void PlayingRoom::finishedLoadingLiveJoinClient(Event* event)
         // starting of race
         std::vector<std::shared_ptr<NetworkPlayerProfile> > players =
             getLivePlayers();
-        encodePlayers(ns, players, m_name_decorator);
+        encodePlayers(ns, players, getLobby()->getNameDecorator());
         for (unsigned i = 0; i < players.size(); i++)
             players[i]->getKartData().encode(ns);
     }
@@ -430,7 +483,7 @@ void PlayingRoom::finishedLoadingLiveJoinClient(Event* event)
 
     peer->sendPacket(ns, PRM_RELIABLE);
     delete ns;
-    updatePlayerList();
+    getLobby()->updatePlayerList();
     peer->updateLastActivity();
 }   // finishedLoadingLiveJoinClient
 
@@ -475,7 +528,7 @@ void PlayingRoom::startSelection(const Event *event)
             {
                 m_peers_ready.at(event->getPeerSP()) =
                     !m_peers_ready.at(event->getPeerSP());
-                updatePlayerList();
+                getLobby()->updatePlayerList();
                 return;
             }
         }
@@ -641,15 +694,7 @@ void PlayingRoom::startSelection(const Event *event)
 
     getSettings()->initializeDefaultVote();
 
-    if (getSettings()->isLegacyGPMode())
-    {
-        ProtocolManager::lock()->findAndTerminate(PROTOCOL_CONNECTION);
-        if (m_server_id_online.load() != 0)
-        {
-            unregisterServer(false/*now*/,
-                std::dynamic_pointer_cast<ServerLobby>(shared_from_this()));
-        }
-    }
+    getLobby()->unregisterServerForLegacyGPMode();
 
     startVotingPeriod(getSettings()->getVotingTimeout());
 
@@ -707,22 +752,10 @@ void PlayingRoom::startSelection(const Event *event)
                 always_spectate_peers.end();
             }, back_lobby, PRM_RELIABLE);
         delete back_lobby;
-        updatePlayerList();
+        getLobby()->updatePlayerList();
     }
 
-    if (getSettings()->isLegacyGPMode())
-    {
-        // Drop all pending players and keys if doesn't allow joinning-waiting
-        for (auto& p : m_pending_connection)
-        {
-            if (auto peer = p.first.lock())
-                peer->disconnect();
-        }
-        m_pending_connection.clear();
-        std::unique_lock<std::mutex> ul(m_keys_mutex);
-        m_keys.clear();
-        ul.unlock();
-    }
+    getLobby()->dropPendingConnectionsForLegacyGPMode();
 
     // Will be changed after the first vote received
     setInfiniteTimeout();
@@ -785,7 +818,7 @@ void PlayingRoom::handlePlayerVote(Event* event)
     addVote(event->getPeer()->getHostId(), vote);
 
     // After adding the vote, show decorated name instead
-    vote.m_player_name = event->getPeer()->getMainProfile()->getDecoratedName(m_name_decorator);
+    vote.m_player_name = event->getPeer()->getMainProfile()->getDecoratedName(getLobby()->getNameDecorator());
 
     // Now inform all clients about the vote
     NetworkString other = NetworkString(PROTOCOL_LOBBY_ROOM);
@@ -952,7 +985,7 @@ void PlayingRoom::clientInGameWantsToBackLobby(Event* event)
     reset->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_NONE);
     peer->sendPacket(reset, PRM_RELIABLE);
     delete reset;
-    updatePlayerList();
+    getLobby()->updatePlayerList();
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
@@ -1001,7 +1034,7 @@ void PlayingRoom::clientSelectingAssetsWantsToBackLobby(Event* event)
     reset->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_NONE);
     peer->sendPacket(reset, PRM_RELIABLE);
     delete reset;
-    updatePlayerList();
+    getLobby()->updatePlayerList();
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
@@ -1145,6 +1178,231 @@ int PlayingRoom::getCurrentStateScope()
         return CommandManager::StateScope::SS_LOBBY;
     return CommandManager::StateScope::SS_INGAME;
 }   // getCurrentStateScope
+//-----------------------------------------------------------------------------
+/*! \brief Called when a player asks to select karts.
+ *  \param event : Event providing the information.
+ */
+void PlayingRoom::kartSelectionRequested(Event* event)
+{
+    if (m_state != SELECTING /*|| m_game_setup->isGrandPrixStarted()*/)
+    {
+        Log::warn("PlayingRoom", "Received kart selection while in state %d.",
+                  m_state.load());
+        return;
+    }
+
+    if (!checkDataSize(event, 1) ||
+        event->getPeer()->getPlayerProfiles().empty())
+        return;
+
+    const NetworkString& data = event->data();
+    std::shared_ptr<STKPeer> peer = event->getPeerSP();
+    setPlayerKarts(data, peer);
+}   // kartSelectionRequested
+
+//-----------------------------------------------------------------------------
+void PlayingRoom::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const
+{
+    unsigned player_count = ns.getUInt8();
+    player_count = std::min(player_count, (unsigned)peer->getPlayerProfiles().size());
+    for (unsigned i = 0; i < player_count; i++)
+    {
+        std::string kart;
+        ns.decodeString(&kart);
+        std::string username = StringUtils::wideToUtf8(
+            peer->getPlayerProfiles()[i]->getName());
+        if (getKartElimination()->isEliminated(username))
+        {
+            peer->getPlayerProfiles()[i]->setKartName(getKartElimination()->getKart());
+            continue;
+        }
+        std::string current_kart = kart;
+        if (kart.find("randomkart") != std::string::npos ||
+                (kart.find("addon_") == std::string::npos &&
+                !getAssetManager()->isKartAvailable(kart)))
+        {
+            current_kart = "";
+        }
+        if (getQueues()->areKartFiltersIgnoringKarts())
+            current_kart = "";
+        std::string name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName());
+        peer->getPlayerProfiles()[i]->setKartName(
+                getAssetManager()->getKartForBadKartChoice(peer, name, current_kart));
+    }
+    if (peer->getClientCapabilities().find("real_addon_karts") ==
+        peer->getClientCapabilities().end() || ns.size() == 0)
+        return;
+    for (unsigned i = 0; i < player_count; i++)
+    {
+        KartData kart_data(ns);
+        std::string type = kart_data.m_kart_type;
+        auto& player = peer->getPlayerProfiles()[i];
+        const std::string& kart_id = player->getKartName();
+        setKartDataProperly(kart_data, kart_id, player, type);
+    }
+}   // setPlayerKarts
+
+//-----------------------------------------------------------------------------
+/** Decide where to put the live join player depends on his team and game mode.
+ */
+int PlayingRoom::getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
+                               unsigned local_id)
+{
+    const bool is_ffa =
+        RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL;
+    int red_count = 0;
+    int blue_count = 0;
+    for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+    {
+        RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
+        if (rki.isReserved())
+            continue;
+        bool disconnected = rki.disconnected();
+        if (RaceManager::get()->getKartInfo(i).getKartTeam() == KART_TEAM_RED &&
+            !disconnected)
+            red_count++;
+        else if (RaceManager::get()->getKartInfo(i).getKartTeam() ==
+            KART_TEAM_BLUE && !disconnected)
+            blue_count++;
+    }
+    KartTeam target_team = red_count > blue_count ? KART_TEAM_BLUE :
+        KART_TEAM_RED;
+
+    for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+    {
+        RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
+        std::shared_ptr<NetworkPlayerProfile> player =
+            rki.getNetworkPlayerProfile().lock();
+        if (!player)
+        {
+            if (is_ffa)
+            {
+                rki.copyFrom(p, local_id);
+                return i;
+            }
+            if (getSettings()->hasTeamChoosing())
+            {
+                if ((p->getTeam() == KART_TEAM_RED &&
+                    rki.getKartTeam() == KART_TEAM_RED) ||
+                    (p->getTeam() == KART_TEAM_BLUE &&
+                    rki.getKartTeam() == KART_TEAM_BLUE))
+                {
+                    rki.copyFrom(p, local_id);
+                    return i;
+                }
+            }
+            else
+            {
+                if (rki.getKartTeam() == target_team)
+                {
+                    getTeamManager()->setTeamInLobby(p, target_team);
+                    rki.copyFrom(p, local_id);
+                    return i;
+                }
+            }
+        }
+    }
+    return -1;
+}   // getReservedId
+
+//-----------------------------------------------------------------------------
+
+void PlayingRoom::setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+         std::shared_ptr<NetworkPlayerProfile> player,
+         const std::string& type) const
+{
+    // This should set kart data for kart name at least in the following cases:
+    // 1. useTuxHitboxAddon() is true
+    // 2. kart_name is installed on the server
+    // (for addons; standard karts are not processed here it seems)
+    // 3. kart type is fine
+    // Maybe I'm mistaken and then it should be fixed.
+    // I extracted this into a separate function because if kart_name is set
+    // by the server (for random addon kart, or due to a filter), kart data
+    // has to be set in another place than default one.
+    if (NetworkConfig::get()->useTuxHitboxAddon() &&
+        StringUtils::startsWith(kart_name, "addon_") &&
+        kart_properties_manager->hasKartTypeCharacteristic(type))
+    {
+        const KartProperties* real_addon =
+            kart_properties_manager->getKart(kart_name);
+        if (getSettings()->usesRealAddonKarts() && real_addon)
+        {
+            kart_data = KartData(real_addon);
+        }
+        else
+        {
+            const KartProperties* tux_kp =
+                kart_properties_manager->getKart("tux");
+            kart_data = KartData(tux_kp);
+            kart_data.m_kart_type = type;
+        }
+        player->setKartData(kart_data);
+    }
+}   // setKartDataProperly
+//-----------------------------------------------------------------------------
+void PlayingRoom::addWaitingPlayersToGame()
+{
+    auto all_profiles = STKHost::get()->getAllPlayerProfiles();
+    for (auto& profile : all_profiles)
+    {
+        auto peer = profile->getPeer();
+        if (!peer || !peer->isValidated())
+            continue;
+
+        peer->resetAlwaysSpectateFull();
+        peer->setWaitingForGame(false);
+        peer->setSpectator(false);
+        if (m_peers_ready.find(peer) == m_peers_ready.end())
+        {
+            m_peers_ready[peer] = false;
+            if (!getSettings()->hasSqlManagement())
+            {
+                Log::info("ServerLobby",
+                    "New player %s with online id %u from %s with %s.",
+                    StringUtils::wideToUtf8(profile->getName()).c_str(),
+                    profile->getOnlineId(),
+                    peer->getAddress().toString().c_str(),
+                    peer->getUserVersion().c_str());
+            }
+        }
+        getLobby()->addWaitingPlayersToRanking(profile);
+    }
+    // Re-activiate the ai
+    if (auto ai = m_ai_peer.lock())
+        ai->setValidated(true);
+}   // addWaitingPlayersToGame
+
+//-----------------------------------------------------------------------------
+void PlayingRoom::resetServer()
+{
+    addWaitingPlayersToGame();
+    resetPeersReady();
+    updatePlayerList(true/*update_when_reset_server*/);
+    NetworkString* server_info = getNetworkString();
+    server_info->setSynchronous(true);
+    server_info->addUInt8(LE_SERVER_INFO);
+    getGameSetupFromCtx()->addServerInfo(server_info);
+    Comm::sendMessageToPeersInServer(server_info);
+    delete server_info;
+
+    for (auto p : m_peers_ready)
+    {
+        if (auto peer = p.first.lock())
+            peer->updateLastActivity();
+    }
+
+    setup();
+    m_state = NetworkConfig::get()->isLAN() ?
+        WAITING_FOR_START_GAME : REGISTER_SELF_ADDRESS;
+
+    if (m_state.load() == WAITING_FOR_START_GAME)
+        if (m_reset_to_default_mode_later.exchange(false))
+            handleServerConfiguration(NULL);
+
+    updatePlayerList();
+}   // resetServer
+
 //-----------------------------------------------------------------------------
 /// ...
 /// ...

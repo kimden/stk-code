@@ -167,7 +167,7 @@ private:
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);
     // kart selection
-    void kartSelectionRequested(Event* event);
+    // void kartSelectionRequested(Event* event);
     // Track(s) votes
     // void handlePlayerVote(Event *event);
     // void playerFinishedResult(Event *event);
@@ -213,13 +213,13 @@ private:
     void computeNewRankings(NetworkString* ns);
     void checkRaceFinished();
     void configPeersStartTime();
-    void resetServer();
-    void addWaitingPlayersToGame();
+    // void resetServer();
+    // void addWaitingPlayersToGame();
     void changeHandicap(Event* event);
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
+    // void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
     bool handleAssets(Event* event);
 
     bool handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
@@ -229,8 +229,8 @@ private:
     void handleServerCommand(Event* event);
     // void rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason blr);
     // bool canLiveJoinNow() const;
-    int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
-                      unsigned local_id);
+    // int getReservedId(std::shared_ptr<NetworkPlayerProfile>& p,
+    //                   unsigned local_id);
     // void handleKartInfo(Event* event);
     // void clientInGameWantsToBackLobby(Event* event);
     // void clientSelectingAssetsWantsToBackLobby(Event* event);
@@ -285,6 +285,15 @@ public:
         std::shared_ptr<NetworkPlayerProfile> npp,
         STKPeer* peer);
 
+    std::shared_ptr<GenericDecorator> getNameDecorator() { return m_name_decorator; }
+
+    void unregisterServerForLegacyGPMode();
+
+    void dropPendingConnectionsForLegacyGPMode();
+
+    void addWaitingPlayersToRanking(
+            const std::shared_ptr<NetworkPlayerProfile>& npp);
+
     // int getPermissions(std::shared_ptr<STKPeer> peer) const;
     bool isSoccerGoalTarget() const;
 
@@ -295,9 +304,9 @@ public:
 
     bool areKartFiltersIgnoringKarts() const;
 
-    void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
-                             std::shared_ptr<NetworkPlayerProfile> player,
-                             const std::string& type) const;
+    // void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
+    //                          std::shared_ptr<NetworkPlayerProfile> player,
+    //                          const std::string& type) const;
 
     bool playerReportsTableExists() const;
 
