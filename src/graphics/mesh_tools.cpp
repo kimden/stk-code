@@ -92,7 +92,7 @@ void minMax3D(scene::IMesh* mesh, Vec3 *min, Vec3 *max)
         }
         else
         {
-            Log::warn("Tools", "minMax3D: Ignoring type '%d'!\n",
+            Log::warn("Tools", "minMax3D: Ignoring type '%d'!",
                       mb->getVertexType());
         }
     }  // for i<getMeshBufferCount

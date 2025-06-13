@@ -237,7 +237,7 @@ void LocalPlayerController::steer(int ticks, int steer_val)
 
     if(UserConfigParams::m_gamepad_debug)
     {
-        Log::debug("LocalPlayerController", "  set to: %f\n",
+        Log::debug("LocalPlayerController", "  set to: %f",
                    m_controls->getSteer());
     }
 }   // steer

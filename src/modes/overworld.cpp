@@ -259,7 +259,7 @@ void OverWorld::onFirePressed(Controller* who)
                 const ChallengeData* challenge = unlock_manager->getChallengeData(challenges[n].m_challenge_id);
                 if (challenge == NULL)
                 {
-                    Log::error("track", "Cannot find challenge named '%s'\n",
+                    Log::error("track", "Cannot find challenge named '%s'",
                         challenges[n].m_challenge_id.c_str());
                     continue;
                 }

@@ -60,7 +60,7 @@ namespace Scripting
         else if (msg->type == asMSGTYPE_INFORMATION)
             type = "INFO";
 
-        Log::warn("Scripting", "%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
+        Log::warn("Scripting", "%s (%d, %d) : %s : %s", msg->section, msg->row, msg->col, type, msg->message);
     }
 
 

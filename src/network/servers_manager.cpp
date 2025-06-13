@@ -463,7 +463,7 @@ std::vector<SocketAddress> ServersManager::getBroadcastAddresses(bool ipv6)
             u = (((u + (u >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;            
 
             Log::debug("ServerManager",
-                "Interface: %s\tAddress: %s\tmask: %x\n", p->ifa_name,
+                "Interface: %s\tAddress: %s\tmask: %x", p->ifa_name,
                 saddr.toString().c_str(), u);
             addAllBroadcastAddresses(saddr, u, &result);
         }

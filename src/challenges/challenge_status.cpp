@@ -38,7 +38,7 @@ void ChallengeStatus::load(const XMLNode* challenges_node)
     if(node == NULL)
     {
         Log::info("ChallengeStatus", "Couldn't find node <%s> in challenge list."
-                "(If this is the first time you play this is normal)\n",
+                "(If this is the first time you play this is normal)",
                 m_data->getChallengeId().c_str());
         return;
     }

@@ -706,7 +706,7 @@ void Material::initParticlesEffect(const XMLNode *node)
     if (base.size() < 1)
     {
         Log::warn("Material::initParticlesEffect"
-                  "Invalid particle settings for material '%s'\n",
+                  "Invalid particle settings for material '%s'",
                   m_texname.c_str());
         return;
     }
@@ -719,14 +719,14 @@ void Material::initParticlesEffect(const XMLNode *node)
         if (particles == NULL)
         {
             Log::warn("Material::initParticlesEffect",
-                      "Error loading particles '%s' for material '%s'\n",
+                      "Error loading particles '%s' for material '%s'",
                       base.c_str(), m_texname.c_str());
         }
     }
     catch (...)
     {
         Log::warn("Material::initParticlesEffect",
-                  "Cannot find particles '%s' for material '%s'\n",
+                  "Cannot find particles '%s' for material '%s'",
                   base.c_str(), m_texname.c_str());
         return;
     }

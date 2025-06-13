@@ -338,7 +338,7 @@ void RubberBall::init(const XMLNode &node, scene::IMesh *rubberball)
                   "No fast-ping-distance specified for basket ball.");
     if(m_st_fast_ping_distance < m_st_target_distance)
         Log::warn("powerup",
-                   "Ping-distance is smaller than target distance.\n"
+                   "Ping-distance is smaller than target distance."
                    "That should not happen, but is ignored for now.");
     if(!node.get("early-target-factor", &m_st_early_target_factor))
         Log::warn("powerup",

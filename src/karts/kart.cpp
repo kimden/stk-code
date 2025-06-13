@@ -2453,7 +2453,7 @@ void Kart::crashed(const Material *m, const Vec3 &normal)
             else
             {
                 Log::error("Kart","Unknown particles kind <%s> in material "
-                                "crash-reset properties\n", particles.c_str());
+                                "crash-reset properties", particles.c_str());
             }
         }
 #endif

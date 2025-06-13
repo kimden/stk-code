@@ -587,7 +587,7 @@ namespace StringUtils
                         if (insertValID >= all_vals.size())
                         {
                             Log::warn("StringUtils", "insertValues: "
-                                      "Invalid number of arguments in '%s'\n",
+                                      "Invalid number of arguments in '%s'",
                                       irr::core::stringc(s.c_str()).c_str());
                             new_string += "??";
                             new_string += sv[i].subString(2, sv[i].size()-2);
@@ -617,7 +617,7 @@ namespace StringUtils
                         if (index >= all_vals.size())
                         {
                             Log::warn("StringUtils", "insertValues: "
-                                      "Invalid argument ID in '%s' : %i\n",
+                                      "Invalid argument ID in '%s' : %i",
                                       irr::core::stringc(s.c_str()).c_str(),
                                       index);
                             new_string += "??";

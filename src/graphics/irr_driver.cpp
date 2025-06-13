@@ -422,10 +422,10 @@ void IrrDriver::initDevice()
             {
                 Log::warn("irr_driver",
                           "!!!!! Performance warning: Irrlicht compiled with "
-                          "debug mode.!!!!!\n");
+                          "debug mode.!!!!!");
                 Log::warn("irr_driver",
                           "!!!!! This can have a significant performance "
-                          "impact         !!!!!\n");
+                          "impact         !!!!!");
             }
 
         } // end if firstTime
@@ -552,7 +552,7 @@ begin:
         {
             if(UserConfigParams::logMisc())
                 Log::verbose("irr_driver", "Trying to create device with "
-                             "%i bits\n", bits);
+                             "%i bits", bits);
 
             params.DriverType    = driver_created;
             params.PrivateData   = NULL;
@@ -595,7 +595,7 @@ begin:
             default:
                 Log::error("irr_driver",
                            "[IrrDriver] WARNING: Invalid value for "
-                           "anti-alias setting : %i\n",
+                           "anti-alias setting : %i",
                            (int)UserConfigParams::m_antialiasing);
             }
             */
@@ -631,7 +631,7 @@ begin:
             if (m_device)
             {
                 Log::verbose("irr_driver", "An invalid resolution was set in "
-                             "the config file, reverting to saner values\n");
+                             "the config file, reverting to saner values");
             }
         }
     }
@@ -639,7 +639,7 @@ begin:
 
     if(!m_device)
     {
-        Log::fatal("irr_driver", "Couldn't initialise irrlicht device. Quitting.\n");
+        Log::fatal("irr_driver", "Couldn't initialise irrlicht device. Quitting.");
     }
     m_actual_screen_size = m_device->getVideoDriver()->getCurrentRenderTargetSize();
     UserConfigParams::m_width = m_actual_screen_size.Width;
@@ -709,7 +709,7 @@ begin:
 
         if(!m_device)
         {
-            Log::fatal("irr_driver", "Couldn't initialise irrlicht device. Quitting.\n");
+            Log::fatal("irr_driver", "Couldn't initialise irrlicht device. Quitting.");
         }
 
         GE::setVideoDriver(m_device->getVideoDriver());
@@ -1022,7 +1022,7 @@ bool IrrDriver::moveWindow(int x, int y)
     
     if (!success)
     {
-        Log::warn("irr_driver", "Could not set window location\n");
+        Log::warn("irr_driver", "Could not set window location");
         return false;
     }
 #endif
@@ -1223,7 +1223,7 @@ void IrrDriver::printRenderStats()
 {
     io::IAttributes * attr = m_scene_manager->getParameters();
     Log::verbose("irr_driver",
-           "[%ls], FPS:%3d Tri:%.03fm Cull %d/%d nodes (%d,%d,%d)\n",
+           "[%ls], FPS:%3d Tri:%.03fm Cull %d/%d nodes (%d,%d,%d)",
            m_video_driver->getName(),
            m_video_driver->getFPS (),
            (f32) m_video_driver->getPrimitiveCountDrawn( 0 ) * ( 1.f / 1000000.f ),
@@ -1253,7 +1253,7 @@ scene::IAnimatedMesh *IrrDriver::getAnimatedMesh(const std::string &filename)
                                          /*ignorePath*/true, io::EFAT_ZIP))
         {
             Log::error("irr_driver",
-                       "getMesh: Failed to open zip file <%s>\n",
+                       "getMesh: Failed to open zip file <%s>",
                        filename.c_str());
             return NULL;
         }
@@ -1289,7 +1289,7 @@ scene::IMesh *IrrDriver::getMesh(const std::string &filename)
     scene::IAnimatedMesh* am = getAnimatedMesh(filename);
     if (am == NULL)
     {
-        Log::error("irr_driver", "Cannot load mesh <%s>\n",
+        Log::error("irr_driver", "Cannot load mesh <%s>",
                    filename.c_str());
         return NULL;
     }

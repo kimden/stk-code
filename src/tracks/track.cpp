@@ -465,7 +465,7 @@ void Track::cleanup()
     if(UserConfigParams::logMemory())
     {
         Log::debug("track",
-              "[memory] After cleaning '%s': mesh cache %d texture cache %d\n",
+              "[memory] After cleaning '%s': mesh cache %d texture cache %d",
                 getIdent().c_str(),
                 irr_driver->getSceneManager()->getMeshCache()->getMeshCount(),
                 irr_driver->getVideoDriver()->getTextureCount());
@@ -481,7 +481,7 @@ void Track::cleanup()
                 m_old_mesh_buffers.erase(p);
             else
             {
-                Log::debug("track", "[memory] Leaked mesh buffer '%s'.\n",
+                Log::debug("track", "[memory] Leaked mesh buffer '%s'.",
                        name.getInternalName().c_str());
             }   // if name not found
         }   // for i < cache size
@@ -499,7 +499,7 @@ void Track::cleanup()
             }
             else
             {
-                Log::debug("track", "[memory] Leaked texture '%s'.\n",
+                Log::debug("track", "[memory] Leaked texture '%s'.",
                     t->getName().getInternalName().c_str());
             }
         }
@@ -654,7 +654,7 @@ void Track::loadTrackInfo()
     else if ( (m_is_arena || m_is_soccer) && !m_dont_load_navmesh)
     {
         Log::warn("Track", "NavMesh is not found for arena %s, "
-                  "disable AI for it.\n", m_name.c_str());
+                  "disable AI for it.", m_name.c_str());
     }
     if (m_is_soccer)
     {
@@ -706,7 +706,7 @@ void Track::getMusicInformation(std::vector<std::string>&       filenames,
             m_music.push_back(mi);
         else
             Log::warn("track",
-                      "Music information file '%s' not found for track '%s' - ignored.\n",
+                      "Music information file '%s' not found for track '%s' - ignored.",
                       filenames[i].c_str(), m_name.c_str());
 
     }   // for i in filenames
@@ -716,7 +716,7 @@ void Track::getMusicInformation(std::vector<std::string>&       filenames,
         m_music.push_back(STKConfig::get()->m_default_music);
 
         Log::warn("track",
-            "Music information for track '%s' replaced by default music.\n",
+            "Music information for track '%s' replaced by default music.",
             m_name.c_str());
     }
     if (!m_music.empty())
@@ -764,7 +764,7 @@ void Track::loadArenaGraph(const XMLNode &node)
 
     if(Graph::get()->getNumNodes()==0)
     {
-        Log::warn("track", "No graph nodes defined for track '%s'\n",
+        Log::warn("track", "No graph nodes defined for track '%s'",
                 m_filename.c_str());
     }
     else
@@ -818,12 +818,12 @@ void Track::loadDriveGraph(unsigned int mode_id, const bool reverse)
 
     if(DriveGraph::get()->getNumNodes()==0)
     {
-        Log::warn("track", "No graph nodes defined for track '%s'\n",
+        Log::warn("track", "No graph nodes defined for track '%s'",
                 m_filename.c_str());
         if (RaceManager::get()->getNumberOfKarts() > 1)
         {
             Log::fatal("track", "I can handle the lack of driveline in single"
-                "kart mode, but not with AIs\n");
+                "kart mode, but not with AIs");
         }
     }
     else
@@ -870,7 +870,7 @@ void Track::createPhysicsModel(unsigned int main_track_count,
     if (m_track_mesh == NULL)
     {
         Log::error("track",
-                   "m_track_mesh == NULL, cannot createPhysicsModel\n");
+                   "m_track_mesh == NULL, cannot createPhysicsModel");
         return;
     }
 
@@ -987,7 +987,7 @@ void Track::convertTrackToBullet(scene::ISceneNode *node,
             int type_as_int = node->getType();
             char* type = (char*)&type_as_int;
             Log::debug("track",
-                "[convertTrackToBullet] Unknown scene node type : %c%c%c%c.\n",
+                "[convertTrackToBullet] Unknown scene node type : %c%c%c%c.",
                    type[0], type[1], type[2], type[3]);
             return;
     }   // switch node->getType()
@@ -1010,7 +1010,7 @@ void Track::convertTrackToBullet(scene::ISceneNode *node,
             mb->getVertexType() != video::EVT_TANGENTS &&
             mb->getVertexType() != video::EVT_SKINNED_MESH)
         {
-            Log::warn("track", "convertTrackToBullet: Ignoring type '%d'!\n",
+            Log::warn("track", "convertTrackToBullet: Ignoring type '%d'!",
                 mb->getVertexType());
             continue;
         }
@@ -1289,7 +1289,7 @@ bool Track::loadMainTrack(const XMLNode &root)
     if(!mesh)
     {
         Log::fatal("track",
-                   "Main track model '%s' in '%s' not found, aborting.\n",
+                   "Main track model '%s' in '%s' not found, aborting.",
                    track_node->getName().c_str(), model_name.c_str());
     }
     scene::IAnimatedMesh* an_mesh = dynamic_cast<scene::IAnimatedMesh*>(mesh);
@@ -1402,7 +1402,7 @@ bool Track::loadMainTrack(const XMLNode &root)
         if(n->getName()!="static-object")
         {
             Log::error("track",
-                "Incorrect tag '%s' inside <model> of scene file - ignored\n",
+                "Incorrect tag '%s' inside <model> of scene file - ignored",
                     n->getName().c_str());
             continue;
         }
@@ -1450,7 +1450,7 @@ bool Track::loadMainTrack(const XMLNode &root)
             scene::IMesh *a_mesh = irr_driver->getMesh(full_path);
             if(!a_mesh)
             {
-                Log::error("track", "Object model '%s' not found, ignored.\n",
+                Log::error("track", "Object model '%s' not found, ignored.",
                            full_path.c_str());
                 continue;
             }
@@ -1488,7 +1488,7 @@ bool Track::loadMainTrack(const XMLNode &root)
                     c = unlock_manager->getChallengeData(challenge);
                     if (c == NULL)
                     {
-                        Log::error("track", "Cannot find challenge named <%s>\n",
+                        Log::error("track", "Cannot find challenge named <%s>",
                                    challenge.c_str());
                         scene_node->remove();
                         continue;
@@ -1508,7 +1508,7 @@ bool Track::loadMainTrack(const XMLNode &root)
                         Track* t = TrackManager::get()->getTrack(c->getTrackId());
                         if (t == NULL)
                         {
-                            Log::error("track", "Cannot find track named <%s>\n",
+                            Log::error("track", "Cannot find track named <%s>",
                                        c->getTrackId().c_str());
                             continue;
                         }
@@ -1577,7 +1577,7 @@ bool Track::loadMainTrack(const XMLNode &root)
 
     if (m_track_mesh == NULL)
     {
-        Log::fatal("track", "m_track_mesh == NULL, cannot loadMainTrack\n");
+        Log::fatal("track", "m_track_mesh == NULL, cannot loadMainTrack");
     }
 
     m_gfx_effect_mesh->createCollisionShape();
@@ -1615,7 +1615,7 @@ void Track::handleAnimatedTextures(scene::ISceneNode *node, const XMLNode &xml)
         if(name=="")
         {
             Log::error("track",
-                "Animated texture: no texture name specified for track '%s'\n",
+                "Animated texture: no texture name specified for track '%s'",
                  m_ident.c_str());
             continue;
         }
@@ -1807,7 +1807,7 @@ void Track::createWater(const XMLNode &node)
 
     if(!mesh || !scene_node)
     {
-        Log::error("track", "Water model '%s' in '%s' not found, ignored.\n",
+        Log::error("track", "Water model '%s' in '%s' not found, ignored.",
                     node.getName().c_str(), model_name.c_str());
         return;
     }
@@ -1889,7 +1889,7 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
     if(UserConfigParams::logMemory())
     {
         Log::debug("[memory] Before loading '%s': mesh cache %d "
-                   "texture cache %d\n",
+                   "texture cache %d",
             getIdent().c_str(),
             irr_driver->getSceneManager()->getMeshCache()->getMeshCount(),
             irr_driver->getVideoDriver()->getTextureCount());
@@ -2364,7 +2364,7 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
     if (UserConfigParams::logMemory())
     {
         Log::debug("track", "[memory] After loading  '%s': mesh cache %d "
-                   "texture cache %d\n", getIdent().c_str(),
+                   "texture cache %d", getIdent().c_str(),
                 irr_driver->getSceneManager()->getMeshCache()->getMeshCount(),
                 irr_driver->getVideoDriver()->getTextureCount());
     }
@@ -2768,7 +2768,7 @@ void Track::itemCommand(const XMLNode *node)
     if(!(RaceManager::get()->isEggHuntMode()) && type==Item::ITEM_EASTER_EGG)
     {
         Log::warn("track",
-                  "Found easter egg in non-easter-egg mode - ignored.\n");
+                  "Found easter egg in non-easter-egg mode - ignored.");
         return;
     }
 

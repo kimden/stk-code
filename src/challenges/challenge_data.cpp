@@ -81,7 +81,7 @@ ChallengeData::ChallengeData(const std::string& filename)
     if(!unlock_manager->isSupportedVersion(*this))
     {
         Log::warn("ChallengeData", "Challenge <%s> is older "
-                  "or newer than this version of STK, will be ignored.\n",
+                  "or newer than this version of STK, will be ignored.",
                   filename.c_str());
         return;
     }

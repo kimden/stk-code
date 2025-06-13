@@ -258,7 +258,7 @@ void ProfileWorld::enterRaceOverState()
     }
 
     // Print group statistics of all karts
-    Log::verbose("profile", "min %f  max %f  av %f\n",
+    Log::verbose("profile", "min %f  max %f  av %f",
                   min_t, max_t, av_t/m_karts.size());
 
     // Determine maximum length of group name
