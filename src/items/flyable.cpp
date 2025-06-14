@@ -664,58 +664,77 @@ void Flyable::moveToInfinity(bool set_moveable_trans)
 }   // moveToInfinity
 
 // ----------------------------------------------------------------------------
-BareNetworkString* Flyable::saveState(std::vector<std::string>* ru)
+
+FlyablePacket Flyable::saveState(std::vector<std::string>* ru)
 {
+    FlyablePacket packet;
+
     if (m_has_hit_something)
-        return NULL;
+        return packet;
 
     ru->push_back(getUniqueIdentity());
 
-    BareNetworkString* buffer = new BareNetworkString();
-    uint16_t ticks_since_thrown_animation = (m_ticks_since_thrown & 32767) |
-        (hasAnimation() ? 32768 : 0);
-    buffer->addUInt16(ticks_since_thrown_animation);
+    packet.ticks_since_thrown_animation =
+            (m_ticks_since_thrown & 32767) | (hasAnimation() ? 32768 : 0);
+
     if (m_do_terrain_info)
-        buffer->addUInt32(m_compressed_gravity_vector);
+        packet.compressed_gravity_vector = m_compressed_gravity_vector;
 
     if (hasAnimation())
-        m_animation->saveState(buffer);
+    {
+        AbstractKartAnimationPacket subpacket = m_animation->saveState();
+        packet.animation = subpacket;
+    }
     else
     {
-        CompressNetworkBody::compress(
-            m_body.get(), m_motion_state.get(), buffer);
+        packet.compressed_network_body = CompressNetworkBody::compress(
+                m_body.get(), m_motion_state.get());
     }
-    return buffer;
-}   // saveState
 
+    return packet;
+}   // saveState
 // ----------------------------------------------------------------------------
-void Flyable::restoreState(BareNetworkString *buffer, int count)
+
+void Flyable::restoreState(const FlyablePacket& packet, int count)
 {
-    uint16_t ticks_since_thrown_animation = buffer->getUInt16();
+    // kimden: nonvirtual: in which cases there can be nothing?
+    if (!packet.ticks_since_thrown_animation.has_value())
+        return;
+
+    uint16_t ticks_since_thrown_animation = packet.ticks_since_thrown_animation.get_value();
     bool has_animation_in_state =
         (ticks_since_thrown_animation >> 15 & 1) == 1;
+
     if (m_do_terrain_info)
-        m_compressed_gravity_vector = buffer->getUInt32();
+    {
+        // kimden: nonvirtual: what if there's no value
+        if (packet.compressed_gravity_vector.has_value())
+            m_compressed_gravity_vector = packet.compressed_gravity_vector.get_value();
+    }
 
     if (has_animation_in_state)
     {
+        // kimden: nonvirtual: what if there's no value
+        AbstractKartAnimationPacket subpacket;
+        if (packet.animation.has_value())
+            subpacket = packet.animation.get_value();
+
         // At the moment we only have cannon animation for rubber ball
         if (!m_animation)
         {
             try
             {
-                CannonAnimation* ca = new CannonAnimation(this, buffer);
+                CannonAnimation* ca = new CannonAnimation(this, subpacket);
                 setAnimation(ca);
             }
-            catch (const KartAnimationCreationException& kace)
+            catch (const std::exception& kace)
             {
                 Log::error("Flyable", "Kart animation creation error: %s",
                     kace.what());
-                buffer->skip(kace.getSkippingOffset());
             }
         }
         else
-            m_animation->restoreState(buffer);
+            m_animation->restoreState(subpacket);
     }
     else
     {
@@ -725,8 +744,14 @@ void Flyable::restoreState(BareNetworkString *buffer, int count)
             // will set m_animation to null
             delete m_animation;
         }
+
+        // kimden: nonvirtual: what if there's no value
+        CompressedNetworkBodyPacket subpacket;
+        if (packet.compressed_network_body.has_value())
+            subpacket = packet.compressed_network_body.get_value();
+
         CompressNetworkBody::decompress(
-            buffer, m_body.get(), m_motion_state.get());
+            subpacket, m_body.get(), m_motion_state.get());
         m_transform = m_body->getWorldTransform();
     }
     m_ticks_since_thrown = ticks_since_thrown_animation & 32767;

@@ -59,7 +59,7 @@ namespace CompressNetworkBody
      *  and server have similar state when saving state if you don't provoide
      *  bns.
      */
-    inline void compress(btRigidBody* body, btMotionState* ms,
+    inline CompressedNetworkBodyPacket compress(btRigidBody* body, btMotionState* ms,
                          BareNetworkString* bns = NULL)
     {
         float x = body->getWorldTransform().getOrigin().x();
@@ -75,29 +75,39 @@ namespace CompressNetworkBody
         short avz = toFloat16(body->getAngularVelocity().z());
         setCompressedValues(x, y, z, compressed_q, lvx, lvy, lvz, avx, avy,
             avz, body, ms);
-        // if bns is null, it's locally compress (for rounding values)
-        if (!bns)
-            return;
 
-        bns->addFloat(x).addFloat(y).addFloat(z).addUInt32(compressed_q);
-        bns->addUInt16(lvx).addUInt16(lvy).addUInt16(lvz)
-            .addUInt16(avx).addUInt16(avy).addUInt16(avz);
+        // if bns is null, it's locally compressed (for rounding values)
+        // in that case, we simply disregard the result, and before it returned NULL
+
+        CompressedNetworkBodyPacket packet;
+        packet.x = x;
+        packet.y = y;
+        packet.z = z;
+        packet.compressed_q = compressed_q;
+        packet.lvx = lvx;
+        packet.lvy = lvy;
+        packet.lvz = lvz;
+        packet.avx = avx;
+        packet.avy = avy;
+        packet.avz = avz;
+
+        return packet;
     }   // compress
     // ------------------------------------------------------------------------
     /* Called during rewind when restoring data from game state. */
-    inline void decompress(const BareNetworkString* bns,
+    inline void decompress(const CompressedNetworkBodyPacket& packet,
                            btRigidBody* body, btMotionState* ms)
     {
-        float x = bns->getFloat();
-        float y = bns->getFloat();
-        float z = bns->getFloat();
-        uint32_t compressed_q = bns->getUInt32();
-        short lvx = bns->getUInt16();
-        short lvy = bns->getUInt16();
-        short lvz = bns->getUInt16();
-        short avx = bns->getUInt16();
-        short avy = bns->getUInt16();
-        short avz = bns->getUInt16();
+        float x = packet.x;
+        float y = packet.y;
+        float z = packet.z;
+        uint32_t compressed_q = packet.compressed_q;
+        short lvx = packet.lvx;
+        short lvy = packet.lvy;
+        short lvz = packet.lvz;
+        short avx = packet.avx;
+        short avy = packet.avy;
+        short avz = packet.avz;
         setCompressedValues(x, y, z, compressed_q, lvx, lvy, lvz, avx, avy,
             avz, body, ms);
     }   // decompress

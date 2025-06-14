@@ -75,7 +75,7 @@ public:
      *  \param[out] ru The unique identity of rewinder writing to.
      *  \return The address of the memory buffer with the state.
      */
-    virtual BareNetworkString* saveState(std::vector<std::string>* ru) = 0;
+    virtual BareNetworkString* saveStateDeprecated(std::vector<std::string>* ru) = 0;
 
     /** Called when an event needs to be undone. This is called while going
      *  backwards for rewinding - all stored events will get an 'undo' call.

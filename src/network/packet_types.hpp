@@ -19,8 +19,25 @@
 #ifndef PACKET_TYPES_HPP
 #define PACKET_TYPES_HPP
 
-#include "network/network_string.hpp"
+// #include "network/network_string.hpp"
+// #include "network/protocol.hpp"
+#include "irrString.h"
+#include "network/protocols/game_event_types.hpp"
+#include "utils/cpp2011.hpp"
+#include "utils/types.hpp"
+#include "utils/vec3.hpp"
 
+enum KartTeam: int8_t;
+class NetworkString;
+class BareNetworkString;
+
+#include <memory>
+#include <functional>
+#include <string>
+#include <map>
+#include <vector>
+
+using widestr = irr::core::stringw;
 /**
  * IMPORTANT!
  * This class is meant to describe the overall structure of network packets
@@ -85,93 +102,201 @@ enum BackLobbyReason : uint8_t
     BLR_NO_GAME_FOR_LIVE_JOIN = 1,
     BLR_NO_PLACE_FOR_LIVE_JOIN = 2,
     BLR_ONE_PLAYER_IN_RANKED_MATCH = 3,
-    BLR_SERVER_ONWER_QUITED_THE_GAME = 4,
+    BLR_SERVER_OWNER_QUIT_THE_GAME = 4,
     BLR_SPECTATING_NEXT_GAME = 5
 };
+
+//---------------------- Basic packet definitions -----------------------------
+
+namespace
+{
+    const std::string SOCCER_FIXES = "soccer_fixes";
+    const std::string REAL_ADDON_KARTS = "real_addon_karts";
+}
+
+class Checkable
+{
+private:
+    uint32_t m_state = 0;
+public:
+    bool check(uint32_t which) const { return (m_state >> which) & 1; }
+    void set(uint32_t which, bool value)
+    {
+        if (value)
+            m_state |= (1 << which);
+        else
+            m_state &= ~(1 << which);
+    }
+};
+
+template<typename T>
+class Optional
+{
+private:
+    std::shared_ptr<T> m_pointer;
+
+public:
+    bool has_value() const                     { return m_pointer != nullptr; }
+    const T& get_value() const                           { return *m_pointer; }
+    void unset() const                                   { m_pointer.reset(); }
+    const T& operator = (const T& value)
+                      { m_pointer = std::make_shared<T>(value); return value; }
+
+    T get_or(const T& rhs) const
+                            { return m_pointer != nullptr ? *m_pointer : rhs; }
+};
+
+class Storage
+{
+public:
+    std::map<std::string, std::shared_ptr<void>> m_storage;
+
+    template<typename T>
+    void store(const std::string& key, const T& value)
+    {
+        m_storage[key] = std::static_pointer_cast<void>(std::make_shared<T>(value));
+    }
+
+    template<typename T>
+    T obtain(const std::string& key)
+    {
+        auto it = m_storage.find(key);
+        if (it == m_storage.end())
+            return T(); // exception?
+        
+        auto ptr = std::static_pointer_cast<T>(it->second);
+        if (!ptr)
+            return T(); // exception?
+        
+        return *ptr;
+    }
+};
+
+enum PacketTypeId: uint16_t;
+
+class Packet: public Checkable, public Storage
+{
+public:
+    std::function<bool(const std::string&)> m_capability_checker;
+
+    // Needed to dynamic_cast
+    virtual ~Packet() {}
+
+    // 0 = NONE, but I haven't declared it yet
+    virtual PacketTypeId packetTypeId() const { return (PacketTypeId)0; }
+    virtual void toNetworkString(NetworkString* ns) const                    {}
+    virtual void fromNetworkString(NetworkString* ns)                        {}
+    virtual unsigned expectedCapacity() const                     { return 0; }
+    bool cap(const std::string& name)    { return m_capability_checker(name); }
+
+    Optional<bool> m_override_synchronous;
+    Optional<bool> m_override_reliable;
+
+    Packet* parent = nullptr;
+};
+
+// temp
+constexpr int IDONT_KNOW = 0;
+constexpr bool UNUSED = false;
+
+
+//---------------------- Enum type id ---------------------------------------
+
+#define DEFINE_CLASS(Name) PTID_##Name, \
+
+#define DEFINE_DERIVED_CLASS(Name, Parent) PTID_##Name, \
+
+#define PROTOCOL_TYPE(Type, Sync)
+#define AUX_STORE(Key, Var)
+#define AUX_VAR(Type, Var)
+#define AUX_VAR_VALUE(Type, Var, Value)
+#define AUX_VAR_FROM_PARENT(Type, Key, Var)
+#define DEFINE_FIELD(Type, Var)
+#define DEFINE_FIELD16(Type, Var)
+#define DEFINE_FIELD_PTR(Type, Var)
+#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition)
+#define DEFINE_TYPE(Type, Var, Value)
+#define DEFINE_VECTOR(Type, Size, Var)
+#define DEFINE_VECTOR_PTR(Type, Size, Var)
+#define RELIABLE(Value)
+#define END_DEFINE_CLASS(Name)
+
+enum PacketTypeId: uint16_t
+{
+    PTID_NONE = 0,
+#include "network/packet_types_base.hpp"
+};
+
+#undef DEFINE_CLASS
+#undef DEFINE_DERIVED_CLASS
+#undef PROTOCOL_TYPE
+#undef AUX_STORE
+#undef AUX_VAR
+#undef AUX_VAR_VALUE
+#undef AUX_VAR_FROM_PARENT
+#undef DEFINE_FIELD
+#undef DEFINE_FIELD16
+#undef DEFINE_FIELD_PTR
+#undef DEFINE_TYPE
+#undef DEFINE_FIELD_OPTIONAL
+#undef DEFINE_VECTOR
+#undef DEFINE_VECTOR_PTR
+#undef RELIABLE
+#undef END_DEFINE_CLASS
 
 //---------------------- Initialization ---------------------------------------
 
 #define DEFINE_CLASS(Name) \
-struct Name { \
+class Name: public Packet { \
     public: \
-    void toNetworkString(NetworkString* ns) const; \
-    void fromNetworkString(NetworkString* ns);
+        virtual ~Name() {} \
+        virtual PacketTypeId packetTypeId() const OVERRIDE { return PTID_##Name; } \
+        virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
+        virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
-#define SYNCHRONOUS(Value) bool isSynchronous() { return Value; }
-#define DEFINE_FIELD(Type, Var) Type Var;
-#define DEFINE_FIXED_FIELD(Type, Var, Value) Type Var;
-#define DEFINE_VECTOR(Type, Size, Var) std::vector<Type> Var;
-#define END_DEFINE_CLASS(Name) };
+#define DEFINE_DERIVED_CLASS(Name, Parent) \
+class Name: public Parent { \
+    public: \
+        virtual ~Name() {} \
+        virtual PacketTypeId packetTypeId() const OVERRIDE { return PTID_##Name; } \
+        virtual void toNetworkString(NetworkString* ns) const OVERRIDE; \
+        virtual void fromNetworkString(NetworkString* ns) OVERRIDE;
 
-#include "network/packet_types_base.hpp"
-#undef DEFINE_CLASS
-#undef SYNCHRONOUS
-#undef DEFINE_FIELD
-#undef DEFINE_FIXED_FIELD
-#undef DEFINE_VECTOR
-#undef END_DEFINE_CLASS
-
-//---------------------- To NetworkString -------------------------------------
-
-#define DEFINE_CLASS(Name) \
-inline void Name::toNetworkString(NetworkString* ns) const \
-{ 
-
-#define SYNCHRONOUS(Value) \
-    ns->setSynchronous(Value);
-
-#define DEFINE_FIELD(Type, Var) \
-    ns->encode<Type>(Var);
-
-#define DEFINE_FIXED_FIELD(Type, Var, Value) \
-    ns->encode<Type>(Value);
-
-#define DEFINE_VECTOR(Type, Size, Value) \
-    for (unsigned Value##_cnt = 0; Value##_cnt < Size; ++Value##_cnt) { \
-        Value[Value##_cnt].toNetworkString(ns); \
-    }
-
-#define END_DEFINE_CLASS(Name) \
-}
+#define PROTOCOL_TYPE(Type, Sync)
+#define AUX_STORE(Key, Var)
+#define AUX_VAR(Type, Var)                          Type Var;
+#define AUX_VAR_VALUE(Type, Var, Value)             Type Var;
+#define AUX_VAR_FROM_PARENT(Type, Key, Var)         Type Var;
+#define DEFINE_FIELD(Type, Var)                     Type Var;
+#define DEFINE_FIELD16(Type, Var)                   Type Var;
+#define DEFINE_FIELD_PTR(Type, Var)                 std::shared_ptr<Type> Var;
+#define DEFINE_FIELD_OPTIONAL(Type, Var, Condition) Optional<Type> Var;
+#define DEFINE_TYPE(Type, Var, Value)               Type Var;
+#define DEFINE_VECTOR(Type, Size, Var)              std::vector<Type> Var;
+#define DEFINE_VECTOR_PTR(Type, Size, Var)          std::vector<std::shared_ptr<Type>> Var;
+#define RELIABLE(Value)
+#define END_DEFINE_CLASS(Name)                      };
 
 #include "network/packet_types_base.hpp"
 #undef DEFINE_CLASS
-#undef SYNCHRONOUS
+#undef DEFINE_DERIVED_CLASS
+#undef PROTOCOL_TYPE
+#undef AUX_STORE
+#undef AUX_VAR
+#undef AUX_VAR_VALUE
+#undef AUX_VAR_FROM_PARENT
 #undef DEFINE_FIELD
-#undef DEFINE_FIXED_FIELD
+#undef DEFINE_FIELD16
+#undef DEFINE_FIELD_PTR
+#undef DEFINE_TYPE
+#undef DEFINE_FIELD_OPTIONAL
 #undef DEFINE_VECTOR
+#undef DEFINE_VECTOR_PTR
+#undef RELIABLE
 #undef END_DEFINE_CLASS
 
-//---------------------- From NetworkString -----------------------------------
+/* Don't forget to send RELIABLE(Value) packets with PRM_RELIABLE or PRM_UNRELIABLE if false */
 
-#define DEFINE_CLASS(Name) \
-inline void Name::fromNetworkString(NetworkString* ns) \
-{ 
-
-#define SYNCHRONOUS(Value)
-
-#define DEFINE_FIELD(Type, Var) \
-    ns->decode<Type>(Var);
-
-#define DEFINE_FIXED_FIELD(Type, Var, Value)
-
-#define DEFINE_VECTOR(Type, Size, Var) \
-    Var.resize(Size); \
-    for (unsigned Var##_cnt = 0; Var##_cnt < Size; ++Var##_cnt) { \
-        Var[Var##_cnt].fromNetworkString(ns); \
-    }
-
-#define END_DEFINE_CLASS(Name) \
-}
-
-#include "network/packet_types_base.hpp"
-#undef DEFINE_CLASS
-#undef SYNCHRONOUS
-#undef DEFINE_FIELD
-#undef DEFINE_FIXED_FIELD
-#undef DEFINE_VECTOR
-#undef END_DEFINE_CLASS
-
-//---------------------- End --------------------------------------------------
+//---------------------- End ---------------------------------------
 
 #endif // PACKET_TYPES_HPP

@@ -32,9 +32,9 @@
 
 #include <line3d.h>
 
-class BareNetworkString;
 class AbstractKart;
 class LODNode;
+class ItemStatePacket;
 
 namespace irr
 {
@@ -145,9 +145,9 @@ protected:
 
 public:
     // ------------------------------------------------------------------------
-         ItemState(ItemType type, const AbstractKart *owner=NULL, int id = -1);
+    ItemState(ItemType type, const AbstractKart *owner=NULL, int id = -1);
     // ------------------------------------------------------------------------
-         ItemState(const BareNetworkString& buffer);
+    ItemState(const ItemStatePacket& packet);
     // ------------------------------------------------------------------------
     void initItem(ItemType type, const Vec3& xyz, const Vec3& normal);
     void update(int ticks);
@@ -266,7 +266,7 @@ public:
     /** Returns the type of this item. */
     ItemType getType() const { return m_type; }
     // ------------------------------------------------------------------------
-    ItemType getGrahpicalType() const;
+    ItemType getGraphicalType() const;
     // ------------------------------------------------------------------------
     /** Returns the original type of this item. */
     ItemType getOriginalType() const { return m_original_type; }
@@ -313,7 +313,7 @@ public:
         return m_original_rotation;
     }
     // ------------------------------------------------------------------------
-    void saveCompleteState(BareNetworkString* buffer) const;
+    ItemStatePacket saveCompleteState() const;
 };   // class ItemState
 
 // ============================================================================
