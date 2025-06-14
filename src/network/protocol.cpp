@@ -24,11 +24,7 @@
 #include "network/stk_peer.hpp"
 
 /** \brief Constructor
- *  Sets the basic protocol parameters, as the callback object and the
- *  protocol type.
- *  \param callback_object The callback object that will be used by the
- *          protocol. Protocols that do not use callback objects must set
- *          it to NULL.
+ *  Sets the protocol type.
  *  \param type The type of the protocol.
  */
 Protocol::Protocol(ProtocolType type)

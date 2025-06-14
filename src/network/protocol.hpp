@@ -51,31 +51,8 @@ enum ProtocolType
 };   // ProtocolType
 
 // ----------------------------------------------------------------------------
-/** \enum ProtocolState
- *  \brief Defines the three states that a protocol can have.
- */
-enum ProtocolState
-{
-    PROTOCOL_STATE_INITIALISING, //!< The protocol is waiting to be started
-    PROTOCOL_STATE_RUNNING,      //!< The protocol is being updated everytime.
-    PROTOCOL_STATE_PAUSED,       //!< The protocol is paused.
-    PROTOCOL_STATE_TERMINATED    //!< The protocol is terminated/does not exist.
-};   // ProtocolState
 
 class Protocol;
-
-// ============================================================================*
-/** \class CallbackObject
- *  \brief Class that must be inherited to pass objects to protocols.
- */
-class CallbackObject
-{
-public:
-             CallbackObject() {}
-    virtual ~CallbackObject() {}
-
-    virtual void callback(Protocol *protocol) = 0;
-};   // CallbackObject
 
 // ============================================================================
 /** \class Protocol
@@ -96,7 +73,7 @@ protected:
     /** True if this protocol should receive connection events. */
     bool m_handle_connections;
 
-    /** TRue if this protocol should recceiver disconnection events. */
+    /** True if this protocol should receive disconnection events. */
     bool m_handle_disconnections;
 public:
              Protocol(ProtocolType type);

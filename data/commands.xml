@@ -1223,6 +1223,13 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions="UP_HAMMER"
              state-scope="SS_ALWAYS"
     />
+    <command name="room"
+             usage="/room (username) (number 0+)"
+             permissions-verbose="hammers"
+             description="Allows to move a player to another lobby room"
+             permissions="UP_HAMMER"
+             state-scope="SS_LOBBY"
+    />             
     <command name="addondownloadprogress"
              usage="/addondownloadprogress"
              permissions-verbose="everyone (client command)"
