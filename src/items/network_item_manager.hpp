@@ -32,6 +32,8 @@
 class STKPeer;
 class NimCompleteStatePacket;
 
+#define nonvirtual
+
 /** \ingroup items
  *  The network item manager is responsible for handling all network related
  *  item manager tasks - synchronisation between clients and servers. It 
@@ -82,8 +84,7 @@ public:
                               const AbstractKart *kart,
                               const Vec3 *server_xyz = NULL,
                               const Vec3 *server_normal = NULL) OVERRIDE;
-    virtual BareNetworkString* saveState(std::vector<std::string>* ru)
-        OVERRIDE;
+    nonvirtual BareNetworkString* saveState(std::vector<std::string>* ru);
     virtual void restoreState(BareNetworkString *buffer, int count) OVERRIDE;
     // ------------------------------------------------------------------------
     virtual void rewindToEvent(BareNetworkString *bns) OVERRIDE {};

@@ -196,9 +196,9 @@ AbstractKartAnimationPacket AbstractKartAnimation::saveState()
 void AbstractKartAnimation::restoreBasicState(const AbstractKartAnimationPacket& packet)
 {
     m_created_ticks = packet.created_ticks;
-    m_created_transform_compressed[0] = packet.transform_compressed_0;
-    m_created_transform_compressed[1] = packet.transform_compressed_1;
-    m_created_transform_compressed[2] = packet.transform_compressed_2;
+    m_created_transform_compressed[0] = (uint32_t)packet.transform_compressed_0;
+    m_created_transform_compressed[1] = (uint32_t)packet.transform_compressed_1;
+    m_created_transform_compressed[2] = (uint32_t)packet.transform_compressed_2;
     m_created_transform_compressed[3] = packet.transform_compressed_3;
     m_created_transform =
         MiniGLM::decompressbtTransform(m_created_transform_compressed);

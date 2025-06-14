@@ -766,4 +766,27 @@ DEFINE_CLASS(AttachmentPacket)
     DEFINE_FIELD_OPTIONAL(PluginStatePacket, plugin, ((type >> 7) & 1) == 1)
 END_DEFINE_CLASS(AttachmentPacket)
 
+DEFINE_CLASS(CompressedNetworkBodyPacket)
+    DEFINE_FIELD(float, x)
+    DEFINE_FIELD(float, y)
+    DEFINE_FIELD(float, z)
+    DEFINE_FIELD(uint32_t, compressed_q)
+    DEFINE_FIELD(uint16_t, lvx)
+    DEFINE_FIELD(uint16_t, lvy)
+    DEFINE_FIELD(uint16_t, lvz)
+    DEFINE_FIELD(uint16_t, avx)
+    DEFINE_FIELD(uint16_t, avy)
+    DEFINE_FIELD(uint16_t, avz)
+END_DEFINE_CLASS(CompressedNetworkBodyPacket)
+
+DEFINE_CLASS(FlyablePacket)
+    // sometimes nothing???
+    DEFINE_FIELD_OPTIONAL(uint16_t, ticks_since_thrown_animation, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint32_t, compressed_gravity_vector, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(AbstractKartAnimationPacket, animation, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(CompressedNetworkBodyPacket, compressed_network_body, IHAVENOIDEA)
+END_DEFINE_CLASS(FlyablePacket)
+
+
+
 // end

@@ -354,11 +354,10 @@ void KartRewinder::restoreState(BareNetworkString *buffer, int count)
                     break;
                 }
             }
-            catch (const KartAnimationCreationException& kace)
+            catch (const std::exception& kace)
             {
                 Log::error("KartRewinder", "Kart animation creation error: %s",
                     kace.what());
-                buffer->skip(kace.getSkippingOffset());
                 m_kart_animation = NULL;
             }
         }

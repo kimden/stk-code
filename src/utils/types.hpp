@@ -41,7 +41,13 @@
     struct int24_t
     {
         uint32_t value;
-        operator uint32_t() { return value; }
+        operator uint32_t() const { return value; }
+
+        int24_t& operator = (uint32_t rhs)
+        {
+            value = rhs;
+            return *this;
+        }
     };
 
 #endif
