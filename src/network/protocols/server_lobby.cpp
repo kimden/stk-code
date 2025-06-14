@@ -329,6 +329,7 @@ void ServerLobby::setup()
     m_server_started_at = m_server_delay = 0;
     getCommandManager()->onServerSetup();
     m_game_info = {};
+
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -1068,6 +1069,8 @@ void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
+
+    peer->updateLastActivity();
 }   // rejectLiveJoin
 
 //-----------------------------------------------------------------------------
@@ -2636,6 +2639,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     peer->sendPacket(server_info);
     delete server_info;
 
+    peer->updateLastActivity();
+
     const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
     NetworkString* message_ack = getNetworkString(4);
     message_ack->setSynchronous(true);
@@ -3403,6 +3408,13 @@ void ServerLobby::resetServer()
     m_game_setup->addServerInfo(server_info);
     Comm::sendMessageToPeersInServer(server_info);
     delete server_info;
+
+    for (auto p : m_peers_ready)
+    {
+        if (auto peer = p.first.lock())
+            peer->updateLastActivity();
+    }
+
     setup();
     m_state = NetworkConfig::get()->isLAN() ?
         WAITING_FOR_START_GAME : REGISTER_SELF_ADDRESS;
@@ -3696,6 +3708,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     m_game_setup->addServerInfo(server_info);
     Comm::sendMessageToPeers(server_info);
     delete server_info;
+
     updatePlayerList();
 
     if (getKartElimination()->isEnabled() &&
@@ -4075,6 +4088,8 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
+
+    peer->updateLastActivity();
 }   // clientInGameWantsToBackLobby
 
 //-----------------------------------------------------------------------------
@@ -4123,6 +4138,8 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
+
+    peer->updateLastActivity();
 }   // clientSelectingAssetsWantsToBackLobby
 
 //-----------------------------------------------------------------------------
