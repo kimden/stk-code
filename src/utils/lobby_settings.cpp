@@ -198,7 +198,7 @@ bool LobbySettings::hasFixedLapCount() const
 }   // hasFixedLapCount
 //-----------------------------------------------------------------------------
 
-int LobbySettings::getMultiplier() const
+double LobbySettings::getMultiplier() const
 {
     return m_default_lap_multiplier;
 }   // getMultiplier

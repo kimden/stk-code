@@ -58,7 +58,7 @@ public:
     bool hasNoLapRestrictions() const;
     bool hasMultiplier() const;
     bool hasFixedLapCount() const;
-    int getMultiplier() const;
+    double getMultiplier() const;
     int getFixedLapCount() const;
     void setMultiplier(double new_value);
     void setFixedLapCount(int new_value);
