@@ -240,6 +240,9 @@ void OptionsScreenUI::init()
     assert(override_kart_color_with_tyre != NULL);
     override_kart_color_with_tyre->setState(UserConfigParams::m_override_kart_color_with_tyre);
 
+    GUIEngine::SpinnerWidget* tyre_selection_mode = getWidget<GUIEngine::SpinnerWidget>("tyre_selection_mode");
+    assert( tyre_selection_mode != NULL );
+    tyre_selection_mode->setValue(UserConfigParams::m_tyre_selection_mode);
 
     CheckBoxWidget* fps = getWidget<CheckBoxWidget>("showfps");
     assert( fps != NULL );
@@ -473,6 +476,12 @@ void OptionsScreenUI::eventCallback(Widget* widget, const std::string& name, con
         CheckBoxWidget* override_kart_color_with_tyre = getWidget<CheckBoxWidget>("override_kart_color_with_tyre");
         assert(override_kart_color_with_tyre != NULL);
         UserConfigParams::m_override_kart_color_with_tyre = override_kart_color_with_tyre->getState();
+    }
+    else if (name == "tyre_selection_mode")
+    {
+        GUIEngine::SpinnerWidget* tyre_selection_mode = getWidget<GUIEngine::SpinnerWidget>("tyre_selection_mode");
+        assert( tyre_selection_mode != NULL );
+        UserConfigParams::m_tyre_selection_mode = tyre_selection_mode->getValue();
     }
     else if (name == "showfps")
     {

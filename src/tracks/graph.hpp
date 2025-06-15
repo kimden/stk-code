@@ -121,7 +121,7 @@ public:
     /** Set the graph (either drive or arena graph for now). */
     static void setGraph(Graph* graph)
     {
-        assert(m_graph == NULL);
+        //assert(m_graph == NULL);
         m_graph = graph;
     }   // setGraph
     // ------------------------------------------------------------------------

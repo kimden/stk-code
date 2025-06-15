@@ -797,7 +797,7 @@ btQuaternion Track::getArenaStartRotation(const Vec3& xyz, float heading)
 /** Loads the drive graph, i.e. the definition of all quads, and the way
  *  they are connected to each other.
  */
-void Track::loadDriveGraph(unsigned int mode_id, const bool reverse)
+void Track::loadDriveGraph(unsigned int mode_id, const bool reverse, bool load_minimap)
 {
     new DriveGraph(m_root+m_all_modes[mode_id].m_quad_name,
         m_root+m_all_modes[mode_id].m_graph_name, reverse);
@@ -822,7 +822,7 @@ void Track::loadDriveGraph(unsigned int mode_id, const bool reverse)
                 "kart mode, but not with AIs\n");
         }
     }
-    else
+    else if (load_minimap)
     {
         loadMinimap();
     }
@@ -1956,7 +1956,7 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
     main_loop->renderGUI(3320);
 
     if (!m_is_arena && !m_is_soccer && !m_is_cutscene) 
-        loadDriveGraph(mode_id, reverse_track);
+        loadDriveGraph(mode_id, reverse_track, true);
     else if ((m_is_arena || m_is_soccer) && !m_is_cutscene && m_has_navmesh)
         loadArenaGraph(*root);
     main_loop->renderGUI(3340);

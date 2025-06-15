@@ -410,7 +410,6 @@ private:
     int m_actual_number_of_laps;
 
     void loadTrackInfo();
-    void loadDriveGraph(unsigned int mode_id, const bool reverse);
     void loadArenaGraph(const XMLNode &node);
     btQuaternion getArenaStartRotation(const Vec3& xyz, float heading);
     bool loadMainTrack(const XMLNode &node);
@@ -425,6 +424,7 @@ private:
     video::IImage* getSkyTexture(std::string path) const;
 public:
 
+    void loadDriveGraph(unsigned int mode_id, const bool reverse, bool load_minimap);
     /** Static function to get the current track. NULL if no current
      *  track is defined (i.e. no race is active atm) */
     static Track* getCurrentTrack()

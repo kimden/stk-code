@@ -605,6 +605,31 @@ void RaceManager::startNew(bool from_overworld)
     startNextRace();
 }   // startNew
 
+static int selectTyre(int tyre_selection_mode, float length) {
+    switch (tyre_selection_mode) {
+    case 0: // Random selection
+        return (rand() % 3) + 2;
+        break;
+    case 1: // Race distance based
+        if (length < 7500) {
+            return 2; // Soft tyre
+        } else if (length < 15000) {
+            return 3; // Medium tyre
+        } else {
+            return 4; // Hard tyre
+        }
+        break;
+    case 2: // Reserved
+        return 3; // Medium tyre
+    case 3: // Reserved
+        return 3; // Medium tyre
+        break;
+    default: // Fixed selection
+        return tyre_selection_mode - 3;
+        break;
+    }
+}
+
 //---------------------------------------------------------------------------------------------
 /** \brief Starts the next (or first) race.
  *  It sorts the kart status data structure
@@ -691,10 +716,18 @@ void RaceManager::startNextRace()
     {
         if (m_kart_status[i].m_kart_type == KT_AI)
         {
+            auto track = TrackManager::get()->getTrack(m_tracks[m_track_number]);
+            track->loadDriveGraph(0, getReverseTrack(), false);
+            float length = ((float)m_num_laps[m_track_number])*track->getTrackLength();
+            m_kart_status[i].m_starting_tyre = selectTyre(UserConfigParams::m_tyre_selection_mode, length);
+            
+            printf("Selected tyre %u for AI\n", m_kart_status[i].m_starting_tyre); 
+
             if (boosted_ai_count > 0 &&
                 (UserConfigParams::m_gp_most_points_first ||
                 ai_count == boosted_ai_count))
             {
+                
                 m_kart_status[i].m_boosted_ai = true;
                 boosted_ai_count--;
             }
