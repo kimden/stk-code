@@ -150,6 +150,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
 {
     m_client_server_host_id.store(0);
 
+    m_init_state = SET_PUBLIC_ADDRESS;
+
     m_lobby_context = std::make_shared<LobbyContext>(this, (bool)ServerConfig::m_soccer_tournament);
     m_lobby_context->setup();
     m_context = m_lobby_context.get();
@@ -237,8 +239,7 @@ bool ServerLobby::notifyEvent(Event* event)
     Log::info("ServerLobby", "Synchronous message of type %d received.",
               message_type);
 
-    auto peer = event->getPeerSP();
-    auto& room = m_rooms[peer->getRoomNumber()];
+    auto& room = getRoomForPeer(event->getPeerSP());
     
     switch (message_type)
     {
@@ -335,8 +336,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
         Log::info("ServerLobby", "Message of type %d received.",
                   message_type);
 
-        auto peer = event->getPeerSP();
-        auto& room = m_rooms[peer->getRoomNumber()];
+        auto& room = getRoomForPeer(event->getPeerSP());
 
         switch(message_type)
         {
@@ -2205,8 +2205,8 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
 
 void ServerLobby::updateServerOwner(bool force)
 {
-    ServerState state = m_state.load();
-    if (state < WAITING_FOR_START_GAME || state > RESULT_DISPLAY)
+    ServerInitState state = m_init_state.load();
+    if (state != RUNNING)
         return;
 
     if (getCrownManager()->isOwnerLess())
@@ -2321,6 +2321,15 @@ void ServerLobby::finishedLoadingWorld()
 }   // finishedLoadingWorld;
 
 //-----------------------------------------------------------------------------
+bool ServerLobby::waitingForPlayers() const
+{
+    if (getSettings()->isLegacyGPMode() && getSettings()->isLegacyGPModeStarted())
+        return false;
+
+    return m_init_state.load() >= RUNNING;
+}   // waitingForPlayers
+//-----------------------------------------------------------------------------
+
 void ServerLobby::handlePendingConnection()
 {
     std::lock_guard<std::mutex> lock(m_keys_mutex);
@@ -3220,4 +3229,96 @@ void ServerLobby::addWaitingPlayersToRanking(
         getRankingForPlayer(peer->getMainProfile());
     }
 }   // addWaitingPlayersToRanking
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::canIgnoreControllerEvents() const
+{
+    for (auto& room: m_rooms)
+    {
+        ServerPlayState state = room->getCurrentPlayState();
+        if (state >= ServerPlayState::WAIT_FOR_WORLD_LOADED &&
+            state <= ServerPlayState::RACING)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}   // canIgnoreControllerEvents
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::isPeerInGame(const std::shared_ptr<STKPeer>& peer) const
+{
+    auto room = getRoomForPeer(peer);
+    if (!room)
+    {
+        Log::warn("ServerLobby", "isPeerInGame: no room for peer??");
+        return false;
+    }
+
+    return room->getCurrentPlayState() > ServerPlayState::SELECTING
+            && !peer->isWaitingForGame();
+}   // isPeerInGame
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::hasAnyGameStarted() const
+{
+    for (auto& room: m_rooms)
+        if (room->getCurrentPlayState() != ServerPlayState::WAITING_FOR_START_GAME)
+            return true;
+    
+    return false;
+}   // hasAnyGameStarted
+//-----------------------------------------------------------------------------
+
+bool ServerLobby::isPastRegistrationPhase() const
+{
+    return getCurrentInitState() >= ServerInitState::RUNNING;
+}   // isPastRegistrationPhase
+//-----------------------------------------------------------------------------
+
+std::shared_ptr<PlayingRoom> ServerLobby::getRoomForPeer(const std::shared_ptr<STKPeer>& peer) const
+{
+    if (!peer)
+    {
+        Log::warn("ServerLobby", "getRoomForPeer: no peer??");
+        return {};
+    }
+
+    return getRoom(peer->getRoomNumber());
+}   // getRoomForPeer
+//-----------------------------------------------------------------------------
+
+std::shared_ptr<PlayingRoom> ServerLobby::getRoom(int idx) const
+{
+    if (idx < 0 || idx >= m_rooms.size())
+    {
+        Log::warn("ServerLobby", "getRoom: invalid room number %d of %d", idx, m_rooms.size());
+        return {};
+    }
+
+    return m_rooms[idx];
+}   // getRoom
+//-----------------------------------------------------------------------------
+
+int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
+{
+    auto room = getRoomForPeer(peer);
+    if (!room)
+    {
+        Log::warn("ServerLobby", "getPermissions: invalid room, cannot get permissions for peer");
+        return PE_NONE;
+    }
+
+    return room->getPermissions(peer);
+}   // SL::getPermissions
+//-----------------------------------------------------------------------------
+
+void ServerLobby::resetServerToRSA()
+{
+    if (!NetworkConfig::get()->isLAN())
+        m_init_state.store(REGISTER_SELF_ADDRESS);
+    // I'm not sure I should do anything otherwise (setting state to RUNNING?)
+
+}   // resetServerToRSA
 //-----------------------------------------------------------------------------

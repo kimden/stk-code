@@ -22,6 +22,7 @@
 #include "network/server_enums.hpp"
 #include "utils/lobby_context.hpp"
 #include "network/packet_types.hpp"
+#include "network/kart_data.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -39,10 +40,8 @@ class NetworkItemManager;
 
 class PlayingRoom: public LobbyContextUser
 {
-public:
-
 private:
-    std::atomic<ServerState> m_state;
+    std::atomic<ServerPlayState> m_play_state;
 
     std::atomic<ResetState> m_rs_state;
 
@@ -138,8 +137,8 @@ public:
     PlayingRoom();
     ~PlayingRoom();
     void setup();
-    ServerState getCurrentState() const { return m_state.load(); }
-    bool isRacing() const                  { return m_state.load() == RACING; }
+    ServerPlayState getCurrentPlayState() const      { return m_play_state.load(); }
+    bool isRacing() const                  { return m_play_state.load() == RACING; }
     int getDifficulty() const                   { return m_difficulty.load(); }
     int getGameMode() const                      { return m_game_mode.load(); }
     int getLobbyPlayers() const              { return m_lobby_players.load(); }
@@ -150,15 +149,14 @@ public:
     }
     void erasePeerReady(std::shared_ptr<STKPeer> peer)
                                                  { m_peers_ready.erase(peer); }
-    bool isWorldPicked() const         { return m_state.load() >= LOAD_WORLD; }
-    bool isWorldFinished() const   { return m_state.load() >= RESULT_DISPLAY; }
-    bool isStateAtLeastRacing() const      { return m_state.load() >= RACING; }
+    bool isWorldPicked() const         { return m_play_state.load() >= LOAD_WORLD; }
+    bool isWorldFinished() const   { return m_play_state.load() >= RESULT_DISPLAY; }
+    bool isStateAtLeastRacing() const      { return m_play_state.load() >= RACING; }
     std::shared_ptr<GameInfo> getGameInfo() const       { return m_game_info; }
     std::shared_ptr<STKPeer> getServerOwner() const
                                               { return m_server_owner.lock(); }
-    void doErrorLeave()                         { m_state.store(ERROR_LEAVE); }
     bool isWaitingForStartGame() const
-                           { return m_state.load() == WAITING_FOR_START_GAME; }
+                           { return m_play_state.load() == WAITING_FOR_START_GAME; }
 
 public: // were public before and SL doesn't call them
 
@@ -172,7 +170,6 @@ public: // were public before and SL doesn't call them
     int getCurrentStateScope();
     void resetToDefaultSettings();
     void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
-    bool waitingForPlayers() const;
     void setKartDataProperly(KartData& kart_data, const std::string& kart_name,
                              std::shared_ptr<NetworkPlayerProfile> player,
                              const std::string& type) const;

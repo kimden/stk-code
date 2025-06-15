@@ -125,8 +125,7 @@ void ChildLoop::run()
         if (m_port == 0 && STKHost::existHost())
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
-            if (sl &&
-                sl->getCurrentState() >= ServerState::WAITING_FOR_START_GAME)
+            if (sl && sl->isPastRegistrationPhase())
             {
                 m_port = STKHost::get()->getPrivatePort();
                 m_server_online_id = sl->getServerIdOnline();

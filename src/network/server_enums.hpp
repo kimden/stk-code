@@ -20,10 +20,8 @@
 #define SERVER_ENUMS_HPP
 
 /* The state for a small finite state machine. */
-enum ServerState : unsigned int
+enum ServerPlayState : unsigned int
 {
-    SET_PUBLIC_ADDRESS,       // Waiting to receive its public ip address
-    REGISTER_SELF_ADDRESS,    // Register with STK online server
     WAITING_FOR_START_GAME,   // In lobby, waiting for (auto) start game
     SELECTING,                // kart, track, ... selection started
     LOAD_WORLD,               // Server starts loading world
@@ -32,8 +30,15 @@ enum ServerState : unsigned int
     RACING,                   // racing
     WAIT_FOR_RACE_STOPPED,    // Wait server for stopping all race protocols
     RESULT_DISPLAY,           // Show result screen
+};
+
+enum ServerInitState : unsigned int
+{
+    SET_PUBLIC_ADDRESS,       // Waiting to receive its public ip address
+    REGISTER_SELF_ADDRESS,    // Register with STK online server
+    RUNNING,                  // Normal functioning
     ERROR_LEAVE,              // shutting down server
-    EXITING
+    EXITING,
 };
 
 enum SelectionPhase: unsigned int

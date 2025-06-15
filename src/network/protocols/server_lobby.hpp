@@ -74,6 +74,8 @@ class ServerLobby : public LobbyProtocol, public LobbyContextUser
 {
 private:
 
+    std::atomic<ServerInitState> m_init_state;
+
 #ifdef ENABLE_SQLITE3
     void pollDatabase();
 #endif
@@ -114,8 +116,7 @@ private:
 #define Reworking "This method was moved to PlayingRoom but is still used for ServerLobby. This has to be changed,"
 
 public:
-    [[deprecated(Reworking)]]
-    ServerState getCurrentState() const { return m_rooms[0]->getCurrentState(); }
+    ServerInitState getCurrentInitState() const { return m_init_state.load(); }
 
     [[deprecated(Reworking)]]
     virtual bool isRacing() const OVERRIDE { return m_rooms[0]->isRacing(); }
@@ -151,12 +152,7 @@ public:
     std::shared_ptr<STKPeer> getServerOwner() const
                                               { return m_rooms[0]->getServerOwner(); }
 
-    [[deprecated(Reworking)]]
-    void doErrorLeave()
-    {
-        for (auto& room: m_rooms)
-            room->doErrorLeave();
-    }
+    void doErrorLeave()                         { m_init_state.store(ERROR_LEAVE); }
 
     [[deprecated(Reworking)]]
     bool isWaitingForStartGame() const { return m_rooms[0]->isWaitingForStartGame(); }
@@ -262,7 +258,7 @@ public:
     void checkIncomingConnectionRequests();
     void finishedLoadingWorld() OVERRIDE;
     void updateBanList();
-    // bool waitingForPlayers() const;
+    bool waitingForPlayers() const;
     float getStartupBoostOrPenaltyForKart(uint32_t ping, unsigned kart_id);
     // void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
     void saveIPBanTable(const SocketAddress& addr);
@@ -317,6 +313,16 @@ public:
     bool isChildProcess()                { return m_process_type == PT_CHILD; }
 
     bool isClientServerHost(const std::shared_ptr<STKPeer>& peer);
+    bool canIgnoreControllerEvents() const;
+    bool isPeerInGame(const std::shared_ptr<STKPeer>& peer) const;
+    bool hasAnyGameStarted() const;
+    bool isPastRegistrationPhase() const;
+
+    std::shared_ptr<PlayingRoom> getRoomForPeer(const std::shared_ptr<STKPeer>& peer) const;
+    std::shared_ptr<PlayingRoom> getRoom(int idx) const;
+
+    int getPermissions(std::shared_ptr<STKPeer> peer) const;
+    void resetServerToRSA();
 
     //-------------------------------------------------------------------------
     // More auxiliary functions

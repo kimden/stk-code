@@ -132,7 +132,6 @@ namespace
     }   // getLivePlayers
     //-------------------------------------------------------------------------
 
-    
 }   // namespace
 //=============================================================================
 
@@ -142,7 +141,7 @@ PlayingRoom::PlayingRoom()
     m_current_ai_count.store(0);
     m_rs_state.store(RS_NONE);
     m_server_owner_id.store(-1);
-    m_state = SET_PUBLIC_ADDRESS;
+    m_play_state = WAITING_FOR_START_GAME;
     m_items_complete_state = new BareNetworkString();
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
@@ -498,11 +497,11 @@ void PlayingRoom::startSelection(const Event *event)
     
     if (event != NULL)
     {
-        if (m_state.load() != WAITING_FOR_START_GAME)
+        if (m_play_state.load() != WAITING_FOR_START_GAME)
         {
             Log::warn("ServerLobby",
                 "Received startSelection while being in state %d.",
-                m_state.load());
+                m_play_state.load());
             return;
         }
         if (getCrownManager()->isSleepingServer())
@@ -739,7 +738,7 @@ void PlayingRoom::startSelection(const Event *event)
             Comm::sendStringToPeer(peer, "The server will ignore your kart choice");
     }
 
-    m_state = SELECTING;
+    m_play_state = SELECTING;
     if (need_to_update || !always_spectate_peers.empty())
     {
         NetworkString* back_lobby = getNetworkString(2);
@@ -772,10 +771,10 @@ void PlayingRoom::startSelection(const Event *event)
  */
 void PlayingRoom::handlePlayerVote(Event* event)
 {
-    if (m_state != SELECTING || !getSettings()->hasTrackVoting())
+    if (m_play_state != SELECTING || !getSettings()->hasTrackVoting())
     {
         Log::warn("ServerLobby", "Received track vote while in state %d.",
-                  m_state.load());
+                  m_play_state.load());
         return;
     }
 
@@ -850,19 +849,11 @@ void PlayingRoom::finishedLoadingWorldClient(Event *event)
 void PlayingRoom::playerFinishedResult(Event *event)
 {
     if (m_rs_state.load() == RS_ASYNC_RESET ||
-        m_state.load() != RESULT_DISPLAY)
+        m_play_state.load() != RESULT_DISPLAY)
         return;
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
     m_peers_ready.at(peer) = true;
 }   // playerFinishedResult
-
-//-----------------------------------------------------------------------------
-bool PlayingRoom::waitingForPlayers() const
-{
-    if (getSettings()->isLegacyGPMode() && getSettings()->isLegacyGPModeStarted())
-        return false;
-    return m_state.load() >= WAITING_FOR_START_GAME;
-}   // waitingForPlayers
 
 //-----------------------------------------------------------------------------
 /** Tell the client \ref RemoteKartInfo of a player when some player joining
@@ -1003,7 +994,7 @@ void PlayingRoom::clientSelectingAssetsWantsToBackLobby(Event* event)
 {
     std::shared_ptr<STKPeer> peer = event->getPeerSP();
 
-    if (m_state.load() != SELECTING || peer->isWaitingForGame())
+    if (m_play_state.load() != SELECTING || peer->isWaitingForGame())
     {
         Log::warn("ServerLobby",
             "%s try to leave selecting assets at wrong time.",
@@ -1091,7 +1082,7 @@ void PlayingRoom::resetToDefaultSettings()
 {
     if (getSettings()->isServerConfigurable() && !getSettings()->isPreservingMode())
     {
-        if (m_state == WAITING_FOR_START_GAME)
+        if (m_play_state == WAITING_FOR_START_GAME)
             handleServerConfiguration(NULL);
         else
             m_reset_to_default_mode_later.store(true);
@@ -1170,7 +1161,7 @@ int PlayingRoom::getPermissions(std::shared_ptr<STKPeer> peer) const
 
 int PlayingRoom::getCurrentStateScope()
 {
-    auto state = m_state.load();
+    auto state = m_play_state.load();
     if (state < WAITING_FOR_START_GAME
         || state > RESULT_DISPLAY)
         return 0;
@@ -1184,10 +1175,10 @@ int PlayingRoom::getCurrentStateScope()
  */
 void PlayingRoom::kartSelectionRequested(Event* event)
 {
-    if (m_state != SELECTING /*|| m_game_setup->isGrandPrixStarted()*/)
+    if (m_play_state != SELECTING /*|| m_game_setup->isGrandPrixStarted()*/)
     {
         Log::warn("PlayingRoom", "Received kart selection while in state %d.",
-                  m_state.load());
+                  m_play_state.load());
         return;
     }
 
@@ -1374,11 +1365,13 @@ void PlayingRoom::addWaitingPlayersToGame()
 }   // addWaitingPlayersToGame
 
 //-----------------------------------------------------------------------------
+
 void PlayingRoom::resetServer()
 {
     addWaitingPlayersToGame();
     resetPeersReady();
     updatePlayerList(true/*update_when_reset_server*/);
+
     NetworkString* server_info = getNetworkString();
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
@@ -1393,16 +1386,21 @@ void PlayingRoom::resetServer()
     }
 
     setup();
-    m_state = NetworkConfig::get()->isLAN() ?
-        WAITING_FOR_START_GAME : REGISTER_SELF_ADDRESS;
 
-    if (m_state.load() == WAITING_FOR_START_GAME)
-        if (m_reset_to_default_mode_later.exchange(false))
-            handleServerConfiguration(NULL);
+    // kimden: Before, the state was unified and it was set to REGISTER_SELF_ADDRESS
+    // for WAN server, and to WAITING_FOR_START_GAME for LAN. For now, I'm not really
+    // sure why. Some issues might arise.
+    
+    m_play_state = WAITING_FOR_START_GAME;
+    getLobby()->resetServerToRSA();
+
+    // The above also means I always call handleServerConfiguration() now,
+    // and not only for LAN servers.
+    if (m_reset_to_default_mode_later.exchange(false))
+        handleServerConfiguration(NULL);
 
     updatePlayerList();
 }   // resetServer
-
 //-----------------------------------------------------------------------------
 /// ...
 /// ...
@@ -1457,8 +1455,8 @@ float PlayingRoom::getTimeUntilExpiration() const
 
 void PlayingRoom::onSpectatorStatusChange(const std::shared_ptr<STKPeer>& peer)
 {
-    auto state = m_state.load();
-    if (state >= ServerState::SELECTING && state < ServerState::RACING)
+    auto state = m_play_state.load();
+    if (state >= ServerPlayState::SELECTING && state < ServerPlayState::RACING)
     {
         erasePeerReady(peer);
         peer->setWaitingForGame(true);

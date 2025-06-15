@@ -898,11 +898,8 @@ void STKHost::mainLoop(ProcessType pt)
                         {
                             player_name = p.second->getMainName();
                         }
-                        const bool peer_not_in_game =
-                            sl->getCurrentState() <= ServerState::SELECTING
-                            || p.second->isWaitingForGame();
                         if (ServerConfig::m_kick_high_ping_players &&
-                            !p.second->isDisconnected() && peer_not_in_game)
+                            !p.second->isDisconnected() && !sl->isPeerInGame(p.second))
                         {
                             Log::info("STKHost", "%s %s with ping %d is higher"
                                 " than %d ms when not in game, kick.",
@@ -1265,9 +1262,7 @@ void STKHost::handleDirectSocketRequest(Network* direct_socket,
         s.addUInt8((uint8_t)sl->getDifficulty());
         s.addUInt8((uint8_t)sl->getGameMode());
         s.addUInt8(!pw.empty());
-        s.addUInt8((uint8_t)
-            (sl->getCurrentState() == ServerState::WAITING_FOR_START_GAME ?
-            0 : 1));
+        s.addUInt8((uint8_t)(sl->hasAnyGameStarted() ? 1 : 0));
         s.encodeString(sl->getPlayingTrackIdent());
         direct_socket->sendRawPacket(s, sender);
     }   // if message is server-requested
