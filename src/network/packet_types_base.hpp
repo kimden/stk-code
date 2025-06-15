@@ -787,6 +787,39 @@ DEFINE_CLASS(FlyablePacket)
     DEFINE_FIELD_OPTIONAL(CompressedNetworkBodyPacket, compressed_network_body, IHAVENOIDEA)
 END_DEFINE_CLASS(FlyablePacket)
 
+DEFINE_CLASS(RubberBallPacket)
+    // sometimes nothing, depends on the same condition for FlyablePacket
+    DEFINE_FIELD_OPTIONAL(FlyablePacket, flyable_packet, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint16_t, last_aimed_graph_node, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_0, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_1, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_2, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_3, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, previous_xyz, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, previous_height, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, length_cp_1_2, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, length_cp_2_3, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, t, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, t_increase, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, interval, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, height_timer, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint16_t, delete_ticks, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, current_max_height, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint8_t, properties, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(TrackSectorSmallPacket, track_sector, IHAVENOIDEA)
+END_DEFINE_CLASS(RubberBallPacket)
+
+DEFINE_CLASS(PlungerPacket)
+    // sometimes nothing, depends on the same condition for FlyablePacket
+    DEFINE_FIELD_OPTIONAL(FlyablePacket, flyable_packet, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint16_t, keep_alive, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint8_t, rubber_band_state, IHAVENOIDEA)
+END_DEFINE_CLASS(PlungerPacket)
+
+
+
+
+
 
 
 // end

@@ -61,14 +61,14 @@ CannonAnimation::CannonAnimation(AbstractKart* kart, CheckCannon* cc,
 // ----------------------------------------------------------------------------
 /** The constructor for the cannon animation for kart during rewind.
  */
-CannonAnimation::CannonAnimation(AbstractKart* kart, BareNetworkString* buffer)
+CannonAnimation::CannonAnimation(AbstractKart* kart, const AbstractKartAnimationPacket& packet)
                : AbstractKartAnimation(kart, "CannonAnimation")
 {
-    restoreBasicState(buffer);
+    restoreBasicState(packet);
     m_check_cannon = NULL;
     m_flyable = NULL;
     m_skid_rot = 0;
-    restoreData(buffer);
+    restoreData(packet);
 }   // CannonAnimation
 
 // ----------------------------------------------------------------------------
@@ -89,14 +89,14 @@ CannonAnimation::CannonAnimation(Flyable* flyable, CheckCannon* cc)
 // ----------------------------------------------------------------------------
 /** The constructor for the cannon animation for flyable during rewind.
  */
-CannonAnimation::CannonAnimation(Flyable* flyable, BareNetworkString* buffer)
+CannonAnimation::CannonAnimation(Flyable* flyable, const AbstractKartAnimationPacket& packet)
                : AbstractKartAnimation(NULL, "CannonAnimation")
 {
     m_flyable = flyable;
-    restoreBasicState(buffer);
+    restoreBasicState(packet);
     m_check_cannon = NULL;
     m_skid_rot = 0;
-    restoreData(buffer);
+    restoreData(packet);
 }   // CannonAnimation
 
 // ----------------------------------------------------------------------------

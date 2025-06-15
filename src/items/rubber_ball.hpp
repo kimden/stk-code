@@ -224,9 +224,9 @@ public:
      *  karts are handled by this hit() function. */
     //virtual HitEffect *getHitEffect() const {return NULL; }
     // ------------------------------------------------------------------------
-    nonvirtual BareNetworkString* saveState(std::vector<std::string>* ru);
+    nonvirtual RubberBallPacket saveState(std::vector<std::string>* ru);
     // ------------------------------------------------------------------------
-    virtual void restoreState(BareNetworkString *buffer, int count) OVERRIDE;
+    nonvirtual void restoreState(const RubberBallPacket& packet, int count);
     // ------------------------------------------------------------------------
     virtual void onFireFlyable() OVERRIDE;
 

@@ -75,7 +75,8 @@ public:
      *  \param[out] ru The unique identity of rewinder writing to.
      *  \return The address of the memory buffer with the state.
      */
-    virtual BareNetworkString* saveStateDeprecated(std::vector<std::string>* ru) = 0;
+    // kimden: nonvirtual: temporary non-0
+    virtual BareNetworkString* saveStateDeprecated(std::vector<std::string>* ru) {};
 
     /** Called when an event needs to be undone. This is called while going
      *  backwards for rewinding - all stored events will get an 'undo' call.
@@ -91,7 +92,8 @@ public:
      *  rewind, i.e. when going forward in time again, and only for confirmed
      *  states.
      */
-    virtual void restoreState(BareNetworkString *buffer, int count) = 0;
+    // kimden: nonvirtual: temporary non-0
+    virtual void restoreStateDeprecated(BareNetworkString *buffer, int count) {};
 
     /** Undo the effects of the given state, but do not rewind to that
      *  state (which is done by rewindTo). This is called while going

@@ -85,7 +85,7 @@ public:
                               const Vec3 *server_xyz = NULL,
                               const Vec3 *server_normal = NULL) OVERRIDE;
     nonvirtual BareNetworkString* saveState(std::vector<std::string>* ru);
-    virtual void restoreState(BareNetworkString *buffer, int count) OVERRIDE;
+    nonvirtual void restoreState(BareNetworkString *buffer, int count);
     // ------------------------------------------------------------------------
     virtual void rewindToEvent(BareNetworkString *bns) OVERRIDE {};
     // ------------------------------------------------------------------------
