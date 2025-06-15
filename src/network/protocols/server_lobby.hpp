@@ -212,9 +212,9 @@ private:
     // void resetServer();
     // void addWaitingPlayersToGame();
     void changeHandicap(Event* event);
-    void handlePlayerDisconnection() const;
-    void addLiveJoinPlaceholder(
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
+    // void handlePlayerDisconnection() const;
+    // void addLiveJoinPlaceholder(
+    //     std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
     // void setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPeer> peer) const;
     bool handleAssets(Event* event);
 

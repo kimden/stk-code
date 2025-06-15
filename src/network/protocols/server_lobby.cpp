@@ -906,6 +906,9 @@ void ServerLobby::asynchronousUpdate()
  *  is known, register the server and its address with the stk server so that
  *  client can find it.
  */
+
+// kimden: Sounds like a thing to not be done here.....
+
 void ServerLobby::update(int ticks)
 {
     World* w = World::getWorld();
@@ -1009,11 +1012,14 @@ void ServerLobby::update(int ticks)
             }
         }
     }
+    
+    // kimden: ok, this really belongs to SL
     if (w)
         setGameStartedProgress(w->getGameStartedProgress());
     else
         resetGameStartedProgress();
 
+    // kimden: ok, this really belongs to SL
     if (w && w->getPhase() == World::RACE_PHASE)
     {
         storePlayingTrack(RaceManager::get()->getTrackName());
@@ -1021,6 +1027,7 @@ void ServerLobby::update(int ticks)
     else
         storePlayingTrack("");
 
+    // kimden: I don't know
     // Reset server to initial state if no more connected players
     if (m_rs_state.load() == RS_WAITING)
     {
@@ -2884,135 +2891,6 @@ void ServerLobby::changeHandicap(Event* event)
     player->setHandicap(h);
     updatePlayerList();
 }   // changeHandicap
-
-//-----------------------------------------------------------------------------
-/** Update and see if any player disconnects, if so eliminate the kart in
- *  world, so this function must be called in main thread.
- */
-void ServerLobby::handlePlayerDisconnection() const
-{
-    if (!World::getWorld() ||
-        World::getWorld()->getPhase() < WorldStatus::MUSIC_PHASE)
-    {
-        return;
-    }
-
-    int red_count = 0;
-    int blue_count = 0;
-    unsigned total = 0;
-    for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
-    {
-        RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
-        if (rki.isReserved())
-            continue;
-        bool disconnected = rki.disconnected();
-        if (RaceManager::get()->getKartInfo(i).getKartTeam() == KART_TEAM_RED &&
-            !disconnected)
-            red_count++;
-        else if (RaceManager::get()->getKartInfo(i).getKartTeam() ==
-            KART_TEAM_BLUE && !disconnected)
-            blue_count++;
-
-        if (!disconnected)
-        {
-            total++;
-            continue;
-        }
-
-        if (m_game_info)
-            m_game_info->saveDisconnectingIdInfo(i);
-        else
-            Log::warn("ServerLobby", "GameInfo is not accessible??");
-
-        rki.makeReserved();
-
-        AbstractKart* k = World::getWorld()->getKart(i);
-        if (!k->isEliminated() && !k->hasFinishedRace())
-        {
-            CaptureTheFlag* ctf = dynamic_cast<CaptureTheFlag*>
-                (World::getWorld());
-            if (ctf)
-                ctf->loseFlagForKart(k->getWorldKartId());
-
-            World::getWorld()->eliminateKart(i,
-                false/*notify_of_elimination*/);
-            if (getSettings()->isRanked())
-            {
-                // Handle disconnection earlier to prevent cheating by joining
-                // another ranked server
-                // Real score will be submitted later in computeNewRankings
-                const uint32_t id =
-                    RaceManager::get()->getKartInfo(i).getOnlineId();
-                RankingEntry penalized = m_ranking->getTemporaryPenalizedScores(id);
-                auto request = std::make_shared<SubmitRankingRequest>
-                    (penalized,
-                    RaceManager::get()->getKartInfo(i).getCountryCode());
-                NetworkConfig::get()->setUserDetails(request,
-                    "submit-ranking");
-                request->queue();
-            }
-            k->setPosition(
-                World::getWorld()->getCurrentNumKarts() + 1);
-            k->finishedRace(World::getWorld()->getTime(), true/*from_server*/);
-        }
-    }
-
-    // If live players is enabled, don't end the game if unfair team
-    if (!getSettings()->isLivePlayers() &&
-        total != 1 && World::getWorld()->hasTeam() &&
-        (red_count == 0 || blue_count == 0))
-        World::getWorld()->setUnfairTeam(true);
-
-}   // handlePlayerDisconnection
-
-//-----------------------------------------------------------------------------
-/** Add reserved players for live join later if required.
- */
-void ServerLobby::addLiveJoinPlaceholder(
-    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const
-{
-    if (!getSettings()->isLivePlayers() || !RaceManager::get()->supportsLiveJoining())
-        return;
-    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
-    {
-        Track* t = TrackManager::get()->getTrack(m_game_setup->getCurrentTrack());
-        assert(t);
-        int max_players = std::min((int)getSettings()->getServerMaxPlayers(),
-            (int)t->getMaxArenaPlayers());
-        int add_size = max_players - (int)players.size();
-        assert(add_size >= 0);
-        for (int i = 0; i < add_size; i++)
-        {
-            players.push_back(
-                NetworkPlayerProfile::getReservedProfile(KART_TEAM_NONE));
-        }
-    }
-    else
-    {
-        // CTF or soccer, reserve at most 7 players on each team
-        int red_count = 0;
-        int blue_count = 0;
-        for (unsigned i = 0; i < players.size(); i++)
-        {
-            if (players[i]->getTeam() == KART_TEAM_RED)
-                red_count++;
-            else
-                blue_count++;
-        }
-        red_count = red_count >= 7 ? 0 : 7 - red_count;
-        blue_count = blue_count >= 7 ? 0 : 7 - blue_count;
-        for (int i = 0; i < red_count; i++)
-        {
-            players.push_back(
-                NetworkPlayerProfile::getReservedProfile(KART_TEAM_RED));
-        }
-        for (int i = 0; i < blue_count; i++)
-        {
-            players.push_back(
-                NetworkPlayerProfile::getReservedProfile(KART_TEAM_BLUE));
-        }
-    }
-}   // addLiveJoinPlaceholder
 
 //-----------------------------------------------------------------------------
 void ServerLobby::handleServerCommand(Event* event)

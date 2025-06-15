@@ -158,6 +158,10 @@ public:
     bool isWaitingForStartGame() const
                            { return m_play_state.load() == WAITING_FOR_START_GAME; }
 
+    void handlePlayerDisconnection() const;
+    void addLiveJoinPlaceholder(
+        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
+
 public: // were public before and SL doesn't call them
 
     void setTimeoutFromNow(int seconds);
