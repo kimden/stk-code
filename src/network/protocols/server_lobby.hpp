@@ -178,7 +178,7 @@ private:
 
 public: // I'll see if it should be private later
     void updatePlayerList(bool update_when_reset_server = false);
-    void updateServerOwner(bool force = false);
+    // void updateServerOwner(bool force = false);
 
 private:
     void handleServerConfiguration(Event* event);
@@ -208,7 +208,7 @@ private:
     void submitRankingsToAddons();
     void computeNewRankings(NetworkString* ns);
     void checkRaceFinished();
-    void configPeersStartTime();
+    // void configPeersStartTime();
     // void resetServer();
     // void addWaitingPlayersToGame();
     void changeHandicap(Event* event);

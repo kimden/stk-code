@@ -98,6 +98,12 @@ private:
 
     std::atomic<bool> m_reset_to_default_mode_later;
 
+    std::pair<uint32_t, uint32_t> m_game_progress;
+
+    // SL (as LobbyProtocol) has a separate mutex for it. However, PR
+    // is not doing anything for synchronization for now...
+    std::string m_playing_track;    
+
 private:
     void resetPeersReady()
     {
@@ -132,11 +138,14 @@ private:
                       unsigned local_id);
     void resetServer();
     void addWaitingPlayersToGame();
+    void configPeersStartTime();
 
 public:
     PlayingRoom();
     ~PlayingRoom();
     void setup();
+    void updateRoom(int ticks);
+    void asynchronousUpdateRoom();
     ServerPlayState getCurrentPlayState() const      { return m_play_state.load(); }
     bool isRacing() const                  { return m_play_state.load() == RACING; }
     int getDifficulty() const                   { return m_difficulty.load(); }
@@ -161,6 +170,11 @@ public:
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
+
+    std::pair<uint32_t, uint32_t> getGameStartedProgress() const
+                                                    { return m_game_progress; }
+
+    std::string getPlayingTrack() const             { return m_playing_track; }
 
 public: // were public before and SL doesn't call them
 
@@ -189,6 +203,10 @@ public: // SL needs to call them
     void handlePlayerVote(Event *event);
     void startSelection(const Event *event=NULL); // was public already
     void kartSelectionRequested(Event* event);
+
+public: // Was initially private but then I made them public
+
+    void updateServerOwner(bool force = false);
 };
 
 #endif // PLAYING_ROOM_HPP

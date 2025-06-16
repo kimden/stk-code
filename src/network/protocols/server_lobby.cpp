@@ -513,393 +513,98 @@ void ServerLobby::writePlayerReport(Event* event)
 /** Find out the public IP server or poll STK server asynchronously. */
 void ServerLobby::asynchronousUpdate()
 {
-    if (m_rs_state.load() == RS_ASYNC_RESET)
-    {
-        resetVotingTime();
-        resetServer();
-        m_rs_state.store(RS_NONE);
-    }
-
-    getChatManager()->clearAllExpiredWeakPtrs();
-
 #ifdef ENABLE_SQLITE3
     pollDatabase();
 #endif
 
-    // Check if server owner has left
-    updateServerOwner();
+    for (auto& room: m_rooms)
+        room->asynchronousUpdateRoom();
 
-    if (getSettings()->isRanked() && m_state.load() == WAITING_FOR_START_GAME)
-        m_ranking->cleanup();
-
-    if (!getSettings()->isLegacyGPMode() || m_state.load() == WAITING_FOR_START_GAME)
+    switch (m_init_state.load())
     {
-        // Only poll the STK server if server has been registered.
-        if (m_server_id_online.load() != 0 &&
-            m_state.load() != REGISTER_SELF_ADDRESS)
-            checkIncomingConnectionRequests();
-        handlePendingConnection();
-    }
-
-    if (m_server_id_online.load() != 0 &&
-        !getSettings()->isLegacyGPMode() &&
-        StkTime::getMonoTimeMs() > m_last_unsuccess_poll_time &&
-        StkTime::getMonoTimeMs() > m_last_success_poll_time.load() + 30000)
-    {
-        Log::warn("ServerLobby", "Trying auto server recovery.");
-        // For auto server recovery wait 3 seconds for next try
-        m_last_unsuccess_poll_time = StkTime::getMonoTimeMs() + 3000;
-        registerServer(false/*first_time*/);
-    }
-
-    switch (m_state.load())
-    {
-    case SET_PUBLIC_ADDRESS:
-    {
-        // In case of LAN we don't need our public address or register with the
-        // STK server, so we can directly go to the accepting clients state.
-        if (NetworkConfig::get()->isLAN())
+        case SET_PUBLIC_ADDRESS:
         {
-            m_state = WAITING_FOR_START_GAME;
-            if (m_reset_to_default_mode_later.exchange(false))
-                handleServerConfiguration(NULL);
-
-            updatePlayerList();
-            STKHost::get()->startListening();
-            return;
-        }
-        auto ip_type = NetworkConfig::get()->getIPType();
-        // Set the IPv6 address first for possible IPv6 only server
-        if (isIPv6Socket() && ip_type >= NetworkConfig::IP_V6)
-        {
-            STKHost::get()->setPublicAddress(AF_INET6);
-        }
-        if (ip_type == NetworkConfig::IP_V4 ||
-            ip_type == NetworkConfig::IP_DUAL_STACK)
-        {
-            STKHost::get()->setPublicAddress(AF_INET);
-        }
-        if (STKHost::get()->getPublicAddress().isUnset() &&
-            STKHost::get()->getPublicIPv6Address().empty())
-        {
-            m_state = ERROR_LEAVE;
-        }
-        else
-        {
-            STKHost::get()->startListening();
-            m_state = REGISTER_SELF_ADDRESS;
-        }
-        break;
-    }
-    case REGISTER_SELF_ADDRESS:
-    {
-        if (m_game_setup->isGrandPrixStarted() || m_registered_for_once_only)
-        {
-            m_state = WAITING_FOR_START_GAME;
-            if (m_reset_to_default_mode_later.exchange(false))
-                handleServerConfiguration(NULL);
-
-            updatePlayerList();
-            break;
-        }
-        // Register this server with the STK server. This will block
-        // this thread, because there is no need for the protocol manager
-        // to react to any requests before the server is registered.
-        if (m_server_registering.expired() && m_server_id_online.load() == 0)
-            registerServer(true/*first_time*/);
-
-        if (m_server_registering.expired())
-        {
-            // Finished registering server
-            if (m_server_id_online.load() != 0)
+            // In case of LAN we don't need our public address or register with the
+            // STK server, so we can directly go to the accepting clients state.
+            if (NetworkConfig::get()->isLAN())
             {
-                // For non grand prix server we only need to register to stk
-                // addons once
-                if (!getSettings()->isLegacyGPMode())
-                    m_registered_for_once_only = true;
-                m_state = WAITING_FOR_START_GAME;
+                m_init_state = RUNNING;
                 if (m_reset_to_default_mode_later.exchange(false))
                     handleServerConfiguration(NULL);
 
                 updatePlayerList();
-            }
-        }
-        break;
-    }
-    case WAITING_FOR_START_GAME:
-    {
-        if (getCrownManager()->isOwnerLess())
-        {
-            // Ensure that a game can auto-start if the server meets the config's starting limit or if it's already full.
-            int starting_limit = std::min((int)getSettings()->getMinStartGamePlayers(), (int)getSettings()->getServerMaxPlayers());
-            unsigned current_max_players_in_game = getSettings()->getCurrentMaxPlayersInGame();
-            if (current_max_players_in_game > 0) // 0 here means it's not the limit
-                starting_limit = std::min(starting_limit, (int)current_max_players_in_game);
-
-            unsigned players = 0;
-            STKHost::get()->updatePlayers(&players);
-            if (((int)players >= starting_limit ||
-                m_game_setup->isGrandPrixStarted()) &&
-                isInfiniteTimeout())
-            {
-                if (getSettings()->getStartGameCounter() >= -1e-5)
-                {
-                    setTimeoutFromNow(getSettings()->getStartGameCounter());
-                }
-                else
-                {
-                    setInfiniteTimeout();
-                }
-            }
-            else if ((int)players < starting_limit &&
-                !m_game_setup->isGrandPrixStarted())
-            {
-                resetPeersReady();
-                if (!isInfiniteTimeout())
-                    updatePlayerList();
-
-                setInfiniteTimeout();
-            }
-            bool forbid_starting = false;
-            if (isTournament() && getTournament()->forbidStarting())
-                forbid_starting = true;
-            
-            bool timer_finished = (!forbid_starting && isTimeoutExpired());
-            bool players_ready = (checkPeersReady(true/*ignore_ai_peer*/, BEFORE_SELECTION)
-                    && (int)players >= starting_limit);
-
-            if (timer_finished || (players_ready && !getSettings()->isCooldown()))
-            {
-                resetPeersReady();
-                startSelection();
+                STKHost::get()->startListening();
                 return;
             }
+            auto ip_type = NetworkConfig::get()->getIPType();
+            // Set the IPv6 address first for possible IPv6 only server
+            if (isIPv6Socket() && ip_type >= NetworkConfig::IP_V6)
+            {
+                STKHost::get()->setPublicAddress(AF_INET6);
+            }
+            if (ip_type == NetworkConfig::IP_V4 ||
+                ip_type == NetworkConfig::IP_DUAL_STACK)
+            {
+                STKHost::get()->setPublicAddress(AF_INET);
+            }
+            if (STKHost::get()->getPublicAddress().isUnset() &&
+                STKHost::get()->getPublicIPv6Address().empty())
+            {
+                m_init_state = ERROR_LEAVE;
+            }
+            else
+            {
+                STKHost::get()->startListening();
+                m_init_state = REGISTER_SELF_ADDRESS;
+            }
+            break;
         }
-        break;
-    }
-    case ERROR_LEAVE:
-    {
-        requestTerminate();
-        m_state = EXITING;
-        STKHost::get()->requestShutdown();
-        break;
-    }
-    case WAIT_FOR_WORLD_LOADED:
-    {
-        // For WAIT_FOR_WORLD_LOADED and SELECTING make sure there are enough
-        // players to start next game, otherwise exiting and let main thread
-        // reset
-
-        // maybe this is not the best place for this?
-        getHitProcessor()->resetLastHits();
-
-        if (m_end_voting_period.load() == 0)
-            return;
-
-        unsigned player_in_game = 0;
-        STKHost::get()->updatePlayers(&player_in_game);
-        // Reset lobby will be done in main thread
-        if ((player_in_game == 1 && getSettings()->isRanked()) ||
-            player_in_game == 0)
+        case REGISTER_SELF_ADDRESS:
         {
-            resetVotingTime();
-            return;
-        }
-
-        // m_server_has_loaded_world is set by main thread with atomic write
-        if (m_server_has_loaded_world.load() == false)
-            return;
-        if (!checkPeersReady(
-            getSettings()->hasAiHandling() && m_ai_count == 0/*ignore_ai_peer*/, LOADING_WORLD))
-            return;
-        // Reset for next state usage
-        resetPeersReady();
-        configPeersStartTime();
-        break;
-    }
-    case SELECTING:
-    {
-        if (m_end_voting_period.load() == 0)
-            return;
-        unsigned player_in_game = 0;
-        STKHost::get()->updatePlayers(&player_in_game);
-        if ((player_in_game == 1 && getSettings()->isRanked()) ||
-            player_in_game == 0)
-        {
-            resetVotingTime();
-            return;
-        }
-
-        PeerVote winner_vote;
-        getSettings()->resetWinnerPeerId();
-        bool go_on_race = false;
-        if (getSettings()->hasTrackVoting())
-            go_on_race = handleAllVotes(&winner_vote);
-        else if (/*m_game_setup->isGrandPrixStarted() || */isVotingOver())
-        {
-            winner_vote = getSettings()->getDefaultVote();
-            go_on_race = true;
-        }
-        if (go_on_race)
-        {
-            getSettings()->applyRestrictionsOnWinnerVote(&winner_vote);
-            getSettings()->setDefaultVote(winner_vote);
-            m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
-            ItemManager::updateRandomSeed(m_item_seed);
-            float extra_seconds = 0.0f;
-            if (isTournament())
-                extra_seconds = getTournament()->getExtraSeconds();
-            m_game_setup->setRace(winner_vote, extra_seconds);
-
-            // For spectators that don't have the track, remember their
-            // spectate mode and don't load the track
-            std::string track_name = winner_vote.m_track_name;
-            if (isTournament())
-                getTournament()->fillNextArena(track_name);
-            
-            auto peers = STKHost::get()->getPeers();
-            std::map<std::shared_ptr<STKPeer>,
-                    AlwaysSpectateMode> previous_spectate_mode;
-            for (auto peer : peers)
+            if (m_game_setup->isGrandPrixStarted() || m_registered_for_once_only)
             {
-                if (peer->alwaysSpectate() && (!peer->alwaysSpectateForReal() ||
-                    peer->getClientAssets().second.count(track_name) == 0))
-                {
-                    previous_spectate_mode[peer] = peer->getAlwaysSpectate();
-                    peer->setAlwaysSpectate(ASM_NONE);
-                    peer->setWaitingForGame(true);
-                    m_peers_ready.erase(peer);
-                }
-            }
-            bool has_always_on_spectators = false;
-            auto players = STKHost::get()
-                ->getPlayersForNewGame(&has_always_on_spectators);
-            for (auto& p: previous_spectate_mode)
-                if (p.first)
-                    p.first->setAlwaysSpectate(p.second);
-            auto ai_instance = m_ai_peer.lock();
-            if (supportsAI())
-            {
-                if (ai_instance)
-                {
-                    auto ai_profiles = ai_instance->getPlayerProfiles();
-                    if (m_ai_count > 0)
-                    {
-                        ai_profiles.resize(m_ai_count);
-                        players.insert(players.end(), ai_profiles.begin(),
-                            ai_profiles.end());
-                    }
-                }
-                else if (!m_ai_profiles.empty())
-                {
-                    players.insert(players.end(), m_ai_profiles.begin(),
-                        m_ai_profiles.end());
-                }
-            }
-            m_game_setup->sortPlayersForGrandPrix(players, getSettings()->isGPGridShuffled());
-            m_game_setup->sortPlayersForGame(players);
-            for (unsigned i = 0; i < players.size(); i++)
-            {
-                std::shared_ptr<NetworkPlayerProfile>& player = players[i];
-                std::shared_ptr<STKPeer> peer = player->getPeer();
-                if (peer)
-                    peer->clearAvailableKartIDs();
-            }
-            for (unsigned i = 0; i < players.size(); i++)
-            {
-                std::shared_ptr<NetworkPlayerProfile>& player = players[i];
-                std::shared_ptr<STKPeer> peer = player->getPeer();
-                if (peer)
-                    peer->addAvailableKartID(i);
-            }
-            getSettings()->getLobbyHitCaptureLimit();
+                m_init_state = RUNNING;
+                if (m_reset_to_default_mode_later.exchange(false))
+                    handleServerConfiguration(NULL);
 
-            // Add placeholder players for live join
-            addLiveJoinPlaceholder(players);
-            // If player chose random / hasn't chose any kart
-            for (unsigned i = 0; i < players.size(); i++)
-            {
-                std::string current_kart = players[i]->getKartName();
-                if (!players[i]->getPeer().get())
-                    continue;
-                if (getQueues()->areKartFiltersIgnoringKarts())
-                    current_kart = "";
-                std::string name = StringUtils::wideToUtf8(players[i]->getName());
-                // Note 1: setKartName also resets KartData, and should be called
-                // only if current kart name is not suitable.
-                // Note 2: filters only support standard karts for now, so GKFBKC
-                // cannot return an addon; when addons are supported, this part of
-                // code will also have to provide kart data (or setKartName has to
-                // set the correct hitbox itself).
-                std::string new_kart = getAssetManager()->getKartForBadKartChoice(
-                        players[i]->getPeer(), name, current_kart);
-                if (new_kart != current_kart)
-                {
-                    // Filters only support standard karts for now, but when they
-                    // start supporting addons, probably type should not be empty
-                    players[i]->setKartName(new_kart);
-                    KartData kart_data;
-                    setKartDataProperly(kart_data, new_kart, players[i], "");
-                    players[i]->setKartData(kart_data);
-                }
-            }
-
-            auto& stk_config = STKConfig::get();
-
-            NetworkString* load_world_message = getLoadWorldMessage(players,
-                false/*live_join*/);
-            m_game_setup->setHitCaptureTime(getSettings()->getBattleHitCaptureLimit(),
-                getSettings()->getBattleTimeLimit());
-            uint16_t flag_return_time = (uint16_t)stk_config->time2Ticks(
-                getSettings()->getFlagReturnTimeout());
-            RaceManager::get()->setHitProcessor(getHitProcessor());
-            RaceManager::get()->setFlagReturnTicks(flag_return_time);
-            if (getSettings()->isRecordingReplays() && getSettings()->hasConsentOnReplays() &&
-                (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL ||
-                RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE))
-                RaceManager::get()->setRecordRace(true);
-            uint16_t flag_deactivated_time = (uint16_t)STKConfig::get()->time2Ticks(
-                getSettings()->getFlagDeactivatedTime());
-            RaceManager::get()->setFlagDeactivatedTicks(flag_deactivated_time);
-            configRemoteKart(players, 0);
-
-            // Reset for next state usage
-            resetPeersReady();
-
-            m_state = LOAD_WORLD;
-            Comm::sendMessageToPeers(load_world_message);
-            // updatePlayerList so the in lobby players (if any) can see always
-            // spectators join the game
-            if (has_always_on_spectators || !previous_spectate_mode.empty())
                 updatePlayerList();
-            delete load_world_message;
+                break;
+            }
+            // Register this server with the STK server. This will block
+            // this thread, because there is no need for the protocol manager
+            // to react to any requests before the server is registered.
+            if (m_server_registering.expired() && m_server_id_online.load() == 0)
+                registerServer(true/*first_time*/);
 
-            if (RaceManager::get()->getMinorMode() ==
-                RaceManager::MINOR_MODE_SOCCER)
+            if (m_server_registering.expired())
             {
-                for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
+                // Finished registering server
+                if (m_server_id_online.load() != 0)
                 {
-                    if (auto player =
-                        RaceManager::get()->getKartInfo(i).getNetworkPlayerProfile().lock())
-                    {
-                        std::string username = StringUtils::wideToUtf8(player->getName());
-                        if (username.empty())
-                            continue;
-                        Log::info("ServerLobby", "SoccerMatchLog: There is a player %s.",
-                            username.c_str());
-                    }
+                    // For non grand prix server we only need to register to stk
+                    // addons once
+                    if (!getSettings()->isLegacyGPMode())
+                        m_registered_for_once_only = true;
+
+                    m_init_state = RUNNING;
+                    if (m_reset_to_default_mode_later.exchange(false))
+                        handleServerConfiguration(NULL);
+
+                    updatePlayerList();
                 }
             }
-            m_game_info = std::make_shared<GameInfo>();
-            m_game_info->setContext(m_lobby_context.get());
-            m_game_info->fillFromRaceManager();
+            break;
         }
-        break;
+        case ERROR_LEAVE:
+        {
+            requestTerminate();
+            m_init_state = EXITING;
+            STKHost::get()->requestShutdown();
+            break;
+        }
+        default:
+            break;
     }
-    default:
-        break;
-    }
-
 }   // asynchronousUpdate
 //-----------------------------------------------------------------------------
 /** Simple finite state machine.  Once this
@@ -911,262 +616,11 @@ void ServerLobby::asynchronousUpdate()
 
 void ServerLobby::update(int ticks)
 {
-    World* w = World::getWorld();
-    bool world_started = m_state.load() >= WAIT_FOR_WORLD_LOADED &&
-        m_state.load() <= RACING && m_server_has_loaded_world.load();
-    bool all_players_in_world_disconnected = (w != NULL && world_started);
-    int sec = getSettings()->getKickIdlePlayerSeconds();
-    if (world_started)
-    {
-        for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
-        {
-            RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
-            std::shared_ptr<NetworkPlayerProfile> player =
-                rki.getNetworkPlayerProfile().lock();
-            if (player)
-            {
-                if (w)
-                    all_players_in_world_disconnected = false;
-            }
-            else
-                continue;
-            auto peer = player->getPeer();
-            if (!peer)
-                continue;
+    for (auto& room: m_rooms)
+        room->updateRoom(ticks);
 
-            if (peer->idleForSeconds() > 60 && w &&
-                w->getKart(i)->isEliminated())
-            {
-                // Remove loading world too long (60 seconds) live join peer
-                Log::info("ServerLobby", "%s hasn't live-joined within"
-                    " 60 seconds, remove it.",
-                    peer->getAddress().toString().c_str());
-                rki.makeReserved();
-                continue;
-            }
-            if (!peer->isAIPeer() &&
-                sec > 0 && peer->idleForSeconds() > sec &&
-                !peer->isDisconnected() && NetworkConfig::get()->isWAN())
-            {
-                if (w && w->getKart(i)->hasFinishedRace())
-                    continue;
-                // Don't kick in game GUI server host so he can idle in game
-                if (m_process_type == PT_CHILD && isClientServerHost(peer))
-                    continue;
-                Log::info("ServerLobby", "%s %s has been idle ingame for more than"
-                    " %d seconds, kick.",
-                    peer->getAddress().toString().c_str(),
-                    StringUtils::wideToUtf8(rki.getPlayerName()).c_str(), sec);
-                peer->kick();
-            }
-            if (getHitProcessor()->isAntiTrollActive() && !peer->isAIPeer())
-            {
-                // for all human players
-                // if they troll, kick them
-                LinearWorld *lin_world = dynamic_cast<LinearWorld*>(w);
-                if (lin_world) {
-                    // check warn level for each player
-                    switch(lin_world->getWarnLevel(i))
-                    {
-                        case 0:
-                            break;
-                        case 1:
-                        {
-                            Comm::sendStringToPeer(peer, getSettings()->getTrollWarnMsg());
-                            std::string player_name = peer->getMainName();
-                            Log::info("ServerLobby-AntiTroll", "Sent WARNING to %s", player_name.c_str());
-                            break;
-                        }
-                        default:
-                        {
-                            std::string player_name = peer->getMainName();
-                            Log::info("ServerLobby-AntiTroll", "KICKING %s", player_name.c_str());
-                            peer->kick();
-                            break;
-                        }
-                    }
-                }
-            }
-            getHitProcessor()->punishSwatterHits();
-        }
-    }
-    if (m_state.load() == WAITING_FOR_START_GAME) {
-        sec = getSettings()->getKickIdleLobbyPlayerSeconds();
-        auto peers = STKHost::get()->getPeers();
-        for (auto peer: peers)
-        {
-            if (!peer->isAIPeer() &&
-                sec > 0 && peer->idleForSeconds() > sec &&
-                !peer->isDisconnected() && NetworkConfig::get()->isWAN())
-            {
-                // Don't kick in game GUI server host so he can idle in the lobby
-                if (m_process_type == PT_CHILD && isClientServerHost(peer))
-                    continue;
-                std::string peer_name = "";
-                if (peer->hasPlayerProfiles())
-                    peer_name = peer->getMainName().c_str();
-                Log::info("ServerLobby", "%s %s has been idle on the server for "
-                        "more than %d seconds, kick.",
-                        peer->getAddress().toString().c_str(), peer_name.c_str(), sec);
-                peer->kick();
-            }
-        }
-    }
-    
-    // kimden: ok, this really belongs to SL
-    if (w)
-        setGameStartedProgress(w->getGameStartedProgress());
-    else
-        resetGameStartedProgress();
-
-    // kimden: ok, this really belongs to SL
-    if (w && w->getPhase() == World::RACE_PHASE)
-    {
-        storePlayingTrack(RaceManager::get()->getTrackName());
-    }
-    else
-        storePlayingTrack("");
-
-    // kimden: I don't know
-    // Reset server to initial state if no more connected players
-    if (m_rs_state.load() == RS_WAITING)
-    {
-        if ((RaceEventManager::get() &&
-            !RaceEventManager::get()->protocolStopped()) ||
-            !GameProtocol::emptyInstance())
-            return;
-
-        exitGameState();
-        m_rs_state.store(RS_ASYNC_RESET);
-    }
-
-    STKHost::get()->updatePlayers();
-    if (m_rs_state.load() == RS_NONE &&
-        (m_state.load() > WAITING_FOR_START_GAME/* ||
-        m_game_setup->isGrandPrixStarted()*/) &&
-        (STKHost::get()->getPlayersInGame() == 0 ||
-        all_players_in_world_disconnected))
-    {
-        if (RaceEventManager::get() &&
-            RaceEventManager::get()->isRunning())
-        {
-            // Send a notification to all players who may have start live join
-            // or spectate to go back to lobby
-            NetworkString* back_to_lobby = getNetworkString(2);
-            back_to_lobby->setSynchronous(true);
-            back_to_lobby->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_NONE);
-            Comm::sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
-            delete back_to_lobby;
-
-            RaceEventManager::get()->stop();
-            RaceEventManager::get()->getProtocol()->requestTerminate();
-            GameProtocol::lock()->requestTerminate();
-        }
-        else if (auto ai = m_ai_peer.lock())
-        {
-            // Reset AI peer for empty server, which will delete world
-            NetworkString* back_to_lobby = getNetworkString(2);
-            back_to_lobby->setSynchronous(true);
-            back_to_lobby->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_NONE);
-            ai->sendPacket(back_to_lobby, PRM_RELIABLE);
-            delete back_to_lobby;
-        }
-        if (all_players_in_world_disconnected)
-            m_game_setup->cancelOneRace();
-        resetVotingTime();
-        // m_game_setup->cancelOneRace();
-        //m_game_setup->stopGrandPrix();
-        m_rs_state.store(RS_WAITING);
-        return;
-    }
-
-    if (m_rs_state.load() != RS_NONE)
-        return;
-
-    // Reset for ranked server if in kart / track selection has only 1 player
-    if (getSettings()->isRanked() &&
-        m_state.load() == SELECTING &&
-        STKHost::get()->getPlayersInGame() == 1)
-    {
-        NetworkString* back_lobby = getNetworkString(2);
-        back_lobby->setSynchronous(true);
-        back_lobby->addUInt8(LE_BACK_LOBBY)
-            .addUInt8(BLR_ONE_PLAYER_IN_RANKED_MATCH);
-        Comm::sendMessageToPeers(back_lobby, PRM_RELIABLE);
-        delete back_lobby;
-        resetVotingTime();
-        // m_game_setup->cancelOneRace();
-        //m_game_setup->stopGrandPrix();
-        m_rs_state.store(RS_ASYNC_RESET);
-    }
-
-    handlePlayerDisconnection();
-
-    switch (m_state.load())
-    {
-    case SET_PUBLIC_ADDRESS:
-    case REGISTER_SELF_ADDRESS:
-    case WAITING_FOR_START_GAME:
-    case WAIT_FOR_WORLD_LOADED:
-    case WAIT_FOR_RACE_STARTED:
-    {
-        // Waiting for asynchronousUpdate
-        break;
-    }
-    case SELECTING:
-        // The function playerTrackVote will trigger the next state
-        // once all track votes have been received.
-        break;
-    case LOAD_WORLD:
-        Log::info("ServerLobby", "Starting the race loading.");
-        // This will create the world instance, i.e. load track and karts
-        loadWorld();
-        getGPManager()->updateWorldScoring();
-        getSettings()->updateWorldSettings(m_game_info);
-        m_state = WAIT_FOR_WORLD_LOADED;
-        break;
-    case RACING:
-        if (World::getWorld() && RaceEventManager::get() &&
-            RaceEventManager::get()->isRunning())
-        {
-            checkRaceFinished();
-        }
-        break;
-    case WAIT_FOR_RACE_STOPPED:
-        if (!RaceEventManager::get()->protocolStopped() ||
-            !GameProtocol::emptyInstance())
-            return;
-
-        // This will go back to lobby in server (and exit the current race)
-        exitGameState();
-        // Reset for next state usage
-        resetPeersReady();
-        // Set the delay before the server forces all clients to exit the race
-        // result screen and go back to the lobby
-        setTimeoutFromNow(15);
-        m_state = RESULT_DISPLAY;
-        Comm::sendMessageToPeers(m_result_ns, PRM_RELIABLE);
-        delete m_result_ns;
-        Log::info("ServerLobby", "End of game message sent");
-        break;
-    case RESULT_DISPLAY:
-        if (checkPeersReady(true/*ignore_ai_peer*/, AFTER_GAME) ||
-            isTimeoutExpired())
-        {
-            // Send a notification to all clients to exit
-            // the race result screen
-            NetworkString* back_to_lobby = getNetworkString(2);
-            back_to_lobby->setSynchronous(true);
-            back_to_lobby->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_NONE);
-            Comm::sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
-            delete back_to_lobby;
-            m_rs_state.store(RS_ASYNC_RESET);
-        }
-        break;
-    case ERROR_LEAVE:
-    case EXITING:
-        break;
-    }
+    setGameStartedProgress(m_rooms[0]->getGameStartedProgress());
+    storePlayingTrack(m_rooms[0]->getPlayingTrack());
 }   // update
 
 //-----------------------------------------------------------------------------
@@ -2208,68 +1662,8 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         }, pl);
     delete pl;
 }   // updatePlayerList
-//-----------------------------------------------------------------------------
-
-void ServerLobby::updateServerOwner(bool force)
-{
-    ServerInitState state = m_init_state.load();
-    if (state != RUNNING)
-        return;
-
-    if (getCrownManager()->isOwnerLess())
-        return;
-
-    if (!force && !m_server_owner.expired())
-        return;
-
-    auto peers = STKHost::get()->getPeers();
-
-    if (m_process_type != PT_MAIN)
-    {
-        auto id = m_client_server_host_id.load();
-        for (unsigned i = 0; i < peers.size(); )
-        {
-            const auto& peer = peers[i];
-            if (peer->getHostId() != id)
-            {
-                std::swap(peers[i], peers.back());
-                peers.pop_back();
-                continue;
-            }
-            ++i;
-        }
-    }
-
-    for (unsigned i = 0; i < peers.size(); )
-    {
-        const auto& peer = peers[i];
-        if (!peer->isValidated() || peer->isAIPeer())
-        {
-            std::swap(peers[i], peers.back());
-            peers.pop_back();
-            continue;
-        }
-        ++i;
-    }
-
-    if (peers.empty())
-        return;
-
-    std::shared_ptr<STKPeer> owner = getCrownManager()->getFirstInCrownOrder(peers);
-    if (m_server_owner.expired() || m_server_owner.lock() != owner)
-    {
-        NetworkString* ns = getNetworkString();
-        ns->setSynchronous(true);
-        ns->addUInt8(LE_SERVER_OWNERSHIP);
-        owner->sendPacket(ns);
-        delete ns;
-    }
-    m_server_owner = owner;
-    m_server_owner_id.store(owner->getHostId());
-    updatePlayerList();
-}   // updateServerOwner
-
 // ----------------------------------------------------------------------------
+
 /** Select the track to be used based on all votes being received.
  * \param winner_vote The PeerVote that was picked.
  * \param winner_peer_id The host id of winner (unchanged if no vote).
@@ -2456,79 +1850,6 @@ void ServerLobby::submitRankingsToAddons()
         request->queue();
     }
 }   // submitRankingsToAddons
-
-//-----------------------------------------------------------------------------
-/** This function is called when all clients have loaded the world and
- *  are therefore ready to start the race. It determine the start time in
- *  network timer for client and server based on pings and then switches state
- *  to WAIT_FOR_RACE_STARTED.
- */
-void ServerLobby::configPeersStartTime()
-{
-    uint32_t max_ping = 0;
-    const unsigned max_ping_from_peers = getSettings()->getMaxPing();
-    bool peer_exceeded_max_ping = false;
-    for (auto p : m_peers_ready)
-    {
-        auto peer = p.first.lock();
-        // Spectators don't send input so we don't need to delay for them
-        if (!peer || peer->alwaysSpectate())
-            continue;
-        if (peer->getAveragePing() > max_ping_from_peers)
-        {
-            Log::warn("ServerLobby",
-                "Peer %s cannot catch up with max ping %d.",
-                peer->getAddress().toString().c_str(), max_ping);
-            peer_exceeded_max_ping = true;
-            continue;
-        }
-        max_ping = std::max(peer->getAveragePing(), max_ping);
-    }
-    if ((getSettings()->hasHighPingWorkaround() && peer_exceeded_max_ping) ||
-        (getSettings()->isLivePlayers() && RaceManager::get()->supportsLiveJoining()))
-    {
-        Log::info("ServerLobby", "Max ping to ServerConfig::m_max_ping for "
-            "live joining or high ping workaround.");
-        max_ping = getSettings()->getMaxPing();
-    }
-    // Start up time will be after 2500ms, so even if this packet is sent late
-    // (due to packet loss), the start time will still ahead of current time
-    uint64_t start_time = STKHost::get()->getNetworkTimer() + (uint64_t)2500;
-    powerup_manager->setRandomSeed(start_time);
-    NetworkString* ns = getNetworkString(10);
-    ns->setSynchronous(true);
-    ns->addUInt8(LE_START_RACE).addUInt64(start_time);
-    const uint8_t cc = (uint8_t)Track::getCurrentTrack()->getCheckManager()->getCheckStructureCount();
-    ns->addUInt8(cc);
-    *ns += *m_items_complete_state;
-    m_client_starting_time = start_time;
-    Comm::sendMessageToPeers(ns, PRM_RELIABLE);
-
-    const unsigned jitter_tolerance = getSettings()->getJitterTolerance();
-    Log::info("ServerLobby", "Max ping from peers: %d, jitter tolerance: %d",
-        max_ping, jitter_tolerance);
-    // Delay server for max ping / 2 from peers and jitter tolerance.
-    m_server_delay = (uint64_t)(max_ping / 2) + (uint64_t)jitter_tolerance;
-    start_time += m_server_delay;
-    m_server_started_at = start_time;
-    delete ns;
-    m_state = WAIT_FOR_RACE_STARTED;
-
-    World::getWorld()->setPhase(WorldStatus::SERVER_READY_PHASE);
-    // Different stk process thread may have different stk host
-    STKHost* stk_host = STKHost::get();
-    joinStartGameThread();
-    m_start_game_thread = std::thread([start_time, stk_host, this]()
-        {
-            const uint64_t cur_time = stk_host->getNetworkTimer();
-            assert(start_time > cur_time);
-            int sleep_time = (int)(start_time - cur_time);
-            //Log::info("ServerLobby", "Start game after %dms", sleep_time);
-            StkTime::sleep(sleep_time);
-            //Log::info("ServerLobby", "Started at %lf", StkTime::getRealTime());
-            m_state.store(RACING);
-        });
-}   // configPeersStartTime
 
 //-----------------------------------------------------------------------------
 void ServerLobby::testBannedForIP(std::shared_ptr<STKPeer> peer) const
