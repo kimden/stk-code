@@ -57,6 +57,7 @@
 #include "utils/hit_processor.hpp"
 #include "modes/capture_the_flag.hpp"
 #include "utils/chat_manager.hpp"
+#include "network/protocols/game_events_protocol.hpp"
 
 namespace
 {
@@ -205,7 +206,7 @@ void PlayingRoom::updateRoom(int ticks)
 {
     World* w = World::getWorld();
     bool world_started = m_play_state.load() >= WAIT_FOR_WORLD_LOADED &&
-        m_state.load() <= RACING && m_server_has_loaded_world.load();
+        m_play_state.load() <= RACING && m_server_has_loaded_world.load();
     bool all_players_in_world_disconnected = (w != NULL && world_started);
     int sec = getSettings()->getKickIdlePlayerSeconds();
     if (world_started)
@@ -243,7 +244,7 @@ void PlayingRoom::updateRoom(int ticks)
                 if (w && w->getKart(i)->hasFinishedRace())
                     continue;
                 // Don't kick in game GUI server host so he can idle in game
-                if (m_process_type == PT_CHILD && isClientServerHost(peer))
+                if (getLobby()->isChildClientServerHost(peer))
                     continue;
                 Log::info("ServerLobby", "%s %s has been idle ingame for more than"
                     " %d seconds, kick.",
@@ -282,7 +283,7 @@ void PlayingRoom::updateRoom(int ticks)
             getHitProcessor()->punishSwatterHits();
         }
     }
-    if (m_state.load() == WAITING_FOR_START_GAME) {
+    if (m_play_state.load() == WAITING_FOR_START_GAME) {
         sec = getSettings()->getKickIdleLobbyPlayerSeconds();
         auto peers = STKHost::get()->getPeers();
         for (auto peer: peers)
@@ -292,7 +293,7 @@ void PlayingRoom::updateRoom(int ticks)
                 !peer->isDisconnected() && NetworkConfig::get()->isWAN())
             {
                 // Don't kick in game GUI server host so he can idle in the lobby
-                if (m_process_type == PT_CHILD && isClientServerHost(peer))
+                if (getLobby()->isChildClientServerHost(peer))
                     continue;
                 std::string peer_name = "";
                 if (peer->hasPlayerProfiles())
@@ -306,14 +307,14 @@ void PlayingRoom::updateRoom(int ticks)
     }
 
     if (w)
-        m_game_progress = w->getGameStartedProgress();
+        setGameStartedProgress(w->getGameStartedProgress());
     else
-        m_game_progress = { std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max() };
+        resetGameStartedProgress();
 
     if (w && w->getPhase() == World::RACE_PHASE)
-        m_playing_track = (RaceManager::get()->getTrackName());
+        storePlayingTrack(RaceManager::get()->getTrackName());
     else
-        m_playing_track = "";
+        storePlayingTrack("");
 
     // Reset server to initial state if no more connected players
     if (m_rs_state.load() == RS_WAITING)
@@ -329,7 +330,7 @@ void PlayingRoom::updateRoom(int ticks)
 
     STKHost::get()->updatePlayers();
     if (m_rs_state.load() == RS_NONE &&
-        (m_state.load() > WAITING_FOR_START_GAME/* ||
+        (m_play_state.load() > WAITING_FOR_START_GAME/* ||
         m_game_setup->isGrandPrixStarted()*/) &&
         (STKHost::get()->getPlayersInGame() == 0 ||
         all_players_in_world_disconnected))
@@ -372,7 +373,7 @@ void PlayingRoom::updateRoom(int ticks)
 
     // Reset for ranked server if in kart / track selection has only 1 player
     if (getSettings()->isRanked() &&
-        m_state.load() == SELECTING &&
+        m_play_state.load() == SELECTING &&
         STKHost::get()->getPlayersInGame() == 1)
     {
         NetworkString* back_lobby = getNetworkString(2);
@@ -391,8 +392,6 @@ void PlayingRoom::updateRoom(int ticks)
 
     switch (m_play_state.load())
     {
-    case SET_PUBLIC_ADDRESS:
-    case REGISTER_SELF_ADDRESS:
     case WAITING_FOR_START_GAME:
     case WAIT_FOR_WORLD_LOADED:
     case WAIT_FOR_RACE_STARTED:
@@ -449,9 +448,6 @@ void PlayingRoom::updateRoom(int ticks)
             delete back_to_lobby;
             m_rs_state.store(RS_ASYNC_RESET);
         }
-        break;
-    case ERROR_LEAVE:
-    case EXITING:
         break;
     }
 }   // updateRoom
@@ -769,7 +765,6 @@ void PlayingRoom::asynchronousUpdateRoom()
 }   // asynchronousUpdateRoom
 //-----------------------------------------------------------------------------
 
-
 /** Calls the corresponding method from LobbyAssetManager
  *  whenever server is reset or game mode is changed. */
 [[deprecated("Asset managers should be separate for different rooms.")]]
@@ -780,6 +775,7 @@ void PlayingRoom::updateMapsForMode()
     );
 }   // updateMapsForMode
 //-----------------------------------------------------------------------------
+
 NetworkString* PlayingRoom::getLoadWorldMessage(
     std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
     bool live_join) const
@@ -1483,7 +1479,7 @@ void PlayingRoom::clientInGameWantsToBackLobby(Event* event)
         return;
     }
 
-    if (m_process_type == PT_CHILD && isClientServerHost(event->getPeer()))
+    if (getLobby()->isChildClientServerHost(event->getPeer()))
     {
         // For child server the remaining client cannot go on player when the
         // server owner quited the game (because the world will be deleted), so
@@ -1573,7 +1569,7 @@ void PlayingRoom::clientSelectingAssetsWantsToBackLobby(Event* event)
         return;
     }
 
-    if (m_process_type == PT_CHILD && isClientServerHost(event->getPeer()))
+    if (getLobby()->isChildClientServerHost(event->getPeerSP()))
     {
         NetworkString* back_to_lobby = getNetworkString(2);
         back_to_lobby->setSynchronous(true);

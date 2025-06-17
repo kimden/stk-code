@@ -23,6 +23,7 @@
 #include "utils/lobby_context.hpp"
 #include "network/packet_types.hpp"
 #include "network/kart_data.hpp"
+#include "network/protocols/lobby_protocol.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -38,7 +39,7 @@ class GameInfo;
 class NetworkItemManager;
 
 
-class PlayingRoom: public LobbyContextUser
+class PlayingRoom: public LobbyProtocol, public LobbyContextUser
 {
 private:
     std::atomic<ServerPlayState> m_play_state;
@@ -170,11 +171,6 @@ public:
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-
-    std::pair<uint32_t, uint32_t> getGameStartedProgress() const
-                                                    { return m_game_progress; }
-
-    std::string getPlayingTrack() const             { return m_playing_track; }
 
 public: // were public before and SL doesn't call them
 

@@ -336,7 +336,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
         Log::info("ServerLobby", "Message of type %d received.",
                   message_type);
 
-        auto& room = getRoomForPeer(event->getPeerSP());
+        auto room = getRoomForPeer(event->getPeerSP());
 
         switch(message_type)
         {
@@ -620,7 +620,7 @@ void ServerLobby::update(int ticks)
         room->updateRoom(ticks);
 
     setGameStartedProgress(m_rooms[0]->getGameStartedProgress());
-    storePlayingTrack(m_rooms[0]->getPlayingTrack());
+    storePlayingTrack(m_rooms[0]->getPlayingTrackIdent());
 }   // update
 
 //-----------------------------------------------------------------------------
@@ -1031,7 +1031,7 @@ bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
     peer->setAvailableKartsTracks(client_karts, client_maps);
     peer->setAddonsScores(addons_scores);
 
-    if (m_process_type == PT_CHILD && isClientServerHost(peer))
+    if (isChildClientServerHost(peer))
     {
         // Update child process addons list too so player can choose later
         getAssetManager()->updateAddons();

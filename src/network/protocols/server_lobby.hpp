@@ -313,6 +313,11 @@ public:
     bool isChildProcess()                { return m_process_type == PT_CHILD; }
 
     bool isClientServerHost(const std::shared_ptr<STKPeer>& peer);
+    bool isChildClientServerHost(const std::shared_ptr<STKPeer>& peer)
+    {
+        return isChildProcess() && isClientServerHost(peer);
+    }
+
     bool canIgnoreControllerEvents() const;
     bool isPeerInGame(const std::shared_ptr<STKPeer>& peer) const;
     bool hasAnyGameStarted() const;
