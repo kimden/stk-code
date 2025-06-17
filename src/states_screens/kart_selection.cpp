@@ -1250,7 +1250,7 @@ void KartSelectionScreen::onFocusChanged(GUIEngine::Widget* previous,
 
     if (GUIEngine::isFocusedForPlayer(kart_class, playerID))
     {
-        for (int i = 0; i < m_kart_widgets.size(); i++)
+        for (size_t i = 0; i < m_kart_widgets.size(); i++)
         {
             if (m_kart_widgets[i].getPlayerID() == playerID)
             {

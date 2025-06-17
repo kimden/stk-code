@@ -3796,7 +3796,6 @@ void CommandManager::process_net(Context& context)
         return;
     }
 
-    auto enet_peer = player_peer->getENetPeer();
     std::string decorated_name = getLobby()->encodeProfileNameForPeer(
             player_peer->getMainProfile(), acting_peer.get());
 
@@ -3823,8 +3822,7 @@ void CommandManager::process_everynet(Context& context)
         //     continue;
         if (!p->hasPlayerProfiles())
             continue;
-        
-        auto enet_peer = p->getENetPeer();
+
         std::vector<int> overall;
         overall.push_back(p->getAveragePing());
         overall.push_back(p->getPacketLoss());

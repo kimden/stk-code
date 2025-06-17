@@ -398,6 +398,24 @@ void NewsManager::addNewsMessage(NewsType type, const core::stringw &s)
     m_news[type].unlock();
 }   // addNewsMessage
 // ----------------------------------------------------------------------------
+
+std::optional<NewsManager::NewsMessage> NewsManager::getCurrentNewsElement(NewsType type)
+{
+    m_news[type].lock();
+
+    std::optional<NewsManager::NewsMessage> res;
+
+    if (m_current_news_ptr[type] >= 0
+     && m_current_news_ptr[type] < (int)m_news[type].getData().size())
+    {
+        res = m_news[type].getData()[m_current_news_ptr[type]];
+    }
+    m_news[type].unlock();
+
+    return res;
+}   // getCurrentNewsElement
+// ----------------------------------------------------------------------------
+
 /** Returns the message pointed by the current ptr
  */
 const core::stringw NewsManager::getCurrentNewsMessage(NewsType type)
@@ -405,73 +423,45 @@ const core::stringw NewsManager::getCurrentNewsMessage(NewsType type)
     // Only display error message in case of a problem.
     if (m_error_message.getAtomic().size()>0)
         return _(m_error_message.getAtomic().c_str());
-    
-    core::stringw message = L"";
 
-    m_news[type].lock();
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->getNews();
 
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        message = m_news[type].getData()[m_current_news_ptr[type]].getNews();
-    }
-    m_news[type].unlock();
-
-    return message;
+    return L"";
 }   // getCurrentNewsMessage
 // ----------------------------------------------------------------------------
 /** Returns the date of the news pointed by the current ptr
  */
 const std::string NewsManager::getCurrentNewsDate(NewsType type)
 {
-    std::string date = "";
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->getDate();
 
-    m_news[type].lock();
-
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        date = m_news[type].getData()[m_current_news_ptr[type]].getDate();
-    }
-    m_news[type].unlock();
-
-    return date;
+    return "";
 }   // getCurrentNewsMessage
 // ----------------------------------------------------------------------------
 /** Returns the date of the news pointed by the current ptr
  */
 const std::string NewsManager::getCurrentNewsLink(NewsType type)
 {
-    std::string link = "";
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->getLink();
 
-    m_news[type].lock();
-
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        link = m_news[type].getData()[m_current_news_ptr[type]].getLink();
-    }
-    m_news[type].unlock();
-
-    return link;
+    return "";
 }   // getCurrentNewsMessage
 // ----------------------------------------------------------------------------
 /** Returns the importance of the message pointed by the current ptr
  */
 const bool NewsManager::isCurrentNewsImportant(NewsType type)
 {
-    bool importance = false;
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->isImportant();
 
-    m_news[type].lock();
-
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        importance = m_news[type].getData()[m_current_news_ptr[type]].isImportant();
-    }
-    m_news[type].unlock();
-
-    return importance;
+    return false;
 }   // isCurrentNewsImportant
 
 // ----------------------------------------------------------------------------

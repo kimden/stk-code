@@ -263,7 +263,7 @@ void EasterEggScreen::buildTrackList()
     }
     tracks.insertionSort();
 
-    for (int n=0; n<tracks.size(); n++)
+    for (int n = 0; n < (int)tracks.size(); n++)
     {
         Track* curr = tracks.get(n);
 
