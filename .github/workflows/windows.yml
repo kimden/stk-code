@@ -204,10 +204,10 @@ jobs:
           echo "release_name=`basename $GITHUB_REF`" >> $GITHUB_ENV
       - name: Configure packaging name for non-releasing branch
         shell : bash
-        if: ${{ (github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')) || github.repository_owner != 'supertuxkart' }}
+        if: ${{ (github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')) }}
         run: |
-          echo "release_tag=" >> $GITHUB_ENV
-          echo "release_name=" >> $GITHUB_ENV
+          echo "release_tag=git`date +%Y%m%d`" >> $GITHUB_ENV
+          echo "release_name=250621-kart-name" >> $GITHUB_ENV
       - name: Check for prerelease
         shell : bash
         if: ${{ github.ref == 'refs/heads/master' || contains(github.ref, 'rc') || contains(github.ref, 'beta') }}
