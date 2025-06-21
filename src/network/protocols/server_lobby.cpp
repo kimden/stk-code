@@ -2752,14 +2752,9 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     {
         std::string msg;
         if (getSettings()->hasConsentOnReplays())
-            msg = "Recording ghost replays is enabled. "
-                "The crowned player can change that "
-                "using /replay 0 (to disable) or /replay 1 (to enable). "
-                "Do not race under this feature if you don't want to be recorded.";
+            msg = "Recording ghost replays is enabled.";
         else
-            msg = "Recording ghost replays is disabled. "
-                "The crowned player can change that "
-                "using /replay 0 (to disable) or /replay 1 (to enable). ";
+            msg = "Recording ghost replays is disabled.";
         Comm::sendStringToPeer(peer, msg);
     }
     getMessagesFromHost(peer, online_id);
