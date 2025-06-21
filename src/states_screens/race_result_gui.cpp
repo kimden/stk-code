@@ -898,7 +898,12 @@ void RaceResultGUI::determineTableLayout()
         RowInfo *ri = &(m_all_row_infos[position - first_position]);
         ri->m_kart_id = kart->getWorldKartId();
         ri->m_is_player_kart = kart->getController()->isLocalPlayerController();
-        ri->m_kart_name = kart->getController()->getName();
+
+        if (World::getWorld()->isNetworkWorld())
+            ri->m_kart_name = kart->getController()->getName();
+        else
+            ri->m_kart_name = kart->getController()->getKart()->getName();
+
         if (RaceManager::get()->getKartGlobalPlayerId(kart->getWorldKartId()) > -1)
         {
             const core::stringw& flag = StringUtils::getCountryFlag(
