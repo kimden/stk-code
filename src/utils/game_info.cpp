@@ -29,6 +29,7 @@
 #include "network/database_connector.hpp"
 #include "network/network_player_profile.hpp"
 #include "network/protocols/server_lobby.hpp"
+#include "network/peer_vote.hpp"
 #include "network/race_event_manager.hpp"
 #include "network/remote_kart_info.hpp"
 #include "network/stk_peer.hpp"
@@ -65,6 +66,7 @@ namespace
 
 
 //-----------------------------------------------------------------------------
+
 void GameInfo::setPowerupString(const std::string&& str)
 {
     if (str == g_default_powerup_string)
@@ -72,8 +74,8 @@ void GameInfo::setPowerupString(const std::string&& str)
     else
         m_powerup_string = str;
 }   // setPowerupString
-
 //-----------------------------------------------------------------------------
+
 void GameInfo::setKartCharString(const std::string&& str)
 {
     if (str == g_default_kart_char_string)
@@ -532,4 +534,31 @@ void GameInfo::onGoalScored(bool correct_goal, const irr::core::stringw& name,
         m_player_info[kart_id].m_result += info.m_result;
     }
 }   // onGoalScored
+//-----------------------------------------------------------------------------
+
+void GameInfo::addVote(std::shared_ptr<STKPeer>& peer, PeerVote& vote)
+{
+    if (!peer)
+    {
+        Log::error("GameInfo", "addVote: peer no longer exists");
+        return;
+    }
+    auto& data = m_pre_game_data[peer->getHostId()];
+    data.m_vote_map = vote.m_track_name;
+    data.m_vote_limit = vote.m_num_laps;
+    data.m_vote_reverse = vote.m_reverse;
+}   // addVote
+//-----------------------------------------------------------------------------
+
+void GameInfo::setKarts(std::shared_ptr<STKPeer>& peer,
+                        std::vector<std::string>& final_kart_names)
+{
+    if (!peer)
+    {
+        Log::error("GameInfo", "setKarts: peer no longer exists");
+        return;
+    }
+    auto& data = m_pre_game_data[peer->getHostId()];
+    data.m_vote_kart = final_kart_names;
+}   // setKarts
 //-----------------------------------------------------------------------------
