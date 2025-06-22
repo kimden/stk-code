@@ -45,8 +45,8 @@ friend class KartRewinder;
 public:
     LEAK_CHECK();
 private:
-    float m_center_of_gravity_x;
-    float m_center_of_gravity_y;
+    float m_force_x;
+    float m_force_y;
     float m_time_elapsed;
     float m_acceleration;
 
@@ -55,17 +55,12 @@ private:
     std::deque<float> m_previous_speeds;
     long unsigned m_debug_cycles;
 
-    float m_c_hardness_multiplier;
-    InterpolationArray m_c_heat_cycle_hardness_curve;
-    InterpolationArray m_c_hardness_penalty_curve;
-
     float m_c_fuel;
     float m_c_fuel_regen;
     float m_c_fuel_stop;
     float m_c_fuel_weight;
 
     float m_c_mass;
-    float m_c_ideal_temp;
     float m_c_min_life_traction;
     float m_c_min_life_turning;
     float m_c_limiting_transfer_traction;
@@ -111,8 +106,6 @@ public:
     bool m_reset_compound;
     bool m_reset_fuel;
 
-    float m_current_temp;
-    float m_heat_cycle_count;
     int m_lap_count;
 
 private:

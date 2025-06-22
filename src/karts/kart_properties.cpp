@@ -1206,12 +1206,6 @@ std::vector<float> KartProperties::getTyresLimitingTransferTraction() const
 }  // getTyresLimitingTransferTraction
 
 // ----------------------------------------------------------------------------
-std::vector<float> KartProperties::getTyresHardnessMultiplier() const
-{
-    return m_cached_characteristic->getTyresHardnessMultiplier();
-}  // getTyresHardnessMultiplier
-
-// ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getTyresInitialBonusAddTurning() const
 {
     return m_cached_characteristic->getTyresInitialBonusAddTurning();
@@ -1246,36 +1240,6 @@ std::vector<float> KartProperties::getTyresInitialBonusMultTopspeed() const
 {
     return m_cached_characteristic->getTyresInitialBonusMultTopspeed();
 }  // getTyresInitialBonusMultTopspeed
-
-// ----------------------------------------------------------------------------
-std::vector<float> KartProperties::getTyresIdealTemp() const
-{
-    return m_cached_characteristic->getTyresIdealTemp();
-}  // getTyresIdealTemp
-
-// ----------------------------------------------------------------------------
-InterpolationArray KartProperties::getTyresTempPerformanceCurve() const
-{
-    return m_cached_characteristic->getTyresTempPerformanceCurve();
-}  // getTyresTempPerformanceCurve
-
-// ----------------------------------------------------------------------------
-InterpolationArray KartProperties::getTyresHeatTransferCurve() const
-{
-    return m_cached_characteristic->getTyresHeatTransferCurve();
-}  // getTyresHeatTransferCurve
-
-// ----------------------------------------------------------------------------
-InterpolationArray KartProperties::getTyresHardnessPenaltyCurve() const
-{
-    return m_cached_characteristic->getTyresHardnessPenaltyCurve();
-}  // getTyresHardnessPenaltyCurve
-
-// ----------------------------------------------------------------------------
-InterpolationArray KartProperties::getTyresHeatCycleHardnessCurve() const
-{
-    return m_cached_characteristic->getTyresHeatCycleHardnessCurve();
-}  // getTyresHeatCycleHardnessCurve
 
 // ----------------------------------------------------------------------------
 InterpolationArray KartProperties::getTyresResponseCurveTurning() const

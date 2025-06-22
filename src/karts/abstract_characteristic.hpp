@@ -183,18 +183,12 @@ public:
         TYRES_REGULAR_TRANSFER_TRACTION,
         TYRES_LIMITING_TRANSFER_TURNING,
         TYRES_LIMITING_TRANSFER_TRACTION,
-        TYRES_HARDNESS_MULTIPLIER,
         TYRES_INITIAL_BONUS_ADD_TURNING,
         TYRES_INITIAL_BONUS_MULT_TURNING,
         TYRES_INITIAL_BONUS_ADD_TRACTION,
         TYRES_INITIAL_BONUS_MULT_TRACTION,
         TYRES_INITIAL_BONUS_ADD_TOPSPEED,
         TYRES_INITIAL_BONUS_MULT_TOPSPEED,
-        TYRES_IDEAL_TEMP,
-        TYRES_TEMP_PERFORMANCE_CURVE,
-        TYRES_HEAT_TRANSFER_CURVE,
-        TYRES_HARDNESS_PENALTY_CURVE,
-        TYRES_HEAT_CYCLE_HARDNESS_CURVE,
         TYRES_RESPONSE_CURVE_TURNING,
         TYRES_RESPONSE_CURVE_TRACTION,
         TYRES_RESPONSE_CURVE_TOPSPEED,
@@ -404,18 +398,12 @@ public:
     std::vector<float> getTyresRegularTransferTraction() const;
     std::vector<float> getTyresLimitingTransferTurning() const;
     std::vector<float> getTyresLimitingTransferTraction() const;
-    std::vector<float> getTyresHardnessMultiplier() const;
     std::vector<float> getTyresInitialBonusAddTurning() const;
     std::vector<float> getTyresInitialBonusMultTurning() const;
     std::vector<float> getTyresInitialBonusAddTraction() const;
     std::vector<float> getTyresInitialBonusMultTraction() const;
     std::vector<float> getTyresInitialBonusAddTopspeed() const;
     std::vector<float> getTyresInitialBonusMultTopspeed() const;
-    std::vector<float> getTyresIdealTemp() const;
-    InterpolationArray getTyresTempPerformanceCurve() const;
-    InterpolationArray getTyresHeatTransferCurve() const;
-    InterpolationArray getTyresHardnessPenaltyCurve() const;
-    InterpolationArray getTyresHeatCycleHardnessCurve() const;
     InterpolationArray getTyresResponseCurveTurning() const;
     InterpolationArray getTyresResponseCurveTraction() const;
     InterpolationArray getTyresResponseCurveTopspeed() const;

@@ -336,8 +336,6 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_LIMITING_TRANSFER_TURNING]);
         sub_node->get("limiting-transfer-traction",
            &m_values[TYRES_LIMITING_TRANSFER_TRACTION]);
-        sub_node->get("hardness-multiplier",
-            &m_values[TYRES_HARDNESS_MULTIPLIER]);
         sub_node->get("initial-bonus-add-turning",
             &m_values[TYRES_INITIAL_BONUS_ADD_TURNING]);
         sub_node->get("initial-bonus-mult-turning",
@@ -350,16 +348,6 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_INITIAL_BONUS_ADD_TOPSPEED]);
         sub_node->get("initial-bonus-mult-topspeed",
             &m_values[TYRES_INITIAL_BONUS_MULT_TOPSPEED]);
-        sub_node->get("ideal-temp",
-            &m_values[TYRES_IDEAL_TEMP]);
-        sub_node->get("temp-performance-curve",
-            &m_values[TYRES_TEMP_PERFORMANCE_CURVE]);
-        sub_node->get("heat-transfer-curve",
-            &m_values[TYRES_HEAT_TRANSFER_CURVE]);
-        sub_node->get("hardness-penalty-curve",
-            &m_values[TYRES_HARDNESS_PENALTY_CURVE]);
-        sub_node->get("heat-cycle-hardness-curve",
-            &m_values[TYRES_HEAT_CYCLE_HARDNESS_CURVE]);
         sub_node->get("response-curve-turning",
             &m_values[TYRES_RESPONSE_CURVE_TURNING]);
         sub_node->get("response-curve-traction",

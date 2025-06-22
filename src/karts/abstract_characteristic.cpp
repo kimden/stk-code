@@ -205,8 +205,6 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_LIMITING_TRANSFER_TRACTION:
         return TYPE_FLOAT_VECTOR;
-    case TYRES_HARDNESS_MULTIPLIER:
-        return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_ADD_TURNING:
         return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_MULT_TURNING:
@@ -219,16 +217,6 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_INITIAL_BONUS_MULT_TOPSPEED:
         return TYPE_FLOAT_VECTOR;
-    case TYRES_IDEAL_TEMP:
-        return TYPE_FLOAT_VECTOR;
-    case TYRES_TEMP_PERFORMANCE_CURVE:
-        return TYPE_INTERPOLATION_ARRAY;
-    case TYRES_HEAT_TRANSFER_CURVE:
-        return TYPE_INTERPOLATION_ARRAY;
-    case TYRES_HARDNESS_PENALTY_CURVE:
-        return TYPE_INTERPOLATION_ARRAY;
-    case TYRES_HEAT_CYCLE_HARDNESS_CURVE:
-        return TYPE_INTERPOLATION_ARRAY;
     case TYRES_RESPONSE_CURVE_TURNING:
         return TYPE_INTERPOLATION_ARRAY;
     case TYRES_RESPONSE_CURVE_TRACTION:
@@ -533,8 +521,6 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_LIMITING_TRANSFER_TURNING";
     case TYRES_LIMITING_TRANSFER_TRACTION:
         return "TYRES_LIMITING_TRANSFER_TRACTION";
-    case TYRES_HARDNESS_MULTIPLIER:
-        return "TYRES_HARDNESS_MULTIPLIER";
     case TYRES_INITIAL_BONUS_ADD_TURNING:
         return "TYRES_INITIAL_BONUS_ADD_TURNING";
     case TYRES_INITIAL_BONUS_MULT_TURNING:
@@ -547,16 +533,6 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_INITIAL_BONUS_ADD_TOPSPEED";
     case TYRES_INITIAL_BONUS_MULT_TOPSPEED:
         return "TYRES_INITIAL_BONUS_MULT_TOPSPEED";
-    case TYRES_IDEAL_TEMP:
-        return "TYRES_IDEAL_TEMP";
-    case TYRES_TEMP_PERFORMANCE_CURVE:
-        return "TYRES_TEMP_PERFORMANCE_CURVE";
-    case TYRES_HEAT_TRANSFER_CURVE:
-        return "TYRES_HEAT_TRANSFER_CURVE";
-    case TYRES_HARDNESS_PENALTY_CURVE:
-        return "TYRES_HARDNESS_PENALTY_CURVE";
-    case TYRES_HEAT_CYCLE_HARDNESS_CURVE:
-        return "TYRES_HEAT_CYCLE_HARDNESS_CURVE";
     case TYRES_RESPONSE_CURVE_TURNING:
         return "TYRES_RESPONSE_CURVE_TURNING";
     case TYRES_RESPONSE_CURVE_TRACTION:
@@ -1604,18 +1580,6 @@ std::vector<float> AbstractCharacteristic::getTyresLimitingTransferTraction() co
 }  // getTyresLimitingTransferTraction
 
 // ----------------------------------------------------------------------------
-std::vector<float> AbstractCharacteristic::getTyresHardnessMultiplier() const
-{
-    std::vector<float> result;
-    bool is_set = false;
-    process(TYRES_HARDNESS_MULTIPLIER, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_HARDNESS_MULTIPLIER).c_str());
-    return result;
-}  // getTyresHardnessMultiplier
-
-// ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getTyresInitialBonusAddTurning() const
 {
     std::vector<float> result;
@@ -1686,66 +1650,6 @@ std::vector<float> AbstractCharacteristic::getTyresInitialBonusMultTopspeed() co
                     getName(TYRES_INITIAL_BONUS_MULT_TOPSPEED).c_str());
     return result;
 }  // getTyresInitialBonusMultTopspeed
-
-// ----------------------------------------------------------------------------
-std::vector<float> AbstractCharacteristic::getTyresIdealTemp() const
-{
-    std::vector<float> result;
-    bool is_set = false;
-    process(TYRES_IDEAL_TEMP, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_IDEAL_TEMP).c_str());
-    return result;
-}  // getTyresIdealTemp
-
-// ----------------------------------------------------------------------------
-InterpolationArray AbstractCharacteristic::getTyresTempPerformanceCurve() const
-{
-    InterpolationArray result;
-    bool is_set = false;
-    process(TYRES_TEMP_PERFORMANCE_CURVE, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_TEMP_PERFORMANCE_CURVE).c_str());
-    return result;
-}  // getTyresTempPerformanceCurve
-
-// ----------------------------------------------------------------------------
-InterpolationArray AbstractCharacteristic::getTyresHeatTransferCurve() const
-{
-    InterpolationArray result;
-    bool is_set = false;
-    process(TYRES_HEAT_TRANSFER_CURVE, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_HEAT_TRANSFER_CURVE).c_str());
-    return result;
-}  // getTyresHeatTransferCurve
-
-// ----------------------------------------------------------------------------
-InterpolationArray AbstractCharacteristic::getTyresHardnessPenaltyCurve() const
-{
-    InterpolationArray result;
-    bool is_set = false;
-    process(TYRES_HARDNESS_PENALTY_CURVE, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_HARDNESS_PENALTY_CURVE).c_str());
-    return result;
-}  // getTyresHardnessPenaltyCurve
-
-// ----------------------------------------------------------------------------
-InterpolationArray AbstractCharacteristic::getTyresHeatCycleHardnessCurve() const
-{
-    InterpolationArray result;
-    bool is_set = false;
-    process(TYRES_HEAT_CYCLE_HARDNESS_CURVE, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_HEAT_CYCLE_HARDNESS_CURVE).c_str());
-    return result;
-}  // getTyresHeatCycleHardnessCurve
 
 // ----------------------------------------------------------------------------
 InterpolationArray AbstractCharacteristic::getTyresResponseCurveTurning() const

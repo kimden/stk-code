@@ -284,7 +284,7 @@ void ReplayRecorder::update(int ticks)
 
         t[0] = kart->m_tyres->m_current_life_turning;
         t[1] = kart->m_tyres->m_current_life_traction;
-        t[2] = kart->m_tyres->m_current_temp;
+        t[2] = 100; // Temperature
         t[3] = kart->m_tyres->m_current_compound;
 
 
