@@ -69,6 +69,7 @@ set(GE_SOURCES
     src/ge_culling_tool.cpp
     src/ge_dx9_texture.cpp
     src/ge_main.cpp
+    src/ge_material_manager.cpp
     src/ge_occlusion_culling.cpp
     src/ge_texture.cpp
     src/ge_vma.cpp
@@ -104,20 +105,51 @@ if(NOT APPLE OR DLOPEN_MOLTENVK)
 endif()
 
 option(BC7_ISPC "Enable BC7 (BPTC) support (requires ispc and cmake >= 3.19)" OFF)
-if(BC7_ISPC)
+if(BC7_ISPC AND NOT ISPC_ARCH MATCHES "unknown")
     add_definitions(-DBC7_ISPC)
     enable_language(ISPC)
     set(CMAKE_ISPC_FLAGS "${CMAKE_ISPC_FLAGS} --opt=fast-math --opt=disable-assertions --pic")
+    if(ISPC_ARCH)
+        set(CMAKE_ISPC_FLAGS "${CMAKE_ISPC_FLAGS} --arch=${ISPC_ARCH}")
+    endif()
+    if(WIN32)
+        set(CMAKE_ISPC_FLAGS "${CMAKE_ISPC_FLAGS} --target-os=windows")
+    elseif(IOS)
+        set(CMAKE_ISPC_FLAGS "${CMAKE_ISPC_FLAGS} --target-os=ios")
+    elseif(APPLE)
+        set(CMAKE_ISPC_FLAGS "${CMAKE_ISPC_FLAGS} --target-os=macos")
+    else()
+        set(CMAKE_ISPC_FLAGS "${CMAKE_ISPC_FLAGS} --target-os=linux")
+    endif()
     set(GE_SOURCES
         ${GE_SOURCES}
         src/bc7e.ispc
     )
+    if (MINGW AND NOT ISPC_ARCH MATCHES "aarch64")
+        enable_language(ASM)
+        set(GE_SOURCES
+            ${GE_SOURCES}
+            src/libchkstk.S)
+        if(LLVM_PREFIX)
+            set_source_files_properties(src/libchkstk.S PROPERTIES COMPILE_FLAGS "-DCHKSTK")
+            if(ISPC_ARCH MATCHES "x86" OR ISPC_ARCH MATCHES "x86-64")
+                set_source_files_properties(src/ge_compressor_bptc_bc7.cpp PROPERTIES COMPILE_FLAGS "-DLLVM_MINGW_FLTUSED")
+            endif()
+        else()
+            set_source_files_properties(src/libchkstk.S PROPERTIES COMPILE_FLAGS "-DCHKSTK -Wa,--no-pad-sections")
+        endif()
+        set_source_files_properties(src/libchkstk.S PROPERTIES LANGUAGE ASM)
+    endif()
     include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
 add_library(graphics_engine STATIC ${GE_SOURCES})
 if(BC7_ISPC)
-    set_property(TARGET graphics_engine PROPERTY ISPC_INSTRUCTION_SETS avx2)
+    if(ISPC_ARCH MATCHES "aarch64")
+        set_property(TARGET graphics_engine PROPERTY ISPC_INSTRUCTION_SETS neon)
+    else()
+        set_property(TARGET graphics_engine PROPERTY ISPC_INSTRUCTION_SETS avx2)
+    endif()
 endif()
 
 target_link_libraries(graphics_engine ${SQUISH_LIBRARY})
