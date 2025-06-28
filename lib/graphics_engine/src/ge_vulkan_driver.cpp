@@ -3,6 +3,7 @@
 #include "ge_compressor_astc_4x4.hpp"
 #include "ge_compressor_bptc_bc7.hpp"
 #include "ge_main.hpp"
+#include "ge_material_manager.hpp"
 #include "ge_spm.hpp"
 #include "ge_spm_buffer.hpp"
 
@@ -639,6 +640,7 @@ GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
             GEVulkanFeatures::supportsBindMeshTexturesAtOnce());
         GECompressorASTC4x4::init();
         GECompressorBPTCBC7::init();
+        GEMaterialManager::init();
         GEVulkanFeatures::printStats();
     }
     catch (std::exception& e)
@@ -1689,6 +1691,7 @@ bool GEVulkanDriver::beginScene(bool backBuffer, bool zBuffer, SColor color,
                                 const SExposedVideoData& videoData,
                                 core::rect<s32>* sourceRect)
 {
+    GEMaterialManager::update();
     if (m_billboard_quad == NULL && m_irrlicht_device->getSceneManager() &&
         m_irrlicht_device->getSceneManager()->getMeshCache())
         createBillboardQuad();
@@ -2439,12 +2442,13 @@ void GEVulkanDriver::buildCommandBuffers()
     vkCmdBeginRenderPass(getCurrentCommandBuffer(), &render_pass_info,
         VK_SUBPASS_CONTENTS_INLINE);
 
+    std::vector<std::pair<GEVulkanDrawCall*, GEVulkanCameraSceneNode*> > dcs;
     for (auto& p : static_cast<GEVulkanSceneManager*>(
         m_irrlicht_device->getSceneManager())->getDrawCalls())
     {
-        p.second->render(this, p.first);
-        PrimitivesDrawn += p.second->getPolyCount();
+        dcs.emplace_back(p.second.get(), p.first);
     }
+    renderDrawCalls(dcs, getCurrentCommandBuffer());
 
     if (m_rtt_texture)
     {
@@ -2466,6 +2470,40 @@ void GEVulkanDriver::buildCommandBuffers()
 
     handleDeletedTextures();
 }   // buildCommandBuffers
+
+// ----------------------------------------------------------------------------
+void GEVulkanDriver::renderDrawCalls(
+ const std::vector<std::pair<GEVulkanDrawCall*, GEVulkanCameraSceneNode*> >& p,
+                                                           VkCommandBuffer cmd)
+{
+    bool rebind_base_vertex = true;
+    const bool bind_mesh_textures =
+        GEVulkanFeatures::supportsBindMeshTexturesAtOnce();
+    for (auto& q : p)
+    {
+        if (bind_mesh_textures)
+            q.first->bindAllMaterials(cmd);
+        else
+            rebind_base_vertex = true;
+        q.first->prepareRendering(this);
+        q.first->prepareViewport(this, q.second, cmd);
+        if (q.first->doDepthOnlyRenderingFirst())
+            q.first->renderPipeline(this, cmd, GVPT_DEPTH, rebind_base_vertex);
+        q.first->renderPipeline(this, cmd, GVPT_SOLID, rebind_base_vertex);
+        if (q.first->renderSkyBox(this, cmd))
+        {
+            if (bind_mesh_textures)
+                q.first->bindAllMaterials(cmd);
+            else
+                rebind_base_vertex = true;
+        }
+        q.first->renderPipeline(this, cmd, GVPT_GHOST_DEPTH,
+            rebind_base_vertex);
+        q.first->renderPipeline(this, cmd, GVPT_TRANSPARENT,
+            rebind_base_vertex);
+        PrimitivesDrawn += q.first->getPolyCount();
+    }
+}   // renderDrawCalls
 
 // ----------------------------------------------------------------------------
 VkFormat GEVulkanDriver::findSupportedFormat(const std::vector<VkFormat>& candidates,
@@ -2538,8 +2576,7 @@ void GEVulkanDriver::updateDriver(bool scale_changed, bool pbr_changed,
         destroySwapChainRelated(false/*handle_surface*/);
     if (pbr_changed)
     {
-        GEVulkanShaderManager::destroy();
-        GEVulkanShaderManager::init(this);
+        GEVulkanShaderManager::loadAllShaders();
         GEVulkanSampler sampler = m_mesh_texture_descriptor->getSamplerUse();
         delete m_mesh_texture_descriptor;
         m_mesh_texture_descriptor = new GEVulkanTextureDescriptor(
@@ -2590,8 +2627,7 @@ void GEVulkanDriver::reloadShaders()
     waitIdle();
     setDisableWaitIdle(true);
     clearDrawCallsCache();
-    GEVulkanShaderManager::destroy();
-    GEVulkanShaderManager::init(this);
+    GEVulkanShaderManager::loadAllShaders();
     for (auto& dc : static_cast<GEVulkanSceneManager*>(
         m_irrlicht_device->getSceneManager())->getDrawCalls())
         dc.second = std::unique_ptr<GEVulkanDrawCall>(new GEVulkanDrawCall);
