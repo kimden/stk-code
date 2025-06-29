@@ -21,7 +21,7 @@
 #include "online/request_manager.hpp"
 #include "online/http_request.hpp"
 
-#if defined(__SWITCH__) || defined(MOBILE_STK) || defined(SERVER_ONLY)
+#if defined(__SWITCH__) || defined(MOBILE_STK) || defined(SERVER_ONLY) || defined(__MINGW32__) || defined(__MINGW64__)
 #define DISABLE_RPC
 #endif
 
@@ -77,7 +77,7 @@ void RichPresence::destroy()
 }
 
 RichPresence::RichPresence() : m_connected(false), m_ready(false), m_last(0),
-#ifdef WIN32
+#if defined(WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__))
     m_socket(INVALID_HANDLE_VALUE),
 #else
     m_socket(-1),
@@ -204,7 +204,7 @@ void RichPresence::readData()
 #ifndef DISABLE_RPC
     size_t baseLength = sizeof(int32_t) * 2;
     struct discordPacket* basePacket = (struct discordPacket*) malloc(baseLength);
-#ifdef WIN32
+#if defined(WIN32)
     DWORD read;
     if (!ReadFile(m_socket, basePacket, baseLength, &read, NULL))
     {
@@ -229,7 +229,7 @@ void RichPresence::readData()
     // Copy over length and opcode from base packet
     memcpy(packet, basePacket, baseLength);
     free(basePacket);
-#ifdef WIN32
+#if defined(WIN32)
     if (!ReadFile(m_socket, packet->data, packet->length, &read, NULL))
     {
         Log::error("RichPresence", "Couldn't read from pipe! Error %x", GetLastError());

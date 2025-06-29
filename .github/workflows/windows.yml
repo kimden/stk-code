@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         arch: [i686, x86_64, armv7, aarch64]
         os: [windows-latest, ubuntu-latest]
@@ -129,6 +129,14 @@ jobs:
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> toolchain.cmake
           echo 'set(ISPC_ARCH "x86-64")' >> toolchain.cmake
       # Manually specify CMAKE_SYSTEM_PROCESSOR, it can only be set together with -DDCMAKE_SYSTEM_NAME
+      # - name: Check compiler version for MSVC
+      #   if: ${{ matrix.os == 'windows-latest' }}
+      #   run: |
+      #     cl.exe /?
+      - name: Check compiler version for MinGW
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          g++ --version
       - name: Configure bulid for MSVC
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
