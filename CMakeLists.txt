@@ -530,6 +530,14 @@ if(UNIX OR MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
 endif()
 
+if(MINGW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+endif()
+
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+endif()
+
 if(MINGW AND CMAKE_BUILD_TYPE MATCHES Release)
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--subsystem,windows")
 endif()
@@ -853,6 +861,7 @@ if(USE_WIIUSE)
 endif()
 
 if(MSVC OR MINGW)
+  add_definitions(-DWIN_BUILD)
   target_link_libraries(supertuxkart iphlpapi.lib)
   add_custom_command(TARGET supertuxkart POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -957,4 +966,20 @@ install(FILES data/net.supertuxkart.SuperTuxKart.metainfo.xml DESTINATION share/
 if(MINGW)
     install(DIRECTORY ${CMAKE_BINARY_DIR}/bin/ DESTINATION ${STK_INSTALL_BINARY_DIR}
             FILES_MATCHING PATTERN "*.dll")
+endif()
+
+include(CheckCXXSourceCompiles)
+
+check_cxx_source_compiles("
+  #include <optional>
+  int main() {
+    std::optional<int> o;
+    return 0;
+  }
+" HAS_STD_OPTIONAL)
+
+if(NOT HAS_STD_OPTIONAL)
+  message(FATAL_ERROR "The compiler does not support std::optional")
+else()
+  message("The compiler supports std::optional")
 endif()

@@ -57,7 +57,7 @@ std::string StkTime::getLogTimeFormatted(std::string&& format)
     time_t time_now = 0;
     time(&time_now);
     std::tm timeptr = {};
-#ifdef WIN32
+#ifdef WIN_BUILD
     localtime_s(&timeptr, &time_now);
 #else
     localtime_r(&time_now, &timeptr);
