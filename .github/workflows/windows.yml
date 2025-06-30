@@ -13,8 +13,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [i686, x86_64, armv7, aarch64]
-        os: [windows-latest, ubuntu-latest]
+        arch: [i686, x86_64]
+        os: [ubuntu-latest]
+        # arch: [i686, x86_64, armv7, aarch64]
+        # os: [windows-latest, ubuntu-latest]
         exclude:
           - arch: armv7
             os: windows-latest
@@ -76,7 +78,7 @@ jobs:
             ${{ env.cache_9 }}
       - name: Download dependencies
         run: |
-          ${{ env.wget }} https://github.com/supertuxkart/dependencies/releases/download/preview/dependencies-win-${{ matrix.arch }}.zip
+          ${{ env.wget }} https://github.com/kimden/stk-dependencies/releases/download/preview/dependencies-win-${{ matrix.arch }}.zip
           ${{ env.unzip }} dependencies-win-${{ matrix.arch }}.zip
       - name: Download ISPC for MinGW
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -92,7 +94,7 @@ jobs:
           sudo mkdir -p /data/mxe/usr
           cd /data/mxe/usr
           # It's compiled from https://github.com/mxe/mxe
-          sudo wget https://github.com/supertuxkart/dependencies/releases/download/preview/mxe_static_mingw.zip
+          sudo wget https://github.com/kimden/stk-dependencies/releases/download/preview/mxe_static_mingw.zip
           sudo unzip mxe_static_mingw.zip
           sudo rm mxe_static_mingw.zip
           # For libfl.so.2
@@ -107,11 +109,13 @@ jobs:
       - name: Set up MinGW Toolchain for i686
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'i686' }}
         run: |
+          # export PATH=/data/mxe/usr/bin:$PATH
           echo "SET(CMAKE_SYSTEM_NAME Windows)" > toolchain.cmake
           echo "SET(CMAKE_C_COMPILER /data/mxe/usr/bin/i686-w64-mingw32.static.posix.dw2-gcc)" >> toolchain.cmake
           echo "SET(CMAKE_CXX_COMPILER /data/mxe/usr/bin/i686-w64-mingw32.static.posix.dw2-g++)" >> toolchain.cmake
+          #echo "SET(CMAKE_ASM_COMPILER /data/mxe/usr/bin/i686-w64-mingw32.static.posix.dw2-as)" >> toolchain.cmake
           echo "SET(CMAKE_RC_COMPILER /data/mxe/usr/bin/i686-w64-mingw32.static.posix.dw2-windres)" >> toolchain.cmake
-          echo "SET(CMAKE_FIND_ROOT_PATH \${PROJECT_SOURCE_DIR}/dependencies-win-i686 /data/mxe/usr/i686-w64-mingw32.static.posix.dw2/ /data/mxe/usr/lib/gcc/i686-w64-mingw32.static.posix.dw2/5.5.0/)" >> toolchain.cmake
+          echo "SET(CMAKE_FIND_ROOT_PATH \${PROJECT_SOURCE_DIR}/dependencies-win-i686 /data/mxe/usr/i686-w64-mingw32.static.posix.dw2/ /data/mxe/usr/lib/gcc/i686-w64-mingw32.static.posix.dw2/11.5.0/)" >> toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ALWAYS)" >> toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> toolchain.cmake
@@ -119,11 +123,13 @@ jobs:
       - name: Set up MinGW Toolchain for x86_64
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'x86_64' }}
         run: |
+          # export PATH=/data/mxe/usr/bin:$PATH
           echo "SET(CMAKE_SYSTEM_NAME Windows)" > toolchain.cmake
           echo "SET(CMAKE_C_COMPILER /data/mxe/usr/bin/x86_64-w64-mingw32.static.posix.seh-gcc)" >> toolchain.cmake
           echo "SET(CMAKE_CXX_COMPILER /data/mxe/usr/bin/x86_64-w64-mingw32.static.posix.seh-g++)" >> toolchain.cmake
+          #echo "SET(CMAKE_ASM_COMPILER /data/mxe/usr/bin/x86_64-w64-mingw32.static.posix.seh-as)" >> toolchain.cmake
           echo "SET(CMAKE_RC_COMPILER /data/mxe/usr/bin/x86_64-w64-mingw32.static.posix.seh-windres)" >> toolchain.cmake
-          echo "SET(CMAKE_FIND_ROOT_PATH \${PROJECT_SOURCE_DIR}/dependencies-win-x86_64 /data/mxe/usr/x86_64-w64-mingw32.static.posix.seh/ /data/mxe/usr/lib/gcc/x86_64-w64-mingw32.static.posix.seh/5.5.0/)" >> toolchain.cmake
+          echo "SET(CMAKE_FIND_ROOT_PATH \${PROJECT_SOURCE_DIR}/dependencies-win-x86_64 /data/mxe/usr/x86_64-w64-mingw32.static.posix.seh/ /data/mxe/usr/lib/gcc/x86_64-w64-mingw32.static.posix.seh/11.5.0/)" >> toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ALWAYS)" >> toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> toolchain.cmake
@@ -133,23 +139,27 @@ jobs:
       #   if: ${{ matrix.os == 'windows-latest' }}
       #   run: |
       #     cl.exe /?
-      - name: Check compiler version for MinGW
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          g++ --version
-      - name: Configure bulid for MSVC
+      # - name: Check compiler version for MinGW i686
+      #   if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'i686' }}
+      #   run: |
+      #     /data/mxe/usr/bin/i686-w64-mingw32.static.posix.dw2-g++ --version
+      # - name: Check compiler version for MinGW x86_64
+      #   if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'x86_64' }}
+      #   run: |
+      #     /data/mxe/usr/bin/x86_64-w64-mingw32.static.posix.seh-g++ --version
+      - name: Configure build for MSVC
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           mkdir -Force build
           cd build
           cmake .. -G "Visual Studio 17 2022" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.arch }} -A ${{ env.cmake_arch }} -DCHECK_ASSETS=OFF
-      - name: Configure bulid for MinGW (i686 or x86_64)
+      - name: Configure build for MinGW (i686 or x86_64)
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch != 'armv7' && matrix.arch != 'aarch64' }}
         run: |
           mkdir -p build
           cd build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCHECK_ASSETS=OFF -DUSE_DIRECTX=ON -DBC7_ISPC=ON -DCMAKE_ISPC_COMPILER=/opt/ispc/bin/ispc
-      - name: Configure bulid for MinGW (armv7 or aarch64)
+          cmake .. -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_TOOLCHAIN_FILE=../toolchain.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCHECK_ASSETS=OFF -DUSE_DIRECTX=ON -DBC7_ISPC=ON -DCMAKE_ISPC_COMPILER=/opt/ispc/bin/ispc
+      - name: Configure build for MinGW (armv7 or aarch64)
         if: ${{ matrix.os == 'ubuntu-latest' && ( matrix.arch == 'armv7' || matrix.arch == 'aarch64' ) }}
         run: |
           mkdir -p build
