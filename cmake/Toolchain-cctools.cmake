@@ -1,7 +1,7 @@
 # Usage:
 # cmake .. -DCCTOOLS_PREFIX=/path/to/cctools -DCCTOOLS_ARCH=arch -DCCTOOLS_PLATFORM=platform \
 # -DRT=/path/to/cctools/darwin/libclang_rt.{ios, iossim, osx, tvos, tvossim}.a  -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-cctools.cmake
-# Download precompiled cctools at https://github.com/supertuxkart/dependencies/releases/download/preview/cctools.tar.xz
+# Download precompiled cctools at https://github.com/kimden/stk-dependencies/releases/download/preview/cctools.tar.xz
 # Compiled in Ubuntu 18.04
 
 # the name of the target operating system
