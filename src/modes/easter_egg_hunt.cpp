@@ -83,7 +83,7 @@ void EasterEggHunt::readData(const std::string &filename)
 
     if(easter->getName()!="EasterEggHunt")
     {
-        Log::error("[EasterEggHunt]", "Can't load easter egg file '%s' - no EasterEggHunt element.",
+        Log::error("EasterEggHunt", "Can't load easter egg file '%s' - no EasterEggHunt element.",
                 filename.c_str());
         return;
     }
@@ -118,7 +118,7 @@ void EasterEggHunt::readData(const std::string &filename)
         const XMLNode *egg = data->getNode(i);
         if(egg->getName()!="easter-egg")
         {
-            Log::warn("[EasterEggHunt]", "Unknown node '%s' in easter egg level '%s' - ignored.",
+            Log::warn("EasterEggHunt", "Unknown node '%s' in easter egg level '%s' - ignored.",
                    egg->getName().c_str(),
                    RaceManager::get()->getDifficultyAsString(act_difficulty).c_str());
             continue;

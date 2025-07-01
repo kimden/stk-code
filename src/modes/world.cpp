@@ -602,7 +602,7 @@ Controller* World::loadAIController(AbstractKart* kart)
             controller = new SoccerAI(kart);
             break;
         default:
-            Log::warn("[World]", "Unknown AI, using default.");
+            Log::warn("World", "Unknown AI, using default.");
             controller = new SkiddingAI(kart);
             break;
     }
@@ -1309,10 +1309,10 @@ void World::updateHighscores(int* best_highscore_rank)
             // no kart claimed to be in this position, most likely means
             // the kart location data is wrong
 #ifdef DEBUG
-            Log::error("[World]", "Incorrect kart positions:");
+            Log::error("World", "Incorrect kart positions:");
             for (unsigned int i=0; i<m_karts.size(); i++ )
             {
-                Log::error("[World]", "i=%d position %d.",i,
+                Log::error("World", "i=%d position %d.",i,
                            m_karts[i]->getPosition());
             }
 #endif

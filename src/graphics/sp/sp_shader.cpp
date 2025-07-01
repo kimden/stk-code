@@ -95,7 +95,7 @@ void SPShader::linkShaderFiles(RenderPass rp)
         glGetProgramiv(m_program[rp], GL_INFO_LOG_LENGTH, &info_length);
         char *error_message = new char[info_length];
         glGetProgramInfoLog(m_program[rp], info_length, NULL, error_message);
-        Log::error("SPShader", error_message);
+        Log::error("SPShader", "%s", error_message);
         delete[] error_message;
     }
     // After linking all shaders can be detached

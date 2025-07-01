@@ -622,7 +622,7 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
     {
         if(UserConfigParams::logGUI())
         {
-            Log::info("[KartSelectionScreen]", "Identity changed "
+            Log::info("KartSelectionScreen", "Identity changed "
                       "for player %s : %s",m_player_id,
                       irr::core::stringc(
                           m_player_ident_spinner->getStringValue()

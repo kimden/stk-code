@@ -183,10 +183,10 @@ void NewsManager::downloadNews()
                 // if the language is changed in the menu!
                 error_message = N_("Error downloading news: '%s'.");
                 const char *const curl_error = download_req->getDownloadErrorMessage();
+                Log::error("news", core::stringc(error_message).c_str(), curl_error);
                 error_message = StringUtils::insertValues(error_message, curl_error);
                 addons_manager->setErrorState();
                 setErrorMessage(error_message);
-                Log::error("news", core::stringc(error_message).c_str());
             }   // hadDownloadError
         }   // hadDownloadError
 
@@ -240,7 +240,7 @@ void NewsManager::checkRedirect(const XMLNode *xml)
         {
             if (UserConfigParams::logAddons())
             {
-                Log::info("[Addons]", "Current addons server: '%s'\n [Addons] New addons server: '%s'",
+                Log::info("Addons", "Current addons server: '%s'\n [Addons] New addons server: '%s'",
                             stk_config->m_server_addons.c_str(), new_addons_server.c_str());
             }
             stk_config->m_server_addons = new_addons_server;
@@ -252,7 +252,7 @@ void NewsManager::checkRedirect(const XMLNode *xml)
         {
             if (UserConfigParams::logAddons())
             {
-                Log::info("[Addons]", "Current API server: '%s'\n [Addons] New API server: '%s'",
+                Log::info("Addons", "Current API server: '%s'\n [Addons] New API server: '%s'",
                             stk_config->m_server_api.c_str(), new_api_server.c_str());
             }
             stk_config->m_server_api = new_api_server;

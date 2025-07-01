@@ -436,7 +436,7 @@ void InputManager::inputSensing(Input::InputType type, int deviceID,
         return;
 
 #if INPUT_MODE_DEBUG
-    Log::info("InputManager::inputSensing", store_new ? "storing it" : "ignoring it");
+    Log::info("InputManager", "inputSensing %s", store_new ? "storing it" : "ignoring it");
 #endif
 
 
@@ -925,7 +925,7 @@ void InputManager::dispatchInput(Input::InputType type, int deviceID,
 void InputManager::setMasterPlayerOnly(bool enabled)
 {
 #if INPUT_MODE_DEBUG
-    Log::info("InputManager::setMasterPlayerOnly", enabled ? "enabled" : "disabled");
+    Log::info("InputManager", "setMasterPlayerOnly %s", enabled ? "enabled" : "disabled");
 #endif
     m_master_player_only = enabled;
 }

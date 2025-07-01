@@ -127,7 +127,7 @@ EventPropagation FocusDispatcher::focused(const int player_id)
     if (!m_is_initialised) return EVENT_LET;
 
     if(UserConfigParams::logGUI())
-        Log::info("[KartSelectionScreen]", "FocusDispatcher focused by player %u",
+        Log::info("KartSelectionScreen", "FocusDispatcher focused by player %u",
                   player_id);
 
     // since this screen is multiplayer, redirect focus to the right widget

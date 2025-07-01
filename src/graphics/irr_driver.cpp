@@ -2354,16 +2354,16 @@ bool IrrDriver::OnEvent(const irr::SEvent &event)
             switch (event.LogEvent.Level)
             {
             case ELL_DEBUG:
-                Log::debug("[IrrDriver Logger]", "%s", event.LogEvent.Text);
+                Log::debug("IrrDriver Logger", "%s", event.LogEvent.Text);
                 break;
             case ELL_INFORMATION:
-                Log::info("[IrrDriver Logger]", "%s", event.LogEvent.Text);
+                Log::info("IrrDriver Logger", "%s", event.LogEvent.Text);
                 break;
             case ELL_WARNING:
-                Log::warn("[IrrDriver Logger]", "%s", event.LogEvent.Text);
+                Log::warn("IrrDriver Logger", "%s", event.LogEvent.Text);
                 break;
             case ELL_ERROR:
-                Log::error("[IrrDriver Logger]", "%s", event.LogEvent.Text);
+                Log::error("IrrDriver Logger", "%s", event.LogEvent.Text);
                 break;
             default:
                 break;

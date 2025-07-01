@@ -88,7 +88,7 @@ void OverWorld::enterOverWorld()
 
     if (!kart_properties_manager->getKart(UserConfigParams::m_default_kart))
     {
-        Log::warn("[overworld]", "cannot find kart '%s', "
+        Log::warn("overworld", "cannot find kart '%s', "
                   "will revert to default",
                   UserConfigParams::m_default_kart.c_str());
 

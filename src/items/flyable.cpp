@@ -175,7 +175,7 @@ void Flyable::createPhysics(float forw_offset, const Vec3 &velocity,
         // Just to get some additional information if the assert is triggered
         if(std::isnan(v.getX()) || std::isnan(v.getY()) || std::isnan(v.getZ()))
         {
-            Log::debug("[Flyable]", "vel %f %f %f v %f %f %f",
+            Log::debug("Flyable", "vel %f %f %f v %f %f %f",
                         velocity.getX(),velocity.getY(),velocity.getZ(),
                         v.getX(),v.getY(),v.getZ());
         }

@@ -1888,7 +1888,7 @@ void Track::loadTrackModel(bool reverse_track, unsigned int mode_id)
     assert(m_all_cached_meshes.size()==0);
     if(UserConfigParams::logMemory())
     {
-        Log::debug("[memory] Before loading '%s': mesh cache %d "
+        Log::debug("memory Before loading '%s': mesh cache %d "
                    "texture cache %d",
             getIdent().c_str(),
             irr_driver->getSceneManager()->getMeshCache()->getMeshCount(),

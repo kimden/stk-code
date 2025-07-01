@@ -73,9 +73,9 @@ DemoWorld::DemoWorld()
         default: RaceManager::get()->setDifficulty(RaceManager::DIFFICULTY_HARD); break;
     }
 
-    Log::info("[DemoWorld]", "Reverse mode state: %d", RaceManager::get()->getReverseTrack());
-    Log::info("[DemoWorld]", "Current game mode: %s", RaceManager::get()->getMinorModeName().c_str());
-    Log::info("[DemoWorld]", "Current difficulty: %s", RaceManager::get()->
+    Log::info("DemoWorld", "Reverse mode state: %d", RaceManager::get()->getReverseTrack());
+    Log::info("DemoWorld", "Current game mode: %s", RaceManager::get()->getMinorModeName().c_str());
+    Log::info("DemoWorld", "Current difficulty: %s", RaceManager::get()->
     getDifficultyAsString(RaceManager::get()->getDifficulty()).c_str());
 
     RaceManager::get()->setNumKarts(m_default_num_karts);
@@ -156,7 +156,7 @@ bool DemoWorld::updateIdleTimeAndStartDemo(float dt)
             && m_demo_tracks.size() > 0)
     {
         if(!track)
-            Log::warn("[DemoWorld]", "Invalid demo track identifier '%s'.",
+            Log::warn("DemoWorld", "Invalid demo track identifier '%s'.",
                    m_demo_tracks[0].c_str());
         m_demo_tracks.erase(m_demo_tracks.begin());
         track = track_manager->getTrack(m_demo_tracks[0]);
@@ -166,7 +166,7 @@ bool DemoWorld::updateIdleTimeAndStartDemo(float dt)
     // be filled up with all the tracks.
     if(m_demo_tracks.size()==0)
     {
-        Log::warn("[DemoWorld]", "No valid tracks found, no demo started.");
+        Log::warn("DemoWorld", "No valid tracks found, no demo started.");
         return false;
     }
 
