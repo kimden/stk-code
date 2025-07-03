@@ -967,19 +967,3 @@ if(MINGW)
     install(DIRECTORY ${CMAKE_BINARY_DIR}/bin/ DESTINATION ${STK_INSTALL_BINARY_DIR}
             FILES_MATCHING PATTERN "*.dll")
 endif()
-
-include(CheckCXXSourceCompiles)
-
-check_cxx_source_compiles("
-  #include <optional>
-  int main() {
-    std::optional<int> o;
-    return 0;
-  }
-" HAS_STD_OPTIONAL)
-
-if(NOT HAS_STD_OPTIONAL)
-  message(FATAL_ERROR "The compiler does not support std::optional")
-else()
-  message("The compiler supports std::optional")
-endif()
