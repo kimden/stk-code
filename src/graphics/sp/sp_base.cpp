@@ -450,8 +450,7 @@ void init()
     {
         int skinning_tbo_limit;
         glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE_ARB, &skinning_tbo_limit);
-        
-        g_skinning_use_tbo = skinning_tbo_limit >= (int)(STKConfig::get()->m_max_skinning_bones << 6);
+        g_skinning_use_tbo = (unsigned)skinning_tbo_limit >= STKConfig::get()->m_max_skinning_bones << 6;
     }
     else
     {
@@ -1325,6 +1324,17 @@ void draw(RenderPass rp, DrawCallType dct)
                     (p.second[j].second[k].first), &draw_call_uniforms, rp);
                 p.second[j].second[k].first->draw(dct,
                     p.second[j].second[k].second/*material_id*/);
+                if (p.first->getName().rfind("ghost", 0) == 0)
+                {
+                    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                    glEnable(GL_BLEND);
+                    glBlendEquation(GL_FUNC_ADD);
+                    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                    glDepthMask(GL_FALSE);
+                    p.second[j].second[k].first->draw(dct,
+                        p.second[j].second[k].second/*material_id*/);
+                    p.first->use(rp);
+                }
                 for (SPUniformAssigner* ua : draw_call_uniforms)
                 {
                     ua->reset();
