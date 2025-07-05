@@ -50,6 +50,7 @@
 #include "utils/string_utils.hpp"
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
+#include "utils/version.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -623,13 +624,12 @@ void CommandManager::initCommands()
 
     addTextResponse("description", getSettings()->getMotd());
     addTextResponse("moreinfo", getSettings()->getHelpMessage());
-    std::string version = "1.3 k 210fff beta";
-#ifdef GIT_VERSION
-    version = std::string(GIT_VERSION);
-    #ifdef GIT_BRANCH
-        version += ", branch " + std::string(GIT_BRANCH);
-    #endif
-#endif
+
+    std::string version = Version::version();
+    std::string branch = Version::branch();
+    if (!branch.empty())
+        version += ", branch " + branch;
+
     addTextResponse("version", version);
     addTextResponse("clear", std::string(30, '\n'));
 

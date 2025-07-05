@@ -9,11 +9,21 @@ execute_process(
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
-  COMMAND git --no-pager describe --tags --always --dirty
+  COMMAND git --no-pager describe --tags --always --exclude "preview" --exclude "ign-*" --dirty
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_VARIABLE GIT_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+message(STATUS "Configuring file from: ${CMAKE_SOURCE_DIR}/src/utils/version.hpp.in")
+message(STATUS "Output file: ${CMAKE_SOURCE_DIR}/src/utils/version.hpp")
+
+configure_file(
+  ${CMAKE_SOURCE_DIR}/src/utils/version.hpp.in
+  ${CMAKE_SOURCE_DIR}/src/utils/version.hpp
+  @ONLY)
+
+include_directories(${CMAKE_BINARY_DIR}/generated)
 
 # root CMakeLists for the SuperTuxKart project
 project(SuperTuxKart)
@@ -654,9 +664,6 @@ else()
         target_link_libraries(supertuxkart ${PTHREAD_LIBRARY})
     endif()
 endif()
-
-target_compile_definitions(supertuxkart PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
-target_compile_definitions(supertuxkart PRIVATE "-DGIT_VERSION=\"${GIT_COMMIT_HASH}\"")
 
 # check if linking against libatomic is required
 include(CheckCXXSourceCompiles)
