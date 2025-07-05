@@ -253,7 +253,9 @@ void GhostKart::update(int ticks)
 // ----------------------------------------------------------------------------
 void GhostKart::updateSound(float dt)
 {
-    if (!getController()) return;
+    if (!getController() ||
+        World::getWorld()->getPhase() == World::IN_GAME_MENU_PHASE)
+        return;
 
     GhostController* gc = dynamic_cast<GhostController*>(getController());
     if (gc == NULL) return;

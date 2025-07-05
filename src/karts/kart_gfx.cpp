@@ -37,6 +37,7 @@
 #include "race/race_manager.hpp"
 
 #include <iostream>
+#include "IVideoDriver.h"
 
 KartGFX::KartGFX(const Kart *kart, bool is_day)
 {
@@ -56,7 +57,7 @@ KartGFX::KartGFX(const Kart *kart, bool is_day)
     // Create nitro light
     core::vector3df location(0.0f, 0.5f, -0.5f*length - 0.05f);
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_nitro_light = irr_driver->addLight(location, /*force*/ 0.4f,
                                              /*radius*/ 5.0f, 0.0f, 0.4f, 1.0f,
@@ -173,7 +174,7 @@ KartGFX::~KartGFX()
             delete m_all_emitters[i];
     }   // for i < KGFX_COUNT
 
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_nitro_light->drop();
         m_nitro_hack_light->drop();
@@ -218,9 +219,9 @@ void KartGFX::addEffect(KartGFXType type, const std::string &file_name,
             throw std::runtime_error(err);
         }
         //kind    = new ParticleKind(file_manager->getGfxFile(file_name));
-        // Skid0, Skid2 and Skid3 are only used to store the emitter type,
+        // Skid0 and Skid3 are only used to store the emitter type,
         // and a wheeless kart has no terrain effects.
-        if(type==KGFX_SKID0L || type==KGFX_SKID0R || type==KGFX_SKID2L || type==KGFX_SKID2R ||
+        if(type==KGFX_SKID0L || type==KGFX_SKID0R ||
             type==KGFX_SKID3L || type==KGFX_SKID3R ||
             (type==KGFX_TERRAIN && m_kart->isWheeless()) )
             emitter = NULL;
@@ -280,42 +281,54 @@ void KartGFX::reset()
 /** Selects the correct skidding particle type depending on skid bonus level.
  *  \param level Must be 0 (no bonus, showing tiny sparks), 1 (accumulated enough
  *         for level 1 bonus), 2 (accumulated enough for level 2 bonus) or 3.
+  *  \param upcoming_level Must be 0 (no bonus, showing tiny sparks), 1 (accumulated enough
+ *         for level 1 bonus), 2 (accumulated enough for level 2 bonus) or 3.
  */
-void KartGFX::setSkidLevel(const unsigned int level)
+void KartGFX::setSkidLevel(const unsigned int level, const unsigned int upcoming_level)
 {
     assert(level >= 0);
     assert(level <= 3);
     m_skid_level = level;
-    const ParticleKind *pk;
+    const ParticleKind *pk, *pk2;
     if (level == 0)
-    {
         pk = m_skid_kind0;
-    }
     else if (level == 1)
-    {
         pk = m_skid_kind1;
-    }
     else if (level == 2)
-    {
         pk = m_skid_kind2;
-    }
     else
-    {
         pk = m_skid_kind3;
-    }
+
+    if (upcoming_level == 0)
+        pk2 = m_skid_kind0;
+    else if (upcoming_level == 1)
+        pk2 = m_skid_kind1;
+    else if (upcoming_level == 2)
+        pk2 = m_skid_kind2;
+    else
+        pk2 = m_skid_kind3;
+
+
 //    const ParticleKind *pk = level==1 ? m_skid_kind1 : m_skid_kind2;
 #ifndef SERVER_ONLY
     if (GUIEngine::isNoGraphics())
         return;
 
-    if(m_all_emitters[KGFX_SKID1L])
-        m_all_emitters[KGFX_SKID1L]->setParticleType(pk);
-    if(m_all_emitters[KGFX_SKID1R])
-        m_all_emitters[KGFX_SKID1R]->setParticleType(pk);
-    // Relative 0 means it will emitt the minimum rate, i.e. the rate
-    // set to indicate that the bonus is now available.
-    setCreationRateRelative(KartGFX::KGFX_SKIDL, 0.0f);
-    setCreationRateRelative(KartGFX::KGFX_SKIDR, 0.0f);
+    if(m_all_emitters[KGFX_SKIDL])
+        m_all_emitters[KGFX_SKIDL]->setParticleType(pk);
+    if(m_all_emitters[KGFX_SKIDR])
+        m_all_emitters[KGFX_SKIDR]->setParticleType(pk);
+    if(m_all_emitters[KGFX_SKIDL2])
+        m_all_emitters[KGFX_SKIDL2]->setParticleType(pk2);
+    if(m_all_emitters[KGFX_SKIDR2])
+        m_all_emitters[KGFX_SKIDR2]->setParticleType(pk2);
+    // Relative 1 means it will emit the maximum rate,
+    // relative 0 means it will emit at the minimum rate.
+    // This is used to determine the mixing ratios when the levels are different.
+    setCreationRateRelative(KartGFX::KGFX_SKIDL, 1.0f);
+    setCreationRateRelative(KartGFX::KGFX_SKIDR, 1.0f);
+    setCreationRateRelative(KartGFX::KGFX_SKIDL2, 0.0f);
+    setCreationRateRelative(KartGFX::KGFX_SKIDR2, 0.0f);
 #endif
 }   // setSkidLevel
 
@@ -507,7 +520,7 @@ void KartGFX::updateNitroGraphics(float nitro_frac, bool isNitroHackOn)
             setCreationRateAbsolute(KartGFX::KGFX_NITRO2,      0);
             setCreationRateRelative(KartGFX::KGFX_NITROHACK1, nitro_frac);
             setCreationRateRelative(KartGFX::KGFX_NITROHACK2, nitro_frac);
-            if (CVS->isGLSL())
+            if (supportsLight())
             {
                 m_nitro_light->setVisible(false);
                 m_nitro_hack_light->setVisible(true);
@@ -519,7 +532,7 @@ void KartGFX::updateNitroGraphics(float nitro_frac, bool isNitroHackOn)
             setCreationRateRelative(KartGFX::KGFX_NITRO2, nitro_frac);
             setCreationRateAbsolute(KartGFX::KGFX_NITROHACK1,  0);
             setCreationRateAbsolute(KartGFX::KGFX_NITROHACK2,  0);
-            if (CVS->isGLSL())
+            if (supportsLight())
             {
                 m_nitro_light->setVisible(true);
                 m_nitro_hack_light->setVisible(false);
@@ -537,7 +550,7 @@ void KartGFX::updateNitroGraphics(float nitro_frac, bool isNitroHackOn)
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE1, 0);
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE2, 0);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
         {
             m_nitro_light->setVisible(false);
             m_nitro_hack_light->setVisible(false);
@@ -558,7 +571,7 @@ void KartGFX::updateNitroGraphics(float nitro_frac, bool isNitroHackOn)
 void KartGFX::updateSkidLight(unsigned int level)
 {
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_skidding_light_1->setVisible(level == 1);
         m_skidding_light_2->setVisible(level == 2);
@@ -621,7 +634,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE1, (float)nitro);
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE2, (float)nitro);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
             m_nitro_light->setVisible(true);
     }
     else
@@ -631,7 +644,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE1, 0.0f);
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE2, 0.0f);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
             m_nitro_light->setVisible(false);
     }
 
@@ -649,7 +662,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         if (m_all_emitters[KGFX_SKID1R])
             m_all_emitters[KGFX_SKID1R]->setParticleType(skid_kind);
 
-        if (CVS->isGLSL())
+        if (supportsLight())
         {
             m_skidding_light_1->setVisible(!red_skidding && !purple_skidding);
             m_skidding_light_2->setVisible(red_skidding && !purple_skidding);
@@ -664,7 +677,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         setCreationRateAbsolute(KartGFX::KGFX_SKIDL, 0.0f);
         setCreationRateAbsolute(KartGFX::KGFX_SKIDR, 0.0f);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
         {
             m_skidding_light_1->setVisible(false);
             m_skidding_light_2->setVisible(false);
@@ -678,7 +691,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
 void KartGFX::setGFXInvisible()
 {
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_nitro_light->setVisible(false);
         m_nitro_hack_light->setVisible(false);
@@ -689,3 +702,14 @@ void KartGFX::setGFXInvisible()
     }
 #endif
 }   // setGFXInvisible
+
+// ----------------------------------------------------------------------------
+bool KartGFX::supportsLight() const
+{
+#ifdef SERVER_ONLY
+    return false;
+#else
+    return CVS->isGLSL() ||
+        irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN;
+#endif
+}

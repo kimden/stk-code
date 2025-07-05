@@ -81,11 +81,16 @@ vec3 PBRSunAmbientEmitLight(
 
     // Other 0.6 comes from skybox
     ambient_color *= 0.4;
-    vec3 environment = vec3(0.325, 0.35, 0.375) * ambient_color * diffuse_color;
+    vec3 environment;
     if (u_ibl)
     {
         environment = environmentLight(irradiance, radiance, roughness,
             diffuse_color, F_ab, F0, F90, NdotV);
+    }
+    else
+    {
+        environment = u_global_light.m_skytop_color * ambient_color *
+            diffuse_color;
     }
 
     vec3 emit = emissive * color * 4.0;
@@ -93,4 +98,48 @@ vec3 PBRSunAmbientEmitLight(
     return sun_color * sunlight
           + environment + emit
           + (diffuse_ambient + specular_ambient) * ambient_color;
+}
+
+vec3 accumulateLights(vec3 diffuse_color, vec3 normal, vec3 xpos, vec3 eyedir,
+                      float perceptual_roughness, float metallic)
+{
+    vec3 accumulated_color = vec3(0.0);
+    for (int i = 0; i < u_global_light.m_light_count; i++)
+    {
+        vec3 light_to_frag = (u_camera.m_view_matrix *
+            vec4(u_global_light.m_lights[i].m_position_radius.xyz,
+            1.0)).xyz - xpos;
+        float invrange = u_global_light.m_lights[i].m_color_inverse_square_range.w;
+        float distance_sq = dot(light_to_frag, light_to_frag);
+        if (distance_sq * invrange > 1.)
+            continue;
+        // SpotLight
+        float sattenuation = 1.;
+        float sscale = u_global_light.m_lights[i].m_direction_scale_offset.z;
+        float distance = sqrt(distance_sq);
+        float distance_inverse = 1. / distance;
+        vec3 L = light_to_frag * distance_inverse;
+        if (sscale != 0.)
+        {
+            vec3 sdir =
+                vec3(u_global_light.m_lights[i].m_direction_scale_offset.xy, 0.);
+            sdir.z = sqrt(1. - dot(sdir, sdir)) * sign(sscale);
+            sdir = (u_camera.m_view_matrix * vec4(sdir, 0.0)).xyz;
+            sattenuation = clamp(dot(-sdir, L) *
+                abs(sscale) +
+                u_global_light.m_lights[i].m_direction_scale_offset.w, 0.0, 1.0);
+            if (sattenuation == 0.)
+                continue;
+        }
+        vec3 diffuse_specular = PBRLight(normal, eyedir, L, diffuse_color,
+            perceptual_roughness, metallic);
+        float attenuation = 20. / (1. + distance_sq);
+        float radius = u_global_light.m_lights[i].m_position_radius.w;
+        attenuation *= (radius - distance) / radius;
+        attenuation *= sattenuation * sattenuation;
+        vec3 light_color =
+            u_global_light.m_lights[i].m_color_inverse_square_range.xyz;
+        accumulated_color += light_color * attenuation * diffuse_specular;
+    }
+    return accumulated_color;
 }

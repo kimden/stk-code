@@ -51,39 +51,47 @@ static const char ALL_TRACK_GROUPS_ID[] = "all";
 void TracksAndGPScreen::eventCallback(Widget* widget, const std::string& name,
                                  const int playerID)
 {
-    // -- track selection screen
-    if (name == "tracks")
+    // random track button
+    if (name == "random_track")
     {
-        DynamicRibbonWidget* w2 = dynamic_cast<DynamicRibbonWidget*>(widget);
-        if(!w2) return;
+        if (m_random_track_list.empty()) return;
 
-        std::string selection = w2->getSelectionIDString(PLAYER_ID_GAME_MASTER);
-        if (UserConfigParams::logGUI())
+        std::string selection = m_random_track_list.front();
+        m_random_track_list.pop_front();
+        m_random_track_list.push_back(selection);
+
+        TrackInfoScreen::getInstance()->setTrack(TrackManager::get()->getTrack(selection));
+        TrackInfoScreen::getInstance()->push();  
+    }   // name=="random_track"
+
+    // -- track selection screen
+    else if (name == "tracks")
+    {
+        std::string selection;
+        if (name == "tracks")
         {
-            Log::info("TracksAndGPScreen", "Clicked on track '%s'.",
-                       selection.c_str());
+            DynamicRibbonWidget* w2 = dynamic_cast<DynamicRibbonWidget*>(widget);
+            if(!w2) return;
+
+            selection = w2->getSelectionIDString(PLAYER_ID_GAME_MASTER);
+            if (UserConfigParams::logGUI())
+            {
+                Log::info("TracksAndGPScreen", "Clicked on track '%s'.",
+                           selection.c_str());
+            }
+
+            UserConfigParams::m_last_track = selection;
+            if (selection == "locked" && RaceManager::get()->getNumLocalPlayers() == 1)
+            {
+                unlock_manager->playLockSound();
+                return;
+            }
+            else if (selection == RibbonWidget::NO_ITEM_ID)
+            {
+                return;
+            }
         }
 
-        UserConfigParams::m_last_track = selection;
-        if (selection == "locked" && RaceManager::get()->getNumLocalPlayers() == 1)
-        {
-            unlock_manager->playLockSound();
-            return;
-        }
-        else if (selection == RibbonWidget::NO_ITEM_ID)
-        {
-            return;
-        }
-
-        if (selection == "random_track")
-        {
-            if (m_random_track_list.empty()) return;
-
-            selection = m_random_track_list.front();
-            m_random_track_list.pop_front();
-            m_random_track_list.push_back(selection);
-
-        }   // selection=="random_track"
         Track *track = TrackManager::get()->getTrack(selection);
 
         if (track)
@@ -365,10 +373,6 @@ void TracksAndGPScreen::buildTrackList()
             m_random_track_list.push_back(curr->getIdent());
         }
     }
-
-    tracks_widget->addItem(_("Random Track"), "random_track",
-                           "/gui/icons/track_random.png", 0 /* no badge */,
-                           IconButtonWidget::ICON_PATH_TYPE_RELATIVE);
 
     tracks_widget->updateItemDisplay();
     std::random_shuffle( m_random_track_list.begin(), m_random_track_list.end() );
