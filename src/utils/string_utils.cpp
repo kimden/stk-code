@@ -806,6 +806,10 @@ namespace StringUtils
                 return shortver ? "H" : "HARD";
             case 5:
                 return shortver ? "H+" : "HARD+";
+            case 6:
+                return shortver ? "EKS" : "KARTSOFT";
+            case 7:
+                return shortver ? "EKH" : "KARTHARD";
             case 9:
                 return shortver ? "FL" : "FLAT";
             case 123:
