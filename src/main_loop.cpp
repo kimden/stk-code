@@ -270,7 +270,7 @@ double MainLoop::getLimitedDt()
         m_curr_time = std::chrono::steady_clock::now();
         if (m_prev_time > m_curr_time)
         {
-            Log::error("MainLopp", "System clock keeps backwards!");
+            Log::error("MainLoop", "System clock keeps backwards!");
             m_prev_time = m_curr_time;
         }
         dt = convertToTime(m_curr_time, m_prev_time);

@@ -250,7 +250,7 @@ void LinearWorld::update(int ticks)
         {
             for(unsigned int j=0; j<kart_amount; j++)
             {
-                Log::verbose("[LinearWorld]", "kart id=%u, position=%d, finished=%d, laps=%d, "
+                Log::verbose("LinearWorld", "kart id=%u, position=%d, finished=%d, laps=%d, "
                        "distanceDownTrack=%f overallDistance=%f %s",
                     j, m_karts[j]->getPosition(),
                     m_karts[j]->hasFinishedRace(),
@@ -785,9 +785,9 @@ float LinearWorld::estimateFinishTimeForKart(Kart* kart)
 #ifdef DEBUG
     if(kart_info.m_overall_distance > full_distance)
     {
-        Log::debug("[LinearWorld]", "Full distance < distance covered for kart '%s':",
+        Log::debug("LinearWorld", "Full distance < distance covered for kart '%s':",
                kart->getIdent().c_str());
-        Log::debug("[LinearWorld]", "%f < %f", full_distance, kart_info.m_overall_distance);
+        Log::debug("LinearWorld", "%f < %f", full_distance, kart_info.m_overall_distance);
     }
 #endif
     // Avoid potential problems (floating point issues, coding bug?) if a
@@ -911,7 +911,6 @@ void LinearWorld::updateRacePosition()
             setKartPosition(i, kart->getPosition());
             continue;
         }
-        KartInfo& kart_info = m_kart_info[i];
 
         int p = 1 ;
 
@@ -947,12 +946,12 @@ void LinearWorld::updateRacePosition()
         rank_changed |= kart->getPosition()!=p;
         if (!setKartPosition(i,p))
         {
-            Log::error("[LinearWorld]", "Same rank used twice!!");
+            Log::error("LinearWorld", "Same rank used twice!!");
 
-            Log::debug("[LinearWorld]", "Info used to decide ranking :");
+            Log::debug("LinearWorld", "Info used to decide ranking :");
             for (unsigned int d=0; d<kart_amount; d++)
             {
-                Log::debug("[LinearWorld]", "Kart %s has finished (%d), is at lap (%u),"
+                Log::debug("LinearWorld", "Kart %s has finished (%d), is at lap (%u),"
                             "is at distance (%u), is eliminated(%d)",
                             m_karts[d]->getIdent().c_str(),
                             m_karts[d]->hasFinishedRace(),
@@ -961,14 +960,14 @@ void LinearWorld::updateRacePosition()
                             m_karts[d]->isEliminated());
             }
 
-            Log::debug("[LinearWorld]", "Who has each ranking so far :");
+            Log::debug("LinearWorld", "Who has each ranking so far :");
             for (unsigned int d=0; d<i; d++)
             {
-                Log::debug("[LinearWorld]", "%s has rank %d", m_karts[d]->getIdent().c_str(),
+                Log::debug("LinearWorld", "%s has rank %d", m_karts[d]->getIdent().c_str(),
                             m_karts[d]->getPosition());
             }
 
-            Log::debug("[LinearWorld]", "    --> And %s is being set at rank %d",
+            Log::debug("LinearWorld", "    --> And %s is being set at rank %d",
                         kart->getIdent().c_str(), p);
             history->Save();
             assert(false);
@@ -983,7 +982,7 @@ void LinearWorld::updateRacePosition()
 #ifdef DEBUG_KART_RANK
     if(rank_changed)
     {
-        Log::debug("[LinearWorld]", "Counting laps at %u seconds.", getTime());
+        Log::debug("LinearWorld", "Counting laps at %u seconds.", getTime());
         for (unsigned int i=0; i<kart_amount; i++)
         {
             Kart* kart = m_karts[i].get();
@@ -1011,21 +1010,21 @@ void LinearWorld::updateRacePosition()
                 if(j == my_id) continue;
                 if(m_karts[j]->isEliminated())
                 {
-                    Log::debug("[LinearWorld]", " %u: %s because it is eliminated.",
+                    Log::debug("LinearWorld", " %u: %s because it is eliminated.",
                                 p, m_karts[j]->getIdent().c_str());
                     continue;
                 }
                 if(!kart->hasFinishedRace() && m_karts[j]->hasFinishedRace())
                 {
                     p++;
-                    Log::debug("[LinearWorld]", " %u: %s because it has finished the race.",
+                    Log::debug("LinearWorld", " %u: %s because it has finished the race.",
                                 p, m_karts[j]->getIdent().c_str());
                     continue;
                 }
                 if(m_kart_info[j].m_overall_distance > my_distance)
                 {
                     p++;
-                    Log::debug("[LinearWorld]", " %u: %s because it is ahead %u.",
+                    Log::debug("LinearWorld", " %u: %s because it is ahead %u.",
                                 p, m_karts[j]->getIdent().c_str(),
                                 m_kart_info[j].m_overall_distance);
                     continue;
@@ -1034,7 +1033,7 @@ void LinearWorld::updateRacePosition()
                    m_karts[j]->getInitialPosition()<kart->getInitialPosition())
                 {
                     p++;
-                    Log::debug("[LinearWorld]"," %u: %s has same distance, but started ahead %d",
+                    Log::debug("LinearWorld"," %u: %s has same distance, but started ahead %d",
                                 p, m_karts[j]->getIdent().c_str(),
                                 m_karts[j]->getInitialPosition());
                 }

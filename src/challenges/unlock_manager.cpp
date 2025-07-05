@@ -122,7 +122,7 @@ void UnlockManager::readAllChallengesInDirs(const std::vector<std::string>* all_
                 catch (std::runtime_error& ex)
                 {
                     Log::warn("unlock_manager", "An error occurred while "
-                              "loading challenge file '%s' : %s.\n"
+                              "loading challenge file '%s' : %s."
                               "Challenge will be ignored.",
                               filename.c_str(), ex.what());
                     continue;

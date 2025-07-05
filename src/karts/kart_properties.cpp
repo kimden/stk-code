@@ -290,9 +290,9 @@ void KartProperties::load(const std::string &filename, const std::string &node)
     }
     catch(std::exception& err)
     {
-        Log::error("[KartProperties]", "Error while parsing KartProperties '%s':",
+        Log::error("KartProperties", "Error while parsing KartProperties '%s':",
                    filename.c_str());
-        Log::error("[KartProperties]", "%s", err.what());
+        Log::error("KartProperties", "%s", err.what());
     }
     if(root) delete root;
 
@@ -529,7 +529,7 @@ void KartProperties::getAllData(const XMLNode * root)
             m_terrain_impulse_type = IMPULSE_TO_DRIVELINE;
         else
         {
-            Log::fatal("[KartProperties]",
+            Log::fatal("KartProperties",
                        "Missing or incorrect value for impulse-type: '%s'.",
                        s.c_str());
         }
@@ -591,7 +591,7 @@ void KartProperties::getAllData(const XMLNode * root)
             }
             else
             {
-                Log::error("[KartProperties]",
+                Log::error("KartProperties",
                     "Kart '%s' has an invalid custom engine file '%s'.",
                     m_name.c_str(), full_path.c_str());
                 m_engine_sfx_type = "engine_small";
@@ -607,7 +607,7 @@ void KartProperties::getAllData(const XMLNode * root)
             }
             else
             {
-                Log::error("[KartProperties]",
+                Log::error("KartProperties",
                            "Kart '%s' has an invalid engine '%s'.",
                            m_name.c_str(), s.c_str());
                 m_engine_sfx_type = "engine_small";

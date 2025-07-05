@@ -23,6 +23,9 @@
 #include <vector>
 #include <stdlib.h>
 
+#include <memory>
+#include <random>
+
 /** A random number generator. Each objects that needs a random number uses
     its own number random generator. They are all seeded with number provided
     by the server. This guarantees that in a network game all 'random' values
@@ -45,5 +48,13 @@ public:
     int  get(int n)  {return rand() % n; }
     void seed(int s) {m_random_value = s;}
 };  // RandomGenerator
+
+/** This is a temporary bad generator to use
+ *  in what was std::random_shuffle before. */
+class GlobalMt19937
+{
+public:
+    static std::mt19937& get();
+};
 
 #endif // HEADER_RANDOM_GENERATOR_HPP

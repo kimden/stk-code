@@ -32,6 +32,7 @@
 #include "network/game_setup.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/game_info.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
@@ -121,6 +122,7 @@ void LobbySettings::setupContextUser()
     m_voting_timeout                 = ServerConfig::m_voting_timeout;
     m_commands_file                  = ServerConfig::m_commands_file;
     m_power_password                 = ServerConfig::m_power_password;
+    m_power_password_level_2         = ServerConfig::m_power_password_level_2;
     m_register_table_name            = ServerConfig::m_register_table_name;
     m_lobby_cooldown                 = ServerConfig::m_lobby_cooldown;
 }   // setupContextUser
@@ -196,7 +198,7 @@ bool LobbySettings::hasFixedLapCount() const
 }   // hasFixedLapCount
 //-----------------------------------------------------------------------------
 
-int LobbySettings::getMultiplier() const
+double LobbySettings::getMultiplier() const
 {
     return m_default_lap_multiplier;
 }   // getMultiplier
@@ -619,16 +621,16 @@ void LobbySettings::tryKickingAnotherPeer(std::shared_ptr<STKPeer> initiator,
 
     if (!hasKicksAllowed())
     {
-        getLobby()->sendStringToPeer(initiator, "Kicking players is not allowed on this server");
+        Comm::sendStringToPeer(initiator, "Kicking players is not allowed on this server");
         return;
     }
 
     // Ignore kicking ai peer if ai handling is on
     if (target && (!hasAiHandling() || !target->isAIPeer()))
     {
-        if (target->isAngryHost())
+        if (target->hammerLevel() > 0)
         {
-            getLobby()->sendStringToPeer(initiator, "This player is the owner of this server, "
+            Comm::sendStringToPeer(initiator, "This player holds admin rights of this server, "
                 "and is protected from your actions now");
             return;
         }
@@ -681,3 +683,14 @@ void LobbySettings::getLobbyHitCaptureLimit()
     m_battle_time_limit = time_limit;
 }   // getLobbyHitCaptureLimit
 // ----------------------------------------------------------------------------
+
+std::string LobbySettings::getPowerPassword(int level) const
+{
+    if (level == 1)
+        return m_power_password;
+    if (level == 2)
+        return m_power_password_level_2;
+    
+    Log::error("LobbySettings", "Invoked getPowerPassword with level = %d", level);
+    return "";
+}

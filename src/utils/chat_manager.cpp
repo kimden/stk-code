@@ -18,16 +18,17 @@
 
 #include "utils/chat_manager.hpp"
 
-#include "network/server_config.hpp"
-#include "utils/string_utils.hpp"
-#include "utils/tournament.hpp"
-#include "network/protocols/server_lobby.hpp"
-#include "utils/string_utils.hpp"
-#include "network/stk_peer.hpp"
 #include "network/network_player_profile.hpp"
 #include "network/network_string.hpp"
-#include "network/stk_host.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "network/remote_kart_info.hpp"
+#include "network/server_config.hpp"
+#include "network/stk_host.hpp"
+#include "network/stk_peer.hpp"
+#include "utils/communication.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/tournament.hpp"
 
 namespace
 {
@@ -181,7 +182,7 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
     
     if (interval > 0 && peer->getConsecutiveMessages() > interval / 2)
     {
-        getLobby()->sendStringToPeer(peer, "Spam detected");
+        Comm::sendStringToPeer(peer, "Spam detected");
         return;
     }
 
@@ -197,7 +198,7 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
         // to send a warning for interpretation by the client to
         // allow proper translation. Also, this string can only be
         // triggered with modified STK clients anyways.
-        getLobby()->sendStringToPeer(peer, "Don't try to impersonate others!");
+        Comm::sendStringToPeer(peer, "Don't try to impersonate others!");
         return;
     }
 

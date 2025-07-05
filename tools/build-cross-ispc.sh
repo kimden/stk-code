@@ -56,7 +56,7 @@ EOF
 apt-get update
 apt install -y build-essential llvm cmake clang m4 bison flex libtbb-dev libclang-18-dev libclang-cpp-dev gcc-multilib g++-multilib
 cd /opt
-wget https://github.com/supertuxkart/dependencies/releases/download/cctools/cctools-14.1.tar.xz
+wget https://github.com/kimden/stk-dependencies/releases/download/cctools/cctools-14.1.tar.xz
 tar xf cctools-14.1.tar.xz
 rm cctools-14.1.tar.xz
 cd

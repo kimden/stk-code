@@ -82,7 +82,7 @@ LODNode* ModelDefinitionLoader::instanciateAsLOD(const XMLNode* node, scene::ISc
                 scene::IAnimatedMesh* a_mesh = irr_driver->getAnimatedMesh(group[m].m_model_file);
                 if (!a_mesh)
                 {
-                    Log::warn("LODNodeLoad", "Warning: object model '%s' not found, ignored.\n",
+                    Log::warn("LODNodeLoad", "Warning: object model '%s' not found, ignored.",
                         group[m].m_model_file.c_str());
                     continue;
                 }
@@ -123,7 +123,7 @@ LODNode* ModelDefinitionLoader::instanciateAsLOD(const XMLNode* node, scene::ISc
                 scene::IMesh* a_mesh = irr_driver->getMesh(group[m].m_model_file);
                 if (!a_mesh)
                 {
-                    Log::warn("LODNodeLoad", "Warning: object model '%s' not found, ignored.\n",
+                    Log::warn("LODNodeLoad", "Warning: object model '%s' not found, ignored.",
                         group[m].m_model_file.c_str());
                     continue;
                 }

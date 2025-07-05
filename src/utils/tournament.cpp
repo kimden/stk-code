@@ -45,8 +45,10 @@ void Tournament::setupContextUser()
 
 void Tournament::applyFiltersForThisGame(FilterContext& track_context)
 {
-    track_context.wildcards = m_arenas;
+    std::vector<std::string> prev_wildcards = m_arenas;
+    std::swap(track_context.wildcards, prev_wildcards);
     m_track_filters[m_game].apply(track_context);
+    std::swap(track_context.wildcards, prev_wildcards);
 }   // applyFiltersForThisGame
 //-----------------------------------------------------------------------------
 
@@ -133,23 +135,28 @@ void Tournament::updateTournamentRole(std::shared_ptr<STKPeer> peer)
 {
     if (peer->getPlayerProfiles().empty())
         return;
+
     std::string utf8_online_name = peer->getMainName();
+    auto team_manager = getTeamManager();
+
     for (auto& player: peer->getPlayerProfiles())
     {
         core::stringw name = player->getName();
         std::string utf8_name = StringUtils::wideToUtf8(name);
+
         if (m_red_players.count(utf8_online_name))
-            getTeamManager()->setTeamInLobby(player, KART_TEAM_RED);
+            team_manager->setTeamInLobby(player, KART_TEAM_RED);
         else if (m_blue_players.count(utf8_online_name))
-            getTeamManager()->setTeamInLobby(player, KART_TEAM_BLUE);
+            team_manager->setTeamInLobby(player, KART_TEAM_BLUE);
         else
-            getTeamManager()->setTeamInLobby(player, KART_TEAM_NONE);
+            team_manager->setTeamInLobby(player, KART_TEAM_NONE);
+
         if (hasColorsSwapped())
         {
             if (player->getTeam() == KART_TEAM_BLUE)
-                getTeamManager()->setTeamInLobby(player, KART_TEAM_RED);
+                team_manager->setTeamInLobby(player, KART_TEAM_RED);
             else if (player->getTeam() == KART_TEAM_RED)
-                getTeamManager()->setTeamInLobby(player, KART_TEAM_BLUE);
+                team_manager->setTeamInLobby(player, KART_TEAM_BLUE);
         }
     }
 }   // updateTournamentRole

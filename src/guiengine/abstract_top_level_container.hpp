@@ -90,7 +90,7 @@ namespace GUIEngine
             T* outCasted = dynamic_cast<T*>( out );
             if (out != NULL && outCasted == NULL)
                 Log::fatal("Screen::getWidget", "Widget '%s' of type '%s'"
-                           "cannot be casted to requested type '%s'!\n", name,
+                           "cannot be casted to requested type '%s'!", name,
                            typeid(*out).name(), typeid(T).name());
             return outCasted;
         }

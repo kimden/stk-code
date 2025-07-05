@@ -1197,7 +1197,7 @@ int handleCmdLine(bool has_server_config, bool has_parent_process)
         int n = atoi(s.c_str());
         if (n < 0 || n > RaceManager::DIFFICULTY_LAST)
         {
-            Log::warn("main", "Invalid difficulty '%s', use easy.\n",
+            Log::warn("main", "Invalid difficulty '%s', use easy.",
                       s.c_str());
             RaceManager::get()->setDifficulty(RaceManager::Difficulty(0));
             ServerConfig::m_server_difficulty = 0;
@@ -1717,7 +1717,7 @@ int handleCmdLine(bool has_server_config, bool has_parent_process)
         int laps = atoi(s.c_str());
         if (laps < 0)
         {
-            Log::error("main", "Invalid number of laps: %s.\n", s.c_str());
+            Log::error("main", "Invalid number of laps: %s.", s.c_str());
             return 0;
         }
         else
@@ -1895,7 +1895,7 @@ void initRest()
 
     if (irr_driver->getDevice() == NULL)
     {
-        Log::fatal("main", "Couldn't initialise irrlicht device. Quitting.\n");
+        Log::fatal("main", "Couldn't initialise irrlicht device. Quitting.");
     }
 
     StkTime::init();   // grabs the timer object from the irrlicht device

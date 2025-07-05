@@ -600,7 +600,7 @@ void LayoutManager::doCalculateLayout(PtrVector<Widget>& widgets, AbstractTopLev
                     if (widgets[n].m_h <= 0)
                     {
                         Log::warn("LayoutManager", "Widget '%s' has a height of %i (left_space = %i, "
-                                  "fraction = %f, max_width = %s)\n", widgets[n].m_properties[PROP_ID].c_str(),
+                                  "fraction = %f, max_width = %s)", widgets[n].m_properties[PROP_ID].c_str(),
                                   widgets[n].m_h, left_space, fraction, widgets[n].m_properties[PROP_MAX_WIDTH].c_str());
                         widgets[n].m_h = 1;
                     }

@@ -57,7 +57,7 @@ XMLNode::XMLNode(const std::string &filename)
             {
                 if(!is_first_element)
                 {
-                    Log::warn("[XMLNode]",
+                    Log::warn("XMLNode",
                                 "More than one root element in '%s' - ignored.",
                             filename.c_str());
                 }
@@ -235,7 +235,7 @@ int XMLNode::get(const std::string &attribute, Vec3 *value) const
     std::vector<std::string> v = StringUtils::split(s,' ');
     if (v.size() != 3)
     {
-        Log::warn("[XMLNode]", "WARNING: Expected 3 floating-point values, but found '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected 3 floating-point values, but found '%s' in file %s",
                     s.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -252,7 +252,7 @@ int XMLNode::get(const std::string &attribute, Vec3 *value) const
     }
     else
     {
-        Log::warn("[XMLNode]", "WARNING: Expected 3 floating-point values, but found '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected 3 floating-point values, but found '%s' in file %s",
                     s.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -317,7 +317,7 @@ int XMLNode::get(const std::string &attribute, int32_t *value) const
 
     if (!StringUtils::parseString<int>(s, value))
     {
-        Log::warn("[XMLNode]", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s' in file %s",
                     s.c_str(), attribute.c_str(), m_name.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -333,7 +333,7 @@ int XMLNode::get(const std::string &attribute, int64_t *value) const
 
     if (!StringUtils::parseString<int64_t>(s, value))
     {
-        Log::warn("[XMLNode]", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s' in file %s",
                     s.c_str(), attribute.c_str(), m_name.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -349,7 +349,7 @@ int XMLNode::get(const std::string &attribute, uint64_t *value) const
 
     if (!StringUtils::parseString<uint64_t>(s, value))
     {
-        Log::warn("[XMLNode]", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s' in file %s",
                     s.c_str(), attribute.c_str(), m_name.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -365,7 +365,7 @@ int XMLNode::get(const std::string &attribute, uint16_t *value) const
 
     if (!StringUtils::parseString<uint16_t>(s, value))
     {
-        Log::warn("[XMLNode]", "WARNING: Expected uint but found '%s' for attribute '%s' of node '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected uint but found '%s' for attribute '%s' of node '%s' in file %s",
                     s.c_str(), attribute.c_str(), m_name.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -381,7 +381,7 @@ int XMLNode::get(const std::string &attribute, uint32_t *value) const
 
     if (!StringUtils::parseString<unsigned int>(s, value))
     {
-        Log::warn("[XMLNode]", "WARNING: Expected uint but found '%s' for attribute '%s' of node '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected uint but found '%s' for attribute '%s' of node '%s' in file %s",
                     s.c_str(), attribute.c_str(), m_name.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -397,7 +397,7 @@ int XMLNode::get(const std::string &attribute, float *value) const
 
     if (!StringUtils::parseString<float>(s, value))
     {
-        Log::warn("[XMLNode]", "WARNING: Expected float but found '%s' for attribute '%s' of node '%s' in file %s",
+        Log::warn("XMLNode", "WARNING: Expected float but found '%s' for attribute '%s' of node '%s' in file %s",
                     s.c_str(), attribute.c_str(), m_name.c_str(), m_file_name.c_str());
         return 0;
     }
@@ -413,7 +413,7 @@ int XMLNode::get(const std::string &attribute, double *value) const
 
     if (!StringUtils::parseString<double>(s, value))
     {
-        Log::warn("[XMLNode]", "WARNING: Expected double but found '%s' for"
+        Log::warn("XMLNode", "WARNING: Expected double but found '%s' for"
             " attribute '%s' of node '%s' in file %s", s.c_str(),
             attribute.c_str(), m_name.c_str(), m_file_name.c_str());
         return 0;
@@ -473,7 +473,7 @@ int XMLNode::get(const std::string &attribute,
         float curr;
         if (!StringUtils::parseString<float>(v[i], &curr))
         {
-            Log::warn("[XMLNode]", "WARNING: Expected float but found '%s' for attribute '%s' of node '%s' in file %s",
+            Log::warn("XMLNode", "WARNING: Expected float but found '%s' for attribute '%s' of node '%s' in file %s",
                         v[i].c_str(), attribute.c_str(), m_name.c_str(), m_file_name.c_str());
             return 0;
         }
@@ -504,7 +504,7 @@ int XMLNode::get(const std::string &attribute, std::vector<int> *value) const
         int val;
         if (!StringUtils::parseString<int>(v[i], &val))
         {
-            Log::warn("[XMLNode]", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s'",
+            Log::warn("XMLNode", "WARNING: Expected int but found '%s' for attribute '%s' of node '%s'",
                         v[i].c_str(), attribute.c_str(), m_name.c_str());
             return 0;
         }
@@ -534,22 +534,22 @@ int XMLNode::get(const std::string &attribute, InterpolationArray *value) const
         std::vector<std::string> pair = StringUtils::split(pairs[i],':');
         if(pair.size()!=2)
         {
-            Log::fatal("[XMLNode]", "Incorrect interpolation pair '%s' in '%s'.",
+            Log::fatal("XMLNode", "Incorrect interpolation pair '%s' in '%s'.",
                         pairs[i].c_str(), attribute.c_str());
-            Log::fatal("[XMLNode]", "Must be x:y.");
+            Log::fatal("XMLNode", "Must be x:y.");
             exit(-1);
         }
         float x;
         if(!StringUtils::fromString(pair[0], x))
         {
-            Log::fatal("[XMLNode]", "Incorrect x in pair '%s' of '%s'.",
+            Log::fatal("XMLNode", "Incorrect x in pair '%s' of '%s'.",
                    pairs[i].c_str(), attribute.c_str());
             exit(-1);
         }
         float y;
         if(!StringUtils::fromString(pair[1], y))
         {
-            Log::fatal("[XMLNode]", "Incorrect y in pair '%s' in '%s'.",
+            Log::fatal("XMLNode", "Incorrect y in pair '%s' in '%s'.",
                   pair[1].c_str(), attribute.c_str());
             exit(-1);
         }

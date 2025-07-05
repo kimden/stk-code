@@ -81,7 +81,6 @@
 #include "tracks/drive_graph.hpp"
 #include "tracks/drive_node.hpp"
 #include "tracks/track.hpp"
-// #include "tracks/track_manager.hpp"
 #include "tracks/track_sector.hpp"
 #include "utils/constants.hpp"
 #include "utils/helpers.hpp"
@@ -2854,7 +2853,7 @@ void Kart::crashed(const Material *m, const Vec3 &normal)
             else
             {
                 Log::error("Kart","Unknown particles kind <%s> in material "
-                                "crash-reset properties\n", particles.c_str());
+                                "crash-reset properties", particles.c_str());
             }
         }
 #endif

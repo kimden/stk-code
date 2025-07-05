@@ -1,4 +1,4 @@
-This page lists the major changes of this repository compared to standard STK code, as of March 2025. Most changes (sadly, not all of them) here are implemented as options, that is, you can disable them and return to standard behaviour.
+This page lists the major changes of this repository compared to standard STK code, as of July 2025. Most changes (sadly, not all of them) here are implemented as options, that is, you can disable them and return to standard behaviour.
 
 You can find more information such as explanations and minor details in [wiki](https://github.com/kimden/stk-code/wiki/). It will be probably filled with even more data in the future.
 
@@ -16,9 +16,9 @@ You can find more information such as explanations and minor details in [wiki](h
 
 * Game results for **all** modes can be saved to the database, together with game settings and kart statistics.
 * Public or private record tables can be created using that information
-* Ghost replays can be recorded on servers if set if the config and if players agree
+* Ghost replays can be recorded on servers if set if the config
 * Players who beat server records can be notified (includes separation of times set with different config files)
-* Maximum replay size is increased
+* Maximum replay size is increased to allow recording long games with many players
 
 ## Chat
 
@@ -93,16 +93,32 @@ Separate changes for modes:
 * Supported player categories aka sets of players (for now only displaying their names, and some minor usage)
 * Minor additions in StringUtils used in typo fixing and string parsing
 
-## Current and future feature plans
+## Better code and future plans
 
-Since 2025, my approach for developing the code in this repository has changed, as I stopped believing I should do everything in the same way as the developers of the main game, and stopped being afraid of merge conflicts. After all, I even submitted a couple big patches into the official repository that way, and it was fine...
+Since 2025, my approach for developing the code in this repository has changed, as I stopped believing I should do everything in the same way as the developers of the main game, and stopped being afraid of merge conflicts. After all, I even submitted a couple of big patches into the official repository that way, and it was fine...
 
-Currently, the big restructurization of the code is underway, and one of the biggest and most complicated files in STK, `server_lobby.cpp`, got split into several files so that each file contains methods about the area it corresponds to. It allowed to fix a few hidden bugs, and will allow adding features in a simpler way in the future.
+That's why the big restructurization of the code started in 2025 (and is still underway).
 
-Another big topic is STK network protocol. It is messy and it's spread all over the codebase, while it's often hard to understand what exactly is being sent. That prevents its modification and advanced usage, and it's planned to rework it, so that it at least is understandable (which would also make the other code near the network packets cleaner).
+* One of the biggest and most complicated files in STK, `server_lobby.cpp`, that is also responsible for a lot of server-side logic, got split into several files so that each file contains methods about the area it corresponds to.
 
-## Better code
+For comparison, in this fork `server_lobby.cpp` now has 4.5k lines — less than in official code (4.8k) or a few other forks (7.3k, 12.1k).
 
-The aforementioned `server_lobby.cpp` is heavily used in all server-side forks, and no wonder its size can skyrocket in them, as people want to add many commands. Several frequently used forks have 12.5k and 7.3k lines of code in that file, while the official code has 4.8k lines. This repository has even fewer lines there, but more smaller files — for most features, there are simply much better places and ways to use them!
+* To allow using modern code practices, the code and most of its required dependencies are now built using C++17.
 
-The code has no proprietary scripts that are hardcoded inside to be unusable by others, no hidden anti-features such as secretly logged private chats, and here we do credit contributors according to what they have done (as in, `git blame` works correctly). Sadly, that's not a frequent offer in the world of STK — but you can make this offer even better by contributing to it!
+Even if not directly noticeable for general playing public, those changes will allow adding features in a simpler way in the future. The large sized planned changes alone include:
+
+* Clean (and after that, modifiable) network protocol
+* Further server lobby splitting
+* Advanced competition formats support
+
+## Designed for you, too!
+
+This fork also offers:
+
+* No proprietary scripts that are hardcoded inside to be unusable by others
+* No hidden anti-features such as secretly logged 'private' chats
+* Contributors to the fork are credited with `git blame` correctly
+
+It ain't much, but it's honest work. (Sadly, somehow it's not even a frequent offer in the world of STK.)
+
+Your feedback (especially constructive one) will be appreciated, together with that of quite a few people who hosted their own servers (or even clients) using this fork. Contributing to this repo is also possible — however, we have quite high standards for contributors.

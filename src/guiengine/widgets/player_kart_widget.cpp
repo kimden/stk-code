@@ -390,6 +390,7 @@ void PlayerKartWidget::add()
 
     assert(KartSelectionScreen::getRunningInstance()
            ->m_kart_widgets.contains(this));
+#ifdef DEBUG
     if (m_associated_player) // if player is local
     {
 #ifdef DEBUG
@@ -405,7 +406,7 @@ void PlayerKartWidget::add()
         assert(mineInList);
 #endif
     }
-
+#endif
     // the first player will have an ID of its own to allow for keyboard
     // navigation despite this widget being added last
     if (m_irrlicht_widget_id != -1)
@@ -700,7 +701,7 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
     {
         if(UserConfigParams::logGUI())
         {
-            Log::info("[KartSelectionScreen]", "Identity changed "
+            Log::info("KartSelectionScreen", "Identity changed "
                       "for player %s : %s",m_player_id,
                       irr::core::stringc(
                           m_player_ident_spinner->getStringValue()

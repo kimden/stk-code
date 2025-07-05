@@ -9,11 +9,21 @@ execute_process(
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
-  COMMAND git --no-pager describe --tags --always --dirty
+  COMMAND git --no-pager describe --tags --always --exclude "preview" --exclude "ign-*" --dirty
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_VARIABLE GIT_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+message(STATUS "Configuring file from: ${CMAKE_SOURCE_DIR}/src/utils/version.hpp.in")
+message(STATUS "Output file: ${CMAKE_SOURCE_DIR}/src/utils/version.hpp")
+
+configure_file(
+  ${CMAKE_SOURCE_DIR}/src/utils/version.hpp.in
+  ${CMAKE_SOURCE_DIR}/src/utils/version.hpp
+  @ONLY)
+
+include_directories(${CMAKE_BINARY_DIR}/generated)
 
 # root CMakeLists for the SuperTuxKart project
 project(SuperTuxKart)
@@ -526,8 +536,16 @@ endif()
 
 # Set some compiler options
 if(UNIX OR MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
+endif()
+
+if(MINGW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+endif()
+
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 endif()
 
 if(MINGW AND CMAKE_BUILD_TYPE MATCHES Release)
@@ -626,7 +644,7 @@ else()
         add_executable(supertuxkart ${STK_SOURCES} ${STK_RESOURCES} ${STK_HEADERS} ${IOS_ASSETS_FILES})
         set_target_properties(supertuxkart PROPERTIES
             MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/data/SuperTuxKart-Info-iOS.plist
-            XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 9.0
+            XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 10.0
             XCODE_ATTRIBUTE_INSTALL_PATH /Applications
             XCODE_ATTRIBUTE_SKIP_INSTALL No
             XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
@@ -646,9 +664,6 @@ else()
         target_link_libraries(supertuxkart ${PTHREAD_LIBRARY})
     endif()
 endif()
-
-target_compile_definitions(supertuxkart PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
-target_compile_definitions(supertuxkart PRIVATE "-DGIT_VERSION=\"${GIT_COMMIT_HASH}\"")
 
 # check if linking against libatomic is required
 include(CheckCXXSourceCompiles)
@@ -853,6 +868,7 @@ if(USE_WIIUSE)
 endif()
 
 if(MSVC OR MINGW)
+  add_definitions(-DWIN_BUILD)
   target_link_libraries(supertuxkart iphlpapi.lib)
   add_custom_command(TARGET supertuxkart POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

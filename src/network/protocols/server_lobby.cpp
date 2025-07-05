@@ -46,11 +46,11 @@
 #include "network/stk_ipv6.hpp"
 #include "network/stk_peer.hpp"
 #include "online/request_manager.hpp"
-// #include "online/xml_request.hpp"
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/chat_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/crown_manager.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/game_info.hpp"
@@ -246,6 +246,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_server_id_online.store(0);
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
+    m_reset_to_default_mode_later.store(false);
 
     m_game_info = {};
 }   // ServerLobby
@@ -328,6 +329,7 @@ void ServerLobby::setup()
     m_server_started_at = m_server_delay = 0;
     getCommandManager()->onServerSetup();
     m_game_info = {};
+
     Log::info("ServerLobby", "Resetting the server to its initial state.");
 }   // setup
 
@@ -655,6 +657,9 @@ void ServerLobby::asynchronousUpdate()
         if (NetworkConfig::get()->isLAN())
         {
             m_state = WAITING_FOR_START_GAME;
+            if (m_reset_to_default_mode_later.exchange(false))
+                handleServerConfiguration(NULL);
+
             updatePlayerList();
             STKHost::get()->startListening();
             return;
@@ -687,6 +692,9 @@ void ServerLobby::asynchronousUpdate()
         if (m_game_setup->isGrandPrixStarted() || m_registered_for_once_only)
         {
             m_state = WAITING_FOR_START_GAME;
+            if (m_reset_to_default_mode_later.exchange(false))
+                handleServerConfiguration(NULL);
+
             updatePlayerList();
             break;
         }
@@ -706,6 +714,9 @@ void ServerLobby::asynchronousUpdate()
                 if (!getSettings()->isLegacyGPMode())
                     m_registered_for_once_only = true;
                 m_state = WAITING_FOR_START_GAME;
+                if (m_reset_to_default_mode_later.exchange(false))
+                    handleServerConfiguration(NULL);
+
                 updatePlayerList();
             }
         }
@@ -952,7 +963,7 @@ void ServerLobby::asynchronousUpdate()
             resetPeersReady();
 
             m_state = LOAD_WORLD;
-            sendMessageToPeers(load_world_message);
+            Comm::sendMessageToPeers(load_world_message);
             // updatePlayerList so the in lobby players (if any) can see always
             // spectators join the game
             if (has_always_on_spectators || !previous_spectate_mode.empty())
@@ -1075,6 +1086,8 @@ void ServerLobby::rejectLiveJoin(std::shared_ptr<STKPeer> peer, BackLobbyReason 
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
+
+    peer->updateLastActivity();
 }   // rejectLiveJoin
 
 //-----------------------------------------------------------------------------
@@ -1396,7 +1409,7 @@ void ServerLobby::update(int ticks)
                             break;
                         case 1:
                         {
-                            sendStringToPeer(peer, getSettings()->getTrollWarnMsg());
+                            Comm::sendStringToPeer(peer, getSettings()->getTrollWarnMsg());
                             std::string player_name = peer->getMainName();
                             Log::info("ServerLobby-AntiTroll", "Sent WARNING to %s", player_name.c_str());
                             break;
@@ -1476,7 +1489,7 @@ void ServerLobby::update(int ticks)
             NetworkString* back_to_lobby = getNetworkString(2);
             back_to_lobby->setSynchronous(true);
             back_to_lobby->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_NONE);
-            sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
+            Comm::sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
             delete back_to_lobby;
 
             RaceEventManager::get()->stop();
@@ -1513,7 +1526,7 @@ void ServerLobby::update(int ticks)
         back_lobby->setSynchronous(true);
         back_lobby->addUInt8(LE_BACK_LOBBY)
             .addUInt8(BLR_ONE_PLAYER_IN_RANKED_MATCH);
-        sendMessageToPeers(back_lobby, PRM_RELIABLE);
+        Comm::sendMessageToPeers(back_lobby, PRM_RELIABLE);
         delete back_lobby;
         resetVotingTime();
         // m_game_setup->cancelOneRace();
@@ -1566,7 +1579,7 @@ void ServerLobby::update(int ticks)
         // result screen and go back to the lobby
         setTimeoutFromNow(15);
         m_state = RESULT_DISPLAY;
-        sendMessageToPeers(m_result_ns, PRM_RELIABLE);
+        Comm::sendMessageToPeers(m_result_ns, PRM_RELIABLE);
         delete m_result_ns;
         Log::info("ServerLobby", "End of game message sent");
         break;
@@ -1579,7 +1592,7 @@ void ServerLobby::update(int ticks)
             NetworkString* back_to_lobby = getNetworkString(2);
             back_to_lobby->setSynchronous(true);
             back_to_lobby->addUInt8(LE_BACK_LOBBY).addUInt8(BLR_NONE);
-            sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
+            Comm::sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
             delete back_to_lobby;
             m_rs_state.store(RS_ASYNC_RESET);
         }
@@ -1699,12 +1712,12 @@ void ServerLobby::startSelection(const Event *event)
         {
             if (!getSettings()->isAllowedToStart())
             {
-                sendStringToPeer(peer, "Starting the game is forbidden by server owner");
+                Comm::sendStringToPeer(peer, "Starting the game is forbidden by server owner");
                 return;
             }
             if (!getCrownManager()->canRace(peer))
             {
-                sendStringToPeer(peer, "You cannot play so pressing ready has no action");
+                Comm::sendStringToPeer(peer, "You cannot play so pressing ready has no action");
                 return;
             }
             else
@@ -1717,7 +1730,7 @@ void ServerLobby::startSelection(const Event *event)
         }
         if (!getSettings()->isAllowedToStart())
         {
-            sendStringToPeer(peer, "Starting the game is forbidden by server owner");
+            Comm::sendStringToPeer(peer, "Starting the game is forbidden by server owner");
             return;
         }
         if (!hasHostRights(peer))
@@ -1732,7 +1745,7 @@ void ServerLobby::startSelection(const Event *event)
         }
         if (cooldown)
         {
-            sendStringToPeer(peer, "Starting the game is forbidden by server cooldown");
+            Comm::sendStringToPeer(peer, "Starting the game is forbidden by server cooldown");
             return;
         }
     } else {
@@ -1824,7 +1837,7 @@ void ServerLobby::startSelection(const Event *event)
             // inside if to not produce log spam for ownerless
             Log::warn("ServerLobby",
                 "An attempt to start a game while no one can play.");
-            sendStringToPeer(event->getPeerSP(), "No one can play!");
+            Comm::sendStringToPeer(event->getPeerSP(), "No one can play!");
         }
         addWaitingPlayersToGame();
         return;
@@ -1927,7 +1940,7 @@ void ServerLobby::startSelection(const Event *event)
         delete ns;
 
         if (getQueues()->areKartFiltersIgnoringKarts())
-            sendStringToPeer(peer, "The server will ignore your kart choice");
+            Comm::sendStringToPeer(peer, "The server will ignore your kart choice");
     }
 
     m_state = SELECTING;
@@ -2073,7 +2086,7 @@ void ServerLobby::checkRaceFinished()
     {
         std::string msg = getKartElimination()->onRaceFinished();
         if (!msg.empty())
-            sendStringToAllPeers(msg);
+            Comm::sendStringToAllPeers(msg);
     }
 
     if (getSettings()->isStoringResults())
@@ -2256,7 +2269,7 @@ bool ServerLobby::handleAssetsAndAddonScores(std::shared_ptr<STKPeer> peer,
     {
         if (peer->isValidated())
         {
-            sendStringToPeer(peer, "You deleted some assets that are required to stay on the server");
+            Comm::sendStringToPeer(peer, "You deleted some assets that are required to stay on the server");
             peer->kick();
         }
         else
@@ -2643,6 +2656,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     peer->sendPacket(server_info);
     delete server_info;
 
+    peer->updateLastActivity();
+
     const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
     NetworkString* message_ack = getNetworkString(4);
     message_ack->setSynchronous(true);
@@ -2754,15 +2769,10 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     {
         std::string msg;
         if (getSettings()->hasConsentOnReplays())
-            msg = "Recording ghost replays is enabled. "
-                "The crowned player can change that "
-                "using /replay 0 (to disable) or /replay 1 (to enable). "
-                "Do not race under this feature if you don't want to be recorded.";
+            msg = "Recording ghost replays is enabled.";
         else
-            msg = "Recording ghost replays is disabled. "
-                "The crowned player can change that "
-                "using /replay 0 (to disable) or /replay 1 (to enable). ";
-        sendStringToPeer(peer, msg);
+            msg = "Recording ghost replays is disabled.";
+        Comm::sendStringToPeer(peer, msg);
     }
     getMessagesFromHost(peer, online_id);
 
@@ -2847,9 +2857,10 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
 
         // get OS information
         auto version_os = StringUtils::extractVersionOS(profile->getPeer()->getUserVersion());
-        bool angry_host = profile->getPeer()->isAngryHost();
+        int angry_host = profile->getPeer()->hammerLevel();
         std::string os_type_str = version_os.second;
         std::string utf8_profile_name = StringUtils::wideToUtf8(profile_name);
+
         // Add a Mobile emoji for mobile OS
         if (getSettings()->isExposingMobile() &&
                 (os_type_str == "iOS" || os_type_str == "Android"))
@@ -2860,7 +2871,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             profile_name = StringUtils::utf32ToWide({ 0x231B }) + profile_name;
 
         // Add a hammer emoji for angry host
-        if (angry_host)
+        for (int i = angry_host; i > 0; --i)
             profile_name = StringUtils::utf32ToWide({0x1F528}) + profile_name;
 
         std::string prefix = "";
@@ -3070,7 +3081,7 @@ void ServerLobby::handlePlayerVote(Event* event)
     other.addUInt8(LE_VOTE);
     other.addUInt32(event->getPeer()->getHostId());
     vote.encode(&other);
-    sendMessageToPeers(&other);
+    Comm::sendMessageToPeers(&other);
 
 }   // handlePlayerVote
 
@@ -3332,7 +3343,7 @@ void ServerLobby::configPeersStartTime()
     ns->addUInt8(cc);
     *ns += *m_items_complete_state;
     m_client_starting_time = start_time;
-    sendMessageToPeers(ns, PRM_RELIABLE);
+    Comm::sendMessageToPeers(ns, PRM_RELIABLE);
 
     const unsigned jitter_tolerance = getSettings()->getJitterTolerance();
     Log::info("ServerLobby", "Max ping from peers: %d, jitter tolerance: %d",
@@ -3407,11 +3418,23 @@ void ServerLobby::resetServer()
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
     m_game_setup->addServerInfo(server_info);
-    sendMessageToPeersInServer(server_info);
+    Comm::sendMessageToPeersInServer(server_info);
     delete server_info;
+
+    for (auto p : m_peers_ready)
+    {
+        if (auto peer = p.first.lock())
+            peer->updateLastActivity();
+    }
+
     setup();
     m_state = NetworkConfig::get()->isLAN() ?
         WAITING_FOR_START_GAME : REGISTER_SELF_ADDRESS;
+
+    if (m_state.load() == WAITING_FOR_START_GAME)
+        if (m_reset_to_default_mode_later.exchange(false))
+            handleServerConfiguration(NULL);
+
     updatePlayerList();
 }   // resetServer
 
@@ -3462,7 +3485,7 @@ void ServerLobby::getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_
     for (const auto& message: messages)
     {
         Log::info("ServerLobby", "A message from server was delivered");
-        sendStringToPeer(peer, "A message from the server (" +
+        Comm::sendStringToPeer(peer, "A message from the server (" +
             std::string(message.timestamp) + "):\n" + std::string(message.message));
         db_connector->deleteServerMessage(message.row_id);
     }
@@ -3607,7 +3630,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
             msg = "This mode is not permitted on this server";
         else
             msg = "This difficulty is not permitted on this server";
-        sendStringToPeer(peer, msg);
+        Comm::sendStringToPeer(peer, msg);
         return;
     }
     auto modes = ServerConfig::getLocalGameMode(mode);
@@ -3699,8 +3722,9 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
     m_game_setup->addServerInfo(server_info);
-    sendMessageToPeers(server_info);
+    Comm::sendMessageToPeers(server_info);
     delete server_info;
+
     updatePlayerList();
 
     if (getKartElimination()->isEnabled() &&
@@ -3708,7 +3732,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
         getKartElimination()->disable();
-        sendStringToAllPeers("Gnu Elimination is disabled because of non-racing mode");
+        Comm::sendStringToAllPeers("Gnu Elimination is disabled because of non-racing mode");
     }
 }   // handleServerConfiguration
 //-----------------------------------------------------------------------------
@@ -4033,7 +4057,7 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
         back_to_lobby->setSynchronous(true);
         back_to_lobby->addUInt8(LE_BACK_LOBBY)
             .addUInt8(BLR_SERVER_ONWER_QUITED_THE_GAME);
-        sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
+        Comm::sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
         delete back_to_lobby;
         m_rs_state.store(RS_ASYNC_RESET);
         return;
@@ -4080,6 +4104,8 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
+
+    peer->updateLastActivity();
 }   // clientInGameWantsToBackLobby
 
 //-----------------------------------------------------------------------------
@@ -4104,7 +4130,7 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
         back_to_lobby->setSynchronous(true);
         back_to_lobby->addUInt8(LE_BACK_LOBBY)
             .addUInt8(BLR_SERVER_ONWER_QUITED_THE_GAME);
-        sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
+        Comm::sendMessageToPeersInServer(back_to_lobby, PRM_RELIABLE);
         delete back_to_lobby;
         resetVotingTime();
         resetServer();
@@ -4128,6 +4154,8 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, PRM_RELIABLE);
     delete server_info;
+
+    peer->updateLastActivity();
 }   // clientSelectingAssetsWantsToBackLobby
 
 //-----------------------------------------------------------------------------
@@ -4185,7 +4213,12 @@ void ServerLobby::handleServerCommand(Event* event)
 void ServerLobby::resetToDefaultSettings()
 {
     if (getSettings()->isServerConfigurable() && !getSettings()->isPreservingMode())
-        handleServerConfiguration(NULL);
+    {
+        if (m_state == WAITING_FOR_START_GAME)
+            handleServerConfiguration(NULL);
+        else
+            m_reset_to_default_mode_later.store(true);
+    }
 
     getSettings()->onResetToDefaultSettings();
 }  // resetToDefaultSettings
@@ -4230,33 +4263,6 @@ void ServerLobby::writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_
 }   // writeOwnReport
 //-----------------------------------------------------------------------------
 
-void ServerLobby::sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s)
-{
-    if (!peer)
-    {
-        sendStringToAllPeers(s);
-        return;
-    }
-    NetworkString* chat = getNetworkString();
-    chat->addUInt8(LE_CHAT);
-    chat->setSynchronous(true);
-    chat->encodeString16(StringUtils::utf8ToWide(s));
-    peer->sendPacket(chat, PRM_RELIABLE);
-    delete chat;
-}   // sendStringToPeer
-//-----------------------------------------------------------------------------
-
-void ServerLobby::sendStringToAllPeers(const std::string& s)
-{
-    NetworkString* chat = getNetworkString();
-    chat->addUInt8(LE_CHAT);
-    chat->setSynchronous(true);
-    chat->encodeString16(StringUtils::utf8ToWide(s));
-    sendMessageToPeers(chat, PRM_RELIABLE);
-    delete chat;
-}   // sendStringToAllPeers
-//-----------------------------------------------------------------------------
-
 std::string ServerLobby::encodeProfileNameForPeer(
     std::shared_ptr<NetworkPlayerProfile> npp,
     STKPeer* peer)
@@ -4283,10 +4289,13 @@ bool ServerLobby::hasHostRights(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer || peer->getPlayerProfiles().empty())
         return false;
+
     if (peer == m_server_owner.lock())
         return true;
-    if (peer->isAngryHost())
+
+    if (peer->hammerLevel() > 0)
         return true;
+
     if (isTournament())
         return getTournament()->hasHostRights(peer);
 
@@ -4316,9 +4325,12 @@ int ServerLobby::getPermissions(std::shared_ptr<STKPeer> peer) const
         if (getCrownManager()->hasOnlyHostRiding())
             mask |= CommandPermissions::PE_SINGLE;
     }
-    if (peer->isAngryHost())
+    int hammer_level = peer->hammerLevel();
+    if (hammer_level >= 1)
     {
         mask |= CommandPermissions::PE_HAMMER;
+        if (hammer_level >= 2)
+            mask |= CommandPermissions::PE_MANIPULATOR;
     }
     else if (getTournament() && getTournament()->hasHammerRights(peer))
     {
@@ -4453,7 +4465,7 @@ void ServerLobby::sendServerInfoToEveryone() const
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
     m_game_setup->addServerInfo(server_info);
-    sendMessageToPeers(server_info);
+    Comm::sendMessageToPeers(server_info);
     delete server_info;
 }   // sendServerInfoToEveryone
 //-----------------------------------------------------------------------------

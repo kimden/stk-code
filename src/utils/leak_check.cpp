@@ -88,7 +88,7 @@ namespace MemoryLeaks
 #  elif defined(__APPLE__)
         for (int i = 0; i < m_stack_size; ++i)
         {
-            Log::error("LeakCheck", "    %s\n", m_stack[i]);
+            Log::error("LeakCheck", "    %s", m_stack[i]);
         }
 #  elif defined(WIN32)
         std::vector<std::string> calls = StringUtils::split(m_stack, '\n');

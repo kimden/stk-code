@@ -227,10 +227,10 @@ namespace utf8
           class iterator {
             public:
               using iterator_category = std::bidirectional_iterator_tag;
-              using value_type = uint32_t;
-              using difference_type = std::ptrdiff_t;
-              using pointer = const uint32_t*;
-              using reference = const uint32_t&;
+              using value_type        = uint32_t;
+              using difference_type   = std::ptrdiff_t;
+              using pointer           = const uint32_t*;
+              using reference         = const uint32_t&;
 
             private:
               octet_iterator it;

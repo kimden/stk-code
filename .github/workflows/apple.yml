@@ -32,7 +32,7 @@ jobs:
       - name: Download cctools and ISPC
         run: |
           cd /opt
-          wget https://github.com/supertuxkart/dependencies/releases/download/cctools/cctools-14.1.tar.xz
+          wget https://github.com/kimden/stk-dependencies/releases/download/cctools/cctools-14.1.tar.xz
           tar xf cctools-14.1.tar.xz
           rm cctools-14.1.tar.xz
           wget https://github.com/supertuxkart/dependencies/releases/download/preview/ispc-cross-1.26.0.tar.xz
@@ -69,7 +69,7 @@ jobs:
             ${{ env.cache_9 }}
       - name: Download dependencies
         run: |
-          wget https://github.com/supertuxkart/dependencies/releases/download/preview/dependencies-${{ steps.sysroot.outputs.lowercase }}.tar.xz
+          wget https://github.com/kimden/stk-dependencies/releases/download/preview/dependencies-${{ steps.sysroot.outputs.lowercase }}.tar.xz
           tar xf dependencies-${{ steps.sysroot.outputs.lowercase }}.tar.xz
       - name: Configure clang runtime name
         run: |
@@ -117,7 +117,7 @@ jobs:
           echo "release_tag=`basename $GITHUB_REF`" >> $GITHUB_ENV
           echo "release_name=`basename $GITHUB_REF`" >> $GITHUB_ENV
       - name: Configure packaging name for non-releasing branch
-        if: ${{ (github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')) || github.repository_owner != 'supertuxkart' }}
+        if: ${{ (github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')) }}
         run: |
           echo "release_tag=" >> $GITHUB_ENV
           echo "release_name=" >> $GITHUB_ENV
@@ -150,7 +150,7 @@ jobs:
       #  env:
       #    developer_id: "Developer ID Application: ${{ secrets.MAC_DEVELOPER_NAME }} (${{ secrets.MAC_DEVELOPER_TEAM }})"
         run: |
-          wget https://github.com/supertuxkart/dependencies/releases/download/preview/dependencies-macosx.tar.xz
+          wget https://github.com/kimden/stk-dependencies/releases/download/preview/dependencies-macosx.tar.xz
           tar xf dependencies-macosx.tar.xz
           HOMEBREW_NO_AUTO_UPDATE=1 brew install dylibbundler
           lipo -create ./macosx-x86_64/supertuxkart.app/Contents/MacOS/supertuxkart ./macosx-arm64/supertuxkart.app/Contents/MacOS/supertuxkart -output ./macosx-arm64/supertuxkart.app/Contents/MacOS/supertuxkart

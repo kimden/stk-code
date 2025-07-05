@@ -37,6 +37,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_object_manager.hpp"
 #include "utils/constants.hpp"
+#include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -708,8 +709,8 @@ void ThreeStrikesBattle::loadCustomModels()
             }
 
             // Find random nodes to pre-spawn spare tire karts
-            std::random_shuffle(sta_possible_nodes.begin(),
-                sta_possible_nodes.end());
+            std::shuffle(sta_possible_nodes.begin(),
+                sta_possible_nodes.end(), GlobalMt19937::get());
 
             // Compute a random kart list
             std::vector<std::string> sta_list;

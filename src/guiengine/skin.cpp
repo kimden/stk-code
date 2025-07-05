@@ -87,14 +87,14 @@ namespace SkinConfig
 
         if (node->get("type", &type) == 0)
         {
-            Log::error("skin", "All elements must have a type\n");
+            Log::error("skin", "All elements must have a type");
             return;
         }
         node->get("state", &state);
 
         if (node->get("image", &image) == 0)
         {
-            Log::error("skin", "All elements must have an image\n");
+            Log::error("skin", "All elements must have an image");
             return;
         }
 
@@ -175,7 +175,7 @@ namespace SkinConfig
 
         if(node->get("type", &type) == 0)
         {
-            Log::error("skin", "All elements must have a type\n");
+            Log::error("skin", "All elements must have a type");
             return;
         }
         node->get("state", &state);
@@ -489,7 +489,7 @@ void BoxRenderParams::setTexture(ITexture* image)
 {
     if (image == NULL)
     {
-        Log::error("skin", "/!\\ WARNING: missing image in skin\n");
+        Log::error("skin", "/!\\ WARNING: missing image in skin");
         return;
     }
 

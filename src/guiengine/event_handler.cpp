@@ -240,14 +240,14 @@ bool EventHandler::OnEvent (const SEvent &event)
             if (event.LogEvent.Level == irr::ELL_WARNING)
             {
                 if(error_info.size()>0)
-                    Log::warn("EventHandler", error_info.c_str());
-                Log::warn("Irrlicht", event.LogEvent.Text);
+                    Log::warn("EventHandler", "%s", error_info.c_str());
+                Log::warn("Irrlicht", "%s", event.LogEvent.Text);
             }
             else if (event.LogEvent.Level == irr::ELL_ERROR)
             {
                 if(error_info.size()>0)
-                    Log::error("EventHandler", error_info.c_str());
-                Log::error("Irrlicht", event.LogEvent.Text);
+                    Log::error("EventHandler", "%s", error_info.c_str());
+                Log::error("Irrlicht", "%s", event.LogEvent.Text);
             }
         }
         return true;

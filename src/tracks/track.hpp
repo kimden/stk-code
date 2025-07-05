@@ -558,10 +558,7 @@ public:
     // ------------------------------------------------------------------------
     /** Shuffles the start transformations
     */
-    void shuffleStartTransforms()
-    {
-        std::random_shuffle(m_start_transforms.begin(), m_start_transforms.end());
-    }
+    void shuffleStartTransforms();
     // ------------------------------------------------------------------------
     /** Sets pointer to the aabb of this track. */
     void               getAABB(const Vec3 **min, const Vec3 **max) const

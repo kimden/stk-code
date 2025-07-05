@@ -191,7 +191,7 @@ void IconButtonWidget::setImage(const char* path_to_texture, IconPathType pathTy
 
     if (!m_texture)
     {
-        Log::error("icon_button", "Texture '%s' not found!\n",
+        Log::error("icon_button", "Texture '%s' not found!",
                    m_properties[PROP_ICON].c_str());
         std::string file = file_manager->getAsset(FileManager::GUI_ICON,"main_help.png");
         setTexture(irr_driver->getTexture(file));
@@ -209,7 +209,7 @@ void IconButtonWidget::setImage(ITexture* texture)
     else
     {
         Log::error("icon_button",
-                   "setImage invoked with NULL image pointer\n");
+                   "setImage invoked with NULL image pointer");
         std::string file = file_manager->getAsset(FileManager::GUI_ICON,"main_help.png");
         setTexture(irr_driver->getTexture(file));
     }

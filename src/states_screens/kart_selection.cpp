@@ -127,7 +127,7 @@ EventPropagation FocusDispatcher::focused(const int player_id)
     if (!m_is_initialised) return EVENT_LET;
 
     if(UserConfigParams::logGUI())
-        Log::info("[KartSelectionScreen]", "FocusDispatcher focused by player %u",
+        Log::info("KartSelectionScreen", "FocusDispatcher focused by player %u",
                   player_id);
 
     // since this screen is multiplayer, redirect focus to the right widget
@@ -1276,7 +1276,7 @@ void KartSelectionScreen::onFocusChanged(GUIEngine::Widget* previous,
 
     if (GUIEngine::isFocusedForPlayer(kart_class, playerID))
     {
-        for (unsigned int i = 0; i < m_kart_widgets.size(); i++)
+        for (size_t i = 0; i < m_kart_widgets.size(); i++)
         {
             if (m_kart_widgets[i].getPlayerID() == playerID)
             {
@@ -1514,12 +1514,14 @@ bool KartSelectionScreen::validateIdentChoices()
             m_kart_widgets[n].m_player_ident_spinner->markAsCorrect();
 
             // verify internal consistency in debug mode
+#ifndef NDEBUG
             if (m_multiplayer)
             {
                 int spinner_value = m_kart_widgets[n].m_player_ident_spinner->getValue();
                 assert(m_kart_widgets[n].getAssociatedPlayer()->getProfile() ==
                     PlayerManager::get()->getPlayer(spinner_value));
             }
+#endif
         }
     }
 
