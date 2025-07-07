@@ -221,7 +221,7 @@ bool TrackManager::loadTrack(const std::string& dirname)
     }
     catch (std::exception& e)
     {
-        Log::error("TrackManager", "Cannot load track <%s> : %s\n",
+        Log::error("TrackManager", "Cannot load track <%s> : %s",
                 dirname.c_str(), e.what());
         return false;
     }

@@ -499,9 +499,9 @@ void CGUISTKListBox::selectNew(s32 ypos, bool onlyHover)
 void CGUISTKListBox::updateAbsolutePosition()
 {
     IGUIElement::updateAbsolutePosition();
-    for (int i = 0; i < Items.size(); i++)
+    for (size_t i = 0; i < Items.size(); i++)
     {
-        for (int j = 0; j < Items[i].m_contents.size(); j++)
+        for (size_t j = 0; j < Items[i].m_contents.size(); j++)
         {
             Items[i].m_contents[j].m_glyph_layouts.clear();
         }

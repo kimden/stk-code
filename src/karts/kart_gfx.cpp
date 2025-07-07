@@ -37,6 +37,7 @@
 #include "race/race_manager.hpp"
 
 #include <iostream>
+#include "IVideoDriver.h"
 
 KartGFX::KartGFX(const Kart *kart, bool is_day)
 {
@@ -56,7 +57,7 @@ KartGFX::KartGFX(const Kart *kart, bool is_day)
     // Create nitro light
     core::vector3df location(0.0f, 0.5f, -0.5f*length - 0.05f);
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_nitro_light = irr_driver->addLight(location, /*force*/ 0.4f,
                                              /*radius*/ 5.0f, 0.0f, 0.4f, 1.0f,
@@ -173,7 +174,7 @@ KartGFX::~KartGFX()
             delete m_all_emitters[i];
     }   // for i < KGFX_COUNT
 
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_nitro_light->drop();
         m_nitro_hack_light->drop();
@@ -239,7 +240,7 @@ void KartGFX::addEffect(KartGFXType type, const std::string &file_name,
         // by adding a NULL to the list (which is tested for in all
         // cases). C++ guarantees that all memory allocated in the
         // constructor is properly freed.
-        Log::error("[KartGFX]", "%s",e.what());
+        Log::error("KartGFX", "%s",e.what());
         kind    = NULL;
         emitter = NULL;
     }
@@ -527,6 +528,12 @@ void KartGFX::updateNitroGraphics(float nitro_frac, bool isNitroHackOn)
         }
         setCreationRateRelative(KartGFX::KGFX_NITROSMOKE1, nitro_frac);
         setCreationRateRelative(KartGFX::KGFX_NITROSMOKE2, nitro_frac);
+        
+        if (supportsLight())
+        {
+            m_nitro_light->setVisible(true);
+            m_nitro_hack_light->setVisible(true);
+        }
     }
     else
     {
@@ -537,7 +544,7 @@ void KartGFX::updateNitroGraphics(float nitro_frac, bool isNitroHackOn)
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE1, 0);
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE2, 0);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
         {
             m_nitro_light->setVisible(false);
             m_nitro_hack_light->setVisible(false);
@@ -558,7 +565,7 @@ void KartGFX::updateNitroGraphics(float nitro_frac, bool isNitroHackOn)
 void KartGFX::updateSkidLight(unsigned int level)
 {
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_skidding_light_1->setVisible(level == 1);
         m_skidding_light_2->setVisible(level == 2);
@@ -621,7 +628,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE1, (float)nitro);
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE2, (float)nitro);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
             m_nitro_light->setVisible(true);
     }
     else
@@ -631,7 +638,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE1, 0.0f);
         setCreationRateAbsolute(KartGFX::KGFX_NITROSMOKE2, 0.0f);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
             m_nitro_light->setVisible(false);
     }
 
@@ -649,7 +656,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         if (m_all_emitters[KGFX_SKID1R])
             m_all_emitters[KGFX_SKID1R]->setParticleType(skid_kind);
 
-        if (CVS->isGLSL())
+        if (supportsLight())
         {
             m_skidding_light_1->setVisible(!red_skidding && !purple_skidding);
             m_skidding_light_2->setVisible(red_skidding && !purple_skidding);
@@ -664,7 +671,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
         setCreationRateAbsolute(KartGFX::KGFX_SKIDL, 0.0f);
         setCreationRateAbsolute(KartGFX::KGFX_SKIDR, 0.0f);
         
-        if (CVS->isGLSL())
+        if (supportsLight())
         {
             m_skidding_light_1->setVisible(false);
             m_skidding_light_2->setVisible(false);
@@ -678,7 +685,7 @@ void KartGFX::setGFXFromReplay(int nitro, bool zipper,
 void KartGFX::setGFXInvisible()
 {
 #ifndef SERVER_ONLY
-    if (!GUIEngine::isNoGraphics() && CVS->isGLSL())
+    if (!GUIEngine::isNoGraphics() && supportsLight())
     {
         m_nitro_light->setVisible(false);
         m_nitro_hack_light->setVisible(false);
@@ -689,3 +696,14 @@ void KartGFX::setGFXInvisible()
     }
 #endif
 }   // setGFXInvisible
+
+// ----------------------------------------------------------------------------
+bool KartGFX::supportsLight() const
+{
+#ifdef SERVER_ONLY
+    return false;
+#else
+    return CVS->isGLSL() ||
+        irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN;
+#endif
+}

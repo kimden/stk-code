@@ -26,6 +26,7 @@ namespace GE
 {
     class GESPM;
     class GEVulkanAttachmentTexture;
+    class GEVulkanCameraSceneNode;
     class GEVulkanDrawCall;
     class GEVulkanDynamicSPMBuffer;
     class GEVulkanFBOTexture;
@@ -198,7 +199,7 @@ namespace GE
         //! Sets the dynamic ambient light color. The default color is
         //! (0,0,0,0) which means it is dark.
         //! \param color: New color of the ambient light.
-        virtual void setAmbientLight(const SColorf& color) {}
+        virtual void setAmbientLight(const SColorf& color) { CNullDriver::setAmbientLight(color); }
 
         //! Draws a shadow volume into the stencil buffer.
         virtual void drawStencilShadowVolume(const core::array<core::vector3df>& triangles, bool zfail=true, u32 debugDataVisible=0) {}
@@ -378,6 +379,8 @@ namespace GE
                                        { m_dynamic_spm_buffers.insert(buffer); }
         void removeDynamicSPMBuffer(GEVulkanDynamicSPMBuffer* buffer)
                                         { m_dynamic_spm_buffers.erase(buffer); }
+        void renderDrawCalls(const std::vector<std::pair<GEVulkanDrawCall*, GEVulkanCameraSceneNode*> >& p,
+                             VkCommandBuffer cmd);
     private:
         struct SwapChainSupportDetails
         {

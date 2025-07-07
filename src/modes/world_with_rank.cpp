@@ -129,7 +129,7 @@ bool WorldWithRank::setKartPosition(unsigned int kart_id,
     assert(m_position_setting_initialised);
     if(m_position_used[position-1])
     {
-        Log::error("[WorldWithRank]", "== TWO KARTS ARE BEING GIVEN THE SAME POSITION!! ==");
+        Log::error("WorldWithRank", "== TWO KARTS ARE BEING GIVEN THE SAME POSITION!! ==");
         for (unsigned int j=0; j < m_position_index.size(); j++)
         {
             if (!m_position_used[j])

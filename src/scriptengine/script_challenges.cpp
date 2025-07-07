@@ -75,7 +75,7 @@ namespace Scripting
             if (challenge == NULL)
             {
                 if (*challenge_name != "tutorial")
-                    Log::error("track", "Cannot find challenge named '%s'\n",
+                    Log::error("track", "Cannot find challenge named '%s'",
                                challenge_name->c_str());
                 return false;
             }
@@ -94,7 +94,7 @@ namespace Scripting
             if (challenge == NULL)
             {
                 if (*challenge_name != "tutorial")
-                    Log::error("track", "Cannot find challenge named '%s'\n",
+                    Log::error("track", "Cannot find challenge named '%s'",
                     challenge_name->c_str());
                 return false;
             }

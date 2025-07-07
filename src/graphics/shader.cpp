@@ -56,7 +56,7 @@ int ShaderBase::loadTFBProgram(const std::string &shader_name,
         glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &info_log_length);
         char *error_message = new char[info_log_length];
         glGetProgramInfoLog(m_program, info_log_length, NULL, error_message);
-        Log::error("ShaderBase", error_message);
+        Log::error("ShaderBase", "%s", error_message);
         delete[] error_message;
     }
 

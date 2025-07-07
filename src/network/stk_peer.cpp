@@ -182,10 +182,10 @@ uint32_t STKPeer::getPing()
         while (m_previous_pings.size() > ap)
         {
             m_previous_pings.pop_front();
-            m_average_ping.store(
-                (uint32_t)(std::accumulate(m_previous_pings.begin(),
-                m_previous_pings.end(), 0) / m_previous_pings.size()));
         }
+        m_average_ping.store(
+            (uint32_t)(std::accumulate(m_previous_pings.begin(),
+            m_previous_pings.end(), 0) / m_previous_pings.size()));
     }
     return m_enet_peer->roundTripTime;
 }   // getPing

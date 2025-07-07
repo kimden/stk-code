@@ -31,6 +31,7 @@
 #include "karts/kart_properties.hpp"
 #include "karts/xml_characteristic.hpp"
 #include "utils/log.hpp"
+#include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 
 #include <algorithm>
@@ -299,7 +300,7 @@ bool KartPropertiesManager::loadKart(const std::string &dir)
     }
     catch (std::runtime_error& err)
     {
-        Log::error("[KartPropertiesManager]", "Giving up loading '%s': %s",
+        Log::error("KartPropertiesManager", "Giving up loading '%s': %s",
                     config_filename.c_str(), err.what());
         return false;
     }
@@ -311,7 +312,7 @@ bool KartPropertiesManager::loadKart(const std::string &dir)
     if (kart_properties->getVersion() < stk_config->m_min_kart_version ||
         kart_properties->getVersion() > stk_config->m_max_kart_version)
     {
-        Log::warn("[KartPropertiesManager]", "Warning: kart '%s' is not "
+        Log::warn("KartPropertiesManager", "Warning: kart '%s' is not "
                   "supported by this binary, ignored.",
                   kart_properties->getIdent().c_str());
         delete kart_properties;
@@ -462,7 +463,7 @@ void KartPropertiesManager::setUnavailableKarts(std::vector<std::string> karts)
         {
             m_kart_available[i] = false;
 
-            Log::error("[Kart_Properties_Manager]",
+            Log::error("Kart_Properties_Manager",
                        "Kart '%s' not available on all clients, disabled.",
                        m_karts_properties[i].getIdent().c_str());
         }   // kart not in list
@@ -629,7 +630,7 @@ void KartPropertiesManager::getRandomKartList(int count,
             catch (std::runtime_error& ex)
             {
                 (void)ex;
-                Log::error("[KartPropertiesManager]", "getRandomKartList : "
+                Log::error("KartPropertiesManager", "getRandomKartList : "
                     "WARNING, can't find kart '%s'",
                     (*existing_karts)[i].getKartName().c_str());
             }
@@ -645,7 +646,7 @@ void KartPropertiesManager::getRandomKartList(int count,
         catch (std::runtime_error &ex)
         {
             (void)ex;
-            Log::error("[KartPropertiesManager]", "getRandomKartList : WARNING, "
+            Log::error("KartPropertiesManager", "getRandomKartList : WARNING, "
                 "can't find kart '%s'",(*ai_list)[i].c_str());
         }
     }
@@ -687,8 +688,8 @@ void KartPropertiesManager::getRandomKartList(int count,
 
             assert(random_kart_queue.size() > 0);
 
-            std::random_shuffle(random_kart_queue.begin(),
-                                random_kart_queue.end()   );
+            std::shuffle(random_kart_queue.begin(),
+                         random_kart_queue.end(), GlobalMt19937::get());
         }
 
         while (count > 0 && random_kart_queue.size() > 0)

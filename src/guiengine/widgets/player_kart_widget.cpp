@@ -49,6 +49,7 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
 #endif
     m_ready_text = NULL;
     m_parent_screen = parent;
+    m_left_arrow_width = 0;
 
     m_associated_player = associated_player;
     x_speed = y_speed = w_speed = h_speed = 1.0f;
@@ -78,6 +79,16 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
     m_player_ident_spinner->m_y = player_name_y;
     m_player_ident_spinner->m_w = player_name_w;
     m_player_ident_spinner->m_h = player_name_h;
+
+    // --- Crown icon (Only for the game master)
+    m_crown_icon = new IconButtonWidget(IconButtonWidget::SCALE_MODE_KEEP_CUSTOM_ASPECT_RATIO, false, false, IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE);
+    m_crown_icon->setImage(file_manager->getAsset(FileManager::GUI_ICON, "crown.png"), IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE);
+    
+    m_crown_icon->m_x = m_crown_icon_x;
+    m_crown_icon->m_y = m_crown_icon_y;
+    m_crown_icon->m_w = m_crown_icon_w;
+    m_crown_icon->m_h = m_crown_icon_h;
+    m_children.push_back(m_crown_icon);
 
     // ---- Handicap spinner
     if (true) //UserConfigParams::m_per_player_difficulty)
@@ -331,6 +342,9 @@ PlayerKartWidget::~PlayerKartWidget()
 
     if (m_kart_name->getIrrlichtElement() != NULL)
         m_kart_name->getIrrlichtElement()->remove();
+
+    if (m_crown_icon->getIrrlichtElement() != NULL)
+        m_crown_icon->getIrrlichtElement()->remove();
         
     if (getCurrentScreen() != NULL)
         getCurrentScreen()->manualRemoveWidget(this);
@@ -391,22 +405,23 @@ void PlayerKartWidget::add()
 
     assert(KartSelectionScreen::getRunningInstance()
            ->m_kart_widgets.contains(this));
+#ifdef DEBUG
     if (m_associated_player) // if player is local
     {
+#ifdef DEBUG
         bool mineInList = false;
         for (unsigned int p=0; p<StateManager::get()->activePlayerCount(); p++)
         {
-#ifdef DEBUG
             assert(StateManager::get()->getActivePlayer(p)->ok());
-#endif
             if (StateManager::get()->getActivePlayer(p) == m_associated_player)
             {
                 mineInList = true;
             }
         }
         assert(mineInList);
+#endif
     }
-
+#endif
     // the first player will have an ID of its own to allow for keyboard
     // navigation despite this widget being added last
     if (m_irrlicht_widget_id != -1)
@@ -426,6 +441,7 @@ void PlayerKartWidget::add()
     m_kart_stats->add();
     m_model_view->add();
     m_kart_name->add();
+    m_crown_icon->add();
 
     m_model_view->update(0);
 
@@ -439,7 +455,7 @@ void PlayerKartWidget::add()
     if (m_parent_screen->m_multiplayer)
     {
         const int player_amount = PlayerManager::get()->getNumPlayers();
-        for (int n=0; n<player_amount; n++)
+        for (int n = 0; n < player_amount; n++)
         {
             core::stringw name = PlayerManager::get()->getPlayer(n)->getName();
             core::stringw label = name;
@@ -448,11 +464,17 @@ void PlayerKartWidget::add()
 
         // select the right player profile in the spinner
         m_player_ident_spinner->setValue(label);
+
+        if (m_associated_player->getID() != PLAYER_ID_GAME_MASTER)
+        {
+            m_crown_icon->setVisible(false);
+        }
     }
     else
     {
         m_player_ident_spinner->addLabel(label);
         m_player_ident_spinner->setVisible(false);
+        m_crown_icon->setVisible(false);
     }
 
     if (!UserConfigParams::m_per_player_difficulty)
@@ -494,6 +516,13 @@ void PlayerKartWidget::markAsReady()
     if (m_ready) return; // already ready
 
     m_ready = true;
+
+    // Correctly replace the game master icon as the spinner arrow is no longer there (the player is ready)
+    m_crown_icon_x += m_left_arrow_width;
+    m_crown_icon->move(m_crown_icon_x,
+        m_crown_icon_y,
+        m_crown_icon_w,
+        m_crown_icon_h);
 
     stringw playerNameString = m_player_ident_spinner->getStringValue();
     core::rect<s32> rect(core::position2di(m_player_ident_spinner->m_x,
@@ -634,6 +663,7 @@ void PlayerKartWidget::updateSize()
                                      player_name_y,
                                      player_name_w,
                                      player_name_h );
+        m_left_arrow_width = m_player_ident_spinner->getLeftArrow().getWidth();
     }
     if (m_handicap_spinner != NULL)
     {
@@ -681,6 +711,11 @@ void PlayerKartWidget::updateSize()
                       kart_name_y,
                       kart_name_w,
                       kart_name_h);
+
+    m_crown_icon->move(m_crown_icon_x,
+                        m_crown_icon_y,
+                        m_crown_icon_w,
+                        m_crown_icon_h);
 }   // updateSize
 
 // -------------------------------------------------------------------------
@@ -700,7 +735,7 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
     {
         if(UserConfigParams::logGUI())
         {
-            Log::info("[KartSelectionScreen]", "Identity changed "
+            Log::info("KartSelectionScreen", "Identity changed "
                       "for player %s : %s",m_player_id,
                       irr::core::stringc(
                           m_player_ident_spinner->getStringValue()
@@ -756,6 +791,12 @@ void PlayerKartWidget::setSize(const int x, const int y, const int w, const int 
     player_name_h = GUIEngine::getFontHeight();
     player_name_w = std::min(GUIEngine::getFontHeight() * 12, w);
 
+    m_crown_icon_w = w;
+    m_crown_icon_h = GUIEngine::getFontHeight();
+
+    m_crown_icon_w = w;
+    m_crown_icon_h = GUIEngine::getFontHeight();
+
     kart_name_w = w;
     kart_name_h = GUIEngine::getFontHeight();
 
@@ -770,6 +811,15 @@ void PlayerKartWidget::setSize(const int x, const int y, const int w, const int 
     // --- layout
     player_name_x = x + w/2 - player_name_w/2;
     player_name_y = y;
+
+    m_crown_icon_x = x + w / 2 - (player_name_w / 2) - (m_crown_icon_w / 2);
+
+    if (!m_ready && m_left_arrow_width > 0) 
+        m_crown_icon_x -= m_left_arrow_width / 2;
+    else 
+        m_crown_icon_x += m_left_arrow_width / 2;
+
+    m_crown_icon_y = player_name_y;
 
     if (m_parent_screen->m_multiplayer)
     {

@@ -61,8 +61,15 @@ namespace StringUtils
     {
         if (str.length() < prefix.length())
             return false;
+        else if (strncmp(str.c_str(), prefix.c_str(), prefix.size())==0)
+            return true;
+        // Ignore left-to-right markers for the purpose of string comparison
+        else if (strncmp(str.c_str(), ("\u200F" + prefix).c_str(), prefix.size() + 1)==0)
+            return true;
+        else if (strncmp(str.c_str(), ("\u200E" + prefix).c_str(), prefix.size() + 1)==0)
+            return true;
         else
-            return strncmp(str.c_str(), prefix.c_str(), prefix.size())==0;
+            return false;
     }
 
     //-------------------------------------------------------------------------
@@ -588,7 +595,7 @@ namespace StringUtils
                         if (insertValID >= all_vals.size())
                         {
                             Log::warn("StringUtils", "insertValues: "
-                                      "Invalid number of arguments in '%s'\n",
+                                      "Invalid number of arguments in '%s'",
                                       irr::core::stringc(s.c_str()).c_str());
                             new_string += "??";
                             new_string += sv[i].subString(2, sv[i].size()-2);
@@ -618,7 +625,7 @@ namespace StringUtils
                         if (index >= all_vals.size())
                         {
                             Log::warn("StringUtils", "insertValues: "
-                                      "Invalid argument ID in '%s' : %i\n",
+                                      "Invalid argument ID in '%s' : %i",
                                       irr::core::stringc(s.c_str()).c_str(),
                                       index);
                             new_string += "??";

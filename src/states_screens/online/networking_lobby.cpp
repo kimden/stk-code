@@ -55,6 +55,7 @@
 #include "states_screens/dialogs/server_configuration_dialog.hpp"
 #include "states_screens/state_manager.hpp"
 #include "tracks/track.hpp"
+#include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -876,7 +877,7 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
             // Send a message to the server to start
             NetworkString start(PROTOCOL_LOBBY_ROOM);
             start.addUInt8(LobbyEvent::LE_REQUEST_BEGIN);
-            STKHost::get()->sendToServer(&start, PRM_RELIABLE);
+            Comm::sendToServer(&start, PRM_RELIABLE);
         }
     }
     else if (name == m_config_button->m_properties[PROP_ID])
@@ -896,7 +897,7 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
             start.addUInt8(LobbyEvent::LE_LIVE_JOIN)
                 // is spectating
                 .addUInt8(1);
-            STKHost::get()->sendToServer(&start, PRM_RELIABLE);
+            Comm::sendToServer(&start, PRM_RELIABLE);
             return;
         }
         if (cl)

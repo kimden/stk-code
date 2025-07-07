@@ -93,3 +93,6 @@ lib/astc-encoder
 lib/shaderc
 
 .DS_Store
+
+# Auto-generated files
+src/utils/version.hpp

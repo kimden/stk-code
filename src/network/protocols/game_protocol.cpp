@@ -35,6 +35,7 @@
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "tracks/track.hpp"
+#include "utils/communication.hpp"
 #include "utils/log.hpp"
 #include "utils/time.hpp"
 #include "main_loop.hpp"
@@ -109,7 +110,7 @@ void GameProtocol::sendActions()
     }   // for a in m_all_actions
 
     // FIXME: for now send reliable
-    sendToServer(m_data_to_send, PRM_RELIABLE);
+    Comm::sendToServer(m_data_to_send, PRM_RELIABLE);
     m_all_actions.clear();
 }   // sendActions
 
@@ -261,7 +262,7 @@ void GameProtocol::sendItemEventConfirmation(int ticks)
     ns->addUInt8(GP_ITEM_CONFIRMATION).addUInt32(ticks);
     // This message can be sent unreliable, it's not critical if it doesn't
     // get delivered, a future update will come through
-    sendToServer(ns, PRM_UNRELIABLE);
+    Comm::sendToServer(ns, PRM_UNRELIABLE);
     delete ns;
 }   // sendItemEventConfirmation
 
@@ -333,7 +334,7 @@ void GameProtocol::finalizeState(std::vector<std::string>& cur_rewinder)
 void GameProtocol::sendState()
 {
     assert(NetworkConfig::get()->isServer());
-    sendMessageToPeers(m_data_to_send, PRM_UNRELIABLE);
+    Comm::sendMessageToPeers(m_data_to_send, PRM_UNRELIABLE);
 }   // sendState
 
 // ----------------------------------------------------------------------------

@@ -5,7 +5,8 @@ here later. For now, please refer to the code for the strings being used. -->
 <commands version="1">
     <command name="commands"
              usage="/commands [command]"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Prints the list of commands available to you (when command is specified, lists its available subcommands). This list may differ depending on server settings and your permissions."
     />
     <command name="replay"
@@ -45,39 +46,46 @@ here later. For now, please refer to the code for the strings being used. -->
     />
     <command name="addons"
              usage="/addons [type]"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Lists addons installed for all players that can play, in random order. Limits the list to a certain addon type if specified."
     />
     <command name="moreaddons"
              usage="/moreaddons [type]"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Lists top 5 addons that are missing for at least one player, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified."
              aliases="more"
     />
     <command name="getaddons"
              usage="/getaddons [type]"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Lists top 5 addons that are missing for the player who calls the command, sorted by the number of players that don’t have the addon ascending, random for equal number of players. Limits the list to a certain addon type if specified."
     />
     <command name="checkaddon"
              usage="/checkaddon (addon)"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Displays numbers of players who have the corresponding addon, and whether server has it. Displays up to 5 random players from each category."
     />
     <command name="id"
              usage="/id (expression)"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Shows the id of a map (official or addon) that corresponds to a given expression, convenient for copying."
     />
     <command name="listserveraddon"
              usage="/listserveraddon [-type] (substring)"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Lists addons installed on the server that have a specified substring in their id. Limits the list to a certain addon type if specified."
              aliases="lsa"
     />
     <command name="playerhasaddon"
              usage="/playerhasaddon (addon) (username)"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Checks whether a player has a certain addon."
              aliases="pha"
     />
@@ -107,18 +115,21 @@ here later. For now, please refer to the code for the strings being used. -->
     />
     <command name="playeraddonscore"
              usage="/playeraddonscore [username]"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Returns the number (not the percentage!) of addons of different types installed by a player. Without argument, invokes for the invoking player."
              aliases="pas"
     />
     <command name="everypas"
              usage="/everypas [kart|track|arena|soccer [desc|asc]]"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Returns the number (not the percentage!) of addons of different types installed by all present players. Can be sorted if additional arguments provided, default sorting direction is descending."
     />
     <command name="serverhasaddon"
              usage="/serverhasaddon (addon)"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Checks whether the server has a certain addon."
              aliases="sha"
     />
@@ -139,13 +150,15 @@ here later. For now, please refer to the code for the strings being used. -->
     />
     <command name="description"
              usage="/description"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Displays server description, also known as MOTD."
              aliases="desc"
     />
     <command name="moreinfo"
              usage="/moreinfo"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Displays an additional server message."
     />
     <command name="gnu"
@@ -169,7 +182,8 @@ here later. For now, please refer to the code for the strings being used. -->
     />
     <command name="standings"
              usage="/standings [gp | gnu]"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Displays standings of grand prix or kart elimination, picks whatever of them is played now."
     />
     <command name="teamchat"
@@ -189,7 +203,8 @@ here later. For now, please refer to the code for the strings being used. -->
     />
     <command name="record"
              usage="/record (track id) (mode) (direction) (laps)"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Receives the server record for the race settings if there is any (and if the server has a database to store the records)."
     />
     <command name="power"
@@ -197,11 +212,17 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions-verbose="everyone"
              description="Enters the hammer mode if the password is correct."
     />
+    <command name="power2"
+             usage="/power2 (password)"
+             permissions-verbose="everyone"
+             description="Enters the hammer x2 mode if the password is correct."
+    />
     <command name="length"
              usage="/length"
              permissions-verbose="everyone"
              description="Contains functions related to length of the game. Without arguments, shows the current setting. Arguments can be used only with permissions, check /commands length and /help length (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="clear"
@@ -230,7 +251,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/direction"
              permissions-verbose="everyone"
              description="Prints the currently set direction of the game. Arguments can be used only with permissions, check /commands direction and /help direction = for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="="
@@ -246,7 +268,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/mqueue"
              permissions-verbose="everyone"
              description="Contains functions related to map queue (regular one). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
              aliases="queue"
     >
@@ -311,7 +334,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/mcyclic"
              permissions-verbose="everyone"
              description="Contains functions related to map queue (cyclic one). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="push"
@@ -375,7 +399,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/mboth"
              permissions-verbose="everyone"
              description="Contains functions related to map queue (both regular and cyclic). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="push"
@@ -439,7 +464,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/kqueue"
              permissions-verbose="everyone"
              description="Contains functions related to kart queue (regular one). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="push"
@@ -503,7 +529,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/kcyclic"
              permissions-verbose="everyone"
              description="Contains functions related to kart queue (cyclic one). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="push"
@@ -567,7 +594,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/kboth"
              permissions-verbose="everyone"
              description="Contains functions related to kart queue (both regular and cyclic). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="push"
@@ -631,7 +659,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/qregular"
              permissions-verbose="everyone"
              description="Contains functions related to kart+map queue (regular one). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="pop"
@@ -674,7 +703,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/qcyclic"
              permissions-verbose="everyone"
              description="Contains functions related to kart+map queue (cyclic one). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="pop"
@@ -717,7 +747,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/qboth"
              permissions-verbose="everyone"
              description="Contains functions related to kart+map queue (both regular and cyclic). Without arguments, shows the current queue. Arguments can be used only with permissions, check /commands queue and /help queue (argument) for more details."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="pop"
@@ -760,7 +791,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/allowstart"
              permissions-verbose="everyone"
              description="Shows if the game can start right now."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
     >
         <command name="="
                  usage="/allowstart (0 | 1)"
@@ -772,9 +804,9 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="shuffle"
              usage="/shuffle"
-             permissions-verbose="everyone"
              description="Shows if the Grand Prix grid is shuffled before each race, or it corresponds to the standings (0)."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
     >
         <command name="="
                  usage="/shuffle (0 | 1)"
@@ -843,7 +875,8 @@ here later. For now, please refer to the code for the strings being used. -->
              usage="/troll"
              permissions-verbose="everyone"
              description="Shows whether anti-troll system is enabled."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="="
@@ -857,9 +890,9 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="hitmsg"
              usage="/hitmsg"
-             permissions-verbose="everyone"
              description="Shows whether the messages about teammate hits are displayed."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="="
@@ -873,9 +906,9 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="teamhit"
              usage="/teamhit"
-             permissions-verbose="everyone"
              description="Shows whether the teammate hits are punished ingame."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="="
@@ -889,9 +922,9 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="scoring"
              usage="/scoring"
-             permissions-verbose="everyone"
              description="Shows Grand Prix scoring used now."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="="
@@ -905,7 +938,8 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="version"
              usage="/version"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Displays version."
     />
     <command name="clear"
@@ -992,6 +1026,11 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions-verbose="everyone"
              description="Casts a vote for the provided command, if it can be voted. Only useful for those players who can enforce their command but opt to vote instead of forcing; for those players who cannot invoke the command alone, /(command) is equivalent to /vote (command)."
     />
+    <command name="as"
+             usage="/as (username) (command with arguments, without “/”)"
+             permissions-verbose="everyone"
+             description="Tries to invoke a command as if you were another player. Some commands allow it (e.g. to see which addons another person has to install), some don't."
+    />
     <command name="mimiz"
              usage="/mimiz [text]"
              permissions-verbose="everyone"
@@ -999,13 +1038,13 @@ here later. For now, please refer to the code for the strings being used. -->
     />
     <command name="test"
              usage="/test [poll name] [option name]"
-             permissions-verbose="everyone; votable"
+             permissions-verbose="everyone; votable; invokable for another player"
              description="A test command. Deprecated. Try /commands test"
-             permissions="UP_EVERYONE | PE_VOTED">
+             permissions="UP_EVERYONE | PE_VOTED | PE_ALLOW_ANYONE">
         <command name="test2"
                  usage="/test test2 [poll name] [option name]"
-                 permissions="UP_EVERYONE | PE_VOTED"
-                 permissions-verbose="everyone; votable"
+                 permissions="UP_EVERYONE | PE_VOTED | PE_ALLOW_ANYONE"
+                 permissions-verbose="everyone; votable; invokable for another player"
                  description="A test command, also votable. /test test2 no u invokes help"
         />
         <command name="test3"
@@ -1017,7 +1056,8 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="help"
              usage="/help (command name)"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Gives description of a given command."
     />
     <!--
@@ -1049,9 +1089,9 @@ here later. For now, please refer to the code for the strings being used. -->
     -->
     <command name="slots"
              usage="/slots"
-             permissions-verbose="everyone"
              description="Shows the number of playable slots."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_LOBBY"
     >
         <command name="="
@@ -1064,19 +1104,21 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="time"
              usage="/time"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Displays server time."
     />
     <command name="result"
              usage="/result"
-             permissions-verbose="everyone"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              description="Displays the result of an ongoing game."
     />
     <command name="preserve"
              usage="/preserve"
-             permissions-verbose="everyone"
              description="Shows which settings are preserved when all players leave. Possible settings: mode, elim, laps, queue, qcyclic, kqueue, kcyclic, replay, direction."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
     >
         <command name="="
                  usage="/preserve (mode|elim|laps|queue|qcyclic|kqueue|kcyclic|replay|direction) (0|1)"
@@ -1104,9 +1146,9 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="voting"
              usage="/voting"
-             permissions-verbose="everyone"
              description="Shows the voting method currently applied during the map selection. 0 means the winning vote is determined as in base STK, 1 means it's taken at random from all votes."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_LOBBY"
     >
         <command name="="
@@ -1119,16 +1161,16 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="whyhourglass"
              usage="/whyhourglass (username)"
-             permissions-verbose="everyone"
              description="Shows one of possile reasons why the specified player has the hourglass."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_LOBBY"
     />
     <command name="availableteams"
              usage="/availableteams"
-             permissions-verbose="everyone"
              description="Shows which teams are available on the server. When the mode is soccer or CTF, there are always red and blue teams; in that case, the command shows what will be available in case the mode is changed."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_LOBBY"
     >
         <command name="="
@@ -1141,9 +1183,9 @@ here later. For now, please refer to the code for the strings being used. -->
     </command>
     <command name="cooldown"
              usage="/cooldown"
-             permissions-verbose="everyone"
              description="The number of seconds during which the kart/map selection cannot be started."
-             permissions="UP_EVERYONE"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
              state-scope="SS_ALWAYS"
     >
         <command name="="
@@ -1154,6 +1196,26 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="countteams"
+             usage="/countteams"
+             description="Shows the number of people in each team."
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             state-scope="SS_ALWAYS"
+    />
+    <command name="network"
+             usage="/network [username]"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             description="Prints the network statistics for a player."
+             aliases="net"
+    />
+    <command name="everynet"
+             usage="/everynet"
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             description="Prints the network statistics for all players."
+    />
     <command name="temp"
              usage="/temp"
              permissions-verbose="hammers"
