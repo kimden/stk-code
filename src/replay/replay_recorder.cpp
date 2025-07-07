@@ -378,13 +378,12 @@ void ReplayRecorder::save()
             min_time = cur_time;
     }
 
-    int day, month, year;
-    StkTime::getDate(&day, &month, &year);
     std::string time = StringUtils::toString(min_time);
     std::replace(time.begin(), time.end(), '.', '_');
     std::ostringstream oss;
-    oss << Track::getCurrentTrack()->getIdent() << "_" << year << month << day
-        << "_" << num_karts << "_" << time << ".replay";
+    oss << Track::getCurrentTrack()->getIdent() << "_";
+    oss << StkTime::getLogTimeFormatted("%Y%m%d");
+    oss << "_" << num_karts << "_" << time << ".replay";
     m_filename = oss.str();
 
     FILE *fd = openReplayFile(/*writeable*/true);
@@ -412,13 +411,15 @@ void ReplayRecorder::save()
         fprintf(fd, "kart: %s %s\n", kart->getIdent().c_str(),
                 StringUtils::xmlEncode(kart->getController()->getName()).c_str());
 
-/*        if (kart->getController()->isPlayerController())
-        {
-            fprintf(fd, "kart_color: %f\n", StateManager::get()->getActivePlayer(player_count)->getConstProfile()->getDefaultKartColor());
-            player_count++;
-        }
-        else*/
-            fprintf(fd, "kart_color: 0\n");
+        // if (kart->getController()->isPlayerController())
+        // {
+        //     fprintf(fd, "kart_color: %f\n", StateManager::get()->getActivePlayer(player_count)->getConstProfile()->getDefaultKartColor());
+        //     player_count++;
+        // }
+        // else
+        //     fprintf(fd, "kart_color: 0\n");
+
+        fprintf(fd, "kart_color: %f\n", RaceManager::get()->getKartColor(real_karts));
     }
 
     m_last_uid = computeUID(min_time);
