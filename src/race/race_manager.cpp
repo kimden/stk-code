@@ -357,8 +357,8 @@ void RaceManager::setFuelAndQueueInfo(float fuel, float regen, float stop, float
            "\t fuel regen  %f\n"
            "\t fuel stop   %f\n"
            "\t fuel weight %f\n"
-           "\t fuel rate   %f\n",
-           "\t tyre alloc  %d %d %d\n",
+           "\t fuel rate   %f\n"
+           "\t tyre alloc  %d %d %d\n"
            "------\n\n",
            fuel, regen, stop, weight, rate, amount_1, amount_2, amount_3);
     m_fuel_info[0] = fuel;

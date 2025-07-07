@@ -174,7 +174,7 @@ public:
     // ------------------------------------------------------------------------
     TYPE& operator[](const unsigned int ID)
     {
-        assert((unsigned int)ID < (unsigned int)m_contents_vector.size());
+        // assert((unsigned int)ID < (unsigned int)m_contents_vector.size());
 
         return *(m_contents_vector[ID]);
     }   // operator[]

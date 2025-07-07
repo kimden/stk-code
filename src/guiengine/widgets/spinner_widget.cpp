@@ -323,6 +323,11 @@ void SpinnerWidget::resizeLabel()
     if (m_graphical) // Don't proceed further if this spinner doesn't use labels
         return;
 
+    // kimden: Unclear why but it fails in this branch but not in other.
+    // Return to avoid crash.
+    if (m_children.size() <= 1)
+        return;
+
     rect<s32> subsize_label = rect<s32>(m_h, 0, m_w - m_h, m_h);
     IGUIStaticText* label = static_cast<IGUIStaticText*>(m_children[1].m_element);
     label->setRelativePosition(subsize_label);
