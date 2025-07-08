@@ -33,6 +33,7 @@
 #include "states_screens/dialogs/general_text_field_dialog.hpp"
 #include "states_screens/dialogs/ranking_callback.hpp"
 #include "states_screens/state_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/translation.hpp"
 
 #include <IGUIEnvironment.h>
@@ -223,7 +224,7 @@ void NetworkPlayerDialog::onUpdate(float dt)
                 NetworkString report(PROTOCOL_LOBBY_ROOM);
                 report.addUInt8(LobbyEvent::LE_REPORT_PLAYER)
                     .addUInt32(host_id).encodeString16(info);
-                STKHost::get()->sendToServer(&report, PRM_RELIABLE);
+                Comm::sendToServer(&report, PRM_RELIABLE);
                 return true;
             });
         return;
@@ -266,7 +267,7 @@ GUIEngine::EventPropagation
         {
             NetworkString kick(PROTOCOL_LOBBY_ROOM);
             kick.addUInt8(LobbyEvent::LE_KICK_HOST).addUInt32(m_host_id);
-            STKHost::get()->sendToServer(&kick, PRM_RELIABLE);
+            Comm::sendToServer(&kick, PRM_RELIABLE);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }
@@ -276,7 +277,7 @@ GUIEngine::EventPropagation
             NetworkString change_team(PROTOCOL_LOBBY_ROOM);
             change_team.addUInt8(LobbyEvent::LE_CHANGE_TEAM)
                 .addUInt8(m_local_id);
-            STKHost::get()->sendToServer(&change_team, PRM_RELIABLE);
+            Comm::sendToServer(&change_team, PRM_RELIABLE);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         } else if (m_accept_widget && selection == m_accept_widget->m_properties[PROP_ID]) {
@@ -285,7 +286,7 @@ GUIEngine::EventPropagation
             NetworkString change_handicap(PROTOCOL_LOBBY_ROOM);
             change_handicap.addUInt8(LobbyEvent::LE_CHANGE_HANDICAP_AND_TYRE)
                 .addUInt8(m_local_id).addUInt8(new_handicap).addUInt8(new_tyre);
-            STKHost::get()->sendToServer(&change_handicap, PRM_RELIABLE);
+            Comm::sendToServer(&change_handicap, PRM_RELIABLE);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }

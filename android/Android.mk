@@ -260,7 +260,7 @@ LOCAL_CFLAGS       := -I../lib/irrlicht/source/Irrlicht/ \
                       -I../lib/graphics_engine/include   \
                       -DMOBILE_STK                       \
                       -DANDROID_PACKAGE_CALLBACK_NAME=$(PACKAGE_CALLBACK_NAME)
-LOCAL_CPPFLAGS     := -std=gnu++0x
+LOCAL_CPPFLAGS     := -std=gnu++17
 LOCAL_STATIC_LIBRARIES := libjpeg png zlib
 ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
 LOCAL_ARM_NEON     := false
@@ -363,7 +363,7 @@ LOCAL_CFLAGS       := -I../lib/angelscript/include      \
                       -DANDROID_APP_DIR_NAME=\"$(APP_DIR_NAME)\"    \
                       -DSUPERTUXKART_VERSION=\"$(PROJECT_VERSION)\" \
                       -DANDROID_PACKAGE_CLASS_NAME=\"$(PACKAGE_CLASS_NAME)\"
-LOCAL_CPPFLAGS     := -std=gnu++0x
+LOCAL_CPPFLAGS     := -std=gnu++17
 
 LOCAL_STATIC_LIBRARIES := irrlicht bullet enet ifaddrs angelscript mcpp SDL2 \
                           vorbisfile vorbis ogg openal curl libmbedtls       \

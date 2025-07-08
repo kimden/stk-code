@@ -71,8 +71,7 @@ public:
     bool hasTeam(const std::string& name)
             { return m_team_for_player.find(name) != m_team_for_player.end(); }
 
-    bool isInHammerWhitelist(const std::string& str) const
-           { return m_hammer_whitelist.find(str) != m_hammer_whitelist.end(); }
+    bool isInHammerWhitelist(const std::string& str, int level) const;
 
     void clearTemporaryTeams();
     void shuffleTemporaryTeams(const std::map<int, int>& permutation);
@@ -82,6 +81,7 @@ public:
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
 
     bool assignRandomTeams(int intended_number, int* final_number, int* player_number);
+    std::string countTeamsAsString();
     void changeColors();
 
 private:
@@ -97,6 +97,8 @@ private:
     std::map<std::string, int> m_team_for_player;
 
     std::set<std::string> m_hammer_whitelist;
+
+    std::set<std::string> m_hammer_whitelist_level_2;
 
 };
 

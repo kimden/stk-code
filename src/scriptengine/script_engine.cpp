@@ -60,7 +60,7 @@ namespace Scripting
         else if (msg->type == asMSGTYPE_INFORMATION)
             type = "INFO";
 
-        Log::warn("Scripting", "%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
+        Log::warn("Scripting", "%s (%d, %d) : %s : %s", msg->section, msg->row, msg->col, type, msg->message);
     }
 
 
@@ -279,7 +279,7 @@ namespace Scripting
         asITypeInfo* type = obj->GetObjectType();
         asIScriptFunction* method = type->GetMethodByName(methodName.c_str());
         if (method == NULL)
-            Log::error("Scripting", ("runMethod: object does not implement method " + methodName).c_str());
+            Log::error("Scripting", "%s", ("runMethod: object does not implement method " + methodName).c_str());
 
 
         asIScriptContext *ctx = m_engine->CreateContext();

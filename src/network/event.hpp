@@ -103,6 +103,10 @@ public:
     /** Returns the peer of this event. */
     STKPeer* getPeer() const { return m_peer.get(); }
     // ------------------------------------------------------------------------
+    /** \brief Checks if data is not nullptr
+     */
+    bool hasValidData() const { return m_data != nullptr; }
+    // ------------------------------------------------------------------------
     /** \brief Get a const reference to the received data.
      *  This is empty for events like connection or disconnections. 
      */

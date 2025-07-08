@@ -1240,26 +1240,23 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
         }
     }
 
-    int compound = kart->m_tyres->m_current_compound;
     bool pit = kart->m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP);
     if (!kart->hasFinishedRace())
     {
-        {
-            gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-            const core::rect<s32> posNumber(x, y, x + w/4, y + w/4);
-            font->setScale(2.0f*((float) w)/(4.f*(float)font->getDimension(L"XX").Height));
+        gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+        const core::rect<s32> posNumber(x, y, x + w/4, y + w/4);
+        font->setScale(2.0f*((float) w)/(4.f*(float)font->getDimension(L"XX").Height));
 
-            // convert Hue to SColor
-            float tyre_hue = kart->getKartProperties()->getTyresDefaultColor()[kart->m_tyres->m_current_compound-1]/100.0f;
-            const video::SColorHSL tyre_colorHSL(tyre_hue * 360.0, 80.0, 50.0);
-            video::SColorf tyre_colorf;
-            tyre_colorHSL.toRGB(tyre_colorf);
-            video::SColor tyre_color = tyre_colorf.toSColor();
+        // convert Hue to SColor
+        float tyre_hue = kart->getKartProperties()->getTyresDefaultColor()[kart->m_tyres->m_current_compound-1]/100.0f;
+        const video::SColorHSL tyre_colorHSL(tyre_hue * 360.0, 80.0, 50.0);
+        video::SColorf tyre_colorf;
+        tyre_colorHSL.toRGB(tyre_colorf);
+        video::SColor tyre_color = tyre_colorf.toSColor();
 
-            if (pit) font->draw(L"PIT", posNumber, tyre_color);
-            else font->draw(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(kart->m_tyres->m_current_compound, true)), posNumber, tyre_color);
-            font->setScale(1.0f);
-        }
+        if (pit) font->draw(L"PIT", posNumber, tyre_color);
+        else font->draw(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(kart->m_tyres->m_current_compound, true)), posNumber, tyre_color);
+        font->setScale(1.0f);
     }
 
     //attachment

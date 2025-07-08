@@ -357,8 +357,8 @@ void RaceManager::setFuelAndQueueInfo(float fuel, float regen, float stop, float
            "\t fuel regen  %f\n"
            "\t fuel stop   %f\n"
            "\t fuel weight %f\n"
-           "\t fuel rate   %f\n",
-           "\t tyre alloc  %d %d %d\n",
+           "\t fuel rate   %f\n"
+           "\t tyre alloc  %d %d %d\n"
            "------\n\n",
            fuel, regen, stop, weight, rate, amount_1, amount_2, amount_3);
     m_fuel_info[0] = fuel;
@@ -514,7 +514,7 @@ void RaceManager::startNew(bool from_overworld)
     if (m_num_ghost_karts > 0)
         m_num_karts += m_num_ghost_karts;
 
-    Log::verbose("RaceManager", "Nb of karts=%u, ghost karts:%u ai:%lu players:%lu\n",
+    Log::verbose("RaceManager", "Nb of karts=%u, ghost karts:%u ai:%lu players:%lu",
         (unsigned int) m_num_karts, m_num_ghost_karts, m_ai_kart_list.size(), m_player_karts.size());
     std::set<std::string> used_karts;
     for (auto& kart : m_ai_kart_list)
@@ -1117,7 +1117,7 @@ void RaceManager::exitRace(bool delete_world)
             else
             {
                 Log::error("RaceManager", "There are no winners and no losers."
-                           "This should have never happened\n");
+                           "This should have never happened");
                 std::vector<std::pair<std::string, float> > karts;
                 karts.emplace_back(UserConfigParams::m_default_kart, 0.0f);
                 used_karts.insert(UserConfigParams::m_default_kart);
@@ -1319,7 +1319,7 @@ void RaceManager::startWatchingReplay(const std::string &track_ident,
     m_num_karts = ReplayPlay::get()->getNumGhostKart();
     m_kart_status.clear();
 
-    Log::verbose("RaceManager", "%u ghost kart(s) for watching replay only\n",
+    Log::verbose("RaceManager", "%u ghost kart(s) for watching replay only",
         (unsigned int)m_num_karts);
 
     int init_gp_rank = 0;

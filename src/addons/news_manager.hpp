@@ -30,6 +30,7 @@ using namespace irr;
 
 #include "utils/can_be_deleted.hpp"
 #include "utils/synchronised.hpp"
+#include <optional>
 
 class XMLNode;
 
@@ -134,6 +135,8 @@ private:
     void          downloadNews();
     NewsManager();
     ~NewsManager();
+
+    std::optional<NewsMessage> getCurrentNewsElement(NewsType type);
 
 public:
     /** Singleton: if necessary create and get the news managers */

@@ -113,26 +113,22 @@ void LobbyQueues::resetToDefaultSettings(const std::set<std::string>& preserved_
 void LobbyQueues::applyFrontMapFilters(FilterContext& context)
 {
     if (!m_onetime_tracks_queue.empty())
-    {
         m_onetime_tracks_queue.front()->apply(context);
-    }
+
     if (!m_cyclic_tracks_queue.empty())
-    {
         m_cyclic_tracks_queue.front()->apply(context);
-    }
+
 }   // applyFrontMapFilters
 //-----------------------------------------------------------------------------
 
 void LobbyQueues::applyFrontKartFilters(FilterContext& context)
 {
     if (!m_onetime_karts_queue.empty())
-    {
         m_onetime_karts_queue.front()->apply(context);
-    }
+
     if (!m_cyclic_karts_queue.empty())
-    {
         m_cyclic_karts_queue.front()->apply(context);
-    }
+
 }   // applyFrontKartFilters
 //-----------------------------------------------------------------------------
 

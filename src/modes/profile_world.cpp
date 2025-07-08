@@ -254,11 +254,11 @@ void ProfileWorld::enterRaceOverState()
         ss << kart->getBonusCount() << " " << kart->getBananaCount() << " ";
         ss << kart->getSmallNitroCount() << " " << kart->getLargeNitroCount() << " ";
         ss << kart->getBubblegumCount() << " " << kart->getOffTrackCount() << " ";
-        Log::verbose("profile", ss.str().c_str());
+        Log::verbose("profile", "%s", ss.str().c_str());
     }
 
     // Print group statistics of all karts
-    Log::verbose("profile", "min %f  max %f  av %f\n",
+    Log::verbose("profile", "min %f  max %f  av %f",
                   min_t, max_t, av_t/m_karts.size());
 
     // Determine maximum length of group name
@@ -274,7 +274,7 @@ void ProfileWorld::enterRaceOverState()
     Log::verbose("profile", "");
     ss << "name" << std::setw(max_len-4) << " "
        << "Strt End  Time    AvSp  Top   Skid  Resc Rsc Brake Expl Exp Itm Ban SNitLNit Bub Off Energy";
-    Log::verbose("profile", ss.str().c_str());
+    Log::verbose("profile", "%s", ss.str().c_str());
     for(std::set<std::string>::iterator it = all_groups.begin();
         it !=all_groups.end(); it++)
     {
