@@ -238,7 +238,7 @@ std::pair<int, video::SColor> FreeForAll::getSpeedometerDigit(const Kart *kart) 
     
     // Fade from green to red
     std::vector<int> sorted_scores;
-    for (int i = 0; i < m_scores.size(); i++)
+    for (int i = 0; i < (int)m_scores.size(); i++)
     {
         if (!getKart(i)->isEliminated())
         {

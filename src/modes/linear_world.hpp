@@ -20,7 +20,7 @@
 
 #include "modes/world_with_rank.hpp"
 #include "utils/aligned_array.hpp"
-#include "network/crypto_openssl.hpp"
+#include "network/crypto.hpp"
 #include "karts/tyres.hpp"
 #include "karts/kart.hpp"
 

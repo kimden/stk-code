@@ -277,7 +277,7 @@ LightNode* findNearestLight()
 
     Camera* camera = Camera::getActiveCamera();
     if (camera == NULL) {
-        Log::error("[Debug Menu]", "No camera found.");
+        Log::error("Debug Menu", "No camera found.");
         return NULL;
     }
 

@@ -27,7 +27,6 @@
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "online/online_player_profile.hpp"
-// #include "tracks/track_manager.hpp"
 #include "utils/string_utils.hpp"
 
 //------------------------------------------------------------------------------

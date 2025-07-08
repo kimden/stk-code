@@ -313,7 +313,7 @@ void CreateServerScreen::createServer()
 
     RibbonWidget* difficulty_widget = getWidget<RibbonWidget>("difficulty");
     RibbonWidget* gamemode_widget = getWidget<RibbonWidget>("gamemode");
-
+/*
     if (name.size() < 4 || name.size() > 30)
     {
         //I18N: In the create server screen
@@ -321,7 +321,7 @@ void CreateServerScreen::createServer()
             _("Name has to be between 4 and 30 characters long!"), false);
         SFXManager::get()->quickSound("anvil");
         return;
-    }
+    }*/
     assert(max_players > 1 && max_players <=
         UserConfigParams::m_max_players.getDefaultValue());
 

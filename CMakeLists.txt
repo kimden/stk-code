@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6.0)
+cmake_minimum_required(VERSION 3.12...4.0)
 
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
@@ -9,11 +9,21 @@ execute_process(
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
-  COMMAND git --no-pager describe --tags --always --dirty
+  COMMAND git --no-pager describe --tags --always --exclude "preview" --exclude "ign-*" --dirty
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_VARIABLE GIT_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+message(STATUS "Configuring file from: ${CMAKE_SOURCE_DIR}/src/utils/version.hpp.in")
+message(STATUS "Output file: ${CMAKE_SOURCE_DIR}/src/utils/version.hpp")
+
+configure_file(
+  ${CMAKE_SOURCE_DIR}/src/utils/version.hpp.in
+  ${CMAKE_SOURCE_DIR}/src/utils/version.hpp
+  @ONLY)
+
+include_directories(${CMAKE_BINARY_DIR}/generated)
 
 # root CMakeLists for the SuperTuxKart project
 project(SuperTuxKart)
@@ -40,6 +50,7 @@ option(SERVER_ONLY "Create a server only (i.e. no graphics or sound)" OFF)
 option(CHECK_ASSETS "Check if assets are installed in ../stk-assets" ON)
 option(USE_SYSTEM_ANGELSCRIPT "Use system angelscript instead of built-in angelscript. If you enable this option, make sure to use a compatible version." OFF)
 option(USE_SYSTEM_ENET "Use system ENet instead of the built-in version, when available." ON)
+option(USE_SYSTEM_MCPP "Use system mcpp instead of the built-in version, when available." ON)
 CMAKE_DEPENDENT_OPTION(USE_IPV6 "Allow create or connect to game server with IPv6 address, system enet will not be used." ON
   "NOT USE_SWITCH" OFF)
 option(USE_SYSTEM_WIIUSE "Use system WiiUse instead of the built-in version, when available." OFF)
@@ -337,8 +348,10 @@ if(NOT SERVER_ONLY)
 endif()
 
 # Libmcpp
-find_library(MCPP_LIBRARY NAMES mcpp libmcpp)
-find_path(MCPP_INCLUDEDIR NAMES mcpp_lib.h PATHS)
+if (USE_SYSTEM_MCPP)
+    find_library(MCPP_LIBRARY NAMES mcpp libmcpp)
+    find_path(MCPP_INCLUDEDIR NAMES mcpp_lib.h PATHS)
+endif()
 if (NOT MCPP_LIBRARY OR NOT MCPP_INCLUDEDIR)
     add_subdirectory("${PROJECT_SOURCE_DIR}/lib/mcpp")
     include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/mcpp")
@@ -523,8 +536,16 @@ endif()
 
 # Set some compiler options
 if(UNIX OR MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
+endif()
+
+if(MINGW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+endif()
+
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 endif()
 
 if(MINGW AND CMAKE_BUILD_TYPE MATCHES Release)
@@ -547,8 +568,7 @@ endif()
 if(MSVC)
     # VS will automatically add NDEBUG for release mode, but only _DEBUG in debug mode.
     # Since STK uses DEBUG, this is added for debug compilation only:
-    cmake_policy(SET CMP0043 OLD)
-    set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS_DEBUG DEBUG)
+    add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
 else()
     # All non VS generators used create only a single compile mode, so
     # compile flags can be simplye be added
@@ -624,7 +644,7 @@ else()
         add_executable(supertuxkart ${STK_SOURCES} ${STK_RESOURCES} ${STK_HEADERS} ${IOS_ASSETS_FILES})
         set_target_properties(supertuxkart PROPERTIES
             MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/data/SuperTuxKart-Info-iOS.plist
-            XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 9.0
+            XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 10.0
             XCODE_ATTRIBUTE_INSTALL_PATH /Applications
             XCODE_ATTRIBUTE_SKIP_INSTALL No
             XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
@@ -644,9 +664,6 @@ else()
         target_link_libraries(supertuxkart ${PTHREAD_LIBRARY})
     endif()
 endif()
-
-target_compile_definitions(supertuxkart PRIVATE "-DGIT_BRANCH=\"${GIT_BRANCH}\"")
-target_compile_definitions(supertuxkart PRIVATE "-DGIT_VERSION=\"${GIT_COMMIT_HASH}\"")
 
 # check if linking against libatomic is required
 include(CheckCXXSourceCompiles)
@@ -851,6 +868,7 @@ if(USE_WIIUSE)
 endif()
 
 if(MSVC OR MINGW)
+  add_definitions(-DWIN_BUILD)
   target_link_libraries(supertuxkart iphlpapi.lib)
   add_custom_command(TARGET supertuxkart POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -878,15 +896,15 @@ if(MINGW)
     if (NOT CMAKE_BUILD_TYPE MATCHES Debug)
         target_link_libraries(supertuxkart -mwindows)
     endif()
-    find_library(LIBGCC NAMES "libgcc_s_dw2-1.dll" "libgcc_s_sjlj-1.dll" "libgcc_s_seh-1.dll" PATHS ${CMAKE_FIND_ROOT_PATH})
+    find_file(LIBGCC NAMES "libgcc_s_dw2-1.dll" "libgcc_s_sjlj-1.dll" "libgcc_s_seh-1.dll" PATHS ${CMAKE_FIND_ROOT_PATH})
     if (LIBGCC)
         file(COPY ${LIBGCC} DESTINATION ${CMAKE_BINARY_DIR}/bin/)
     endif()
-    find_library(LIBSTDCPP NAMES "libstdc++-6.dll" PATHS ${CMAKE_FIND_ROOT_PATH})
+    find_file(LIBSTDCPP NAMES "libstdc++-6.dll" PATHS ${CMAKE_FIND_ROOT_PATH})
     if (LIBSTDCPP)
         file(COPY ${LIBSTDCPP} DESTINATION ${CMAKE_BINARY_DIR}/bin/)
     endif()
-    find_library(LIBPTHREAD NAMES "winpthread-1.dll" "libwinpthread-1.dll" "pthreadGC2.dll" PATHS ${CMAKE_FIND_ROOT_PATH})
+    find_file(LIBPTHREAD NAMES "winpthread-1.dll" "libwinpthread-1.dll" "pthreadGC2.dll" PATHS ${CMAKE_FIND_ROOT_PATH})
     if(LIBPTHREAD)
         file(COPY ${LIBPTHREAD} DESTINATION ${CMAKE_BINARY_DIR}/bin/)
     endif()

@@ -27,6 +27,7 @@
   */
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -557,10 +558,7 @@ public:
     // ------------------------------------------------------------------------
     /** Shuffles the start transformations
     */
-    void shuffleStartTransforms()
-    {
-        std::random_shuffle(m_start_transforms.begin(), m_start_transforms.end());
-    }
+    void shuffleStartTransforms();
     // ------------------------------------------------------------------------
     /** Sets pointer to the aabb of this track. */
     void               getAABB(const Vec3 **min, const Vec3 **max) const
@@ -739,7 +737,8 @@ public:
     // ------------------------------------------------------------------------
     bool isAddon() const                                 { return m_is_addon; }
     // ------------------------------------------------------------------------
-    void convertTrackToBullet(scene::ISceneNode *node);
+    void convertTrackToBullet(scene::ISceneNode *node,
+                      std::vector<std::array<btVector3, 3> >* occluder = NULL);
     // ------------------------------------------------------------------------
     CheckManager* getCheckManager() const           { return m_check_manager; }
     // ------------------------------------------------------------------------

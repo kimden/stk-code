@@ -97,7 +97,7 @@ void GrandPrixManager::load(const std::string& filename, enum GrandPrixData::GPG
         if (gp != NULL)
             delete gp;
         Log::error("GrandPrixManager",
-                   "Ignoring Grand Prix %s (%s)\n", filename.c_str(), e.what());
+                   "Ignoring Grand Prix %s (%s)", filename.c_str(), e.what());
     }
 }   // load
 

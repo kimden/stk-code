@@ -88,7 +88,7 @@ void OverWorld::enterOverWorld()
 
     if (!kart_properties_manager->getKart(UserConfigParams::m_default_kart))
     {
-        Log::warn("[overworld]", "cannot find kart '%s', "
+        Log::warn("overworld", "cannot find kart '%s', "
                   "will revert to default",
                   UserConfigParams::m_default_kart.c_str());
 
@@ -259,7 +259,7 @@ void OverWorld::onFirePressed(Controller* who)
                 const ChallengeData* challenge = unlock_manager->getChallengeData(challenges[n].m_challenge_id);
                 if (challenge == NULL)
                 {
-                    Log::error("track", "Cannot find challenge named '%s'\n",
+                    Log::error("track", "Cannot find challenge named '%s'",
                         challenges[n].m_challenge_id.c_str());
                     continue;
                 }

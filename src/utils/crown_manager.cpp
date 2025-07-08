@@ -30,27 +30,6 @@
 
 #include <cmath>
 
-
-namespace
-{
-    const std::string g_hr_unknown            = "For some reason, server doesn't know about the hourglass status of player %s.";
-    const std::string g_hr_none               = "%s can play (but if hourglass is present, there are not enough slots on the server).";
-    const std::string g_hr_absent_peer        = "Player %s is not present on the server.";
-    const std::string g_hr_not_tournament     = "%s is not a tournament player for this game.";
-    const std::string g_hr_limit_spectator    = "Not enough slots to fit %s.";
-    const std::string g_hr_no_karts_after     = "After applying all kart filters, %s doesn't have karts to play.";
-    const std::string g_hr_no_maps_after      = "After applying all map filters, %s doesn't have maps to play.";
-    const std::string g_hr_lack_required_maps = "%s lacks required maps.";
-    const std::string g_hr_addon_karts_thr    = "Player %s doesn't have enough addon karts.";
-    const std::string g_hr_addon_tracks_thr   = "Player %s doesn't have enough addon tracks.";
-    const std::string g_hr_addon_arenas_thr   = "Player %s doesn't have enough addon arenas.";
-    const std::string g_hr_addon_fields_thr   = "Player %s doesn't have enough addon fields.";
-    const std::string g_hr_off_karts_thr      = "The number of official karts for %s is lower than the threshold.";
-    const std::string g_hr_off_tracks_thr     = "The number of official tracks for %s is lower than the threshold.";
-    const std::string g_hr_empty              = "";
-}   // namespace
-//-----------------------------------------------------------------------------
-
 void CrownManager::setupContextUser()
 {
     m_only_host_riding = ServerConfig::m_only_host_riding;
@@ -78,16 +57,15 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
         player_limit = std::min(player_limit, current_max_players_in_game);
 
     // only 10 players allowed for FFA and 14 for CTF and soccer
-    if (RaceManager::get()->getMinorMode() ==
-            RaceManager::MINOR_MODE_FREE_FOR_ALL)
+    auto minor_mode = RaceManager::get()->getMinorMode();
+
+    if (minor_mode == RaceManager::MINOR_MODE_FREE_FOR_ALL)
         player_limit = std::min(player_limit, 10u);
 
-    if (RaceManager::get()->getMinorMode() ==
-            RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
+    if (minor_mode == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG)
         player_limit = std::min(player_limit, 14u);
 
-    if (RaceManager::get()->getMinorMode() ==
-            RaceManager::MINOR_MODE_SOCCER)
+    if (minor_mode == RaceManager::MINOR_MODE_SOCCER)
         player_limit = std::min(player_limit, 14u);
 
     unsigned ingame_players = 0, waiting_players = 0, total_players = 0;
@@ -95,7 +73,7 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
 
     for (int i = 0; i < (int)peers.size(); ++i)
     {
-        if (!peers[i]->isValidated())
+        if (!peers[i]->isValidated() || (ServerConfig::m_ai_handling && peers[i]->isAIPeer()))
         {
             std::swap(peers[i], peers.back());
             peers.pop_back();
@@ -104,9 +82,11 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
     }
 
     std::sort(peers.begin(), peers.end(),
-        [](const std::shared_ptr<STKPeer>& a,
-            const std::shared_ptr<STKPeer>& b)
-        { return a->getRejoinTime() < b->getRejoinTime(); });
+        [](const std::shared_ptr<STKPeer>& a, const std::shared_ptr<STKPeer>& b)
+        {
+            return defaultOrderComparator(a, b);
+        }
+    );
 
     unsigned player_count = 0;
 
@@ -130,7 +110,7 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
         {
             if (peer->alwaysSpectate() || peer->isWaitingForGame())
                 ignore = true;
-            else if (!canRace(peer))
+            else if (!canRace(peer, player_count + (unsigned)peer->getPlayerProfiles().size()))
             {
                 m_spectators_by_limit.insert(peer);
                 ignore = true;
@@ -153,88 +133,40 @@ std::set<std::shared_ptr<STKPeer>>& CrownManager::getSpectatorsByLimit(bool upda
 
 //-----------------------------------------------------------------------------
 
-bool CrownManager::canRace(std::shared_ptr<STKPeer> peer)
+bool CrownManager::canRace(std::shared_ptr<STKPeer> peer, int known_number)
 {
     auto it = m_why_peer_cannot_play.find(peer);
     if (it != m_why_peer_cannot_play.end())
         return it->second == 0;
 
+    auto& value = m_why_peer_cannot_play[peer];
+
     if (!peer || peer->getPlayerProfiles().empty())
     {
-        m_why_peer_cannot_play[peer] = HR_ABSENT_PEER;
+        value = HR_ABSENT_PEER;
         return false;
     }
-    std::string username = peer->getMainName();
-    if (getTournament() && !getTournament()->canPlay(username))
+    if (getTournament() && !getTournament()->canPlay(peer->getMainName()))
     {
-        m_why_peer_cannot_play[peer] = HR_NOT_A_TOURNAMENT_PLAYER;
+        value = HR_NOT_A_TOURNAMENT_PLAYER;
         return false;
     }
     else if (m_spectators_by_limit.find(peer) != m_spectators_by_limit.end())
     {
-        m_why_peer_cannot_play[peer] = HR_SPECTATOR_BY_LIMIT;
+        value = HR_SPECTATOR_BY_LIMIT;
         return false;
     }
 
-    if (!getAssetManager()->getMissingAssets(peer).empty())
+    int new_value = HR_NONE;
+
+    new_value = getAssetManager()->checkCanPlay(peer, known_number);
+    if (new_value != HR_NONE)
     {
-        m_why_peer_cannot_play[peer] = HR_LACKING_REQUIRED_MAPS;
+        value = new_value;
         return false;
     }
 
-    if (peer->addon_karts_count < getAssetManager()->getAddonKartsPlayThreshold())
-    {
-        m_why_peer_cannot_play[peer] = HR_ADDON_KARTS_PLAY_THRESHOLD;
-        return false;
-    }
-    if (peer->addon_tracks_count < getAssetManager()->getAddonTracksPlayThreshold())
-    {
-        m_why_peer_cannot_play[peer] = HR_ADDON_TRACKS_PLAY_THRESHOLD;
-        return false;
-    }
-    if (peer->addon_arenas_count < getAssetManager()->getAddonArenasPlayThreshold())
-    {
-        m_why_peer_cannot_play[peer] = HR_ADDON_ARENAS_PLAY_THRESHOLD;
-        return false;
-    }
-    if (peer->addon_soccers_count < getAssetManager()->getAddonSoccersPlayThreshold())
-    {
-        m_why_peer_cannot_play[peer] = HR_ADDON_FIELDS_PLAY_THRESHOLD;
-        return false;
-    }
-
-    std::set<std::string> maps = peer->getClientAssets().second;
-    std::set<std::string> karts = peer->getClientAssets().first;
-
-    float karts_fraction = getAssetManager()->officialKartsFraction(karts);
-    float maps_fraction = getAssetManager()->officialMapsFraction(maps);
-
-    if (karts_fraction < getAssetManager()->getOfficialKartsPlayThreshold())
-    {
-        m_why_peer_cannot_play[peer] = HR_OFFICIAL_KARTS_PLAY_THRESHOLD;
-        return false;
-    }
-    if (maps_fraction < getAssetManager()->getOfficialTracksPlayThreshold())
-    {
-        m_why_peer_cannot_play[peer] = HR_OFFICIAL_TRACKS_PLAY_THRESHOLD;
-        return false;
-    }
-    
-    getAssetManager()->applyAllFilters(maps, true);
-    getAssetManager()->applyAllKartFilters(username, karts, false);
-
-    if (karts.empty())
-    {
-        m_why_peer_cannot_play[peer] = HR_NO_KARTS_AFTER_FILTER;
-        return false;
-    }
-    if (maps.empty())
-    {
-        m_why_peer_cannot_play[peer] = HR_NO_MAPS_AFTER_FILTER;
-        return false;
-    }
-
-    m_why_peer_cannot_play[peer] = 0;
+    value = HR_NONE;
     return true;
 }   // canRace
 //-----------------------------------------------------------------------------
@@ -247,26 +179,10 @@ std::string CrownManager::getWhyPeerCannotPlayAsString(
     if (it == m_why_peer_cannot_play.end())
     {
         Log::error("LobbySettings", "Hourglass status undefined for a player!");
-        return g_hr_unknown;
+        return Conversions::hourglassReasonToString(HR_UNKNOWN);
     }
     
-    switch (it->second)
-    {
-        case HR_NONE:                           return g_hr_none;
-        case HR_ABSENT_PEER:                    return g_hr_absent_peer;
-        case HR_NOT_A_TOURNAMENT_PLAYER:        return g_hr_not_tournament;
-        case HR_SPECTATOR_BY_LIMIT:             return g_hr_limit_spectator;
-        case HR_NO_KARTS_AFTER_FILTER:          return g_hr_no_karts_after;
-        case HR_NO_MAPS_AFTER_FILTER:           return g_hr_no_maps_after;
-        case HR_LACKING_REQUIRED_MAPS:          return g_hr_lack_required_maps;
-        case HR_ADDON_KARTS_PLAY_THRESHOLD:     return g_hr_addon_karts_thr;
-        case HR_ADDON_TRACKS_PLAY_THRESHOLD:    return g_hr_addon_tracks_thr;
-        case HR_ADDON_ARENAS_PLAY_THRESHOLD:    return g_hr_addon_arenas_thr;
-        case HR_ADDON_FIELDS_PLAY_THRESHOLD:    return g_hr_addon_fields_thr;
-        case HR_OFFICIAL_KARTS_PLAY_THRESHOLD:  return g_hr_off_karts_thr;
-        case HR_OFFICIAL_TRACKS_PLAY_THRESHOLD: return g_hr_off_tracks_thr;
-        default:                                return g_hr_empty;
-    }
+    return Conversions::hourglassReasonToString((HourglassReason)it->second);
 }   // getWhyPeerCannotPlayAsString
 //-----------------------------------------------------------------------------
 
@@ -291,20 +207,28 @@ std::shared_ptr<STKPeer> CrownManager::getFirstInCrownOrder(
 
     unsigned best = 0;
     for (unsigned i = 1; i < peers.size(); ++i)
-        if (defaultOrderComparator(peers[i], peers[best]))
+        if (defaultCrownComparator(peers[i], peers[best]))
             best = i;
 
     return peers[best];
 }   // getFirstInCrownOrder
 //-----------------------------------------------------------------------------
 
-bool CrownManager::defaultOrderComparator(
+bool CrownManager::defaultCrownComparator(
         const std::shared_ptr<STKPeer> a,
         const std::shared_ptr<STKPeer> b)
 {
     if (a->isCommandSpectator() ^ b->isCommandSpectator())
         return b->isCommandSpectator();
 
+    return defaultOrderComparator(a, b);
+}   // defaultCrownComparator
+//-----------------------------------------------------------------------------
+
+bool CrownManager::defaultOrderComparator(
+        const std::shared_ptr<STKPeer> a,
+        const std::shared_ptr<STKPeer> b)
+{
     return a->getRejoinTime() < b->getRejoinTime();
 }   // defaultOrderComparator
 //-----------------------------------------------------------------------------

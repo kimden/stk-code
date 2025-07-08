@@ -211,7 +211,7 @@ void RubberBall::computeTarget()
             if(m_target==m_owner && m_delete_ticks < 0)
             {
 #ifdef PRINT_BALL_REMOVE_INFO
-                Log::debug("[RubberBall]",
+                Log::debug("RubberBall",
                            "ball %d removed because owner is target.", m_id);
 #endif
                 m_delete_ticks = m_st_delete_ticks;
@@ -224,7 +224,7 @@ void RubberBall::computeTarget()
     // aim at the owner (the ball is unlikely to hit it), and
     // this will trigger the usage of the delete time in updateAndDelete
 #ifdef PRINT_BALL_REMOVE_INFO
-    Log::debug("[RubberBall]" "ball %d removed because no more active target.",
+    Log::debug("RubberBall" "ball %d removed because no more active target.",
                m_id);
 #endif
     m_delete_ticks = m_st_delete_ticks;
@@ -344,7 +344,7 @@ void RubberBall::init(const XMLNode &node, scene::IMesh *rubberball)
                   "No fast-ping-distance specified for basket ball.");
     if(m_st_fast_ping_distance < m_st_target_distance)
         Log::warn("powerup",
-                   "Ping-distance is smaller than target distance.\n"
+                   "Ping-distance is smaller than target distance."
                    "That should not happen, but is ignored for now.");
     if(!node.get("early-target-factor", &m_st_early_target_factor))
         Log::warn("powerup",
@@ -392,7 +392,7 @@ bool RubberBall::updateAndDelete(int ticks)
         {
             hit(NULL);
 #ifdef PRINT_BALL_REMOVE_INFO
-            Log::debug("[RubberBall]", "ball %d deleted.", m_id);
+            Log::debug("RubberBall", "ball %d deleted.", m_id);
 #endif
             removePingSFX();
             return true;
@@ -460,7 +460,7 @@ bool RubberBall::updateAndDelete(int ticks)
     float height    = updateHeight()+m_extend.getY()*0.5f;
     
     if(UserConfigParams::logFlyable())
-        Log::debug("[RubberBall]", "ball %d: %f %f %f height %f gethot %f terrain %d aim %d",
+        Log::debug("RubberBall", "ball %d: %f %f %f height %f gethot %f terrain %d aim %d",
                 m_id, next_xyz.getX(), next_xyz.getY(), next_xyz.getZ(), height, getHoT(),
                 isOnRoad(),
             m_aiming_at_target);
@@ -674,7 +674,7 @@ bool RubberBall::checkTunneling()
         if(m_tunnel_count > 3)
         {
 #ifdef PRINT_BALL_REMOVE_INFO
-            Log::debug("[RubberBall]",
+            Log::debug("RubberBall",
                        "Ball %d nearly tunneled at %f %f %f -> %f %f %f",
                         m_id, m_previous_xyz.getX(),m_previous_xyz.getY(),
                         m_previous_xyz.getZ(),
@@ -804,7 +804,7 @@ void RubberBall::updateDistanceToTarget()
         m_distance_to_target += Track::getCurrentTrack()->getTrackLength();
     }
     if(UserConfigParams::logFlyable())
-        Log::debug("[RubberBall]", "ball %d: target %f %f %f distance_2_target %f",
+        Log::debug("RubberBall", "ball %d: target %f %f %f distance_2_target %f",
         m_id, m_target->getXYZ().getX(),m_target->getXYZ().getY(),
         m_target->getXYZ().getZ(),m_distance_to_target
         );
@@ -838,7 +838,7 @@ void RubberBall::updateDistanceToTarget()
         {
             m_delete_ticks = m_st_delete_ticks;
 #ifdef PRINT_BALL_REMOVE_INFO
-            Log::debug("[RubberBall]", "ball %d lost target (overtook?).",
+            Log::debug("RubberBall", "ball %d lost target (overtook?).",
                         m_id);
 #endif
 
@@ -874,7 +874,7 @@ bool RubberBall::hit(Kart* kart, PhysicalObject* object)
         return false;
 #ifdef PRINT_BALL_REMOVE_INFO
     if(kart)
-        Log::debug("[RuberBall]", "ball %d hit kart.", m_id);
+        Log::debug("RuberBall", "ball %d hit kart.", m_id);
 #endif
 #ifdef PRINT_BALL_TIME_TO_TARGET
     if(kart && kart == m_target)

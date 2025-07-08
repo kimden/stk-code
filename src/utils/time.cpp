@@ -57,7 +57,7 @@ std::string StkTime::getLogTimeFormatted(std::string&& format)
     time_t time_now = 0;
     time(&time_now);
     std::tm timeptr = {};
-#ifdef WIN32
+#ifdef WIN_BUILD
     localtime_s(&timeptr, &time_now);
 #else
     localtime_r(&time_now, &timeptr);
@@ -99,6 +99,7 @@ std::string StkTime::toString(int year, int month, int day)
 
     char s[64];
     strftime(s, 64, date_format.c_str(), t);
+    delete t;
     return s;
 }   // toString(3)
 
@@ -152,7 +153,7 @@ void StkTime::getDate(int *day, int *month, int *year)
 // ----------------------------------------------------------------------------
 StkTime::ScopeProfiler::ScopeProfiler(const char* name)
 {
-    Log::info("ScopeProfiler", "%s {\n", name);
+    Log::info("ScopeProfiler", "%s {", name);
     m_time = getMonoTimeMs();
     m_name = name;
 }   // StkTime::ScopeProfiler::ScopeProfiler
@@ -161,6 +162,6 @@ StkTime::ScopeProfiler::ScopeProfiler(const char* name)
 StkTime::ScopeProfiler::~ScopeProfiler()
 {
     uint64_t difference = getMonoTimeMs() - m_time;
-    Log::info("ScopeProfiler", "} // took %d ms (%s)\n",
+    Log::info("ScopeProfiler", "} // took %d ms (%s)",
         (int)difference, m_name.c_str());
 }   // StkTime::ScopeProfiler::ScopeProfiler

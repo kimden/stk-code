@@ -39,7 +39,7 @@ set(VERSION "0.1.0")
 
 ### CMake configuration
 
-cmake_minimum_required(VERSION 3.6.0)
+cmake_minimum_required(VERSION 3.6.0...4.0)
 if(COMMAND cmake_policy)
 	CMAKE_POLICY(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
@@ -82,7 +82,7 @@ add_definitions(-DDISABLE_ICONV)
 endif()
 
 if (UNIX OR MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
 endif()
 
 ## TinyGetText library compilation

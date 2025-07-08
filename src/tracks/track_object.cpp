@@ -369,7 +369,7 @@ void TrackObject::init(const XMLNode &xml_node, scene::ISceneNode* parent,
         catch (std::runtime_error& e)
         {
 #ifndef SERVER_ONLY
-            Log::debug("TrackObject", e.what());
+            Log::debug("TrackObject", "%s", e.what());
 #endif
         }
     }

@@ -48,6 +48,7 @@
 #include "states_screens/race_setup_screen.hpp"
 #include "states_screens/options/options_screen_general.hpp"
 #include "states_screens/state_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -388,7 +389,7 @@ GUIEngine::EventPropagation
                 NetworkString back(PROTOCOL_LOBBY_ROOM);
                 back.setSynchronous(true);
                 back.addUInt8(LobbyEvent::LE_CLIENT_BACK_LOBBY);
-                STKHost::get()->sendToServer(&back, PRM_RELIABLE);
+                Comm::sendToServer(&back, PRM_RELIABLE);
             }
             else
             {

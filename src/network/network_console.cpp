@@ -23,6 +23,7 @@
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "network/protocols/server_lobby.hpp"
+#include "utils/communication.hpp"
 #include "utils/time.hpp"
 #include "utils/vs.hpp"
 #include "main_loop.hpp"
@@ -209,7 +210,7 @@ void mainLoop(STKHost* host)
                 message.pop_back();
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (sl && !message.empty())
-                sl->sendStringToAllPeers(message);
+                Comm::sendStringToAllPeers(message);
         }
         else
         {

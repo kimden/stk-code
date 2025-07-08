@@ -33,6 +33,7 @@
 #include "network/remote_kart_info.hpp"
 #include "network/stk_peer.hpp"
 #include "race/race_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/string_utils.hpp"
 
@@ -457,7 +458,7 @@ void GameInfo::fillAndStoreResults()
                 StringUtils::timeToString(best_result), best_user);
         }
         if (!message.empty())
-            getLobby()->sendStringToAllPeers(message);
+            Comm::sendStringToAllPeers(message);
     }
 
 }   // fillAndStoreResults
