@@ -207,7 +207,7 @@ private:
     void getRankingForPlayer(std::shared_ptr<NetworkPlayerProfile> p);
     void submitRankingsToAddons();
     void computeNewRankings(NetworkString* ns);
-    void checkRaceFinished();
+    // void checkRaceFinished();
     // void configPeersStartTime();
     // void resetServer();
     // void addWaitingPlayersToGame();

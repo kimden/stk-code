@@ -409,7 +409,7 @@ void PlayingRoom::updateRoom(int ticks)
         loadWorld();
         getGPManager()->updateWorldScoring();
         getSettings()->updateWorldSettings(m_game_info);
-        m_state = WAIT_FOR_WORLD_LOADED;
+        m_play_state = WAIT_FOR_WORLD_LOADED;
         break;
     case RACING:
         if (World::getWorld() && RaceEventManager::get() &&
@@ -430,7 +430,7 @@ void PlayingRoom::updateRoom(int ticks)
         // Set the delay before the server forces all clients to exit the race
         // result screen and go back to the lobby
         setTimeoutFromNow(15);
-        m_state = RESULT_DISPLAY;
+        m_play_state = RESULT_DISPLAY;
         Comm::sendMessageToPeers(m_result_ns, PRM_RELIABLE);
         delete m_result_ns;
         Log::info("ServerLobby", "End of game message sent");
@@ -729,7 +729,7 @@ void PlayingRoom::asynchronousUpdateRoom()
                 // Reset for next state usage
                 resetPeersReady();
 
-                m_state = LOAD_WORLD;
+                m_play_state = LOAD_WORLD;
                 Comm::sendMessageToPeers(load_world_message);
                 // updatePlayerList so the in lobby players (if any) can see always
                 // spectators join the game
@@ -2232,6 +2232,94 @@ void PlayingRoom::updateServerOwner(bool force)
     m_server_owner_id.store(owner->getHostId());
     updatePlayerList();
 }   // updateServerOwner
+//-----------------------------------------------------------------------------
+/** Checks if the race is finished, and if so informs the clients and switches
+ *  to state RESULT_DISPLAY, during which the race result gui is shown and all
+ *  clients can click on 'continue'.
+ */
+void PlayingRoom::checkRaceFinished()
+{
+    assert(RaceEventManager::get()->isRunning());
+    assert(World::getWorld());
+    if (!RaceEventManager::get()->isRaceOver()) return;
+
+    if (isTournament())
+        getTournament()->onRaceFinished();
+
+    if (RaceManager::get()->getMinorMode() ==
+        RaceManager::MINOR_MODE_SOCCER)
+        Log::info("ServerLobby", "SoccerMatchLog: The game is considered finished.");
+    else
+        Log::info("ServerLobby", "The game is considered finished.");
+    // notify the network world that it is stopped
+    RaceEventManager::get()->stop();
+    RaceManager::get()->resetHitProcessor();
+
+    // stop race protocols before going back to lobby (end race)
+    RaceEventManager::get()->getProtocol()->requestTerminate();
+    GameProtocol::lock()->requestTerminate();
+
+    // Save race result before delete the world
+    m_result_ns = getNetworkString();
+    m_result_ns->setSynchronous(true);
+    m_result_ns->addUInt8(LE_RACE_FINISHED);
+    std::vector<float> gp_changes;
+    if (m_game_setup->isGrandPrix())
+    {
+        getGPManager()->updateGPScores(gp_changes, m_result_ns);
+    }
+    else if (RaceManager::get()->modeHasLaps())
+    {
+        int fastest_lap =
+            static_cast<LinearWorld*>(World::getWorld())->getFastestLapTicks();
+        m_result_ns->addUInt32(fastest_lap);
+        m_result_ns->encodeString(static_cast<LinearWorld*>(World::getWorld())
+            ->getFastestLapKartName());
+    }
+
+    uint8_t ranking_changes_indication = 0;
+    if (getSettings()->isRanked() && RaceManager::get()->modeHasLaps())
+        ranking_changes_indication = 1;
+    if (m_game_setup->isGrandPrix())
+        ranking_changes_indication = 1;
+    m_result_ns->addUInt8(ranking_changes_indication);
+
+    if (getKartElimination()->isEnabled())
+    {
+        std::string msg = getKartElimination()->onRaceFinished();
+        if (!msg.empty())
+            Comm::sendStringToAllPeers(msg);
+    }
+
+    if (getSettings()->isStoringResults())
+    {
+        if (m_game_info)
+            m_game_info->fillAndStoreResults();
+        else
+            Log::warn("ServerLobby", "GameInfo is not accessible??");
+    }
+
+    if (getSettings()->isRanked())
+    {
+        computeNewRankings(m_result_ns);
+        submitRankingsToAddons();
+    }
+    else if (m_game_setup->isGrandPrix())
+    {
+        unsigned player_count = RaceManager::get()->getNumPlayers();
+        m_result_ns->addUInt8((uint8_t)player_count);
+        for (unsigned i = 0; i < player_count; i++)
+        {
+            m_result_ns->addFloat(gp_changes[i]);
+        }
+    }
+    m_play_state.store(WAIT_FOR_RACE_STOPPED);
+
+    getAssetManager()->gameFinishedOn(RaceManager::get()->getTrackName());
+
+    getQueues()->popOnRaceFinished();
+}   // checkRaceFinished
+
 //-----------------------------------------------------------------------------
 /// ...
 /// ...

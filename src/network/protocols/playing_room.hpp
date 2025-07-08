@@ -140,6 +140,7 @@ private:
     void resetServer();
     void addWaitingPlayersToGame();
     void configPeersStartTime();
+    void checkRaceFinished();
 
 public:
     PlayingRoom();
