@@ -612,6 +612,7 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("network", &CM::process_net);
     applyFunctionIfPossible("everynet", &CM::process_everynet);
     applyFunctionIfPossible("temp", &CM::process_temp250318);
+    applyFunctionIfPossible("room", &CM::process_room);
 
     applyFunctionIfPossible("addondownloadprogress", &CM::special);
     applyFunctionIfPossible("stopaddondownload", &CM::special);
@@ -1355,8 +1356,7 @@ void CommandManager::process_spectate(Context& context)
     }
     if (value >= 1)
     {
-        if (getLobby()->isChildProcess() &&
-            getLobby()->isClientServerHost(acting_peer))
+        if (getLobby()->isChildProcess() && getLobby()->isClientServerHost(acting_peer))
         {
             context.say("Graphical client server cannot spectate");
             return;
@@ -3875,6 +3875,49 @@ void CommandManager::process_temp250318(Context& context)
     context.say(StringUtils::insertValues(
             "ok value = %d", value));
 } // process_temp250318
+// ========================================================================
+
+void CommandManager::process_room(Context& context)
+{
+    auto& argv = context.m_argv;
+    auto acting_peer = context.actingPeer();
+
+    if (argv.size() < 3)
+    {
+        error(context);
+        return;
+    }
+
+    if (!validate(context, 1, TFT_PRESENT_USERS, false, false))
+        return;
+
+    std::string player_name = argv[1];
+    std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
+            StringUtils::utf8ToWide(player_name));
+    if (player_name.empty() || !player_peer)
+    {
+        error(context);
+        return;
+    }
+
+    int room = -2;
+
+    if (!StringUtils::parseString<int>(argv[2], &room) || room < -1 || room >= 256)
+    {
+        error(context);
+        return;
+    }
+
+    player_peer->setRoomNumber(room);
+
+    auto npp = player_peer->getMainProfile();
+    context.say(StringUtils::insertValues("Moved player %s to room %d",
+        getLobby()->encodeProfileNameForPeer(npp, acting_peer.get()).c_str(),
+        room
+    ));
+
+    getLobby()->updatePlayerList();
+} // process_room
 // ========================================================================
 
 void CommandManager::special(Context& context)

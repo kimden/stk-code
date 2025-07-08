@@ -149,7 +149,6 @@ public:
     virtual void update(int ticks)      = 0;
     virtual void finishedLoadingWorld() = 0;
     virtual void loadWorld();
-    virtual bool allPlayersReady() const = 0;
     virtual bool isRacing() const = 0;
     void startVotingPeriod(float max_time);
     float getRemainingVotingTime();

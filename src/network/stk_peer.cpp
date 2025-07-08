@@ -58,6 +58,7 @@ STKPeer::STKPeer(ENetPeer *enet_peer, STKHost* host, uint32_t host_id)
     m_last_message.store(0);
     m_angry_host.store(false);
     m_consecutive_messages = 0;
+    m_room_number.store(0);
 }   // STKPeer
 
 //-----------------------------------------------------------------------------
