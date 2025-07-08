@@ -207,7 +207,7 @@ void NetworkPlayerDialog::onUpdate(float dt)
                 ReportRequestPacket packet;
                 packet.host_id = host_id;
                 packet.info = info;
-                sendPacketToServer(packet);
+                Comm::sendPacketToServer(packet);
                 return true;
             });
         return;
@@ -250,7 +250,7 @@ GUIEngine::EventPropagation
         {
             KickHostPacket packet;
             packet.host_id = m_host_id;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }
@@ -259,7 +259,7 @@ GUIEngine::EventPropagation
         {
             ChangeTeamPacket packet;
             packet.local_id = m_local_id;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }
@@ -274,7 +274,7 @@ GUIEngine::EventPropagation
             ChangeHandicapPacket packet;
             packet.local_id = m_local_id;
             packet.handicap = new_handicap;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         }

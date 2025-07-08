@@ -100,7 +100,7 @@ void HitProcessor::sendTeammateHitMsg(std::string& s)
     if (ticks - m_last_hit_msg > STKConfig::get()->time2Ticks(g_hit_message_delay))
     {
         m_last_hit_msg = ticks;
-        Comm::sendStringToAllPeers(s);
+        Comm::sendStringToPeers(s);
     }
 }   // sendTeammateHitMsg
 //-----------------------------------------------------------------------------

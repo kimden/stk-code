@@ -914,7 +914,7 @@ void ServerLobby::asynchronousUpdate()
 
             m_state = LOAD_WORLD;
             LoadWorldPacket packet = getLoadWorldMessage(players, false/*live_join*/);
-            sendPacketToPeers(packet);
+            Comm::sendPacketToPeers(packet);
             // updatePlayerList so the in lobby players (if any) can see always
             // spectators join the game
             if (has_always_on_spectators || !previous_spectate_mode.empty())
@@ -1448,7 +1448,7 @@ void ServerLobby::update(int ticks)
             // or spectate to go back to lobby
             BackLobbyPacket packet;
             packet.reason = BLR_NONE;
-            sendPacketToPeersInServer(packet);
+            Comm::sendPacketToPeersInServer(packet);
 
             RaceEventManager::get()->stop();
             RaceEventManager::get()->getProtocol()->requestTerminate();
@@ -1480,7 +1480,7 @@ void ServerLobby::update(int ticks)
     {
         BackLobbyPacket packet;
         packet.reason = BLR_ONE_PLAYER_IN_RANKED_MATCH;
-        sendPacketToPeers(packet);
+        Comm::sendPacketToPeers(packet);
 
         resetVotingTime();
         // m_game_setup->cancelOneRace();
@@ -1534,7 +1534,7 @@ void ServerLobby::update(int ticks)
         setTimeoutFromNow(15);
         m_state = RESULT_DISPLAY;
 
-        sendPacketToPeers(m_result_packet);
+        Comm::sendPacketToPeers(m_result_packet);
 
         Log::info("ServerLobby", "End of game message sent");
         break;
@@ -1547,7 +1547,7 @@ void ServerLobby::update(int ticks)
             // the race result screen
             BackLobbyPacket packet;
             packet.reason = BLR_NONE;
-            sendPacketToPeersInServer(packet);
+            Comm::sendPacketToPeersInServer(packet);
 
             m_rs_state.store(RS_ASYNC_RESET);
         }
@@ -1897,7 +1897,7 @@ void ServerLobby::startSelection(const Event *event)
         BackLobbyPacket packet;
         packet.reason = BLR_SPECTATING_NEXT_GAME;
 
-        sendPacketToAllPeersWith(
+        Comm::sendPacketToPeersWith(
             [always_spectate_peers](std::shared_ptr<STKPeer> peer)
             {
                 return always_spectate_peers.find(peer) !=
@@ -2033,7 +2033,7 @@ void ServerLobby::checkRaceFinished()
     {
         std::string msg = getKartElimination()->onRaceFinished();
         if (!msg.empty())
-            Comm::sendStringToAllPeers(msg);
+            Comm::sendStringToPeers(msg);
     }
 
     if (getSettings()->isStoringResults())
@@ -2170,7 +2170,7 @@ void ServerLobby::clientDisconnected(Event* event)
         resetToDefaultSettings();
 
     // Don't show waiting peer disconnect message to in game player
-    sendPacketToAllPeersWith([waiting_peer_disconnected]
+    Comm::sendPacketToPeersWith([waiting_peer_disconnected]
         (std::shared_ptr<STKPeer> p)
         {
             if (!p->isValidated())
@@ -2695,7 +2695,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         }
 
         // This ns packet wasn't replaced with function immediately, I could mess up then... 
-        sendStringToPeer(peer, getKartElimination()->getWarningMessage(hasEliminatedPlayer));
+        Comm::sendStringToPeer(peer, getKartElimination()->getWarningMessage(hasEliminatedPlayer));
     }
     if (getSettings()->isRecordingReplays())
     {
@@ -2855,7 +2855,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
     }
 
     // Don't send this message to in-game players
-    sendPacketToAllPeersWith([game_started]
+    Comm::sendPacketToPeersWith([game_started]
         (std::shared_ptr<STKPeer> p)
         {
             if (!p->isValidated())
@@ -3004,7 +3004,7 @@ void ServerLobby::handlePlayerVote(Event* event)
     VotePacket vote_packet;
     vote_packet.host_id = event->getPeer()->getHostId();
     vote_packet.vote = vote.encode();
-    sendPacketToPeers(vote_packet);
+    Comm::sendPacketToPeers(vote_packet);
 
 }   // handlePlayerVote
 
@@ -3278,7 +3278,7 @@ void ServerLobby::configPeersStartTime()
     packet.start_time = start_time;
     packet.check_count = (uint8_t)Track::getCurrentTrack()->getCheckManager()->getCheckStructureCount();
     packet.nim_complete_state = m_nim_complete_state; // was operator +=
-    sendPacketToPeers(packet);
+    Comm::sendPacketToPeers(packet);
 
     m_client_starting_time = start_time;
 
@@ -3653,7 +3653,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
         getKartElimination()->disable();
-        Comm::sendStringToAllPeers("Gnu Elimination is disabled because of non-racing mode");
+        Comm::sendStringToPeers("Gnu Elimination is disabled because of non-racing mode");
     }
 }   // handleServerConfiguration
 //-----------------------------------------------------------------------------
@@ -3984,7 +3984,7 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
 
         BackLobbyPacket packet;
         packet.reason = BLR_SERVER_OWNER_QUIT_THE_GAME;
-        sendPacketToPeersInServer(packet);
+        Comm::sendPacketToPeersInServer(packet);
 
         m_rs_state.store(RS_ASYNC_RESET);
         return;
@@ -4050,7 +4050,7 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
     {
         BackLobbyPacket packet;
         packet.reason = BLR_SERVER_OWNER_QUIT_THE_GAME;
-        sendPacketToPeersInServer(packet);
+        Comm::sendPacketToPeersInServer(packet);
 
         resetVotingTime();
         resetServer();
@@ -4173,27 +4173,6 @@ void ServerLobby::writeOwnReport(std::shared_ptr<STKPeer> reporter, std::shared_
     }
 #endif
 }   // writeOwnReport
-//-----------------------------------------------------------------------------
-
-void ServerLobby::sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s)
-{
-    if (!peer)
-    {
-        sendStringToAllPeers(s);
-        return;
-    }
-    ChatPacket packet;
-    packet.message = StringUtils::utf8ToWide(s);
-    peer->sendPacket(packet);
-}   // sendStringToPeer
-//-----------------------------------------------------------------------------
-
-void ServerLobby::sendStringToAllPeers(const std::string& s)
-{
-    ChatPacket packet;
-    packet.message = StringUtils::utf8ToWide(s);
-    sendPacketToPeers(packet);
-}   // sendStringToAllPeers
 //-----------------------------------------------------------------------------
 
 std::string ServerLobby::encodeProfileNameForPeer(
@@ -4394,7 +4373,7 @@ bool ServerLobby::playerReportsTableExists() const
 
 void ServerLobby::sendServerInfoToEveryone() const
 {
-    sendPacketToPeers(m_game_setup->addServerInfo());
+    Comm::sendPacketToPeers(m_game_setup->addServerInfo());
 }   // sendServerInfoToEveryone
 //-----------------------------------------------------------------------------
 

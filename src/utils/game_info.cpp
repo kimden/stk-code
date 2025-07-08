@@ -453,7 +453,7 @@ void GameInfo::fillAndStoreResults()
                 StringUtils::timeToString(best_result), best_user);
         }
         if (!message.empty())
-            Comm::sendStringToAllPeers(message);
+            Comm::sendStringToPeers(message);
     }
 
 }   // fillAndStoreResults

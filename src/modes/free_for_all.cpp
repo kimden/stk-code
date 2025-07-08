@@ -23,6 +23,7 @@
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/stk_host.hpp"
 #include "tracks/track.hpp"
+#include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
 
 #include <algorithm>
@@ -136,7 +137,7 @@ void FreeForAll::handleScoreInServer(int kart_id, int hitter)
             packet.new_score = (int16_t)new_score;
         }
 
-        STKHost::get()->sendPacketToAllPeers(packet);
+        Comm::sendPacketToPeers(packet);
     }
 }   // handleScoreInServer
 
@@ -362,6 +363,6 @@ void FreeForAll::notifyAboutScoreIfNonzero(int id)
         packet.hitter_kart = (uint8_t)id;
         packet.new_score = (int16_t)m_scores[id];
         
-        STKHost::get()->sendPacketToAllPeers(packet);
+        Comm::sendPacketToPeers(packet);
     }
 }   // notifyAboutScoreIfNonzero

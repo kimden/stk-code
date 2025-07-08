@@ -1337,7 +1337,7 @@ std::shared_ptr<STKPeer> STKHost::getServerPeerForClient() const
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendNetstringToAllPeersInServer(NetworkString *data, PacketReliabilityMode reliable)
+void STKHost::sendNetstringToPeersInServer(NetworkString *data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1345,14 +1345,14 @@ void STKHost::sendNetstringToAllPeersInServer(NetworkString *data, PacketReliabi
         if (p.second->isValidated())
             p.second->sendNetstring(data, reliable);
     }
-}   // sendNetstringToAllPeersInServer
+}   // sendNetstringToPeersInServer
 
 //-----------------------------------------------------------------------------
 /** Sends data to all validated peers currently in game
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendNetstringToAllPeers(NetworkString *data, PacketReliabilityMode reliable)
+void STKHost::sendNetstringToPeers(NetworkString *data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1360,7 +1360,7 @@ void STKHost::sendNetstringToAllPeers(NetworkString *data, PacketReliabilityMode
         if (p.second->isValidated() && !p.second->isWaitingForGame())
             p.second->sendNetstring(data, reliable);
     }
-}   // sendNetstringToAllPeers
+}   // sendNetstringToPeers
 
 //-----------------------------------------------------------------------------
 /** Sends data to all validated peers except the specified currently in game
@@ -1389,7 +1389,7 @@ void STKHost::sendNetstringExcept(std::shared_ptr<STKPeer> peer, NetworkString *
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendNetstringToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+void STKHost::sendNetstringToPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
                                        NetworkString* data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
@@ -1401,7 +1401,7 @@ void STKHost::sendNetstringToAllPeersWith(std::function<bool(std::shared_ptr<STK
         if (predicate(stk_peer))
             stk_peer->sendNetstring(data, reliable);
     }
-}   // sendPacketToAllPeersWith
+}   // sendPacketToPeersWith
 
 //-----------------------------------------------------------------------------
 /** Sends a message from a client to the server. */
@@ -1672,7 +1672,7 @@ uint16_t STKHost::getPrivatePort() const
 }  // getPrivatePort
 // ----------------------------------------------------------------------------
 
-void STKHost::sendPacketPtrToAllPeersInServer(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
+void STKHost::sendPacketPtrToPeersInServer(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1680,10 +1680,10 @@ void STKHost::sendPacketPtrToAllPeersInServer(std::shared_ptr<Packet> packet, Pa
         if (p.second->isValidated())
             p.second->sendPacketPtr(packet, reliable);
     }
-}   // sendPacketToAllPeersInServer
+}   // sendPacketToPeersInServer
 //-----------------------------------------------------------------------------
 
-void STKHost::sendPacketPtrToAllPeers(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
+void STKHost::sendPacketPtrToPeers(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
@@ -1691,7 +1691,7 @@ void STKHost::sendPacketPtrToAllPeers(std::shared_ptr<Packet> packet, PacketReli
         if (p.second->isValidated() && !p.second->isWaitingForGame())
             p.second->sendPacketPtr(packet, reliable);
     }
-}   // sendPacketToAllPeers
+}   // sendPacketToPeers
 //-----------------------------------------------------------------------------
 
 void STKHost::sendPacketPtrExcept(std::shared_ptr<STKPeer> peer, std::shared_ptr<Packet> packet,
@@ -1710,7 +1710,7 @@ void STKHost::sendPacketPtrExcept(std::shared_ptr<STKPeer> peer, std::shared_ptr
 }   // sendPacketExcept
 //-----------------------------------------------------------------------------
 
-void STKHost::sendPacketPtrToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+void STKHost::sendPacketPtrToPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
                                     std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
@@ -1722,7 +1722,7 @@ void STKHost::sendPacketPtrToAllPeersWith(std::function<bool(std::shared_ptr<STK
         if (predicate(stk_peer))
             stk_peer->sendPacketPtr(packet, reliable);
     }
-}   // sendPacketToAllPeersWith
+}   // sendPacketToPeersWith
 //-----------------------------------------------------------------------------
 
 void STKHost::sendPacketPtrToServer(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)

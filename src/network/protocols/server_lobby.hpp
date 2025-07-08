@@ -335,7 +335,7 @@ public:
 
     // TODO: When using different decorators for everyone, you would need
     // a structure to store "player profile" placeholders in a string, so that
-    // you can apply decorators at the very last moment inside sendStringToAllPeers
+    // you can apply decorators at the very last moment inside sendStringToPeers
     // and similar functions.
     std::string encodeProfileNameForPeer(
         std::shared_ptr<NetworkPlayerProfile> npp,

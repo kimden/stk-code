@@ -262,7 +262,7 @@ void GameProtocol::sendItemEventConfirmation(int ticks)
     ItemConfirmationPacket packet;
     packet.ticks = ticks;
 
-    sendPacketToServer(packet);
+    Comm::sendPacketToServer(packet);
 }   // sendItemEventConfirmation
 
 // ----------------------------------------------------------------------------
@@ -333,7 +333,7 @@ void GameProtocol::finalizeState(std::vector<std::string>& cur_rewinder)
 void GameProtocol::sendState()
 {
     assert(NetworkConfig::get()->isServer());
-    Comm::sendMessageToPeers(m_data_to_send, PRM_UNRELIABLE);
+    Comm::sendNetstringToPeers(m_data_to_send, PRM_UNRELIABLE);
 }   // sendState
 
 // ----------------------------------------------------------------------------

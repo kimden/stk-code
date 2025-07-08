@@ -27,7 +27,6 @@
 #include "network/stk_peer.hpp"
 #include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
-#include "utils/string_utils.hpp"
 #include "utils/tournament.hpp"
 
 namespace
@@ -232,7 +231,7 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
     ChatPacket packet;
     packet.message = StringUtils::utf8ToWide(message);
 
-    STKHost::get()->sendPacketToAllPeersWith(
+    Comm::sendPacketToPeersWith(
         std::bind(&ChatManager::shouldMessageBeSent,
                   this,
                   peer,

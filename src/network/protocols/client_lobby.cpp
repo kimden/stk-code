@@ -178,7 +178,7 @@ void ClientLobby::setup()
 void ClientLobby::doneWithResults()
 {
     RaceFinishedAckPacket packet;
-    sendPacketToServer(packet);
+    Comm::sendPacketToServer(packet);
 }   // doneWithResults
 
 //-----------------------------------------------------------------------------
@@ -491,7 +491,7 @@ void ClientLobby::update(int ticks)
             }
             delete rest;
 
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
 
             if (encryption)
             {
@@ -502,7 +502,7 @@ void ClientLobby::update(int ticks)
         else
         {
             packet.player_info_unencrypted = subpacket;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
         }
 
 
@@ -552,7 +552,7 @@ void ClientLobby::update(int ticks)
             // Send a message to the server to start
             m_auto_started = true;
             RequestBeginPacket packet;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
         }
         if (m_background_download.joinable())
         {
@@ -1294,7 +1294,7 @@ void ClientLobby::finishedLoadingWorld()
 {
     FinishedLoadingLiveJoinPacket packet;
     packet.m_override_synchronous = m_server_send_live_load_world;
-    sendPacketToServer(packet);
+    Comm::sendPacketToServer(packet);
 }   // finishedLoadingWorld
 
 //-----------------------------------------------------------------------------
@@ -1402,7 +1402,7 @@ void ClientLobby::requestKartInfo(uint8_t kart_id)
 {
     KartInfoRequestPacket packet;
     packet.kart_id = kart_id;
-    sendPacketToServer(packet);
+    Comm::sendPacketToServer(packet);
 }   // requestKartInfo
 
 //-----------------------------------------------------------------------------
@@ -1542,7 +1542,7 @@ void ClientLobby::sendChat(irr::core::stringw text, KartTeam team)
         if (team != KART_TEAM_NONE)
             packet.kart_team = team;
 
-        sendPacketToServer(packet);
+        Comm::sendPacketToServer(packet);
     }
 }   // sendChat
 
@@ -1890,7 +1890,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         CommandPacket packet;
         packet.language = UserConfigParams::m_language;
         packet.command = cmd;
-        sendPacketToServer(packet);
+        Comm::sendPacketToServer(packet);
     }
 #endif
 }   // handleClientCommand
@@ -1933,7 +1933,7 @@ void ClientLobby::updateAssetsToServer()
 {
     NewAssetsPacket packet;
     packet.assets = getKartsTracksPacket();
-    sendPacketToServer(packet);
+    Comm::sendPacketToServer(packet);
 }   // updateAssetsToServer
 
 // ----------------------------------------------------------------------------

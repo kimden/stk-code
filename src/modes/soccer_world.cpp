@@ -43,6 +43,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_object_manager.hpp"
 #include "tracks/track_sector.hpp"
+#include "utils/communication.hpp"
 #include "utils/constants.hpp"
 #include "utils/game_info.hpp"
 #include "utils/translation.hpp"
@@ -978,7 +979,7 @@ void SoccerWorld::updateBallPosition(int ticks)
 
                     ResetBallPacket packet;
                     packet.reset_ball_ticks = m_reset_ball_ticks;
-                    STKHost::get()->sendPacketToAllPeers(packet);
+                    Comm::sendPacketToPeers(packet);
                 }
                 else if (!NetworkConfig::get()->isNetworking())
                 {

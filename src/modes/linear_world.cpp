@@ -47,6 +47,7 @@
 #include "tracks/drive_node.hpp"
 #include "tracks/track_sector.hpp"
 #include "tracks/track.hpp"
+#include "utils/communication.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
@@ -1357,7 +1358,7 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
                 cm->getCheckStructure(i)->saveIsActive(kart_id));
     }
 
-    STKHost::get()->sendPacketToAllPeers(packet);
+    Comm::sendPacketToPeers(packet);
 }   // updateCheckLinesServer
 
 // ----------------------------------------------------------------------------

@@ -157,13 +157,13 @@ void NetworkKartSelectionScreen::allPlayersDone()
         LiveJoinRequestPacket packet;
         packet.is_spectator = false;
         packet.player_karts = karts_packet;
-        sendPacketToServer(packet);
+        Comm::sendPacketToServer(packet);
     }
     else
     {
         KartSelectionRequestPacket packet;
         packet.karts = karts_packet;
-        sendPacketToServer(packet);
+        Comm::sendPacketToServer(packet);
     }
 
 
@@ -195,7 +195,7 @@ bool NetworkKartSelectionScreen::onEscapePressed()
             // server doesn't react in time we exit the server
             m_exit_timeout = StkTime::getMonoTimeMs() + 5000;
             ClientBackLobbyPacket packet;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
         }
         return false;
     }

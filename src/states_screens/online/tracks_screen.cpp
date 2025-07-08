@@ -770,7 +770,7 @@ void TracksScreen::voteForPlayer()
         // Not encoding packet to netstring before if just in case, too.
         VoteRequestPacket vr_packet;
         vr_packet.vote = packet;
-        sendPacketToServer(vr_packet);
+        Comm::sendPacketToServer(vr_packet);
     }
 }   // voteForPlayer
 

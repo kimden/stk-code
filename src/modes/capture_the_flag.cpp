@@ -35,6 +35,7 @@
 #include "states_screens/race_gui.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_object_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/game_info.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
@@ -346,7 +347,7 @@ void CaptureTheFlag::checkScoring(FlagColor color)
                 packet.kart_score = (int16_t)new_kart_score;
                 packet.red_score = (uint8_t)new_red_score;
                 packet.blue_score = (uint8_t)new_blue_score;
-                STKHost::get()->sendPacketToAllPeers(packet);
+                Comm::sendPacketToPeers(packet);
             }
             ctfScored(active_holder, (red_active) ? false : true /*red_team_scored*/,
                 new_kart_score, new_red_score, new_blue_score); 

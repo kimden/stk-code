@@ -131,7 +131,7 @@ GUIEngine::EventPropagation
                     break;
                 }
             }
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
             return GUIEngine::EVENT_BLOCK;
         }
     }

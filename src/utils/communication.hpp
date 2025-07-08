@@ -27,9 +27,9 @@
 
 namespace Comm
 {
-    void sendMessageToPeers(NetworkString *message,
+    void sendNetstringToPeers(NetworkString *message,
                             PacketReliabilityMode reliable = PRM_RELIABLE);
-    void sendMessageToPeersInServer(NetworkString *message,
+    void sendNetstringToPeersInServer(NetworkString *message,
                                     PacketReliabilityMode reliable = PRM_RELIABLE);
     void sendToServer(NetworkString *message,
                       PacketReliabilityMode reliable = PRM_RELIABLE);
@@ -40,7 +40,59 @@ namespace Comm
 
     // Uses PROTOCOL_LOBBY_ROOM as chat is sent from there usually.
     // Using in non-lobby classes would be strange but seemingly ok.
-    void sendStringToAllPeers(const std::string& s);
+    void sendStringToPeers(const std::string& s);
+
+    // ----------------------------------------------------------------------------
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToPeers(const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return STKHost::get()->sendPacketPtrToPeers(ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToPeersInServer(const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return STKHost::get()->sendPacketPtrToPeersInServer(ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToServer(const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return STKHost::get()->sendPacketPtrToServer(ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketExcept(std::shared_ptr<STKPeer> peer, const T& packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return STKHost::get()->sendPacketPtrExcept(peer, ptr2, reliable);
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_base_of<Packet, T>::value, void>::type
+    sendPacketToPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+            const T& packet, PacketReliabilityMode reliable = PRM_RELIABLE)
+    {
+        std::shared_ptr<T> ptr1 = std::make_shared<T>(packet);
+        std::shared_ptr<Packet> ptr2 = std::dynamic_pointer_cast<Packet>(ptr1);
+        return STKHost::get()->sendPacketPtrToPeersWith(predicate, ptr2, reliable);
+    }
+    // ------------------------------------------------------------------------
 }
 
 

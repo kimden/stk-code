@@ -896,7 +896,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     first_time = false;
                 }
             }
-            Comm::sendStringToAllPeers(msg);
+            Comm::sendStringToPeers(msg);
             auto res = response.second;
             if (!res.empty())
             {
@@ -908,7 +908,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                     std::string msg2 = StringUtils::insertValues(
                             "Command \"/%s\" has been successfully voted",
                             new_cmd.c_str());
-                    Comm::sendStringToAllPeers(msg2);
+                    Comm::sendStringToPeers(msg2);
                     Context new_context(getLobby(), event, std::shared_ptr<STKPeer>(nullptr), new_argv, new_cmd, UP_EVERYONE, UP_EVERYONE, false);
                     execute(executed_command, new_context);
                 }
@@ -969,7 +969,7 @@ void CommandManager::update()
                 std::string msg = StringUtils::insertValues(
                         "Command \"/%s\" has been successfully voted",
                         new_cmd.c_str());
-                Comm::sendStringToAllPeers(msg);
+                Comm::sendStringToPeers(msg);
                 // Happily the name of the votable coincides with the command full name
                 std::shared_ptr<Command> command = m_full_name_to_command[votable_pairs.first].lock();
                 if (!command)
@@ -1201,7 +1201,7 @@ void CommandManager::process_replay(Context& context)
             current_state ^= 1;
 
         getSettings()->setConsentOnReplays(current_state);
-        Comm::sendStringToAllPeers(std::string("Recording ghost replays is now ")
+        Comm::sendStringToPeers(std::string("Recording ghost replays is now ")
                 + (current_state ? "on" : "off"));
     }
     else
@@ -2165,12 +2165,12 @@ void CommandManager::process_gnu(Context& context)
     if (kart == "off")
     {
         kart_elimination->disable();
-        Comm::sendStringToAllPeers("Gnu Elimination is now off");
+        Comm::sendStringToPeers("Gnu Elimination is now off");
     }
     else
     {
         kart_elimination->enable(kart);
-        Comm::sendStringToAllPeers(kart_elimination->getStartingMessage());
+        Comm::sendStringToPeers(kart_elimination->getStartingMessage());
     }
 } // process_gnu
 // ========================================================================
@@ -2376,7 +2376,7 @@ void CommandManager::process_length_multi(Context& context)
     }
     double value = std::max<double>(0.0, temp_double);
     getSettings()->setMultiplier(value);
-    Comm::sendStringToAllPeers(StringUtils::insertValues(
+    Comm::sendStringToPeers(StringUtils::insertValues(
                 "Game length is now %f x default", value));
 } // process_length_multi
 // ========================================================================
@@ -2392,20 +2392,20 @@ void CommandManager::process_length_fixed(Context& context)
     }
     int value = std::max<int>(0, temp_int);
     getSettings()->setFixedLapCount(value);
-    Comm::sendStringToAllPeers(StringUtils::insertValues(
+    Comm::sendStringToPeers(StringUtils::insertValues(
                 "Game length is now %d", value));
 } // process_length_fixed
 // ========================================================================
 void CommandManager::process_length_clear(Context& context)
 {
     getSettings()->resetLapRestrictions();
-    Comm::sendStringToAllPeers("Game length will be chosen by players");
+    Comm::sendStringToPeers("Game length will be chosen by players");
 } // process_length_clear
 // ========================================================================
 
 void CommandManager::process_direction(Context& context)
 {
-    Comm::sendStringToAllPeers(getSettings()->getDirectionAsString());
+    Comm::sendStringToPeers(getSettings()->getDirectionAsString());
 } // process_direction
 // ========================================================================
 
@@ -2423,7 +2423,7 @@ void CommandManager::process_direction_assign(Context& context)
         error(context);
         return;
     }
-    Comm::sendStringToAllPeers(getSettings()->getDirectionAsString(true));
+    Comm::sendStringToPeers(getSettings()->getDirectionAsString(true));
 } // process_direction_assign
 // ========================================================================
 
@@ -2537,7 +2537,7 @@ void CommandManager::process_queue_push(Context& context)
     }
 
     msg.pop_back();
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_push
 // ========================================================================
@@ -2587,7 +2587,7 @@ void CommandManager::process_queue_pop(Context& context)
         }
     }
     msg.pop_back();
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_pop
 // ========================================================================
@@ -2615,7 +2615,7 @@ void CommandManager::process_queue_clear(Context& context)
         }
     }
     msg.pop_back();
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_clear
 // ========================================================================
@@ -2655,7 +2655,7 @@ void CommandManager::process_queue_shuffle(Context& context)
         }
     }
     msg.pop_back();
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
     getLobby()->updatePlayerList();
 } // process_queue_shuffle
 // ========================================================================
@@ -2678,7 +2678,7 @@ void CommandManager::process_allowstart_assign(Context& context)
         return;
     }
     getSettings()->setAllowedToStart(argv[1] != "0");
-    Comm::sendStringToAllPeers(getSettings()->getAllowedToStartAsString(true));
+    Comm::sendStringToPeers(getSettings()->getAllowedToStartAsString(true));
 } // process_allowstart_assign
 // ========================================================================
 
@@ -2698,7 +2698,7 @@ void CommandManager::process_shuffle_assign(Context& context)
         return;
     }
     getSettings()->setGPGridShuffled(argv[1] != "0");
-    Comm::sendStringToAllPeers(getSettings()->getWhetherShuffledGPGridAsString(true));
+    Comm::sendStringToPeers(getSettings()->getWhetherShuffledGPGridAsString(true));
 } // process_shuffle_assign
 // ========================================================================
 
@@ -2860,7 +2860,7 @@ void CommandManager::process_resetgp(Context& context)
         getGameSetupFromCtx()->setGrandPrixTrack(number_of_games);
     }
     getGPManager()->resetGrandPrix();
-    Comm::sendStringToAllPeers("GP is now reset");
+    Comm::sendStringToPeers("GP is now reset");
 } // process_resetgp
 // ========================================================================
 
@@ -2952,7 +2952,7 @@ void CommandManager::process_troll_assign(Context& context)
         hit_processor->setAntiTroll(true);
         msg = "Trolls will be kicked";
     }
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
 } // process_troll_assign
 // ========================================================================
 
@@ -2987,7 +2987,7 @@ void CommandManager::process_hitmsg_assign(Context& context)
         hit_processor->setShowTeammateHits(true);
         msg = "Teammate hits will be sent to all players";
     }
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
 } // process_hitmsg_assign
 // ========================================================================
 
@@ -3024,7 +3024,7 @@ void CommandManager::process_teamhit_assign(Context& context)
         hit_processor->setTeammateHitMode(true);
         msg = "Teammate hits are punished now";
     }
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
 } // process_teamhit_assign
 // ========================================================================
 
@@ -3042,7 +3042,7 @@ void CommandManager::process_scoring_assign(Context& context)
     std::string cmd2;
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     if (getGPManager()->trySettingGPScoring(cmd2))
-        Comm::sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
+        Comm::sendStringToPeers("Scoring set to \"" + cmd2 + "\"");
     else
         context.say("Scoring could not be parsed from \"" + cmd2 + "\"");
 } // process_scoring_assign
@@ -3176,7 +3176,7 @@ void CommandManager::process_game(Context& context)
         msg += StringUtils::insertValues(" %d seconds", new_addition);
         getSettings()->setFixedLapCount(getSettings()->getFixedLapCount() + 1);
     }
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
     Log::info("CommandManager", "SoccerMatchLog: Game number changed from %d to %d",
         old_game_number, new_game_number);
 } // process_game
@@ -3337,7 +3337,7 @@ void CommandManager::process_stop(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->stop();
-    Comm::sendStringToAllPeers("The game is stopped.");
+    Comm::sendStringToPeers("The game is stopped.");
     Log::info("CommandManager", "SoccerMatchLog: The game is stopped");
 } // process_stop
 // ========================================================================
@@ -3354,7 +3354,7 @@ void CommandManager::process_go(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->resume();
-    Comm::sendStringToAllPeers("The game is resumed.");
+    Comm::sendStringToPeers("The game is resumed.");
     Log::info("CommandManager", "SoccerMatchLog: The game is resumed");
 } // process_go
 // ========================================================================
@@ -3371,7 +3371,7 @@ void CommandManager::process_lobby(Context& context)
         return;
     SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
     sw->allToLobby();
-    Comm::sendStringToAllPeers("The game will be restarted.");
+    Comm::sendStringToPeers("The game will be restarted.");
 } // process_lobby
 // ========================================================================
 
@@ -3445,7 +3445,7 @@ void CommandManager::process_test(Context& context)
             acting_peer->getMainProfile(), acting_peer.get());
     }
     username = "{" + argv[1].substr(4) + "} " + username;
-    Comm::sendStringToAllPeers(username + ", " + argv[2] + ", " + argv[3]);
+    Comm::sendStringToPeers(username + ", " + argv[2] + ", " + argv[3]);
 } // process_test
 // ========================================================================
 
@@ -3484,7 +3484,7 @@ void CommandManager::process_slots_assign(Context& context)
     }
     getSettings()->setCurrentMaxPlayersInGame((unsigned)number);
     getLobby()->updatePlayerList();
-    Comm::sendStringToAllPeers(StringUtils::insertValues(
+    Comm::sendStringToPeers(StringUtils::insertValues(
             "Number of playable slots is now %s",
             number));
 } // process_slots_assign
@@ -3550,7 +3550,7 @@ void CommandManager::process_preserve_assign(Context& context)
             "'%s' is now preserved on server reset", argv[1].c_str());
         getSettings()->insertIntoPreserved(argv[1]);
     }
-    Comm::sendStringToAllPeers(msg);
+    Comm::sendStringToPeers(msg);
 } // process_preserve_assign
 // ========================================================================
 

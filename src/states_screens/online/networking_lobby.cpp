@@ -863,7 +863,7 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
         {
             // Send a message to the server to start
             RequestBeginPacket packet;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
         }
     }
     else if (name == m_config_button->m_properties[PROP_ID])
@@ -880,7 +880,7 @@ void NetworkingLobby::eventCallback(Widget* widget, const std::string& name,
         {
             LiveJoinRequestPacket packet;
             packet.is_spectator = true;
-            sendPacketToServer(packet);
+            Comm::sendPacketToServer(packet);
             return;
         }
         if (cl)

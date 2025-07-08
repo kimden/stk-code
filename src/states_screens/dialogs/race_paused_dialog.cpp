@@ -387,7 +387,7 @@ GUIEngine::EventPropagation
             {
                 // back lobby
                 ClientBackLobbyPacket packet;
-                sendPacketToServer(packet);
+                Comm::sendPacketToServer(packet);
             }
             else
             {
