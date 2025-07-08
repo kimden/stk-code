@@ -1093,7 +1093,7 @@ void CGUIEditBox::setMax(u32 max)
 {
     m_max_chars = max;
     if (m_max_chars != 0 && m_edit_text.size() > m_max_chars)
-        m_edit_text.substr(0, m_max_chars);
+        m_edit_text = m_edit_text.substr(0, m_max_chars);
 }
 
 

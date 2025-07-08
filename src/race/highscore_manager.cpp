@@ -77,7 +77,7 @@ void HighscoreManager::loadHighscores()
         saveHighscores();
         if(m_can_write)
         {
-            Log::info("Highscore Manager", "New highscore file '%s' created.\n",
+            Log::info("Highscore Manager", "New highscore file '%s' created.",
                     m_filename.c_str());
         }
         delete root;
@@ -97,7 +97,7 @@ void HighscoreManager::loadHighscores()
         int v;
         if (!root->get("version", &v) || v<(int)CURRENT_HSCORE_FILE_VERSION)
         {
-            Log::error("Highscore Manager", "Highscore file format too old, a new one will be created.\n");
+            Log::error("Highscore Manager", "Highscore file format too old, a new one will be created.");
             irr::core::stringw warning =
                 _("The highscore file was too old,\nall highscores have been erased.");
             user_config->setWarning( warning );
@@ -121,23 +121,23 @@ void HighscoreManager::loadHighscores()
             }
             catch (std::logic_error& e)
             {
-                Log::error("Highscore Manager", "Invalid highscore entry will be skipped : %s\n", e.what());
+                Log::error("Highscore Manager", "Invalid highscore entry will be skipped : %s", e.what());
                 continue;
             }
             m_all_scores.push_back(std::unique_ptr<Highscores>(highscores));
         }   // next entry
 
         if(UserConfigParams::logMisc())
-            Log::error("Highscore Manager", "Highscores will be saved in '%s'.\n",
+            Log::error("Highscore Manager", "Highscores will be saved in '%s'.",
                     m_filename.c_str());
     }
     catch(std::exception& err)
     {
-        Log::error("Highscore Manager", "Error while parsing highscore file '%s':\n",
+        Log::error("Highscore Manager", "Error while parsing highscore file '%s':",
                 m_filename.c_str());
         Log::error("Highscore Manager", "%s", err.what());
-        Log::error("Highscore Manager", "\n");
-        Log::error("Highscore Manager", "No old highscores will be available.\n");
+        Log::error("Highscore Manager", "");
+        Log::error("Highscore Manager", "No old highscores will be available.");
     }
     if(root)
         delete root;

@@ -95,7 +95,7 @@ void DriveGraph::load(const std::string &quad_file_name,
     XMLNode *quad = file_manager->createXMLTree(quad_file_name);
     if (!quad || quad->getName() != "quads")
     {
-        Log::error("DriveGraph : Quad xml '%s' not found.", filename.c_str());
+        Log::error("DriveGraph", "Quad xml '%s' not found.", filename.c_str());
         delete quad;
         return;
     }

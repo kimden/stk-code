@@ -26,6 +26,7 @@
 #include "network/protocols/lobby_protocol.hpp"
 #include "network/stk_host.hpp"
 #include "states_screens/state_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -226,7 +227,7 @@ GUIEngine::EventPropagation
                     break;
                 }
             }
-            STKHost::get()->sendToServer(&change, PRM_RELIABLE);
+            Comm::sendToServer(&change, PRM_RELIABLE);
             return GUIEngine::EVENT_BLOCK;
         }
     }

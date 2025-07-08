@@ -183,10 +183,10 @@ void NewsManager::downloadNews()
                 // if the language is changed in the menu!
                 error_message = N_("Error downloading news: '%s'.");
                 const char *const curl_error = download_req->getDownloadErrorMessage();
+                Log::error("news", core::stringc(error_message).c_str(), curl_error);
                 error_message = StringUtils::insertValues(error_message, curl_error);
                 addons_manager->setErrorState();
                 setErrorMessage(error_message);
-                Log::error("news", core::stringc(error_message).c_str());
             }   // hadDownloadError
         }   // hadDownloadError
 
@@ -240,7 +240,7 @@ void NewsManager::checkRedirect(const XMLNode *xml)
         {
             if (UserConfigParams::logAddons())
             {
-                Log::info("[Addons]", "Current addons server: '%s'\n [Addons] New addons server: '%s'",
+                Log::info("Addons", "Current addons server: '%s'\n [Addons] New addons server: '%s'",
                             stk_config->m_server_addons.c_str(), new_addons_server.c_str());
             }
             stk_config->m_server_addons = new_addons_server;
@@ -252,7 +252,7 @@ void NewsManager::checkRedirect(const XMLNode *xml)
         {
             if (UserConfigParams::logAddons())
             {
-                Log::info("[Addons]", "Current API server: '%s'\n [Addons] New API server: '%s'",
+                Log::info("Addons", "Current API server: '%s'\n [Addons] New API server: '%s'",
                             stk_config->m_server_api.c_str(), new_api_server.c_str());
             }
             stk_config->m_server_api = new_api_server;
@@ -398,6 +398,24 @@ void NewsManager::addNewsMessage(NewsType type, const core::stringw &s)
     m_news[type].unlock();
 }   // addNewsMessage
 // ----------------------------------------------------------------------------
+
+std::optional<NewsManager::NewsMessage> NewsManager::getCurrentNewsElement(NewsType type)
+{
+    m_news[type].lock();
+
+    std::optional<NewsManager::NewsMessage> res;
+
+    if (m_current_news_ptr[type] >= 0
+     && m_current_news_ptr[type] < (int)m_news[type].getData().size())
+    {
+        res = m_news[type].getData()[m_current_news_ptr[type]];
+    }
+    m_news[type].unlock();
+
+    return res;
+}   // getCurrentNewsElement
+// ----------------------------------------------------------------------------
+
 /** Returns the message pointed by the current ptr
  */
 const core::stringw NewsManager::getCurrentNewsMessage(NewsType type)
@@ -405,73 +423,45 @@ const core::stringw NewsManager::getCurrentNewsMessage(NewsType type)
     // Only display error message in case of a problem.
     if (m_error_message.getAtomic().size()>0)
         return _(m_error_message.getAtomic().c_str());
-    
-    core::stringw message = L"";
 
-    m_news[type].lock();
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->getNews();
 
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        message = m_news[type].getData()[m_current_news_ptr[type]].getNews();
-    }
-    m_news[type].unlock();
-
-    return message;
+    return L"";
 }   // getCurrentNewsMessage
 // ----------------------------------------------------------------------------
 /** Returns the date of the news pointed by the current ptr
  */
 const std::string NewsManager::getCurrentNewsDate(NewsType type)
 {
-    std::string date = "";
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->getDate();
 
-    m_news[type].lock();
-
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        date = m_news[type].getData()[m_current_news_ptr[type]].getDate();
-    }
-    m_news[type].unlock();
-
-    return date;
+    return "";
 }   // getCurrentNewsMessage
 // ----------------------------------------------------------------------------
 /** Returns the date of the news pointed by the current ptr
  */
 const std::string NewsManager::getCurrentNewsLink(NewsType type)
 {
-    std::string link = "";
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->getLink();
 
-    m_news[type].lock();
-
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        link = m_news[type].getData()[m_current_news_ptr[type]].getLink();
-    }
-    m_news[type].unlock();
-
-    return link;
+    return "";
 }   // getCurrentNewsMessage
 // ----------------------------------------------------------------------------
 /** Returns the importance of the message pointed by the current ptr
  */
 const bool NewsManager::isCurrentNewsImportant(NewsType type)
 {
-    bool importance = false;
+    auto element = getCurrentNewsElement(type);
+    if (element.has_value())
+        return element->isImportant();
 
-    m_news[type].lock();
-
-    if (m_current_news_ptr[type] >= 0
-     && m_current_news_ptr[type] < m_news[type].getData().size())
-    {
-        importance = m_news[type].getData()[m_current_news_ptr[type]].isImportant();
-    }
-    m_news[type].unlock();
-
-    return importance;
+    return false;
 }   // isCurrentNewsImportant
 
 // ----------------------------------------------------------------------------

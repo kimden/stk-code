@@ -202,7 +202,7 @@ void GrandPrixEditorScreen::loadTrackList (const std::string& gpname)
         if (curr == NULL)
         {
             Log::warn("GrandPrixEditor",
-                "Grand Prix '%s' refers to track '%s', which does not exist\n",
+                "Grand Prix '%s' refers to track '%s', which does not exist",
                 gp->getId().c_str(), tracks[t].c_str());
         }
         else

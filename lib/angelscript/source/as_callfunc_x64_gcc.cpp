@@ -79,7 +79,8 @@ static asQWORD __attribute__((noinline)) X64_CallFunction(const asQWORD *args, i
 
 	// Backup stack pointer in R15 that is guaranteed to maintain its value over function calls
 		"  movq %%rsp, %%r15 \n"
-#ifdef __OPTIMIZE__
+// Doesn't compile on macos 10.13 in github actions for some reason.
+#if defined(__OPTIMIZE__) && !defined(__APPLE__)
 	// Make sure the stack unwind logic knows we've backed up the stack pointer in register r15
 	// This should only be done if any optimization is done. If no optimization (-O0) is used,
 	// then the compiler already backups the rsp before entering the inline assembler code
@@ -136,7 +137,8 @@ static asQWORD __attribute__((noinline)) X64_CallFunction(const asQWORD *args, i
 
 	// Restore stack pointer
 		"  mov %%r15, %%rsp \n"
-#ifdef __OPTIMIZE__
+// Doesn't compile on macos 10.13 in github actions for some reason.
+#if defined(__OPTIMIZE__) && !defined(__APPLE__)
 	// Inform the stack unwind logic that the stack pointer has been restored
 	// This should only be done if any optimization is done. If no optimization (-O0) is used,
 	// then the compiler already backups the rsp before entering the inline assembler code

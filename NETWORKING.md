@@ -367,6 +367,9 @@ A typical current server configuration xml that fits the current code version is
     <!-- Allows server owner (not crowned player!) to go to power mode to kick players using GUI and not be kicked, empty to disable. -->
     <power-password value="" />
 
+    <!-- Allows server owner (not crowned player!) to use power commands, and also invoke any command as any other user, empty to disable. -->
+    <power-password-level-2 value="" />
+
     <!-- If true this server will allow AI instance to be connected from anywhere. (other than LAN network only) -->
     <ai-anywhere value="false" />
 

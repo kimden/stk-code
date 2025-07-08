@@ -240,14 +240,14 @@ bool EventHandler::OnEvent (const SEvent &event)
             if (event.LogEvent.Level == irr::ELL_WARNING)
             {
                 if(error_info.size()>0)
-                    Log::warn("EventHandler", error_info.c_str());
-                Log::warn("Irrlicht", event.LogEvent.Text);
+                    Log::warn("EventHandler", "%s", error_info.c_str());
+                Log::warn("Irrlicht", "%s", event.LogEvent.Text);
             }
             else if (event.LogEvent.Level == irr::ELL_ERROR)
             {
                 if(error_info.size()>0)
-                    Log::error("EventHandler", error_info.c_str());
-                Log::error("Irrlicht", event.LogEvent.Text);
+                    Log::error("EventHandler", "%s", error_info.c_str());
+                Log::error("Irrlicht", "%s", event.LogEvent.Text);
             }
         }
         return true;
@@ -518,7 +518,7 @@ int EventHandler::findIDClosestWidget(const NavigationDirection nav, const int p
     int closest_widget_id = -1;
     int distance = 0;
     // So that the UI behavior doesn't change when it is upscaled
-    const int BIG_DISTANCE = irr_driver->getActualScreenSize().Width*100;
+    const int BIG_DISTANCE = irr_driver->getActualScreenSize().Width*500;
     int smallest_distance = BIG_DISTANCE;
     // Used when there is no suitable widget in the requested direction
     int closest_wrapping_widget_id = -1;

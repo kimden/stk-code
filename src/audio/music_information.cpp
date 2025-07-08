@@ -47,7 +47,7 @@ MusicInformation *MusicInformation::create(const std::string &filename)
     if(root->getName()!="music")
     {
         Log::error("MusicInformation",
-                   "Music file '%s' does not contain music node.\n",
+                   "Music file '%s' does not contain music node.",
                    filename.c_str());
         return NULL;
     }
@@ -58,7 +58,7 @@ MusicInformation *MusicInformation::create(const std::string &filename)
     {
         Log::error("MusicInformation",
                     "One of 'title' or 'file' attribute "
-                    "is missing in the music XML file '%s'!\n",
+                    "is missing in the music XML file '%s'!",
                     filename.c_str());
         return NULL;
     }
@@ -195,7 +195,7 @@ void MusicInformation::startMusic()
     if (StringUtils::getExtension(m_normal_filename) != "ogg")
     {
         Log::warn("MusicInformation", "Music file %s is not found or file "
-                  "format is not recognized.\n", m_normal_filename.c_str());
+                  "format is not recognized.", m_normal_filename.c_str());
         return;
     }
 
@@ -256,7 +256,7 @@ void MusicInformation::startMusic()
         delete m_fast_music;
         m_fast_music = NULL;
         Log::warn("MusicInformation", "Unabled to load fast music %s, not "
-                  "supported or not found.\n", m_fast_filename.c_str());
+                  "supported or not found.", m_fast_filename.c_str());
         return;
     }
     m_fast_music->setVolume(m_gain);

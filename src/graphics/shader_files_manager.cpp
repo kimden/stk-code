@@ -238,7 +238,7 @@ ShaderFilesManager::SharedShader ShaderFilesManager::loadShader
         char *error_message = new char[info_length];
         error_message[0] = 0;
         glGetShaderInfoLog(*ss, info_length, NULL, error_message);
-        Log::error("ShaderFilesManager", error_message);
+        Log::error("ShaderFilesManager", "%s", error_message);
         delete[] error_message;
         if (UserConfigParams::m_artist_debug_mode)
         {

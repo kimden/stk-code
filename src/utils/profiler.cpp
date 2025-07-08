@@ -451,7 +451,7 @@ void Profiler::draw()
         float curr_val = 0;
         for (unsigned i = 0; i < Q_LAST; i++)
         {
-            //Log::info("GPU Perf", "Phase %d : %d us\n", i,
+            //Log::info("GPU Perf", "Phase %d : %d us", i,
             //           irr_driver->getGPUTimer(i).elapsedTimeus());
 
             float elapsed = float(m_gpu_times[indx*Q_LAST+i]);

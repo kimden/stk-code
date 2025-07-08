@@ -19,6 +19,8 @@
 #ifndef HOURGLASS_REASON_HPP
 #define HOURGLASS_REASON_HPP
 
+#include <string>
+
 enum HourglassReason : int32_t
 {
     HR_NONE                           = 0,
@@ -33,7 +35,15 @@ enum HourglassReason : int32_t
     HR_ADDON_ARENAS_PLAY_THRESHOLD    = (1 << 8),
     HR_ADDON_FIELDS_PLAY_THRESHOLD    = (1 << 9),
     HR_OFFICIAL_KARTS_PLAY_THRESHOLD  = (1 << 10),
-    HR_OFFICIAL_TRACKS_PLAY_THRESHOLD = (1 << 11)
+    HR_OFFICIAL_TRACKS_PLAY_THRESHOLD = (1 << 11),
+
+
+    HR_UNKNOWN                        = 0xEA7BEEF,
 };
+
+namespace Conversions
+{
+    std::string hourglassReasonToString(HourglassReason reason);
+}
 
 #endif // HOURGLASS_REASON_HPP

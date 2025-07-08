@@ -859,11 +859,15 @@ void RibbonWidget::resize()
                                           tab_contents_rect.UpperLeftCorner.Y + tab_contents_rect.getHeight());
                 }
 
-                // Define the label area and ensure the label doesn't overlap with the icon
-                rect<s32> label_part = rect<s32>(icon_part.LowerRightCorner.X + 5,
+                // Define the label area
+                rect<s32> label_part = rect<s32>(tab_contents_rect.UpperLeftCorner.X,
                                                  tab_contents_rect.UpperLeftCorner.Y,
                                                  tab_contents_rect.LowerRightCorner.X,
                                                  tab_contents_rect.LowerRightCorner.Y);
+
+                // Ensure the label doesn't overlap with the icon
+                if (m_active_children[i].m_type == WTYPE_ICON_BUTTON)
+                    label_part.UpperLeftCorner.X += icon_part.getWidth() + 5;                
 
                 m_active_children[i].m_element->setRelativePosition(tab_rect_abs);
                 if (m_active_children[i].m_type == WTYPE_ICON_BUTTON)
@@ -960,11 +964,8 @@ void RibbonWidget::resize()
 
             IconButtonWidget* icon = ((IconButtonWidget*)m_active_children.get(i));
 
-            if (icon->m_properties[PROP_EXTEND_LABEL].size() == 0)
-            {
-                icon->m_properties[PROP_EXTEND_LABEL] =
-                    StringUtils::toString(one_button_width - icon->m_w);
-            }
+            // Update the extra size for the icon label
+            icon->m_properties[PROP_EXTEND_LABEL] = StringUtils::toString(one_button_width - icon->m_w);
             m_active_children.get(i)->resize();
 
             // restore backuped size and location (see above for more info)

@@ -77,11 +77,14 @@ public:
     void setMustHaveMaps(const std::string& input);
     void gameFinishedOn(const std::string& map_name);
 
-    void applyAllFilters(std::set<std::string>& maps, bool use_history) const;
+    // kimden: default -1 should be called by its own name
+    void applyAllMapFilters(std::set<std::string>& maps, bool use_history, int known_number = -1) const;
     void applyAllKartFilters(const std::string& username, std::set<std::string>& karts, bool afterSelection = false) const;
 
     void applyGlobalFilter(FilterContext& map_context) const;
     void applyGlobalKartsFilter(FilterContext& kart_context) const;
+
+    int checkCanPlay(std::shared_ptr<STKPeer> peer, int known_number);
 
     std::string getKartForBadKartChoice(
             std::shared_ptr<STKPeer> peer,

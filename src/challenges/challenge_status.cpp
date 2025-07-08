@@ -26,7 +26,6 @@
 #include "race/grand_prix_manager.hpp"
 #include "race/race_manager.hpp"
 #include "tracks/track.hpp"
-// #include "tracks/track_manager.hpp"
 #include "utils/translation.hpp"
 #include "utils/string_utils.hpp"
 
@@ -39,7 +38,7 @@ void ChallengeStatus::load(const XMLNode* challenges_node)
     if(node == NULL)
     {
         Log::info("ChallengeStatus", "Couldn't find node <%s> in challenge list."
-                "(If this is the first time you play this is normal)\n",
+                "(If this is the first time you play this is normal)",
                 m_data->getChallengeId().c_str());
         return;
     }

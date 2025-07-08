@@ -84,7 +84,6 @@
 #include "tracks/drive_graph.hpp"
 #include "tracks/drive_node.hpp"
 #include "tracks/track.hpp"
-// #include "tracks/track_manager.hpp"
 #include "tracks/track_sector.hpp"
 #include "utils/constants.hpp"
 #include "utils/helpers.hpp"
@@ -1034,14 +1033,17 @@ bool Kart::isInRest() const
 }  // isInRest
 
 //-----------------------------------------------------------------------------
-/** Multiplies the velocity of the kart by a factor f (both linear
- *  and angular). This is used by anvils, which suddenly slow down the kart
- *  when they are attached.
+/** Multiplies the velocity of the kart by a factor f (both linear and angular).
+ * This is used by anchors, which suddenly slow down the kart when they are attached.
  */
 void Kart::adjustSpeed(float f)
 {
     m_body->setLinearVelocity(m_body->getLinearVelocity()*f);
     m_body->setAngularVelocity(m_body->getAngularVelocity()*f);
+    // Avoid instant speed increase on the same frame ignoring the adjustment, see #5411
+    float new_min_speed = m_vehicle->getMinSpeed()*f;
+    m_vehicle->resetMinSpeed(); // setMinSpeed only update if the new one is greater... See btKart.hpp
+    m_vehicle->setMinSpeed(new_min_speed);
 }   // adjustSpeed
 
 //-----------------------------------------------------------------------------
@@ -1653,8 +1655,9 @@ void Kart::update(int ticks)
 
     m_powerup->update(ticks);
 
-    // Reset any instant speed increase in the bullet kart
+    // Reset any instant speed increase or speed floor in the bullet kart
     m_vehicle->resetMaxSpeed();
+    m_vehicle->resetMinSpeed();
 
     if (m_bubblegum_ticks > 0)
         m_bubblegum_ticks -= ticks;
@@ -2888,7 +2891,7 @@ void Kart::crashed(const Material *m, const Vec3 &normal)
             else
             {
                 Log::error("Kart","Unknown particles kind <%s> in material "
-                                "crash-reset properties\n", particles.c_str());
+                                "crash-reset properties", particles.c_str());
             }
         }
 #endif
