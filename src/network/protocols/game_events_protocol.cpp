@@ -64,10 +64,16 @@ bool GameEventsProtocol::notifyEvent(Event* event)
     FreeForAll* ffa = dynamic_cast<FreeForAll*>(World::getWorld());
     SoccerWorld* sw = dynamic_cast<SoccerWorld*>(World::getWorld());
     LinearWorld* lw = dynamic_cast<LinearWorld*>(World::getWorld());
+
+    // Scopes are added to allow initializing variables inside
     switch (type)
     {
     case GE_KART_FINISHED_RACE:
-        kartFinishedRace(data);     break;
+    {
+        auto packet = event->getPacket<GameEventKartFinishedPacket>();
+        kartFinishedRace(packet);
+        break;
+    }
     case GE_RESET_BALL:
     {
         if (!sw)
@@ -119,11 +125,11 @@ bool GameEventsProtocol::notifyEvent(Event* event)
             float f = LobbyProtocol::get<ServerLobby>()
                 ->getStartupBoostOrPenaltyForKart(
                 event->getPeer()->getAveragePing(), kart_id);
-            NetworkString *ns = getNetworkString();
-            ns->setSynchronous(true);
-            ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id).addFloat(f);
-            Comm::sendNetstringToPeers(ns, PRM_RELIABLE);
-            delete ns;
+            
+            GameEventStartupBoostPacket packet;
+            packet.kart_id = kart_id;
+            packet.value = f;
+            Comm::sendPacketToPeers(packet);
         }
         else
         {
@@ -166,12 +172,10 @@ bool GameEventsProtocol::notifyEvent(Event* event)
  */
 void GameEventsProtocol::kartFinishedRace(AbstractKart *kart, float time)
 {
-    NetworkString *ns = getNetworkString(20);
-    ns->setSynchronous(true);
-    ns->addUInt8(GE_KART_FINISHED_RACE).addUInt8(kart->getWorldKartId())
-       .addFloat(time);
-    Comm::sendNetstringToPeers(ns, PRM_RELIABLE);
-    delete ns;
+    GameEventKartFinishedPacket packet;
+    packet.kart_id = kart->getWorldKartId();
+    packet.time = time;
+    Comm::sendPacketToPeers(packet);
 }   // kartFinishedRace
 
 // ----------------------------------------------------------------------------
@@ -179,16 +183,10 @@ void GameEventsProtocol::kartFinishedRace(AbstractKart *kart, float time)
  *  event from the server. It updates the game with this information.
  *  \param ns The message from the server.
  */
-void GameEventsProtocol::kartFinishedRace(const NetworkString &ns)
+void GameEventsProtocol::kartFinishedRace(const GameEventKartFinishedPacket& packet)
 {
-    if (ns.size() < 5)
-    {
-        Log::warn("GameEventsProtocol", "kartFinisheRace: Too short message.");
-        return;
-    }
-
-    uint8_t kart_id = ns.getUInt8();
-    float time      = ns.getFloat();
+    uint8_t kart_id = packet.kart_id;
+    float time      = packet.time;
     if (RaceManager::get()->modeHasLaps())
     {
         World::getWorld()->getKart(kart_id)

@@ -816,10 +816,59 @@ DEFINE_CLASS(PlungerPacket)
     DEFINE_FIELD_OPTIONAL(uint8_t, rubber_band_state, IHAVENOIDEA)
 END_DEFINE_CLASS(PlungerPacket)
 
+DEFINE_CLASS(GameEventKartFinishedPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_KART_FINISHED_RACE)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(float, time)
+    RELIABLE(true)
+END_DEFINE_CLASS(GameEventKartFinishedPacket)
 
+DEFINE_CLASS(GameEventStartupBoostPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_STARTUP_BOOST)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(float, value)
+    RELIABLE(true)
+END_DEFINE_CLASS(GameEventStartupBoostPacket)
 
+DEFINE_CLASS(ControllerActionPacket)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(uint8_t, compressed_action_0)
+    DEFINE_FIELD(uint16_t, compressed_action_1)
+    DEFINE_FIELD(uint16_t, compressed_action_2)
+    DEFINE_FIELD(uint16_t, compressed_action_3)
+END_DEFINE_CLASS(ControllerActionPacket)
 
+DEFINE_CLASS(ControllerActionBigPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GP_CONTROLLER_ACTION)
+    DEFINE_FIELD(uint8_t, count)
+    DEFINE_VECTOR(ControllerSingleActionPacket, count, actions)
+    /* We don't specify RELIABLE here as it can be sent both ways. Or maybe I forgot how overriding works here? */
+    /*RELIABLE(true)*/
+END_DEFINE_CLASS(ControllerActionBigPacket)
 
+DEFINE_CLASS(ControllerSingleActionPacket)
+    DEFINE_FIELD(uint32_t, ticks)
+    DEFINE_FIELD(ControllerActionPacket, subpacket)
+END_DEFINE_CLASS(ControllerSingleActionPacket)
+
+DEFINE_CLASS(GameEventStatePacket)
+    DEFINE_TYPE(uint8_t, type, GP_STATE)
+    DEFINE_FIELD(uint32_t, ticks_since_start)
+END_DEFINE_CLASS(GameEventStatePacket)
+
+DEFINE_CLASS(BigGameStatesPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GP_CONTROLLER_ACTION)
+    DEFINE_FIELD(uint32_t, ticks)
+    DEFINE_FIELD(uint8_t, rewinders_size)
+    DEFINE_VECTOR(std::string, rewinders_size, rewinder_names) /* Previous encoding was manual, adjust if needed. */
+    DEFINE_FIELD(ControllerActionBigPacket, actions)
+
+    /* Don't define RELIABLE, can be sent either way */
+END_DEFINE_CLASS(BigGameStatesPacket)
 
 
 // end

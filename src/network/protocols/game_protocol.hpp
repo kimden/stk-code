@@ -46,7 +46,7 @@ private:
 
     /** A network string that collects all information from the server to be sent
      *  next. */
-    NetworkString *m_data_to_send;
+    std::shared_ptr<BigGameStatesPacket> m_packet_to_send;
 
     /** The server might request that the world clock of a client is adjusted
      *  to reduce number of rollbacks. */
