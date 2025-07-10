@@ -36,11 +36,12 @@ namespace Comm
  *  \param message The actual message content.
  *  \param reliable Whether it should be in a reliable way or not.
 */
-void sendMessageToPeers(NetworkString *message,
+[[deprecated("You should send packets to Comm::, it will pass NetString to STKHost,")]]
+void sendNetstringToPeers(NetworkString *message,
                         PacketReliabilityMode reliable)
 {
-    STKHost::get()->sendPacketToAllPeers(message, reliable);
-}   // sendMessageToPeers
+    STKHost::get()->sendNetstringToPeers(message, reliable);
+}   // sendNetstringToPeers
 
 // ----------------------------------------------------------------------------
 /** Sends a message to all validated peers in server, encrypt the message if
@@ -49,17 +50,19 @@ void sendMessageToPeers(NetworkString *message,
  *  \param message The actual message content.
  *  \param reliable Whether it should be in a reliable way or not.
 */
-void sendMessageToPeersInServer(NetworkString* message,
+[[deprecated("You should send packets to Comm::, it will pass NetString to STKHost,")]]
+void sendNetstringToPeersInServer(NetworkString* message,
                                 PacketReliabilityMode reliable)
 {
-    STKHost::get()->sendPacketToAllPeersInServer(message, reliable);
-}   // sendMessageToPeersInServer
+    STKHost::get()->sendNetstringToPeersInServer(message, reliable);
+}   // sendNetstringToPeersInServer
 
 // ----------------------------------------------------------------------------
 /** Sends a message from a client to the server.
  *  \param message The actual message content.
  *  \param reliable Whether it should be in a reliable way or not.
  */
+[[deprecated("You should send packets to Comm::, it will pass NetString to STKHost,")]]
 void sendToServer(NetworkString *message,
                   PacketReliabilityMode reliable)
 {
@@ -71,26 +74,21 @@ void sendStringToPeer(std::shared_ptr<STKPeer> peer, const std::string& s)
 {
     if (!peer)
     {
-        sendStringToAllPeers(s);
+        sendStringToPeers(s);
         return;
     }
-    NetworkString* chat = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(LE_CHAT);
-    chat->setSynchronous(true);
-    chat->encodeString16(StringUtils::utf8ToWide(s));
-    peer->sendPacket(chat, PRM_RELIABLE);
-    delete chat;
+
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(s);
+    peer->sendPacket(packet);
 }   // sendStringToPeer
 //-----------------------------------------------------------------------------
 
-void sendStringToAllPeers(const std::string& s)
+void sendStringToPeers(const std::string& s)
 {
-    NetworkString* chat = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(LE_CHAT);
-    chat->setSynchronous(true);
-    chat->encodeString16(StringUtils::utf8ToWide(s));
-    sendMessageToPeers(chat, PRM_RELIABLE);
-    delete chat;
-}   // sendStringToAllPeers
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(s);
+    sendPacketToPeers(packet);
+}   // sendStringToPeers
 //-----------------------------------------------------------------------------
 }   // namespace Comm

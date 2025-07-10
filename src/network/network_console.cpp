@@ -210,7 +210,7 @@ void mainLoop(STKHost* host)
                 message.pop_back();
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (sl && !message.empty())
-                Comm::sendStringToAllPeers(message);
+                Comm::sendStringToPeers(message);
         }
         else
         {

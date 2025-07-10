@@ -36,19 +36,18 @@
  * For now, for each non-vector type you have in the packets, you have
  * to define encode<T> and decode<T> for BareNetworkString.
  * 
- * If you need to use a type tbhat includes a comma, such as std::map<A, B>, 
+ * If you need to use a type that includes a comma, such as std::map<A, B>, 
  * you can use either a #define or using = to pass it anyway.
  */
 
-#include "irrString.h"
-#include "utils/types.hpp"
-
-#include <string>
-#include <vector>
-
-using widestr = irr::core::stringw;
-
 // Note that bools are encoded using int8_t
+
+// Make sure all level 0 packets have protocol set!
+
+DEFINE_CLASS(EncryptedBuffer)
+    AUX_VAR_FROM_PARENT(uint32_t, "encrypted_size", size) /* ConnectionRequestedPacket::encrypted_size */
+    DEFINE_VECTOR(uint8_t, size, buffer)
+END_DEFINE_CLASS(EncryptedBuffer)
 
 DEFINE_CLASS(PlayerListProfilePacket)
     DEFINE_FIELD(uint32_t,    host_id)
@@ -62,11 +61,829 @@ DEFINE_CLASS(PlayerListProfilePacket)
 END_DEFINE_CLASS(PlayerListProfilePacket)
 
 DEFINE_CLASS(PlayerListPacket)
-    SYNCHRONOUS(true)
-    DEFINE_FIXED_FIELD(uint8_t, type, LE_UPDATE_PLAYER_LIST)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_UPDATE_PLAYER_LIST)
     DEFINE_FIELD(bool,          game_started)
     DEFINE_FIELD(uint8_t,       all_profiles_size)
     DEFINE_VECTOR(PlayerListProfilePacket, all_profiles_size, all_profiles)
 END_DEFINE_CLASS(PlayerListPacket)
+
+DEFINE_CLASS(EncodedSinglePlayerPacket)
+    DEFINE_FIELD(widestr,     name)
+    DEFINE_FIELD(uint32_t,    host_id)
+    DEFINE_FIELD(float,       kart_color)
+    DEFINE_FIELD(uint32_t,    online_id)
+    DEFINE_FIELD(uint8_t,     handicap)
+    DEFINE_FIELD(uint8_t,     local_player_id)
+    DEFINE_FIELD(uint8_t,     kart_team)
+    DEFINE_FIELD(std::string, country_code)
+    DEFINE_FIELD(std::string, kart_name)
+END_DEFINE_CLASS(EncodedSinglePlayerPacket)
+
+DEFINE_CLASS(EncodedPlayersPacket)
+END_DEFINE_CLASS(EncodedPlayersPacket)
+
+
+DEFINE_CLASS(PeerVotePacket)
+    DEFINE_FIELD(widestr, player_name)
+    DEFINE_FIELD(std::string, track_name)
+    DEFINE_FIELD(uint8_t, num_laps)
+    DEFINE_FIELD(bool, is_reverse)
+END_DEFINE_CLASS(PeerVotePacket)
+
+
+DEFINE_CLASS(DefaultVotePacket)
+    DEFINE_FIELD(uint32_t, winner_peer_id)
+    DEFINE_FIELD(PeerVotePacket, default_vote)
+END_DEFINE_CLASS(DefaultVotePacket)
+
+DEFINE_CLASS(BattleInfoPacket)
+    DEFINE_FIELD(uint32_t, battle_hit_capture_limit)
+    DEFINE_FIELD(float, battle_time_limit)
+    DEFINE_FIELD(uint16_t, flag_return_time)
+    DEFINE_FIELD(uint16_t, flag_deactivated_time)
+END_DEFINE_CLASS(BattleInfoPacket)
+
+DEFINE_CLASS(KartParametersPacket)
+    DEFINE_FIELD(float, width)
+    DEFINE_FIELD(float, height)
+    DEFINE_FIELD(float, length)
+    DEFINE_FIELD(Vec3, gravity_shift)
+END_DEFINE_CLASS(KartParametersPacket)
+
+/* This is only read in CL when cap(REAL_ADDON_KARTS) in LoadWorldPacket. Is it like that in other packets? */
+DEFINE_CLASS(KartDataPacket)
+    DEFINE_FIELD_OPTIONAL(std::string, kart_type, check(0)) /* I have no idea when */
+    DEFINE_FIELD_OPTIONAL(KartParametersPacket, parameters, check(1) && check(0)) /* check(1) = !kart_type.empty()*/
+END_DEFINE_CLASS(KartDataPacket)
+
+DEFINE_CLASS(MultipleKartDataPacket)
+    AUX_VAR_FROM_PARENT(uint8_t, "players_size", players_size) /* LoadWorldPacket::players_size */
+    DEFINE_VECTOR(KartDataPacket, players_size, players_kart_data)
+END_DEFINE_CLASS(MultipleKartDataPacket)
+
+DEFINE_CLASS(LoadWorldPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_LOAD_WORLD)
+    DEFINE_FIELD(DefaultVotePacket, default_vote)
+    DEFINE_FIELD(bool, live_join)
+    DEFINE_FIELD(uint8_t, players_size)
+    AUX_STORE("players_size", players_size)
+    DEFINE_VECTOR(EncodedSinglePlayerPacket, players_size, all_players)
+    DEFINE_FIELD(uint32_t, item_seed)
+    DEFINE_FIELD_OPTIONAL(BattleInfoPacket, battle_info, check(0)) // RaceManager::get()->isBattleMode()
+    DEFINE_FIELD_OPTIONAL(MultipleKartDataPacket, karts_data, cap(REAL_ADDON_KARTS))
+    RELIABLE(true)
+END_DEFINE_CLASS(LoadWorldPacket)
+
+DEFINE_CLASS(PlacementPacket)
+    DEFINE_FIELD(Vec3, xyz)
+    DEFINE_FIELD(btQuaternion, rotation)
+END_DEFINE_CLASS(PlacementPacket)
+
+DEFINE_CLASS(ItemStatePacket)
+    DEFINE_FIELD(uint8_t, type)
+    DEFINE_FIELD(uint8_t, original_type)
+    DEFINE_FIELD(uint32_t, ticks_till_return)
+    DEFINE_FIELD(uint32_t, item_id)
+    DEFINE_FIELD(uint32_t, deactive_ticks)
+    DEFINE_FIELD(uint32_t, used_up_counter)
+    DEFINE_FIELD(PlacementPacket, original_xyz_rotation)
+    DEFINE_FIELD(uint8_t, previous_owner)
+END_DEFINE_CLASS(ItemStatePacket)
+
+DEFINE_CLASS(ItemCompleteStatePacket)
+    DEFINE_FIELD(bool, has_item)
+    DEFINE_FIELD_OPTIONAL(ItemStatePacket, item_state, has_item)
+END_DEFINE_CLASS(ItemCompleteStatePacket)
+
+DEFINE_CLASS(NimCompleteStatePacket)
+    DEFINE_FIELD(uint32_t, ticks_since_start)
+    DEFINE_FIELD(uint32_t, switch_ticks)
+    DEFINE_FIELD(uint32_t, all_items_size)
+    DEFINE_VECTOR(ItemCompleteStatePacket, all_items_size, all_items)
+END_DEFINE_CLASS(NimCompleteStatePacket)
+
+DEFINE_CLASS(KartInfoInGamePacket)
+    DEFINE_FIELD(uint32_t, finished_laps)
+    DEFINE_FIELD(uint32_t, ticks_at_last_lap)
+    DEFINE_FIELD(uint32_t, lap_start_ticks)
+    DEFINE_FIELD(float, estimated_finish)
+    DEFINE_FIELD(float, overall_distance)
+    DEFINE_FIELD(float, wrong_way_timer)
+END_DEFINE_CLASS(KartInfoInGamePacket)
+
+DEFINE_CLASS(TrackSectorCompleteStatePacket)
+    DEFINE_FIELD(uint32_t, current_graph_node)
+    DEFINE_FIELD(uint32_t, estimated_valid_graph_node)
+    DEFINE_FIELD(uint32_t, last_valid_graph_node)
+    DEFINE_FIELD(Vec3, current_track_coords)
+    DEFINE_FIELD(Vec3, estimated_valid_track_coords)
+    DEFINE_FIELD(Vec3, latest_valid_track_coords)
+    DEFINE_FIELD(bool, on_road)
+    DEFINE_FIELD(uint32_t, last_triggered_checkline)
+END_DEFINE_CLASS(TrackSectorCompleteStatePacket)
+
+DEFINE_CLASS(CheckPacket)
+END_DEFINE_CLASS(CheckPacket)
+
+DEFINE_CLASS(CheckStructureSubPacket)
+    DEFINE_FIELD(Vec3, previous_position)
+    DEFINE_FIELD(bool, is_active)
+END_DEFINE_CLASS(CheckStructureSubPacket)
+
+DEFINE_DERIVED_CLASS(CheckStructurePacket, CheckPacket)
+    AUX_VAR_FROM_PARENT(uint32_t, "karts_count", karts_count) /* Checklinepacket or Linearworldcompletestatepacket ::karts_count */
+    DEFINE_VECTOR(CheckStructureSubPacket, karts_count, player_check_state)
+END_DEFINE_CLASS(CheckStructurePacket)
+
+DEFINE_CLASS(CheckLineSubPacket)
+    DEFINE_FIELD(bool, previous_sign)
+END_DEFINE_CLASS(CheckLineSubPacket)
+
+DEFINE_DERIVED_CLASS(CheckLinePacket, CheckPacket)
+    AUX_VAR_FROM_PARENT(uint32_t, "karts_count", karts_count)
+    DEFINE_FIELD_PTR(CheckStructurePacket, check_structure_packet)
+    DEFINE_VECTOR(CheckLineSubPacket, karts_count, subpackets)
+END_DEFINE_CLASS(CheckLinePacket)
+
+DEFINE_CLASS(WorldPacket)
+END_DEFINE_CLASS(WorldPacket)
+
+DEFINE_DERIVED_CLASS(LinearWorldCompleteStatePacket, WorldPacket)
+    AUX_VAR(uint32_t, karts_count)
+    AUX_VAR(uint32_t, track_sectors_count)
+    AUX_STORE("karts_count", karts_count)
+    AUX_STORE("track_sectors_count", track_sectors_count)
+    DEFINE_FIELD(uint32_t, fastest_lap_ticks)
+    DEFINE_FIELD(float, distance_increase)
+    DEFINE_VECTOR(PlacementPacket, karts_count, kart_placements)
+    DEFINE_VECTOR(KartInfoInGamePacket, karts_count, kart_infos)
+    DEFINE_VECTOR(TrackSectorCompleteStatePacket, track_sectors_count, track_sectors)
+    DEFINE_FIELD(uint8_t, check_structure_count)
+    DEFINE_VECTOR_PTR(CheckStructurePacket, check_structure_count, check_structures)
+END_DEFINE_CLASS(LinearWorldCompleteStatePacket)
+
+DEFINE_CLASS(ScorerDataPacket)
+    DEFINE_FIELD(uint8_t, id)
+    DEFINE_FIELD(uint8_t, correct_goal)
+    DEFINE_FIELD(float, time)
+    DEFINE_FIELD(std::string, kart)
+    DEFINE_FIELD(widestr, player)
+    DEFINE_FIELD_OPTIONAL(std::string, country_code, cap(SOCCER_FIXES))
+    DEFINE_FIELD_OPTIONAL(uint8_t, handicap_level, cap(SOCCER_FIXES))
+END_DEFINE_CLASS(ScorerDataPacket)
+
+DEFINE_DERIVED_CLASS(SoccerWorldCompleteStatePacket, WorldPacket)
+    AUX_VAR(uint32_t, karts_count)
+    AUX_VAR(uint32_t, track_sectors_count)
+    AUX_STORE("karts_count", karts_count)
+    AUX_STORE("track_sectors_count", track_sectors_count)
+    DEFINE_FIELD(uint32_t, red_scorers_count)
+    DEFINE_VECTOR(ScorerDataPacket, red_scorers_count, red_scorers)
+    DEFINE_FIELD(uint32_t, blue_scorers_count)
+    DEFINE_VECTOR(ScorerDataPacket, blue_scorers_count, blue_scorers)
+    DEFINE_FIELD(uint32_t, reser_ball_ticks)
+    DEFINE_FIELD(uint32_t, ticks_back_to_own_goal)
+END_DEFINE_CLASS(SoccerWorldCompleteStatePacket)
+
+DEFINE_DERIVED_CLASS(FFAWorldCompleteStatePacket, WorldPacket)
+    AUX_VAR(uint32_t, karts_count)
+    AUX_VAR(uint32_t, track_sectors_count)
+    AUX_STORE("karts_count", karts_count)
+    AUX_STORE("track_sectors_count", track_sectors_count)
+    DEFINE_VECTOR(uint32_t, karts_count, scores)
+END_DEFINE_CLASS(FFAWorldCompleteStatePacket)
+
+DEFINE_DERIVED_CLASS(CTFWorldCompleteStatePacket, WorldPacket)
+    DEFINE_FIELD_PTR(FFAWorldCompleteStatePacket, ffa_packet)
+    DEFINE_FIELD(uint32_t, red_score)
+    DEFINE_FIELD(uint32_t, blue_score)
+END_DEFINE_CLASS(CTFWorldCompleteStatePacket)
+
+DEFINE_CLASS(WorldCompleteStatePacket)
+    DEFINE_FIELD_OPTIONAL(LinearWorldCompleteStatePacket, linear_packet, check(0))
+    DEFINE_FIELD_OPTIONAL(SoccerWorldCompleteStatePacket, soccer_packet, check(1))
+    DEFINE_FIELD_OPTIONAL(FFAWorldCompleteStatePacket, ffa_packet, check(2))
+    DEFINE_FIELD_OPTIONAL(CTFWorldCompleteStatePacket, ctf_packet, check(3))
+END_DEFINE_CLASS(WorldCompleteStatePacket)
+
+DEFINE_CLASS(InsideGameInfoPacket)
+    DEFINE_FIELD(uint8_t, players_size)
+    DEFINE_VECTOR(EncodedSinglePlayerPacket, players_size, all_players)
+    DEFINE_VECTOR(KartDataPacket, players_size, players_kart_data)
+END_DEFINE_CLASS(InsideGameInfoPacket)
+
+DEFINE_CLASS(LiveJoinPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_LIVE_JOIN_ACK)
+    DEFINE_FIELD(uint64_t, client_starting_time)
+    DEFINE_FIELD(uint8_t, check_count)
+    DEFINE_FIELD(uint64_t, live_join_start_time)
+    DEFINE_FIELD(uint32_t, last_live_join_util_ticks)
+    DEFINE_FIELD(NimCompleteStatePacket, nim_complete_state)
+    DEFINE_FIELD_PTR(WorldCompleteStatePacket, world_complete_state)
+    DEFINE_FIELD_OPTIONAL(InsideGameInfoPacket, inside_info, check(0)) // RaceManager::get()->supportsLiveJoining()
+    RELIABLE(true)
+END_DEFINE_CLASS(LiveJoinPacket)
+
+DEFINE_CLASS(ChatPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_CHAT)
+    DEFINE_FIELD16(widestr, message) // use encodeString16 ! max len is 360 for server, 1000 for client
+    DEFINE_FIELD_OPTIONAL(KartTeam, kart_team, check(0)) /* KartTeam is uint8_t, I have no idea when */
+    RELIABLE(true)
+END_DEFINE_CLASS(ChatPacket)
+
+DEFINE_CLASS(ChangeTeamPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_CHANGE_TEAM)
+    DEFINE_FIELD(uint8_t, local_id)
+    RELIABLE(true)
+END_DEFINE_CLASS(ChangeTeamPacket)
+
+DEFINE_CLASS(KickHostPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_KICK_HOST)
+    DEFINE_FIELD(uint32_t, host_id)
+    RELIABLE(true)
+END_DEFINE_CLASS(KickHostPacket)
+
+DEFINE_CLASS(ReportRequestPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_REPORT_PLAYER)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD16(widestr, info)
+    RELIABLE(true)
+END_DEFINE_CLASS(ReportRequestPacket)
+
+DEFINE_CLASS(ReportSuccessPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_REPORT_PLAYER)
+    DEFINE_FIELD(bool, success)
+    DEFINE_FIELD(widestr, reported_name)
+    RELIABLE(true)
+END_DEFINE_CLASS(ReportSuccessPacket)
+
+DEFINE_CLASS(ChangeHandicapPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_CHANGE_HANDICAP)
+    DEFINE_FIELD(uint8_t, local_id)
+    DEFINE_FIELD(uint8_t, handicap)
+    RELIABLE(true)
+END_DEFINE_CLASS(ChangeHandicapPacket)
+
+DEFINE_CLASS(BackLobbyPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_BACK_LOBBY)
+    DEFINE_FIELD(uint8_t, reason)
+    RELIABLE(true)
+END_DEFINE_CLASS(BackLobbyPacket)
+
+DEFINE_CLASS(ServerInfoPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_SERVER_INFO)
+    DEFINE_FIELD(std::string, server_name)
+    DEFINE_FIELD(uint8_t, difficulty)
+    DEFINE_FIELD(uint8_t, max_players)
+    DEFINE_FIELD(uint8_t, extra_spectators_zero)
+    DEFINE_FIELD(uint8_t, game_mode)
+    DEFINE_FIELD(uint8_t, has_extra_server_info) /* can be more than 1 - in gp it's current track number, so not bool */
+    DEFINE_VECTOR(uint8_t, has_extra_server_info, extra_server_info)
+    DEFINE_FIELD(uint8_t, min_start_game_players)
+    DEFINE_FIELD(float, start_game_counter)
+    DEFINE_FIELD16(widestr, motd)
+    DEFINE_FIELD(bool, is_configurable)
+    DEFINE_FIELD(bool, has_live_players)
+    RELIABLE(true)
+END_DEFINE_CLASS(ServerInfoPacket)
+
+// DEFINE_CLASS(AssetsPacket)
+//     DEFINE_FIELD(uint16_t, karts_number)
+//     DEFINE_VECTOR(std::string, karts_number, karts)
+//     DEFINE_FIELD(uint16_t, maps_number)
+//     DEFINE_VECTOR(std::string, maps_number, maps)
+// END_DEFINE_CLASS(AssetsPacket)
+
+DEFINE_CLASS(AssetsPacket2)
+    DEFINE_FIELD(uint16_t, karts_number)
+    DEFINE_FIELD(uint16_t, maps_number)
+    DEFINE_VECTOR(std::string, karts_number, karts)
+    DEFINE_VECTOR(std::string, maps_number, maps)
+END_DEFINE_CLASS(AssetsPacket2)
+
+DEFINE_CLASS(NewAssetsPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_ASSETS_UPDATE)
+    DEFINE_FIELD(AssetsPacket2, assets)
+    RELIABLE(true)
+END_DEFINE_CLASS(NewAssetsPacket)
+
+DEFINE_CLASS(PlayerKartsPacket)
+    DEFINE_FIELD(uint8_t, players_count)
+    DEFINE_VECTOR(std::string, players_count, karts)
+
+    // I don't care about compilation for now but don't want extra macroses yet either.
+    DEFINE_VECTOR/*_OPTIONAL*/(KartDataPacket, players_count, kart_data/*, cap(REAL_ADDON_KARTS) && IDONTKNOW*/) // if has "real_addon_karts" in cap AND anything is sent
+END_DEFINE_CLASS(PlayerKartsPacket)
+
+DEFINE_CLASS(KartSelectionRequestPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_KART_SELECTION)
+    DEFINE_FIELD(PlayerKartsPacket, karts)
+    RELIABLE(true)
+END_DEFINE_CLASS(KartSelectionRequestPacket)
+
+DEFINE_CLASS(LiveJoinRequestPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_LIVE_JOIN)
+    DEFINE_FIELD(bool, is_spectator)
+    DEFINE_FIELD_OPTIONAL(PlayerKartsPacket, player_karts, check(0)) // check client side for condition!
+    RELIABLE(true)
+END_DEFINE_CLASS(LiveJoinRequestPacket)
+
+DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, UNUSED)
+    DEFINE_TYPE(uint8_t, type, LE_CLIENT_LOADED_WORLD)
+    RELIABLE(true)
+END_DEFINE_CLASS(FinishedLoadingLiveJoinPacket)
+
+DEFINE_CLASS(KartInfoRequestPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_KART_INFO)
+    DEFINE_FIELD(uint8_t, kart_id)
+    RELIABLE(true)
+END_DEFINE_CLASS(KartInfoRequestPacket)
+
+DEFINE_CLASS(KartInfoPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_KART_INFO)
+    DEFINE_FIELD(uint32_t, live_join_util_ticks)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(widestr, player_name)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD(float, default_kart_color)
+    DEFINE_FIELD(uint32_t, online_id)
+    DEFINE_FIELD(uint8_t, handicap)
+    DEFINE_FIELD(uint8_t, local_player_id)
+    DEFINE_FIELD(std::string, kart_name)
+    DEFINE_FIELD(std::string, country_code)
+    // The field below is present if "real_addon_karts" is in capabilities
+    DEFINE_FIELD_OPTIONAL(KartDataPacket, kart_data, cap(REAL_ADDON_KARTS))
+    RELIABLE(true)
+END_DEFINE_CLASS(KartInfoPacket)
+
+DEFINE_CLASS(ConfigServerPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_CONFIG_SERVER)
+    DEFINE_FIELD(uint8_t, difficulty)
+    DEFINE_FIELD(uint8_t, game_mode)
+    DEFINE_FIELD(bool, soccer_goal_target)
+    RELIABLE(true)
+END_DEFINE_CLASS(ConfigServerPacket)
+
+DEFINE_CLASS(ConnectionRefusedPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_CONNECTION_REFUSED)
+    DEFINE_FIELD(uint8_t, reason)
+    DEFINE_FIELD_OPTIONAL(std::string, message, check(0)) /* I have no idea when */
+    RELIABLE(true)
+    /* warning! can be sent unencrypted despite reliable! */
+END_DEFINE_CLASS(ConnectionRefusedPacket)
+
+DEFINE_CLASS(StartGamePacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_START_RACE)
+    DEFINE_FIELD(uint64_t, start_time)
+    DEFINE_FIELD(uint8_t, check_count)
+    DEFINE_FIELD(NimCompleteStatePacket, nim_complete_state) /* this had operator += instead */
+    RELIABLE(true)
+END_DEFINE_CLASS(StartGamePacket)
+
+DEFINE_CLASS(VotePacket) /* vote of a player sent to others */
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_VOTE)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD(PeerVotePacket, vote)
+END_DEFINE_CLASS(VotePacket)
+
+DEFINE_CLASS(VoteRequestPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_VOTE)
+    DEFINE_FIELD(PeerVotePacket, vote)
+    RELIABLE(true)
+END_DEFINE_CLASS(VoteRequestPacket)
+
+DEFINE_CLASS(ServerOwnershipPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_SERVER_OWNERSHIP)
+END_DEFINE_CLASS(ServerOwnershipPacket)
+
+DEFINE_CLASS(ConnectionAcceptedPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_CONNECTION_ACCEPTED)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_FIELD(uint32_t, server_version)
+    DEFINE_FIELD(uint16_t, capabilities_size)
+    DEFINE_VECTOR(std::string, capabilities_size, capabilities)
+    DEFINE_FIELD(float, auto_start_timer)
+    DEFINE_FIELD(uint32_t, state_frequency)
+    DEFINE_FIELD(bool, chat_allowed)
+    DEFINE_FIELD(bool, reports_allowed)
+END_DEFINE_CLASS(ConnectionAcceptedPacket)
+
+DEFINE_CLASS(PlayerDisconnectedPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_PLAYER_DISCONNECTED)
+    DEFINE_FIELD(uint8_t, players_size)
+    DEFINE_FIELD(uint32_t, host_id)
+    DEFINE_VECTOR(std::string, players_size, names)
+END_DEFINE_CLASS(PlayerDisconnectedPacket)
+
+DEFINE_CLASS(PointChangesPacket)
+    DEFINE_FIELD(uint8_t, player_count)
+    DEFINE_VECTOR(float, player_count, changes)
+END_DEFINE_CLASS(PointChangesPacket)
+
+DEFINE_CLASS(StartSelectionPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_START_SELECTION)
+    DEFINE_FIELD(float, voting_timeout)
+    DEFINE_FIELD(bool, no_kart_selection)
+    DEFINE_FIELD(bool, fixed_length)
+    DEFINE_FIELD(bool, track_voting)
+    DEFINE_FIELD(AssetsPacket2, assets)
+    RELIABLE(true)
+END_DEFINE_CLASS(StartSelectionPacket)
+
+DEFINE_CLASS(BadTeamPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_BAD_TEAM)
+    RELIABLE(true)
+END_DEFINE_CLASS(BadTeamPacket)
+
+DEFINE_CLASS(GPIndividualScorePacket)
+    DEFINE_FIELD(uint32_t, last_score)
+    DEFINE_FIELD(uint32_t, cur_score)
+    DEFINE_FIELD(float, overall_time)
+END_DEFINE_CLASS(GPIndividualScorePacket)
+
+DEFINE_CLASS(GPScoresPacket)
+    DEFINE_FIELD(uint8_t, total_gp_tracks)
+    DEFINE_FIELD(uint8_t, all_tracks_size)
+    DEFINE_VECTOR(std::string, all_tracks_size, all_tracks)
+    DEFINE_FIELD(uint8_t, num_players)
+    DEFINE_VECTOR(GPIndividualScorePacket, num_players, scores)
+END_DEFINE_CLASS(GPScoresPacket)
+
+DEFINE_CLASS(RaceFinishedPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_RACE_FINISHED)
+    DEFINE_FIELD_OPTIONAL(uint32_t, fastest_lap, check(0)) /* if linear (incl. gp) */
+    DEFINE_FIELD_OPTIONAL(widestr, fastest_kart_name, check(0)) /* if linear (incl. gp) */
+    DEFINE_FIELD_OPTIONAL(GPScoresPacket, gp_scores, check(1)) /* if gp */
+    DEFINE_FIELD(bool, point_changes_indication)
+    DEFINE_FIELD_OPTIONAL(PointChangesPacket, point_changes, point_changes_indication)
+    RELIABLE(true)
+END_DEFINE_CLASS(RaceFinishedPacket)
+
+DEFINE_CLASS(InsideCtfPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_CTF_SCORED)
+    DEFINE_FIELD(uint8_t, active_holder)
+    DEFINE_FIELD(bool, red_inactive) /* actually, red scored */
+    DEFINE_FIELD(uint16_t, kart_score)
+    DEFINE_FIELD(uint8_t, red_score)
+    DEFINE_FIELD(uint8_t, blue_score)
+    RELIABLE(true)
+END_DEFINE_CLASS(InsideCtfPacket)
+
+DEFINE_CLASS(InsideFfaPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_BATTLE_KART_SCORE)
+    DEFINE_FIELD(uint8_t, hitter_kart)
+    DEFINE_FIELD(uint16_t, new_score)
+    RELIABLE(true)
+END_DEFINE_CLASS(InsideFfaPacket)
+
+/* Separation is needed because it's filled in check structure itself */
+DEFINE_CLASS(CheckActivePacket)
+    DEFINE_FIELD(bool, active)
+END_DEFINE_CLASS(CheckActivePacket)
+
+DEFINE_CLASS(InsideChecklinePacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_CHECK_LINE)
+    DEFINE_FIELD(uint8_t, check_id)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(uint8_t, finished_laps)
+    DEFINE_FIELD(uint8_t, last_triggered_checkline)
+    DEFINE_FIELD(uint32_t, fastest_lap_ticks)
+    DEFINE_FIELD(widestr, fastest_kart_name)
+    DEFINE_FIELD(uint8_t, check_structure_count)
+    DEFINE_VECTOR(CheckActivePacket, check_structure_count, check_active)
+    RELIABLE(true)
+END_DEFINE_CLASS(InsideChecklinePacket)
+
+
+DEFINE_CLASS(InternalGoalPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_PLAYER_GOAL)
+    DEFINE_FIELD(uint8_t, id)
+    DEFINE_FIELD(bool, correct_goal)
+    DEFINE_FIELD(bool, first_goal)
+    DEFINE_FIELD(float, time)
+    DEFINE_FIELD(uint32_t, ticks_back_to_own_goal)
+    DEFINE_FIELD(std::string, kart)
+    DEFINE_FIELD(widestr, player)
+    /* what follows is only since 1.1, that is, when capabilities have "soccer_fixes" */
+    DEFINE_FIELD_OPTIONAL(std::string, country_code, cap(SOCCER_FIXES))
+    DEFINE_FIELD_OPTIONAL(uint8_t, handicap, cap(SOCCER_FIXES))
+    RELIABLE(true)
+END_DEFINE_CLASS(InternalGoalPacket)
+
+DEFINE_CLASS(ResetBallPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_RESET_BALL)
+    DEFINE_FIELD(uint32_t, reset_ball_ticks)
+    RELIABLE(true)
+END_DEFINE_CLASS(ResetBallPacket)
+
+DEFINE_CLASS(BadConnectionPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LobbyEvent::LE_BAD_CONNECTION)
+    RELIABLE(true)
+END_DEFINE_CLASS(BadConnectionPacket)
+
+DEFINE_CLASS(RaceFinishedAckPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, true)
+    DEFINE_TYPE(uint8_t, type, LE_RACE_FINISHED_ACK)
+    RELIABLE(true)
+END_DEFINE_CLASS(RaceFinishedAckPacket)
+
+DEFINE_CLASS(RequestBeginPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_REQUEST_BEGIN)
+    RELIABLE(true)
+END_DEFINE_CLASS(RequestBeginPacket)
+
+DEFINE_CLASS(ClientBackLobbyPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_CLIENT_BACK_LOBBY)
+    RELIABLE(true)
+END_DEFINE_CLASS(ClientBackLobbyPacket)
+
+DEFINE_CLASS(ItemConfirmationPacket)
+    PROTOCOL_TYPE(PROTOCOL_CONTROLLER_EVENTS, false)
+    DEFINE_TYPE(uint8_t, type, GP_ITEM_CONFIRMATION)
+    DEFINE_FIELD(uint32_t, ticks)
+    /* This message can be sent unreliable, it's not critical if it doesn't
+    get delivered, a future update will come through */
+    RELIABLE(false)
+END_DEFINE_CLASS(ItemConfirmationPacket)
+
+DEFINE_CLASS(CommandPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_COMMAND)
+    DEFINE_FIELD(std::string, language)
+    DEFINE_FIELD(std::string, command)
+    RELIABLE(true)
+END_DEFINE_CLASS(CommandPacket)
+
+DEFINE_CLASS(ConnectingPlayerPacket)
+    DEFINE_FIELD(widestr, name)
+    DEFINE_FIELD(float, default_kart_color)
+    DEFINE_FIELD(uint8_t, handicap)
+END_DEFINE_CLASS(ConnectingPlayerPacket)
+
+DEFINE_CLASS(RestConnectionRequestPacket)
+    DEFINE_FIELD(std::string, private_server_password)
+    DEFINE_FIELD(uint8_t, player_count)
+    DEFINE_VECTOR(ConnectingPlayerPacket, player_count, players)
+END_DEFINE_CLASS(RestConnectionRequestPacket)
+
+DEFINE_CLASS(ConnectionRequestedPacket)
+    PROTOCOL_TYPE(PROTOCOL_LOBBY_ROOM, false)
+    DEFINE_TYPE(uint8_t, type, LE_CONNECTION_REQUESTED)
+    DEFINE_FIELD(uint32_t, server_version)
+    DEFINE_FIELD(std::string, user_agent)
+    DEFINE_FIELD(uint16_t, capabilities_size)
+    DEFINE_VECTOR(std::string, capabilities_size, capabilities)
+    DEFINE_FIELD(AssetsPacket2, assets)
+    DEFINE_FIELD(uint8_t, player_count)
+
+    DEFINE_FIELD(uint32_t, id)
+    DEFINE_FIELD(uint32_t, encrypted_size) // 0 if not encrypted
+    AUX_STORE("encrypted_size", encrypted_size)
+    DEFINE_FIELD_OPTIONAL(widestr, player_name, id != 0 && encrypted_size == 0)
+    DEFINE_FIELD_OPTIONAL(EncryptedBuffer, player_info_encrypted, encrypted_size != 0)
+    DEFINE_FIELD_OPTIONAL(RestConnectionRequestPacket, player_info_unencrypted, encrypted_size == 0)
+
+END_DEFINE_CLASS(ConnectionRequestedPacket)
+
+DEFINE_CLASS(StartupBoostPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_STARTUP_BOOST)
+    DEFINE_FIELD(uint8_t, kart_id)
+    RELIABLE(true)
+END_DEFINE_CLASS(StartupBoostPacket)
+
+DEFINE_CLASS(TrackSectorSmallPacket)
+    DEFINE_FIELD(uint16_t, cur_graph_mode)
+    DEFINE_FIELD(float, coord_z)
+END_DEFINE_CLASS(TrackSectorSmallPacket)
+
+DEFINE_CLASS(AbstractKartAnimationPacket)
+    DEFINE_FIELD(uint32_t, created_ticks)
+    DEFINE_FIELD(int24_t, transform_compressed_0)
+    DEFINE_FIELD(int24_t, transform_compressed_1)
+    DEFINE_FIELD(int24_t, transform_compressed_2)
+    DEFINE_FIELD(uint32_t, transform_compressed_3)
+END_DEFINE_CLASS(AbstractKartAnimationPacket)
+
+DEFINE_CLASS(MaxSpeedSpeedIncreasePacket)
+    DEFINE_FIELD(uint16_t, max_add_speed)
+    DEFINE_FIELD(uint16_t, duration)
+    DEFINE_FIELD(uint16_t, fade_out_time)
+    DEFINE_FIELD(uint16_t, engine_force)
+END_DEFINE_CLASS(MaxSpeedSpeedIncreasePacket)
+
+DEFINE_CLASS(MaxSpeedSpeedDecreasePacket)
+    DEFINE_FIELD(uint16_t, max_speed_fraction)
+    DEFINE_FIELD(float, current_fraction)
+    DEFINE_FIELD(uint16_t, fade_in_ticks)
+    DEFINE_FIELD(uint16_t, duration)
+END_DEFINE_CLASS(MaxSpeedSpeedDecreasePacket)
+
+/* I will search for a proper function later */
+DEFINE_CLASS(MaxSpeedPacket)
+    DEFINE_FIELD(uint8_t, slowdown_mask)
+    DEFINE_VECTOR(MaxSpeedSpeedDecreasePacket, __builtin_popcount(slowdown_mask), slowdowns)
+    DEFINE_FIELD(uint8_t, speedup_mask)
+    DEFINE_VECTOR(MaxSpeedSpeedIncreasePacket, __builtin_popcount(speedup_mask), speedups)
+END_DEFINE_CLASS(MaxSpeedPacket)
+
+DEFINE_CLASS(SkiddingStatePacket)
+    DEFINE_FIELD(uint8_t, skid_state)
+    DEFINE_FIELD(uint16_t, skid_time)
+    DEFINE_FIELD(float, skid_factor)
+    DEFINE_FIELD(float, visual_rotation)
+END_DEFINE_CLASS(SkiddingStatePacket)
+
+// DEFINE_CLASS(ItemEventInfoPacket)
+//     DEFINE_FIELD(uint8_t, type)
+//     DEFINE_FIELD(uint32_t, ticks)
+//     DEFINE_FIELD_OPTIONAL(uint8_t, kart_id, type != IEI_SWITCH)
+//     DEFINE_FIELD_OPTIONAL(uint16_t, index, type != IEI_SWITCH)
+//     DEFINE_FIELD_OPTIONAL(uint16_t, index, type != IEI_SWITCH && type == IEI_NEW)
+
+//     assert(NetworkConfig::get()->isServer());
+//     buffer->addUInt8(m_type).addTime(m_ticks);
+//     if (m_type != IEI_SWITCH)
+//     {
+//         // Only new item and collecting items need the index and kart id:
+//         buffer->addUInt8(m_kart_id).addUInt16(m_index);
+//         if (m_type == IEI_NEW)
+//         {
+//             buffer->add(m_xyz);
+//             buffer->add(m_normal);
+//         }
+//         else if (m_type == IEI_COLLECT)
+//             buffer->addUInt16(m_ticks_till_return);
+//     }
+// END_DEFINE_CLASS(ItemEventInfoPacket)
+
+// todo
+
+DEFINE_CLASS(PluginStatePacket)
+END_DEFINE_CLASS(PluginStatePacket)
+
+DEFINE_CLASS(AttachmentPacket)
+    DEFINE_FIELD(uint8_t, type)
+    DEFINE_FIELD(uint16_t, ticks_left)
+    DEFINE_FIELD_OPTIONAL(uint8_t, previous_owner, type == (ATTACH_BOMB | 64))
+    DEFINE_FIELD_OPTIONAL(uint16_t, initial_speed, (type & 63) == ATTACH_PARACHUTE)
+    DEFINE_FIELD_OPTIONAL(PluginStatePacket, plugin, ((type >> 7) & 1) == 1)
+END_DEFINE_CLASS(AttachmentPacket)
+
+DEFINE_CLASS(CompressedNetworkBodyPacket)
+    DEFINE_FIELD(float, x)
+    DEFINE_FIELD(float, y)
+    DEFINE_FIELD(float, z)
+    DEFINE_FIELD(uint32_t, compressed_q)
+    DEFINE_FIELD(uint16_t, lvx)
+    DEFINE_FIELD(uint16_t, lvy)
+    DEFINE_FIELD(uint16_t, lvz)
+    DEFINE_FIELD(uint16_t, avx)
+    DEFINE_FIELD(uint16_t, avy)
+    DEFINE_FIELD(uint16_t, avz)
+END_DEFINE_CLASS(CompressedNetworkBodyPacket)
+
+DEFINE_CLASS(FlyablePacket)
+    // sometimes nothing???
+    DEFINE_FIELD_OPTIONAL(uint16_t, ticks_since_thrown_animation, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint32_t, compressed_gravity_vector, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(AbstractKartAnimationPacket, animation, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(CompressedNetworkBodyPacket, compressed_network_body, IHAVENOIDEA)
+END_DEFINE_CLASS(FlyablePacket)
+
+DEFINE_CLASS(RubberBallPacket)
+    // sometimes nothing, depends on the same condition for FlyablePacket
+    DEFINE_FIELD_OPTIONAL(FlyablePacket, flyable_packet, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint16_t, last_aimed_graph_node, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_0, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_1, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_2, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, control_point_3, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(Vec3, previous_xyz, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, previous_height, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, length_cp_1_2, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, length_cp_2_3, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, t, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, t_increase, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, interval, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, height_timer, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint16_t, delete_ticks, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(float, current_max_height, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint8_t, properties, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(TrackSectorSmallPacket, track_sector, IHAVENOIDEA)
+END_DEFINE_CLASS(RubberBallPacket)
+
+DEFINE_CLASS(PlungerPacket)
+    // sometimes nothing, depends on the same condition for FlyablePacket
+    DEFINE_FIELD_OPTIONAL(FlyablePacket, flyable_packet, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint16_t, keep_alive, IHAVENOIDEA)
+    DEFINE_FIELD_OPTIONAL(uint8_t, rubber_band_state, IHAVENOIDEA)
+END_DEFINE_CLASS(PlungerPacket)
+
+DEFINE_CLASS(GameEventKartFinishedPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_KART_FINISHED_RACE)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(float, time)
+    RELIABLE(true)
+END_DEFINE_CLASS(GameEventKartFinishedPacket)
+
+DEFINE_CLASS(GameEventStartupBoostPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GE_STARTUP_BOOST)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(float, value)
+    RELIABLE(true)
+END_DEFINE_CLASS(GameEventStartupBoostPacket)
+
+DEFINE_CLASS(ControllerActionPacket)
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(uint8_t, compressed_action_0)
+    DEFINE_FIELD(uint16_t, compressed_action_1)
+    DEFINE_FIELD(uint16_t, compressed_action_2)
+    DEFINE_FIELD(uint16_t, compressed_action_3)
+END_DEFINE_CLASS(ControllerActionPacket)
+
+DEFINE_CLASS(ControllerActionBigPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GP_CONTROLLER_ACTION)
+    DEFINE_FIELD(uint8_t, count)
+    DEFINE_VECTOR(ControllerSingleActionPacket, count, actions)
+    /* We don't specify RELIABLE here as it can be sent both ways. Or maybe I forgot how overriding works here? */
+    /*RELIABLE(true)*/
+END_DEFINE_CLASS(ControllerActionBigPacket)
+
+DEFINE_CLASS(ControllerSingleActionPacket)
+    DEFINE_FIELD(uint32_t, ticks)
+    DEFINE_FIELD(ControllerActionPacket, subpacket)
+END_DEFINE_CLASS(ControllerSingleActionPacket)
+
+DEFINE_CLASS(GameEventStatePacket)
+    DEFINE_TYPE(uint8_t, type, GP_STATE)
+    DEFINE_FIELD(uint32_t, ticks_since_start)
+END_DEFINE_CLASS(GameEventStatePacket)
+
+DEFINE_CLASS(ProjectilePacket)
+    DEFINE_FIELD(uint8_t, rewinder_type) /* RewinderName enum */
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(uint32_t, created_ticks)
+END_DEFINE_CLASS(ProjectilePacket)
+
+DEFINE_CLASS(TheRestOfBgsPacket)
+    DEFINE_FIELD(uint16_t, data_size)
+    DEFINE_FIELD(IHaveNoIdeaActuallyButItHasSizeEqualToDataSize, something)
+END_DEFINE_CLASS(TheRestOfBgsPacket)
+
+DEFINE_CLASS(BigGameStatesPacket)
+    PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
+    DEFINE_TYPE(uint8_t, type, GP_CONTROLLER_ACTION)
+    DEFINE_FIELD(uint32_t, ticks)
+    DEFINE_FIELD(uint8_t, rewinders_size)
+    DEFINE_FIELD(GameEventStatePacket, state) /* kimden: I'm not sure where this should be located within the packet */
+    DEFINE_VECTOR(ProjectilePacket, rewinders_size, rewinders)
+   /* DEFINE_FIELD(ControllerActionBigPacket, actions) --------- kimden: for now, I have no idea why this is here. Probably a leftover. */
+    DEFINE_VECTOR(TheRestOfBgsPacket, rewinders_size, the_rest)
+    // kimden: I have no idea for now
+    /* Don't define RELIABLE, can be sent either way */
+END_DEFINE_CLASS(BigGameStatesPacket)
+
+
+
 
 // end

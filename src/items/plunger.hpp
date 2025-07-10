@@ -22,6 +22,8 @@
 #ifndef HEADER_MISSILE_HPP
 #define HEADER_MISSILE_HPP
 
+#define nonvirtual
+
 #include <irrString.h>
 using namespace irr;
 
@@ -67,10 +69,9 @@ public:
     /** No hit effect when it ends. */
     virtual HitEffect *getHitEffect() const OVERRIDE           { return NULL; }
     // ------------------------------------------------------------------------
-    virtual BareNetworkString* saveState(std::vector<std::string>* ru)
-        OVERRIDE;
+    nonvirtual PlungerPacket saveState(std::vector<std::string>* ru);
     // ------------------------------------------------------------------------
-    virtual void restoreState(BareNetworkString *buffer, int count) OVERRIDE;
+    nonvirtual void restoreState(const PlungerPacket& packet, int count);
     // ------------------------------------------------------------------------
     virtual void onFireFlyable() OVERRIDE;
     // ------------------------------------------------------------------------

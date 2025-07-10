@@ -19,6 +19,8 @@
 #ifndef HEADER_RUBBER_BALL_HPP
 #define HEADER_RUBBER_BALL_HPP
 
+#define nonvirtual
+
 #include <irrString.h>
 
 #include "items/flyable.hpp"
@@ -222,10 +224,9 @@ public:
      *  karts are handled by this hit() function. */
     //virtual HitEffect *getHitEffect() const {return NULL; }
     // ------------------------------------------------------------------------
-    virtual BareNetworkString* saveState(std::vector<std::string>* ru)
-        OVERRIDE;
+    nonvirtual RubberBallPacket saveState(std::vector<std::string>* ru);
     // ------------------------------------------------------------------------
-    virtual void restoreState(BareNetworkString *buffer, int count) OVERRIDE;
+    nonvirtual void restoreState(const RubberBallPacket& packet, int count);
     // ------------------------------------------------------------------------
     virtual void onFireFlyable() OVERRIDE;
 

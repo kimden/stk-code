@@ -22,11 +22,14 @@
 #ifndef HEADER_FLYABLE_HPP
 #define HEADER_FLYABLE_HPP
 
+#define nonvirtual
+
 #include "items/powerup_manager.hpp"
 #include "karts/moveable.hpp"
 #include "network/rewinder.hpp"
 #include "tracks/terrain_info.hpp"
 #include "utils/cpp2011.hpp"
+#include "network/packet_types.hpp"
 
 #include <irrString.h>
 namespace irr
@@ -259,10 +262,9 @@ public:
     // ------------------------------------------------------------------------
     virtual void computeError() OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual BareNetworkString* saveState(std::vector<std::string>* ru)
-        OVERRIDE;
+    nonvirtual FlyablePacket saveState(std::vector<std::string>* ru);
     // ------------------------------------------------------------------------
-    virtual void restoreState(BareNetworkString *buffer, int count) OVERRIDE;
+    nonvirtual void restoreState(const FlyablePacket& packet, int count);
     // ------------------------------------------------------------------------
     /* Return true if still in game state, or otherwise can be deleted. */
     bool hasServerState() const                  { return m_has_server_state; }

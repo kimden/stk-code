@@ -64,42 +64,51 @@ bool GameEventsProtocol::notifyEvent(Event* event)
     FreeForAll* ffa = dynamic_cast<FreeForAll*>(World::getWorld());
     SoccerWorld* sw = dynamic_cast<SoccerWorld*>(World::getWorld());
     LinearWorld* lw = dynamic_cast<LinearWorld*>(World::getWorld());
+
+    // Scopes are added to allow initializing variables inside
     switch (type)
     {
     case GE_KART_FINISHED_RACE:
-        kartFinishedRace(data);     break;
+    {
+        auto packet = event->getPacket<GameEventKartFinishedPacket>();
+        kartFinishedRace(packet);
+        break;
+    }
     case GE_RESET_BALL:
     {
         if (!sw)
             throw std::invalid_argument("No soccer world");
-        sw->handleResetBallFromServer(data);
+
+        auto packet = event->getPacket<ResetBallPacket>();
+        sw->handleResetBallFromServer(packet);
         break;
     }
     case GE_PLAYER_GOAL:
     {
         if (!sw)
             throw std::invalid_argument("No soccer world");
-        sw->handlePlayerGoalFromServer(data);
+
+        auto packet = event->getPacket<InternalGoalPacket>();
+        sw->handlePlayerGoalFromServer(packet);
         break;
     }
     case GE_BATTLE_KART_SCORE:
     {
         if (!ffa)
             throw std::invalid_argument("No free-for-all world");
-        ffa->setKartScoreFromServer(data);
+
+        auto packet = event->getPacket<InsideFfaPacket>();
+        ffa->setKartScoreFromServer(packet);
         break;
     }
     case GE_CTF_SCORED:
     {
         if (!ctf)
             throw std::invalid_argument("No CTF world");
-        uint8_t kart_id = data.getUInt8();
-        bool red_team_scored = data.getUInt8() == 1;
-        int16_t new_kart_scores = data.getUInt16();
-        int new_red_scores = data.getUInt8();
-        int new_blue_scores = data.getUInt8();
-        ctf->ctfScored(kart_id, red_team_scored, new_kart_scores,
-            new_red_scores, new_blue_scores);
+
+        auto packet = event->getPacket<InsideCtfPacket>();
+        ctf->ctfScored(packet.active_holder, packet.red_inactive, packet.kart_score,
+            packet.red_score, packet.blue_score);
         break;
     }
     case GE_STARTUP_BOOST:
@@ -116,11 +125,11 @@ bool GameEventsProtocol::notifyEvent(Event* event)
             float f = LobbyProtocol::get<ServerLobby>()
                 ->getStartupBoostOrPenaltyForKart(
                 event->getPeer()->getAveragePing(), kart_id);
-            NetworkString *ns = getNetworkString();
-            ns->setSynchronous(true);
-            ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id).addFloat(f);
-            Comm::sendMessageToPeers(ns, PRM_RELIABLE);
-            delete ns;
+            
+            GameEventStartupBoostPacket packet;
+            packet.kart_id = kart_id;
+            packet.value = f;
+            Comm::sendPacketToPeers(packet);
         }
         else
         {
@@ -142,8 +151,10 @@ bool GameEventsProtocol::notifyEvent(Event* event)
     {
         if (!lw)
             throw std::invalid_argument("No linear world");
+
+        auto packet = event->getPacket<InsideChecklinePacket>();
         if (NetworkConfig::get()->isClient())
-            lw->updateCheckLinesClient(data);
+            lw->updateCheckLinesClient(packet);
         break;
     }
     default:
@@ -161,12 +172,10 @@ bool GameEventsProtocol::notifyEvent(Event* event)
  */
 void GameEventsProtocol::kartFinishedRace(AbstractKart *kart, float time)
 {
-    NetworkString *ns = getNetworkString(20);
-    ns->setSynchronous(true);
-    ns->addUInt8(GE_KART_FINISHED_RACE).addUInt8(kart->getWorldKartId())
-       .addFloat(time);
-    Comm::sendMessageToPeers(ns, PRM_RELIABLE);
-    delete ns;
+    GameEventKartFinishedPacket packet;
+    packet.kart_id = kart->getWorldKartId();
+    packet.time = time;
+    Comm::sendPacketToPeers(packet);
 }   // kartFinishedRace
 
 // ----------------------------------------------------------------------------
@@ -174,16 +183,10 @@ void GameEventsProtocol::kartFinishedRace(AbstractKart *kart, float time)
  *  event from the server. It updates the game with this information.
  *  \param ns The message from the server.
  */
-void GameEventsProtocol::kartFinishedRace(const NetworkString &ns)
+void GameEventsProtocol::kartFinishedRace(const GameEventKartFinishedPacket& packet)
 {
-    if (ns.size() < 5)
-    {
-        Log::warn("GameEventsProtocol", "kartFinisheRace: Too short message.");
-        return;
-    }
-
-    uint8_t kart_id = ns.getUInt8();
-    float time      = ns.getFloat();
+    uint8_t kart_id = packet.kart_id;
+    float time      = packet.time;
     if (RaceManager::get()->modeHasLaps())
     {
         World::getWorld()->getKart(kart_id)
@@ -196,9 +199,7 @@ void GameEventsProtocol::kartFinishedRace(const NetworkString &ns)
 // ----------------------------------------------------------------------------
 void GameEventsProtocol::sendStartupBoost(uint8_t kart_id)
 {
-    NetworkString *ns = getNetworkString();
-    ns->setSynchronous(true);
-    ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id);
-    Comm::sendToServer(ns, PRM_RELIABLE);
-    delete ns;
+    StartupBoostPacket packet;
+    packet.kart_id = kart_id;
+    Comm::sendPacketToServer(packet);
 }   // sendStartupBoost

@@ -34,7 +34,6 @@ enum PeerDisconnectInfo : unsigned int;
 enum KartTeam : int8_t;
 enum HandicapLevel : uint8_t;
 
-class BareNetworkString;
 class Server;
 
 namespace Online
@@ -126,8 +125,6 @@ private:
     std::set<std::string> m_available_tracks;
 
     void addAllPlayers(Event* event);
-    void finalizeConnectionRequest(NetworkString* header,
-                                   BareNetworkString* rest, bool encrypt);
 
     std::map<PeerDisconnectInfo, irr::core::stringw> m_disconnected_msg;
 
@@ -144,13 +141,12 @@ private:
     void liveJoinAcknowledged(Event* event);
     void handleKartInfo(Event* event);
     void finishLiveJoin();
-    std::vector<std::shared_ptr<NetworkPlayerProfile> >
-         decodePlayers(const BareNetworkString& data,
+    std::shared_ptr<NetworkPlayerProfile>
+         decodePlayer(const EncodedSinglePlayerPacket& packet,
          std::shared_ptr<STKPeer> peer = nullptr,
          bool* is_spectator = NULL) const;
-    void getPlayersAddonKartType(const BareNetworkString& data,
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
-    void getKartsTracksNetworkString(BareNetworkString* ns);
+
+    AssetsPacket2 getKartsTracksPacket();
     void doInstallAddonsPack();
 public:
              ClientLobby(std::shared_ptr<Server> s);

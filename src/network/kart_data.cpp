@@ -2,7 +2,7 @@
 
 #include "karts/kart_model.hpp"
 #include "karts/kart_properties.hpp"
-#include "network/network_string.hpp"
+#include "network/packet_types.hpp"
 
 // ----------------------------------------------------------------------------
 KartData::KartData(const KartProperties* kp)
@@ -24,15 +24,19 @@ KartData::KartData(const KartProperties* kp)
 }   // KartData(KartProperties*)
 
 // ----------------------------------------------------------------------------
-KartData::KartData(const BareNetworkString& ns)
+KartData::KartData(const KartDataPacket& packet)
 {
-    ns.decodeString(&m_kart_type);
+    m_kart_type = "";
+    if (packet.kart_type.has_value())
+        m_kart_type = packet.kart_type.get_value();
+    
     if (!m_kart_type.empty())
     {
-        m_width = ns.getFloat();
-        m_height = ns.getFloat();
-        m_length = ns.getFloat();
-        m_gravity_shift = ns.getVec3();
+        auto value = packet.parameters.get_value();
+        m_width = value.width;
+        m_height = value.height;
+        m_length = value.length;
+        m_gravity_shift = value.gravity_shift;
     }
     else
     {
@@ -40,15 +44,24 @@ KartData::KartData(const BareNetworkString& ns)
         m_height = 0.0f;
         m_length = 0.0f;
     }
-}   // KartData(BareNetworkString&)
+}   // KartData(KartDataPacket&)
 
 // ----------------------------------------------------------------------------
-void KartData::encode(BareNetworkString* ns) const
+KartDataPacket KartData::encode() const
 {
-    ns->encodeString(m_kart_type);
+    KartDataPacket packet;
+    packet.kart_type = m_kart_type;
+
     if (!m_kart_type.empty())
     {
-        ns->addFloat(m_width).addFloat(m_height).addFloat(m_length)
-            .add(m_gravity_shift);
+        KartParametersPacket params;
+        params.width = m_width;
+        params.height = m_height;
+        params.length = m_length;
+        params.gravity_shift = m_gravity_shift;
+
+        packet.parameters = params;
     }
-}   // encode(BareNetworkString*)
+
+    return packet;
+}   // encode()

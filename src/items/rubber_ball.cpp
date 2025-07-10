@@ -886,57 +886,70 @@ bool RubberBall::hit(AbstractKart* kart, PhysicalObject* object)
 }   // hit
 
 // ----------------------------------------------------------------------------
-BareNetworkString* RubberBall::saveState(std::vector<std::string>* ru)
+RubberBallPacket RubberBall::saveState(std::vector<std::string>* ru)
 {
-    BareNetworkString* buffer = Flyable::saveState(ru);
-    if (!buffer)
-        return NULL;
+    RubberBallPacket packet;
+    FlyablePacket subpacket = Flyable::saveState(ru);
 
-    buffer->addUInt16((int16_t)m_last_aimed_graph_node);
-    buffer->add(m_control_points[0]);
-    buffer->add(m_control_points[1]);
-    buffer->add(m_control_points[2]);
-    buffer->add(m_control_points[3]);
-    buffer->add(m_previous_xyz);
-    buffer->addFloat(m_previous_height);
-    buffer->addFloat(m_length_cp_1_2);
-    buffer->addFloat(m_length_cp_2_3);
-    buffer->addFloat(m_t);
-    buffer->addFloat(m_t_increase);
-    buffer->addFloat(m_interval);
-    buffer->addFloat(m_height_timer);
-    buffer->addUInt16(m_delete_ticks);
-    buffer->addFloat(m_current_max_height);
-    buffer->addUInt8(m_tunnel_count | (m_aiming_at_target ? (1 << 7) : 0));
-    TrackSector::saveState(buffer);
-    return buffer;
+    // kimden: it was checking before if BNS is null.
+    // Temporary solution is below.
+    if (!subpacket.ticks_since_thrown_animation.has_value())
+        return packet;
+
+    packet.flyable_packet = subpacket;
+
+    packet.last_aimed_graph_node = (int16_t)m_last_aimed_graph_node;
+    packet.control_point_0 = m_control_points[0];
+    packet.control_point_1 = m_control_points[1];
+    packet.control_point_2 = m_control_points[2];
+    packet.control_point_3 = m_control_points[3];
+    packet.previous_xyz = m_previous_xyz;
+    packet.previous_height = m_previous_height;
+    packet.length_cp_1_2 = m_length_cp_1_2;
+    packet.length_cp_2_3 = m_length_cp_2_3;
+    packet.t = m_t;
+    packet.t_increase = m_t_increase;
+    packet.interval = m_interval;
+    packet.height_timer = m_height_timer;
+    packet.delete_ticks = m_delete_ticks;
+    packet.current_max_height = m_current_max_height;
+    packet.properties = m_tunnel_count | (m_aiming_at_target ? (1 << 7) : 0);
+    packet.track_sector = TrackSector::saveState();
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
-void RubberBall::restoreState(BareNetworkString *buffer, int count)
+void RubberBall::restoreState(const RubberBallPacket& packet, int count)
 {
-    Flyable::restoreState(buffer, count);
+    // kimden: nonvirtual: in which cases there can be nothing?
+    // I don't check the presence of other fields for now
+    // because they are supposed to be there too if flyable_packet is present.
+    if (!packet.flyable_packet.has_value())
+        return;
+    
+    Flyable::restoreState(packet.flyable_packet.get_value(), count);
+
     m_restoring_state = true;
-    int16_t last_aimed_graph_node = buffer->getUInt16();
+    int16_t last_aimed_graph_node = packet.last_aimed_graph_node.get_value();
     m_last_aimed_graph_node = last_aimed_graph_node;
-    m_control_points[0] = buffer->getVec3();
-    m_control_points[1] = buffer->getVec3();
-    m_control_points[2] = buffer->getVec3();
-    m_control_points[3] = buffer->getVec3();
-    m_previous_xyz = buffer->getVec3();
-    m_previous_height = buffer->getFloat();
-    m_length_cp_1_2 = buffer->getFloat();
-    m_length_cp_2_3 = buffer->getFloat();
-    m_t = buffer->getFloat();
-    m_t_increase = buffer->getFloat();
-    m_interval = buffer->getFloat();
-    m_height_timer = buffer->getFloat();
-    m_delete_ticks = buffer->getUInt16();
-    m_current_max_height = buffer->getFloat();
-    uint8_t tunnel_and_aiming = buffer->getUInt8();
+    m_control_points[0] = packet.control_point_0.get_value();
+    m_control_points[1] = packet.control_point_1.get_value();
+    m_control_points[2] = packet.control_point_2.get_value();
+    m_control_points[3] = packet.control_point_3.get_value();
+    m_previous_xyz = packet.previous_xyz.get_value();
+    m_previous_height = packet.previous_height.get_value();
+    m_length_cp_1_2 = packet.length_cp_1_2.get_value();
+    m_length_cp_2_3 = packet.length_cp_2_3.get_value();
+    m_t = packet.t.get_value();
+    m_t_increase = packet.t_increase.get_value();
+    m_interval = packet.interval.get_value();
+    m_height_timer = packet.height_timer.get_value();
+    m_delete_ticks = packet.delete_ticks.get_value();
+    m_current_max_height = packet.current_max_height.get_value();
+    uint8_t tunnel_and_aiming = packet.properties.get_value();
     m_tunnel_count = tunnel_and_aiming & 127;
     m_aiming_at_target = ((tunnel_and_aiming >> 7) & 1) == 1;
-    TrackSector::rewindTo(buffer);
+    TrackSector::rewindTo(packet.track_sector.get_value());
 }   // restoreState
 
 // ----------------------------------------------------------------------------

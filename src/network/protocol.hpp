@@ -24,13 +24,16 @@
 #define PROTOCOL_HPP
 
 #include "utils/no_copy.hpp"
+#include "utils/constants.hpp"
 
 #include <memory>
 #include <stddef.h>
+#include <functional>
 
 class Event;
 class NetworkString;
 class STKPeer;
+class Packet;
 
 
 /** \enum ProtocolType
@@ -119,6 +122,7 @@ public:
     NetworkString* getNetworkString(size_t capacity = 16) const;
     bool checkDataSize(Event* event, unsigned int minimum_size);
 
+    // ----------------------------------------------------------------------------
     virtual void requestStart();
     virtual void requestTerminate();
     // ------------------------------------------------------------------------

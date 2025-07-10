@@ -120,11 +120,11 @@ void RewindQueue::insertRewindInfo(RewindInfo *ri)
  *  \param ticks Time at which the event happened.
  */
 void RewindQueue::addLocalEvent(EventRewinder *event_rewinder,
-                                BareNetworkString *buffer, bool confirmed,
-                                int ticks                                  )
+                                const ControllerActionPacket& packet, bool confirmed,
+                                int ticks)
 {
     RewindInfo *ri = new RewindInfoEvent(ticks, event_rewinder,
-                                         buffer, confirmed);
+                                         packet, confirmed);
     insertRewindInfo(ri);
 }   // addLocalEvent
 
@@ -160,10 +160,10 @@ void RewindQueue::addLocalState(BareNetworkString *buffer,
  *  \param ticks Time at which the event happened.
  */
 void RewindQueue::addNetworkEvent(EventRewinder *event_rewinder,
-                                  BareNetworkString *buffer, int ticks)
+                                  ControllerActionPacket packet, int ticks)
 {
     RewindInfo *ri = new RewindInfoEvent(ticks, event_rewinder,
-                                         buffer, /*confirmed*/true);
+                                         std::move(packet), /*confirmed*/true);
 
     m_network_events.lock();
     m_network_events.getData().push_back(ri);

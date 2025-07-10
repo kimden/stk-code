@@ -35,6 +35,7 @@
 #include "states_screens/race_gui.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_object_manager.hpp"
+#include "utils/communication.hpp"
 #include "utils/game_info.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
@@ -340,15 +341,13 @@ void CaptureTheFlag::checkScoring(FlagColor color)
             m_scores.at(active_holder) = new_kart_score;
             if (NetworkConfig::get()->isServer())
             {
-                NetworkString p(PROTOCOL_GAME_EVENTS);
-                p.setSynchronous(true);
-                p.addUInt8(GameEventsProtocol::GE_CTF_SCORED)
-                    .addUInt8((int8_t)active_holder)
-                    .addUInt8((red_active) ? 0 : 1 /*red_team_scored*/)
-                    .addUInt16((int16_t)new_kart_score)
-                    .addUInt8((uint8_t)new_red_score)
-                    .addUInt8((uint8_t)new_blue_score);
-                STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+                InsideCtfPacket packet;
+                packet.active_holder = (int8_t)active_holder;
+                packet.red_inactive = !red_active;
+                packet.kart_score = (int16_t)new_kart_score;
+                packet.red_score = (uint8_t)new_red_score;
+                packet.blue_score = (uint8_t)new_blue_score;
+                Comm::sendPacketToPeers(packet);
             }
             ctfScored(active_holder, (red_active) ? false : true /*red_team_scored*/,
                 new_kart_score, new_red_score, new_blue_score); 
@@ -553,16 +552,23 @@ const std::string& CaptureTheFlag::getIdent() const
 }   // getIdent
 
 // ----------------------------------------------------------------------------
-void CaptureTheFlag::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
+std::shared_ptr<WorldPacket> CaptureTheFlag::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
-    FreeForAll::saveCompleteState(bns, peer);
-    bns->addUInt32(m_red_scores).addUInt32(m_blue_scores);
+    auto packet = std::make_shared<CTFWorldCompleteStatePacket>();
+
+    auto sp = FreeForAll::saveCompleteState(peer);
+    packet->ffa_packet = std::dynamic_pointer_cast<FFAWorldCompleteStatePacket>(sp);
+    packet->red_score = m_red_scores;
+    packet->blue_score = m_blue_scores;
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void CaptureTheFlag::restoreCompleteState(const BareNetworkString& b)
+void CaptureTheFlag::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
-    FreeForAll::restoreCompleteState(b);
-    m_red_scores = b.getUInt32();
-    m_blue_scores = b.getUInt32();
+    std::shared_ptr<CTFWorldCompleteStatePacket> ctf_packet =
+            std::dynamic_pointer_cast<CTFWorldCompleteStatePacket>(packet);
+    FreeForAll::restoreCompleteState(ctf_packet->ffa_packet);
+    m_red_scores = ctf_packet->red_score;
+    m_blue_scores = ctf_packet->blue_score;
 }   // restoreCompleteState

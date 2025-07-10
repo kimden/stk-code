@@ -922,10 +922,9 @@ void STKHost::mainLoop(ProcessType pt)
                                 p.second->getAddress().toString().c_str(),
                                 player_name.c_str(), ap, max_ping);
                             p.second->setWarnedForHighPing(true);
-                            NetworkString msg(PROTOCOL_LOBBY_ROOM);
-                            msg.setSynchronous(true);
-                            msg.addUInt8(LobbyEvent::LE_BAD_CONNECTION);
-                            p.second->sendPacket(&msg, PRM_RELIABLE);
+
+                            BadConnectionPacket packet;
+                            p.second->sendPacket(packet);
                         }
                     }
                 }
@@ -1338,30 +1337,30 @@ std::shared_ptr<STKPeer> STKHost::getServerPeerForClient() const
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketToAllPeersInServer(NetworkString *data, PacketReliabilityMode reliable)
+void STKHost::sendNetstringToPeersInServer(NetworkString *data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
     {
         if (p.second->isValidated())
-            p.second->sendPacket(data, reliable);
+            p.second->sendNetstring(data, reliable);
     }
-}   // sendPacketToAllPeersInServer
+}   // sendNetstringToPeersInServer
 
 //-----------------------------------------------------------------------------
 /** Sends data to all validated peers currently in game
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode reliable)
+void STKHost::sendNetstringToPeers(NetworkString *data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto p : m_peers)
     {
         if (p.second->isValidated() && !p.second->isWaitingForGame())
-            p.second->sendPacket(data, reliable);
+            p.second->sendNetstring(data, reliable);
     }
-}   // sendPacketToAllPeers
+}   // sendNetstringToPeers
 
 //-----------------------------------------------------------------------------
 /** Sends data to all validated peers except the specified currently in game
@@ -1369,7 +1368,7 @@ void STKHost::sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode re
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
+void STKHost::sendNetstringExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
                                PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
@@ -1379,10 +1378,10 @@ void STKHost::sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *dat
         if (!stk_peer->isSamePeer(peer.get()) && p.second->isValidated() &&
             !p.second->isWaitingForGame())
         {
-            stk_peer->sendPacket(data, reliable);
+            stk_peer->sendNetstring(data, reliable);
         }
     }
-}   // sendPacketExcept
+}   // sendNetstringExcept
 
 //-----------------------------------------------------------------------------
 /** Sends data to peers with custom rule
@@ -1390,7 +1389,7 @@ void STKHost::sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *dat
  *  \param data Data to sent.
  *  \param reliable If the data should be sent reliable or now.
  */
-void STKHost::sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+void STKHost::sendNetstringToPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
                                        NetworkString* data, PacketReliabilityMode reliable)
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
@@ -1400,9 +1399,9 @@ void STKHost::sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPee
         if (!stk_peer->isValidated())
             continue;
         if (predicate(stk_peer))
-            stk_peer->sendPacket(data, reliable);
+            stk_peer->sendNetstring(data, reliable);
     }
-}   // sendPacketToAllPeersWith
+}   // sendPacketToPeersWith
 
 //-----------------------------------------------------------------------------
 /** Sends a message from a client to the server. */
@@ -1412,7 +1411,7 @@ void STKHost::sendToServer(NetworkString *data, PacketReliabilityMode reliable)
     if (m_peers.empty())
         return;
     assert(NetworkConfig::get()->isClient());
-    m_peers.begin()->second->sendPacket(data, reliable);
+    m_peers.begin()->second->sendNetstring(data, reliable);
 }   // sendToServer
 
 //-----------------------------------------------------------------------------
@@ -1671,3 +1670,67 @@ uint16_t STKHost::getPrivatePort() const
 {
     return m_network->getPort();
 }  // getPrivatePort
+// ----------------------------------------------------------------------------
+
+void STKHost::sendPacketPtrToPeersInServer(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    for (auto p : m_peers)
+    {
+        if (p.second->isValidated())
+            p.second->sendPacketPtr(packet, reliable);
+    }
+}   // sendPacketToPeersInServer
+//-----------------------------------------------------------------------------
+
+void STKHost::sendPacketPtrToPeers(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    for (auto p : m_peers)
+    {
+        if (p.second->isValidated() && !p.second->isWaitingForGame())
+            p.second->sendPacketPtr(packet, reliable);
+    }
+}   // sendPacketToPeers
+//-----------------------------------------------------------------------------
+
+void STKHost::sendPacketPtrExcept(std::shared_ptr<STKPeer> peer, std::shared_ptr<Packet> packet,
+                            PacketReliabilityMode reliable)
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    for (const auto& p : m_peers)
+    {
+        STKPeer* stk_peer = p.second.get();
+        if (!stk_peer->isSamePeer(peer.get()) && p.second->isValidated() &&
+            !p.second->isWaitingForGame())
+        {
+            stk_peer->sendPacketPtr(packet, reliable);
+        }
+    }
+}   // sendPacketExcept
+//-----------------------------------------------------------------------------
+
+void STKHost::sendPacketPtrToPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+                                    std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    for (auto p : m_peers)
+    {
+        std::shared_ptr<STKPeer> stk_peer = p.second;
+        if (!stk_peer->isValidated())
+            continue;
+        if (predicate(stk_peer))
+            stk_peer->sendPacketPtr(packet, reliable);
+    }
+}   // sendPacketToPeersWith
+//-----------------------------------------------------------------------------
+
+void STKHost::sendPacketPtrToServer(std::shared_ptr<Packet> packet, PacketReliabilityMode reliable)
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    if (m_peers.empty())
+        return;
+    assert(NetworkConfig::get()->isClient());
+    m_peers.begin()->second->sendPacketPtr(packet, reliable);
+}   // sendPacketToServer
+//-----------------------------------------------------------------------------

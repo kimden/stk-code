@@ -135,9 +135,9 @@ private:
             m_warn_issued       = 0;
         }   // reset
         // --------------------------------------------------------------------
-        void saveCompleteState(BareNetworkString* bns);
+        KartInfoInGamePacket saveCompleteState();
         // --------------------------------------------------------------------
-        void restoreCompleteState(const BareNetworkString& b);
+        void restoreCompleteState(const KartInfoInGamePacket& packet);
     };
     // ------------------------------------------------------------------------
 
@@ -276,14 +276,13 @@ public:
     virtual std::pair<uint32_t, uint32_t> getGameStartedProgress() const
         OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void saveCompleteState(BareNetworkString* bns,
-                                   std::shared_ptr<STKPeer> peer) OVERRIDE;
+    virtual std::shared_ptr<WorldPacket> saveCompleteState(std::shared_ptr<STKPeer> peer) OVERRIDE;
     // ------------------------------------------------------------------------
-    virtual void restoreCompleteState(const BareNetworkString& b) OVERRIDE;
+    virtual void restoreCompleteState(const std::shared_ptr<WorldPacket>& b) OVERRIDE;
     // ------------------------------------------------------------------------
     void updateCheckLinesServer(int check_id, int kart_id);
     // ------------------------------------------------------------------------
-    void updateCheckLinesClient(const BareNetworkString& b);
+    void updateCheckLinesClient(const InsideChecklinePacket& packet);
     // ------------------------------------------------------------------------
     void handleServerCheckStructureCount(unsigned count);
     // ------------------------------------------------------------------------

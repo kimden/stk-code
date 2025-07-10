@@ -61,14 +61,14 @@ CannonAnimation::CannonAnimation(AbstractKart* kart, CheckCannon* cc,
 // ----------------------------------------------------------------------------
 /** The constructor for the cannon animation for kart during rewind.
  */
-CannonAnimation::CannonAnimation(AbstractKart* kart, BareNetworkString* buffer)
+CannonAnimation::CannonAnimation(AbstractKart* kart, const AbstractKartAnimationPacket& packet)
                : AbstractKartAnimation(kart, "CannonAnimation")
 {
-    restoreBasicState(buffer);
+    restoreBasicState(packet);
     m_check_cannon = NULL;
     m_flyable = NULL;
     m_skid_rot = 0;
-    restoreData(buffer);
+    restoreData(packet);
 }   // CannonAnimation
 
 // ----------------------------------------------------------------------------
@@ -89,14 +89,14 @@ CannonAnimation::CannonAnimation(Flyable* flyable, CheckCannon* cc)
 // ----------------------------------------------------------------------------
 /** The constructor for the cannon animation for flyable during rewind.
  */
-CannonAnimation::CannonAnimation(Flyable* flyable, BareNetworkString* buffer)
+CannonAnimation::CannonAnimation(Flyable* flyable, const AbstractKartAnimationPacket& packet)
                : AbstractKartAnimation(NULL, "CannonAnimation")
 {
     m_flyable = flyable;
-    restoreBasicState(buffer);
+    restoreBasicState(packet);
     m_check_cannon = NULL;
     m_skid_rot = 0;
-    restoreData(buffer);
+    restoreData(packet);
 }   // CannonAnimation
 
 // ----------------------------------------------------------------------------
@@ -384,34 +384,18 @@ void CannonAnimation::restoreData(BareNetworkString* buffer)
     // Kart cannon has 2 floats + 1 compressed quaternion
     // Flyable has 1 float (delta)
     const int skipping_offset = m_kart ? 12 : 4;
-    class CannonCreationException : public KartAnimationCreationException
-    {
-    private:
-        const std::string m_error;
-
-        const int m_skipping_offset;
-    public:
-        CannonCreationException(const std::string& error, int skipping_offset)
-            : m_error(error), m_skipping_offset(skipping_offset) {}
-        // --------------------------------------------------------------------
-        virtual int getSkippingOffset() const     { return m_skipping_offset; }
-        // --------------------------------------------------------------------
-        virtual const char* what() const throw()    { return m_error.c_str(); }
-    };
 
     int cc_idx = buffer->getInt8();
     CheckManager* cm = Track::getCurrentTrack()->getCheckManager();
     if ((unsigned)cc_idx > cm->getCheckStructureCount())
     {
-        throw CannonCreationException(
-            "Server has different check structure size.", skipping_offset);
+        throw std::logic_error("Server has different check structure size.");
     }
     CheckCannon* cc = dynamic_cast<CheckCannon*>
         (cm->getCheckStructure(cc_idx));
     if (!cc)
     {
-        throw CannonCreationException(
-            "Server has different check cannon index.", skipping_offset);
+        throw std::logic_error("Server has different check cannon index.");
     }
     float skid_rot = 0.0f;
     float fraction_of_line = 0.0f;

@@ -43,6 +43,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_object_manager.hpp"
 #include "tracks/track_sector.hpp"
+#include "utils/communication.hpp"
 #include "utils/constants.hpp"
 #include "utils/game_info.hpp"
 #include "utils/translation.hpp"
@@ -234,7 +235,42 @@ public:
     }
 };   // BallGoalData
 
+//=============================================================================
+
+ScorerDataPacket SoccerWorld::ScorerData::saveCompleteState(bool has_soccer_fixes)
+{
+    ScorerDataPacket packet;
+    packet.id = m_id;
+    packet.correct_goal = m_correct_goal;
+    packet.time = m_time;
+    packet.kart = m_kart;
+    packet.player = m_player;
+    if (has_soccer_fixes)
+    {
+        packet.country_code = m_country_code;
+        packet.handicap_level = m_handicap_level;
+    }
+    return packet;
+}   // saveCompleteState
 //-----------------------------------------------------------------------------
+
+void SoccerWorld::ScorerData::restoreCompleteState(const ScorerDataPacket& packet)
+{
+    m_id = packet.id;
+    m_correct_goal = packet.correct_goal;
+    m_time = packet.time;
+    m_kart = packet.kart;
+    m_player = packet.player;
+    if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
+        != NetworkConfig::get()->getServerCapabilities().end())
+    {
+        if (packet.country_code.has_value())
+            m_country_code = packet.country_code.get_value();
+        if (packet.handicap_level.has_value())
+            m_handicap_level = (HandicapLevel)packet.handicap_level.get_value();
+    }
+}   // restoreCompleteState
+//=============================================================================
 /** Constructor. Sets up the clock mode etc.
  */
 SoccerWorld::SoccerWorld() : WorldWithRank()
@@ -651,17 +687,19 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
         if (NetworkConfig::get()->isNetworking() &&
             NetworkConfig::get()->isServer())
         {
-            NetworkString p(PROTOCOL_GAME_EVENTS);
-            p.setSynchronous(true);
-            p.addUInt8(GameEventsProtocol::GE_PLAYER_GOAL)
-                .addUInt8((uint8_t)sd.m_id).addUInt8(sd.m_correct_goal)
-                .addUInt8(first_goal).addFloat(sd.m_time)
-                .addTime(m_ticks_back_to_own_goal)
-                .encodeString(sd.m_kart).encodeString(sd.m_player);
+            InternalGoalPacket packet;
+            packet.id = (uint8_t)sd.m_id;
+            packet.correct_goal = sd.m_correct_goal;
+            packet.first_goal = first_goal;
+            packet.time = sd.m_time;
+            packet.ticks_back_to_own_goal = m_ticks_back_to_own_goal;
+            packet.kart = sd.m_kart;
+            packet.player = sd.m_player;
+
             // Added in 1.1, add missing handicap info and country code
-            NetworkString p_1_1 = p;
-            p_1_1.encodeString(sd.m_country_code)
-                .addUInt8(sd.m_handicap_level);
+            InternalGoalPacket packet_1_1 = packet;
+            packet_1_1.country_code = sd.m_country_code;
+            packet_1_1.handicap = sd.m_handicap_level;
 
             auto peers = STKHost::get()->getPeers();
             for (auto& peer : peers)
@@ -671,11 +709,11 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                     if (peer->getClientCapabilities().find("soccer_fixes") !=
                         peer->getClientCapabilities().end())
                     {
-                        peer->sendPacket(&p_1_1, PRM_RELIABLE);
+                        peer->sendPacket(packet_1_1);
                     }
                     else
                     {
-                        peer->sendPacket(&p, PRM_RELIABLE);
+                        peer->sendPacket(packet);
                     }
                 }
             }
@@ -701,10 +739,10 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 }   // onCheckGoalTriggered
 
 //-----------------------------------------------------------------------------
-void SoccerWorld::handleResetBallFromServer(const NetworkString& ns)
+void SoccerWorld::handleResetBallFromServer(const ResetBallPacket& packet)
 {
     int ticks_now = World::getWorld()->getTicksSinceStart();
-    int ticks_back_to_own_goal = ns.getTime();
+    int ticks_back_to_own_goal = packet.reset_ball_ticks;
     if (ticks_now >= ticks_back_to_own_goal)
     {
         Log::warn("SoccerWorld", "Server ticks %d is too close to client ticks "
@@ -715,23 +753,26 @@ void SoccerWorld::handleResetBallFromServer(const NetworkString& ns)
 }   // handleResetBallFromServer
 
 //-----------------------------------------------------------------------------
-void SoccerWorld::handlePlayerGoalFromServer(const NetworkString& ns)
+void SoccerWorld::handlePlayerGoalFromServer(const InternalGoalPacket& packet)
 {
     ScorerData sd = {};
-    sd.m_id = ns.getUInt8();
-    sd.m_correct_goal = ns.getUInt8() == 1;
-    bool first_goal = ns.getUInt8() == 1;
-    sd.m_time = ns.getFloat();
+    sd.m_id = packet.id;
+    sd.m_correct_goal = packet.correct_goal;
+    bool first_goal = packet.first_goal;
+    sd.m_time = packet.time;
     int ticks_now = World::getWorld()->getTicksSinceStart();
-    int ticks_back_to_own_goal = ns.getTime();
-    ns.decodeString(&sd.m_kart);
-    ns.decodeStringW(&sd.m_player);
+    int ticks_back_to_own_goal = packet.ticks_back_to_own_goal;
+    sd.m_kart = packet.kart;
+    sd.m_player = packet.player;
     // Added in 1.1, add missing handicap info and country code
     if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
         != NetworkConfig::get()->getServerCapabilities().end())
     {
-        ns.decodeString(&sd.m_country_code);
-        sd.m_handicap_level = (HandicapLevel)ns.getUInt8();
+        if (packet.country_code.has_value())
+            sd.m_country_code = packet.country_code.get_value();
+
+        if (packet.handicap.has_value())
+            sd.m_handicap_level = (HandicapLevel)(packet.handicap.get_value());
     }
 
     if (first_goal)
@@ -936,11 +977,9 @@ void SoccerWorld::updateBallPosition(int ticks)
                     m_reset_ball_ticks = getTicksSinceStart() +
                         stk_config->time2Ticks(2.0f);
 
-                    NetworkString p(PROTOCOL_GAME_EVENTS);
-                    p.setSynchronous(true);
-                    p.addUInt8(GameEventsProtocol::GE_RESET_BALL)
-                        .addTime(m_reset_ball_ticks);
-                    STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+                    ResetBallPacket packet;
+                    packet.reset_ball_ticks = m_reset_ball_ticks;
+                    Comm::sendPacketToPeers(packet);
                 }
                 else if (!NetworkConfig::get()->isNetworking())
                 {
@@ -1176,89 +1215,60 @@ void SoccerWorld::enterRaceOverState()
     }
 
 }   // enterRaceOverState
-
 // ----------------------------------------------------------------------------
-void SoccerWorld::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
+
+std::shared_ptr<WorldPacket> SoccerWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
+    auto packet = std::make_shared<SoccerWorldCompleteStatePacket>();
+
+    bool has_soccer_fixes =
+            peer->getClientCapabilities().find("soccer_fixes") !=
+            peer->getClientCapabilities().end();
+
     const unsigned red_scorers = (unsigned)m_red_scorers.size();
-    bns->addUInt32(red_scorers);
+    packet->red_scorers_count = red_scorers;
     for (unsigned i = 0; i < red_scorers; i++)
-    {
-        bns->addUInt8((uint8_t)m_red_scorers[i].m_id)
-            .addUInt8(m_red_scorers[i].m_correct_goal)
-            .addFloat(m_red_scorers[i].m_time)
-            .encodeString(m_red_scorers[i].m_kart)
-            .encodeString(m_red_scorers[i].m_player);
-        if (peer->getClientCapabilities().find("soccer_fixes") !=
-            peer->getClientCapabilities().end())
-        {
-            bns->encodeString(m_red_scorers[i].m_country_code)
-                .addUInt8(m_red_scorers[i].m_handicap_level);
-        }
-    }
+        packet->red_scorers.push_back(std::move(m_red_scorers[i].saveCompleteState(has_soccer_fixes)));
 
     const unsigned blue_scorers = (unsigned)m_blue_scorers.size();
-    bns->addUInt32(blue_scorers);
+    packet->blue_scorers_count = blue_scorers;
     for (unsigned i = 0; i < blue_scorers; i++)
-    {
-        bns->addUInt8((uint8_t)m_blue_scorers[i].m_id)
-            .addUInt8(m_blue_scorers[i].m_correct_goal)
-            .addFloat(m_blue_scorers[i].m_time)
-            .encodeString(m_blue_scorers[i].m_kart)
-            .encodeString(m_blue_scorers[i].m_player);
-        if (peer->getClientCapabilities().find("soccer_fixes") !=
-            peer->getClientCapabilities().end())
-        {
-            bns->encodeString(m_blue_scorers[i].m_country_code)
-                .addUInt8(m_blue_scorers[i].m_handicap_level);
-        }
-    }
-    bns->addTime(m_reset_ball_ticks).addTime(m_ticks_back_to_own_goal);
+        packet->blue_scorers.push_back(std::move(m_blue_scorers[i].saveCompleteState(has_soccer_fixes)));
+    
+    packet->reser_ball_ticks = m_reset_ball_ticks;
+    packet->ticks_back_to_own_goal = m_ticks_back_to_own_goal;
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void SoccerWorld::restoreCompleteState(const BareNetworkString& b)
+void SoccerWorld::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
+    std::shared_ptr<SoccerWorldCompleteStatePacket> soccer_packet =
+            std::dynamic_pointer_cast<SoccerWorldCompleteStatePacket>(packet);
+
     m_red_scorers.clear();
     m_blue_scorers.clear();
 
-    const unsigned red_size = b.getUInt32();
+    // As we don't know the peer, we assume our has_soccer_fixes based on what
+    // SERVER has told us. This is wrong.
+
+    const unsigned red_size = soccer_packet->red_scorers_count;
     for (unsigned i = 0; i < red_size; i++)
     {
         ScorerData sd;
-        sd.m_id = b.getUInt8();
-        sd.m_correct_goal = b.getUInt8() == 1;
-        sd.m_time = b.getFloat();
-        b.decodeString(&sd.m_kart);
-        b.decodeStringW(&sd.m_player);
-        if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
-            != NetworkConfig::get()->getServerCapabilities().end())
-        {
-            b.decodeString(&sd.m_country_code);
-            sd.m_handicap_level = (HandicapLevel)b.getUInt8();
-        }
+        sd.restoreCompleteState(soccer_packet->red_scorers[i]);
         m_red_scorers.push_back(sd);
     }
 
-    const unsigned blue_size = b.getUInt32();
+    const unsigned blue_size = soccer_packet->blue_scorers_count;
     for (unsigned i = 0; i < blue_size; i++)
     {
         ScorerData sd;
-        sd.m_id = b.getUInt8();
-        sd.m_correct_goal = b.getUInt8() == 1;
-        sd.m_time = b.getFloat();
-        b.decodeString(&sd.m_kart);
-        b.decodeStringW(&sd.m_player);
-        if (NetworkConfig::get()->getServerCapabilities().find("soccer_fixes")
-            != NetworkConfig::get()->getServerCapabilities().end())
-        {
-            b.decodeString(&sd.m_country_code);
-            sd.m_handicap_level = (HandicapLevel)b.getUInt8();
-        }
+        sd.restoreCompleteState(soccer_packet->blue_scorers[i]);
         m_blue_scorers.push_back(sd);
     }
-    m_reset_ball_ticks = b.getTime();
-    m_ticks_back_to_own_goal = b.getTime();
+    m_reset_ball_ticks = soccer_packet->reser_ball_ticks;
+    m_ticks_back_to_own_goal = soccer_packet->ticks_back_to_own_goal;
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------
@@ -1357,37 +1367,36 @@ std::pair<int, int> SoccerWorld::getCount() const {
 void SoccerWorld::tellCountToEveryoneInGame() const
 {
     auto peers = STKHost::get()->getPeers();
-    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(17); // LE_CHAT
-    chat->setSynchronous(true);
     auto real_score = getCount();
     int real_red = real_score.first;
     int real_blue = real_score.second;
-    std::string real_count =
-        std::to_string(real_red) + " : " + std::to_string(real_blue);
-    chat->encodeString16(StringUtils::utf8ToWide(real_count));
+    std::string real_count = std::to_string(real_red)
+                  + " : " + std::to_string(real_blue);
+
+    // This should be done using sendStringTo...
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(real_count);
+
     for (auto& peer : peers)
         if (peer->isValidated() && !peer->isWaitingForGame())
-            peer->sendPacket(chat, PRM_RELIABLE);
-
-    delete chat;
+            peer->sendPacket(packet);
 }   // tellCountToEveryoneInGame
 // ----------------------------------------------------------------------------
 void SoccerWorld::tellCount(std::shared_ptr<STKPeer> peer) const
 {
     if (!peer->isValidated())
         return;
-    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
-    chat->addUInt8(17); // LE_CHAT
-    chat->setSynchronous(true);
+
     auto real_score = getCount();
     int real_red = real_score.first;
     int real_blue = real_score.second;
     std::string real_count =
             std::to_string(real_red) + " : " + std::to_string(real_blue);
-    chat->encodeString16(StringUtils::utf8ToWide(real_count));
-    peer->sendPacket(chat, PRM_RELIABLE);
-    delete chat;
+
+    // This should be done using sendStringTo...
+    ChatPacket packet;
+    packet.message = StringUtils::utf8ToWide(real_count);
+    peer->sendPacket(packet);
 }   // tellCount
 // ----------------------------------------------------------------------------
 

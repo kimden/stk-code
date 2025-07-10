@@ -20,6 +20,7 @@
 #define LOBBY_GP_MANAGER_HPP
 
 #include "irrString.h"
+#include "network/packet_types.hpp"
 #include "utils/track_filter.hpp"
 #include "utils/lobby_context.hpp"
 
@@ -27,7 +28,6 @@
 #include <queue>
 
 class NetworkPlayerProfile;
-class NetworkString;
 class GPScoring;
 
 struct GPScore
@@ -61,7 +61,7 @@ public:
 
     void shuffleGPScoresWithPermutation(const std::map<int, int>& permutation);
 
-    void updateGPScores(std::vector<float>& gp_changes, NetworkString* ns);
+    GPScoresPacket updateGPScores(std::vector<float>& gp_changes);
 
     bool trySettingGPScoring(const std::string& input);
 

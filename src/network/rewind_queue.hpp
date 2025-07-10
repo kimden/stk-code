@@ -64,11 +64,11 @@ public:
          RewindQueue();
         ~RewindQueue();
     void reset();
-    void addLocalEvent(EventRewinder *event_rewinder, BareNetworkString *buffer,
+    void addLocalEvent(EventRewinder *event_rewinder, const ControllerActionPacket& packet,
                        bool confirmed, int ticks);
     void addLocalState(BareNetworkString *buffer, bool confirmed, int ticks);
     void addNetworkEvent(EventRewinder *event_rewinder,
-                         BareNetworkString *buffer, int ticks);
+                         ControllerActionPacket packet, int ticks);
     void addNetworkState(BareNetworkString *buffer, int ticks);
     void addNetworkRewindInfo(RewindInfo* ri)
     {

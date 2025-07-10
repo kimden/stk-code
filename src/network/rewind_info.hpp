@@ -21,6 +21,7 @@
 
 #include "network/event_rewinder.hpp"
 #include "network/network_string.hpp"
+#include "network/packet_types.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/leak_check.hpp"
 #include "utils/ptr_vector.hpp"
@@ -92,27 +93,27 @@ public:
 class RewindInfoState: public RewindInfo
 {
 private:
-    std::vector<std::string> m_rewinder_using;
+    std::vector<ProjectilePacket> m_rewinder_using;
 
     int m_start_offset;
 
-    /** Pointer to the buffer which stores all states. */
-    BareNetworkString *m_buffer;
+    std::vector<TheRestOfBgsPacket> m_buffer;
 
 public:
     // ------------------------------------------------------------------------
-    RewindInfoState(int ticks, int start_offset,
-                    std::vector<std::string>& rewinder_using,
-                    std::vector<uint8_t>& buffer);
+    RewindInfoState(int ticks,
+                    std::vector<ProjectilePacket> rewinder_using,
+                    std::vector<TheRestOfBgsPacket> the_rest);
     // ------------------------------------------------------------------------
-    RewindInfoState(int ticks, BareNetworkString *buffer, bool is_confirmed);
+    RewindInfoState(int ticks, std::vector<TheRestOfBgsPacket> the_rest,
+                    bool is_confirmed);
     // ------------------------------------------------------------------------
-    virtual ~RewindInfoState()                             { delete m_buffer; }
+    virtual ~RewindInfoState()                                            {  }
     // ------------------------------------------------------------------------
     virtual void restore();
     // ------------------------------------------------------------------------
     /** Returns a pointer to the state buffer. */
-    BareNetworkString *getBuffer() const { return m_buffer; }
+    std::vector<TheRestOfBgsPacket> getBuffer() const { return m_buffer; }
     // ------------------------------------------------------------------------
     virtual bool isState() const { return true; }
     // ------------------------------------------------------------------------
@@ -139,13 +140,12 @@ private:
     EventRewinder *m_event_rewinder;
 
     /** Buffer with the event data. */
-    BareNetworkString *m_buffer;
+    ControllerActionPacket m_buffer;
 public:
              RewindInfoEvent(int ticks, EventRewinder *event_rewinder,
-                             BareNetworkString *buffer, bool is_confirmed);
+                             ControllerActionPacket packet, bool is_confirmed);
     virtual ~RewindInfoEvent()
     {
-        delete m_buffer;
     }   // ~RewindInfoEvent
 
     // ------------------------------------------------------------------------
@@ -158,7 +158,6 @@ public:
      *  It calls undoEvent in the rewinder. */
     virtual void undo()
     {
-        m_buffer->reset();
         m_event_rewinder->undo(m_buffer);
     }   // undo
     // ------------------------------------------------------------------------
@@ -167,13 +166,11 @@ public:
      */
     virtual void replay()
     {
-        // Make sure to reset the buffer so we read from the beginning
-        m_buffer->reset();
         m_event_rewinder->rewind(m_buffer);
     }   // rewind
     // ------------------------------------------------------------------------
     /** Returns the buffer with the event information in it. */
-    BareNetworkString *getBuffer() { return m_buffer; }
+    ControllerActionPacket getBuffer() { return m_buffer; }
 };   // class RewindIndoEvent
 
 

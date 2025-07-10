@@ -386,10 +386,8 @@ GUIEngine::EventPropagation
             if (NetworkConfig::get()->isNetworking())
             {
                 // back lobby
-                NetworkString back(PROTOCOL_LOBBY_ROOM);
-                back.setSynchronous(true);
-                back.addUInt8(LobbyEvent::LE_CLIENT_BACK_LOBBY);
-                Comm::sendToServer(&back, PRM_RELIABLE);
+                ClientBackLobbyPacket packet;
+                Comm::sendPacketToServer(packet);
             }
             else
             {

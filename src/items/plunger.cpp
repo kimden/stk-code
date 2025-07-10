@@ -254,25 +254,36 @@ void Plunger::hitTrack()
 }   // hitTrack
 
 // ----------------------------------------------------------------------------
-BareNetworkString* Plunger::saveState(std::vector<std::string>* ru)
+PlungerPacket Plunger::saveState(std::vector<std::string>* ru)
 {
-    BareNetworkString* buffer = Flyable::saveState(ru);
-    if (!buffer)
-        return NULL;
+    PlungerPacket packet;
+    FlyablePacket subpacket = Flyable::saveState(ru);
 
-    buffer->addUInt16(m_keep_alive);
+    // kimden: it was checking before if BNS is null.
+    // Temporary solution is below.
+    if (!subpacket.ticks_since_thrown_animation.has_value())
+        return packet;
+
+    packet.flyable_packet = subpacket;
+    packet.keep_alive = m_keep_alive;
+    uint8_t state = 255;
     if (m_rubber_band)
-        buffer->addUInt8(m_rubber_band->get8BitState());
-    else
-        buffer->addUInt8(255);
-    return buffer;
+        state = m_rubber_band->get8BitState();
+    packet.rubber_band_state = state;
+    return packet;
 }   // saveState
 
 // ----------------------------------------------------------------------------
-void Plunger::restoreState(BareNetworkString *buffer, int count)
+void Plunger::restoreState(const PlungerPacket& packet, int count)
 {
-    Flyable::restoreState(buffer, count);
-    m_keep_alive = buffer->getUInt16();
+    // kimden: nonvirtual: in which cases there can be nothing?
+    // I don't check the presence of other fields for now
+    // because they are supposed to be there too if flyable_packet is present.
+    if (!packet.flyable_packet.has_value())
+        return;
+
+    Flyable::restoreState(packet.flyable_packet.get_value(), count);
+    m_keep_alive = packet.keep_alive.get_value();
     // Restore position base on m_keep_alive in Plunger::hit
     if (m_keep_alive == -1)
         m_moved_to_infinity = false;
@@ -282,7 +293,7 @@ void Plunger::restoreState(BareNetworkString *buffer, int count)
         m_moved_to_infinity = true;
     }
 
-    uint8_t bit_state = buffer->getUInt8();
+    uint8_t bit_state = packet.rubber_band_state.get_value();
     if (bit_state == 255 && m_rubber_band)
     {
         delete m_rubber_band;

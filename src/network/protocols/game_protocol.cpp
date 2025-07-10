@@ -63,13 +63,12 @@ GameProtocol::GameProtocol()
 {
     m_network_item_manager = static_cast<NetworkItemManager*>
         (Track::getCurrentTrack()->getItemManager());
-    m_data_to_send = getNetworkString();
+    m_packet_to_send = std::make_shared<BigGameStatesPacket>();
 }   // GameProtocol
 
 //-----------------------------------------------------------------------------
 GameProtocol::~GameProtocol()
 {
-    delete m_data_to_send;
 }   // ~GameProtocol
 
 //-----------------------------------------------------------------------------
@@ -82,15 +81,14 @@ void GameProtocol::sendActions()
 
     // Clear left-over data from previous frame. This way the network
     // string will increase till it reaches maximum size necessary
-    m_data_to_send->clear();
     if (m_all_actions.size() > 255)
     {
         Log::warn("GameProtocol",
             "Too many actions unsent %d.", (int)m_all_actions.size());
         m_all_actions.resize(255);
     }
-    m_data_to_send->addUInt8(GP_CONTROLLER_ACTION)
-                   .addUInt8(uint8_t(m_all_actions.size()));
+    ControllerActionBigPacket big_packet;
+    big_packet.count = m_all_actions.size();
 
     // Add all actions
     for (auto& a : m_all_actions)
@@ -102,15 +100,22 @@ void GameProtocol::sendActions()
                 a.m_ticks, a.m_kart_id, a.m_action, a.m_value, a.m_value_l,
                 a.m_value_r);
         }
-        m_data_to_send->addUInt32(a.m_ticks);
-        m_data_to_send->addUInt8(a.m_kart_id);
         const auto& c = compressAction(a);
-        m_data_to_send->addUInt8(std::get<0>(c)).addUInt16(std::get<1>(c))
-            .addUInt16(std::get<2>(c)).addUInt16(std::get<3>(c));
+
+        ControllerSingleActionPacket packet;
+        packet.ticks = a.m_ticks;
+        packet.subpacket.kart_id = a.m_kart_id;
+        packet.subpacket.compressed_action_0 = std::get<0>(c);
+        packet.subpacket.compressed_action_1 = std::get<1>(c);
+        packet.subpacket.compressed_action_2 = std::get<2>(c);
+        packet.subpacket.compressed_action_3 = std::get<3>(c);
+        big_packet.actions.push_back(packet);
     }   // for a in m_all_actions
 
-    // FIXME: for now send reliable
-    Comm::sendToServer(m_data_to_send, PRM_RELIABLE);
+    Comm::sendPacketToServer(big_packet, PRM_RELIABLE);
+
+    m_packet_to_send = std::make_shared<BigGameStatesPacket>(big_packet);
+
     m_all_actions.clear();
 }   // sendActions
 
@@ -169,11 +174,15 @@ void GameProtocol::controllerAction(int kart_id, PlayerAction action,
     const auto& c = compressAction(a);
     // Store the event in the rewind manager, which is responsible
     // for freeing the allocated memory
-    BareNetworkString *s = new BareNetworkString(4);
-    s->addUInt8(kart_id).addUInt8(std::get<0>(c)).addUInt16(std::get<1>(c))
-        .addUInt16(std::get<2>(c)).addUInt16(std::get<3>(c));
 
-    RewindManager::get()->addEvent(this, s, /*confirmed*/true,
+    ControllerActionPacket packet;
+    packet.kart_id = kart_id;
+    packet.compressed_action_0 = std::get<0>(c);
+    packet.compressed_action_1 = std::get<1>(c);
+    packet.compressed_action_2 = std::get<2>(c);
+    packet.compressed_action_3 = std::get<3>(c);
+
+    RewindManager::get()->addEvent(this, packet, /*confirmed*/true,
                                    World::getWorld()->getTicksSinceStart());
 }   // controllerAction
 
@@ -189,15 +198,17 @@ void GameProtocol::handleControllerAction(Event *event)
     if (NetworkConfig::get()->isServer() && (peer->isWaitingForGame() ||
         peer->getAvailableKartIDs().empty()))
         return;
-    NetworkString &data = event->data();
-    uint8_t count = data.getUInt8();
+
+    auto packet = event->getPacket<ControllerActionBigPacket>();
+    uint8_t count = packet.count;
     bool will_trigger_rewind = false;
     //int rewind_delta = 0;
     int cur_ticks = 0;
     const int not_rewound = RewindManager::get()->getNotRewoundWorldTicks();
     for (unsigned int i = 0; i < count; i++)
     {
-        cur_ticks = data.getUInt32();
+        auto& action_packet = packet.actions[i];
+        cur_ticks = action_packet.ticks;
         // Since this is running in a thread, it might be called during
         // a rewind, i.e. with an incorrect world time. So the event
         // time needs to be compared with the World time independent
@@ -207,7 +218,7 @@ void GameProtocol::handleControllerAction(Event *event)
             will_trigger_rewind = true;
             //rewind_delta = not_rewound - cur_ticks;
         }
-        uint8_t kart_id = data.getUInt8();
+        uint8_t kart_id = action_packet.subpacket.kart_id;
         if (NetworkConfig::get()->isServer() &&
             !peer->availableKartID(kart_id))
         {
@@ -216,10 +227,10 @@ void GameProtocol::handleControllerAction(Event *event)
             return;
         }
 
-        uint8_t w = data.getUInt8();
-        uint16_t x = data.getUInt16();
-        uint16_t y = data.getUInt16();
-        uint16_t z = data.getUInt16();
+        uint8_t w = action_packet.subpacket.compressed_action_0;
+        uint16_t x = action_packet.subpacket.compressed_action_1;
+        uint16_t y = action_packet.subpacket.compressed_action_2;
+        uint16_t z = action_packet.subpacket.compressed_action_3;
         if (Network::m_connection_debug)
         {
             const auto& a = decompressAction(w, x, y, z);
@@ -228,24 +239,16 @@ void GameProtocol::handleControllerAction(Event *event)
                 cur_ticks, kart_id, std::get<0>(a), std::get<1>(a),
                 std::get<2>(a), std::get<3>(a));
         }
-        BareNetworkString *s = new BareNetworkString(3);
-        s->addUInt8(kart_id).addUInt8(w).addUInt16(x).addUInt16(y)
-            .addUInt16(z);
-        RewindManager::get()->addNetworkEvent(this, s, cur_ticks);
+        RewindManager::get()->addNetworkEvent(this, action_packet.subpacket, cur_ticks);
     }
 
-    if (data.size() > 0)
-    {
-        Log::warn("GameProtocol",
-                  "Received invalid controller data - remains %d",data.size());
-    }
     if (NetworkConfig::get()->isServer())
     {
         // Send update to all clients except the original sender if the event
         // is after the server time
         peer->updateLastActivity();
         if (!will_trigger_rewind)
-            STKHost::get()->sendPacketExcept(peer, &data, PRM_UNRELIABLE);
+            Comm::sendPacketExcept(peer, packet, PRM_UNRELIABLE);
     }   // if server
 
 }   // handleControllerAction
@@ -258,12 +261,11 @@ void GameProtocol::handleControllerAction(Event *event)
 void GameProtocol::sendItemEventConfirmation(int ticks)
 {
     assert(NetworkConfig::get()->isClient());
-    NetworkString *ns = getNetworkString(5);
-    ns->addUInt8(GP_ITEM_CONFIRMATION).addUInt32(ticks);
-    // This message can be sent unreliable, it's not critical if it doesn't
-    // get delivered, a future update will come through
-    Comm::sendToServer(ns, PRM_UNRELIABLE);
-    delete ns;
+
+    ItemConfirmationPacket packet;
+    packet.ticks = ticks;
+
+    Comm::sendPacketToServer(packet);
 }   // sendItemEventConfirmation
 
 // ----------------------------------------------------------------------------
@@ -275,7 +277,8 @@ void GameProtocol::sendItemEventConfirmation(int ticks)
 void GameProtocol::handleItemEventConfirmation(Event *event)
 {
     assert(NetworkConfig::get()->isServer());
-    int ticks = event->data().getTime();
+    auto packet = event->getPacket<ItemConfirmationPacket>();
+    int ticks = packet.ticks;
     m_network_item_manager->setItemConfirmationTime(event->getPeerSP(), ticks);
 }   // handleItemEventConfirmation
 
@@ -286,9 +289,11 @@ void GameProtocol::handleItemEventConfirmation(Event *event)
 void GameProtocol::startNewState()
 {
     assert(NetworkConfig::get()->isServer());
-    m_data_to_send->clear();
-    m_data_to_send->addUInt8(GP_STATE)
-        .addUInt32(World::getWorld()->getTicksSinceStart());
+    m_packet_to_send = std::make_shared<BigGameStatesPacket>();
+
+    GameEventStatePacket packet;
+    packet.ticks_since_start = World::getWorld()->getTicksSinceStart();
+    m_packet_to_send->state = packet;
 }   // startNewState
 
 // ----------------------------------------------------------------------------
@@ -296,11 +301,11 @@ void GameProtocol::startNewState()
  *  is copied, so the data can be freed after this call/.
  *  \param buffer Adds the data in the buffer to the current state.
  */
-void GameProtocol::addState(BareNetworkString *buffer)
+void GameProtocol::addState(TheRestOfBgsPacket packet)
 {
     assert(NetworkConfig::get()->isServer());
-    m_data_to_send->addUInt16(buffer->size());
-    (*m_data_to_send) += *buffer;
+
+    m_packet_to_send->the_rest.push_back(std::move(packet));
 }   // addState
 
 // ----------------------------------------------------------------------------
@@ -308,23 +313,12 @@ void GameProtocol::addState(BareNetworkString *buffer)
  *  names of rewinder using to the beginning of state buffer
  *  \param cur_rewinder List of current rewinder using.
  */
-void GameProtocol::finalizeState(std::vector<std::string>& cur_rewinder)
+void GameProtocol::finalizeState(const std::vector<ProjectilePacket>& cur_rewinder)
 {
     assert(NetworkConfig::get()->isServer());
-    auto& buffer = m_data_to_send->getBuffer();
-    auto pos = buffer.begin() + 1/*protocol type*/ + 1 /*gp event type*/+
-        4/*time*/;
 
-    m_data_to_send->reset();
-    std::vector<uint8_t> names;
-    names.push_back((uint8_t)cur_rewinder.size());
-    for (std::string& name : cur_rewinder)
-    {
-        names.push_back((uint8_t)name.size());
-        std::vector<uint8_t> rewinder(name.begin(), name.end());
-        names.insert(names.end(), rewinder.begin(), rewinder.end());
-    }
-    buffer.insert(pos, names.begin(), names.end());
+    m_packet_to_send->rewinders_size = cur_rewinder.size();
+    m_packet_to_send->rewinders = cur_rewinder; // they should be after time
 }   // finalizeState
 
 // ----------------------------------------------------------------------------
@@ -334,7 +328,7 @@ void GameProtocol::finalizeState(std::vector<std::string>& cur_rewinder)
 void GameProtocol::sendState()
 {
     assert(NetworkConfig::get()->isServer());
-    Comm::sendMessageToPeers(m_data_to_send, PRM_UNRELIABLE);
+    Comm::sendPacketToPeers(*m_packet_to_send, PRM_UNRELIABLE);
 }   // sendState
 
 // ----------------------------------------------------------------------------
@@ -344,22 +338,16 @@ void GameProtocol::handleState(Event *event)
 {
     if (!NetworkConfig::get()->isClient())
         return;
-    NetworkString &data = event->data();
-    int ticks          = data.getUInt32();
+    
+    auto packet = event->getPacket<BigGameStatesPacket>();
+
+    int ticks          = packet.ticks;
 
     // Check for updated rewinder using
-    unsigned rewinder_size = data.getUInt8();
-    std::vector<std::string> rewinder_using;
-    for (unsigned i = 0; i < rewinder_size; i++)
-    {
-        std::string name;
-        data.decodeString(&name);
-        rewinder_using.push_back(name);
-    }
+    unsigned rewinder_size = packet.rewinders_size;
 
     // The memory for bns will be handled in the RewindInfoState object
-    RewindInfoState* ris = new RewindInfoState(ticks, data.getCurrentOffset(),
-        rewinder_using, data.getBuffer());
+    RewindInfoState* ris = new RewindInfoState(ticks, packet.rewinders, packet.the_rest);
     RewindManager::get()->addNetworkRewindInfo(ris);
 }   // handleState
 
@@ -377,13 +365,15 @@ void GameProtocol::undo(BareNetworkString *buffer)
  *  events.
  *  \param buffer Pointer to the saved state information.
  */
-void GameProtocol::rewind(BareNetworkString *buffer)
+void GameProtocol::rewind(const ControllerActionPacket& packet)
 {
-    int kart_id = buffer->getUInt8();
-    uint8_t w = buffer->getUInt8();
-    uint16_t x = buffer->getUInt16();
-    uint16_t y = buffer->getUInt16();
-    uint16_t z = buffer->getUInt16();
+    // kimden: I think the packet type is correct.
+    // I will likely have to change it to shared_ptr<Packet> though.
+    int kart_id = packet.kart_id;
+    uint8_t w = packet.compressed_action_0;
+    uint16_t x = packet.compressed_action_1;
+    uint16_t y = packet.compressed_action_2;
+    uint16_t z = packet.compressed_action_3;
     const auto& a = decompressAction(w, x, y, z);
     Controller *c = World::getWorld()->getKart(kart_id)->getController();
     PlayerController *pc = dynamic_cast<PlayerController*>(c);

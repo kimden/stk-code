@@ -99,12 +99,12 @@ void STKPeer::reset()
 }   // reset
 
 //-----------------------------------------------------------------------------
-/** Sends a packet to this host.
+/** Sends a network string to this host.
  *  \param data The data to send.
  *  \param reliable If the data is sent reliable or not.
  *  \param encrypted If the data is sent encrypted or not.
  */
-void STKPeer::sendPacket(NetworkString *data, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
+void STKPeer::sendNetstring(NetworkString *data, PacketReliabilityMode reliable, PacketEncryptionMode encrypted)
 {
     if (m_disconnected.load())
         return;
@@ -135,7 +135,7 @@ void STKPeer::sendPacket(NetworkString *data, PacketReliabilityMode reliable, Pa
                 encrypted ? EVENT_CHANNEL_NORMAL : EVENT_CHANNEL_UNENCRYPTED,
                 ECT_SEND_PACKET, m_address);
     }
-}   // sendPacket
+}   // sendNetstring
 
 //-----------------------------------------------------------------------------
 /** Returns if the peer is connected or not.

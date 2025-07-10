@@ -20,6 +20,7 @@
 #define HEADER_REWIND_MANAGER_HPP
 
 #include "network/rewind_queue.hpp"
+#include "network/packet_types.hpp"
 #include "utils/stk_process.hpp"
 
 #include <assert.h>
@@ -94,7 +95,7 @@ private:
     std::map<int, std::vector<std::function<void()> > > m_local_state;
 
     /** A list of all objects that can be rewound. */
-    std::map<std::string, std::weak_ptr<Rewinder> > m_all_rewinder;
+    std::map<ProjectilePacket, std::weak_ptr<Rewinder> > m_all_rewinder;
 
     /** The queue that stores all rewind infos. */
     RewindQueue m_rewind_queue;
@@ -117,7 +118,7 @@ private:
 
     bool m_schedule_reset_network_body;
 
-    std::set<std::string> m_missing_rewinders;
+    std::set<ProjectilePacket> m_missing_rewinders;
 
     RewindManager();
    ~RewindManager();
@@ -170,16 +171,16 @@ public:
     void update(int ticks);
     void rewindTo(int target_ticks, int ticks_now, bool fast_forward);
     void playEventsTill(int world_ticks, bool fast_forward);
-    void addEvent(EventRewinder *event_rewinder, BareNetworkString *buffer,
+    void addEvent(EventRewinder *event_rewinder, const ControllerActionPacket& packet,
                   bool confirmed, int ticks = -1);
     void addNetworkEvent(EventRewinder *event_rewinder,
-                         BareNetworkString *buffer, int ticks);
+                         ControllerActionPacket packet, int ticks);
     void addNetworkState(BareNetworkString *buffer, int ticks);
     void saveState();
     // ------------------------------------------------------------------------
-    std::shared_ptr<Rewinder> getRewinder(const std::string& name)
+    std::shared_ptr<Rewinder> getRewinder(const ProjectilePacket& packet)
     {
-        auto it = m_all_rewinder.find(name);
+        auto it = m_all_rewinder.find(packet);
         if (it != m_all_rewinder.end())
         {
             if (auto r = it->second.lock())
@@ -223,11 +224,11 @@ public:
     // ------------------------------------------------------------------------
     void handleResetSmoothNetworkBody();
     // ------------------------------------------------------------------------
-    void addMissingRewinder(const std::string& name)
-                                          { m_missing_rewinders.insert(name); }
+    void addMissingRewinder(const ProjectilePacket& packet)
+                                        { m_missing_rewinders.insert(packet); }
     // ------------------------------------------------------------------------
-    bool hasMissingRewinder(const std::string& name) const
-        { return m_missing_rewinders.find(name) != m_missing_rewinders.end(); }
+    bool hasMissingRewinder(const ProjectilePacket& packet) const
+      { return m_missing_rewinders.find(packet) != m_missing_rewinders.end(); }
 
 };   // RewindManager
 

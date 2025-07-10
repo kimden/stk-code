@@ -47,6 +47,7 @@
 #include "tracks/drive_node.hpp"
 #include "tracks/track_sector.hpp"
 #include "tracks/track.hpp"
+#include "utils/communication.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
@@ -1215,79 +1216,114 @@ std::pair<uint32_t, uint32_t> LinearWorld::getGameStartedProgress() const
 }   // getGameStartedProgress
 
 // ----------------------------------------------------------------------------
-void LinearWorld::KartInfo::saveCompleteState(BareNetworkString* bns)
+KartInfoInGamePacket LinearWorld::KartInfo::saveCompleteState()
 {
-    bns->addUInt32(m_finished_laps);
-    bns->addUInt32(m_ticks_at_last_lap);
-    bns->addUInt32(m_lap_start_ticks);
-    bns->addFloat(m_estimated_finish);
-    bns->addFloat(m_overall_distance);
-    bns->addFloat(m_wrong_way_timer);
+    KartInfoInGamePacket packet;
+    packet.finished_laps = m_finished_laps;
+    packet.ticks_at_last_lap = m_ticks_at_last_lap;
+    packet.lap_start_ticks = m_lap_start_ticks;
+    packet.estimated_finish = m_estimated_finish;
+    packet.overall_distance = m_overall_distance;
+    packet.wrong_way_timer = m_wrong_way_timer;
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void LinearWorld::KartInfo::restoreCompleteState(const BareNetworkString& b)
+void LinearWorld::KartInfo::restoreCompleteState(const KartInfoInGamePacket& packet)
 {
-    m_finished_laps = b.getUInt32();
-    m_ticks_at_last_lap = b.getUInt32();
-    m_lap_start_ticks = b.getUInt32();
-    m_estimated_finish = b.getFloat();
-    m_overall_distance = b.getFloat();
-    m_wrong_way_timer = b.getFloat();
+    m_finished_laps = packet.finished_laps;
+    m_ticks_at_last_lap = packet.ticks_at_last_lap;
+    m_lap_start_ticks = packet.lap_start_ticks;
+    m_estimated_finish = packet.estimated_finish;
+    m_overall_distance = packet.overall_distance;
+    m_wrong_way_timer = packet.wrong_way_timer;
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------
-void LinearWorld::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
+std::shared_ptr<WorldPacket> LinearWorld::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
-    bns->addUInt32(m_fastest_lap_ticks);
-    bns->addFloat(m_distance_increase);
+    auto packet = std::make_shared<LinearWorldCompleteStatePacket>();
+
+    packet->fastest_lap_ticks = m_fastest_lap_ticks;
+    packet->distance_increase = m_distance_increase;
     for (auto& kart : m_karts)
     {
-        bns->add(kart->getXYZ());
-        bns->add(kart->getRotation());
+        PlacementPacket placement_packet;
+        placement_packet.xyz = kart->getXYZ();
+        placement_packet.rotation = kart->getRotation();
+        packet->kart_placements.push_back(std::move(placement_packet));
     }
     for (KartInfo& ki : m_kart_info)
-        ki.saveCompleteState(bns);
+        packet->kart_infos.push_back(ki.saveCompleteState());
     for (TrackSector* ts : m_kart_track_sector)
-        ts->saveCompleteState(bns);
+        packet->track_sectors.push_back(ts->saveCompleteState());
 
     CheckManager* cm = Track::getCurrentTrack()->getCheckManager();
     const uint8_t cc = (uint8_t)cm->getCheckStructureCount();
-    bns->addUInt8(cc);
+    packet->check_structure_count = cc;
     for (unsigned i = 0; i < cc; i++)
-        cm->getCheckStructure(i)->saveCompleteState(bns);
+    {
+        const auto& item = cm->getCheckStructure(i)->saveCompleteState();
+        packet->check_structures.push_back(std::dynamic_pointer_cast<CheckStructurePacket>(item));
+    }
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void LinearWorld::restoreCompleteState(const BareNetworkString& b)
+void LinearWorld::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
-    m_fastest_lap_ticks = b.getUInt32();
-    m_distance_increase = b.getFloat();
+    std::shared_ptr<LinearWorldCompleteStatePacket> linear_packet =
+            std::dynamic_pointer_cast<LinearWorldCompleteStatePacket>(packet);
+    m_fastest_lap_ticks = linear_packet->fastest_lap_ticks;
+    m_distance_increase = linear_packet->distance_increase;
+
+    // kimden sincerely hopes here nothing will be broken
+    if (linear_packet->kart_placements.size() != m_karts.size())
+        Log::error("LinearWorld", "Packet incoming karts size = %d, local karts size = %d",
+                linear_packet->kart_placements.size(), m_karts.size());
+
+    int i = 0;
     for (auto& kart : m_karts)
     {
         btTransform t;
-        Vec3 xyz = b.getVec3();
+        Vec3 xyz = linear_packet->kart_placements[i].xyz;
         t.setOrigin(xyz);
-        t.setRotation(b.getQuat());
+        t.setRotation(linear_packet->kart_placements[i].rotation);
         kart->setTrans(t);
         kart->setXYZ(xyz);
+        ++i;
     }
+
+    // kimden sincerely hopes here nothing will be broken
+    if (linear_packet->kart_infos.size() != m_kart_info.size())
+        Log::error("LinearWorld", "Packet incoming kartinfos size = %d, local kartinfos size = %d",
+                linear_packet->kart_infos.size(), m_kart_info.size());
+
+    i = 0;
     for (KartInfo& ki : m_kart_info)
-        ki.restoreCompleteState(b);
+        ki.restoreCompleteState(linear_packet->kart_infos[i++]);
+
+    // kimden sincerely hopes here nothing will be broken
+    if (linear_packet->track_sectors.size() != m_kart_track_sector.size())
+        Log::error("LinearWorld", "Packet incoming track sectors size = %d, local track sectors size = %d",
+                linear_packet->track_sectors.size(), m_kart_track_sector.size());
+
+    i = 0;
     for (TrackSector* ts : m_kart_track_sector)
-        ts->restoreCompleteState(b);
+        ts->restoreCompleteState(linear_packet->track_sectors[i++]);
 
     updateRacePosition();
-    const unsigned cc = b.getUInt8();
+    const unsigned cc = linear_packet->check_structure_count;
     CheckManager* cm = Track::getCurrentTrack()->getCheckManager();
     if (cc != cm->getCheckStructureCount())
     {
-        Log::warn("LinearWorld",
-            "Server has different check structures size.");
+        Log::error("LinearWorld",
+                "Server has different check structures size: %d incoming, %d locally",
+                cc, cm->getCheckStructureCount());
         return;
     }
     for (unsigned i = 0; i < cc; i++)
-        cm->getCheckStructure(i)->restoreCompleteState(b);
+        cm->getCheckStructure(i)->restoreCompleteState(linear_packet->check_structures[i]);
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------
@@ -1304,53 +1340,46 @@ void LinearWorld::updateCheckLinesServer(int check_id, int kart_id)
         NetworkConfig::get()->isClient())
         return;
 
-    NetworkString cl(PROTOCOL_GAME_EVENTS);
-    cl.setSynchronous(true);
-    cl.addUInt8(GameEventsProtocol::GE_CHECK_LINE).addUInt8((uint8_t)check_id)
-        .addUInt8((uint8_t)kart_id);
+    InsideChecklinePacket packet;
+    packet.kart_id = (uint8_t)kart_id;
+    packet.finished_laps = (int8_t)m_kart_info[kart_id].m_finished_laps;
+    packet.last_triggered_checkline = 
+            (int8_t)m_kart_track_sector[kart_id]->getLastTriggeredCheckline();
 
-    int8_t finished_laps = (int8_t)m_kart_info[kart_id].m_finished_laps;
-    cl.addUInt8(finished_laps);
-
-    int8_t ltcl =
-        (int8_t)m_kart_track_sector[kart_id]->getLastTriggeredCheckline();
-    cl.addUInt8(ltcl);
-
-    cl.addUInt32(m_fastest_lap_ticks);
-    cl.encodeString(m_fastest_lap_kart_name);
+    packet.fastest_lap_ticks = m_fastest_lap_ticks;
+    packet.fastest_kart_name = m_fastest_lap_kart_name;
 
     CheckManager* cm = Track::getCurrentTrack()->getCheckManager();
     const uint8_t cc = (uint8_t)cm->getCheckStructureCount();
-    cl.addUInt8(cc);
+    packet.check_structure_count = cc;
     for (unsigned i = 0; i < cc; i++)
-        cm->getCheckStructure(i)->saveIsActive(kart_id, &cl);
+    {
+        packet.check_active.push_back(
+                cm->getCheckStructure(i)->saveIsActive(kart_id));
+    }
 
-    STKHost::get()->sendPacketToAllPeers(&cl, PRM_RELIABLE);
+    Comm::sendPacketToPeers(packet);
 }   // updateCheckLinesServer
 
 // ----------------------------------------------------------------------------
 /* Synchronize with server from the above data. */
-void LinearWorld::updateCheckLinesClient(const BareNetworkString& b)
+void LinearWorld::updateCheckLinesClient(const InsideChecklinePacket& packet)
 {
     // Reserve for future auto checkline correction
-    //int check_id = b.getUInt8();
-    b.getUInt8();
-    int kart_id = b.getUInt8();
+    //int check_id = packet.check_id;
+    
+    int kart_id = packet.kart_id;
+    m_kart_info.at(kart_id).m_finished_laps = packet.finished_laps;
+    m_kart_track_sector.at(kart_id)->setLastTriggeredCheckline(packet.last_triggered_checkline);
 
-    int8_t finished_laps = b.getUInt8();
-    m_kart_info.at(kart_id).m_finished_laps = finished_laps;
+    m_fastest_lap_ticks = packet.fastest_lap_ticks;
+    m_fastest_lap_kart_name = packet.fastest_kart_name;
 
-    int8_t ltcl = b.getUInt8();
-    m_kart_track_sector.at(kart_id)->setLastTriggeredCheckline(ltcl);
-
-    m_fastest_lap_ticks = b.getUInt32();
-    b.decodeStringW(&m_fastest_lap_kart_name);
-
-    const unsigned cc = b.getUInt8();
+    const unsigned cc = packet.check_structure_count;
     if (cc != Track::getCurrentTrack()->getCheckManager()->getCheckStructureCount())
         return;
     for (unsigned i = 0; i < cc; i++)
-        Track::getCurrentTrack()->getCheckManager()->getCheckStructure(i)->restoreIsActive(kart_id, b);
+        Track::getCurrentTrack()->getCheckManager()->getCheckStructure(i)->restoreIsActive(kart_id, packet.check_active[i]);
 
 }   // updateCheckLinesClient
 

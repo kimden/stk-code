@@ -60,6 +60,7 @@ class ServerLobby;
 class ChildLoop;
 class SocketAddress;
 class STKPeer;
+class Packet;
 
 using namespace irr;
 
@@ -244,12 +245,12 @@ public:
     //-------------------------------------------------------------------------
     void shutdown();
     //-------------------------------------------------------------------------
-    void sendPacketToAllPeersInServer(NetworkString *data,
+    void sendNetstringToPeersInServer(NetworkString *data,
                                       PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
-    void sendPacketToAllPeers(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE);
+    void sendNetstringToPeers(NetworkString *data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
-    void sendPacketToAllPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+    void sendNetstringTolPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
                                   NetworkString* data, PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     /** Returns true if this client instance is allowed to control the server.
@@ -271,7 +272,7 @@ public:
     std::shared_ptr<STKPeer> findPeerByName(const core::stringw& name) const;
     std::shared_ptr<STKPeer> findPeerByWildcard(const core::stringw& name_pattern, std::string &name_found) const;
     // ------------------------------------------------------------------------
-    void sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
+    void sendNetstringExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
                           PacketReliabilityMode reliable = PRM_RELIABLE);
     // ------------------------------------------------------------------------
     void setupClient(int peer_count, int channel_limit,
@@ -398,6 +399,25 @@ public:
     static BareNetworkString getStunRequest(uint8_t* stun_tansaction_id);
     // ------------------------------------------------------------------------
     ChildLoop* getChildLoop() const { return m_client_loop; }
+    // ------------------------------------------------------------------------
+
+    void sendPacketPtrToPeersInServer(std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE);
+
+    void sendPacketPtrToPeers(std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE);
+
+    void sendPacketPtrExcept(std::shared_ptr<STKPeer> peer,
+            std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE);
+
+    void sendPacketPtrToPeersWith(std::function<bool(std::shared_ptr<STKPeer>)> predicate,
+            std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE);
+
+    void sendPacketPtrToServer(std::shared_ptr<Packet> packet,
+            PacketReliabilityMode reliable = PRM_RELIABLE);
+    //-------------------------------------------------------------------------
 };   // class STKHost
 
 #endif // STK_HOST_HPP

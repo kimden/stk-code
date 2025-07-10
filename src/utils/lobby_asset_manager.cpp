@@ -293,16 +293,22 @@ std::string LobbyAssetManager::getRandomAvailableMap()
 }   // getRandomAvailableMap
 //-----------------------------------------------------------------------------
 
-void LobbyAssetManager::encodePlayerKartsAndCommonMaps(NetworkString* ns,
+AssetsPacket2 LobbyAssetManager::encodePlayerKartsAndCommonMaps(
         const std::set<std::string>& all_k)
 {
     const auto& all_t = m_available_kts.second;
 
-    ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
+    AssetsPacket2 packet;
+    packet.karts_number = (uint16_t)all_k.size();
+    packet.maps_number = (uint16_t)all_t.size();
+
     for (const std::string& kart : all_k)
-        ns->encodeString(kart);
+        packet.karts.push_back(kart);
+
     for (const std::string& track : all_t)
-        ns->encodeString(track);
+        packet.maps.push_back(track);
+
+    return packet;
 }   // encodePlayerKartsAndCommonMaps
 //-----------------------------------------------------------------------------
 

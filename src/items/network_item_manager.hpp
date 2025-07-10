@@ -30,6 +30,9 @@
 #include <mutex>
 
 class STKPeer;
+class NimCompleteStatePacket;
+
+#define nonvirtual
 
 /** \ingroup items
  *  The network item manager is responsible for handling all network related
@@ -81,9 +84,8 @@ public:
                               const AbstractKart *kart,
                               const Vec3 *server_xyz = NULL,
                               const Vec3 *server_normal = NULL) OVERRIDE;
-    virtual BareNetworkString* saveState(std::vector<std::string>* ru)
-        OVERRIDE;
-    virtual void restoreState(BareNetworkString *buffer, int count) OVERRIDE;
+    nonvirtual BareNetworkString* saveState(std::vector<std::string>* ru);
+    nonvirtual void restoreState(BareNetworkString *buffer, int count);
     // ------------------------------------------------------------------------
     virtual void rewindToEvent(BareNetworkString *bns) OVERRIDE {};
     // ------------------------------------------------------------------------
@@ -107,9 +109,9 @@ public:
         m_last_confirmed_item_ticks.erase(peer);
     }
     // ------------------------------------------------------------------------
-    void saveCompleteState(BareNetworkString* buffer) const;
+    NimCompleteStatePacket saveCompleteState() const;
     // ------------------------------------------------------------------------
-    void restoreCompleteState(const BareNetworkString& buffer);
+    void restoreCompleteState(const NimCompleteStatePacket& packet);
     // ------------------------------------------------------------------------
     void initServer();
 

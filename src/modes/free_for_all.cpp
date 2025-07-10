@@ -23,6 +23,7 @@
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/stk_host.hpp"
 #include "tracks/track.hpp"
+#include "utils/communication.hpp"
 #include "utils/string_utils.hpp"
 
 #include <algorithm>
@@ -123,22 +124,28 @@ void FreeForAll::handleScoreInServer(int kart_id, int hitter)
     if (NetworkConfig::get()->isNetworking() &&
         NetworkConfig::get()->isServer())
     {
-        NetworkString p(PROTOCOL_GAME_EVENTS);
-        p.setSynchronous(true);
-        p.addUInt8(GameEventsProtocol::GE_BATTLE_KART_SCORE);
+        InsideFfaPacket packet;
+    
         if (kart_id == hitter || hitter == -1)
-            p.addUInt8((uint8_t)kart_id).addUInt16((int16_t)new_score);
+        {
+            packet.hitter_kart = (uint8_t)kart_id;
+            packet.new_score = (int16_t)new_score;
+        }
         else
-            p.addUInt8((uint8_t)hitter).addUInt16((int16_t)new_score);
-        STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+        {
+            packet.hitter_kart = (uint8_t)hitter;
+            packet.new_score = (int16_t)new_score;
+        }
+
+        Comm::sendPacketToPeers(packet);
     }
 }   // handleScoreInServer
 
 // ----------------------------------------------------------------------------
-void FreeForAll::setKartScoreFromServer(NetworkString& ns)
+void FreeForAll::setKartScoreFromServer(const InsideFfaPacket& packet)
 {
-    int kart_id = ns.getUInt8();
-    int16_t score = ns.getUInt16();
+    int kart_id = packet.hitter_kart;
+    int16_t score = packet.new_score;
     m_scores.at(kart_id) = score;
 }   // setKartScoreFromServer
 
@@ -295,17 +302,28 @@ bool FreeForAll::getKartFFAResult(int kart_id) const
 }   // getKartFFAResult
 
 // ----------------------------------------------------------------------------
-void FreeForAll::saveCompleteState(BareNetworkString* bns, std::shared_ptr<STKPeer> peer)
+std::shared_ptr<WorldPacket> FreeForAll::saveCompleteState(std::shared_ptr<STKPeer> peer)
 {
+    auto packet = std::make_shared<FFAWorldCompleteStatePacket>();
     for (unsigned i = 0; i < m_scores.size(); i++)
-        bns->addUInt32(m_scores[i]);
+        packet->scores.push_back(m_scores[i]);
+
+    return packet;
 }   // saveCompleteState
 
 // ----------------------------------------------------------------------------
-void FreeForAll::restoreCompleteState(const BareNetworkString& b)
+void FreeForAll::restoreCompleteState(const std::shared_ptr<WorldPacket>& packet)
 {
+    std::shared_ptr<FFAWorldCompleteStatePacket> ffa_packet =
+            std::dynamic_pointer_cast<FFAWorldCompleteStatePacket>(packet);
+    
+    // kimden sincerely hopes here nothing will be broken
+    if (ffa_packet->scores.size() != m_scores.size())
+        Log::error("FreeForAll", "Packet incoming scores size = %d, local scores size = %d",
+                ffa_packet->scores.size(), m_scores.size());
+
     for (unsigned i = 0; i < m_scores.size(); i++)
-        m_scores[i] = b.getUInt32();
+        m_scores[i] = (i >= ffa_packet->scores.size() ? 0 : ffa_packet->scores[i]);
 }   // restoreCompleteState
 
 // ----------------------------------------------------------------------------
@@ -341,10 +359,10 @@ void FreeForAll::notifyAboutScoreIfNonzero(int id)
         NetworkConfig::get()->isServer() &&
         m_scores[id] != 0)
     {
-        NetworkString p(PROTOCOL_GAME_EVENTS);
-        p.setSynchronous(true);
-        p.addUInt8(GameEventsProtocol::GE_BATTLE_KART_SCORE);
-        p.addUInt8((uint8_t)id).addUInt16((int16_t)m_scores[id]);
-        STKHost::get()->sendPacketToAllPeers(&p, PRM_RELIABLE);
+        InsideFfaPacket packet;
+        packet.hitter_kart = (uint8_t)id;
+        packet.new_score = (int16_t)m_scores[id];
+        
+        Comm::sendPacketToPeers(packet);
     }
 }   // notifyAboutScoreIfNonzero
