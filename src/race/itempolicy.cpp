@@ -37,6 +37,8 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
         return;
     }
 
+    int section_start_lap = section.m_section_start;
+
     int curr_item_amount = kart->getPowerup()->getNum();
     PowerupManager::PowerupType curr_item_type = kart->getPowerup()->getType();
 
@@ -47,7 +49,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
     bool gradual_add = rules & ItemPolicyRules::IPT_GRADUAL;
     bool gradual_replenish = rules & ItemPolicyRules::IPT_REPLENISH;
     bool progressive_cap = rules & ItemPolicyRules::IPT_PROGRESSIVECAP;
-    bool section_start = current_lap == section.m_section_start;
+    bool section_start = current_lap == section_start_lap;
 
     bool active_role = gradual_add || gradual_replenish;
 
@@ -60,7 +62,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
         amount_to_add = section.m_items_per_lap;
     if (!gradual_add) amount_to_add = 0;
 
-    int remaining_laps = (next_section_start_laps - section.m_section_start);
+    int remaining_laps = next_section_start_laps - current_lap;
     int amount_to_add_linear;
     if (section_start)
         amount_to_add_linear = linear_add ? section.m_linear_mult * remaining_laps : 0;
@@ -71,7 +73,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
     if (section_start && linear_clear) new_amount = 0;
     new_amount += amount_to_add;
     new_amount += amount_to_add_linear;
-    if (progressive_cap && new_amount > section.m_progressive_cap*remaining_laps)
+    if (progressive_cap && (new_amount > section.m_progressive_cap*remaining_laps))
         new_amount = section.m_progressive_penalty*remaining_laps;
 
     PowerupManager::PowerupType new_type = curr_item_type;
