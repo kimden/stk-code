@@ -341,6 +341,8 @@ private:
     void process_teamhit_assign(Context& context);
     void process_scoring(Context& context);
     void process_scoring_assign(Context& context);
+    void process_itempolicy(Context& context);
+    void process_itempolicy_assign(Context& context);
     void process_register(Context& context);
     // soccer tournament commands
     void process_muteall(Context& context);

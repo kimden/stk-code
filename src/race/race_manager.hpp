@@ -34,12 +34,16 @@
 #include <array>
 
 #include "network/remote_kart_info.hpp"
+#include "items/powerup_manager.hpp"
 #include "race/grand_prix_data.hpp"
+#include "race/itempolicy.hpp"
 #include "utils/vec3.hpp"
 #include "utils/types.hpp"
 
+
 class Kart;
 class HitProcessor;
+class PowerupManager;
 class NetworkString;
 class SavedGrandPrix;
 class Track;
@@ -56,6 +60,7 @@ static const std::string IDENT_GHOST    ("GHOST"           );
 static const std::string IDENT_OVERWORLD("OVERWORLD"       );
 static const std::string IDENT_CUTSCENE ("CUTSCENE"        );
 static const std::string IDENT_LAP_TRIAL("LAP_TRIAL"       );
+
 
 /**
  * The race manager has two functions:
@@ -252,6 +257,10 @@ private:
 
 public:
 
+    ItemPolicy m_item_policy;
+    void setItemPolicy(std::string str) { m_item_policy.fromString(str); } 
+    ItemPolicy getItemPolicy() { return m_item_policy; };
+    
     /** This data structure accumulates kart data and race result data from
      *  each race. */
     struct KartStatus

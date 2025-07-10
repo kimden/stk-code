@@ -35,6 +35,7 @@
 #include "karts/controller/controller.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "main_loop.hpp"
+#include "items/powerup.hpp"
 #include "modes/capture_the_flag.hpp"
 #include "modes/cutscene_world.hpp"
 #include "modes/demo_world.hpp"
@@ -250,6 +251,7 @@ void RaceManager::setPlayerHandicap(unsigned int player_id, uint8_t handicap)
 
     m_player_karts[player_id].setHandicap(handicap);
 }   // setPlayerHandicap
+
 
 //---------------------------------------------------------------------------------------------
 /** Sets the tyre for a player.

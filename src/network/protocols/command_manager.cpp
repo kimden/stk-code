@@ -569,6 +569,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("teamhit =", &CM::process_teamhit_assign);
     applyFunctionIfPossible("scoring", &CM::process_scoring);
     applyFunctionIfPossible("scoring =", &CM::process_scoring_assign);
+    applyFunctionIfPossible("itempolicy", &CM::process_itempolicy);
+    applyFunctionIfPossible("itempolicy =", &CM::process_itempolicy_assign);
     applyFunctionIfPossible("version", &CM::process_text);
     applyFunctionIfPossible("clear", &CM::process_text);
     applyFunctionIfPossible("register", &CM::process_register);
@@ -3035,6 +3037,12 @@ void CommandManager::process_scoring(Context& context)
 } // process_scoring
 // ========================================================================
 
+void CommandManager::process_itempolicy(Context& context)
+{
+    context.say(RaceManager::get()->getItemPolicy().toString());
+} // process_itempolicy
+// ========================================================================
+
 void CommandManager::process_scoring_assign(Context& context)
 {
     std::string msg;
@@ -3047,6 +3055,18 @@ void CommandManager::process_scoring_assign(Context& context)
     else
         context.say("Scoring could not be parsed from \"" + cmd2 + "\"");
 } // process_scoring_assign
+// ========================================================================
+
+void CommandManager::process_itempolicy_assign(Context& context)
+{
+    std::string msg;
+    auto& argv = context.m_argv;
+
+    std::string cmd2;
+    CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
+    RaceManager::get()->setItemPolicy(cmd2);
+    Comm::sendStringToAllPeers("Item policy set to \"" + cmd2 + "\"... Probably.");
+} // process_itempolicy_assign
 // ========================================================================
 
 void CommandManager::process_register(Context& context)
