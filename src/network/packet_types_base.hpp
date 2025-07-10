@@ -859,16 +859,31 @@ DEFINE_CLASS(GameEventStatePacket)
     DEFINE_FIELD(uint32_t, ticks_since_start)
 END_DEFINE_CLASS(GameEventStatePacket)
 
+DEFINE_CLASS(ProjectilePacket)
+    DEFINE_FIELD(uint8_t, rewinder_type) /* RewinderName enum */
+    DEFINE_FIELD(uint8_t, kart_id)
+    DEFINE_FIELD(uint32_t, created_ticks)
+END_DEFINE_CLASS(ProjectilePacket)
+
+DEFINE_CLASS(TheRestOfBgsPacket)
+    DEFINE_FIELD(uint16_t, data_size)
+    DEFINE_FIELD(IHaveNoIdeaActuallyButItHasSizeEqualToDataSize, something)
+END_DEFINE_CLASS(TheRestOfBgsPacket)
+
 DEFINE_CLASS(BigGameStatesPacket)
     PROTOCOL_TYPE(PROTOCOL_GAME_EVENTS, true)
     DEFINE_TYPE(uint8_t, type, GP_CONTROLLER_ACTION)
     DEFINE_FIELD(uint32_t, ticks)
     DEFINE_FIELD(uint8_t, rewinders_size)
-    DEFINE_VECTOR(std::string, rewinders_size, rewinder_names) /* Previous encoding was manual, adjust if needed. */
-    DEFINE_FIELD(ControllerActionBigPacket, actions)
-
+    DEFINE_FIELD(GameEventStatePacket, state) /* kimden: I'm not sure where this should be located within the packet */
+    DEFINE_VECTOR(ProjectilePacket, rewinders_size, rewinders)
+   /* DEFINE_FIELD(ControllerActionBigPacket, actions) --------- kimden: for now, I have no idea why this is here. Probably a leftover. */
+    DEFINE_VECTOR(TheRestOfBgsPacket, rewinders_size, the_rest)
+    // kimden: I have no idea for now
     /* Don't define RELIABLE, can be sent either way */
 END_DEFINE_CLASS(BigGameStatesPacket)
+
+
 
 
 // end

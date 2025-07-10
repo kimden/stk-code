@@ -31,6 +31,7 @@ namespace irr
 
 #include "items/powerup_manager.hpp"
 #include "utils/no_copy.hpp"
+#include "network/packet_types.hpp"
 
 class AbstractKart;
 class Flyable;
@@ -49,7 +50,7 @@ private:
 
     /** The list of all active projectiles, i.e. projectiles which are
      *  currently moving on the track. */
-    std::map<std::string, std::shared_ptr<Flyable> > m_active_projectiles;
+    std::map<ProjectilePacket, std::shared_ptr<Flyable> > m_active_projectiles;
 
     /** All active hit effects, i.e. hit effects which are currently
      *  being shown or have a sfx playing. */
@@ -88,7 +89,7 @@ public:
                                 { m_active_hit_effects.push_back(hit_effect); }
     // ------------------------------------------------------------------------
     std::shared_ptr<Rewinder>
-                           addRewinderFromNetworkState(const std::string& uid);
+                   addRewinderFromNetworkState(const ProjectilePacket& packet);
     // ------------------------------------------------------------------------
     std::shared_ptr<Flyable> newProjectile(AbstractKart *kart,
                                            PowerupManager::PowerupType type);

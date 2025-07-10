@@ -105,19 +105,18 @@ void RewindManager::reset()
  *  \param buffer Pointer to the event data.
  */
 void RewindManager::addEvent(EventRewinder *event_rewinder,
-                             BareNetworkString *buffer, bool confirmed,
+                             const ControllerActionPacket& packet, bool confirmed,
                              int ticks)
 {
     if (m_is_rewinding)
     {
-        delete buffer;
         Log::error("RewindManager", "Adding event when rewinding");
         return;
     }
 
     if (ticks < 0)
         ticks = World::getWorld()->getTicksSinceStart();
-    m_rewind_queue.addLocalEvent(event_rewinder, buffer, confirmed, ticks);
+    m_rewind_queue.addLocalEvent(event_rewinder, packet, confirmed, ticks);
 }   // addEvent
 
 // ----------------------------------------------------------------------------
@@ -129,9 +128,9 @@ void RewindManager::addEvent(EventRewinder *event_rewinder,
  *  \param buffer Pointer to the event data.
  */
 void RewindManager::addNetworkEvent(EventRewinder *event_rewinder,
-                                     BareNetworkString *buffer, int ticks)
+                                    ControllerActionPacket packet, int ticks)
 {
-    m_rewind_queue.addNetworkEvent(event_rewinder, buffer, ticks);
+    m_rewind_queue.addNetworkEvent(event_rewinder, std::move(packet), ticks);
 }   // addNetworkEvent
 
 // ----------------------------------------------------------------------------

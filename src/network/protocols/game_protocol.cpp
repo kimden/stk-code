@@ -63,7 +63,7 @@ GameProtocol::GameProtocol()
 {
     m_network_item_manager = static_cast<NetworkItemManager*>
         (Track::getCurrentTrack()->getItemManager());
-    m_packet_to_send = {};
+    m_packet_to_send = std::make_shared<BigGameStatesPacket>();
 }   // GameProtocol
 
 //-----------------------------------------------------------------------------
@@ -81,7 +81,6 @@ void GameProtocol::sendActions()
 
     // Clear left-over data from previous frame. This way the network
     // string will increase till it reaches maximum size necessary
-    m_packet_to_send = {};
     if (m_all_actions.size() > 255)
     {
         Log::warn("GameProtocol",
@@ -115,7 +114,7 @@ void GameProtocol::sendActions()
 
     Comm::sendPacketToServer(big_packet, PRM_RELIABLE);
 
-    m_packet_to_send = big_packet;
+    m_packet_to_send = std::make_shared<BigGameStatesPacket>(big_packet);
 
     m_all_actions.clear();
 }   // sendActions
@@ -290,11 +289,11 @@ void GameProtocol::handleItemEventConfirmation(Event *event)
 void GameProtocol::startNewState()
 {
     assert(NetworkConfig::get()->isServer());
-    m_packet_to_send = {};
+    m_packet_to_send = std::make_shared<BigGameStatesPacket>();
 
     GameEventStatePacket packet;
     packet.ticks_since_start = World::getWorld()->getTicksSinceStart();
-    m_packet_to_send.push_back_state(packet);
+    m_packet_to_send->state = packet;
 }   // startNewState
 
 // ----------------------------------------------------------------------------
@@ -302,11 +301,11 @@ void GameProtocol::startNewState()
  *  is copied, so the data can be freed after this call/.
  *  \param buffer Adds the data in the buffer to the current state.
  */
-void GameProtocol::addState(const GameEventStatePacket& packet)
+void GameProtocol::addState(TheRestOfBgsPacket packet)
 {
     assert(NetworkConfig::get()->isServer());
 
-    m_packet_to_send.push_back_size_packet(packet);
+    m_packet_to_send->the_rest.push_back(std::move(packet));
 }   // addState
 
 // ----------------------------------------------------------------------------
@@ -314,16 +313,12 @@ void GameProtocol::addState(const GameEventStatePacket& packet)
  *  names of rewinder using to the beginning of state buffer
  *  \param cur_rewinder List of current rewinder using.
  */
-void GameProtocol::finalizeState(std::vector<std::string>& cur_rewinder)
+void GameProtocol::finalizeState(const std::vector<ProjectilePacket>& cur_rewinder)
 {
     assert(NetworkConfig::get()->isServer());
 
-    std::vector<std::string> names;
-    for (std::string& name : cur_rewinder)
-        names.push_back(name);
-
-    m_packet_to_send.rewinders_size = names.size();
-    m_packet_to_send.rewinder_names = names; // they should be after time
+    m_packet_to_send->rewinders_size = cur_rewinder.size();
+    m_packet_to_send->rewinders = cur_rewinder; // they should be after time
 }   // finalizeState
 
 // ----------------------------------------------------------------------------
@@ -333,7 +328,7 @@ void GameProtocol::finalizeState(std::vector<std::string>& cur_rewinder)
 void GameProtocol::sendState()
 {
     assert(NetworkConfig::get()->isServer());
-    Comm::sendPacketToPeers(m_packet_to_send, PRM_UNRELIABLE);
+    Comm::sendPacketToPeers(*m_packet_to_send, PRM_UNRELIABLE);
 }   // sendState
 
 // ----------------------------------------------------------------------------
@@ -344,23 +339,15 @@ void GameProtocol::handleState(Event *event)
     if (!NetworkConfig::get()->isClient())
         return;
     
-    auto packet = event->getPacket<GameEventStatePacket>();
+    auto packet = event->getPacket<BigGameStatesPacket>();
 
-    int ticks          = packet.ticks_since_start;
+    int ticks          = packet.ticks;
 
     // Check for updated rewinder using
-    unsigned rewinder_size = data.getUInt8();
-    std::vector<std::string> rewinder_using;
-    for (unsigned i = 0; i < rewinder_size; i++)
-    {
-        std::string name;
-        data.decodeString(&name);
-        rewinder_using.push_back(name);
-    }
+    unsigned rewinder_size = packet.rewinders_size;
 
     // The memory for bns will be handled in the RewindInfoState object
-    RewindInfoState* ris = new RewindInfoState(ticks, data.getCurrentOffset(),
-        rewinder_using, data.getBuffer());
+    RewindInfoState* ris = new RewindInfoState(ticks, packet.rewinders, packet.the_rest);
     RewindManager::get()->addNetworkRewindInfo(ris);
 }   // handleState
 

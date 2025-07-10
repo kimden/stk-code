@@ -316,19 +316,15 @@ std::string ProjectileManager::getUniqueIdentity(AbstractKart* kart,
 /* If any flyable is not found in current game state, create it with respect to
  * its uid as below. */
 std::shared_ptr<Rewinder>
-          ProjectileManager::addRewinderFromNetworkState(const std::string& uid)
+          ProjectileManager::addRewinderFromNetworkState(const ProjectilePacket& packet)
 {
-    if (uid.size() != 6)
-        return nullptr;
-    BareNetworkString data(uid.data(), (int)uid.size());
-
-    RewinderName rn = (RewinderName)data.getUInt8();
+    RewinderName rn = (RewinderName)packet.rewinder_type;
     if (!(rn == RN_BOWLING || rn == RN_PLUNGER ||
         rn == RN_CAKE || rn == RN_RUBBERBALL))
         return nullptr;
 
-    AbstractKart* kart = World::getWorld()->getKart(data.getUInt8());
-    int created_ticks = data.getUInt32();
+    AbstractKart* kart = World::getWorld()->getKart(packet.kart_id);
+    int created_ticks = packet.created_ticks;
     std::shared_ptr<Flyable> f;
     switch (rn)
     {
@@ -360,7 +356,7 @@ std::shared_ptr<Rewinder>
     assert(f);
     f->setCreatedTicks(created_ticks);
     f->onFireFlyable();
-    f->addForRewind(uid);
+    f->addForRewind(packet);
     Flyable* flyable = f.get();
     Log::debug("ProjectileManager", "Missed a firing event, "
         "add the flyable %s by %s created at %d manually.",
@@ -368,7 +364,7 @@ std::shared_ptr<Rewinder>
         StringUtils::wideToUtf8(kart->getController()->getName()).c_str(),
         created_ticks);
 
-    m_active_projectiles[uid] = f;
+    m_active_projectiles[packet] = f;
     return f;
 }   // addProjectileFromNetworkState
 

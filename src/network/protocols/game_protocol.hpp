@@ -21,6 +21,7 @@
 
 #include "network/event_rewinder.hpp"
 #include "network/protocol.hpp"
+#include "network/packet_types.hpp"
 
 #include "input/input.hpp"                // for PlayerAction
 #include "utils/cpp2011.hpp"
@@ -33,7 +34,6 @@
 
 class BareNetworkString;
 class NetworkItemManager;
-class NetworkString;
 class STKPeer;
 
 class GameProtocol : public Protocol
@@ -104,13 +104,15 @@ public:
     void controllerAction(int kart_id, PlayerAction action,
                           int value, int val_l, int val_r);
     void startNewState();
-    void addState(BareNetworkString *buffer);
+    void addState(TheRestOfBgsPacket packet);
     void sendState();
-    void finalizeState(std::vector<std::string>& cur_rewinder);
+    void finalizeState(std::vector<ProjectilePacket>& cur_rewinder);
     void sendItemEventConfirmation(int ticks);
 
+#define nonvirtual
+
     virtual void undo(BareNetworkString *buffer) OVERRIDE;
-    virtual void rewind(BareNetworkString *buffer) OVERRIDE;
+    nonvirtual void rewind(const ControllerActionPacket& packet) /*OVERRIDE*/;
     // ------------------------------------------------------------------------
     virtual void setup() OVERRIDE {};
     // ------------------------------------------------------------------------
@@ -130,8 +132,8 @@ public:
         return m_game_protocol[pt].lock();
     }   // lock
     // ------------------------------------------------------------------------
-    /** Returns the NetworkString in which a state was saved. */
-    NetworkString* getState() const { return m_data_to_send;  }
+    /** Returns the packet ptr in which a state was saved. */
+    std::shared_ptr<BigGameStatesPacket> getState() const { return m_packet_to_send;  }
     // ------------------------------------------------------------------------
     std::unique_lock<std::mutex> acquireWorldDeletingMutex() const
                { return std::unique_lock<std::mutex>(m_world_deleting_mutex); }
