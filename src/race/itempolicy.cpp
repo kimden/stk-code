@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <bitset>
+#include <algorithm>
 #include "race/race_manager.hpp"
 #include "utils/string_utils.hpp"
 #include "race/itempolicy.hpp"
@@ -15,9 +16,10 @@
 int ItemPolicy::select_item_from(std::vector<PowerupManager::PowerupType> types, std::vector<int> weights) {
     if (types.size() != weights.size()) {
         printf("Mismatch in item policy section weights and types lists size\n");
-        return PowerupManager::PowerupType::POWERUP_NOTHING;
+        return -1;
     }
     int sum_of_weight = 0;
+
     for(int i = 0; i < types.size(); i++) {
         sum_of_weight += weights[i];
     }
@@ -47,6 +49,8 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
     bool progressive_cap = rules & ItemPolicyRules::IPT_PROGRESSIVECAP;
     bool section_start = current_lap == section.m_section_start;
 
+    bool active_role = gradual_add || gradual_replenish;
+
     int amount_to_add = section_start
                                 ? section.m_items_per_lap
                                 : (prev_lap_item_amount - curr_item_amount);
@@ -54,6 +58,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
         amount_to_add = section.m_items_per_lap;
     if (gradual_add && !gradual_replenish)
         amount_to_add = section.m_items_per_lap;
+    if (!gradual_add) amount_to_add = 0;
 
     int remaining_laps = (next_section_start_laps - section.m_section_start);
     int amount_to_add_linear;
@@ -70,31 +75,47 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
         new_amount = section.m_progressive_penalty*remaining_laps;
 
     PowerupManager::PowerupType new_type = curr_item_type;
-    if (section_start || overwrite || new_amount == 0) {
-        int index = select_item_from(section.m_possible_types, section.m_weight_distribution);;
+    bool item_is_valid = std::find(section.m_weight_distribution.begin(), section.m_weight_distribution.end(), curr_item_type) != section.m_weight_distribution.end();
+    if (section_start || (!item_is_valid && active_role && !section_start) || overwrite || new_amount == 0) {
+        int index = select_item_from(section.m_possible_types, section.m_weight_distribution);
+        if (index == -1) return;
         new_type = section.m_possible_types[index];
     }
     if (new_amount == 0) new_type = PowerupManager::PowerupType::POWERUP_NOTHING;
+    if (new_type == curr_item_type) {
+        // STK by default will add instead of overwriting items of the same type,
+        // so we set it to 0 like this manually if that will happen.
+        // Yes, this is stupid.
+        kart->setPowerup(new_type, -curr_item_amount);
+    }
     kart->setPowerup(new_type, new_amount);
 }
 void ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
     for (int i = 0; i < m_policy_sections.size(); i++) {
         int next_section_start_laps;
-        int prev_lap_item_amount = 0;
+        int prev_lap_item_amount = kart->item_amount_last_lap;
         if (i+1 == m_policy_sections.size()) {
-            next_section_start_laps = RaceManager::get()->getNumLaps(); 
+            //printf("[DEBUG ITEMPOLICY] choosing to apply last section\n");
+            next_section_start_laps = RaceManager::get()->getNumLaps();
             applySectionRules(m_policy_sections[i], kart, next_section_start_laps, current_lap, current_time, prev_lap_item_amount);
+            break;
         } else if (m_policy_sections[i].m_section_type == IP_TIME_BASED) {
             printf("Time-implemented item policy sections are not implemented yet\n");
+            break;
         } else if (m_policy_sections[i].m_section_type == IP_LAPS_BASED) {
             if (m_policy_sections[i+1].m_section_type == IP_TIME_BASED) {
                 printf("Time-implemented item policy sections are not implemented yet\n");
+                break;
             } else if (m_policy_sections[i+1].m_section_type == IP_LAPS_BASED) {
-                if (current_lap > m_policy_sections[i].m_section_start &&
+                if (current_lap >= m_policy_sections[i].m_section_start &&
                     current_lap < m_policy_sections[i+1].m_section_start)
                 {
+                    //printf("[DEBUG ITEMPOLICY] choosing to apply section %u\n", i);
                     next_section_start_laps = m_policy_sections[i+1].m_section_start;
                     applySectionRules(m_policy_sections[i], kart, next_section_start_laps, current_lap, current_time, prev_lap_item_amount);
+                    break;
+                } else {
+                    //printf("[DEBUG ITEMPOLICY] section not applied: !(%u < %u < %u)\n", (int)m_policy_sections[i].m_section_start, current_lap, (int)m_policy_sections[i+1].m_section_start);
                 }
             }
         }
@@ -107,7 +128,7 @@ static std::string fetch(std::vector<std::string> strings, int idx) {
 }
 
 void ItemPolicy::fromString(std::string input) {
-    std::string normal_race_preset = "1 0 000000 0 0 0 0 1 nothing 0";
+    std::string normal_race_preset = "1 0 000000 0 0 0 0 1 nothing 1";
     std::string tt_preset = "1 0 000001 1 0 0 0 1 zipper 1";
     if (input.empty()) {
         fromString(normal_race_preset);

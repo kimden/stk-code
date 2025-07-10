@@ -23,6 +23,7 @@
 #include "audio/sfx_base.hpp"
 #include "audio/sfx_manager.hpp"
 #include "config/user_config.hpp"
+#include "items/powerup.hpp"
 #include "karts/kart.hpp"
 #include "karts/cannon_animation.hpp"
 #include "karts/controller/controller.hpp"
@@ -40,6 +41,8 @@
 #include "network/server_config.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "race/race_manager.hpp"
+#include "race/itempolicy.hpp"
 #include "race/history.hpp"
 #include "states_screens/race_gui_base.hpp"
 #include "tracks/check_manager.hpp"
@@ -483,6 +486,14 @@ void LinearWorld::newLap(unsigned int kart_index)
     // duplicated race positions as well.
     updateRacePosition();
 
+    if (NetworkConfig::get()->isNetworking() && NetworkConfig::get()->isServer()) {
+        ItemPolicy *p = RaceManager::get()->getItemPolicy();
+        p->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime());
+
+        kart->item_type_last_lap = kart->getPowerup()->getType();
+        kart->item_amount_last_lap = kart->getPowerup()->getNum();
+    }
+
     // Race finished
     // We compute the exact moment the kart crossed the line
     // This way, even with poor framerate, we get a time significant to the ms
@@ -566,6 +577,7 @@ void LinearWorld::newLap(unsigned int kart_index)
         goto ENDOFNEWLAP;
     }
 
+
     if (is_local) {
         m_last_local_lap = stk_config->ticks2Time(ticks_per_lap);
         m_last_local_position = kart->getPosition();
@@ -583,7 +595,6 @@ void LinearWorld::newLap(unsigned int kart_index)
         lap_message = _C("fastest_lap", "New FL: %s by %s", s.c_str(), kart_name);
         color = video::SColor(255, 255, 255, 255);
     }
-
      if (m_race_gui) m_race_gui->addMessage(lap_message, NULL, 4.0f, color, false);
 
     ENDOFNEWLAP:

@@ -527,6 +527,9 @@ void Kart::reset()
 
     unsetSquash();
 
+    item_amount_last_lap = 0;
+    item_type_last_lap = PowerupManager::POWERUP_NOTHING;
+
     m_last_used_powerup    = PowerupManager::POWERUP_NOTHING;
     m_race_position        = m_initial_position;
     m_finished_race        = false;

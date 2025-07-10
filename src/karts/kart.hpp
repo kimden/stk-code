@@ -419,6 +419,10 @@ public:
     std::vector<std::tuple<unsigned, unsigned>> getStints () const { return m_stints; }    
     void setStints (std::vector<std::tuple<unsigned, unsigned>> x) { m_stints = x; }  
 
+    // amount in previous lap
+    int item_amount_last_lap;
+    PowerupManager::PowerupType item_type_last_lap;
+
     bool m_is_refueling;
     float m_target_refuel;
     Tyres *m_tyres;

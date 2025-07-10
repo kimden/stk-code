@@ -3039,7 +3039,7 @@ void CommandManager::process_scoring(Context& context)
 
 void CommandManager::process_itempolicy(Context& context)
 {
-    context.say(RaceManager::get()->getItemPolicy().toString());
+    context.say(RaceManager::get()->getItemPolicy()->toString());
 } // process_itempolicy
 // ========================================================================
 
