@@ -37,6 +37,7 @@
 #include "io/xml_node.hpp"
 #include "items/projectile_manager.hpp"
 #include "karts/kart.hpp"
+#include "modes/world.hpp"
 #include "karts/cannon_animation.hpp"
 #include "karts/controller/controller.hpp"
 #include "karts/explosion_animation.hpp"
@@ -554,9 +555,56 @@ bool Flyable::hit(Kart *kart_hit, PhysicalObject* object)
         return false;
     // the owner of this flyable should not be hit by his own flyable
     if(isOwnerImmunity(kart_hit)) return false;
-    m_has_hit_something=true;
 
-    return true;
+    m_has_hit_something=true;
+    if (kart_hit == NULL) return true;
+
+    LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
+    float track_length = Track::getCurrentTrack()->getTrackLength();
+    float sender_distance = std::fmod(lin_world->getOverallDistance(m_owner->getWorldKartId()), track_length);
+    float recv_distance = std::fmod(lin_world->getOverallDistance(kart_hit->getWorldKartId()), track_length);
+
+    int sender_lap = lin_world->getFinishedLapsOfKart(m_owner->getWorldKartId());
+    int recv_lap = lin_world->getFinishedLapsOfKart(kart_hit->getWorldKartId());
+
+    float minimum_distance_empirical = 200.0f;
+
+    float distance_normal = std::fabs(sender_distance - recv_distance);
+    float distance_complimentary = track_length - distance_normal;
+
+    bool accross_finish_line;
+    bool forwards_throw;
+    if (distance_complimentary < distance_normal) {
+        accross_finish_line = true;
+        if (sender_distance > recv_distance)
+            forwards_throw = true;
+        else
+            forwards_throw = false;
+    } else {
+        accross_finish_line = false;
+    }
+
+    // if the distance is less than 5% from half the track length,
+    // it is nonsense to try to predict if the hit is accross the finish line
+    if (distance_normal/track_length > 0.45 && distance_normal/track_length < 0.55)
+        accross_finish_line = false;
+
+    // for too short tracks we instead take 1/5th of the track
+    if (track_length < 750.0f) minimum_distance_empirical = track_length/5.0f;
+
+    bool hit_is_valid;
+    // sender with a 1 lap difference whose distance is less than an empirical number are almost certainly hitting each other accross the start/finish line
+    if (accross_finish_line && forwards_throw) {
+        hit_is_valid =  (recv_lap - sender_lap) == 1;
+    } else if (accross_finish_line && !forwards_throw) {
+        hit_is_valid =  (sender_lap - recv_lap) == 1;
+    } else {
+        hit_is_valid = sender_lap == recv_lap;
+    }
+
+    printf("[FLYDEBUG] this hit was %s because the sender distance is %f, the receiver distance is %f, and the laps are sender %u - receiver %u\n", hit_is_valid ? "ALLOWED" : "FORBIDDEN", sender_distance, recv_distance, sender_lap, recv_lap);
+
+    return hit_is_valid;
 
 }   // hit
 
