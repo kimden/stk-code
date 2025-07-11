@@ -4454,7 +4454,7 @@ void ServerLobby::changeLimitForTournament(bool goal_target)
 
 #ifdef ENABLE_SQLITE3
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
-    std::string& direction, int laps)
+    std::string& direction, int laps, std::string user_filter)
 {
     std::string powerup_string = powerup_manager->getFileName();
     std::string kc_string = kart_properties_manager->getFileName();
@@ -4471,19 +4471,29 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
-    std::string best_user = "";
 
-    record_fetched = getDbConnector()->getBestResult(temp_info, &record_exists, &best_user, &best_result);
+    bool absolute_message = (user_filter == "");
+
+    // If user_filter is an empty string, it will return the absolut erecord
+    record_fetched = getDbConnector()->getBestResult(temp_info, &record_exists, &user_filter, &best_result);
 
     if (!record_fetched)
         return "Failed to make a query";
     if (!record_exists)
         return "No time set yet. Or there is a typo.";
 
-    std::string message = StringUtils::insertValues(
-        "The record is %s by %s",
-        StringUtils::timeToString(best_result),
-        best_user);
+    std::string message;
+    if (absolute_message) {
+        message = StringUtils::insertValues(
+            "The record is %s by %s",
+            StringUtils::timeToString(best_result),
+            user_filter);
+    } else {
+        message = StringUtils::insertValues(
+            "The best time of %s is %s",
+            user_filter,
+            StringUtils::timeToString(best_result));
+    }
     return message;
 }   // getRecord
 #endif

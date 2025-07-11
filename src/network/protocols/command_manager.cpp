@@ -2292,6 +2292,8 @@ void CommandManager::process_record(Context& context)
     }
     bool error = false;
 
+    bool user_filter_mode = (argv.size() >= 6);
+
     if (!validate(context, 1, TFT_ALL_MAPS, false, true))
         return;
 
@@ -2308,13 +2310,17 @@ void CommandManager::process_record(Context& context)
         error = true;
     if (!error && laps_count < 0)
         error = true;
+
+    std::string user_filter = "";
+    if (user_filter_mode) user_filter = argv[5];
+
     if (error)
     {
         response = "Invalid lap count";
     }
     else
     {
-        response = getLobby()->getRecord(track_name, mode_name, reverse_name, laps_count);
+        response = getLobby()->getRecord(track_name, mode_name, reverse_name, laps_count, user_filter);
     }
 #else
     response = "This command is not supported.";

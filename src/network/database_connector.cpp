@@ -1162,6 +1162,14 @@ void DatabaseConnector::deleteServerMessage(int row_id) const
 bool DatabaseConnector::getBestResult(const GameInfo& game_info,
                             bool* exists, std::string* user, double* result)
 {
+    bool do_filter_user = true;
+    if (!user || (user && *user == "")) {
+        do_filter_user = false;
+    }
+
+    std::string filter_user_str = " AND username = \"" + *user + "\" ";
+    if (!do_filter_user) filter_user_str = " ";
+
     if (!m_records_table_exists)
     {
         Log::error("DatabaseConnector", "getBestResult: records table doesn't exist!");
@@ -1174,7 +1182,8 @@ bool DatabaseConnector::getBestResult(const GameInfo& game_info,
     std::string query = StringUtils::insertValues("SELECT username, "
         "result FROM \"%s\" WHERE venue = %s AND reverse = \"%s\" "
         "AND mode = \"%s\" AND value_limit = %s AND time_limit = %s "
-        "AND config = %s AND items = %s AND is_not_full = 0 AND game_event = 0 "
+        "AND config = %s AND items = %s AND is_not_full = 0 AND game_event = 0"
+        "%s" // This will be a space if we don't have to filter by the user
         "ORDER BY result ASC, time ASC LIMIT 1;",
         ServerConfig::m_records_table_name.c_str(),
         Binder(coll, game_info.m_venue, "map name"),
@@ -1183,7 +1192,8 @@ bool DatabaseConnector::getBestResult(const GameInfo& game_info,
         game_info.m_value_limit,
         game_info.m_time_limit,
         Binder(coll, game_info.m_kart_char_string, "kart char string"),
-        Binder(coll, game_info.m_powerup_string, "powerup string")
+        Binder(coll, game_info.m_powerup_string, "powerup string"),
+        filter_user_str
     );
     std::vector<std::vector<std::string>> output;
     if (easySQLQuery(query, &output, coll->getBindFunction()))

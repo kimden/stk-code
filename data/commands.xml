@@ -202,7 +202,7 @@ here later. For now, please refer to the code for the strings being used. -->
              description="Allows your future messages to be sent to everyone."
     />
     <command name="record"
-             usage="/record (track id) (mode) (direction) (laps)"
+             usage="/record (track id) (mode) (direction) (laps) [optional username filter]"
              permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
              permissions-verbose="everyone; invokable for another player"
              description="Receives the server record for the race settings if there is any (and if the server has a database to store the records)."
