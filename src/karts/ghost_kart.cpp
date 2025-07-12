@@ -137,6 +137,11 @@ void GhostKart::update(int ticks)
         }
     }
 
+    if (idx == 0) {
+        m_tyres->reset();
+        m_tyres->commandChange(m_all_bonus_info[idx].m_current_compound, 0);
+    }
+
     const float rd         = gc->getReplayDelta();
     assert(idx < m_all_transform.size());
 
@@ -204,6 +209,17 @@ void GhostKart::update(int ticks)
     PowerupManager::PowerupType item_type =
         ReplayRecorder::codeToEnumItem(m_all_bonus_info[idx].m_item_type); 
     m_powerup->set(item_type, m_all_bonus_info[idx].m_item_amount);
+
+    LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
+
+    if (idx >= 1 && (m_all_bonus_info[idx-1].m_current_compound != m_all_bonus_info[idx].m_current_compound)) {
+        //printf("[GHOSTDEBUG]triggering change from %u to %u\n", (int)m_all_bonus_info[idx-1].m_current_compound, (int)m_all_bonus_info[idx].m_current_compound);
+        m_tyres->commandChange(m_all_bonus_info[idx].m_current_compound, 0);
+    }
+
+    m_tyres->m_current_life_turning = m_all_bonus_info[idx].m_current_life_turning;
+    m_tyres->m_current_life_traction = m_all_bonus_info[idx].m_current_life_traction;
+
 
     // Update special values in easter egg and battle modes
     if (RaceManager::get()->isEggHuntMode())

@@ -534,7 +534,7 @@ void ReplayPlay::readKartData(FILE *fd, char *next_line, bool second_replay)
             }
         }
 
-        //version 5 replays (Development towards STK 2.0, definition may be changed)
+        //version 5 replays (TME)
         else if (rd.m_replay_version == 5)
         {
             if(sscanf(s, "%f  %f %f %f  %f %f %f %f  %f  %f  %f %f %f %f %d  %d %f %d %d %d  %f %d %d %d %d %d %d  %d %d %d %d\n",
@@ -564,6 +564,9 @@ void ReplayPlay::readKartData(FILE *fd, char *next_line, bool second_replay)
                 bi.m_item_amount          = item_amount;
                 bi.m_item_type            = item_type;
                 bi.m_special_value        = special_value;
+                bi.m_current_life_turning = tyres[0];
+                bi.m_current_life_traction= tyres[1];
+                bi.m_current_compound     = tyres[3];
                 kre.m_distance            = distance;
                 kre.m_nitro_usage         = nitro;
                 kre.m_zipper_usage        = zipper!=0;

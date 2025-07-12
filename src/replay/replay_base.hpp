@@ -76,6 +76,9 @@ protected:
         /** Used to store mode-specific values : eggs in egg-hunt,
             number of lives in battle-mode. */
         int                 m_special_value;
+        float               m_current_life_turning;
+        float               m_current_life_traction;
+        float               m_current_compound;
     };   // StateInfo
 
 
