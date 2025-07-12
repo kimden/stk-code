@@ -52,7 +52,11 @@ enum ItemPolicyRules {
     // there will normally be an invokation of the random number generator with the
     // specified weights to decide the first item, and all items after will be of the same type.
     // If this bit is set to true, instead every lap where something is to be done, an invokation of the RNG will be made.
-    IPT_OVERWRITEITEMS = 1 << 5
+    IPT_OVERWRITEITEMS = 1 << 5,
+
+    // Prevent cake & bowl hits between lappings and lappers from causing damage.
+    // It helps with traffic, like blue flags in real motorsports.
+    IPT_BLUE_FLAGS = 1 << 6
 };
 
 
@@ -86,12 +90,18 @@ struct ItemPolicySection {
 // The way this ambiguity is solved is, the section with the highest index that is still applicable is always used.
 struct ItemPolicy {
     std::vector<ItemPolicySection> m_policy_sections;
+
+    // Holds the section the leader is in.
+    // -1 if this gamemode doesn't support leaders for some reason
+    int m_leader_section;
+
     int select_item_from(std::vector<PowerupManager::PowerupType> types,
                          std::vector<int> weights);
     void applySectionRules (ItemPolicySection &section, Kart *kart,
                             int next_section_start_laps, int current_lap,
                             int current_time, int prev_lap_item_amount);
-    void applyRules(Kart *kart, int current_lap, int current_time);
+
+    int applyRules(Kart *kart, int current_lap, int current_time);
     void fromString(std::string str);
     std::string toString();
 };

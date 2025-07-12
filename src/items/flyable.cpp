@@ -553,12 +553,21 @@ bool Flyable::hit(Kart *kart_hit, PhysicalObject* object)
 {
     if (!m_has_server_state || hasAnimation())
         return false;
-    // the owner of this flyable should not be hit by his own flyable
-    if(isOwnerImmunity(kart_hit)) return false;
+    // the owner of this flyable should not be hit by their own flyable
+    if (isOwnerImmunity(kart_hit)) return false;
 
     m_has_hit_something=true;
     if (kart_hit == NULL) return true;
 
+    ItemPolicy *policy = RaceManager::get()->getItemPolicy();
+    int leader_section_idx = policy->m_leader_section;
+    if (leader_section_idx <= -1) return true; // If leader is not in a valid section, allow the hit
+
+    // If blue flags are not enabled, ALSO allow the hit
+    if (!(policy->m_policy_sections[leader_section_idx].m_rules & ItemPolicyRules::IPT_BLUE_FLAGS))
+        return true;
+
+    // Now, if blue flags are enabled and the leader is in a valid section, that's when we start to question if the hit could be forbidden (a lapper illegally hitting a lapping or vice versa).
     LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
     float track_length = Track::getCurrentTrack()->getTrackLength();
     float sender_distance = std::fmod(lin_world->getOverallDistance(m_owner->getWorldKartId()), track_length);
@@ -602,10 +611,9 @@ bool Flyable::hit(Kart *kart_hit, PhysicalObject* object)
         hit_is_valid = sender_lap == recv_lap;
     }
 
-    printf("[FLYDEBUG] this hit was %s because the sender distance is %f, the receiver distance is %f, and the laps are sender %u - receiver %u\n", hit_is_valid ? "ALLOWED" : "FORBIDDEN", sender_distance, recv_distance, sender_lap, recv_lap);
+    //printf("[FLYDEBUG] this hit was %s because the sender distance is %f, the receiver distance is %f, and the laps are sender %u - receiver %u\n", hit_is_valid ? "ALLOWED" : "FORBIDDEN", sender_distance, recv_distance, sender_lap, recv_lap);
 
     return hit_is_valid;
-
 }   // hit
 
 // ----------------------------------------------------------------------------

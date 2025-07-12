@@ -92,7 +92,10 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
     }
     kart->setPowerup(new_type, new_amount);
 }
-void ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
+
+// Returns the section that was applied. Returns -1 if it tried to appply an unsupported section or if there are no sections
+int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
+    if (m_policy_sections.size() == 0) return -1;
     for (int i = 0; i < m_policy_sections.size(); i++) {
         int next_section_start_laps;
         int prev_lap_item_amount = kart->item_amount_last_lap;
@@ -100,13 +103,16 @@ void ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
             //printf("[DEBUG ITEMPOLICY] choosing to apply last section\n");
             next_section_start_laps = RaceManager::get()->getNumLaps();
             applySectionRules(m_policy_sections[i], kart, next_section_start_laps, current_lap, current_time, prev_lap_item_amount);
+            return i;
             break;
         } else if (m_policy_sections[i].m_section_type == IP_TIME_BASED) {
             printf("Time-implemented item policy sections are not implemented yet\n");
+            return i;
             break;
         } else if (m_policy_sections[i].m_section_type == IP_LAPS_BASED) {
             if (m_policy_sections[i+1].m_section_type == IP_TIME_BASED) {
                 printf("Time-implemented item policy sections are not implemented yet\n");
+                return i;
                 break;
             } else if (m_policy_sections[i+1].m_section_type == IP_LAPS_BASED) {
                 if (current_lap >= m_policy_sections[i].m_section_start &&
@@ -115,6 +121,7 @@ void ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
                     //printf("[DEBUG ITEMPOLICY] choosing to apply section %u\n", i);
                     next_section_start_laps = m_policy_sections[i+1].m_section_start;
                     applySectionRules(m_policy_sections[i], kart, next_section_start_laps, current_lap, current_time, prev_lap_item_amount);
+                    return i;
                     break;
                 } else {
                     //printf("[DEBUG ITEMPOLICY] section not applied: !(%u < %u < %u)\n", (int)m_policy_sections[i].m_section_start, current_lap, (int)m_policy_sections[i+1].m_section_start);
@@ -122,6 +129,7 @@ void ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
             }
         }
     }
+    return -1;
 }
 
 static std::string fetch(std::vector<std::string> strings, int idx) {

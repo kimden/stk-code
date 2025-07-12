@@ -162,6 +162,8 @@ RaceManager::RaceManager()
     m_compound_limits[1] = 0;
     m_compound_limits[2] = 0;
     m_tyres_queue_info = {};
+
+    setItemPolicy("normal");
 }   // RaceManager
 
 //---------------------------------------------------------------------------------------------

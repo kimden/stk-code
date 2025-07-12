@@ -486,9 +486,12 @@ void LinearWorld::newLap(unsigned int kart_index)
     // duplicated race positions as well.
     updateRacePosition();
 
-    if (NetworkConfig::get()->isNetworking() && NetworkConfig::get()->isServer()) {
-        ItemPolicy *p = RaceManager::get()->getItemPolicy();
-        p->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime());
+    ItemPolicy *itempolicy = RaceManager::get()->getItemPolicy();
+
+    if (!NetworkConfig::get()->isNetworking() || NetworkConfig::get()->isServer()) {
+        int sec = itempolicy->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime());
+        if (kart->getPosition() == 1)
+            itempolicy->m_leader_section = sec;
 
         kart->item_type_last_lap = kart->getPowerup()->getType();
         kart->item_amount_last_lap = kart->getPowerup()->getNum();
