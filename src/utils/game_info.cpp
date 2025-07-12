@@ -284,12 +284,13 @@ void GameInfo::fillAndStoreResults()
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
+    std::string other_info = "";
     std::string best_user = "";
 
     if (racing_mode)
     {
 #ifdef ENABLE_SQLITE3
-        record_fetched = getDbConnector()->getBestResult(*this, &record_exists, &best_user, &best_result);
+        record_fetched = getDbConnector()->getBestResult(*this, &record_exists, &best_user, &best_result, &other_info);
 #endif
     }
 

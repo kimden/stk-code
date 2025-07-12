@@ -1160,7 +1160,7 @@ void DatabaseConnector::deleteServerMessage(int row_id) const
  *  \return True if the query succeeded (even if the set of results is empty).
  */
 bool DatabaseConnector::getBestResult(const GameInfo& game_info,
-                            bool* exists, std::string* user, double* result)
+                            bool* exists, std::string* user, double* result, std::string* custom_data)
 {
     bool do_filter_user = true;
     if (!user || (user && *user == "")) {
@@ -1179,8 +1179,9 @@ bool DatabaseConnector::getBestResult(const GameInfo& game_info,
     // Note that IS is important, as the strings corresponding to value/time
     // limits can be NULL instead. SQLite manual specifies that IS can be used
     // to compare strings just as = operator.
-    std::string query = StringUtils::insertValues("SELECT username, "
-        "result FROM \"%s\" WHERE venue = %s AND reverse = \"%s\" "
+    std::string query = StringUtils::insertValues(
+        "SELECT username, result, other_info "
+        "FROM \"%s\" WHERE venue = %s AND reverse = \"%s\" "
         "AND mode = \"%s\" AND value_limit = %s AND time_limit = %s "
         "AND config = %s AND items = %s AND is_not_full = 0 AND game_event = 0"
         "%s" // This will be a space if we don't have to filter by the user
@@ -1206,6 +1207,7 @@ bool DatabaseConnector::getBestResult(const GameInfo& game_info,
                 *exists = true;
                 *user = output[0][0];
                 *result = value;
+                *custom_data = output[0][2];
                 return true;
             }
         }

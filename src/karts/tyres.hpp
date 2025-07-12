@@ -140,8 +140,8 @@ public:
     void commandLap(int ticks);
     void commandChange(int compound, int time);
 
-    std::vector<uint8_t> encodeStints(std::vector<std::tuple<unsigned, unsigned>>& s);
-    std::vector<std::tuple<unsigned, unsigned>> decodeStints(std::vector<uint8_t>& a);
+    static std::vector<uint8_t> encodeStints(std::vector<std::tuple<unsigned, unsigned>>& s);
+    static std::vector<std::tuple<unsigned, unsigned>> decodeStints(std::vector<uint8_t>& a);
 
     static float getTyreColor(int compound);
 

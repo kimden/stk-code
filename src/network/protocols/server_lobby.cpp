@@ -4453,6 +4453,21 @@ void ServerLobby::changeLimitForTournament(bool goal_target)
 //-----------------------------------------------------------------------------
 
 #ifdef ENABLE_SQLITE3
+#include <iostream>
+#include <string>
+ 
+static std::string get_str_between_two_str(const std::string &s,
+        const std::string &start_delim,
+        const std::string &stop_delim)
+{
+    unsigned first_delim_pos = s.find(start_delim);
+    unsigned end_pos_of_first_delim = first_delim_pos + start_delim.length();
+    unsigned last_delim_pos = s.find(stop_delim);
+ 
+    return s.substr(end_pos_of_first_delim,
+            last_delim_pos - end_pos_of_first_delim);
+}
+
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     std::string& direction, int laps, std::string user_filter)
 {
@@ -4471,28 +4486,36 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
     bool record_fetched = false;
     bool record_exists = false;
     double best_result = 0.0;
+    std::string other_info = "";
 
     bool absolute_message = (user_filter == "");
 
     // If user_filter is an empty string, it will return the absolut erecord
-    record_fetched = getDbConnector()->getBestResult(temp_info, &record_exists, &user_filter, &best_result);
+    record_fetched = getDbConnector()->getBestResult(temp_info, &record_exists, &user_filter, &best_result, &other_info);
 
     if (!record_fetched)
         return "Failed to make a query";
     if (!record_exists)
         return "No time set yet. Or there is a typo.";
 
+    std::string tme_data_encoded = get_str_between_two_str(other_info, "TME:", ";");
+    std::vector<std::tuple<unsigned, unsigned>> stints_data;
+    if (tme_data_encoded != "") {
+        std::vector<uint8_t> data = Crypto::decode64(tme_data_encoded);        
+        stints_data = Tyres::decodeStints(data);
+    }
+
     std::string message;
     if (absolute_message) {
         message = StringUtils::insertValues(
-            "The record is %s by %s",
+            "The record is %s by %s\nStints data: [%s]",
             StringUtils::timeToString(best_result),
-            user_filter);
+            user_filter, StringUtils::stintsToString(stints_data));
     } else {
         message = StringUtils::insertValues(
-            "The best time of %s is %s",
-            user_filter,
-            StringUtils::timeToString(best_result));
+            "The best time of %s is %s\nStints data: [%s]",
+            user_filter, StringUtils::timeToString(best_result),
+            StringUtils::stintsToString(stints_data));
     }
     return message;
 }   // getRecord

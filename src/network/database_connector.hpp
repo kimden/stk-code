@@ -206,7 +206,7 @@ public:
 
     std::vector<ServerMessage> getServerMessages(uint32_t online_id) const;
     void deleteServerMessage(int row_id) const;
-    bool getBestResult(const GameInfo& game_info, bool* exists, std::string* user, double* result);
+    bool getBestResult(const GameInfo& game_info, bool* exists, std::string* user, double* result, std::string* custom_data);
     void insertManyResults(const GameInfo& game_info);
 };
 
