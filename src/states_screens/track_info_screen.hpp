@@ -25,6 +25,7 @@
 namespace irr { namespace gui { class STKModifiedSpriteBank; } }
 namespace GUIEngine
 {
+    class TextBoxWidget;
     class CheckBoxWidget;
     class IconButtonWidget;
     class LabelWidget;
@@ -107,6 +108,11 @@ class TrackInfoScreen : public GUIEngine::Screen,
     /** The label besides the fuel spinner. */
     GUIEngine::LabelWidget* m_fuel_rate_label;
 
+    /** Text box for rules */
+    GUIEngine::TextBoxWidget* m_rules_textbox;
+
+    /** The label besides the rules textbox. */
+    GUIEngine::LabelWidget* m_rules_label;
 
     /** Spinner for soft tyre allocation*/
     GUIEngine::SpinnerWidget* m_allowed_compound_1_spinner;

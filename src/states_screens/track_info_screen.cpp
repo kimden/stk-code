@@ -28,6 +28,7 @@
 #include "guiengine/engine.hpp"
 #include "guiengine/screen.hpp"
 #include "guiengine/widgets/button_widget.hpp"
+#include "guiengine/widgets/text_box_widget.hpp"
 #include "guiengine/widgets/check_box_widget.hpp"
 #include "guiengine/widgets/icon_button_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
@@ -88,6 +89,9 @@ void TrackInfoScreen::loadedFromFile()
 
     m_fuel_rate_spinner  = getWidget<SpinnerWidget>("fuel-rate-spinner");
     m_fuel_rate_label    = getWidget<LabelWidget>("fuel-rate-text");
+
+    m_rules_textbox  = getWidget<TextBoxWidget>("rules-textbox");
+    m_rules_label    = getWidget<LabelWidget>("rules-text");
 
     m_allowed_compound_1_spinner  = getWidget<SpinnerWidget>("allowed-compound-1-spinner");
     m_allowed_compound_1_label  = getWidget<LabelWidget>("allowed-compound-1-text");
@@ -226,6 +230,10 @@ void TrackInfoScreen::init()
     m_fuel_rate_label->setVisible(true);
     m_fuel_rate_label->setText(_("Fuel consumption") , false);
 
+    m_rules_textbox->setVisible(true);
+    m_rules_label->setVisible(true);
+    m_rules_label->setText(_("Item policy:") , false);
+
     m_allowed_compound_1_spinner->setValue(-1);
     m_allowed_compound_1_spinner->setVisible(true);
     m_allowed_compound_1_label->setVisible(true);
@@ -242,6 +250,7 @@ void TrackInfoScreen::init()
     m_allowed_compound_3_label->setText(_("H alloc:"), false);
 
     RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(), m_fuel_regen_spinner->getValue(), m_fuel_stop_spinner->getValue(), m_fuel_weight_spinner->getValue(), m_fuel_rate_spinner->getValue(), m_allowed_compound_1_spinner->getValue(), m_allowed_compound_2_spinner->getValue(), m_allowed_compound_3_spinner->getValue());
+    RaceManager::get()->setItemPolicy("normal");
 
 // fuel fuel_regen fuel_stop fuel_weight fuel_rate amount_1 amount_2 amount_3
 
@@ -703,6 +712,10 @@ void TrackInfoScreen::onEnterPressedInternal()
         RaceManager::get()->setNumRedAI(m_ai_kart_spinner->getValue());
         RaceManager::get()->setNumBlueAI(m_ai_blue_spinner->getValue());
     }
+
+    std::wstring textboxtextwide(m_rules_textbox->getText().c_str());
+    std::string textboxtext( textboxtextwide.begin(), textboxtextwide.end() );
+    RaceManager::get()->setItemPolicy(textboxtext);
     RaceManager::get()->startSingleRace(m_track->getIdent(), num_laps, false);
 }   // onEnterPressedInternal
 

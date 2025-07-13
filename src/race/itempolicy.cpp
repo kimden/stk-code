@@ -144,7 +144,7 @@ void ItemPolicy::fromString(std::string input) {
         fromString(normal_race_preset);
         return;
     }
-    if (input == "normal") {
+    if (input == "normal" || input == "") {
         fromString(normal_race_preset);
         return;
     }

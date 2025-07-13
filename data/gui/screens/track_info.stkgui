@@ -39,6 +39,11 @@
                         <label id="target-value-text" proportion="3" I18N="In the track info screen" text="Number of laps" text_align="left" align="center"/>
                     </div>
 
+	                    <div width="100%" height="fit" layout="horizontal-row">
+	                        <label id="rules-text" proportion="3" I18N="In the track info screen" text="Item policy:" text_align="left" />
+                            <textbox id="rules-textbox" width="70%" align="center"/>
+	                    </div>
+
 
 	                    <div width="100%" height="fit" layout="horizontal-row">
 	                        <div proportion="1" height="fit" layout="horizontal-row">
