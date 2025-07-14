@@ -78,7 +78,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
 
     PowerupManager::PowerupType new_type = curr_item_type;
     bool item_is_valid = std::find(section.m_weight_distribution.begin(), section.m_weight_distribution.end(), curr_item_type) != section.m_weight_distribution.end();
-    if ((section_start && linear_clear && new_amount != 0) || (!item_is_valid && active_role && !section_start) || overwrite || new_amount == 0) {
+    if ((section_start && (linear_clear || new_amount != 0)) || (!item_is_valid && active_role && !section_start) || overwrite || new_amount == 0) {
         int index = select_item_from(section.m_possible_types, section.m_weight_distribution);
         if (index == -1) return;
         new_type = section.m_possible_types[index];
@@ -138,8 +138,8 @@ static std::string fetch(std::vector<std::string> strings, int idx) {
 }
 
 void ItemPolicy::fromString(std::string input) {
-    std::string normal_race_preset = "1 0 000000 0 0 0 0 1 nothing 1";
-    std::string tt_preset = "1 0 000001 1 0 0 0 1 zipper 1";
+    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 1 nothing 1";
+    std::string tt_preset = "1 0 0010000001 1 0 0 0 1 zipper 1";
     if (input.empty()) {
         fromString(normal_race_preset);
         return;
@@ -148,12 +148,15 @@ void ItemPolicy::fromString(std::string input) {
         fromString(normal_race_preset);
         return;
     }
-    if (input == "tt" || input == "timetrial") {
+    if (input == "tt" || input == "timetrial" || input == "time-trial") {
         fromString(tt_preset);
         return;
     }
     std::vector<std::string> params = StringUtils::split(input, ' ');
-    if (params.empty()) {
+    // Format can not form a valid policy with less than 7 item-separated parameters:
+    // 1 0 0000000000 0 0 0 0 0
+    // 1 section starting on lap 1 with no rules, all data to 0, and a length-0 item vector
+    if (params.empty() || params.size() < 7) {
         fromString(normal_race_preset);
         return;
     }
