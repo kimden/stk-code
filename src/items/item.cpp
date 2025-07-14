@@ -203,6 +203,7 @@ void ItemState::update(int ticks)
     }
 
     auto& stk_config = STKConfig::get();
+    // There's redundant cases here, but it is like this for maintainability
     if (forbid_prev && forbid_curr)
         m_ticks_till_return = stk_config->time2Ticks(99999);
     else if (!forbid_prev && forbid_curr)
@@ -213,10 +214,14 @@ void ItemState::update(int ticks)
         // If we don't do it like this, it will set the ticks till return perpetually
         // when transitioning from a section without to a section with this item type allowed.
         if (m_ticks_till_return > 10*respawn_ticks)
-            m_ticks_till_return = getRespawnTime(m_type);
+            m_ticks_till_return = respawn_ticks;
     }
     else if (!forbid_prev && !forbid_curr) {
         // Nothing to do
+        // This wouldn't be needed normally, but we do it in case of switched items
+        int respawn_ticks = getRespawnTime(m_type);
+        if (m_ticks_till_return > 10*respawn_ticks && m_type != ITEM_EASTER_EGG)
+            m_ticks_till_return = respawn_ticks;
     }
     if (instant) {
         m_ticks_till_return = 0;
