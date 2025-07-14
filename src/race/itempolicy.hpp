@@ -56,7 +56,20 @@ enum ItemPolicyRules {
 
     // Prevent cake & bowl hits between lappings and lappers from causing damage.
     // It helps with traffic, like blue flags in real motorsports.
-    IPT_BLUE_FLAGS = 1 << 6
+    // The leader's section will be applied for everyone
+    IPT_BLUE_FLAGS = 1 << 6,
+
+    // Spawns/despawns bonus boxes.
+    // The leader's section will be applied for everyone, or section 0 if it fails.
+    IPT_FORBID_BONUSBOX = 1 << 7,
+
+    // Spawns/despawns bananas.
+    // The leader's section will be applied for everyone, or section 0 if it fails.
+    IPT_FORBID_BANANA = 1 << 8,
+
+    // Spawns/despawns nitro.
+    // The leader's section will be applied for everyone, or section 0 if it fails.
+    IPT_FORBID_NITRO = 1 << 9
 };
 
 

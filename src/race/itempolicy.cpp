@@ -78,7 +78,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
 
     PowerupManager::PowerupType new_type = curr_item_type;
     bool item_is_valid = std::find(section.m_weight_distribution.begin(), section.m_weight_distribution.end(), curr_item_type) != section.m_weight_distribution.end();
-    if (section_start || (!item_is_valid && active_role && !section_start) || overwrite || new_amount == 0) {
+    if ((section_start && linear_clear && new_amount != 0) || (!item_is_valid && active_role && !section_start) || overwrite || new_amount == 0) {
         int index = select_item_from(section.m_possible_types, section.m_weight_distribution);
         if (index == -1) return;
         new_type = section.m_possible_types[index];
@@ -218,7 +218,7 @@ std::string ItemPolicy::toString() {
         if (m_policy_sections[i].m_section_type == IP_TIME_BASED)
             return "TIME BASED SECTIONS NOT SUPPORTED YET. HOW DID YOU EVEN GET THIS INTO MEMORY??";
         ss << m_policy_sections[i].m_section_start << " ";
-        std::string bs = std::bitset<8>(m_policy_sections[i].m_rules).to_string();
+        std::string bs = std::bitset<10>(m_policy_sections[i].m_rules).to_string();
         ss << bs << " ";
         ss << m_policy_sections[i].m_linear_mult << " ";
         ss << m_policy_sections[i].m_items_per_lap << " ";
