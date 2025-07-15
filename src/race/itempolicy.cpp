@@ -96,17 +96,42 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
         new_amount = section.m_progressive_penalty*remaining_laps;
 
     PowerupManager::PowerupType new_type = curr_item_type;
-    bool item_is_valid = std::find(section.m_weight_distribution.begin(), section.m_weight_distribution.end(), curr_item_type) != section.m_weight_distribution.end();
-    if ((section_start && (linear_clear || new_amount != 0)) || (!item_is_valid && active_role && !section_start) || overwrite || new_amount == 0) {
-        int index = selectItemFrom(section.m_possible_types, section.m_weight_distribution);
-        if (index == -1) return;
-        new_type = section.m_possible_types[index];
+
+    bool item_is_valid = false;
+
+    // If the list of weights is empty, then we take this to mean that any item type is correct.
+    bool empty_weights = section.m_weight_distribution.size() == 0;
+    if (!empty_weights) {
+        auto found_item = std::find(section.m_weight_distribution.begin(),
+                                    section.m_weight_distribution.end(),
+                                    curr_item_type);
+        item_is_valid = found_item != section.m_weight_distribution.end();
     }
-    if (new_amount == 0) new_type = PowerupManager::PowerupType::POWERUP_NOTHING;
+
+    if (!empty_weights)
+    {
+        if ( ( section_start && (linear_clear || new_amount != 0))||
+             (!section_start && !item_is_valid && active_role)    ||
+              overwrite                                           ||
+              new_amount == 0)
+        {
+            int index = selectItemFrom(section.m_possible_types, section.m_weight_distribution);
+            if (index == -1) return;
+            new_type = section.m_possible_types[index];
+        }
+    }
+
+    // If the powerup type is NOTHING, the amount must be 0.
+    // If the amount is 0, the powerup type must be NOTHING.
+    if (new_amount == 0)
+        new_type = PowerupManager::PowerupType::POWERUP_NOTHING;
+    if (new_type == PowerupManager::PowerupType::POWERUP_NOTHING)
+        new_amount = 0;
+
     if (new_type == curr_item_type) {
         // STK by default will add instead of overwriting items of the same type,
         // so we set it to 0 like this manually if that will happen.
-        // Yes, this is stupid.
+        // Yes, this is stupid, but it's the only way without touching the whole codebase.
         kart->setPowerup(new_type, -curr_item_amount);
     }
     kart->setPowerup(new_type, new_amount);
