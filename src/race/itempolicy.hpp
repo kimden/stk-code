@@ -108,14 +108,14 @@ struct ItemPolicy {
     // -1 if this gamemode doesn't support leaders for some reason
     int m_leader_section;
 
-    int select_item_from(std::vector<PowerupManager::PowerupType> types,
-                         std::vector<int> weights);
+    int selectItemFrom(std::vector<PowerupManager::PowerupType>& types,
+                         std::vector<int>& weights);
     void applySectionRules (ItemPolicySection &section, Kart *kart,
                             int next_section_start_laps, int current_lap,
                             int current_time, int prev_lap_item_amount);
 
     int applyRules(Kart *kart, int current_lap, int current_time);
-    void fromString(std::string str);
+    void fromString(std::string& str);
     std::string toString();
 };
 

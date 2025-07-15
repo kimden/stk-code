@@ -554,15 +554,18 @@ bool Flyable::hit(Kart *kart_hit, PhysicalObject* object)
     if (!m_has_server_state || hasAnimation())
         return false;
     // the owner of this flyable should not be hit by their own flyable
-    if (isOwnerImmunity(kart_hit)) return false;
+    if (isOwnerImmunity(kart_hit))
+        return false;
 
     m_has_hit_something=true;
-    if (kart_hit == NULL) return true;
+    if (kart_hit == NULL)
+        return true;
 
     ItemPolicy *policy = RaceManager::get()->getItemPolicy();
     int leader_section_idx = policy->m_leader_section;
-    if (leader_section_idx <= -1) return true; // If leader is not in a valid section, allow the hit
-
+    // If leader is not in a valid section, allow the hit
+    if (leader_section_idx <= -1)
+        return true;
     // If blue flags are not enabled, ALSO allow the hit
     if (!(policy->m_policy_sections[leader_section_idx].m_rules & ItemPolicyRules::IPT_BLUE_FLAGS))
         return true;
@@ -581,31 +584,32 @@ bool Flyable::hit(Kart *kart_hit, PhysicalObject* object)
     float distance_normal = std::fabs(sender_distance - recv_distance);
     float distance_complimentary = track_length - distance_normal;
 
-    bool accross_finish_line;
+    bool across_finish_line;
     bool forwards_throw;
     if (distance_complimentary < distance_normal) {
-        accross_finish_line = true;
+        across_finish_line = true;
         if (sender_distance > recv_distance)
             forwards_throw = true;
         else
             forwards_throw = false;
     } else {
-        accross_finish_line = false;
+        across_finish_line = false;
     }
 
     // if the distance is less than 5% from half the track length,
-    // it is nonsense to try to predict if the hit is accross the finish line
+    // it is nonsense to try to predict if the hit is across the finish line
     if (distance_normal/track_length > 0.45 && distance_normal/track_length < 0.55)
-        accross_finish_line = false;
+        across_finish_line = false;
 
     // for too short tracks we instead take 1/5th of the track
-    if (track_length < 750.0f) minimum_distance_empirical = track_length/5.0f;
+    if (track_length < 750.0f)
+        minimum_distance_empirical = track_length/5.0f;
 
     bool hit_is_valid;
-    // sender with a 1 lap difference whose distance is less than an empirical number are almost certainly hitting each other accross the start/finish line
-    if (accross_finish_line && forwards_throw) {
+    // sender with a 1 lap difference whose distance is less than an empirical number are almost certainly hitting each other across the start/finish line
+    if (across_finish_line && forwards_throw) {
         hit_is_valid =  (recv_lap - sender_lap) == 1;
-    } else if (accross_finish_line && !forwards_throw) {
+    } else if (across_finish_line && !forwards_throw) {
         hit_is_valid =  (sender_lap - recv_lap) == 1;
     } else {
         hit_is_valid = sender_lap == recv_lap;

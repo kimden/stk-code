@@ -1,19 +1,37 @@
+//
+//  SuperTuxKart - a fun racing game with go-kart
+//  Copyright (C) 1950-2025 Nomagno
+//
+//  This program is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU General Public License
+//  as published by the Free Software Foundation; either version 3
+//  of the License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
 #include <iomanip>
 #include <iostream>
-#include <limits>
 #include <numbers>
 #include <sstream>
 #include <string>
 #include <bitset>
 #include <algorithm>
 #include "race/race_manager.hpp"
+#include "utils/types.hpp"
 #include "utils/string_utils.hpp"
 #include "race/itempolicy.hpp"
 #include "items/powerup.hpp"
 #include "items/powerup_manager.hpp"
 #include "karts/kart.hpp"
 
-int ItemPolicy::select_item_from(std::vector<PowerupManager::PowerupType> types, std::vector<int> weights) {
+int ItemPolicy::selectItemFrom(std::vector<PowerupManager::PowerupType>& types, std::vector<int>& weights) {
     if (types.size() != weights.size()) {
         printf("Mismatch in item policy section weights and types lists size\n");
         return -1;
@@ -31,9 +49,10 @@ int ItemPolicy::select_item_from(std::vector<PowerupManager::PowerupType> types,
     }
     assert(!"This will never be reached\n");
 }
-void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int next_section_start_laps, int current_lap, int current_time, int prev_lap_item_amount) {
+//--------------------------------------------------
+void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int next_section_start_laps, int current_lap, int current_time, int prev_lap_item_amount) {
     if (section.m_section_type == IP_TIME_BASED) {
-        printf("Time-implemented item policy sections are not implemented yet\n");
+        Log::warn("ItemPolicy", "Time-implemented item policy sections are not implemented yet\n");
         return;
     }
 
@@ -79,7 +98,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
     PowerupManager::PowerupType new_type = curr_item_type;
     bool item_is_valid = std::find(section.m_weight_distribution.begin(), section.m_weight_distribution.end(), curr_item_type) != section.m_weight_distribution.end();
     if ((section_start && (linear_clear || new_amount != 0)) || (!item_is_valid && active_role && !section_start) || overwrite || new_amount == 0) {
-        int index = select_item_from(section.m_possible_types, section.m_weight_distribution);
+        int index = selectItemFrom(section.m_possible_types, section.m_weight_distribution);
         if (index == -1) return;
         new_type = section.m_possible_types[index];
     }
@@ -92,7 +111,7 @@ void ItemPolicy::applySectionRules (ItemPolicySection &section, Kart *kart, int 
     }
     kart->setPowerup(new_type, new_amount);
 }
-
+//--------------------------------------------------
 // Returns the section that was applied. Returns -1 if it tried to appply an unsupported section or if there are no sections
 int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
     if (m_policy_sections.size() == 0) return -1;
@@ -106,12 +125,12 @@ int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
             return i;
             break;
         } else if (m_policy_sections[i].m_section_type == IP_TIME_BASED) {
-            printf("Time-implemented item policy sections are not implemented yet\n");
+            Log::warn("ItemPolicy", "Time-implemented item policy sections are not implemented yet\n");
             return i;
             break;
         } else if (m_policy_sections[i].m_section_type == IP_LAPS_BASED) {
             if (m_policy_sections[i+1].m_section_type == IP_TIME_BASED) {
-                printf("Time-implemented item policy sections are not implemented yet\n");
+                Log::warn("ItemPolicy", "Time-implemented item policy sections are not implemented yet\n");
                 return i;
                 break;
             } else if (m_policy_sections[i+1].m_section_type == IP_LAPS_BASED) {
@@ -131,13 +150,14 @@ int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
     }
     return -1;
 }
-
-static std::string fetch(std::vector<std::string> strings, int idx) {
-    if (idx >= strings.size()) throw std::logic_error("Out of bounds in item policy parsing");
+//--------------------------------------------------
+static std::string fetch(std::vector<std::string>& strings, int idx) {
+    if (idx >= strings.size())
+        throw std::logic_error("Out of bounds in item policy parsing");
     return strings[idx];
 }
-
-void ItemPolicy::fromString(std::string input) {
+//--------------------------------------------------
+void ItemPolicy::fromString(std::string& input) {
     std::string normal_race_preset = "1 0 0000000000 0 0 0 0 1 nothing 1";
     std::string tt_preset = "1 0 0010000001 1 0 0 0 1 zipper 1";
     if (input.empty()) {
@@ -212,7 +232,7 @@ void ItemPolicy::fromString(std::string input) {
         m_policy_sections.push_back(tmp);
     }
 }   // fromString
-
+//--------------------------------------------------
 std::string ItemPolicy::toString() {
     std::stringstream ss;
     ss << std::setprecision(4);

@@ -350,7 +350,7 @@ public:
 
 #ifdef ENABLE_SQLITE3
     std::string getRecord(std::string& track, std::string& mode,
-        std::string& direction, int laps, std::string user_filter);
+        std::string& direction, int laps, std::string& user_filter);
 #endif
 
     void erasePeerReady(std::shared_ptr<STKPeer> peer)

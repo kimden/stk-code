@@ -69,6 +69,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <string>
 #include <sstream>
 #include <iterator> 
 
@@ -4453,8 +4454,6 @@ void ServerLobby::changeLimitForTournament(bool goal_target)
 //-----------------------------------------------------------------------------
 
 #ifdef ENABLE_SQLITE3
-#include <iostream>
-#include <string>
  
 static std::string get_str_between_two_str(const std::string &s,
         const std::string &start_delim,
@@ -4469,7 +4468,7 @@ static std::string get_str_between_two_str(const std::string &s,
 }
 
 std::string ServerLobby::getRecord(std::string& track, std::string& mode,
-    std::string& direction, int laps, std::string user_filter)
+    std::string& direction, int laps, std::string& user_filter)
 {
     std::string powerup_string = powerup_manager->getFileName();
     std::string kc_string = kart_properties_manager->getFileName();
