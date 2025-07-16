@@ -93,7 +93,7 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
     new_amount += amount_to_add;
     new_amount += amount_to_add_linear;
     if (progressive_cap && (new_amount > section.m_progressive_cap*remaining_laps))
-        new_amount = section.m_progressive_penalty*remaining_laps;
+        new_amount = section.m_progressive_cap*remaining_laps;
 
     PowerupManager::PowerupType new_type = curr_item_type;
 
@@ -235,7 +235,7 @@ void ItemPolicy::fromString(std::string& input) {
         StringUtils::fromString(fetch(params, cumlen), tmp.m_progressive_cap);
         cumlen++;
 
-        StringUtils::fromString(fetch(params, cumlen), tmp.m_progressive_penalty);
+        StringUtils::fromString(fetch(params, cumlen), tmp.m_virtualpace_gaps);
         cumlen++;
 
         unsigned item_vector_length;
@@ -266,12 +266,12 @@ std::string ItemPolicy::toString() {
         if (m_policy_sections[i].m_section_type == IP_TIME_BASED)
             return "TIME BASED SECTIONS NOT SUPPORTED YET. HOW DID YOU EVEN GET THIS INTO MEMORY??";
         ss << m_policy_sections[i].m_section_start << " ";
-        std::string bs = std::bitset<10>(m_policy_sections[i].m_rules).to_string();
+        std::string bs = std::bitset<12>(m_policy_sections[i].m_rules).to_string();
         ss << bs << " ";
         ss << m_policy_sections[i].m_linear_mult << " ";
         ss << m_policy_sections[i].m_items_per_lap << " ";
         ss << m_policy_sections[i].m_progressive_cap << " ";
-        ss << m_policy_sections[i].m_progressive_penalty << " ";
+        ss << m_policy_sections[i].m_virtualpace_gaps << " ";
         ss << m_policy_sections[i].m_possible_types.size() << " ";
         for (unsigned j = 0; j < m_policy_sections[i].m_possible_types.size(); j++) {
             ss << PowerupManager::getPowerupAsString(m_policy_sections[i].m_possible_types[j])

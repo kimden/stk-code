@@ -207,6 +207,7 @@ public:
     void  setSlowdown(unsigned int category, float max_speed_fraction,
                       int fade_in_time, int duration=-1);
     int   getSpeedIncreaseTicksLeft(unsigned int category);
+    int   getSpeedDecreaseTicksLeft(unsigned int category);
     int   isSpeedIncreaseActive(unsigned int category);
     int   isSpeedDecreaseActive(unsigned int category);
     void  endSpeedIncrease(unsigned int category);

@@ -69,7 +69,13 @@ enum ItemPolicyRules {
 
     // Spawns/despawns nitro.
     // The leader's section will be applied for everyone, or section 0 if it fails.
-    IPT_FORBID_NITRO = 1 << 9
+    IPT_FORBID_NITRO = 1 << 9,
+
+    // A "virtual pace car" procedure will be initiated at section start
+    IPT_VIRTUALPACE = 1 << 10,
+
+    // The "virtual pace car" procedure will let all karts fully unlap.
+    IPT_UNLAPPING  =  1 << 11
 };
 
 
@@ -83,7 +89,7 @@ struct ItemPolicySection {
 
     // The key used to decide the current section,
     // can be a time in seconds or a lap
-    float m_section_start; 
+    int m_section_start; 
 
     // Bitstring of IPT_XX rule bits
     uint16_t m_rules;
@@ -91,7 +97,7 @@ struct ItemPolicySection {
     float m_linear_mult;
     float m_items_per_lap;
     float m_progressive_cap;
-    float m_progressive_penalty;
+    float m_virtualpace_gaps;
 
     // Which items can be handed out
     std::vector<PowerupManager::PowerupType> m_possible_types;
@@ -107,6 +113,17 @@ struct ItemPolicy {
     // Holds the section the leader is in.
     // -1 if this gamemode doesn't support leaders for some reason
     int m_leader_section;
+
+    // Holds the status of the "virtual pace car" procedure:
+    // code <= -3  : All karts must wait until the global clock hits second -([code] + 3) to start
+    //                   the restart procedure. Afterwards, they must wait until second
+    //                   -([code] + 3) + position_in_race*m_virtualpace_gaps[m_leader_section]
+    //                  to go back to normal running. This type of code is triggered by the last
+    //                  kart when it starts slowing down.
+    // code  = -2  : Slow down IMMEDIATELY and indefinitely (on next pass by finish line)
+    // code  = -1  : Normal racing, remove all penalties.
+    // code >=  0  : Slow down indefinitely when the kart finishes lap [code]
+    int m_virtualpace_code;
 
     int selectItemFrom(std::vector<PowerupManager::PowerupType>& types,
                          std::vector<int>& weights);
