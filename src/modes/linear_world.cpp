@@ -1229,7 +1229,9 @@ void LinearWorld::setLastTriggeredCheckline(unsigned int kart_index, int index)
             ticks_since_newlap = getTimeTicks() - kart_info.m_lap_start_ticks;
     }
 
-    Log::info("[RunRecord]", "M %s %s %d %s\n", kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), index, std::to_string(stk_config->ticks2Time(ticks_since_newlap)).c_str());
+    std::wstring namew(kart->getController()->getName().c_str());
+    std::string name( namew.begin(), namew.end() );
+    Log::info("[RunRecord]", "M %s %s %d %s\n", name.c_str(), RaceManager::get()->getTrackName().c_str(), index, std::to_string(stk_config->ticks2Time(ticks_since_newlap)).c_str());
 
     getTrackSector(kart_index)->setLastTriggeredCheckline(index);
 }   // setLastTriggeredCheckline

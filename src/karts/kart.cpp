@@ -632,11 +632,13 @@ void Kart::reset()
 
     // Reset is also called when the kart is created, at which time
     // m_controller is not yet defined, so this has to be tested here.
-    m_tyres->m_reset_compound = true;
-    m_tyres->m_reset_fuel = true;
-    m_tyres->reset();
-    if(m_controller)
+    if(m_controller) {
+        m_tyres->m_reset_compound = true;
+        m_tyres->m_reset_fuel = true;
+        m_tyres->reset();
+
         m_controller->reset();
+    }
 
     // 3 strikes mode can hide the wheels
     scene::ISceneNode** wheels = getKartModel()->getWheelNodes();

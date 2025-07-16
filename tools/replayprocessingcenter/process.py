@@ -82,14 +82,13 @@ def processFile(fp):
 
     for line in fp:
         if line[0] != '#':
-            parselist = scanf("S %s %s %d", line)
+            parselist = scanf("S %s %s %s %d", line)
             if parselist != None:
-                
                 retval[parselist[0]] = {}
                 retval[parselist[0]]["currlap"] = 1
                 retval[parselist[0]]["laps"] = []
                 retval[parselist[0]]["times"] = []
-                retval[parselist[0]]["changes"] = [[parselist[2], 1, 0]]
+                retval[parselist[0]]["changes"] = [[parselist[3], 1, 0]]
             else:
                 parselist = scanf("L %s %s %f", line)
                 if parselist != None:
