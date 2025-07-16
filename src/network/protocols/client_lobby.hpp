@@ -73,6 +73,7 @@ private:
     void updatePlayerList(Event* event);
     void handleChat(Event* event);
     void handleServerInfo(Event* event);
+    void handleItemPolicy(Event* event);
     void reportSuccess(Event* event);
     void handleBadTeam();
     void handleBadConnection();

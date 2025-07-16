@@ -169,9 +169,13 @@ void ItemState::update(int ticks)
     }   // if collected
 
     ItemPolicy *policy = RaceManager::get()->getItemPolicy();
-    if (policy->m_policy_sections.size() == 0) return;
+    if (policy->m_policy_sections.size() == 0)
+        return;
+
     int current_section = policy->m_leader_section;
-    if (current_section <= -1) current_section = 0;
+
+    if (current_section <= -1)
+        current_section = 0;
 
     uint16_t rules_curr = policy->m_policy_sections[current_section].m_rules;
     uint16_t rules_prev;
@@ -180,23 +184,23 @@ void ItemState::update(int ticks)
     else
         rules_prev = rules_curr;
 
-    bool wasgum = (m_original_type==ITEM_BUBBLEGUM) || (m_type==ITEM_BUBBLEGUM_NOLOK) ||
+    bool was_gum = (m_original_type==ITEM_BUBBLEGUM) || (m_type==ITEM_BUBBLEGUM_NOLOK) ||
                   (m_original_type==ITEM_BUBBLEGUM_SMALL) || (m_type==ITEM_BUBBLEGUM_SMALL_NOLOK);
 
-    bool isnitro = (m_type==ITEM_NITRO_SMALL) || (m_type==ITEM_NITRO_BIG);
-    bool wasnitro = (m_original_type==ITEM_NITRO_SMALL) || (m_original_type==ITEM_NITRO_BIG);
+    bool is_nitro = (m_type==ITEM_NITRO_SMALL) || (m_type==ITEM_NITRO_BIG);
+    bool was_nitro = (m_original_type==ITEM_NITRO_SMALL) || (m_original_type==ITEM_NITRO_BIG);
 
     bool forbid_prev = ((rules_prev & ItemPolicyRules::IPT_FORBID_BONUSBOX) && m_type==ITEM_BONUS_BOX) ||
                       ((rules_prev & ItemPolicyRules::IPT_FORBID_BANANA) && m_type==ITEM_BANANA)      ||
-                      ((rules_prev & ItemPolicyRules::IPT_FORBID_NITRO) && (isnitro || wasnitro));
+                      ((rules_prev & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
 
     bool forbid_curr = ((rules_curr & ItemPolicyRules::IPT_FORBID_BONUSBOX) && m_type==ITEM_BONUS_BOX) ||
                       ((rules_curr & ItemPolicyRules::IPT_FORBID_BANANA) && m_type==ITEM_BANANA)      ||
-                      ((rules_curr & ItemPolicyRules::IPT_FORBID_NITRO) && (isnitro || wasnitro));
+                      ((rules_curr & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
 
     // Gums that were switched into nitro are NEVER forbidden
     bool instant = false;
-    if (wasgum && isnitro) {
+    if (was_gum && is_nitro) {
         instant = true;
     } else {
         instant = false;

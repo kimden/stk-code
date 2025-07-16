@@ -51,6 +51,7 @@
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/version.hpp"
+#include "network/packet_types.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -3071,7 +3072,15 @@ void CommandManager::process_itempolicy_assign(Context& context)
     std::string cmd2;
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     RaceManager::get()->setItemPolicy(cmd2);
+
     Comm::sendStringToAllPeers("Item policy set to \"" + cmd2 + "\"... Probably.");
+
+    NetworkString *sync_message = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM, 16);
+    sync_message->setSynchronous(true);
+    sync_message->addUInt8(LE_ITEMPOLICY);
+    sync_message->encodeString(cmd2);
+    Comm::sendMessageToPeers(sync_message);
+
 } // process_itempolicy_assign
 // ========================================================================
 

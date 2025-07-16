@@ -488,14 +488,12 @@ void LinearWorld::newLap(unsigned int kart_index)
 
     ItemPolicy *itempolicy = RaceManager::get()->getItemPolicy();
 
-    if (!NetworkConfig::get()->isNetworking() || NetworkConfig::get()->isServer()) {
-        int sec = itempolicy->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime());
-        if (kart->getPosition() == 1)
-            itempolicy->m_leader_section = sec;
+    int sec = itempolicy->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime());
+    if (kart->getPosition() == 1)
+        itempolicy->m_leader_section = sec;
 
-        kart->item_type_last_lap = kart->getPowerup()->getType();
-        kart->item_amount_last_lap = kart->getPowerup()->getNum();
-    }
+    kart->item_type_last_lap = kart->getPowerup()->getType();
+    kart->item_amount_last_lap = kart->getPowerup()->getNum();
 
     // Race finished
     // We compute the exact moment the kart crossed the line

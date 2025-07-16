@@ -206,6 +206,7 @@ bool ClientLobby::notifyEvent(Event* event)
         case LE_UPDATE_PLAYER_LIST:    updatePlayerList(event);    break;
         case LE_CHAT:                  handleChat(event);          break;
         case LE_CONNECTION_ACCEPTED:   connectionAccepted(event);  break;
+        case LE_ITEMPOLICY:            handleItemPolicy(event);    break;
         case LE_SERVER_INFO:           handleServerInfo(event);    break;
         case LE_PLAYER_DISCONNECTED :  disconnectedPlayer(event);  break;
         case LE_CONNECTION_REFUSED:    connectionRefused(event);   break;
@@ -841,6 +842,16 @@ void ClientLobby::handleServerInfo(Event* event)
 }   // handleServerInfo
 
 //-----------------------------------------------------------------------------
+void ClientLobby::handleItemPolicy(Event* event)
+{
+    NetworkString &data = event->data();
+    std::string policy_str;
+    data.decodeString(&policy_str);
+    RaceManager::get()->setItemPolicy(policy_str);
+} // handleItemPolicy
+
+//-----------------------------------------------------------------------------
+
 void ClientLobby::updatePlayerList(Event* event)
 {
     if (!checkDataSize(event, 1)) return;

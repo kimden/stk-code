@@ -38,6 +38,7 @@ enum LobbyEvent: uint8_t
     LE_CONNECTION_REQUESTED = 1, // a connection to the server
     LE_CONNECTION_REFUSED, // Connection to server refused
     LE_CONNECTION_ACCEPTED, // Connection to server accepted
+    LE_ITEMPOLICY, // inform client about item policy
     LE_SERVER_INFO, // inform client about server info
     LE_REQUEST_BEGIN, // begin of kart selection
     LE_UPDATE_PLAYER_LIST, // inform client about player list update
