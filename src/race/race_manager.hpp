@@ -258,7 +258,7 @@ private:
 public:
 
     ItemPolicy m_item_policy;
-    void setItemPolicy(std::string str) { m_item_policy.fromString(str); m_item_policy.m_leader_section = -1; m_item_policy.m_virtualpace_code = -1; } 
+    void setItemPolicy(std::string str) { m_item_policy.fromString(str); m_item_policy.m_leader_section = -1; m_item_policy.m_virtualpace_code = -1; m_item_policy.m_restart_count = 0; } 
     ItemPolicy *getItemPolicy() { return &m_item_policy; };
     
     /** This data structure accumulates kart data and race result data from

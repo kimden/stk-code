@@ -497,6 +497,7 @@ void LinearWorld::newLap(unsigned int kart_index)
         bool do_virtualpace = rules & ItemPolicyRules::IPT_VIRTUALPACE;
         bool do_unlapping = rules & ItemPolicyRules::IPT_UNLAPPING;
         if (do_virtualpace && start_lap == kart_info.m_finished_laps) {
+            itempolicy->m_restart_count = 0;
             itempolicy->m_virtualpace_code = do_unlapping
                                              ? start_lap // Lappings must slow down when they reach the lead lap
                                              : -2;       // Lappings must slow down as soon as possible
@@ -509,13 +510,15 @@ void LinearWorld::newLap(unsigned int kart_index)
     bool slowed_down = false;
     if (itempolicy->m_virtualpace_code == kart_info.m_finished_laps || itempolicy->m_virtualpace_code == -2) {
         auto& stk_config = STKConfig::get();
+        itempolicy->m_restart_count += 1;
         kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(99999));
         slowed_down = true;
     }
 
+    bool is_last = itempolicy->m_restart_count == RaceManager::get()->getNumberOfKarts();
     // Technically there could be ghosts but you can't get into that situation. Probably.
     // If the kart is last, also fire the virtual pace car restart procedure
-    if (slowed_down && kart->getPosition() == RaceManager::get()->getNumberOfKarts()) {
+    if (slowed_down && is_last) {
         int time = World::getWorld()->getTime();
         time = (-time) - 3;
         // code till be added to 3 and inverted to get time

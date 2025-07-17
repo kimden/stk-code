@@ -3197,6 +3197,7 @@ void Kart::updatePhysics(int ticks)
 
     if (is_last && did_restart) {
         itempolicy->m_virtualpace_code = -1;
+        itempolicy->m_restart_count = -1;
     }
 
     // the only reason such a ridiculous infinite pit penalty (-1) can be given is if it's a virtual pace car restart

@@ -124,6 +124,8 @@ struct ItemPolicy {
     // code  = -1  : Normal racing, remove all penalties.
     // code >=  0  : Slow down indefinitely when the kart finishes lap [code]
     int m_virtualpace_code;
+    // Number of karts that are ready to restart the race. Used to trigger the restart procedure.
+    int m_restart_count;
 
     int selectItemFrom(std::vector<PowerupManager::PowerupType>& types,
                          std::vector<int>& weights);
