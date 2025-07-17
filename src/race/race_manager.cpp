@@ -720,10 +720,14 @@ void RaceManager::startNextRace()
     {
         if (m_kart_status[i].m_kart_type == KT_AI)
         {
-            auto track = TrackManager::get()->getTrack(m_tracks[m_track_number]);
-            track->loadDriveGraph(0, getReverseTrack(), false);
-            float length = ((float)m_num_laps[m_track_number])*track->getTrackLength();
-            m_kart_status[i].m_starting_tyre = selectTyre(UserConfigParams::m_tyre_selection_mode, length);
+            if (!isBattleMode() && m_minor_mode!=MINOR_MODE_SOCCER && m_minor_mode!=MINOR_MODE_EASTER_EGG) {
+                auto track = TrackManager::get()->getTrack(m_tracks[m_track_number]);
+                track->loadDriveGraph(0, getReverseTrack(), false);
+                float length = ((float)m_num_laps[m_track_number])*track->getTrackLength();
+                m_kart_status[i].m_starting_tyre = selectTyre(UserConfigParams::m_tyre_selection_mode, length);
+            } else { // We are in a mode where it doesn't make sense to select a tyre other than fixed
+                m_kart_status[i].m_starting_tyre = 10;
+            }
             
             printf("Selected tyre %u for AI\n", m_kart_status[i].m_starting_tyre); 
 
