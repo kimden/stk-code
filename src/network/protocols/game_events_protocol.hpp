@@ -2,6 +2,7 @@
 #define GAME_EVENTS_PROTOCOL_HPP
 
 #include "network/protocol.hpp"
+#include "utils/types.hpp"
 #include "utils/cpp2011.hpp"
 
 class Kart;
