@@ -21,7 +21,7 @@
 #include "online/request_manager.hpp"
 #include "online/http_request.hpp"
 
-#if defined(__SWITCH__) || defined(MOBILE_STK) || defined(SERVER_ONLY) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__SWITCH__) || defined(MOBILE_STK) || defined(SERVER_ONLY)
 #define DISABLE_RPC
 #endif
 
@@ -77,7 +77,8 @@ void RichPresence::destroy()
 }
 
 RichPresence::RichPresence() : m_connected(false), m_ready(false), m_last(0),
-#if defined(WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__))
+#if defined(WIN_BUILD)
+// && !(defined(__MINGW32__) || defined(__MINGW64__))
     m_socket(INVALID_HANDLE_VALUE),
 #else
     m_socket(-1),
@@ -98,7 +99,7 @@ RichPresence::~RichPresence()
 void RichPresence::terminate()
 {
 #ifndef DISABLE_RPC
-#ifdef WIN32
+#ifdef WIN_BUILD
 #define UNCLEAN m_socket != INVALID_HANDLE_VALUE
 #else
 #define UNCLEAN m_socket != -1
@@ -166,7 +167,7 @@ bool RichPresence::doConnect()
     basePath = "/tmp";
     completed:
     basePath = basePath + "/";
-#elif defined(WIN32)
+#elif defined(WIN_BUILD)
     // Windows uses named pipes
     std::string basePath = "\\\\?\\pipe\\";
 #endif
