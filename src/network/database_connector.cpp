@@ -694,7 +694,7 @@ bool DatabaseConnector::writeReport(
             "INSERT INTO %s "
             "(server_uid, reporter_ip, reporter_ipv6, reporter_online_id, reporter_username, "
             "info, reporting_ip, reporting_ipv6, reporting_online_id, reporting_username) "
-            "VALUES (%s, %u, \"%s\", %u, %s, %s, %u, \"%s\", %u, %s);",
+            "VALUES (%s, %u, '%s', %u, %s, %s, %u, '%s', %u, %s);",
             ServerConfig::m_player_reports_table.c_str(),
             Binder(coll, ServerConfig::m_server_uid, "server_uid"),
             !reporter->getAddress().isIPv6() ? reporter->getAddress().getIP() : 0,
@@ -1018,7 +1018,7 @@ void DatabaseConnector::onPlayerJoinQueries(std::shared_ptr<STKPeer> peer,
             "country_code, version, os, ping"
             ", addon_karts_count, addon_tracks_count"
             ", addon_arenas_count, addon_soccers_count) "
-            "VALUES (%u, 0, \"%s\", %u, %u, %s, %u, %s, %s, %s, %u"
+            "VALUES (%u, 0, '%s', %u, %u, %s, %u, %s, %s, %s, %u"
             ", %d, %d, %d, %d);",
             m_server_stats_table.c_str(),
             peer->getHostId(),
@@ -1121,7 +1121,7 @@ DatabaseConnector::getServerMessages(uint32_t online_id) const
         "SELECT rowid, reported_time, info FROM \"%s\" "
         "WHERE reporter_online_id = %u "
         "AND reporting_online_id = -1 "
-        "AND (server_uid = \"\" OR server_uid = \"%s\") LIMIT 1;",
+        "AND (server_uid = '' OR server_uid = '%s') LIMIT 1;",
         ServerConfig::m_player_reports_table.c_str(),
         online_id, ServerConfig::m_server_uid.c_str());
 
@@ -1181,8 +1181,8 @@ bool DatabaseConnector::getBestResult(const GameInfo& game_info,
     // to compare strings just as = operator.
     std::string query = StringUtils::insertValues(
         "SELECT username, result, other_info "
-        "FROM \"%s\" WHERE venue = %s AND reverse = \"%s\" "
-        "AND mode = \"%s\" AND value_limit = %s AND time_limit = %s "
+        "FROM \"%s\" WHERE venue = %s AND reverse = '%s' "
+        "AND mode = '%s' AND value_limit = %s AND time_limit = %s "
         "AND config = %s AND items = %s AND is_not_full = 0 AND game_event = 0"
         "%s" // This will be a space if we don't have to filter by the user
         "ORDER BY result ASC, time ASC LIMIT 1;",
@@ -1242,10 +1242,10 @@ void DatabaseConnector::insertManyResults(const GameInfo& game_info)
             "username, result, kart, kart_class, kart_color, team, handicap, start_pos, fastest_lap, sog_time, "
             "online_id, country_code, is_autofinish, is_not_full, game_duration, when_joined, when_left, "
             "game_event, other_info) "
-            "VALUES (%s, %s, \"%s\", \"%s\", %d, %f, "
+            "VALUES (%s, %s, '%s', '%s', %d, %f, "
             "%d, %s, %s, %d, %d, " //%s, "
             "%s, %f, %s, %s, %f, %d, %d, %d, %f, %f, "
-            "%d, \"%s\", %d, %d, %f, %f, %f, "
+            "%d, '%s', %d, %d, %f, %f, %f, "
             "%d, %s);",
             m_results_table_name.c_str(),
             Binder(coll, game_info.m_timestamp, "time"),

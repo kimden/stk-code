@@ -978,17 +978,27 @@ void FileManager::checkAndCreateConfigDir()
     else
     {
 
-#if defined(WIN32)
+    #if defined(WIN_BUILD)
 
         // Try to use the APPDATA directory to store config files and highscore
         // lists. If not defined, used the current directory.
+
+        std::string dir = "";
+
+    #if defined(WIN32)
         std::vector<wchar_t> env;
         // An environment variable has a maximum size limit of 32,767 characters
         env.resize(32767, 0);
         DWORD length = GetEnvironmentVariable(L"APPDATA", env.data(), 32767);
         if (length != 0)
+            dir = StringUtils::wideToUtf8(env.data());
+    #else
+        dir = getenv("APPDATA");
+    #endif
+
+        if (!dir.empty())
         {
-            m_user_config_dir = StringUtils::wideToUtf8(env.data());
+            m_user_config_dir = dir;
             if (!checkAndCreateDirectory(m_user_config_dir))
             {
                 Log::error("FileManager", "Can't create config dir '%s"
@@ -1096,7 +1106,7 @@ void FileManager::checkAndCreateConfigDir()
  */
 void FileManager::checkAndCreateAddonsDir()
 {
-#if defined(WIN32)
+#if defined(WIN_BUILD)
     m_addons_dir  = m_user_config_dir+"../addons/";
 #elif defined(__HAIKU__)
     m_addons_dir  = m_user_config_dir+"addons/";
@@ -1137,7 +1147,7 @@ void FileManager::checkAndCreateAddonsDir()
  */
 void FileManager::checkAndCreateScreenshotDir()
 {
-#if defined(WIN32) || defined(__HAIKU__)
+#if defined(WIN_BUILD) || defined(__HAIKU__)
     m_screenshot_dir  = m_user_config_dir+"screenshots/";
 #elif defined(__APPLE__)
     m_screenshot_dir  = getenv("HOME");
@@ -1163,7 +1173,7 @@ void FileManager::checkAndCreateScreenshotDir()
  */
 void FileManager::checkAndCreateReplayDir()
 {
-#if defined(WIN32) || defined(__HAIKU__)
+#if defined(WIN_BUILD) || defined(__HAIKU__)
     m_replay_dir = m_user_config_dir + "replay/";
 #elif defined(__APPLE__)
     m_replay_dir  = getenv("HOME");
@@ -1189,7 +1199,7 @@ void FileManager::checkAndCreateReplayDir()
 */
 void FileManager::checkAndCreateCachedTexturesDir()
 {
-#if defined(WIN32) || defined(__HAIKU__)
+#if defined(WIN_BUILD) || defined(__HAIKU__)
     m_cached_textures_dir = m_user_config_dir + "cached-textures/";
 #elif defined(__APPLE__)
     m_cached_textures_dir = getenv("HOME");
@@ -1214,7 +1224,7 @@ void FileManager::checkAndCreateCachedTexturesDir()
  */
 void FileManager::checkAndCreateGPDir()
 {
-#if defined(WIN32) || defined(__HAIKU__)
+#if defined(WIN_BUILD) || defined(__HAIKU__)
     m_gp_dir = m_user_config_dir + "grandprix/";
 #elif defined(__APPLE__)
     m_gp_dir  = getenv("HOME");
