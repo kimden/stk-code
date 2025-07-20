@@ -239,11 +239,11 @@ void Tyres::reset() {
         } else {
             m_current_compound = ((int)(c-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
         }
-        //system((std::string("tools/runrecord.sh ") + RaceManager::get()->getTrackName().c_str() + " S " + std::to_string(m_current_compound).c_str() + " " + m_kart->getIdent().c_str()).c_str());
+
         if (!(NetworkConfig::get()->isServer())){
             std::wstring namew(m_kart->getController()->getName().c_str());
             std::string name( namew.begin(), namew.end() );
-            Log::info("[RunRecord]", "S %s %s %s %s\n", name.c_str(), m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_current_compound).c_str());
+            Log::info("[RunRecord]", "S %s %s %s %s", name.c_str(), m_kart->getIdent().c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_current_compound).c_str());
         }
     }
 
@@ -336,7 +336,7 @@ void Tyres::commandLap(int ticks) {
         auto& stk_config = STKConfig::get();
         std::wstring namew(m_kart->getController()->getName().c_str());
         std::string name( namew.begin(), namew.end() );
-        Log::info("[RunRecord]", "L %s %s %s\n", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks)).c_str());
+        Log::info("[RunRecord]", "L %s %s %s", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(stk_config->ticks2Time(ticks)).c_str());
     }
     m_lap_count += 1;
 }
@@ -344,7 +344,7 @@ void Tyres::commandEnd(void) {
     if (!(NetworkConfig::get()->isServer())){
         std::wstring namew(m_kart->getController()->getName().c_str());
         std::string name( namew.begin(), namew.end() );
-        Log::info("[RunRecord]", "E %s %s\n", name.c_str(), RaceManager::get()->getTrackName().c_str());
+        Log::info("[RunRecord]", "E %s %s", name.c_str(), RaceManager::get()->getTrackName().c_str());
     }
     auto stint = m_kart->getStints();
     if ((std::get<0>(stint[0]) == 0) && (std::get<1>(stint[0]) == 0)) {
@@ -392,7 +392,11 @@ void Tyres::commandChange(int compound, int time) {
     if (!(NetworkConfig::get()->isServer())){
         std::wstring namew(m_kart->getController()->getName().c_str());
         std::string name( namew.begin(), namew.end() );
-        Log::info("[RunRecord]", "C %s %s %s %s\n", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(time).c_str(), std::to_string(time).c_str());
+
+        // Logs will be clutter unless this check is ran
+        if (!m_kart->isGhostKart()) {
+            Log::info("[RunRecord]", "C %s %s %s %s", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(time).c_str(), std::to_string(time).c_str());
+        }
     }
 
     m_reset_compound = false;
