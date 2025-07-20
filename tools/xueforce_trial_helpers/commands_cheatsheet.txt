@@ -1,0 +1,39 @@
+Commands cheatsheet:
+
+Queues
+/kcyclic push [karts list]
+/kcyclic push
+
+light: kiki sara_the_wizard wilber hexley
+med: adiumy emule gnu nolok tux xue gavroche konqi sara_the_racer suzanne
+hev: beastie puffy amanda pidgin
+
+/mcyclic push [track]
+/length = [length]
+
+Item policiies:
+where X is 1 is items are off, and 0 if items are on (yes, it's disallowance bit)
+sprint: /itempolicy 1 0 0000X0000000 0 0 0 0 0
+race: /itempolicy 1 0 0000X0000000 0 0 0 0 0
+tt: /itempolicy 1 0 000010000000 0 0 0 0 0
+marathon: /itempolicy 1 0 011110001100 0 1 0 5 1 zipper 1
+variety: /itempolicy normal
+
+For forcing someone to spectate/unspectate (must have /power2):
+/as [player] spectate 1
+/as [player] spectate 0
+
+For enabling GP:
+/resetgp [number of games]
+    or
+change track count in server config panel
+
+For disabling GP:
+set track count in server config panel to 0
+
+For setting scoring:
+/scoring fixed 0 0 75 54 45 36 30 24 18 12 6 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+Regular  scoring will be F1*3: 75 54 45 36 30 24 18 12 6 3
+Marathon scoring will be F1  : 25 18 15 12 10  8  6  4 2 1
+This is so that it can be divided cleanly for the marathon round's three categories
