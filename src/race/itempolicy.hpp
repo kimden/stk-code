@@ -98,6 +98,7 @@ struct ItemPolicySection {
     float m_items_per_lap;
     float m_progressive_cap;
     float m_virtualpace_gaps;
+    float m_deg_mult;
 
     // Which items can be handed out
     std::vector<PowerupManager::PowerupType> m_possible_types;

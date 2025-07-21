@@ -102,6 +102,7 @@ public:
     float m_c_max_fuel;
     bool m_high_fuel_demand;
 
+    float m_deg_mult;
     unsigned m_current_compound;
     bool m_reset_compound;
     bool m_reset_fuel;

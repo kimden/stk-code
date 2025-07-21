@@ -40,6 +40,7 @@ std::shared_ptr<CachedCharacteristic> Tyres::m_colors_characteristic = nullptr;
 
 Tyres::Tyres(Kart *kart) {
     m_kart = kart;
+    m_deg_mult = 1;
     m_current_compound = 1; // Placeholder value
     m_current_fuel = 1; // Placeholder value
     m_high_fuel_demand = false;
@@ -157,7 +158,8 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     if (m_current_fuel > 1000.0f) m_current_fuel = 1000.0f;
     if (m_current_fuel < 0.0f) m_current_fuel = 0.0f;
 
-
+    deg_tra *= m_deg_mult;
+    deg_tur *= m_deg_mult;
     deg_tra_percent = deg_tra/m_c_max_life_traction;
     deg_tur_percent = deg_tur/m_c_max_life_turning;
 
@@ -233,6 +235,7 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 
 void Tyres::reset() {
     if (m_reset_compound) {
+        m_deg_mult = 1;
         const unsigned c = m_kart->getStartingTyre();
         if (c == 0) { /*Color 0 -> random kart color*/
             m_current_compound = ((int)rand() % 3) + 2; /*Should be modulo the compound number, but at the moment some compounds are not finished*/
