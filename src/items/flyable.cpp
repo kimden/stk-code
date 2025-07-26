@@ -615,8 +615,6 @@ bool Flyable::hit(Kart *kart_hit, PhysicalObject* object)
         hit_is_valid = sender_lap == recv_lap;
     }
 
-    //printf("[FLYDEBUG] this hit was %s because the sender distance is %f, the receiver distance is %f, and the laps are sender %u - receiver %u\n", hit_is_valid ? "ALLOWED" : "FORBIDDEN", sender_distance, recv_distance, sender_lap, recv_lap);
-
     return hit_is_valid;
 }   // hit
 

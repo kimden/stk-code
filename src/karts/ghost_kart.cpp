@@ -213,7 +213,6 @@ void GhostKart::update(int ticks)
     LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
 
     if (idx >= 1 && (m_all_bonus_info[idx-1].m_current_compound != m_all_bonus_info[idx].m_current_compound)) {
-        //printf("[GHOSTDEBUG]triggering change from %u to %u\n", (int)m_all_bonus_info[idx-1].m_current_compound, (int)m_all_bonus_info[idx].m_current_compound);
         m_tyres->commandChange(m_all_bonus_info[idx].m_current_compound, 0);
     }
 

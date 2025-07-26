@@ -82,10 +82,6 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
                     m_acceleration = (speed-m_previous_speeds[i])/dt;
                 }
             }
-//          printf("Smallest acceleration: %f. Queue:\n", std::abs(m_acceleration));
-//          for (float n : m_previous_speeds)
-//              printf("%f ", n);
-//          printf("\n\n");
         }
         if (slowdown < 0.5f && !is_using_zipper) {
             m_acceleration = 0.0f; //No fair traction simulation can be achieved with such materials
@@ -160,6 +156,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 
     deg_tra *= m_deg_mult;
     deg_tur *= m_deg_mult;
+
     deg_tra_percent = deg_tra/m_c_max_life_traction;
     deg_tur_percent = deg_tur/m_c_max_life_turning;
 
@@ -237,7 +234,7 @@ void Tyres::reset() {
     if (m_reset_compound) {
         m_deg_mult = 1;
         const unsigned c = m_kart->getStartingTyre();
-        if (c == 0) { /*Color 0 -> random kart color*/
+        if (c == 0) { /*0 -> random tyre*/
             m_current_compound = ((int)rand() % 3) + 2; /*Should be modulo the compound number, but at the moment some compounds are not finished*/
         } else {
             m_current_compound = ((int)(c-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
@@ -254,7 +251,6 @@ void Tyres::reset() {
     if (change_color && getTyreColor(m_current_compound) > -0.5f) {
         const float tyre_hue = getTyreColor(m_current_compound) / 100.0f;
         m_kart->setKartColor(tyre_hue);
-        //printf("Setting color to %f\n", getTyreColor(m_current_compound));
     }
 
     if (m_reset_fuel) {
@@ -291,7 +287,6 @@ void Tyres::saveState(BareNetworkString *buffer)
     for (long unsigned i = 0; i < m_kart->m_tyres_queue.size(); i++) {
         buffer->addUInt8(m_kart->m_tyres_queue[i]+1);
     }
-//  printf("Saved compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }
 
 void Tyres::rewindTo(BareNetworkString *buffer)
@@ -309,7 +304,6 @@ void Tyres::rewindTo(BareNetworkString *buffer)
         tmpvec.push_back(tmpint);
     }
     m_kart->m_tyres_queue = tmpvec;
-//  printf("Rewinded compound %u, kart: %s\n", m_current_compound, m_kart->getIdent().c_str());
 }
 
 //-----------------------------------------------------------------------------

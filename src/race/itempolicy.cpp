@@ -33,7 +33,7 @@
 
 int ItemPolicy::selectItemFrom(std::vector<PowerupManager::PowerupType>& types, std::vector<int>& weights) {
     if (types.size() != weights.size()) {
-        printf("Mismatch in item policy section weights and types lists size\n");
+        Log::warn("ItemPolicy", "Mismatch in item policy section weights and types lists size\n");
         return -1;
     }
     int sum_of_weight = 0;
@@ -144,7 +144,6 @@ int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
         int next_section_start_laps;
         int prev_lap_item_amount = kart->item_amount_last_lap;
         if (i+1 == m_policy_sections.size()) {
-            //printf("[DEBUG ITEMPOLICY] choosing to apply last section\n");
             next_section_start_laps = RaceManager::get()->getNumLaps();
             applySectionRules(m_policy_sections[i], kart, next_section_start_laps, current_lap, current_time, prev_lap_item_amount);
             return i;
@@ -162,13 +161,12 @@ int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time) {
                 if (current_lap >= m_policy_sections[i].m_section_start &&
                     current_lap < m_policy_sections[i+1].m_section_start)
                 {
-                    //printf("[DEBUG ITEMPOLICY] choosing to apply section %u\n", i);
                     next_section_start_laps = m_policy_sections[i+1].m_section_start;
                     applySectionRules(m_policy_sections[i], kart, next_section_start_laps, current_lap, current_time, prev_lap_item_amount);
                     return i;
                     break;
                 } else {
-                    //printf("[DEBUG ITEMPOLICY] section not applied: !(%u < %u < %u)\n", (int)m_policy_sections[i].m_section_start, current_lap, (int)m_policy_sections[i+1].m_section_start);
+                    ;
                 }
             }
         }

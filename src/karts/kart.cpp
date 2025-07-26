@@ -3132,9 +3132,6 @@ void Kart::updatePhysics(int ticks)
         else
             f = f * (0.35f + 0.65f / m_kart_properties->getEngineTimeFullBrake());
     }
-    if ((getMaterial()) && (getMaterial()->getMaxSpeedFraction() < 0.98f) && !(m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0)) {
-        //printf("SLOWING DOWN BY: %f\n", getMaterial()->getMaxSpeedFraction());
-    }
     if (m_crash_cooldown_ticks > 0) {
         m_crash_cooldown_ticks -= ticks;
             if (m_crash_cooldown_ticks <= 0) {
