@@ -30,6 +30,8 @@ enum Op: int
     SWF_OP_FLIP = -1,
 };
 
+// Add several implementations for different cases later
+// (e.g. bitset at most 60 elements)
 template<typename T>
 class SetWithFlip: public std::set<T>
 {
@@ -56,6 +58,11 @@ public:
         return add(element);
     }
 
+    bool has(const T& element)
+    {
+        return this->find(element) != this->end();
+    }
+
     int set(const T& element, int type)
     {
         switch (type)
@@ -68,6 +75,30 @@ public:
         Log::warn("SetWithFlip", "Invalid type = %d encountered, "
                 "defaulting to flip (%d).", type, SWF_OP_FLIP);
         return flip(element);
+    }
+
+    // Iterates over all elements, works in O(n log n). Use with caution.
+    SetWithFlip<T> operator & (const SetWithFlip& rhs) const
+    {
+        auto it1 = this->cbegin();
+        auto it2 = rhs.cbegin();
+        SetWithFlip<T> result;
+        while (it1 != this->cend() && it2 != rhs.cend())
+        {
+            const T& a = *it1;
+            const T& b = *it2;
+            if (a == b)
+            {
+                result.insert(a);
+                ++it1;
+                ++it2;
+            }
+            else if (a < b)
+                ++it1;
+            else
+                ++it2;
+        }
+        return result;
     }
 };
 

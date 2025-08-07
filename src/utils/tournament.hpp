@@ -95,7 +95,7 @@ public:
 
     // Technically this should be either in STKPeer or in TeamManager,
     // quick fix is to just make it static
-    static bool hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team);
+    static bool hasProfileFromTeam(std::shared_ptr<STKPeer> peer, int target_team);
 
 private:
 

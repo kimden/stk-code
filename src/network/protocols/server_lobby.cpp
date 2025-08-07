@@ -397,8 +397,12 @@ void ServerLobby::handleChat(Event* event)
     if (event->data().size() > 0)
         target_team = (KartTeam)event->data().getUInt8();
 
-    getChatManager()->handleNormalChatMessage(peer,
-            StringUtils::wideToUtf8(message), target_team, m_name_decorator);
+    getChatManager()->handleNormalChatMessage(
+        peer,
+        StringUtils::wideToUtf8(message),
+        TeamUtils::getIndexFromKartTeam(target_team),
+        m_name_decorator
+    );
 }   // handleChat
 
 //-----------------------------------------------------------------------------

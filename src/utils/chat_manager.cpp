@@ -32,9 +32,7 @@
 
 namespace
 {
-    const std::string g_red_team     = StringUtils::utf32ToUtf8({0x1f7e5, 0x20});
-    const std::string g_blue_team    = StringUtils::utf32ToUtf8({0x1f7e6, 0x20});
-    const std::string g_private_chat = StringUtils::utf32ToUtf8({0x1f512, 0x20});
+    const std::string g_private_chat = StringUtils::utf32ToUtf8({0x1f512});
 };
 
 
@@ -164,7 +162,7 @@ void ChatManager::onPeerDisconnect(std::shared_ptr<STKPeer> peer)
 //-----------------------------------------------------------------------------
 
 void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
-        std::string message, KartTeam target_team,
+        std::string message, int target_team,
         const std::shared_ptr<GenericDecorator>& decorator)
 {
     // Update so that the peer is not kicked
@@ -207,22 +205,17 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
     const bool game_started = !getLobby()->isWaitingForStartGame();
     auto can_receive = getMessageReceiversFor(peer);
     if (!can_receive.empty())
-        message = g_private_chat + message;
-
-    bool team_mode = (
-        RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER ||
-        RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
-    );
+        message = g_private_chat + " " + message;
 
     bool team_speaker = isTeamSpeaker(peer);
-    KartTeamSet teams = getTeamsForPeer(peer);
+    SetWithFlip<int> teams = getTeamsForPeer(peer);
     
     // Add team emojis
-    if (target_team == KART_TEAM_RED || (team_speaker && team_mode && teams.has(KART_TEAM_RED)))
-        message = g_red_team + message;
-
-    if (target_team == KART_TEAM_BLUE || (team_speaker && team_mode && teams.has(KART_TEAM_BLUE)))
-        message = g_blue_team + message;
+    for (int i = 1; i <= TeamUtils::getNumberOfTeams(); ++i)
+    {
+        if (target_team == i || (team_speaker && teams.has(i)))
+            message = TeamUtils::getTeamByIndex(i).getEmoji() + " " + message;
+    }
 
     NetworkString* chat = getLobby()->getNetworkString();
     chat->setSynchronous(true);
@@ -246,7 +239,7 @@ void ChatManager::handleNormalChatMessage(std::shared_ptr<STKPeer> peer,
 bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
                                       std::shared_ptr<STKPeer> target,
                                       bool game_started,
-                                      KartTeam target_team)
+                                      int target_team)
 {
     if (sender == target)
         return true;
@@ -255,7 +248,7 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
         if (target->isWaitingForGame() ^ sender->isWaitingForGame())
             return false;
 
-        if (target_team != KART_TEAM_NONE)
+        if (target_team != TeamUtils::NO_TEAM)
         {
             if (target->isSpectator())
                 return false;
@@ -270,7 +263,7 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
             if (tournament->cannotSendForSureDueToRoles(sender, target))
                 return false;
 
-            if (target_team != KART_TEAM_NONE)
+            if (target_team != TeamUtils::NO_TEAM)
             {
                 if (!tournament->hasProfileThatSeesTeamchats(target) &&
                     !Tournament::hasProfileFromTeam(target, target_team))
@@ -294,12 +287,12 @@ bool ChatManager::shouldMessageBeSent(std::shared_ptr<STKPeer> sender,
 //-----------------------------------------------------------------------------
 
 // Should be called not once per message. Fix later
-KartTeamSet ChatManager::getTeamsForPeer(std::shared_ptr<STKPeer> peer) const
+SetWithFlip<int> ChatManager::getTeamsForPeer(std::shared_ptr<STKPeer> peer) const
 {
-    KartTeamSet teams;
+    SetWithFlip<int> teams;
 
     for (auto& profile: peer->getPlayerProfiles())
-        teams.add(profile->getTeam());
+        teams.add(profile->getTemporaryTeam());
 
     return teams;
 }   // getTeamsForPeer

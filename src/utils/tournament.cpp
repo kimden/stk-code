@@ -505,11 +505,11 @@ bool Tournament::hasProfileThatSeesTeamchats(std::shared_ptr<STKPeer> peer) cons
 }   // hasProfileThatSeesTeamchats
 //-----------------------------------------------------------------------------
 
-bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team)
+bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, int target_team)
 {
     for (auto& player : peer->getPlayerProfiles())
     {
-        if (player->getTeam() == target_team)
+        if (player->getTemporaryTeam() == target_team)
             return true;
     }
     return false;

@@ -993,7 +993,7 @@ namespace StringUtils
     }   // wideToUtf8
 
     // ------------------------------------------------------------------------
-    /** Converts the irrlicht wide string to an utf8-encoded std::string. */
+    /** Converts the utf8-encoded std::string to an irrlicht wide string. */
     irr::core::stringw utf8ToWide(const char* input)
     {
         std::vector<wchar_t> wchar_line;
