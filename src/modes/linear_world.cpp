@@ -504,6 +504,7 @@ void LinearWorld::newLap(unsigned int kart_index)
         }
     }
     kart->m_tyres->m_deg_mult = itempolicy->m_policy_sections[sec].m_deg_mult;
+    kart->m_tyres->m_c_fuel_rate = itempolicy->m_policy_sections[sec].m_fuel_mult;
 
     kart->item_type_last_lap = kart->getPowerup()->getType();
     kart->item_amount_last_lap = kart->getPowerup()->getNum();

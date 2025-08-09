@@ -220,11 +220,11 @@ bool PlayerController::action(PlayerAction action, int value, bool dry_run)
 
         // CRUISE MODE
         // Nitro does not depend on wether we are accelerating in TME
-        // If we are accelerating, and accel is less than 40%, set it to 40%.
-        // This is because above 45%, fuel usage increases by 100%
+        // If we are accelerating, and accel is less than 19%, set it to 19%.
+        // This is because above 20%, fuel usage increases from 95% to 100%
         SET_OR_TEST_GETTER(Nitro, ((value!=0)) );
         if (value!=0 && m_cruise_cooldown_ticks <= 0) {
-            if (m_prev_accel/32768.0f < 0.4f) SET_OR_TEST_GETTER(Accel, 0.4f);
+            if (m_prev_accel/32768.0f < 0.19f) SET_OR_TEST_GETTER(Accel, 0.19f);
             m_cruise_cooldown_ticks = STKConfig::get()->time2Ticks(1.0f);
         }
         break;

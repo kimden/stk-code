@@ -1,14 +1,17 @@
     // This simply inits all constants into their corresponding variables
-    m_c_fuel = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[0];
-    m_c_fuel_regen = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[1];
-    m_c_fuel_stop = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[2];
-    m_c_fuel_weight = ((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[3])/100.0f;
-    m_c_fuel_rate = (std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[4];
-    irr::core::clamp(m_c_fuel, 1.0f, 1000.0f);
-    irr::core::clamp(m_c_fuel_stop, 0.0f, 1000.0f);
-    irr::core::clamp(m_c_fuel_rate, 0.0f, 1000.0f);
-    irr::core::clamp(m_c_fuel_regen, 0.0f, 100.0f);
-    irr::core::clamp(m_c_fuel_weight, 0.0f, 1.0f);
+    m_c_fuel = m_kart->getKartProperties()->getFuelCapacity();
+    m_c_fuel_stop = m_kart->getKartProperties()->getFuelStopRate();
+    m_c_fuel_weight_real = m_kart->getKartProperties()->getFuelMassReal();
+    m_c_fuel_weight_virtual = m_kart->getKartProperties()->getFuelMassVirtual();
+    m_c_fuel_rate_base = m_kart->getKartProperties()->getFuelConsumption();
+    m_c_fuel_rate = 0; // Will be set to the appropiate one by itempolicy on pass by start/finish line
+
+    bool do_fuel = true;
+    if (!do_fuel) {
+        m_c_fuel_weight_real = 0;
+        m_c_fuel_weight_virtual = 0;
+    }
+
 
     m_c_mass = m_kart->getKartProperties()->getMass();
     m_c_max_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_current_compound-1];

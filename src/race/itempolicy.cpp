@@ -181,8 +181,8 @@ static std::string fetch(std::vector<std::string>& strings, int idx) {
 }
 //--------------------------------------------------
 void ItemPolicy::fromString(std::string& input) {
-    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 1 0";
-    std::string tt_preset = "1 0 0010000001 1 0 0 0 1 1 zipper 1";
+    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 1 1 0";
+    std::string tt_preset = "1 0 0010000001 1 0 0 0 1 1 1 zipper 1";
     if (input.empty()) {
         fromString(normal_race_preset);
         return;
@@ -196,10 +196,10 @@ void ItemPolicy::fromString(std::string& input) {
         return;
     }
     std::vector<std::string> params = StringUtils::split(input, ' ');
-    // Format can not form a valid policy with less than 8 item-separated parameters:
-    // 1 0 0000000000 0 0 0 0 1 0
-    // 1 section starting on lap 1 with no rules, all data to 0, and a length-0 item vector
-    if (params.empty() || params.size() < 9) {
+    // Format can not form a valid policy with less than 10 space-separated parameters:
+    // 1 0 0000000000 0 0 0 0 1 1 0
+    // 1 section starting on lap 1 with no rules, all data to 0, deg and fuel consumption to 1x, and a length-0 item vector
+    if (params.empty() || params.size() < 10) {
         fromString(normal_race_preset);
         return;
     }
@@ -237,6 +237,9 @@ void ItemPolicy::fromString(std::string& input) {
         cumlen++;
 
         StringUtils::fromString(fetch(params, cumlen), tmp.m_deg_mult);
+        cumlen++;
+
+        StringUtils::fromString(fetch(params, cumlen), tmp.m_fuel_mult);
         cumlen++;
 
         unsigned item_vector_length;

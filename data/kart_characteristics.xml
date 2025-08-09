@@ -156,6 +156,16 @@ TEMPLATE
         <!-- Mass of a kart -->
         <mass value="350" />
 
+        <!-- Fuel parameters
+            mass-real:       The mass per liter used for the physics 
+            mass-virtual:    The mass per liter used for the degradation 
+            consumption:     How many liters per kilometer the kart consumes at 100% throttle
+            capacity:        How many liters the tank fits, also the starting amount
+            stop-rate:       How many seconds per liter the refueling takes
+            max-speed-decrease: How much is the topspeed reduced for each liter in the tank, in m/s
+        -->
+        <fuel mass-real="1" mass-virtual="0.5" consumption="14" capacity="100" stop-rate="0.1" max-speed-decrease="0.020" />
+
         <!-- Wheels
             damping-relaxation/compression: for bullet
             damping parameters
@@ -454,6 +464,7 @@ TEMPLATE
             <gear switch-ratio="0.1 0.25 0.45 0.7 1.0 4.0"
                   power-increase="2.95 2.42 1.99 1.56 1.28 1.0" />
             <mass value="*0.6" />
+            <fuel mass-real="*1" mass-virtual="*1.2" consumption="*1" capacity="*0.97" />
             <skid reduce-turn-min="0.2" reduce-turn-max="0.895" bonus-force="*0.8 *0.8 *0.8" />
             <startup boost="*1 *1" />
             <explosion duration="*1" radius="*1" />
@@ -461,22 +472,6 @@ TEMPLATE
             <slipstream length="*0.9" collect-time="*0.9"
                         duration-factor="*1" fade-out-time="*1" />
             <parachute lbound-fraction="0.35" ubound-fraction="0.2" />
-        </characteristic>
-        <characteristic name="medium-h">
-            <suspension stiffness="*0.75" />
-            <turn radius="-100:4.2 -1:4.2 0:2.875 5:4.068 12:8.4375 20:14.96 30:23.653 50:40.874" />
-            <engine power="*0.875" max-speed="*0.927"
-                    max-speed-reverse-ratio="*1.075"/>
-            <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
-                  power-increase="2.5 2.08 1.76 1.44 1.22 1" />
-            <mass value="*0.75" />
-            <skid reduce-turn-min="0.2" reduce-turn-max="0.895" bonus-force="*0.875 *0.875 *0.875" 
-                  time-till-bonus="*0.9 *0.9 *0.9" />
-            <startup boost="*0.875 *0.875" />
-            <explosion duration="*0.8" radius="*0.8" />
-            <nitro engine-force="*0.825" consumption="*1.375" max-speed-increase="*1.1" />
-            <slipstream duration-factor="*0.8" fade-out-time="*1" />
-            <parachute lbound-fraction="0.45" ubound-fraction="0.275" />
         </characteristic>
         <characteristic name="medium">
             <suspension stiffness="*0.75" />
@@ -486,6 +481,7 @@ TEMPLATE
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.5 2.08 1.76 1.44 1.22 1" />
             <mass value="*0.75" />
+            <fuel mass-real="*1" mass-virtual="*1.0" consumption="*1" capacity="*1" />
             <skid reduce-turn-min="0.2475" reduce-turn-max="0.895" bonus-force="*0.875 *0.875 *0.875" />
             <startup boost="*0.875 *0.875" />
             <explosion duration="*0.8" radius="*0.8" />
@@ -501,6 +497,7 @@ TEMPLATE
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.05 1.74 1.53 1.32 1.16 1" />
             <mass value="*1" />
+            <fuel mass-real="*1" mass-virtual="*0.8" consumption="*1" capacity="*1.03" />
             <skid reduce-turn-min="0.285" reduce-turn-max="0.895" bonus-force="*1.0 *1.0 *1.0" />
             <startup boost="*0.8 *0.8" />
             <explosion duration="*0.6" radius="*0.6" />

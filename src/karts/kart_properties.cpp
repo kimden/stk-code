@@ -900,6 +900,42 @@ float KartProperties::getMass() const
 }  // getMass
 
 // ----------------------------------------------------------------------------
+float KartProperties::getFuelMassReal() const
+{
+    return m_cached_characteristic->getFuelMassReal();
+}  // getFuelMassReal
+
+// ----------------------------------------------------------------------------
+float KartProperties::getFuelMassVirtual() const
+{
+    return m_cached_characteristic->getFuelMassVirtual();
+}  // getFuelMassVirtual
+
+// ----------------------------------------------------------------------------
+float KartProperties::getFuelConsumption() const
+{
+    return m_cached_characteristic->getFuelConsumption();
+}  // getFuelConsumption
+
+// ----------------------------------------------------------------------------
+float KartProperties::getFuelCapacity() const
+{
+    return m_cached_characteristic->getFuelCapacity();
+}  // getFuelCapacity
+
+// ----------------------------------------------------------------------------
+float KartProperties::getFuelStopRate() const
+{
+    return m_cached_characteristic->getFuelStopRate();
+}  // getFuelStopRate
+
+// ----------------------------------------------------------------------------
+float KartProperties::getFuelMaxSpeedDecrease() const
+{
+    return m_cached_characteristic->getFuelMaxSpeedDecrease();
+}  // getFuelMaxSpeedDecrease
+
+// ----------------------------------------------------------------------------
 float KartProperties::getWheelsDampingRelaxation() const
 {
     return m_cached_characteristic->getWheelsDampingRelaxation();

@@ -415,6 +415,13 @@ public:
 
     float getMass() const;
 
+    float getFuelMassReal() const;
+    float getFuelMassVirtual() const;
+    float getFuelConsumption() const;
+    float getFuelCapacity() const;
+    float getFuelStopRate() const;
+    float getFuelMaxSpeedDecrease() const;
+
     float getWheelsDampingRelaxation() const;
     float getWheelsDampingCompression() const;
 

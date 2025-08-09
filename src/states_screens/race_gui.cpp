@@ -454,6 +454,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
 
     float maxLives[2] = {kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1], kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1]};
     float minLives[2] = {kart->getKartProperties()->getTyresMinLifeTraction()[kart->m_tyres->m_current_compound-1], kart->getKartProperties()->getTyresMinLifeTurning()[kart->m_tyres->m_current_compound-1]};
+    float tankCapacity = kart->getKartProperties()->getFuelCapacity();
     float currlives[2] = {kart->m_tyres->m_current_life_traction, kart->m_tyres->m_current_life_turning};
     float currfuel = ((kart->m_is_refueling) ? (kart->m_target_refuel) : (kart->m_tyres->m_current_fuel));
     float height_outer = font->getDimension(L"9").Height*2.5;
@@ -463,7 +464,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     float height_inner_base = height_outer;
     float heights_inner[3] = { std::max((currlives[0]-minLives[0])/(maxLives[0]-minLives[0]), 0.0f),
                              std::max((currlives[1]-minLives[1])/(maxLives[1]-minLives[1]), 0.0f),
-                             currfuel/1000.0f };
+                             currfuel/tankCapacity };
 
     int initial_y;
     int initial_x;
@@ -594,9 +595,9 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     std::stringstream stream_percent_fuel;
 
     //Precision originally 1
-    stream_percent_traction << std::fixed << std::setprecision(1) << 100.0f*currlives[0]/maxLives[0] << "";
-    stream_percent_turning << std::fixed << std::setprecision(1) << 100.0f*currlives[1]/maxLives[1] << "";
-    stream_percent_fuel << std::fixed << std::setprecision(1) << 100.0f*currfuel/1000.0f << "";
+    stream_percent_traction << std::fixed << std::setprecision(1) << 100.0f*currlives[0]/maxLives[0] << "%";
+    stream_percent_turning << std::fixed << std::setprecision(1) << 100.0f*currlives[1]/maxLives[1] << "%";
+    stream_percent_fuel << std::fixed << std::setprecision(1) << currfuel << "L";
     std::string s_tra = stream_percent_traction.str();
     std::string s_tur = stream_percent_turning.str();
     std::string s_fuel = stream_percent_fuel.str();

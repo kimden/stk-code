@@ -54,9 +54,6 @@ private:
     unsigned m_speed_accumulation_limit;
     std::deque<float> m_previous_speeds;
     long unsigned m_debug_cycles;
-
-    float m_c_fuel;
-    float m_c_fuel_regen;
     float m_c_fuel_stop;
     float m_c_fuel_weight;
 
@@ -97,7 +94,11 @@ public:
     float m_current_life_turning;
     float m_c_max_life_turning;
 
+    float m_c_fuel;
+    float m_c_fuel_rate_base;
     float m_c_fuel_rate;
+    float m_c_fuel_weight_real;
+    float m_c_fuel_weight_virtual;
     float m_current_fuel;
     float m_c_max_fuel;
     bool m_high_fuel_demand;
@@ -121,7 +122,8 @@ public:
         ~Tyres() { };
     void reset();
 
-    float getFuelWeight(void) { return m_c_fuel_weight; };
+    float getFuelWeightReal(void) { return m_c_fuel_weight_real; };
+    float getFuelWeightVirtual(void) { return m_c_fuel_weight_virtual; };
     float getFuelStopRatio(void) { return m_c_fuel_stop; };
 
     bool getGripBasedTurning(void) { return m_c_do_grip_based_turning; };

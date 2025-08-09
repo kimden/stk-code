@@ -107,6 +107,14 @@ public:
         // Mass
         MASS,
 
+        // Fuel
+        FUEL_MASS_REAL,
+        FUEL_MASS_VIRTUAL,
+        FUEL_CONSUMPTION,
+        FUEL_CAPACITY,
+        FUEL_STOP_RATE,
+        FUEL_MAX_SPEED_DECREASE,
+
         // Wheels
         WHEELS_DAMPING_RELAXATION,
         WHEELS_DAMPING_COMPRESSION,
@@ -334,6 +342,13 @@ public:
     std::vector<float> getGearPowerIncrease() const;
 
     float getMass() const;
+
+    float getFuelMassReal() const;
+    float getFuelMassVirtual() const;
+    float getFuelConsumption() const;
+    float getFuelCapacity() const;
+    float getFuelStopRate() const;
+    float getFuelMaxSpeedDecrease() const;
 
     float getWheelsDampingRelaxation() const;
     float getWheelsDampingCompression() const;

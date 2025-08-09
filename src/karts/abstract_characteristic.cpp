@@ -103,6 +103,18 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case MASS:
         return TYPE_FLOAT;
+    case FUEL_MASS_REAL:
+        return TYPE_FLOAT;
+    case FUEL_MASS_VIRTUAL:
+        return TYPE_FLOAT;
+    case FUEL_CONSUMPTION:
+        return TYPE_FLOAT;
+    case FUEL_CAPACITY:
+        return TYPE_FLOAT;
+    case FUEL_STOP_RATE:
+        return TYPE_FLOAT;
+    case FUEL_MAX_SPEED_DECREASE:
+        return TYPE_FLOAT;
     case WHEELS_DAMPING_RELAXATION:
         return TYPE_FLOAT;
     case WHEELS_DAMPING_COMPRESSION:
@@ -419,6 +431,18 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "GEAR_POWER_INCREASE";
     case MASS:
         return "MASS";
+    case FUEL_MASS_REAL:
+        return "FUEL_MASS_REAL";
+    case FUEL_MASS_VIRTUAL:
+        return "FUEL_MASS_VIRTUAL";
+    case FUEL_CONSUMPTION:
+        return "FUEL_CONSUMPTION";
+    case FUEL_CAPACITY:
+        return "FUEL_CAPACITY";
+    case FUEL_STOP_RATE:
+        return "FUEL_STOP_RATE";
+    case FUEL_MAX_SPEED_DECREASE:
+        return "FUEL_MAX_SPEED_DECREASE";
     case WHEELS_DAMPING_RELAXATION:
         return "WHEELS_DAMPING_RELAXATION";
     case WHEELS_DAMPING_COMPRESSION:
@@ -966,6 +990,78 @@ float AbstractCharacteristic::getMass() const
                     getName(MASS).c_str());
     return result;
 }  // getMass
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getFuelMassReal() const
+{
+    float result;
+    bool is_set = false;
+    process(FUEL_MASS_REAL, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(FUEL_MASS_REAL).c_str());
+    return result;
+}  // getFuelMassReal
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getFuelMassVirtual() const
+{
+    float result;
+    bool is_set = false;
+    process(FUEL_MASS_VIRTUAL, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(FUEL_MASS_VIRTUAL).c_str());
+    return result;
+}  // getFuelMassVirtual
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getFuelConsumption() const
+{
+    float result;
+    bool is_set = false;
+    process(FUEL_CONSUMPTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(FUEL_CONSUMPTION).c_str());
+    return result;
+}  // getFuelConsumption
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getFuelCapacity() const
+{
+    float result;
+    bool is_set = false;
+    process(FUEL_CAPACITY, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(FUEL_CAPACITY).c_str());
+    return result;
+}  // getFuelCapacity
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getFuelStopRate() const
+{
+    float result;
+    bool is_set = false;
+    process(FUEL_STOP_RATE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(FUEL_STOP_RATE).c_str());
+    return result;
+}  // getFuelStopRate
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getFuelMaxSpeedDecrease() const
+{
+    float result;
+    bool is_set = false;
+    process(FUEL_MAX_SPEED_DECREASE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(FUEL_MAX_SPEED_DECREASE).c_str());
+    return result;
+}  // getFuelMaxSpeedDecrease
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getWheelsDampingRelaxation() const

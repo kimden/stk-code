@@ -47,7 +47,6 @@ Tyres::Tyres(Kart *kart) {
     m_lap_count = 0;
     m_reset_compound = false;
     m_reset_fuel = false;
-    m_current_fuel = m_c_fuel;
 
     m_speed_fetching_period = 0.3f;
     m_speed_accumulation_limit = 6;
@@ -57,6 +56,7 @@ Tyres::Tyres(Kart *kart) {
     // Boilerplate to initialize all the m_c_xxx constants
     #include "karts/tyres_boilerplate.txt"
 
+    m_current_fuel = m_c_fuel;
 }
 
 float Tyres::correct(float f) {
@@ -93,34 +93,37 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     float deg_tra = 0.0f;
     float deg_tur_percent = 0.0f;
     float deg_tra_percent = 0.0f;
-    float regen_amount = 0.0f;
 
+    // The weight used to compute degradation, which will be different from the real one
+
+    float effective_mass = m_kart->getMass() - m_c_fuel_weight_real + m_c_fuel_weight_virtual;
     // Longitudinal force
-    m_force_x = m_acceleration*m_kart->getMass();
+    m_force_x = m_acceleration*effective_mass;
 
     // Centripetal force
-    m_force_y = ((speed*speed)/turn_radius)*m_kart->getMass();
+    m_force_y = ((speed*speed)/turn_radius)*effective_mass;
 
-    //Doesn't make much sense to degrade the tyres midair or in reverse or at ridiculously low speeds, now does it?
+    // If throttle is below 20% usage, user is "lift and coasting" and fuel consumption is reduced by 5%
+    float lift_and_coast_factor = 0;
+    if (throttle_amount > 0.20f) {
+        m_high_fuel_demand = true;
+        lift_and_coast_factor = 1.0f;
+    } else {
+        m_high_fuel_demand = false;
+        lift_and_coast_factor = 0.95f;
+    }
+    /*The fuel rate factor is in L/km*/
+    /*The base rate is immutable, while the regular rate can be modified on the fly by item policy*/
+    float fuel_rate_factor = lift_and_coast_factor*m_c_fuel_rate_base*m_c_fuel_rate*0.001f;
+
+    //Doesn't make much sense to degrade the tyres/consume fuel midair or in reverse or at ridiculously low speeds, now does it?
     if (!is_on_ground || speed < 1.0f) {
         m_high_fuel_demand = false;
         goto LOG_ZONE;
     }
 
-    // If throttle is below 45% usage, user is "lift and coasting" and fuel consumption is halved
-    if (throttle_amount > 0.45f) {
-        m_high_fuel_demand = true;
-        m_current_fuel -= std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.005 units of fuel, 200 meters -> 1 unit of fuel*/
-    } else {
-        m_high_fuel_demand = false;
-        m_current_fuel -= 0.5f*std::abs(speed)*dt*m_c_fuel_rate*(1.0f/1000.0f); /*1 meter -> 0.0025 units of fuel, 400 meters -> 1 unit of fuel*/
-    }
-
-    // If we're decelerating and lift and coasting, apply electrical regeneration.
-    // Note m_c_fuel_regen can be 0, it depends on the settings.
-    if(m_force_x < 0.0f && throttle_amount <= 0.45f) {
-        regen_amount += std::abs(m_force_x)*0.00000001f*dt*m_c_fuel_regen;
-    }
+    // Fuel consumption hence is only dependent on travelled distance, and on lift and coasting
+    m_current_fuel -= std::abs(speed)*dt*fuel_rate_factor;
 
     // Apply longitudinal force as degradation to the traction health
     deg_tra = dt*std::abs(m_force_x)/100000.0f;
@@ -131,7 +134,6 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     // If braking input is above a certain threshold, multiply degradation by 1/threshold
     if (brake_amount > m_c_brake_threshold) {
         deg_tra *= brake_amount*(1.0f/m_c_brake_threshold);
-        regen_amount *= 2;
     }
 
     // If offroad and slowing down, multiple degradation by the offroad fraction (simulate sliding on low-grip materials)
@@ -142,16 +144,12 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     // Apply centripetal force as degradation to the turning health
     deg_tur = dt*std::abs(m_force_y)/10000.0f;
 
-    // If skidding, the electrical regen is doubled, and the skid factor is multiplied by 
+    // If skidding, the turning deg is multiplied by the skid factor
     if (is_skidding) {
         deg_tur *= m_c_skid_factor;
-        regen_amount *= 2;
     }
 
-    // Regenerate the energy
-    m_current_fuel += regen_amount;
-
-    if (m_current_fuel > 1000.0f) m_current_fuel = 1000.0f;
+    if (m_current_fuel > m_kart->getKartProperties()->getFuelCapacity()) m_current_fuel = m_kart->getKartProperties()->getFuelCapacity();
     if (m_current_fuel < 0.0f) m_current_fuel = 0.0f;
 
     deg_tra *= m_deg_mult;
@@ -186,7 +184,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     //m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
     //printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_force_x,
     //m_force_y, turn_radius, speed, brake_amount);
-    //printf("\tFuel: %f || Weight: %f || TrackLength: %f\n", m_current_fuel, m_kart->getMass(), Track::getCurrentTrack()->getTrackLength());
+    //printf("\tFuel: %f || Weight: %f || TrackLength: %f\n", m_current_fuel, effective_mass, Track::getCurrentTrack()->getTrackLength());
 }
 
 void Tyres::applyCrashPenalty(void) {
@@ -217,13 +215,16 @@ float Tyres::degTurnRadius(float initial_radius) {
 }
 
 float Tyres::degTopSpeed(float initial_topspeed) {
+    float decrease_per_liter = m_kart->getKartProperties()->getFuelMaxSpeedDecrease();
+    if (m_c_fuel_weight_virtual < 0.001f && m_c_fuel_weight_real < 0.001f)
+        decrease_per_liter; //no fuel or electric mode, fuel does not affect speed
     float percent = m_current_life_traction/m_c_max_life_traction;
     float factor = m_c_response_curve_topspeed.get(correct(percent*100.0f))*m_c_topspeed_constant;
     float bonus_topspeed = (initial_topspeed+m_c_initial_bonus_add_topspeed)*m_c_initial_bonus_mult_topspeed;
     if (m_c_do_substractive_topspeed && m_current_fuel > 0.1f) {
-        return bonus_topspeed - factor;
+        return bonus_topspeed - factor - decrease_per_liter*m_current_fuel;
     } else if (m_current_fuel > 0.1f) {
-        return bonus_topspeed*factor;
+        return bonus_topspeed*factor - decrease_per_liter*m_current_fuel;
     } else {
         return 5;
     }
@@ -253,6 +254,9 @@ void Tyres::reset() {
         m_kart->setKartColor(tyre_hue);
     }
 
+    // Boilerplate to initialize all the m_c_xxx constants
+    #include "karts/tyres_boilerplate.txt"
+
     if (m_reset_fuel) {
         m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
         m_current_fuel = m_c_fuel;
@@ -269,9 +273,6 @@ void Tyres::reset() {
     m_acceleration = 0.0f;
     m_time_elapsed = 0.0f;
     m_debug_cycles = 0;
-
-    // Boilerplate to initialize all the m_c_xxx constants
-    #include "karts/tyres_boilerplate.txt"
 }
 
 

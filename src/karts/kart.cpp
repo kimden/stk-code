@@ -252,6 +252,7 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_is_refueling = false;
     m_target_refuel = 0.0f;
     m_crash_cooldown_ticks = 0;
+    m_refuel_press_cooldown_ticks = 0;
     m_nitro_hack_ticks     = 0;
     m_nitro_hack_factor    = 1.0f;
     m_stolen_nitro_ticks   = 0;
@@ -331,7 +332,7 @@ void Kart::init(RaceManager::KartType type)
 
 float Kart::getMass() const {
     if(m_tyres) {
-        return (m_tyres->m_current_fuel*m_tyres->getFuelWeight())+getKartProperties()->getMass();
+        return (m_tyres->m_current_fuel*m_tyres->getFuelWeightReal())+getKartProperties()->getMass();
     } else {
         return getKartProperties()->getMass();
     }
@@ -3140,15 +3141,29 @@ void Kart::updatePhysics(int ticks)
     }
 
     if (m_is_refueling) {
+        bool can_increase_fuel = false;
+        if (m_refuel_press_cooldown_ticks > 0) {
+            m_refuel_press_cooldown_ticks -= ticks;
+        }
+        if (m_refuel_press_cooldown_ticks <= 0) {
+            m_refuel_press_cooldown_ticks = 0;
+            can_increase_fuel = true;
+        } else {
+            can_increase_fuel = false;
+        }
+
         if (!m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP)) {
             m_is_refueling = false;
-            m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(m_target_refuel*m_tyres->getFuelStopRatio()*0.001f));
+            m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(m_target_refuel*m_tyres->getFuelStopRatio()));
             m_tyres->m_current_fuel += m_target_refuel;
             m_target_refuel = 0;
         }
-        if (m_controls.getNitro()) {
-            m_target_refuel += 300.0f*((float)1.0f/(float)stk_config->time2Ticks(ticks));
-            if (m_target_refuel > 1000.0f) m_target_refuel -= 1000.0f;
+        if (can_increase_fuel && m_controls.getNitro()) {
+            m_refuel_press_cooldown_ticks = stk_config->time2Ticks(0.25f);
+            float capacity = getKartProperties()->getFuelCapacity();
+            m_target_refuel += 0.25f*capacity;
+            if (m_target_refuel > 1.24f*capacity) m_target_refuel -= capacity;
+            else if (m_target_refuel > capacity) m_target_refuel = capacity;
         }
     }
 

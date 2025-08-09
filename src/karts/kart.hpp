@@ -189,6 +189,8 @@ protected:
 
     int16_t m_crash_cooldown_ticks;
 
+    int16_t m_refuel_press_cooldown_ticks;
+
     /** Stores information about the terrain the kart is on. */
     TerrainInfo *m_terrain_info;
 
