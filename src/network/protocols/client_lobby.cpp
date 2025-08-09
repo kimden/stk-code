@@ -737,19 +737,14 @@ void ClientLobby::handleServerInfo(Event* event)
 
     NetworkingLobby::getInstance()->setHeader(str);
 
-    float fuel_info[5];
-    fuel_info[0] = data.getFloat();
-    fuel_info[1] = data.getFloat();
-    fuel_info[2] = data.getFloat();
-    fuel_info[3] = data.getFloat();
-    fuel_info[4] = data.getFloat();
+    int fuel_info = data.getUInt8();
 
     int compound_amount[3];
     compound_amount[0] = data.getUInt8()-1;
     compound_amount[1] = data.getUInt8()-1;
     compound_amount[2] = data.getUInt8()-1;
 
-    RaceManager::get()->setFuelAndQueueInfo(fuel_info[0], fuel_info[1], fuel_info[2], fuel_info[3], fuel_info[4], compound_amount[0], compound_amount[1], compound_amount[2]);
+    RaceManager::get()->setFuelAndQueueInfo(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2]);
 
     uint8_t u_data;
     u_data = data.getUInt8();

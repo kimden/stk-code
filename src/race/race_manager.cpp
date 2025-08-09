@@ -153,11 +153,7 @@ RaceManager::RaceManager()
     m_default_ai_list.clear();
     setNumPlayers(0);
     setSpareTireKartNum(0);
-    m_fuel_info[0] = 1000.0f;
-    m_fuel_info[1] = 0.0f;
-    m_fuel_info[2] = 0.0f;
-    m_fuel_info[3] = 0.0f;
-    m_fuel_info[4] = 0.0f;
+    m_fuel_info = 0;
     m_compound_limits[0] = 0;
     m_compound_limits[1] = 0;
     m_compound_limits[2] = 0;
@@ -354,22 +350,14 @@ void RaceManager::setTrack(const std::string& track)
     m_coin_target = 0;
 }   // setTrack
 
-void RaceManager::setFuelAndQueueInfo(float fuel, float regen, float stop, float weight, float rate, int amount_1, int amount_2, int amount_3)
+void RaceManager::setFuelAndQueueInfo(int fuel, int amount_1, int amount_2, int amount_3)
 {
     printf("FUEL+ALLOC INFO WAS JUST SET:\n"
-           "\t fuel        %f\n"
-           "\t fuel regen  %f\n"
-           "\t fuel stop   %f\n"
-           "\t fuel weight %f\n"
-           "\t fuel rate   %f\n"
+           "\t fuel        %d\n"
            "\t tyre alloc  %d %d %d\n"
            "------\n\n",
-           fuel, regen, stop, weight, rate, amount_1, amount_2, amount_3);
-    m_fuel_info[0] = fuel;
-    m_fuel_info[1] = regen;
-    m_fuel_info[2] = stop;
-    m_fuel_info[3] = weight;
-    m_fuel_info[4] = rate;
+           fuel, amount_1, amount_2, amount_3);
+    m_fuel_info = fuel;
 
     m_compound_limits[0] = amount_1;
     m_compound_limits[1] = amount_2;
@@ -389,7 +377,7 @@ void RaceManager::setFuelAndQueueInfo(float fuel, float regen, float stop, float
     m_tyres_queue_info.push_back(0); // Empty compound 10 (This one's specially important, can't pit for the no-degradation tyre under any circumstances, only start with it!)
 }
 
-std::tuple<std::array<float, 5>,  std::array<int, 3>, std::vector<int>> RaceManager::getFuelAndQueueInfo(void) {
+std::tuple<int, std::array<int, 3>, std::vector<int>> RaceManager::getFuelAndQueueInfo(void) {
         return std::make_tuple(m_fuel_info, m_compound_limits, m_tyres_queue_info);
 }
 

@@ -323,7 +323,7 @@ private:
     /** Stores remote kart information about all player karts. */
     std::vector<RemoteKartInfo>      m_player_karts;
     std::vector<std::string>         m_tracks;
-    std::array<float, 5> m_fuel_info;
+    int m_fuel_info;
     std::array<int, 3> m_compound_limits;
     std::vector<int> m_tyres_queue_info;
 
@@ -445,9 +445,9 @@ public:
      */
     void setTrack(const std::string& track);
 
-    void setFuelAndQueueInfo(float fuel, float regen, float stop, float weight, float rate, int allowed_1, int allowed_2, int allowed_3);
+    void setFuelAndQueueInfo(int fuel_mode, int allowed_1, int allowed_2, int allowed_3);
 
-    std::tuple<std::array<float, 5>, std::array<int, 3>, std::vector<int>> getFuelAndQueueInfo(void);
+    std::tuple<int, std::array<int, 3>, std::vector<int>> getFuelAndQueueInfo(void);
 
 
     /** \brief Returns the kart with a given GP rank (or NULL if no such

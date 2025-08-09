@@ -48,18 +48,6 @@ private:
     GUIEngine::SpinnerWidget* m_fuel_spinner;
     GUIEngine::LabelWidget* m_fuel_text;
 
-    GUIEngine::SpinnerWidget* m_fuel_stop_spinner;
-    GUIEngine::LabelWidget* m_fuel_stop_text;
-
-    GUIEngine::SpinnerWidget* m_fuel_regen_spinner;
-    GUIEngine::LabelWidget* m_fuel_regen_text;
-
-    GUIEngine::SpinnerWidget* m_fuel_rate_spinner;
-    GUIEngine::LabelWidget* m_fuel_rate_text;
-
-    GUIEngine::SpinnerWidget* m_fuel_weight_spinner;
-    GUIEngine::LabelWidget* m_fuel_weight_text;
-
     GUIEngine::SpinnerWidget* m_allowed_compounds_1_spinner;
     GUIEngine::LabelWidget* m_allowed_compounds_1_text;
 

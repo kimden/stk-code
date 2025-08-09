@@ -88,26 +88,6 @@ class TrackInfoScreen : public GUIEngine::Screen,
     /** The label besides the fuel spinner. */
     GUIEngine::LabelWidget* m_fuel_label;
 
-    /** Spinner for fuel regen*/
-    GUIEngine::SpinnerWidget* m_fuel_regen_spinner;
-    /** The label besides the fuel spinner. */
-    GUIEngine::LabelWidget* m_fuel_regen_label;
-
-    /** Spinner for fuel stop regen*/
-    GUIEngine::SpinnerWidget* m_fuel_stop_spinner;
-    /** The label besides the fuel spinner. */
-    GUIEngine::LabelWidget* m_fuel_stop_label;
-
-    /** Spinner for fuel stop regen*/
-    GUIEngine::SpinnerWidget* m_fuel_weight_spinner;
-    /** The label besides the fuel spinner. */
-    GUIEngine::LabelWidget* m_fuel_weight_label;
-
-    /** Spinner for fuel stop regen*/
-    GUIEngine::SpinnerWidget* m_fuel_rate_spinner;
-    /** The label besides the fuel spinner. */
-    GUIEngine::LabelWidget* m_fuel_rate_label;
-
     /** Text box for rules */
     GUIEngine::TextBoxWidget* m_rules_textbox;
 

@@ -96,7 +96,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
 
     // The weight used to compute degradation, which will be different from the real one
 
-    float effective_mass = m_kart->getMass() - m_c_fuel_weight_real + m_c_fuel_weight_virtual;
+    float effective_mass = m_kart->getMass() - m_c_fuel_weight_real*m_current_fuel + m_c_fuel_weight_virtual*m_current_fuel;
     // Longitudinal force
     m_force_x = m_acceleration*effective_mass;
 
@@ -180,11 +180,11 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     ;
 
     //printf("(%f; %f; %f)\n", m_kart->getXYZ().getX(), m_kart->getXYZ().getY(), m_kart->getXYZ().getZ());
-    //printf("Cycle %20lu || K %s || C %u\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
-    //m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
-    //printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_force_x,
-    //m_force_y, turn_radius, speed, brake_amount);
-    //printf("\tFuel: %f || Weight: %f || TrackLength: %f\n", m_current_fuel, effective_mass, Track::getCurrentTrack()->getTrackLength());
+    printf("Cycle %20lu || K %s || C %u\n\ttrac: %f%% ||| turn: %f%%\n", m_debug_cycles, m_kart->getIdent().c_str(),
+    m_current_compound, 100.0f*(m_current_life_traction)/m_c_max_life_traction, 100.0f*(m_current_life_turning)/m_c_max_life_turning);
+    printf("\tCenter of gravity: (%f, %f)\n\tTurn: %f || Speed:%f || Brake: %f\n", m_force_x,
+    m_force_y, turn_radius, speed, brake_amount);
+    printf("\tFuel: %f || Weight: %f || RealWeight: %f || TrackLength: %f\n", m_current_fuel, effective_mass, m_kart->getMass(), Track::getCurrentTrack()->getTrackLength());
 }
 
 void Tyres::applyCrashPenalty(void) {
@@ -217,7 +217,7 @@ float Tyres::degTurnRadius(float initial_radius) {
 float Tyres::degTopSpeed(float initial_topspeed) {
     float decrease_per_liter = m_kart->getKartProperties()->getFuelMaxSpeedDecrease();
     if (m_c_fuel_weight_virtual < 0.001f && m_c_fuel_weight_real < 0.001f)
-        decrease_per_liter; //no fuel or electric mode, fuel does not affect speed
+        decrease_per_liter = 0.0f; //no fuel or electric mode, fuel does not affect speed
     float percent = m_current_life_traction/m_c_max_life_traction;
     float factor = m_c_response_curve_topspeed.get(correct(percent*100.0f))*m_c_topspeed_constant;
     float bonus_topspeed = (initial_topspeed+m_c_initial_bonus_add_topspeed)*m_c_initial_bonus_mult_topspeed;

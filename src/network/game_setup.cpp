@@ -111,11 +111,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
     auto sl = LobbyProtocol::get<ServerLobby>();
     assert(sl);
 
-    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[0]);
-    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[1]);
-    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[2]);
-    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[3]);
-    ns->addFloat((std::get<0>(RaceManager::get()->getFuelAndQueueInfo()))[4]);
+    ns->addUInt8(std::get<0>(RaceManager::get()->getFuelAndQueueInfo()));
 
     ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[0]);
     ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[1]);

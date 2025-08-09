@@ -444,7 +444,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
 
 
     //ARGB
-    bool has_fuel = (std::abs(kart->m_tyres->m_c_fuel_rate) > 0.00099f);
+    bool has_fuel = (std::abs(kart->m_tyres->m_c_fuel_rate_base) > 0.00099f);
     video::SColor color_traction = video::SColor(180, 200, 20, 20);
     video::SColor color_turning = video::SColor(180, 20, 20, 200);
     video::SColor color_fuel = (kart->m_tyres->m_high_fuel_demand) ?

@@ -45,10 +45,10 @@
             <div width="100%" height="fit" layout="horizontal-row">
                 <div width="50%" height="fit" layout="horizontal-row">
                     <div proportion="3" height="fit" layout="horizontal-row">
-                        <spinner id="fuel-spinner" width="100%" min_value="1" max_value="1000" align="center"
+                        <spinner id="fuel-spinner" width="100%" min_value="0" max_value="2" align="center"
                                  wrap_around="true" />
                     </div>
-                    <label id="fuel-label" proportion="3" I18N="In the track info screen" text="Starting E" text_align="left" />
+                    <label id="fuel-label" proportion="3" I18N="In the track info screen" text="Fuel mode (off/weightless/on)" text_align="left" />
                 </div>
 
                 <div width="50%" height="fit" layout="horizontal-row">
@@ -57,42 +57,6 @@
                                  wrap_around="true" />
                     </div>
                     <label id="gp-label" proportion="3" I18N="In the track info screen" text="GP track count" text_align="left" />
-                </div>
-            </div>
-
-            <div width="100%" height="fit" layout="horizontal-row">
-                <div width="50%" height="fit" layout="horizontal-row">
-                    <div proportion="3" height="fit" layout="horizontal-row">
-                        <spinner id="fuel-regen-spinner" width="100%" min_value="0" max_value="1000" align="center"
-                                 wrap_around="true" />
-                    </div>
-                    <label id="fuel-regen-label" proportion="3" I18N="In the track info screen" text="Regen E" text_align="left" />
-                </div>
-
-                <div width="50%" height="fit" layout="horizontal-row">
-                    <div proportion="3" height="fit" layout="horizontal-row">
-                        <spinner id="fuel-stop-spinner" width="100%" min_value="0" max_value="1000" align="center"
-                                 wrap_around="true" />
-                    </div>
-                    <label id="fuel-stop-label" proportion="3" I18N="In the track info screen" text="Pitstop E" text_align="left" />
-                </div>
-            </div>
-
-            <div width="100%" height="fit" layout="horizontal-row">
-                <div width="50%" height="fit" layout="horizontal-row">
-                    <div proportion="3" height="fit" layout="horizontal-row">
-                        <spinner id="fuel-weight-spinner" width="100%" min_value="0" max_value="100" align="center"
-                                 wrap_around="true" />
-                    </div>
-                    <label id="fuel-weight-label" proportion="3" I18N="In the track info screen" text="E weight" text_align="left" />
-                </div>
-
-                <div width="50%" height="fit" layout="horizontal-row">
-                    <div proportion="3" height="fit" layout="horizontal-row">
-                        <spinner id="fuel-rate-spinner" width="100%" min_value="0" max_value="1000" align="center"
-                                 wrap_around="true" />
-                    </div>
-                    <label id="fuel-rate-label" proportion="3" I18N="In the track info screen" text="E Rate" text_align="left" />
                 </div>
             </div>
 
