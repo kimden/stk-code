@@ -34,36 +34,14 @@
 
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
-text="Starting tyre choice and tyre changing: (the ones you have when you start the race) are configured by changing the tyre id in kart selection (when online, instead double click your username in the lobby to configure). For soft, use ID 2, for medium ID 3, for hard ID 4, for hard ID 9. Tyre changers can be used mid-race, and have the model of an easter egg, but they must be supporeted by the track. The pre-packaged TME category of tracks has default tyre changer support"
+text="Starting tyre choice
+Offline: Set the tyre id in kart selection
+Online: Souble click your username and set the tyre ID"
 />
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
-text="Tyre degradation and saving tyres: The heavier the kart (including fuel), the less the tyres last. Each set of tyres has a traction life (left bar) that impacts topspeed and acceleration, and a turning life (middle bar) that impacts turning. To save tyres, prefer wide skids over tight skids, prefer skid hopping over long skids, avoid going offroad, and try to minimize changes in speed (don't brake, use nitro and skid taking turns instead of at the same time, etc.)."
-/>
-<bubble proportion="1" height="100%"
-I18N="In the help menu"
-text="Fuel saving: Cruise mode is enabled by releasing the accelerator and tapping the nitro button. It will be disabled if the brake or the accelerator are pressed again. It will set the throttle to 40%, the maximum amount before the engine's consumption doubles. It is meant to be used to consume less fuel during corners, and is a better alternative than pressing and releasing the accelerator button very fast, both in terms of fuel waste and of ease of use."
-/>
-<bubble proportion="1" height="100%"
-I18N="In the help menu"
-text="Main tyre types (compounds): Soft (ID 2): Starts out VERY fast, but also degrades very fast, *specially* by high-speed turning (in Hacienda, one of the least demanding tracks on tyre degradation, it can be useful for around 5 laps only if you don't manage it).
-Medium (ID 3): Starts out at the kart's normal speed, and degrades at a normal rate.
-Hard (ID 4): Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly.
-SuperHard (ID 5): The old hard tyre. Absurdly slow tyre, absurdly low degradation. Do not use it unless you want to lose :P
-Flat (ID 10): It does degrade but it has no effect in the kart's speed, meaning it effectively is the same as disabling tyre degradation.
-The rest of the tyre IDs will be used in the future."
-/>
-<bubble proportion="1" height="100%"
-I18N="In the help menu"
-text="Race UI: the tyre compound code (or PIT if pitting) is shown on the leaderboard on the top left, inside the kart icon. The tyre lifes in bar form and the fuel are shown in the bottom right in this order: traction,  turning,  fuel. These bars/meters will show their 0 position as the configured minimum in kart_characteristics.xml, and will not go below their 0 position. However, know the tyres can and do degrade more even when the bars don't show it! However, if both degradation bars are empty, it's very likely you should pit for new tyres if possible. The fuel is replaced by desired fuel to refill during fuel pit stops."
-/>
-<bubble proportion="1" height="100%"
-I18N="In the help menu"
-text="Fuel parameters: Max fuel: The maximum fuel is always 1000. Starting fuel: 1-1000L ...
-Fuel consumption: How many liters the engine consumes each kilometer. Fuel consumption will be half when you release the throttle.
-Fuel weight: Tux weights 262kg, for scale. At weight 1, 1000L = 10kgs. At weight 100, 1000L=1000kg.
-Fuel stop time: 0 means there is no penalty for putting 1000 liters into the tank. At pump speed 1, 1000 liters will take 1 second. At pump speed 1000, 1000 liters will take around 20 minutes.
-Fuel regeneration: When the throttle is released, deceleration will make the engine regenerate fuel/energy. If the fuel weight is 0, this is equivalent to an electric system."
+text="Changing tyres
+Tyre changers can be used mid-race, and have the model of an easter egg, but they must be added by the track maker/editing the track yourself. The pre-packaged TME category of tracks has default tyre changer support"
 />
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
@@ -71,7 +49,33 @@ text="Tyre allocation: During a race, the current tyre allocation will be showed
 />
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
-text="Fuel and tyre allocation can be configured offline from the race setup menu, and online from the wrench icon in the server lobby."
+text="Tyre degradation and saving tyres:
+Each set of tyres has a traction life (left bar) that impacts topspeed and acceleration, and a turning life (middle bar) that impacts turning.
+The heavier the kart (including fuel), the less the tyres last.
+To save tyres, prefer wide skids over tight skids, prefer skid hopping over long skids, avoid going offroad, and try to minimize changes in speed (don't brake, use nitro and skid taking turns instead of at the same time, etc.)."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Main tyre types and IDs:
+Soft (ID 2): Starts out VERY fast, but also degrades very fast, *specially* by high-speed turning.
+Medium (ID 3): Starts out at the kart's normal speed, and degrades at a normal rate.
+Hard (ID 4): Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly.
+Flat (ID 10): It does degrade but it has no effect in the kart's speed, meaning it effectively is the same as disabling tyre degradation.
+The rest of the tyre IDs will be used in the future."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Fuel saving
+The simplest way to save fuel is to release the accelerator a *tiny bit* in turns, but it is fairly inefficient. Cruise mode is an advanced technique that helps a lot.
+Cruise mode is enabled by releasing the accelerator and tapping the nitro button. It will be disabled if the brake or the accelerator are pressed again. It will set the throttle to 20%, and increase fuel efficiency by 5%."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Race UI: the tyre compound code (or PIT if pitting) is shown on the leaderboard on the top left, inside the kart icon. The tyre lifes in bar form and the fuel are shown in the bottom right in this order: traction,  turning,  fuel. These bars/meters will show their 0 position as the configured minimum in kart_characteristics.xml, and will not go below their 0 position. However, know the tyres can and do degrade more even when the bars don't show it! However, if both degradation bars are empty, it's very likely you should pit for new tyres if possible. The fuel is replaced by desired fuel to refill during fuel pit stops."
+/>
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Global fuel and tyre settings can be changed offline in race setup menu, and online in wrench icon in the lobby."
 />
                 </div>
                 <spacer width="50" height="25" />
