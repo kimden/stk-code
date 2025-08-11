@@ -103,14 +103,14 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     // Centripetal force
     m_force_y = ((speed*speed)/turn_radius)*effective_mass;
 
-    // If throttle is below 20% usage, user is "lift and coasting" and fuel consumption is reduced by 5%
+    // If throttle is below 20% usage, user is "lift and coasting" and fuel consumption is reduced by 12%
     float lift_and_coast_factor = 0;
     if (throttle_amount > 0.20f) {
         m_high_fuel_demand = true;
         lift_and_coast_factor = 1.0f;
     } else {
         m_high_fuel_demand = false;
-        lift_and_coast_factor = 0.95f;
+        lift_and_coast_factor = 0.88f;
     }
     /*The fuel rate factor is in L/km*/
     /*The base rate is immutable, while the regular rate can be modified on the fly by item policy*/
@@ -363,6 +363,8 @@ void Tyres::commandChange(int compound, int time) {
     auto& stk_config = STKConfig::get();
     if (compound == 123) {
         // 123 is the code for a refueling
+        if (time <= 2.0)
+            time = 2.0;
         m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
         m_kart->m_is_refueling = true;
         return;

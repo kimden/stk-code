@@ -3951,7 +3951,7 @@ void Kart::updateGraphics(float dt)
 
     // --------------------------------------------------------
     float nitro_frac = 0;
-    if ( (m_controls.getNitro() || m_min_nitro_ticks > 0) &&
+    if ( ((m_controls.getNitro() && !m_is_refueling) || m_min_nitro_ticks > 0) &&
          m_collected_energy > 0                               )
     {
         // fabs(speed) is important, otherwise the negative number will
