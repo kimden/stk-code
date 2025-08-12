@@ -254,6 +254,7 @@ int TeamManager::getTeamForUsername(const std::string& name)
     auto it = m_team_for_player.find(name);
     if (it == m_team_for_player.end())
         return TeamUtils::NO_TEAM;
+
     return it->second;
 }   // getTeamForUsername
 //-----------------------------------------------------------------------------
@@ -274,29 +275,20 @@ void TeamManager::clearTemporaryTeams()
     clearTeams();
 
     for (auto& peer : STKHost::get()->getPeers())
-    {
         for (auto& profile : peer->getPlayerProfiles())
-        {
             setTemporaryTeamInLobby(profile, TeamUtils::NO_TEAM);
-        }
-    }
 }   // clearTemporaryTeams
 //-----------------------------------------------------------------------------
 
 void TeamManager::shuffleTemporaryTeams(const std::map<int, int>& permutation)
 {
     applyPermutationToTeams(permutation);
+
     for (auto& peer : STKHost::get()->getPeers())
-    {
         for (auto &profile: peer->getPlayerProfiles())
-        {
-            auto it = permutation.find(profile->getTemporaryTeam());
-            if (it != permutation.end())
-            {
+            if (auto it = permutation.find(profile->getTemporaryTeam()); it != permutation.end())
                 setTemporaryTeamInLobby(profile, it->second);
-            }
-        }
-    }
+
     getGPManager()->shuffleGPScoresWithPermutation(permutation);
 }   // shuffleTemporaryTeams
 //-----------------------------------------------------------------------------
@@ -480,10 +472,9 @@ std::string TeamManager::countTeamsAsString()
 }   // countTeamsAsString
 //-----------------------------------------------------------------------------
 
-void TeamManager::changeColors()
+// This command was made specifically for soccer.
+void TeamManager::swapRedBlueTeams()
 {
-    // We assume here that it's soccer, as it's only called
-    // from tournament command
     auto peers = STKHost::get()->getPeers();
     for (auto peer : peers)
     {
@@ -498,5 +489,5 @@ void TeamManager::changeColors()
                 setTeamInLobby(pp, KART_TEAM_RED);
         }
     }
-}   // changeColors
+}   // swapRedBlueTeams
 //-----------------------------------------------------------------------------

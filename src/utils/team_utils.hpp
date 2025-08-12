@@ -31,20 +31,22 @@
 
 // A set of classes that will manipulate teams, their names
 // and representations such as emojis, and probably something else
-// in the future. Those teams currently have no relation to soccer
-// or CTF teams, but some kind of synchronization would be nice.
+// in the future. TeamManager is synchronizing these teams with the 'standard'
+// teams you typically see in soccer or CTF.
 
 // A class describing team properties. Properties are supposed to be
 // initialized and remain unchanged for now.
 class CustomTeam
 {
 private:
+
     // Codes currently should start with different chars
     // as e.g. swapteams in CommandManager breaks otherwise
     std::vector<std::string> m_codes; // Must contain at least 1 (primary) code
     std::vector<std::string> m_names; // Must contain at least 1 (primary) name
-    float m_color;                      // One color only for now
+    float m_color;                    // One color only for now
     std::string m_emoji;              // Currently only one emoji
+
 public:
     CustomTeam(std::vector<std::string>& codes,
                std::vector<std::string>& names,
@@ -70,26 +72,30 @@ private:
     std::vector<CustomTeam> m_teams;
     std::map<std::string, int> m_finder_by_code;
     std::map<std::string, int> m_finder_by_name;
+
     void addTeam(std::string hardcoded_code, std::string hardcoded_name,
                  float hardcoded_color, std::string hardcoded_emoji);
+
     void addCode(int idx, std::string hardcoded_code);
     void addName(int idx, std::string hardcoded_name);
+
 public:
     TeamsStorage();
+
     // Teams are indexed from 1 to N, 0 means no team set (or undefined).
     // Previously the code had 4-way inconsistent indexation
     // but hopefully it's fixed now
     const CustomTeam& operator[](int idx) const;
     int getIndexByCode(const std::string& code) const;
     int getIndexByName(const std::string& name) const;
-    int getNumberOfTeams() const
-                              { return (int)m_teams.size() - 1; }
+    int getNumberOfTeams() const            { return (int)m_teams.size() - 1; }
 };
 
 class TeamUtils: public Singleton<TeamsStorage>
 {
 public:
     static const int NO_TEAM = 0;
+
     static const CustomTeam& getTeamByIndex(int idx)
                                               { return (*getInstance())[idx]; }
     static int getIndexByCode(const std::string& code)

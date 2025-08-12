@@ -33,6 +33,49 @@
 #include <exception>
 #include <string>
 
+namespace
+{
+    std::string g_default_kart = "gnu";
+
+    std::string g_start_message_gnu =
+            "Gnu Elimination starts now! "
+            "Use /standings after each race for results.";
+
+    std::string g_start_message_generic =
+            "Gnu Elimination starts now (elimination kart: %s)! "
+            "Use /standings after each race for results.";
+
+    std::string g_place_continues = "%s. %s";
+    std::string g_place_eliminated = "[%s]. %s";
+
+    std::string g_warning_eliminated =
+            "Gnu Elimination is played right now on this server, "
+            "you will be forced to use kart %s until it ends.";
+
+    std::string g_warning_continues =
+            "Gnu Elimination is played right now on this server "
+            "with kart %s. You are not eliminated yet.";
+
+    std::string g_see_standings = "Use /standings to see the results.";
+
+    std::string g_eliminated_alone = "is now eliminated.";
+    std::string g_eliminated_plural = "are now eliminated.";
+
+    std::string g_finished_winner =
+            "Gnu Elimination has finished! Congratulations to %s !";
+
+    std::string g_elimination_running = "Gnu Elimination is running";
+    std::string g_elimination_disabled = "Gnu Elimination is disabled";
+    std::string g_before_standings_prefix = "standings";
+
+    std::string g_now_off = "Gnu Elimination is now off";
+    std::string g_already_on = "Gnu Elimination mode was already enabled!";
+    std::string g_already_off = "Gnu Elimination mode was already off!";
+    std::string g_only_racing = "Gnu Elimination is available only with racing modes";
+
+}   // namespace
+//-----------------------------------------------------------------------------
+
 void KartElimination::setupContextUser()
 {
     m_enabled = false;
@@ -65,20 +108,22 @@ std::set<std::string> KartElimination::getRemainingParticipants() const
 
 std::string KartElimination::getStandings() const
 {
-    std::string result = "Gnu Elimination ";
-    if (m_enabled)
-        result += "is running";
-    else
-        result += "is disabled";
+    std::string result = (m_enabled ? g_elimination_running : g_elimination_disabled);
+
     if (!m_participants.empty())
-        result += ", standings:";
+        result += ", " + g_before_standings_prefix + ":";
+
     for (int i = 0; i < (int)m_participants.size(); i++)
     {
-        std::string line = "\n" + (i < m_remained ?
-            std::to_string(i + 1) : "[" + std::to_string(i + 1) + "]");
-        line += ". " + m_participants[i];
+        std::string line = "\n";
+        line += StringUtils::insertValues(
+                i < m_remained ? g_place_continues : g_place_eliminated,
+                i + 1,
+                m_participants[i]
+        );
         result += line;
     }
+
     return result;
 }   // getStandings
 //-----------------------------------------------------------------------------
@@ -103,23 +148,17 @@ void KartElimination::enable(std::string kart)
 
 std::string KartElimination::getStartingMessage() const
 {
-    if (m_kart == "gnu")
-        return "Gnu Elimination starts now! Use /standings "
-            "after each race for results.";
+    if (m_kart == g_default_kart)
+        return g_start_message_gnu;
     else
-        return StringUtils::insertValues("Gnu Elimination starts now "
-            "(elimination kart: %s)! Use /standings "
-            "after each race for results.", m_kart.c_str());
+        return StringUtils::insertValues(g_start_message_generic, m_kart.c_str());
 }   // getStartingMessage
 //-----------------------------------------------------------------------------
 
 std::string KartElimination::getWarningMessage(bool isEliminated) const
 {
-    std::string what = "Gnu Elimination is played right now on this server";
-    what += (isEliminated ?
-        ", you will be forced to use kart %s until it ends." :
-        " with kart %s. You are not eliminated yet.");
-    what += " Use /standings to see the results.";
+    std::string what = (isEliminated ? g_warning_eliminated : g_warning_continues);
+    what += " " + g_see_standings;
     return StringUtils::insertValues(what, m_kart.c_str());
 }   // getWarningMessage
 //-----------------------------------------------------------------------------
@@ -127,7 +166,12 @@ std::string KartElimination::getWarningMessage(bool isEliminated) const
 std::string KartElimination::onRaceFinished()
 {
     World* w = World::getWorld();
-    assert(w);
+    if (!w)
+    {
+        Log::error("KartElimination", "onRaceFinished aborted: World was not found.");
+        return "";
+    }
+
     int player_count = RaceManager::get()->getNumPlayers();
     std::map<std::string, double> order;
     for (int i = 0; i < player_count; i++)
@@ -139,18 +183,23 @@ std::string KartElimination::onRaceFinished()
             order[username] = RaceManager::get()->getKartRaceTime(i);
     }
 
-    assert(m_remained != 0);
+    if (m_remained == 0)
+    {
+        Log::error("KartElimination", "onRaceFinished aborted: Number of remained karts was 0.");
+        return "";
+    }
+
     if (m_remained < 0)
     {
         m_remained = order.size();
         for (const auto& p: order)
             m_participants.push_back(p.first);
     }
+
     for (int i = 0; i < m_remained; i++)
-    {
         if (order.count(m_participants[i]) == 0)
             order[m_participants[i]] = KartElimination::INF_TIME;
-    }
+
     std::stable_sort(
         m_participants.begin(),
         m_participants.begin() + m_remained,
@@ -160,6 +209,7 @@ std::string KartElimination::onRaceFinished()
             return it1->second < it2->second;
         }
     );
+
     std::string msg = "";
     msg += m_participants[--m_remained];
     bool alone = true;
@@ -169,16 +219,39 @@ std::string KartElimination::onRaceFinished()
         msg += ", " + m_participants[--m_remained];
         alone = false;
     }
-    if (alone)
-        msg += " is now eliminated.";
-    else
-        msg += " are now eliminated.";
+
+    msg += " " + (alone ? g_eliminated_alone : g_eliminated_plural);
+
     if (m_remained <= 1) {
         m_enabled = false;
-        msg += "\nGnu Elimination has finished! "
-               "Congratulations to " + m_participants[0] + " !";
+        msg += "\n";
+        msg += StringUtils::insertValues(g_finished_winner, m_participants[0].c_str());
     }
 
     return msg;
 }   // onRaceFinished
+//-----------------------------------------------------------------------------
+
+std::string KartElimination::getNowOffMessage()
+{
+    return g_now_off;
+}   // getNowOffMessage
+//-----------------------------------------------------------------------------
+
+std::string KartElimination::getAlreadyEnabledString()
+{
+    return g_already_on;
+}   // getAlreadyEnabledString
+//-----------------------------------------------------------------------------
+
+std::string KartElimination::getAlreadyOffString()
+{
+    return g_already_off;
+}   // getAlreadyOffString
+//-----------------------------------------------------------------------------
+
+std::string KartElimination::getOnlyRacingString()
+{
+    return g_only_racing;
+}   // getOnlyRacingString
 //-----------------------------------------------------------------------------

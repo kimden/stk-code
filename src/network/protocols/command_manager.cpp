@@ -2114,19 +2114,19 @@ void CommandManager::process_gnu(Context& context)
     auto kart_elimination = getKartElimination();
     if (turn_on && kart_elimination->isEnabled())
     {
-        context.say("Gnu Elimination mode was already enabled!");
+        context.say(kart_elimination->getAlreadyEnabledString());
         return;
     }
     if (!turn_on && !kart_elimination->isEnabled())
     {
-        context.say("Gnu Elimination mode was already off!");
+        context.say(kart_elimination->getAlreadyOffString());
         return;
     }
     if (turn_on &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_NORMAL_RACE &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
-        context.say("Gnu Elimination is available only with racing modes");
+        context.say(kart_elimination->getOnlyRacingString());
         return;
     }
     std::string kart;
@@ -2166,7 +2166,7 @@ void CommandManager::process_gnu(Context& context)
     if (kart == "off")
     {
         kart_elimination->disable();
-        Comm::sendStringToAllPeers("Gnu Elimination is now off");
+        Comm::sendStringToAllPeers(kart_elimination->getNowOffMessage());
     }
     else
     {
@@ -3161,7 +3161,7 @@ void CommandManager::process_game(Context& context)
 
     if (tournament->hasColorsSwapped(new_game_number) ^ tournament->hasColorsSwapped(old_game_number))
     {
-        getTeamManager()->changeColors();
+        getTeamManager()->swapRedBlueTeams();
         getLobby()->updatePlayerList();
     }
 
