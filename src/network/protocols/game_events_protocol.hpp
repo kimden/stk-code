@@ -3,6 +3,7 @@
 
 #include "network/protocol.hpp"
 #include "utils/cpp2011.hpp"
+#include <cstdint>
 
 class AbstractKart;
 
