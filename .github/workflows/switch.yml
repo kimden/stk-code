@@ -22,6 +22,9 @@ jobs:
           # We need 0 so we get all commits for mtime!
           fetch-depth: 0
           path: "./stk-code"
+      - name: Install additional dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y libfreetype6-dev
       - name: Grab assets
         run: |
           wget -q https://github.com/supertuxkart/stk-assets-mobile/releases/download/git/stk-assets-full.zip
