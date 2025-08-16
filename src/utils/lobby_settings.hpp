@@ -22,6 +22,7 @@
 #include "irrString.h"
 #include "utils/lobby_context.hpp"
 #include "utils/team_utils.hpp"
+#include "set_with_flip.hpp"
 
 #include <memory>
 
@@ -102,6 +103,7 @@ public:
     void setLobbyCooldown(int value)              { m_lobby_cooldown = value; }
 
     bool isCooldown() const;
+
     bool isSavingServerConfig() const          { return m_save_server_config; }
 
     void onServerSetup();
@@ -169,6 +171,12 @@ public:
     std::string getPowerPassword(int level) const;
     std::string getRegisterTableName()     const { return m_register_table_name;            }
     int getLobbyCooldown()                 const { return m_lobby_cooldown;                 }
+
+    bool isSlotBookedFor(const std::string& username) const;
+    std::string isSlotBookedForAsString(const std::string& username) const;
+    std::string getAllBookedSlotsAsString() const;
+    void bookSlotForPlayer(const std::string& username);
+    void unbookSlotForPlayer(const std::string& username);
 
     // This one might not get into the config (as it originated from official
     // code's GP, where it is useless unless you want to make a private
@@ -259,6 +267,8 @@ private:
     std::string m_power_password_level_2;
     std::string m_register_table_name;
     int m_lobby_cooldown;
+
+    SetWithFlip<std::string> m_reserve_slots_for_players;
 
     bool m_save_server_config;
 

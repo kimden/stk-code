@@ -229,6 +229,9 @@ bool CrownManager::defaultOrderComparator(
         const std::shared_ptr<STKPeer> a,
         const std::shared_ptr<STKPeer> b)
 {
+    if (a->hasSlotBooked() ^ b->hasSlotBooked())
+        return a->hasSlotBooked();
+
     return a->getRejoinTime() < b->getRejoinTime();
 }   // defaultOrderComparator
 //-----------------------------------------------------------------------------

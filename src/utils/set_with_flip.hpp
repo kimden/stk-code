@@ -58,7 +58,7 @@ public:
         return add(element);
     }
 
-    bool has(const T& element)
+    bool has(const T& element) const
     {
         return this->find(element) != this->end();
     }
@@ -99,6 +99,14 @@ public:
                 ++it2;
         }
         return result;
+    }
+
+    void fromVector(std::vector<T>&& rhs)
+    {
+        const auto& vec = std::move(rhs);
+        this->clear();
+        for (const auto& element: vec)
+            add(element);
     }
 };
 

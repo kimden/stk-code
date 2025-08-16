@@ -806,6 +806,13 @@ namespace ServerConfig
         "Timeout in seconds during which you cannot start the next game, "
         "regardless of hammers, votes, or buttons pressed."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_reserve_slots_for_players
+            SERVER_CFG_DEFAULT(StringServerConfigParam("",
+            "reserve-slots-for-players",
+            "Official players with these usernames will be allowed to enter "
+            "and take the playable slots of the server, even if the server "
+            "is full. Make sure to not specify too many of them!"));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;

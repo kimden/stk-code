@@ -125,6 +125,9 @@ void LobbySettings::setupContextUser()
     m_power_password_level_2         = ServerConfig::m_power_password_level_2;
     m_register_table_name            = ServerConfig::m_register_table_name;
     m_lobby_cooldown                 = ServerConfig::m_lobby_cooldown;
+
+    m_reserve_slots_for_players.fromVector(
+            StringUtils::split(ServerConfig::m_reserve_slots_for_players, ' '));
 }   // setupContextUser
 //-----------------------------------------------------------------------------
 
@@ -693,4 +696,63 @@ std::string LobbySettings::getPowerPassword(int level) const
     
     Log::error("LobbySettings", "Invoked getPowerPassword with level = %d", level);
     return "";
-}
+}   // getPowerPassword
+//-----------------------------------------------------------------------------
+
+bool LobbySettings::isSlotBookedFor(const std::string& username) const
+{
+    return m_reserve_slots_for_players.has(username);
+}   // isSlotBookedFor
+//-----------------------------------------------------------------------------
+
+std::string LobbySettings::isSlotBookedForAsString(const std::string& username) const
+{
+    if (isSlotBookedFor(username))
+        return StringUtils::insertValues("There's a booked slot for %s", username.c_str());
+    
+    return StringUtils::insertValues("No booked slot for %s", username.c_str());
+}   // isSlotBookedForAsString
+//-----------------------------------------------------------------------------
+
+std::string LobbySettings::getAllBookedSlotsAsString() const
+{
+    bool first = true;
+    std::string res = StringUtils::insertValues(
+        "Players with booked slots: %s (", m_reserve_slots_for_players.size());
+
+    for (const auto& s: m_reserve_slots_for_players)
+    {
+        if (!first)
+            res += ", ";
+        else
+            first = false;
+
+        res += s;
+    }
+
+    res += ")";
+    return res;
+}   // getAllBookedSlotsAsString
+//-----------------------------------------------------------------------------
+
+void LobbySettings::bookSlotForPlayer(const std::string& username)
+{
+    m_reserve_slots_for_players.add(username);
+
+    auto peer = STKHost::get()->findPeerByName(
+            StringUtils::utf8ToWide(username), true);
+    if (peer)
+        peer->setBookedSlot(true);
+}   // bookSlotForPlayer
+//-----------------------------------------------------------------------------
+
+void LobbySettings::unbookSlotForPlayer(const std::string& username)
+{
+    m_reserve_slots_for_players.remove(username);
+
+    auto peer = STKHost::get()->findPeerByName(
+            StringUtils::utf8ToWide(username), true);
+    if (peer)
+        peer->setBookedSlot(false);
+}   // unbookSlotForPlayer
+//-----------------------------------------------------------------------------

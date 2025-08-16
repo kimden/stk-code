@@ -558,6 +558,9 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("resetteams", &CM::process_resetteams);
     applyFunctionIfPossible("randomteams", &CM::process_randomteams);
     applyFunctionIfPossible("resetgp", &CM::process_resetgp);
+    applyFunctionIfPossible("vip", &CM::process_vip);
+    applyFunctionIfPossible("vip+", &CM::process_vip);
+    applyFunctionIfPossible("vip-", &CM::process_vip);
     applyFunctionIfPossible("cat+", &CM::process_cat);
     applyFunctionIfPossible("cat-", &CM::process_cat);
     applyFunctionIfPossible("catshow", &CM::process_cat);
@@ -2920,6 +2923,68 @@ void CommandManager::process_cat(Context& context)
         return;
     }
 } // process_cat
+// ========================================================================
+
+void CommandManager::process_vip(Context& context)
+{
+    std::string msg;
+    auto& argv = context.m_argv;
+
+    if (argv[0] == "vip")
+    {
+        if (argv.size() > 2)
+        {
+            error(context);
+            return;
+        }
+        if (argv.size() == 2)
+        {
+            if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
+                return;
+            context.say(getSettings()->isSlotBookedForAsString(argv[1]));
+        }
+        else
+        {
+            context.say(getSettings()->getAllBookedSlotsAsString());
+        }
+
+        return;
+    }
+    if (argv[0] == "vip+")
+    {
+        if (argv.size() != 2)
+        {
+            error(context);
+            return;
+        }
+        if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
+            return;
+        std::string player = argv[1];
+        getSettings()->bookSlotForPlayer(player);
+        getLobby()->updatePlayerList();
+        context.say(StringUtils::insertValues(
+            "Booked a slot for %s",
+            player));
+        return;
+    }
+    if (argv[0] == "vip-")
+    {
+        if (argv.size() != 2)
+        {
+            error(context);
+            return;
+        }
+        if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
+            return;
+        std::string player = argv[1];
+        getSettings()->unbookSlotForPlayer(player);
+        getLobby()->updatePlayerList();
+        context.say(StringUtils::insertValues(
+            "Unbooked a slot for %s",
+            player));
+        return;
+    }
+} // process_vip
 // ========================================================================
 
 void CommandManager::process_troll(Context& context)

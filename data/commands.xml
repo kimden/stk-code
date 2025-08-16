@@ -871,6 +871,24 @@ here later. For now, please refer to the code for the strings being used. -->
              description="Toggles whether a category is displayed in the player list."
              permissions="UP_HAMMER"
     />
+    <command name="vip"
+             usage="/vip [username]"
+             permissions-verbose="everyone"
+             description="Lists all players that can have a playing slot unconditionally, or checks if a certain player belongs to that list."
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+    />
+    <command name="vip+"
+             usage="/vip+ (username)"
+             permissions-verbose="hammers"
+             description="Adds the player to a set of those who can have a playing slot regardless."
+             permissions="UP_HAMMER"
+    />
+    <command name="vip-"
+             usage="/vip- (username)"
+             permissions-verbose="hammers"
+             description="Removes the player from a set of those who can have a playing slot regardless."
+             permissions="UP_HAMMER"
+    />
     <command name="troll"
              usage="/troll"
              permissions-verbose="everyone"
