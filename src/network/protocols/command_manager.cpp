@@ -144,9 +144,10 @@ namespace
     };
     static std::vector<std::vector<std::string>> g_aux_difficulty_aliases = {
             {"d0", "novice", "easy"},
-            {"d1", "intermediate", "medium"},
-            {"d2", "expert", "hard"},
-            {"d3", "supertux", "super", "best"}
+            {"d1", "casual"},
+            {"d2", "intermediate", "medium"},
+            {"d3", "expert", "hard"},
+            {"d4", "supertux", "super", "best"}
     };
     static std::vector<std::vector<std::string>> g_aux_goal_aliases = {
             {"tl", "time-limit", "time", "minutes"},
