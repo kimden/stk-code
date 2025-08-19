@@ -15,7 +15,7 @@ Item policiies:
 where X is 1 is items are off, and 0 if items are on (yes, it's disallowance bit)
 sprint: /itempolicy 1 0 0000X0000000 0 0 0 0 1 1 0
 race: /itempolicy 1 0 0000X0000000 0 0 0 0 1 1 0
-tt: /itempolicy 1 0 000110000000 0 0 0 0 1 1 0
+tt: /itempolicy 1 0 000010000000 0 0 0 0 1 1 0
 marathon: /itempolicy 1 0 011110001100 0 1 0 5 1 1 1 zipper 1
 variety: /itempolicy normal
 
