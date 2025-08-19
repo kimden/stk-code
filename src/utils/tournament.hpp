@@ -47,7 +47,7 @@ public:
     Tournament(LobbyContext* context): LobbyContextComponent(context) {}
     
     void setupContextUser() OVERRIDE;
-    void initTournamentPlayers();
+    void initTournamentPlayers(const std::string& match, const std::string& rules);
     void applyFiltersForThisGame(FilterContext& track_context);
     std::set<std::string> getThoseWhoSeeTeamchats() const;
     bool checkSenderInRefsOrPlayers(std::shared_ptr<STKPeer> sender) const;

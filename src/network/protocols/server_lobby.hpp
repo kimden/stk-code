@@ -286,7 +286,6 @@ private:
     void getMessagesFromHost(std::shared_ptr<STKPeer> peer, int online_id);
     void writePlayerReport(Event* event);
     bool supportsAI();
-    void initTournamentPlayers();
 public:
     void changeLimitForTournament(bool goal_target);
 private:
