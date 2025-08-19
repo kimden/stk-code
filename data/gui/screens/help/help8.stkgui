@@ -65,9 +65,7 @@ The rest of the tyre IDs will be used in the future."
 />
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
-text="Fuel saving
-The simplest way to save fuel is to release the accelerator a *tiny bit* in turns, but it is fairly inefficient. Cruise mode is an advanced technique that helps a lot.
-Cruise mode is enabled by releasing the accelerator and tapping the nitro button. It will be disabled if the brake or the accelerator are pressed again. It will set the throttle to 20%, and increase fuel efficiency by 12%."
+text="Fuel saving is done by releasing the accelerator in turns. If throttle is below 20%, fuel consumption is reduced by 12%."
 />
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
