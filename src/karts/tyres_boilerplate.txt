@@ -1,29 +1,5 @@
-    // This simply inits all constants into their corresponding variables
     m_c_fuel = m_kart->getKartProperties()->getFuelCapacity();
     m_c_fuel_stop = m_kart->getKartProperties()->getFuelStopRate();
-    m_c_fuel_weight_real = m_kart->getKartProperties()->getFuelMassReal();
-    m_c_fuel_weight_virtual = m_kart->getKartProperties()->getFuelMassVirtual();
-    m_c_fuel_rate_base = m_kart->getKartProperties()->getFuelConsumption();
-
-    if (m_reset_fuel) {
-        m_c_fuel_rate = 0; // Will be set to the appropiate one by itempolicy on pass by start/finish line
-        int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
-        switch (fuel_mode) {
-        case 0: // Fuel off
-            m_c_fuel_rate_base = 0;
-            m_c_fuel_weight_real = 0;
-            m_c_fuel_weight_virtual = 0;
-            break;
-        case 1: // Weightless fuel, doesn't impact kart performance
-            m_c_fuel_weight_real = 0;
-            m_c_fuel_weight_virtual = 0;
-            break;
-        case 2: // Fuel on
-            break;
-        default:
-            break;
-        }
-    }
 
     m_c_mass = m_kart->getKartProperties()->getMass();
     m_c_max_life_traction = m_kart->getKartProperties()->getTyresMaxLifeTraction()[m_current_compound-1];

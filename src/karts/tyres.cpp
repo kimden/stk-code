@@ -56,6 +56,10 @@ Tyres::Tyres(Kart *kart) {
     // Boilerplate to initialize all the m_c_xxx constants
     #include "karts/tyres_boilerplate.txt"
 
+    m_c_fuel_rate_base = m_kart->getKartProperties()->getFuelConsumption();
+    m_c_fuel_weight_real = m_kart->getKartProperties()->getFuelMassReal();
+    m_c_fuel_weight_virtual = m_kart->getKartProperties()->getFuelMassVirtual();
+
     m_current_fuel = m_c_fuel;
 }
 
@@ -256,6 +260,33 @@ void Tyres::reset() {
 
     // Boilerplate to initialize all the m_c_xxx constants
     #include "karts/tyres_boilerplate.txt"
+
+    // This simply inits the constants into their corresponding variables
+    if (m_reset_compound) { // Only set these unconditionally at race start
+        m_c_fuel_rate_base = m_kart->getKartProperties()->getFuelConsumption();
+        m_c_fuel_weight_real = m_kart->getKartProperties()->getFuelMassReal();
+        m_c_fuel_weight_virtual = m_kart->getKartProperties()->getFuelMassVirtual();
+    }
+
+    if (m_reset_fuel) {
+        m_c_fuel_rate = 0; // Will be set to the appropiate one by itempolicy on pass by start/finish line
+        int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
+        switch (fuel_mode) {
+        case 0: // Fuel off
+            m_c_fuel_rate_base = 0;
+            m_c_fuel_weight_real = 0;
+            m_c_fuel_weight_virtual = 0;
+            break;
+        case 1: // Weightless fuel, doesn't impact kart performance
+            m_c_fuel_weight_real = 0;
+            m_c_fuel_weight_virtual = 0;
+            break;
+        case 2: // Fuel on
+            break;
+        default:
+            break;
+        }
+    }
 
     if (m_reset_fuel) {
         m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());

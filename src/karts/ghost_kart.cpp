@@ -138,6 +138,8 @@ void GhostKart::update(int ticks)
     }
 
     if (idx == 0) {
+        m_tyres->m_reset_compound = true;
+        m_tyres->m_reset_fuel = true;
         m_tyres->reset();
         m_tyres->commandChange(m_all_bonus_info[idx].m_current_compound, 0);
     }
