@@ -4501,8 +4501,8 @@ int ServerLobby::getCurrentStateScope()
         || state > RESULT_DISPLAY)
         return 0;
     if (state == WAITING_FOR_START_GAME)
-        return CommandManager::StateScope::SS_LOBBY;
-    return CommandManager::StateScope::SS_INGAME;
+        return StateScope::SS_LOBBY;
+    return StateScope::SS_INGAME;
 }   // getCurrentStateScope
 //-----------------------------------------------------------------------------
 
