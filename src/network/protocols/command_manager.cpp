@@ -21,7 +21,6 @@
 #include "addons/addon.hpp"
 #include "io/file_manager.hpp"
 #include "modes/soccer_world.hpp"
-#include "network/crypto.hpp"
 #include "network/database_connector.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
@@ -61,6 +60,8 @@
 #include <utility>
 
 // TODO: kimden: should decorators use acting_peer?
+
+using Fn = std::function<void(Context&)>;
 
 namespace
 {
@@ -198,93 +199,6 @@ EnumExtendedReader CommandManager::permission_reader({
 });
 // ========================================================================
 
-
-CommandManager::FileResource::FileResource(std::string file_name, uint64_t interval)
-{
-    m_file_name = std::move(file_name);
-    m_interval = interval;
-    m_contents = "";
-    m_last_invoked = 0;
-    read();
-} // FileResource::FileResource
-// ========================================================================
-
-void CommandManager::FileResource::read()
-{
-    if (m_file_name.empty()) // in case it is not properly initialized
-        return;
-    // idk what to do with absolute or relative paths
-    const std::string& path = /*ServerConfig::getConfigDirectory() + "/" + */m_file_name;
-    std::ifstream message(FileUtils::getPortableReadingPath(path));
-    std::string answer;
-    if (message.is_open())
-    {
-        for (std::string line; std::getline(message, line); )
-        {
-            answer += line;
-            answer.push_back('\n');
-        }
-        if (!answer.empty())
-            answer.pop_back();
-    }
-    m_contents = answer;
-    m_last_invoked = StkTime::getMonoTimeMs();
-} // FileResource::read
-// ========================================================================
-
-std::string CommandManager::FileResource::get()
-{
-    uint64_t current_time = StkTime::getMonoTimeMs();
-    if (m_interval == 0 || current_time < m_interval + m_last_invoked)
-        return m_contents;
-    read();
-    return m_contents;
-} // FileResource::get
-// ========================================================================
-
-CommandManager::AuthResource::AuthResource(std::string secret, std::string server,
-    std::string link_format):
-    m_secret(secret), m_server(server), m_link_format(link_format)
-{
-
-} // AuthResource::AuthResource
-// ========================================================================
-
-std::string CommandManager::AuthResource::get(const std::string& username, int online_id) const
-{
-#ifdef ENABLE_CRYPTO_OPENSSL
-    std::string header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-    uint64_t timestamp = StkTime::getTimeSinceEpoch();
-    std::string payload = "{\"sub\":\"" + username + "/" + std::to_string(online_id) + "\",";
-    payload += "\"iat\":\"" + std::to_string(timestamp) + "\",";
-    payload += "\"iss\":\"" + m_server + "\"}";
-    header = Crypto::base64url(StringUtils::toUInt8Vector(header));
-    payload = Crypto::base64url(StringUtils::toUInt8Vector(payload));
-    std::string message = header + "." + payload;
-    std::string signature = Crypto::base64url(Crypto::hmac_sha256_array(m_secret, message));
-    std::string token = message + "." + signature;
-    std::string response = StringUtils::insertValues(m_link_format, token.c_str());
-    return response;
-#else
-    return "This command is currently only supported for OpenSSL";
-#endif
-} // AuthResource::get
-// ========================================================================
-
-CommandManager::Command::Command(std::string name,
-                                 void (CommandManager::*f)(Context& context),
-                                 int permissions,
-                                 int mode_scope,
-                                 int state_scope):
-        m_name(name), m_action(f), m_permissions(permissions),
-        m_mode_scope(mode_scope), m_state_scope(state_scope),
-        m_omit_name(false)
-{
-    // Handling players who are allowed to run for anyone in any case
-    m_permissions |= UU_OTHERS_COMMANDS;
-} // Command::Command(5)
-// ========================================================================
-
 const SetTypoFixer& CommandManager::getFixer(TypoFixerType type)
 {
     switch (type)
@@ -343,9 +257,9 @@ void CommandManager::initCommandsInfo()
                 continue;
             // here the commands go
             std::string name = "";
-            std::string text = ""; // for text-command
-            std::string file = ""; // for file-command
-            uint64_t interval = 0; // for file-command
+            // std::string text = ""; // for text-command
+            // std::string file = ""; // for file-command
+            // uint64_t interval = 0; // for file-command
             std::string usage = "";
             std::string permissions_s = "UP_EVERYONE";
             std::string mode_scope_s = "MS_DEFAULT";
@@ -357,9 +271,9 @@ void CommandManager::initCommandsInfo()
             std::string permissions_str = "";
             std::string description = "";
             std::string aliases = "";
-            std::string secret = ""; // for auth-command
-            std::string link_format = ""; // for auth-command
-            std::string server = ""; // for auth-command
+            // std::string secret = ""; // for auth-command
+            // std::string link_format = ""; // for auth-command
+            // std::string server = ""; // for auth-command
 
             // Name is read before enabled/disabled property, because we want
             // to disable commands in "default" config that are present in
@@ -422,23 +336,30 @@ void CommandManager::initCommandsInfo()
             else if (node_name == "text-command")
             {
                 c = addChildCommand(command, name, &CommandManager::process_text, permissions, mode_scope, state_scope);
-                node->get("text", &text);
-                addTextResponse(c->getFullName(), text);
+                TextResource resource;
+                resource.fromXmlNode(node);
+                addTextResponse(c->getFullName(), resource);
             }
             else if (node_name == "file-command")
             {
                 c = addChildCommand(command, name, &CommandManager::process_file, permissions, mode_scope, state_scope);
-                node->get("file", &file);
-                node->get("interval", &interval);
-                addFileResource(c->getFullName(), file, interval);
+                FileResource resource;
+                resource.fromXmlNode(node);
+                addFileResource(c->getFullName(), resource);
             }
+            // else if (node_name == "map-file-command")
+            // {
+            //     c = addChildCommand(command, name, &CommandManager::process_file, permissions, mode_scope, state_scope);
+            //     MapFileResource resource;
+            //     resource.fromXmlNode(node);
+            //     addMapFileResource(c->getFullName(), resource);
+            // }
             else if (node_name == "auth-command")
             {
                 c = addChildCommand(command, name, &CommandManager::process_auth, permissions, mode_scope, state_scope);
-                node->get("secret", &secret);
-                node->get("server", &server);
-                node->get("link-format", &link_format);
-                addAuthResource(name, secret, server, link_format);
+                AuthResource resource;
+                resource.fromXmlNode(node);
+                addAuthResource(name, resource);
             }
             c->m_description = CommandDescription(usage, permissions_str, description);
             m_all_commands.emplace_back(c);
@@ -463,13 +384,12 @@ void CommandManager::initCommandsInfo()
 
 void CommandManager::initCommands()
 {
-    using CM = CommandManager;
     auto& mp = m_full_name_to_command;
     m_root_command = std::make_shared<Command>("", &CM::special);
 
     initCommandsInfo();
 
-    auto applyFunctionIfPossible = [&](std::string&& name, void (CM::*f)(Context& context)) {
+    auto applyFunctionIfPossible = [&](std::string&& name, Fn f) {
         auto it = mp.find(name);
         if (it == mp.end())
             return;
@@ -478,7 +398,7 @@ void CommandManager::initCommands()
         if (!command)
             return;
 
-        command->changeFunction(f);
+        command->changeFunction(std::move(f));
     };
     // special permissions according to ServerConfig options
     std::shared_ptr<Command> kick_command = mp["kick"].lock();
@@ -625,15 +545,15 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("liststkaddon", &CM::special);
     applyFunctionIfPossible("listlocaladdon", &CM::special);
 
-    addTextResponse("description", getSettings()->getMotd());
-    addTextResponse("moreinfo", getSettings()->getHelpMessage());
+    addTextResponse("description", { getSettings()->getMotd() });
+    addTextResponse("moreinfo", { getSettings()->getHelpMessage() });
 
     std::string version = Version::version();
     std::string branch = Version::branch();
     if (!branch.empty())
         version += ", branch " + branch;
 
-    addTextResponse("version", version);
+    addTextResponse("version", { version });
     addTextResponse("clear", std::string(30, '\n'));
 
     // m_votables.emplace("replay", 1.0);
@@ -1024,7 +944,7 @@ void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
     context.m_command = command;
     try
     {
-        (this->*(command->m_action))(context);
+        (*(command->m_action))(context);
     }
     catch (std::exception& ex)
     {
@@ -1078,7 +998,7 @@ void CommandManager::process_text(Context& context)
                 "Error: a text command %s is defined without text",
                 command->getFullName().c_str());
     else
-        response = it->second;
+        response = it->second.get();
     context.say(response);
 } // process_text
 // ========================================================================
@@ -1096,7 +1016,7 @@ void CommandManager::process_file(Context& context)
     else
         response = it->second.get();
     context.say(response);
-} // process_text
+} // process_file
 // ========================================================================
 
 void CommandManager::process_auth(Context& context)
@@ -4104,7 +4024,7 @@ void CommandManager::onStartSelection()
     update();
 } // onStartSelection
 // ========================================================================
-std::shared_ptr<CommandManager::Command> CommandManager::addChildCommand(std::shared_ptr<Command> target,
+std::shared_ptr<Command> CommandManager::addChildCommand(std::shared_ptr<Command> target,
         std::string name, void (CommandManager::*f)(Context& context),
         int permissions, int mode_scope, int state_scope)
 {
@@ -4119,85 +4039,6 @@ std::shared_ptr<CommandManager::Command> CommandManager::addChildCommand(std::sh
     target->m_name_to_subcommand[name] = std::weak_ptr<Command>(child);
     return child;
 } // addChildCommand
-// ========================================================================
-
-std::shared_ptr<STKPeer> CommandManager::Context::peer()
-{
-    if (m_peer.expired())
-        throw std::logic_error("Peer is expired");
-
-    auto peer = m_peer.lock();
-    if (!peer)
-        throw std::logic_error("Peer is invalid");
-
-    return peer;
-}   // peer
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<STKPeer> CommandManager::Context::peerMaybeNull()
-{
-    // if (m_peer.expired())
-    //     throw std::logic_error("Peer is expired");
-
-    auto peer = m_peer.lock();
-    return peer;
-}   // peerMaybeNull
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<STKPeer> CommandManager::Context::actingPeer()
-{
-    if (m_target_peer.expired())
-        throw std::logic_error("Target peer is expired");
-
-    auto acting_peer = m_target_peer.lock();
-    if (!acting_peer)
-        throw std::logic_error("Target peer is invalid");
-
-    return acting_peer;
-}   // actingPeer
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<STKPeer> CommandManager::Context::actingPeerMaybeNull()
-{
-    // if (m_target_peer.expired())
-    //     throw std::logic_error("Target peer is expired");
-
-    auto acting_peer = m_target_peer.lock();
-    return acting_peer;
-}   // actingPeerMaybeNull
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<CommandManager::Command> CommandManager::Context::command()
-{
-    if (m_command.expired())
-        throw std::logic_error("Command is expired");
-
-    auto command = m_command.lock();
-    if (!command)
-        throw std::logic_error("Command is invalid");
-
-    return command;
-}   // command
-//-----------------------------------------------------------------------------
-
-void CommandManager::Context::say(const std::string& s)
-{
-    if (m_peer.expired())
-        throw std::logic_error("Context::say: Peer has expired");
-
-    auto peer = m_peer.lock();
-    Comm::sendStringToPeer(peer, s);
-}   // say
-//-----------------------------------------------------------------------------
-
-void CommandManager::Command::changePermissions(int permissions,
-        int mode_scope, int state_scope)
-{
-    // Handling players who are allowed to run for anyone in any case
-    m_permissions = permissions | UU_OTHERS_COMMANDS;
-    m_mode_scope = mode_scope;
-    m_state_scope = state_scope;
-} // changePermissions
 // ========================================================================
 
 std::string CommandManager::getAddonPreferredType() const
