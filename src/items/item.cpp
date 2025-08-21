@@ -198,6 +198,11 @@ void ItemState::update(int ticks)
                       ((rules_curr & ItemPolicyRules::IPT_FORBID_BANANA) && m_type==ITEM_BANANA)      ||
                       ((rules_curr & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
 
+    int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
+    if (fuel_mode == 0 && m_type == ITEM_TYRE_CHANGE && m_compound == 123) // If we're a fuel tyre changer and fuel is off, don't spawn
+    	forbid_curr = true;
+
+
     // Gums that were switched into nitro are NEVER forbidden
     bool instant = false;
     if (was_gum && is_nitro) {
