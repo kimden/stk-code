@@ -60,7 +60,7 @@ text="Main tyre types and IDs:
 Soft (ID 2): Starts out VERY fast, but also degrades very fast, *specially* by high-speed turning.
 Medium (ID 3): Starts out at the kart's normal speed, and degrades at a normal rate.
 Hard (ID 4): Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly.
-Flat (ID 10): It does degrade but it has no effect in the kart's speed, meaning it effectively is the same as disabling tyre degradation.
+Cheat (ID 10): It effectively is the same as disabling tyre degradation. Same performance as 100% health medium tyre.
 The rest of the tyre IDs will be used in the future."
 />
 <bubble proportion="1" height="100%"

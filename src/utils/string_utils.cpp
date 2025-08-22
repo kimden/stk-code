@@ -818,7 +818,7 @@ namespace StringUtils
             case 7:
                 return shortver ? "EKH" : "KARTHARD";
             case 10:
-                return shortver ? "FL" : "FLAT";
+                return shortver ? "CHEAT" : "CHEAT";
             case 123:
                 return shortver ? "FU" : "FUEL";
             default:
