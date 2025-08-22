@@ -349,8 +349,7 @@ void Skidding::update(int ticks, bool is_on_ground,
 #endif
 
     // No skidding backwards or while stopped
-    if(m_kart->getSpeed() < kp->getSkidMinSpeed() &&
-       m_skid_state != SKID_NONE && m_skid_state != SKID_BREAK)
+    if(m_kart->getSpeed() < 0.1f && m_skid_state != SKID_NONE && m_skid_state != SKID_BREAK)
     {
         m_skid_state = SKID_BREAK;
     }
@@ -368,6 +367,8 @@ void Skidding::update(int ticks, bool is_on_ground,
         else if (m_skid_factor > 1.0f)
         {
             m_skid_factor *= kp->getSkidDecrease();
+            if (m_skid_factor < 1.1f && (skidding == KartControl::SC_LEFT || skidding == KartControl::SC_RIGHT))
+                m_skid_factor = 1.1f;
         }
     }
     else
@@ -588,6 +589,10 @@ unsigned int Skidding::getSkidBonus(float *bonus_time,
 unsigned int Skidding::getSkidLevel(const KartProperties *kp) const
 {
     unsigned int level = 0;
+
+    if (m_kart->getSpeed() < kp->getSkidMinSpeed() && m_skid_state != SKID_NONE && m_skid_state != SKID_BREAK)
+        return 0;
+
     for (level = 0; level < kp->getSkidBonusSpeed().size(); level++)
     {
         if (STKConfig::get()->ticks2Time(m_skid_time) <=

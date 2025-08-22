@@ -3127,8 +3127,18 @@ void Kart::updatePhysics(int ticks)
         m_skid_sound->stop();
     }
 
-    float steering = getMaxSteerAngle() * m_skidding->getSteeringFraction();
-    
+// example:
+// at skid_min_speed kart steers 30º
+// at at current speed, which is below, kart steers 60º
+// if we want kart to steer 30º at current speed, we need to steer
+    float steering;
+    if (m_skidding->isSkidding() && getSpeed() < m_kart_properties->getSkidMinSpeed()) {
+        // When below the minimum skidding speed, skid as if it was the minimum speed but without any boost
+        steering = getMaxSteerAngle(m_kart_properties->getSkidMinSpeed()) * (getMaxSteerAngle(m_kart_properties->getSkidMinSpeed())/getMaxSteerAngle()) * m_skidding->getSteeringFraction();        
+    } else {
+        steering = getMaxSteerAngle() * m_skidding->getSteeringFraction();
+    }
+
     m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 0);
     m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 1);
 
