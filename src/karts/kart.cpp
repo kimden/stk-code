@@ -497,9 +497,9 @@ void Kart::instantSpeedIncrease(unsigned int category, float add_max_speed,
 
 // -----------------------------------------------------------------------------
 void Kart::setSlowdown(unsigned int category, float max_speed_fraction,
-                       int fade_in_time)
+                       int fade_in_time, int duration)
 {
-    m_max_speed->setSlowdown(category, max_speed_fraction,  fade_in_time);
+    m_max_speed->setSlowdown(category, max_speed_fraction,  fade_in_time, duration);
 }   // setSlowdown
 
 // -----------------------------------------------------------------------------
@@ -2671,6 +2671,39 @@ void Kart::updatePhysics(int ticks)
 
     // Cap speed if necessary
     const Material *m = getMaterial();
+    auto& stk_config = STKConfig::get();
+
+
+    ItemPolicy *itempolicy = RaceManager::get()->getItemPolicy();
+    bool is_restart = itempolicy->m_virtualpace_code <= -3;
+    bool did_restart = false;
+    if (is_restart) {
+        // Reaffirm the penalty in case someone tried to be funny and pit for tyres in the middle of a safety car restart
+        m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), -1);
+        int restart_time = -(itempolicy->m_virtualpace_code + 3);
+        float gap = itempolicy->m_policy_sections[itempolicy->m_leader_section].m_virtualpace_gaps;
+        gap *= getPosition();
+        restart_time += gap;
+        int current_time = World::getWorld()->getTime();
+        if (current_time > restart_time) {
+            // Set slowdown time to 0 (disable it) if its time to restart
+            m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
+            did_restart = true;
+        }
+    }
+
+    bool is_last = getPosition() == RaceManager::get()->getNumberOfKarts();
+
+    if (is_last && did_restart) {
+        itempolicy->m_virtualpace_code = -1;
+        itempolicy->m_restart_count = -1;
+    }
+
+    // the only reason such a ridiculous infinite pit penalty (-1) can be given is if it's a virtual pace car restart
+    // plainly, the only reason this exists is because first place won't get its penalty overturned if for some reason
+    if (itempolicy->m_virtualpace_code == -1 && m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_BUBBLE) == -1) {
+        m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
+    }
 
     float min_speed =  m && m->isZipper() ? m->getZipperMinSpeed() : -1.0f;
     m_max_speed->setMinSpeed(min_speed);

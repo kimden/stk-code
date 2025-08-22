@@ -708,6 +708,15 @@ namespace ServerConfig
         "are played in the order cyclically, "
         "except if something is in the regular karts queue."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_itempolicy
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "normal",
+        "itempolicy",
+        "A custom item policy to be used, "
+        "should have format 'num section section section ...', where "
+        "num is the number of sections, and each 'section' is of the form "
+        "'bitstring' linear_multiplier items_per_lap progressive_cap progressive_penalty item_number [item1 weight1 item2 weight2...]"));
+
     SERVER_CFG_PREFIX StringServerConfigParam m_gp_scoring
         SERVER_CFG_DEFAULT(StringServerConfigParam(
         "fixed 0 1 10 8 6 5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",

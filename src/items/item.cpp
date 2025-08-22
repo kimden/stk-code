@@ -113,6 +113,30 @@ void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal)
     setDisappearCounter();
 }   // initItem
 
+static int getRespawnTime(ItemState::ItemType type) {
+    auto& stk_config = STKConfig::get();
+    switch (type)
+    {
+        case ItemState::ITEM_BONUS_BOX:
+            return stk_config->m_bonusbox_item_return_ticks;
+            break;
+        case ItemState::ITEM_NITRO_BIG:
+        case ItemState::ITEM_NITRO_SMALL:
+            return stk_config->m_nitro_item_return_ticks;
+            break;
+        case ItemState::ITEM_BANANA:
+            return stk_config->m_banana_item_return_ticks;
+            break;
+        case ItemState::ITEM_BUBBLEGUM:
+        case ItemState::ITEM_BUBBLEGUM_NOLOK:
+            return stk_config->m_bubblegum_item_return_ticks;
+            break;
+        default:
+            return stk_config->time2Ticks(2.0f);
+            break;
+    }
+}
+
 // ----------------------------------------------------------------------------
 /** Update the state of the item, called once per physics frame.
  *  \param ticks Number of ticks to simulate. While this value is 1 when
@@ -126,6 +150,69 @@ void ItemState::update(int ticks)
     {
         m_ticks_till_return -= ticks;
     }   // if collected
+
+    ItemPolicy *policy = RaceManager::get()->getItemPolicy();
+    if (policy->m_policy_sections.size() == 0)
+        return;
+
+    int current_section = policy->m_leader_section;
+
+    if (current_section <= -1)
+        current_section = 0;
+
+    uint16_t rules_curr = policy->m_policy_sections[current_section].m_rules;
+    uint16_t rules_prev;
+    if (current_section > 0)
+        rules_prev = policy->m_policy_sections[current_section-1].m_rules;
+    else
+        rules_prev = rules_curr;
+
+    bool was_gum = (m_original_type==ITEM_BUBBLEGUM) || (m_type==ITEM_BUBBLEGUM_NOLOK);
+
+    bool is_nitro = (m_type==ITEM_NITRO_SMALL) || (m_type==ITEM_NITRO_BIG);
+    bool was_nitro = (m_original_type==ITEM_NITRO_SMALL) || (m_original_type==ITEM_NITRO_BIG);
+
+    bool forbid_prev = ((rules_prev & ItemPolicyRules::IPT_FORBID_BONUSBOX) && m_type==ITEM_BONUS_BOX) ||
+                      ((rules_prev & ItemPolicyRules::IPT_FORBID_BANANA) && m_type==ITEM_BANANA)      ||
+                      ((rules_prev & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
+
+    bool forbid_curr = ((rules_curr & ItemPolicyRules::IPT_FORBID_BONUSBOX) && m_type==ITEM_BONUS_BOX) ||
+                      ((rules_curr & ItemPolicyRules::IPT_FORBID_BANANA) && m_type==ITEM_BANANA)      ||
+                      ((rules_curr & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
+
+
+    // Gums that were switched into nitro are NEVER forbidden
+    bool instant = false;
+    if (was_gum && is_nitro) {
+        instant = true;
+    } else {
+        instant = false;
+    }
+
+    auto& stk_config = STKConfig::get();
+    // There's redundant cases here, but it is like this for maintainability
+    if (forbid_prev && forbid_curr)
+        m_ticks_till_return = stk_config->time2Ticks(99999);
+    else if (!forbid_prev && forbid_curr)
+        m_ticks_till_return = stk_config->time2Ticks(99999);
+    else if (forbid_prev && !forbid_curr) {
+        int respawn_ticks = getRespawnTime(m_type);
+        // If the ticks till return are abnormally high, set them back to normal.
+        // If we don't do it like this, it will set the ticks till return perpetually
+        // when transitioning from a section without to a section with this item type allowed.
+        if (m_ticks_till_return > 10*respawn_ticks)
+            m_ticks_till_return = respawn_ticks;
+    }
+    else if (!forbid_prev && !forbid_curr) {
+        // Nothing to do
+        // This wouldn't be needed normally, but we do it in case of switched items
+        int respawn_ticks = getRespawnTime(m_type);
+        if (m_ticks_till_return > 10*respawn_ticks && m_type != ITEM_EASTER_EGG)
+            m_ticks_till_return = respawn_ticks;
+    }
+    if (instant) {
+        m_ticks_till_return = 0;
+    }
 
 }   // update
 
@@ -154,26 +241,7 @@ void ItemState::collected(const AbstractKart *kart)
     }
     else
     {
-        switch (m_type)
-        {
-            case ITEM_BONUS_BOX:
-                m_ticks_till_return = stk_config->m_bonusbox_item_return_ticks;
-                break;
-            case ITEM_NITRO_BIG:
-            case ITEM_NITRO_SMALL:
-                m_ticks_till_return = stk_config->m_nitro_item_return_ticks;
-                break;
-            case ITEM_BANANA:
-                m_ticks_till_return = stk_config->m_banana_item_return_ticks;
-                break;
-            case ITEM_BUBBLEGUM:
-            case ITEM_BUBBLEGUM_NOLOK:
-                m_ticks_till_return = stk_config->m_bubblegum_item_return_ticks;
-                break;
-            default:
-                m_ticks_till_return = stk_config->time2Ticks(2.0f);
-                break;
-        }
+        m_ticks_till_return = getRespawnTime(m_type);
     }
 
     if (RaceManager::get()->isBattleMode())

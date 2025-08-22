@@ -360,7 +360,7 @@ public:
                                     int duration, int fade_out_time) OVERRIDE;
     // ----------------------------------------------------------------------------------------
     virtual void   setSlowdown(unsigned int category, float max_speed_fraction,
-                               int fade_in_time) OVERRIDE;
+                               int fade_in_time, int duration=-1) OVERRIDE;
     // ----------------------------------------------------------------------------------------
     virtual int   getSpeedIncreaseTicksLeft(unsigned int category) const OVERRIDE;
     // ----------------------------------------------------------------------------------------

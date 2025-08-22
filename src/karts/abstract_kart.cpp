@@ -46,6 +46,8 @@ AbstractKart::AbstractKart(const std::string& ident,
                            std::shared_ptr<GE::GERenderInfo> ri)
              : Moveable()
 {
+    item_amount_last_lap = 0;
+    item_type_last_lap = PowerupManager::POWERUP_NOTHING;
     m_world_kart_id   = world_kart_id;
     if (RaceManager::get()->getKartGlobalPlayerId(m_world_kart_id) > -1)
     {
