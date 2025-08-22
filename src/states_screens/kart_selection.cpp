@@ -1416,7 +1416,8 @@ void KartSelectionScreen::allPlayersDone()
         RaceManager::get()->setPlayerKart(n, selected_kart);
 
         // Set handicap if needed
-        if (UserConfigParams::m_per_player_difficulty)
+        //if (UserConfigParams::m_per_player_difficulty)
+        if (true) // This needs to always be true for TME as tyre is also selected from here
             RaceManager::get()->setPlayerHandicap(n, m_kart_widgets[n].getHandicap());
         RaceManager::get()->setPlayerStartingTyre(n, m_kart_widgets[n].getStartingTyre());
     }

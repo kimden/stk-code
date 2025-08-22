@@ -22,6 +22,8 @@
 #ifndef HEADER_NETWORK_PLAYER_PROFILE
 #define HEADER_NETWORK_PLAYER_PROFILE
 
+#include "utils/tme_constants.hpp"
+
 #include "network/kart_data.hpp"
 #include "utils/team_utils.hpp"
 #include "utils/types.hpp"
@@ -97,7 +99,7 @@ public:
         m_default_kart_color    = 0.0f;
         m_online_id             = 0;
         m_handicap.store((uint8_t)0);
-        m_starting_tyre.store(2);
+        m_starting_tyre.store(TME_CONSTANT_DEFAULT_TYRE);
         m_local_player_id       = 0;
         m_team.store(team);
         m_temporary_team        = TeamUtils::getIndexFromKartTeam(team);

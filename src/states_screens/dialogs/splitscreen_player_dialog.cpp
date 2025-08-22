@@ -17,6 +17,8 @@
 
 #include "states_screens/dialogs/splitscreen_player_dialog.hpp"
 
+#include "utils/tme_constants.hpp"
+
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
 #include "input/device_manager.hpp"
@@ -63,7 +65,7 @@ void SplitscreenPlayerDialog::beforeAddingWidgets()
     assert(m_starting_tyre_label != NULL);
     m_starting_tyre = getWidget<SpinnerWidget>("starting-tyre");
     assert(m_starting_tyre != NULL);
-    m_starting_tyre->setValue(0);
+    m_starting_tyre->setValue(TME_CONSTANT_DEFAULT_TYRE);
 
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
@@ -97,7 +99,8 @@ void SplitscreenPlayerDialog::beforeAddingWidgets()
         m_add->setVisible(true);
         m_profiles->setVisible(true);
         m_handicap->setState(false);
-        m_handicap->setActive(UserConfigParams::m_per_player_difficulty);
+        //m_handicap->setActive(UserConfigParams::m_per_player_difficulty);
+        m_handicap->setActive(true); // For TME this always needs to be enabled
         m_options_widget->select("add", PLAYER_ID_GAME_MASTER);
     }
 

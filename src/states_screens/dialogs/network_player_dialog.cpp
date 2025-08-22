@@ -137,7 +137,7 @@ void NetworkPlayerDialog::beforeAddingWidgets()
     m_accept_widget = NULL;
 
     m_tyre_widget = getWidget<SpinnerWidget>("starting-tyre");
-    m_tyre_widget->setValue(3);
+    m_tyre_widget->setValue(10);
     m_tyre_label = getWidget<LabelWidget>("starting-tyre-label");
 
     m_accept_widget = getWidget<IconButtonWidget>("accept-2");

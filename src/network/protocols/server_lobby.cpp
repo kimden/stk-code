@@ -2710,7 +2710,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             name += core::stringw(" ") + StringUtils::toWString(i + 1);
             
             m_ai_profiles.push_back(std::make_shared<NetworkPlayerProfile>
-                (peer, name, peer->getHostId(), 0.0f, 0, 0, 2,
+                (peer, name, peer->getHostId(), 0.0f, 0, 0, TME_CONSTANT_DEFAULT_TYRE,
                 player_count + i, KART_TEAM_NONE, ""));
         }
     }

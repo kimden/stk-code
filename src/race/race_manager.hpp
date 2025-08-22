@@ -945,7 +945,7 @@ public:
     void addSpareTireKart(const std::string& name)
     {
         m_kart_status.push_back(KartStatus(name, 0, -1, -1,
-            -1, KT_SPARE_TIRE, 0, 2));
+            -1, KT_SPARE_TIRE, 0, TME_CONSTANT_DEFAULT_TYRE));
         m_num_spare_tire_karts++;
         m_num_karts++;
     }   // addSpareTireKart

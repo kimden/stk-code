@@ -137,7 +137,7 @@ void OnlineScreen::init()
     {
         NetworkConfig::get()->addNetworkPlayer(
             input_manager->getDeviceManager()->getLatestUsedDevice(),
-            PlayerManager::getCurrentPlayer(), 0, 2);
+            PlayerManager::getCurrentPlayer(), 0, TME_CONSTANT_DEFAULT_TYRE);
         NetworkConfig::get()->doneAddingNetworkPlayers();
     }
     loadList();
@@ -284,7 +284,7 @@ void OnlineScreen::eventCallback(Widget* widget, const std::string& name,
             NetworkConfig::get()->cleanNetworkPlayers();
             NetworkConfig::get()->addNetworkPlayer(
                 input_manager->getDeviceManager()->getLatestUsedDevice(),
-                PlayerManager::getCurrentPlayer(), 0, 2);
+                PlayerManager::getCurrentPlayer(), 0, TME_CONSTANT_DEFAULT_TYRE);
             NetworkConfig::get()->doneAddingNetworkPlayers();
         }
         else

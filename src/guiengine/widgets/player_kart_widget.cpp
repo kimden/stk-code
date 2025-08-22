@@ -18,6 +18,8 @@
 
 #include "guiengine/widgets/player_kart_widget.hpp"
 
+#include "utils/tme_constants.hpp"
+
 #include "audio/sfx_manager.hpp"
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
@@ -55,7 +57,7 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
     x_speed = y_speed = w_speed = h_speed = 1.0f;
     m_ready = false;
     m_handicap = 0;
-    m_starting_tyre = 2;
+    m_starting_tyre = TME_CONSTANT_DEFAULT_TYRE;
     m_not_updated_yet = true;
 
     m_irrlicht_widget_id = irrlicht_widget_id;
@@ -477,7 +479,7 @@ void PlayerKartWidget::add()
         m_crown_icon->setVisible(false);
     }
 
-    if (!UserConfigParams::m_per_player_difficulty)
+    if (false) //!UserConfigParams::m_per_player_difficulty)
         m_handicap_spinner->setVisible(false);
 
     assert(m_player_ident_spinner->getStringValue() == label);
@@ -754,8 +756,8 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
 
     m_starting_tyre = m_starting_tyre_spinner->getValue();
 
-    if (UserConfigParams::m_per_player_difficulty &&
-        originator == handicapSpinnerID)
+    //if (UserConfigParams::m_per_player_difficulty &&
+    if (true && originator == handicapSpinnerID)
     {
         int spinner_value = m_handicap_spinner->getValue();
 

@@ -18,6 +18,8 @@
 
 #include "network/network_player_profile.hpp"
 
+#include "utils/tme_constants.hpp"
+
 #include "karts/tyres.hpp"
 #include "network/network_config.hpp"
 #include "network/stk_host.hpp"
