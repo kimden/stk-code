@@ -349,7 +349,7 @@ void Skidding::update(int ticks, bool is_on_ground,
 #endif
 
     // Peacefully stop the skid if REALLY slow
-    if (m_kart->getSpeed() < (2.0f*kp->getSkidMinSpeed()/3.0f) ) {
+    if (m_kart->getSpeed() < (1.0f*kp->getSkidMinSpeed()/3.0f) ) {
         m_kart->getControls().setSkidControl(KartControl::SC_NONE);
     }
 
