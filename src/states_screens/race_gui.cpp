@@ -442,9 +442,10 @@ void RaceGUI::drawCompoundData(const Kart* kart,
         }
     }
 
-
-    //ARGB
+    // the CHEAT tyre doesn't degrade, so render nothing
+    bool has_degradation = kart->m_tyres->m_current_compound != 10;
     bool has_fuel = (std::abs(kart->m_tyres->m_c_fuel_rate_base) > 0.00099f);
+    //ARGB
     video::SColor color_traction = video::SColor(180, 200, 20, 20);
     video::SColor color_turning = video::SColor(180, 20, 20, 200);
     video::SColor color_fuel = (kart->m_tyres->m_high_fuel_demand) ?
@@ -514,12 +515,12 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     pos_bars_inner[2].UpperLeftCorner.Y = pos_bars_inner[2].LowerRightCorner.Y - (float)(heights_inner[2]*height_inner_base);
     
 #ifndef SERVER_ONLY
-    GL32_draw2DRectangle(color_base, pos_bars_outer[0]);
-    GL32_draw2DRectangle(color_base, pos_bars_outer[1]);
+    if(has_degradation) GL32_draw2DRectangle(color_base, pos_bars_outer[0]);
+    if(has_degradation) GL32_draw2DRectangle(color_base, pos_bars_outer[1]);
     if(has_fuel) GL32_draw2DRectangle(color_base, pos_bars_outer[2]);
 
-    GL32_draw2DRectangle(color_traction, pos_bars_inner[0]);
-    GL32_draw2DRectangle(color_turning, pos_bars_inner[1]);
+    if(has_degradation) GL32_draw2DRectangle(color_traction, pos_bars_inner[0]);
+    if(has_degradation) GL32_draw2DRectangle(color_turning, pos_bars_inner[1]);
     if(has_fuel) GL32_draw2DRectangle(color_fuel, pos_bars_inner[2]);
 #endif
 
@@ -641,8 +642,8 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     pos_text_fuel.UpperLeftCorner.X = pos_bars_outer[2].LowerRightCorner.X + font2->getDimension(L"9").Width/3.0f;
     pos_text_fuel.LowerRightCorner.X = pos_text_fuel.UpperLeftCorner.X + 2*font2->getDimension(L"100.0").Width;
 
-    font2->draw(s_tra.c_str(), pos_text_traction, color_text_4);
-    font2->draw(s_tur.c_str(), pos_text_turning, color_text_5);
+    if(has_degradation) font2->draw(s_tra.c_str(), pos_text_traction, color_text_4);
+    if(has_degradation) font2->draw(s_tur.c_str(), pos_text_turning, color_text_5);
     if(has_fuel) font2->draw(s_fuel.c_str(), pos_text_fuel, color_text_3);
 
 
