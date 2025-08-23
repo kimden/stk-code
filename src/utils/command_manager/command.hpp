@@ -66,27 +66,17 @@ struct CommandDescription
 struct Command
 {
     std::string m_name;
-
     std::string m_prefix_name;
-
     std::function<void(Context&)> m_action;
-
     int m_permissions;
-
     int m_mode_scope;
-
     int m_state_scope;
-
     bool m_omit_name;
 
     CommandDescription m_description;
-
     std::weak_ptr<Command> m_parent;
-
     std::map<std::string, std::weak_ptr<Command>> m_name_to_subcommand;
-
     std::vector<std::shared_ptr<Command>> m_subcommands;
-
     SetTypoFixer m_stf_subcommand_names;
 
     Command() {}
