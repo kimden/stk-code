@@ -229,10 +229,6 @@ public:
 
     void deleteUser(std::string& s);
 
-    static void restoreCmdByArgv(std::string& cmd,
-            std::vector<std::string>& argv, char c, char d, char e, char f,
-            int from = 0);
-
     // A simple version of hasTypo for validating simple arguments.
     // Returns the opposite bool value.
     bool validate(Context& ctx, int idx,

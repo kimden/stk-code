@@ -18,6 +18,9 @@
 
 #include "utils/command_manager/context.hpp"
 #include "utils/communication.hpp"
+#include "utils/command_manager/command.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/log.hpp"
 
 std::shared_ptr<STKPeer> Context::peer()
 {
@@ -86,4 +89,33 @@ void Context::say(const std::string& s)
     auto peer = m_peer.lock();
     Comm::sendStringToPeer(peer, s);
 }   // say
+//-----------------------------------------------------------------------------
+
+void Context::error(bool is_error)
+{
+    std::string msg;
+    if (is_error)
+        Log::error("CMContext", "An error occurred while invoking %s", m_cmd.c_str());
+
+    auto command = m_command.lock();
+    auto peer = m_peer.lock();
+    if (!command) {
+        Log::error("CMContext", "CM::error: cannot load command");
+        return;
+    }
+    if (!peer) {
+        Log::error("CMContext", "CM::error: cannot load peer to send error");
+        return;
+    }
+    msg = command->getUsage();
+    if (msg.empty())
+        msg = StringUtils::insertValues("An error occurred "
+                "while invoking command \"%s\".",
+                command->getFullName().c_str());
+
+    if (is_error)
+        msg += "\n/!\\ Please report this error to the server owner";
+
+    say(msg);
+}   // error
 //-----------------------------------------------------------------------------

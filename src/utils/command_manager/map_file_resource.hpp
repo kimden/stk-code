@@ -17,36 +17,47 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
-#ifndef FILE_RESOURCE_HPP
-#define FILE_RESOURCE_HPP
+#ifndef MAP_FILE_RESOURCE_HPP
+#define MAP_FILE_RESOURCE_HPP
 
 #include "utils/types.hpp"
-#include "utils/command_manager/command.hpp"
+#include "utils/command_manager/file_resource.hpp"
 #include <string>
 
-struct FileResource: public Command
+struct MapFileResource: public FileResource
 {
 private:
-    std::string      m_file_name;
-    uint64_t         m_interval;
-    mutable uint64_t m_last_invoked;
+    std::string m_print_format;
+    char m_line_delimiter = '\n'; // Line breaks should be checked on Windows
+    char m_field_delimiter = ' ';
+    char m_out_line_delimiter;
+    char m_out_field_delimiter;
+    char m_left_quote = '"';
+    char m_right_quote = '"';
+    char m_escape = '\\';
 
-    void read();
+    // Technically nothing prevents us from making several indices.
+    // Except the lack of practical need, of course.
+    int m_index = 0;
+
+    struct Row
+    {
+        std::vector<std::string> cells;
+    };
+
+    std::vector<std::shared_ptr<Row>> m_rows;
+    std::map<std::string, std::vector<std::shared_ptr<Row>>> m_indexed;
+
+    SetTypoFixer m_fixer;
 
 protected:
-    std::string      m_contents;
-
-    void tryUpdate();
-
-    virtual void onContentChange() {}
+    void onContentChange() override;
 
 public:
-    bool needsFunction() const final { return false; }
-
     virtual void fromXmlNode(const XMLNode* node) override;
 
     virtual void execute(Context& context) override;
 };
 
 
-#endif // FILE_RESOURCE_HPP
+#endif // MAP_FILE_RESOURCE_HPP
