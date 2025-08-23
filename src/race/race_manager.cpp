@@ -182,6 +182,15 @@ void RaceManager::reset()
     m_num_finished_players = 0;
 }  // reset
 
+void RaceManager::setItemPolicy(std::string str)
+{
+    m_item_policy.fromString(str);
+    m_item_policy.m_leader_section = -1;
+    m_item_policy.m_virtual_pace_code = -1;
+    m_item_policy.m_restart_count = 0;
+}
+
+
 // ----------------------------------------------------------------------------
 /** Sets the default list of AI karts to use.
  *  \param ai_kart_list List of the identifier of the karts to use.

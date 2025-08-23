@@ -43,7 +43,7 @@
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "race/race_manager.hpp"
-#include "race/itempolicy.hpp"
+#include "race/item_policy.hpp"
 #include "race/history.hpp"
 #include "states_screens/race_gui_base.hpp"
 #include "tracks/check_manager.hpp"
@@ -487,46 +487,17 @@ void LinearWorld::newLap(unsigned int kart_index)
     // duplicated race positions as well.
     updateRacePosition();
 
-    ItemPolicy *itempolicy = RaceManager::get()->getItemPolicy();
+    ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
 
-    int sec = itempolicy->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime());
-    if (kart->getPosition() == 1) {
-        itempolicy->m_leader_section = sec;
-        int start_lap = itempolicy->m_policy_sections[sec].m_section_start;
-        int16_t rules = itempolicy->m_policy_sections[sec].m_rules;
-        bool do_virtualpace = rules & ItemPolicyRules::IPT_VIRTUALPACE;
-        bool do_unlapping = rules & ItemPolicyRules::IPT_UNLAPPING;
-        if (do_virtualpace && start_lap == kart_info.m_finished_laps) {
-            itempolicy->m_restart_count = 0;
-            itempolicy->m_virtualpace_code = do_unlapping
-                                             ? start_lap // Lappings must slow down when they reach the lead lap
-                                             : -2;       // Lappings must slow down as soon as possible
-        }
-    }
-    kart->m_tyres->m_deg_mult = itempolicy->m_policy_sections[sec].m_deg_mult;
-    kart->m_tyres->m_c_fuel_rate = itempolicy->m_policy_sections[sec].m_fuel_mult;
+    int sec = item_policy->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime(), RaceManager::get()->getNumLaps());
 
-    kart->item_type_last_lap = kart->getPowerup()->getType();
-    kart->item_amount_last_lap = kart->getPowerup()->getNum();
+    kart->m_item_type_last_lap = kart->getPowerup()->getType();
+    kart->m_item_amount_last_lap = kart->getPowerup()->getNum();
+    kart->m_tyres->m_deg_mult = item_policy->m_policy_sections[sec].m_deg_mult;
+    kart->m_tyres->m_c_fuel_rate = item_policy->m_policy_sections[sec].m_fuel_mult;
 
-    bool slowed_down = false;
-    if (itempolicy->m_virtualpace_code == kart_info.m_finished_laps || itempolicy->m_virtualpace_code == -2) {
-        auto& stk_config = STKConfig::get();
-        itempolicy->m_restart_count += 1;
-        kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(99999));
-        slowed_down = true;
-    }
 
-    bool is_last = itempolicy->m_restart_count == RaceManager::get()->getNumberOfKarts();
-    // Technically there could be ghosts but you can't get into that situation. Probably.
-    // If the kart is last, also fire the virtual pace car restart procedure
-    if (slowed_down && is_last) {
-        int time = World::getWorld()->getTime();
-        time = (-time) - 3;
-        // code till be added to 3 and inverted to get time
-        itempolicy->m_virtualpace_code = time;
-    }
-
+    item_policy->checkAndApplyVirtualPaceCarRules(kart, sec, kart_info.m_finished_laps);
 
     // Race finished
     // We compute the exact moment the kart crossed the line

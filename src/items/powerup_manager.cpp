@@ -95,42 +95,37 @@ void PowerupManager::unloadPowerups()
     }
 }   // removeTextures
 
+// Must match the order of PowerupType in powerup_manager.hpp!!
+static const std::string powerup_names[] = {
+    "nothing",            /* Nothing */
+    "bubblegum", "cake", "bowling", "zipper", "plunger", "switch",
+    "swatter", "rubber-ball", "parachute", "nitro-hack", "electro-shield",
+    "mini-wish", "anchor"
+};
+
 //-----------------------------------------------------------------------------
 /** Determines the powerup type for a given name.
  *  \param name Name of the powerup to look up.
  *  \return The type, or POWERUP_NOTHING if the name is not found
  */
-PowerupManager::PowerupType
-    PowerupManager::getPowerupType(const std::string &name) {
-    // Must match the order of PowerupType in powerup_manager.hpp!!
-    static const std::string powerup_names[] = {
-        "nothing",            /* Nothing */
-        "bubblegum", "cake", "bowling", "zipper", "plunger", "switch",
-        "swatter", "rubber-ball", "parachute", "nitro-hack", "electro-shield",
-        "mini-wish", "anchor"
-    };
-
+PowerupManager::PowerupType PowerupManager::getPowerupType(const std::string &name)
+{
     for(unsigned int i=POWERUP_FIRST; i<=POWERUP_LAST; i++)
     {
-        if(name=="") return POWERUP_NOTHING;
-        if(powerup_names[i]==name) return(PowerupType)i;
+        if (name=="")
+            return POWERUP_NOTHING;
+        if (powerup_names[i]==name)
+            return(PowerupType)i;
     }
     return POWERUP_NOTHING;
 }   // getPowerupType
 
-std::string
-    PowerupManager::getPowerupAsString(PowerupManager::PowerupType type) {
-    // Must match the order of PowerupType in powerup_manager.hpp!!
-    static const std::string powerup_names[] = {
-        "nothing",            /* Nothing */
-        "bubblegum", "cake", "bowling", "zipper", "plunger", "switch",
-        "swatter", "rubber-ball", "parachute", "nitro-hack", "electro-shield",
-        "mini-wish", "anchor"
-    };
+std::string PowerupManager::getPowerupAsString(PowerupManager::PowerupType type)
+{
     int size = sizeof(powerup_names)/sizeof(*powerup_names);
     if (type == POWERUP_NOTHING) return "nothing";
     if (size < type-POWERUP_FIRST) return "nothing";
-    return powerup_names[type-POWERUP_FIRST+1];
+    return powerup_names[type - POWERUP_FIRST + 1];
 }   // getPowerupAsString
 
 

@@ -24,7 +24,7 @@
  *  Defines the various collectibles and weapons of STK.
  */
 
-#include "karts/kart.hpp"
+//#include "karts/kart.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/leak_check.hpp"
 #include "utils/log.hpp"

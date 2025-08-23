@@ -125,7 +125,7 @@ void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int
     setDisappearCounter();
 }   // initItem
 
-static int getRespawnTime(ItemState::ItemType type) {
+static int getRespawnTicks(ItemState::ItemType type) {
     auto& stk_config = STKConfig::get();
     switch (type)
     {
@@ -169,73 +169,7 @@ void ItemState::update(int ticks)
     }   // if collected
 
     ItemPolicy *policy = RaceManager::get()->getItemPolicy();
-    if (policy->m_policy_sections.size() == 0)
-        return;
-
-    int current_section = policy->m_leader_section;
-
-    if (current_section <= -1)
-        current_section = 0;
-
-    uint16_t rules_curr = policy->m_policy_sections[current_section].m_rules;
-    uint16_t rules_prev;
-    if (current_section > 0)
-        rules_prev = policy->m_policy_sections[current_section-1].m_rules;
-    else
-        rules_prev = rules_curr;
-
-    bool was_gum = (m_original_type==ITEM_BUBBLEGUM) || (m_type==ITEM_BUBBLEGUM_NOLOK) ||
-                  (m_original_type==ITEM_BUBBLEGUM_SMALL) || (m_type==ITEM_BUBBLEGUM_SMALL_NOLOK);
-
-    bool is_nitro = (m_type==ITEM_NITRO_SMALL) || (m_type==ITEM_NITRO_BIG);
-    bool was_nitro = (m_original_type==ITEM_NITRO_SMALL) || (m_original_type==ITEM_NITRO_BIG);
-
-    bool forbid_prev = ((rules_prev & ItemPolicyRules::IPT_FORBID_BONUSBOX) && m_type==ITEM_BONUS_BOX) ||
-                      ((rules_prev & ItemPolicyRules::IPT_FORBID_BANANA) && m_type==ITEM_BANANA)      ||
-                      ((rules_prev & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
-
-    bool forbid_curr = ((rules_curr & ItemPolicyRules::IPT_FORBID_BONUSBOX) && m_type==ITEM_BONUS_BOX) ||
-                      ((rules_curr & ItemPolicyRules::IPT_FORBID_BANANA) && m_type==ITEM_BANANA)      ||
-                      ((rules_curr & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
-
-    int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
-    if (fuel_mode == 0 && m_type == ITEM_TYRE_CHANGE && m_compound == 123) // If we're a fuel tyre changer and fuel is off, don't spawn
-    	forbid_curr = true;
-
-
-    // Gums that were switched into nitro are NEVER forbidden
-    bool instant = false;
-    if (was_gum && is_nitro) {
-        instant = true;
-    } else {
-        instant = false;
-    }
-
-    auto& stk_config = STKConfig::get();
-    // There's redundant cases here, but it is like this for maintainability
-    if (forbid_prev && forbid_curr)
-        m_ticks_till_return = stk_config->time2Ticks(99999);
-    else if (!forbid_prev && forbid_curr)
-        m_ticks_till_return = stk_config->time2Ticks(99999);
-    else if (forbid_prev && !forbid_curr) {
-        int respawn_ticks = getRespawnTime(m_type);
-        // If the ticks till return are abnormally high, set them back to normal.
-        // If we don't do it like this, it will set the ticks till return perpetually
-        // when transitioning from a section without to a section with this item type allowed.
-        if (m_ticks_till_return > 10*respawn_ticks)
-            m_ticks_till_return = respawn_ticks;
-    }
-    else if (!forbid_prev && !forbid_curr) {
-        // Nothing to do
-        // This wouldn't be needed normally, but we do it in case of switched items
-        int respawn_ticks = getRespawnTime(m_type);
-        if (m_ticks_till_return > 10*respawn_ticks && m_type != ITEM_EASTER_EGG)
-            m_ticks_till_return = respawn_ticks;
-    }
-    if (instant) {
-        m_ticks_till_return = 0;
-    }
-
+    m_ticks_till_return = policy->computeItemTicksTillReturn(m_original_type, m_type, getRespawnTicks(m_type), m_ticks_till_return);
 }   // update
 
 // ----------------------------------------------------------------------------
@@ -263,7 +197,7 @@ void ItemState::collected(const Kart *kart)
     }
     else
     {
-        m_ticks_till_return = getRespawnTime(m_type);
+        m_ticks_till_return = getRespawnTicks(m_type);
     }
 
     if (RaceManager::get()->isBattleMode())

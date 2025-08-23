@@ -208,7 +208,7 @@ bool ClientLobby::notifyEvent(Event* event)
         case LE_UPDATE_PLAYER_LIST:    updatePlayerList(event);    break;
         case LE_CHAT:                  handleChat(event);          break;
         case LE_CONNECTION_ACCEPTED:   connectionAccepted(event);  break;
-        case LE_ITEMPOLICY:            handleItemPolicy(event);    break;
+        case LE_ITEM_POLICY:            handleItemPolicy(event);    break;
         case LE_SERVER_INFO:           handleServerInfo(event);    break;
         case LE_PLAYER_DISCONNECTED :  disconnectedPlayer(event);  break;
         case LE_CONNECTION_REFUSED:    connectionRefused(event);   break;

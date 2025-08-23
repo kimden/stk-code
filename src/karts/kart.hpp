@@ -422,8 +422,8 @@ public:
     void setStints (std::vector<std::tuple<unsigned, unsigned>> x) { m_stints = x; }  
 
     // amount in previous lap
-    int item_amount_last_lap;
-    PowerupManager::PowerupType item_type_last_lap;
+    int m_item_amount_last_lap;
+    PowerupManager::PowerupType m_item_type_last_lap;
 
     bool m_is_refueling;
     float m_target_refuel;
@@ -633,7 +633,7 @@ public:
      *  \param max_speed_fraction Fraction of top speed to allow only.
      *  \param fade_in_time How long till maximum speed is capped. */
     virtual void   setSlowdown(unsigned int category, float max_speed_fraction,
-                               int fade_in_time);
+                               int fade_in_time, int duration = -1);
     // ----------------------------------------------------------------------------------------
     /** Returns how much increased speed time is left over in the given
      *  category.

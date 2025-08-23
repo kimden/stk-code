@@ -3074,16 +3074,16 @@ void CommandManager::process_itempolicy_assign(Context& context)
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     RaceManager::get()->setItemPolicy(cmd2);
 
-    Comm::sendStringToAllPeers("Item policy set to \"" + cmd2 + "\"... Probably.");
+    Comm::sendStringToAllPeers(StringUtils::insertValues( "Item policy set to \"%s\"", cmd2.c_str()));
 
     NetworkString *sync_message = new NetworkString(ProtocolType::PROTOCOL_LOBBY_ROOM, 16);
     sync_message->setSynchronous(true);
-    sync_message->addUInt8(LE_ITEMPOLICY);
+    sync_message->addUInt8(LE_ITEM_POLICY);
     sync_message->encodeString(cmd2);
     Comm::sendMessageToPeers(sync_message);
-
 } // process_itempolicy_assign
 // ========================================================================
+
 
 void CommandManager::process_register(Context& context)
 {

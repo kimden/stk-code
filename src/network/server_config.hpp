@@ -708,10 +708,10 @@ namespace ServerConfig
         "are played in the order cyclically, "
         "except if something is in the regular karts queue."));
 
-    SERVER_CFG_PREFIX StringServerConfigParam m_itempolicy
+    SERVER_CFG_PREFIX StringServerConfigParam m_item_policy
         SERVER_CFG_DEFAULT(StringServerConfigParam(
         "normal",
-        "itempolicy",
+        "item-policy",
         "A custom item policy to be used, "
         "should have format 'num section section section ...', where "
         "num is the number of sections, and each 'section' is of the form "

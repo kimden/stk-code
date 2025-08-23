@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 1950-2025 Nomagno
+//  Copyright (C) 2025 Nomagno
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <string>
 #include "items/powerup_manager.hpp"
+#include "items/item.hpp"
 
 class Kart;
 class PowerupManager;
@@ -46,13 +47,13 @@ enum ItemPolicyRules {
     // of items is above m_progressive_cap X remaining_section_length,
     // then cap them at m_progressive_penalty X remaining_section_length
     // (those two multipliers will usually be the same)
-    IPT_PROGRESSIVECAP = 1 << 4,
+    IPT_PROGRESSIVE_CAP = 1 << 4,
 
     // When there are multiple items, at section start, and whenever items reach 0,
     // there will normally be an invokation of the random number generator with the
     // specified weights to decide the first item, and all items after will be of the same type.
     // If this bit is set to true, instead every lap where something is to be done, an invokation of the RNG will be made.
-    IPT_OVERWRITEITEMS = 1 << 5,
+    IPT_OVERWRITE_ITEMS = 1 << 5,
 
     // Prevent cake & bowl hits between lappings and lappers from causing damage.
     // It helps with traffic, like blue flags in real motorsports.
@@ -72,7 +73,7 @@ enum ItemPolicyRules {
     IPT_FORBID_NITRO = 1 << 9,
 
     // A "virtual pace car" procedure will be initiated at section start
-    IPT_VIRTUALPACE = 1 << 10,
+    IPT_VIRTUAL_PACE = 1 << 10,
 
     // The "virtual pace car" procedure will let all karts fully unlap.
     IPT_UNLAPPING  =  1 << 11
@@ -97,7 +98,7 @@ struct ItemPolicySection {
     float m_linear_mult;
     float m_items_per_lap;
     float m_progressive_cap;
-    float m_virtualpace_gaps;
+    float m_virtual_pace_gaps;
     float m_deg_mult;
     float m_fuel_mult;
 
@@ -119,23 +120,32 @@ struct ItemPolicy {
     // Holds the status of the "virtual pace car" procedure:
     // code <= -3  : All karts must wait until the global clock hits second -([code] + 3) to start
     //                   the restart procedure. Afterwards, they must wait until second
-    //                   -([code] + 3) + position_in_race*m_virtualpace_gaps[m_leader_section]
+    //                   -([code] + 3) + position_in_race*m_virtual_pace_gaps[m_leader_section]
     //                  to go back to normal running. This type of code is triggered by the last
     //                  kart when it starts slowing down.
     // code  = -2  : Slow down IMMEDIATELY and indefinitely (on next pass by finish line)
     // code  = -1  : Normal racing, remove all penalties.
     // code >=  0  : Slow down indefinitely when the kart finishes lap [code]
-    int m_virtualpace_code;
+    int m_virtual_pace_code;
     // Number of karts that are ready to restart the race. Used to trigger the restart procedure.
     int m_restart_count;
 
-    int selectItemFrom(std::vector<PowerupManager::PowerupType>& types,
-                         std::vector<int>& weights);
+    int selectItemFrom(const std::vector<PowerupManager::PowerupType>& types,
+                       const std::vector<int>& weights);
     void applySectionRules (ItemPolicySection &section, Kart *kart,
                             int next_section_start_laps, int current_lap,
                             int current_time, int prev_lap_item_amount);
 
-    int applyRules(Kart *kart, int current_lap, int current_time);
+    int applyRules(Kart *kart, int current_lap, int current_time, int total_laps_of_race);
+
+    bool isHitValid(float sender_distance, float sender_lap, float recv_distance, float recv_lap, float track_length);
+
+    int computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemState::ItemType curr_type, int curr_type_respawn_ticks, int curr_ticks_till_return);
+
+    void enforceVirtualPaceCarRulesForKart(Kart *k);
+
+    void checkAndApplyVirtualPaceCarRules(Kart *kart, int kart_section, int finished_laps);
+
     void fromString(std::string& str);
     std::string toString();
 };
