@@ -45,7 +45,6 @@
 #include "utils/command_manager/context.hpp"
 #include "utils/command_manager/file_resource.hpp"
 #include "utils/command_manager/text_resource.hpp"
-#include "utils/enum_extended_reader.hpp"
 #include "utils/lobby_context.hpp"
 #include "utils/set_typo_fixer.hpp"
 #include "utils/team_utils.hpp"
@@ -61,11 +60,6 @@ class STKPeer;
 class CommandManager: public LobbyContextComponent
 {
 private:
-
-    static EnumExtendedReader permission_reader;
-    static EnumExtendedReader mode_scope_reader;
-    static EnumExtendedReader state_scope_reader;
-
     std::deque<std::shared_ptr<Filter>>& get_queue(int x) const;
 
     template<typename T>
@@ -80,12 +74,6 @@ private:
     std::shared_ptr<Command> m_root_command;
 
     std::multiset<std::string> m_users;
-
-    std::map<std::string, TextResource> m_text_response;
-
-    std::map<std::string, FileResource> m_file_resources;
-
-    std::map<std::string, AuthResource> m_auth_resources;
 
     std::map<std::string, CommandVoting> m_votables;
 
@@ -136,9 +124,6 @@ private:
     void execute(std::shared_ptr<Command> command, Context& context);
 
     void process_help(Context& context);
-    void process_text(Context& context);
-    void process_file(Context& context);
-    void process_auth(Context& context);
     void process_commands(Context& context);
     void process_replay(Context& context);
     void process_start(Context& context);
@@ -240,22 +225,6 @@ public:
 
     void handleCommand(Event* event, std::shared_ptr<STKPeer> peer);
 
-    // template<typename T>
-    // void addTextResponse(std::string key, T&& value)
-    //                                           { m_text_response[key] = value; }
-
-    void addTextResponse(std::string key, const TextResource& resource)
-                                           { m_text_response[key] = resource; }
-
-    void addTextResponse(std::string key, TextResource&& resource)
-                                { m_text_response[key] = std::move(resource); }
-
-    void addFileResource(std::string key, const FileResource& resource)
-                                          { m_file_resources[key] = resource; }
-
-    void addAuthResource(std::string key, const AuthResource& resource)
-                                          { m_auth_resources[key] = resource; }
-
     void addUser(std::string& s);
 
     void deleteUser(std::string& s);
@@ -280,15 +249,13 @@ public:
 
     std::vector<std::string> getCurrentArgv()         { return m_current_argv; }
 
-    std::shared_ptr<Command> addChildCommand(std::shared_ptr<Command> target, std::string name,
-             void (CommandManager::*f)(Context& context), int permissions = UP_EVERYONE,
-             int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
-
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
 
     void shift(std::string& cmd, std::vector<std::string>& argv,
         const std::string& username, int count);
+
+    std::function<void(Context&)> getDefaultAction();
 
 };
 

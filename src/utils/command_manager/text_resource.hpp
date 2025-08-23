@@ -21,16 +21,18 @@
 #define TEXT_RESOURCE_HPP
 
 #include "utils/types.hpp"
-#include "utils/command_manager/abstract_resource.hpp"
+#include "utils/command_manager/command.hpp"
 #include <string>
 
-class TextResource: public AbstractResource
+class TextResource: public Command
 {
 private:
     std::string m_text;
 
 public:
-    TextResource() {}
+    bool needsFunction() const final { return false; }
+
+    TextResource(): m_text("") {}
 
     template<typename T>
     TextResource(const T& str): m_text(str) {}
@@ -38,9 +40,11 @@ public:
     template<typename T>
     TextResource(T&& str): m_text(std::move(str)) {}
 
+    void setText(const std::string& str) { m_text = str; }
+
     void fromXmlNode(const XMLNode* node) final;
 
-    std::string get();
+    void execute(Context& context) final;
 };
 
 

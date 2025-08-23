@@ -154,49 +154,6 @@ namespace
     // End of auxiliary things
 } // namespace
 
-EnumExtendedReader CommandManager::mode_scope_reader({
-    {"MS_DEFAULT", MS_DEFAULT},
-    {"MS_SOCCER_TOURNAMENT", MS_SOCCER_TOURNAMENT}
-});
-
-EnumExtendedReader CommandManager::state_scope_reader({
-    {"SS_LOBBY", SS_LOBBY},
-    {"SS_INGAME", SS_INGAME},
-    {"SS_ALWAYS", SS_ALWAYS}
-});
-
-EnumExtendedReader CommandManager::permission_reader({
-    {"PE_NONE", PE_NONE},
-    {"UU_SPECTATOR", UU_SPECTATOR},
-    {"UU_USUAL", UU_USUAL},
-    {"UU_CROWNED", UU_CROWNED},
-    {"UU_SINGLE", UU_SINGLE},
-    {"UU_HAMMER", UU_HAMMER},
-    {"UU_MANIPULATOR", UU_MANIPULATOR},
-    {"UU_CONSOLE", UU_CONSOLE},
-    {"PE_SPECTATOR", PE_SPECTATOR},
-    {"PE_USUAL", PE_USUAL},
-    {"PE_CROWNED", PE_CROWNED},
-    {"PE_SINGLE", PE_SINGLE},
-    {"PE_HAMMER", PE_HAMMER},
-    {"PE_MANIPULATOR", PE_MANIPULATOR},
-    {"PE_CONSOLE", PE_CONSOLE},
-    {"UU_OWN_COMMANDS", UU_OWN_COMMANDS},
-    {"UU_OTHERS_COMMANDS", UU_OTHERS_COMMANDS},
-    {"PE_ALLOW_ANYONE", PE_ALLOW_ANYONE},
-    {"PE_VOTED_SPECTATOR", PE_VOTED_SPECTATOR},
-    {"PE_VOTED_NORMAL", PE_VOTED_NORMAL},
-    {"PE_VOTED", PE_VOTED},
-    {"UP_CONSOLE", UP_CONSOLE},
-    {"UP_MANIPULATOR", UP_MANIPULATOR},
-    {"UP_HAMMER", UP_HAMMER},
-    {"UP_SINGLE", UP_SINGLE},
-    {"UP_CROWNED", UP_CROWNED},
-    {"UP_NORMAL", UP_NORMAL},
-    {"UP_EVERYONE", UP_EVERYONE}
-});
-// ========================================================================
-
 const SetTypoFixer& CommandManager::getFixer(TypoFixerType type)
 {
     switch (type)
@@ -250,120 +207,21 @@ void CommandManager::initCommandsInfo()
         for (unsigned int i = 0; i < current->getNumNodes(); i++)
         {
             const XMLNode *node = current->getNode(i);
-            std::string node_name = node->getName();
-            if (node_name == "external-commands-file")
+
+            auto c = Command::unknownTypeFromXmlNode(node); 
+            if (!c)
                 continue;
 
-            // here the commands go
-            std::string name = "";
-            std::string usage = "";
-            std::string permissions_s = "UP_EVERYONE";
-            std::string mode_scope_s = "MS_DEFAULT";
-            std::string state_scope_s = "SS_ALWAYS";
-            bool omit_name = false;
-            int permissions;
-            int mode_scope;
-            int state_scope;
-            std::string permissions_str = "";
-            std::string description = "";
-            std::string aliases = "";
+            const std::string name = c->getShortName();
 
-            // Name is read before enabled/disabled property, because we want
-            // to disable commands in "default" config that are present in
-            // "custom" config, regardless of server name
-            node->get("name", &name);
-            if (current == root2 && command == m_root_command
-                    && used_commands.find(name) != used_commands.end())
-            {
+            if (current == root2 && command == m_root_command && used_commands.find(name) != used_commands.end())
                 continue;
-            }
             else if (current == root)
-            {
                 used_commands.insert(name);
-            }
 
-            // If enabled is not empty, command is added iff the server name is in enabled
-            // Otherwise it is added iff the server name is not in disabled
-            std::string enabled = "";
-            std::string disabled = "";
-            node->get("enabled", &enabled);
-            node->get("disabled", &disabled);
-            std::vector<std::string> enabled_split = StringUtils::split(enabled, ' ');
-            std::vector<std::string> disabled_split = StringUtils::split(disabled, ' ');
-            bool ok;
-            if (!enabled.empty())
-            {
-                ok = false;
-                for (const std::string& s: enabled_split)
-                    if (s == ServerConfig::m_server_uid)
-                        ok = true;
-            }
-            else
-            {
-                ok = true;
-                for (const std::string& s: disabled_split)
-                    if (s == ServerConfig::m_server_uid)
-                        ok = false;
-            }
-            if (!ok)
-                continue;
-
-            node->get("usage", &usage);
-            node->get("permissions", &permissions_s);
-            permissions = CommandManager::permission_reader.parse(permissions_s);
-            node->get("mode-scope", &mode_scope_s);
-            mode_scope = CommandManager::mode_scope_reader.parse(mode_scope_s);
-            node->get("state-scope", &state_scope_s);
-            state_scope = CommandManager::state_scope_reader.parse(state_scope_s);
-            node->get("permissions-verbose", &permissions_str);
-            node->get("description", &description);
-            node->get("omit-name", &omit_name);
-            node->get("aliases", &aliases);
-            std::vector<std::string> aliases_split = StringUtils::split(aliases, ' ');
-
-            std::shared_ptr<Command> c;
-            if (node_name == "command")
-            {
-                c = addChildCommand(command, name, &CommandManager::special, permissions, mode_scope, state_scope);
-            }
-            else if (node_name == "text-command")
-            {
-                c = addChildCommand(command, name, &CommandManager::process_text, permissions, mode_scope, state_scope);
-                TextResource resource;
-                resource.fromXmlNode(node);
-                addTextResponse(c->getFullName(), resource);
-            }
-            else if (node_name == "file-command")
-            {
-                c = addChildCommand(command, name, &CommandManager::process_file, permissions, mode_scope, state_scope);
-                FileResource resource;
-                resource.fromXmlNode(node);
-                addFileResource(c->getFullName(), resource);
-            }
-            // else if (node_name == "map-file-command")
-            // {
-            //     c = addChildCommand(command, name, &CommandManager::process_file, permissions, mode_scope, state_scope);
-            //     MapFileResource resource;
-            //     resource.fromXmlNode(node);
-            //     addMapFileResource(c->getFullName(), resource);
-            // }
-            else if (node_name == "auth-command")
-            {
-                c = addChildCommand(command, name, &CommandManager::process_auth, permissions, mode_scope, state_scope);
-                AuthResource resource;
-                resource.fromXmlNode(node);
-                addAuthResource(name, resource);
-            }
-            c->m_description = CommandDescription(usage, permissions_str, description);
+            command->addChild(c);
             m_all_commands.emplace_back(c);
             m_full_name_to_command[c->getFullName()] = std::weak_ptr<Command>(c);
-            c->m_omit_name = omit_name;
-            command->m_stf_subcommand_names.add(name);
-            for (const std::string& alias_name: aliases_split)
-            {
-                command->m_stf_subcommand_names.add(alias_name, name);
-                command->m_name_to_subcommand[alias_name] = command->m_name_to_subcommand[name];
-            }
             dfs(node, c);
         }
     };
@@ -379,7 +237,9 @@ void CommandManager::initCommands()
 {
     using CM = CommandManager;
     auto& mp = m_full_name_to_command;
-    m_root_command = std::make_shared<Command>("", std::bind(&CM::special, this, std::placeholders::_1));
+    m_root_command = std::make_shared<Command>();
+    m_root_command->setFunction(getDefaultAction());
+    // std::bind(&CM::special, this, std::placeholders::_1));
 
     initCommandsInfo();
 
@@ -394,15 +254,44 @@ void CommandManager::initCommands()
         if (!command)
             return;
         
-        command->changeFunction(std::bind(std::move(f), ptr, std::placeholders::_1));
+        command->setFunction(std::bind(std::move(f), ptr, std::placeholders::_1));
     };
+
+    auto applyTextIfPossible = [ptr, &mp](std::string&& name, const std::string& value) {
+        auto it = mp.find(name);
+        if (it == mp.end())
+            return;
+
+        std::shared_ptr<Command> command = it->second.lock();
+        if (!command)
+            return;
+        
+        std::shared_ptr<TextResource> resource = std::dynamic_pointer_cast<TextResource>(command);
+        if (!resource)
+            return;
+        
+        resource->setText(value);
+    };
+
     // special permissions according to ServerConfig options
     std::shared_ptr<Command> kick_command = mp["kick"].lock();
     if (kick_command) {
         if (getSettings()->hasKicksAllowed())
-            kick_command->m_permissions |= UU_CROWNED;
+        {
+            kick_command->changePermissions(
+                kick_command->getPermissions() | UU_CROWNED,
+                kick_command->getModeScope(),
+                kick_command->getStateScope()
+            );
+        }
         else
-            kick_command->m_permissions &= ~UU_CROWNED;
+        {
+            kick_command->changePermissions(
+                kick_command->getPermissions() & (~UU_CROWNED),
+                kick_command->getModeScope(),
+                kick_command->getStateScope()
+            );
+        }
     }
 
     applyFunctionIfPossible("commands", &CM::process_commands);
@@ -428,8 +317,6 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("mute", &CM::process_mute);
     applyFunctionIfPossible("unmute", &CM::process_unmute);
     applyFunctionIfPossible("listmute", &CM::process_listmute);
-    applyFunctionIfPossible("description", &CM::process_text);
-    applyFunctionIfPossible("moreinfo", &CM::process_text);
     applyFunctionIfPossible("gnu", &CM::process_gnu);
     applyFunctionIfPossible("nognu", &CM::process_gnu);
     applyFunctionIfPossible("tell", &CM::process_tell);
@@ -488,8 +375,6 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("teamhit =", &CM::process_teamhit_assign);
     applyFunctionIfPossible("scoring", &CM::process_scoring);
     applyFunctionIfPossible("scoring =", &CM::process_scoring_assign);
-    applyFunctionIfPossible("version", &CM::process_text);
-    applyFunctionIfPossible("clear", &CM::process_text);
     applyFunctionIfPossible("register", &CM::process_register);
     applyFunctionIfPossible("muteall", &CM::process_muteall);
     applyFunctionIfPossible("game", &CM::process_game);
@@ -541,16 +426,24 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("liststkaddon", &CM::special);
     applyFunctionIfPossible("listlocaladdon", &CM::special);
 
-    addTextResponse("description", { getSettings()->getMotd() });
-    addTextResponse("moreinfo", { getSettings()->getHelpMessage() });
-
     std::string version = Version::version();
     std::string branch = Version::branch();
     if (!branch.empty())
         version += ", branch " + branch;
 
-    addTextResponse("version", { version });
-    addTextResponse("clear", std::string(30, '\n'));
+    applyTextIfPossible("description", getSettings()->getMotd());
+    applyTextIfPossible("moreinfo", getSettings()->getHelpMessage());
+    applyTextIfPossible("version", version);
+    applyTextIfPossible("clear", std::string(30, '\n'));
+
+    for (auto& element: m_full_name_to_command)
+    {
+        std::shared_ptr<Command> command = element.second.lock();
+        if (!command || !command->needsFunction() || command->hasFunction())
+            continue;
+        
+        command->setFunction(getDefaultAction());
+    };
 
     // m_votables.emplace("replay", 1.0);
     m_votables.emplace("start", 0.81);
@@ -732,20 +625,20 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     std::shared_ptr<Command> executed_command;
     for (int idx = 0; ; idx++)
     {
-        bool one_omittable_subcommand = (current_command->m_subcommands.size() == 1
-                && current_command->m_subcommands[0]->m_omit_name);
+        const auto& subcommands = current_command->getSubcommands();
+        bool one_omittable_subcommand = (subcommands.size() == 1 && subcommands[0]->omittedName());
 
         std::shared_ptr<Command> command;
         if (one_omittable_subcommand)
         {
-            command = current_command->m_subcommands[0];
+            command = subcommands[0];
         }
         else
         {
-            if (hasTypo(target_peer_strong, peer, voting, argv, cmd, idx, current_command->m_stf_subcommand_names, 3, false, false))
+            if (hasTypo(target_peer_strong, peer, voting, argv, cmd, idx, current_command->subcommandNamesTypoFixer(), 3, false, false))
                 return;
-            auto command_iterator = current_command->m_name_to_subcommand.find(argv[idx]);
-            command = command_iterator->second.lock();
+
+            command = current_command->findChild(argv[idx]);
         }
 
         if (!command)
@@ -762,7 +655,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
 
         // Note that we use caller's permissions to determine if the command can be invoked,
         // and during its invocation, we use acting peer's permissions.
-        int mask = ((permissions & command->m_permissions) & (~MASK_MANIPULATION));
+        int mask = ((permissions & command->getPermissions()) & (~MASK_MANIPULATION));
         if (mask == 0)
         {
             context.say("You don't have permissions to " + action + " this command");
@@ -771,7 +664,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         // kimden: both might be nullptr, which means different things
         if (target_peer.lock() != peer)
         {
-            int mask_manip = (permissions & command->m_permissions & MASK_MANIPULATION);
+            int mask_manip = (permissions & command->getPermissions() & MASK_MANIPULATION);
             if (mask_manip == 0)
             {
                 context.say("You don't have permissions to " + action
@@ -786,7 +679,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         if (one_omittable_subcommand)
             --idx;
         current_command = command;
-        if (idx + 1 == (int)argv.size() || command->m_subcommands.empty()) {
+        if (idx + 1 == (int)argv.size() || command->getSubcommands().empty()) {
             executed_command = command;
             execute(command, context);
             break;
@@ -850,8 +743,8 @@ int CommandManager::getCurrentModeScope()
 
 bool CommandManager::isAvailable(std::shared_ptr<Command> c)
 {
-    return (getCurrentModeScope() & c->m_mode_scope) != 0
-        && (getLobby()->getCurrentStateScope() & c->m_state_scope) != 0;
+    return (getCurrentModeScope() & c->getModeScope()) != 0
+        && (getLobby()->getCurrentStateScope() & c->getStateScope()) != 0;
 } // getCurrentModeScope
 // ========================================================================
 
@@ -864,11 +757,11 @@ void CommandManager::vote(Context& context, std::string category, std::string va
     if (!acting_peer->hasPlayerProfiles())
         return;
     std::string username = acting_peer->getMainName();
-    auto& votable = m_votables[command->m_prefix_name];
+    auto& votable = m_votables[command->getFullName()];
     bool neededCheck = votable.needsCheck();
     votable.castVote(username, category, value);
     if (votable.needsCheck() && !neededCheck)
-        m_triggered_votables.push(command->m_prefix_name);
+        m_triggered_votables.push(command->getFullName());
 } // vote
 // ========================================================================
 
@@ -940,7 +833,7 @@ void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
     context.m_command = command;
     try
     {
-        (command->m_action)(context);
+        command->execute(context);
     }
     catch (std::exception& ex)
     {
@@ -964,15 +857,18 @@ void CommandManager::process_help(Context& context)
     auto peer = context.peer();
 
     std::shared_ptr<Command> command = m_root_command;
-    for (int i = 1; i < (int)argv.size(); ++i) {
-        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
+    for (int i = 1; i < (int)argv.size(); ++i)
+    {
+        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->subcommandNamesTypoFixer(), 3, false, false))
             return;
-        auto ptr = command->m_name_to_subcommand[argv[i]].lock();
+
+        auto ptr = command->findChild(argv[i]);
         if (ptr)
             command = ptr;
         else
             break;
-        if (command->m_subcommands.empty())
+
+        if (command->getSubcommands().empty())
             break;
     }
     if (command == m_root_command)
@@ -984,63 +880,6 @@ void CommandManager::process_help(Context& context)
 } // process_help
 // ========================================================================
 
-void CommandManager::process_text(Context& context)
-{
-    std::string response;
-    auto command = context.command();
-    auto it = m_text_response.find(command->getFullName());
-    if (it == m_text_response.end())
-        response = StringUtils::insertValues(
-                "Error: a text command %s is defined without text",
-                command->getFullName().c_str());
-    else
-        response = it->second.get();
-    context.say(response);
-} // process_text
-// ========================================================================
-
-void CommandManager::process_file(Context& context)
-{
-    std::string response;
-    auto command = context.command();
-
-    auto it = m_file_resources.find(command->getFullName());
-    if (it == m_file_resources.end())
-        response = StringUtils::insertValues(
-                "Error: file not found for a file command %s",
-                command->getFullName().c_str());
-    else
-        response = it->second.get();
-    context.say(response);
-} // process_file
-// ========================================================================
-
-void CommandManager::process_auth(Context& context)
-{
-    std::string response;
-    auto acting_peer = context.actingPeer();
-    auto command = context.command();
-
-    auto it = m_auth_resources.find(command->getFullName());
-    if (it == m_auth_resources.end())
-        response = StringUtils::insertValues(
-                "Error: auth method not found for a command %s",
-                command->getFullName().c_str());
-    else
-    {
-        auto profile = acting_peer->getMainProfile();
-        std::string username = StringUtils::wideToUtf8(profile->getName());
-        int online_id = profile->getOnlineId();
-        if (online_id == 0)
-            response = "Error: you need to join with an "
-                       "online account to use auth methods";
-        else
-            response = it->second.get(username, online_id);
-    }
-    context.say(response);
-} // process_text
-// ========================================================================
-
 void CommandManager::process_commands(Context& context)
 {
     std::string result;
@@ -1050,13 +889,16 @@ void CommandManager::process_commands(Context& context)
     auto& argv = context.m_argv;
     std::shared_ptr<Command> command = m_root_command;
     bool valid_prefix = true;
-    for (int i = 1; i < (int)argv.size(); ++i) {
-        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
+    for (int i = 1; i < (int)argv.size(); ++i)
+    {
+        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->subcommandNamesTypoFixer(), 3, false, false))
             return;
-        auto ptr = command->m_name_to_subcommand[argv[i]].lock();
+
+        auto ptr = command->findChild(argv[i]);
         if (!ptr)
             break;
-        if ((context.m_acting_user_permissions & ptr->m_permissions) != 0
+
+        if ((context.m_acting_user_permissions & ptr->getPermissions()) != 0
                 && isAvailable(ptr))
             command = ptr;
         else
@@ -1064,7 +906,7 @@ void CommandManager::process_commands(Context& context)
             valid_prefix = false;
             break;
         }
-        if (command->m_subcommands.empty())
+        if (command->getSubcommands().empty())
             break;
     }
     if (!valid_prefix)
@@ -1077,19 +919,19 @@ void CommandManager::process_commands(Context& context)
     result += ":";
     bool had_any_subcommands = false;
     std::map<std::string, int> res;
-    for (std::shared_ptr<Command>& subcommand: command->m_subcommands)
+    for (const std::shared_ptr<Command>& subcommand: command->getSubcommands())
     {
-        if ((context.m_acting_user_permissions & subcommand->m_permissions) != 0
+        if ((context.m_acting_user_permissions & subcommand->getPermissions()) != 0
                 && isAvailable(subcommand))
         {
             bool subcommands_available = false;
-            for (auto& c: subcommand->m_subcommands)
+            for (auto& c: subcommand->getSubcommands())
             {
-                if ((context.m_acting_user_permissions & c->m_permissions) != 0
+                if ((context.m_acting_user_permissions & c->getPermissions()) != 0
                         && isAvailable(c))
                     subcommands_available = true;
             }
-            res[subcommand->m_name] = subcommands_available;
+            res[subcommand->getShortName()] = subcommands_available;
             if (subcommands_available)
                 had_any_subcommands = true;
         }
@@ -4020,25 +3862,6 @@ void CommandManager::onStartSelection()
     update();
 } // onStartSelection
 // ========================================================================
-std::shared_ptr<Command> CommandManager::addChildCommand(std::shared_ptr<Command> target,
-        std::string name, void (CommandManager::*f)(Context& context),
-        int permissions, int mode_scope, int state_scope)
-{
-    std::shared_ptr<Command> child = std::make_shared<Command>(name,
-            std::bind(f, this, std::placeholders::_1), permissions, mode_scope, state_scope);
-
-    target->m_subcommands.push_back(child);
-    child->m_parent = std::weak_ptr<Command>(target);
-
-    if (target->m_prefix_name.empty())
-        child->m_prefix_name = name;
-    else
-        child->m_prefix_name = target->m_prefix_name + " " + name;
-
-    target->m_name_to_subcommand[name] = std::weak_ptr<Command>(child);
-    return child;
-} // addChildCommand
-// ========================================================================
 
 std::string CommandManager::getAddonPreferredType() const
 {
@@ -4111,4 +3934,10 @@ void CommandManager::shift(std::string& cmd, std::vector<std::string>& argv,
 
     CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 }   // shift
+//-----------------------------------------------------------------------------
+
+std::function<void(Context&)> CommandManager::getDefaultAction()
+{
+    return std::bind(&CommandManager::special, this, std::placeholders::_1);
+}   // getDefaultAction
 //-----------------------------------------------------------------------------

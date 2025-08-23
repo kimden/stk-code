@@ -26,6 +26,7 @@
 
 void FileResource::fromXmlNode(const XMLNode* node)
 {
+    Command::fromXmlNode(node);
     node->get("file", &m_file_name);
     node->get("interval", &m_interval);
 
@@ -69,10 +70,10 @@ void FileResource::tryUpdate()
 }   // tryUpdate
 //-----------------------------------------------------------------------------
 
-std::string FileResource::get()
+void FileResource::execute(Context& context)
 {
     tryUpdate();
 
-    return m_contents;
-}   // get
+    context.say(m_contents);
+}   // execute
 //-----------------------------------------------------------------------------
