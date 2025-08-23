@@ -121,8 +121,8 @@ public:
     // ------------------------------------------------------------------------
 
     // amount in previous lap
-    int item_amount_last_lap;
-    PowerupManager::PowerupType item_type_last_lap;
+    int m_item_amount_last_lap;
+    PowerupManager::PowerupType m_item_type_last_lap;
 
     /** Returns a name to be displayed for this kart. */
     const core::stringw& getName() const                     { return m_name; }
@@ -363,7 +363,7 @@ public:
      *  \param max_speed_fraction Fraction of top speed to allow only.
      *  \param fade_in_time How long till maximum speed is capped. */
     virtual void setSlowdown(unsigned int category, float max_speed_fraction,
-                             int fade_in_time, int duration=-1) = 0;
+                             int fade_in_time, int duration = -1) = 0;
     // ------------------------------------------------------------------------
     /** Returns the remaining collected energy. */
     virtual float getEnergy() const = 0;

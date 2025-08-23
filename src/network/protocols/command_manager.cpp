@@ -3131,7 +3131,7 @@ void CommandManager::process_itempolicy_assign(Context& context)
     CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     RaceManager::get()->setItemPolicy(cmd2);
 
-    Comm::sendStringToAllPeers("Item policy set to \"" + cmd2 + "\"... Probably.");
+    Comm::sendStringToAllPeers(StringUtils::insertValues( "Item policy set to \"%s\"", cmd2.c_str()));
 } // process_itempolicy_assign
 // ========================================================================
 
