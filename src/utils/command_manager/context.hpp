@@ -69,6 +69,8 @@ struct Context
     std::shared_ptr<Command> command();
 
     void say(const std::string& s);
+
+    void error(bool is_error = false);
 };
 
 #endif // CONTEXT_HPP

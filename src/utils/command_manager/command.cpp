@@ -24,10 +24,8 @@
 
 #include "utils/command_manager/auth_resource.hpp"
 #include "utils/command_manager/file_resource.hpp"
+#include "utils/command_manager/map_file_resource.hpp"
 #include "utils/command_manager/text_resource.hpp"
-
-// This is needed for default actions only for now...
-#include "network/protocols/command_manager.hpp"
 
 #include <string_view>
 
@@ -139,6 +137,8 @@ std::shared_ptr<Command> Command::unknownTypeFromXmlNode(const XMLNode* node)
         res = std::make_shared<AuthResource>();
     else if (node_name == "file-command")
         res = std::make_shared<FileResource>();
+    else if (node_name == "map-file-command")
+        res = std::make_shared<MapFileResource>();
     else
     {
         Log::error("Command", "Unknown node name %s, treating as normal command.", node_name.c_str());

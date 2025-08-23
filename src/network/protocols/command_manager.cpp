@@ -124,6 +124,15 @@ namespace
         return QM_NONE;
     } // another_cyclic_queue
     // ====================================================================
+
+    void restoreCmdByArgv(std::string& cmd,
+            std::vector<std::string>& argv, char c, char d, char e, char f,
+            int from = 0)
+    {
+        cmd = StringUtils::quoteEscapeArray(argv.begin() + from, argv.end(),
+            c, d, e, f);
+    }   // restoreCmdByArgv
+    // ========================================================================
     
 
     // Auxiliary things, should be moved somewhere because they just help
@@ -520,7 +529,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
     if (argv.empty())
         return;
-    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 
     permissions = getLobby()->getPermissions(peer);
     voting = false;
@@ -543,7 +552,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
                 if (argv.empty())
                     return;
-                CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+                restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
                 voting = m_user_saved_voting[username];
                 target_peer = m_user_saved_acting_peer[username];
                 target_peer_strong = target_peer.lock();
@@ -717,7 +726,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 {
                     std::string new_cmd = p.first + " " + p.second;
                     auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
-                    CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
+                    restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                     std::string msg2 = StringUtils::insertValues(
                             "Command \"/%s\" has been successfully voted",
                             new_cmd.c_str());
@@ -778,7 +787,7 @@ void CommandManager::update()
             {
                 std::string new_cmd = p.first + " " + p.second;
                 auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
-                CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
+                restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                 std::string msg = StringUtils::insertValues(
                         "Command \"/%s\" has been successfully voted",
                         new_cmd.c_str());
@@ -802,29 +811,9 @@ void CommandManager::update()
 
 void CommandManager::error(Context& context, bool is_error)
 {
-    std::string msg;
-    if (is_error)
-        Log::error("CommandManager", "An error occurred while invoking %s", context.m_cmd.c_str());
-    auto command = context.m_command.lock();
-    auto peer = context.m_peer.lock();
-    if (!command) {
-        Log::error("CommandManager", "CM::error: cannot load command");
-        return;
-    }
-    if (!peer) {
-        Log::error("CommandManager", "CM::error: cannot load peer to send error");
-        return;
-    }
-    msg = command->getUsage();
-    if (msg.empty())
-        msg = StringUtils::insertValues("An error occurred "
-                "while invoking command \"%s\".",
-                command->getFullName().c_str());
-
-    if (is_error)
-        msg += "\n/!\\ Please report this error to the server owner";
-    context.say(msg);
-} // error
+    // When you have no time, change all error(context) calls to context.error()
+    context.error(is_error);
+}   // error
 // ========================================================================
 
 void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
@@ -2231,7 +2220,7 @@ void CommandManager::process_queue_push(Context& context)
         argv[2] = asset_manager->getRandomAddonMap();
 
     std::string filter_text = "";
-    CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
+    restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
 
     // Fix typos only if track queues are used (majority of cases anyway)
     // TODO: I don't know how to fix typos for both karts and tracks
@@ -2864,7 +2853,7 @@ void CommandManager::process_scoring_assign(Context& context)
     auto& argv = context.m_argv;
 
     std::string cmd2;
-    CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
+    restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     if (getGPManager()->trySettingGPScoring(cmd2))
         Comm::sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
     else
@@ -3743,20 +3732,6 @@ void CommandManager::deleteUser(std::string& s)
 } // deleteUser
 // ========================================================================
 
-void CommandManager::restoreCmdByArgv(std::string& cmd,
-        std::vector<std::string>& argv, char c, char d, char e, char f,
-        int from)
-{
-    cmd.clear();
-    for (int i = from; i < (int)argv.size(); ++i) {
-        if (i > from) {
-            cmd.push_back(c);
-        }
-        cmd += StringUtils::quoteEscape(argv[i], c, d, e, f);
-    }
-}   // restoreCmdByArgv
-// ========================================================================
-
 bool CommandManager::validate(Context& ctx, int idx,
     TypoFixerType fixer_type, bool case_sensitive, bool allow_as_is)
 {
@@ -3827,12 +3802,12 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
         }
         for (unsigned i = 0; i < closest_commands.size(); ++i) {
             argv[idx] = prefix + closest_commands[i].first + suffix;
-            CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+            restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
             m_user_command_replacements[username].push_back(cmd);
             response += "\ntype /" + std::to_string(i + 1) + " to choose \"" + closest_commands[i].first + "\"";
         }
         argv[idx] = initial_argument;
-        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
         Comm::sendStringToPeer(peer, response);
         return true;
     }
@@ -3840,7 +3815,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
     if (!dont_replace)
     {
         argv[idx] = prefix + closest_commands[0].first + suffix; // converts case or regex
-        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
     }
     return false;
 } // hasTypo
@@ -3932,7 +3907,7 @@ void CommandManager::shift(std::string& cmd, std::vector<std::string>& argv,
 
     m_user_last_correct_argument[username].first -= count;
 
-    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 }   // shift
 //-----------------------------------------------------------------------------
 

@@ -32,7 +32,6 @@ void FileResource::fromXmlNode(const XMLNode* node)
 
     m_contents = "";
     m_last_invoked = 0;
-    read();
 }   // FileResource
 //-----------------------------------------------------------------------------
 
@@ -57,8 +56,14 @@ void FileResource::read()
             answer.pop_back();
     }
 
-    m_contents = answer;
     m_last_invoked = StkTime::getMonoTimeMs();
+
+    // Don't do anything if the file is the same
+    if (m_contents != answer)
+    {
+        m_contents = answer;
+        onContentChange();
+    }
 }   // read
 //-----------------------------------------------------------------------------
 
