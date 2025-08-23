@@ -20,19 +20,23 @@
 #define AUTH_RESOURCE_HPP
 
 #include <string>
-#include "utils/command_manager/abstract_resource.hpp"
+#include "utils/command_manager/command.hpp"
 
-class AuthResource: public AbstractResource
+class AuthResource: public Command
 {
 private:
     std::string m_secret;
     std::string m_server;
     std::string m_link_format;
 
+    std::string get(const std::string& username, int online_id) const;
+
 public:
+    bool needsFunction() const final { return false; }
+
     void fromXmlNode(const XMLNode* node) final;
 
-    std::string get(const std::string& username, int online_id);
+    void execute(Context& context) final;
 };
 
 #endif // AUTH_RESOURCE_HPP

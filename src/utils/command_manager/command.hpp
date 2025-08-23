@@ -25,8 +25,10 @@
 #include <vector>
 #include <functional>
 
-#include "utils/set_typo_fixer.hpp"
 #include "network/protocols/command_permissions.hpp"
+#include "utils/set_typo_fixer.hpp"
+#include "io/xml_node.hpp"
+#include "utils/command_manager/context.hpp"
 
 struct Context;
 
@@ -49,29 +51,26 @@ struct CommandDescription
     std::string m_usage;
     std::string m_permissions;
     std::string m_description;
-    CommandDescription(std::string usage = "", std::string permissions = "",
-        std::string description = ""): m_usage(usage),
-        m_permissions(permissions), m_description(description) {}
+    CommandDescription(std::string usage = "",
+                       std::string permissions = "",
+                       std::string description = "");
 
-    std::string getUsage() const { return "Usage: " + m_usage; }
+    std::string getUsage() const;
 
-    std::string getHelp() const
-    {
-        return "Usage: " + m_usage
-            + "\nAvailable to: " + m_permissions
-            + "\n" + m_description;
-    }
+    std::string getHelp() const;
 };
 
-struct Command
+struct Command: public std::enable_shared_from_this<Command>
 {
+private:
     std::string m_name;
     std::string m_prefix_name;
-    std::function<void(Context&)> m_action;
-    int m_permissions;
-    int m_mode_scope;
-    int m_state_scope;
+    std::function<void(Context&)> m_action = nullptr;
+    int m_permissions = UP_EVERYONE;
+    int m_mode_scope = MS_DEFAULT;
+    int m_state_scope = SS_ALWAYS;
     bool m_omit_name;
+    std::vector<std::string> m_aliases;
 
     CommandDescription m_description;
     std::weak_ptr<Command> m_parent;
@@ -79,14 +78,22 @@ struct Command
     std::vector<std::shared_ptr<Command>> m_subcommands;
     SetTypoFixer m_stf_subcommand_names;
 
+protected:
+    virtual void fromXmlNode(const XMLNode* node);
+
+public:
+    virtual bool needsFunction() const { return true; }
+
     Command() {}
 
-    Command(std::string name,
-            std::function<void(Context&)> f,
-            int permissions = UP_EVERYONE,
-            int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
+    // Command(std::string name,
+    //         std::function<void(Context&)> f,
+    //         int permissions = UP_EVERYONE,
+    //         int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
 
-    void changeFunction(std::function<void(Context&)> f)
+    static std::shared_ptr<Command> unknownTypeFromXmlNode(const XMLNode* node);
+
+    void setFunction(std::function<void(Context&)> f)
                                                { m_action = std::move(f); }
 
     void changePermissions(int permissions = UP_EVERYONE,
@@ -96,6 +103,26 @@ struct Command
     std::string getUsage() const       { return m_description.getUsage(); }
     std::string getHelp() const         { return m_description.getHelp(); }
     std::string getFullName() const               { return m_prefix_name; }
+    std::string getShortName() const                     { return m_name; }
+    int getPermissions() const                    { return m_permissions; }
+    int getModeScope() const                       { return m_mode_scope; }
+    int getStateScope() const                     { return m_state_scope; }
+    bool omittedName() const                        { return m_omit_name; }
+    bool hasFunction() const                { return m_action != nullptr; }
+
+    const SetTypoFixer& subcommandNamesTypoFixer() const
+                                         { return m_stf_subcommand_names; }
+
+    std::shared_ptr<Command> findChild(const std::string& name) const;
+
+    const std::vector<std::shared_ptr<Command>>& getSubcommands() const
+                                                  { return m_subcommands; }
+
+    void addChild(const std::shared_ptr<Command>& child);
+
+    const std::vector<std::string>& getAliases() const { return m_aliases; }
+
+    virtual void execute(Context& context);
 };
 
 #endif // COMMAND_HPP

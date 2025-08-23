@@ -18,16 +18,15 @@
 
 #include "utils/command_manager/text_resource.hpp"
 
-
-
 void TextResource::fromXmlNode(const XMLNode* node)
 {
+    Command::fromXmlNode(node);
     node->get("text", &m_text);
 }   // FileResource
 //-----------------------------------------------------------------------------
 
-std::string TextResource::get()
+void TextResource::execute(Context& context)
 {
-    return m_text;
-}   // get
+    context.say(m_text);
+}   // execute
 //-----------------------------------------------------------------------------

@@ -21,10 +21,10 @@
 #define FILE_RESOURCE_HPP
 
 #include "utils/types.hpp"
-#include "utils/command_manager/abstract_resource.hpp"
+#include "utils/command_manager/command.hpp"
 #include <string>
 
-struct FileResource: public AbstractResource
+struct FileResource: public Command
 {
 private:
     std::string      m_file_name;
@@ -38,9 +38,11 @@ protected:
     virtual void read();
 
 public:
-    void fromXmlNode(const XMLNode* node) final;
+    bool needsFunction() const final { return false; }
 
-    std::string get();
+    virtual void fromXmlNode(const XMLNode* node) override;
+
+    virtual void execute(Context& context) override;
 };
 
 

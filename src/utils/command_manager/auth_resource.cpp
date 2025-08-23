@@ -20,16 +20,19 @@
 #include "network/crypto.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/time.hpp"
+#include "network/stk_peer.hpp"
+#include "network/network_player_profile.hpp"
 
 void AuthResource::fromXmlNode(const XMLNode* node)
-{                
+{
+    Command::fromXmlNode(node);
     node->get("secret", &m_secret);
     node->get("server", &m_server);
     node->get("link-format", &m_link_format);
 } // AuthResource::AuthResource
 //-----------------------------------------------------------------------------
 
-std::string AuthResource::get(const std::string& username, int online_id)
+std::string AuthResource::get(const std::string& username, int online_id) const
 {
 #ifdef ENABLE_CRYPTO_OPENSSL
     std::string header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
@@ -48,4 +51,23 @@ std::string AuthResource::get(const std::string& username, int online_id)
     return "This command is currently only supported for OpenSSL";
 #endif
 }   // AuthResource::get
+//-----------------------------------------------------------------------------
+
+void AuthResource::execute(Context& context)
+{
+    std::string response;
+    auto acting_peer = context.actingPeer();
+    auto command = context.command();
+
+    auto profile = acting_peer->getMainProfile();
+    std::string username = StringUtils::wideToUtf8(profile->getName());
+    int online_id = profile->getOnlineId();
+    if (online_id == 0)
+        response = "Error: you need to join with an "
+                "online account to use auth methods";
+    else
+        response = get(username, online_id);
+
+    context.say(response);
+}   // execute
 //-----------------------------------------------------------------------------
