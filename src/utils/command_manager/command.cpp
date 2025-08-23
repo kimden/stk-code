@@ -18,9 +18,6 @@
 
 #include "utils/command_manager/command.hpp"
 
-
-
-
 Command::Command(std::string name,
                  std::function<void(Context&)> f,
                  int permissions,

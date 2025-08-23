@@ -61,8 +61,6 @@
 
 // TODO: kimden: should decorators use acting_peer?
 
-using Fn = std::function<void(Context&)>;
-
 namespace
 {
     static const std::string g_addon_prefix = "addon_";
@@ -255,11 +253,9 @@ void CommandManager::initCommandsInfo()
             std::string node_name = node->getName();
             if (node_name == "external-commands-file")
                 continue;
+
             // here the commands go
             std::string name = "";
-            // std::string text = ""; // for text-command
-            // std::string file = ""; // for file-command
-            // uint64_t interval = 0; // for file-command
             std::string usage = "";
             std::string permissions_s = "UP_EVERYONE";
             std::string mode_scope_s = "MS_DEFAULT";
@@ -271,9 +267,6 @@ void CommandManager::initCommandsInfo()
             std::string permissions_str = "";
             std::string description = "";
             std::string aliases = "";
-            // std::string secret = ""; // for auth-command
-            // std::string link_format = ""; // for auth-command
-            // std::string server = ""; // for auth-command
 
             // Name is read before enabled/disabled property, because we want
             // to disable commands in "default" config that are present in
@@ -384,12 +377,15 @@ void CommandManager::initCommandsInfo()
 
 void CommandManager::initCommands()
 {
+    using CM = CommandManager;
     auto& mp = m_full_name_to_command;
-    m_root_command = std::make_shared<Command>("", &CM::special);
+    m_root_command = std::make_shared<Command>("", std::bind(&CM::special, this, std::placeholders::_1));
 
     initCommandsInfo();
 
-    auto applyFunctionIfPossible = [&](std::string&& name, Fn f) {
+    auto ptr = this;
+
+    auto applyFunctionIfPossible = [ptr, &mp](std::string&& name, std::function<void(CommandManager*, Context&)> f) {
         auto it = mp.find(name);
         if (it == mp.end())
             return;
@@ -397,8 +393,8 @@ void CommandManager::initCommands()
         std::shared_ptr<Command> command = it->second.lock();
         if (!command)
             return;
-
-        command->changeFunction(std::move(f));
+        
+        command->changeFunction(std::bind(std::move(f), ptr, std::placeholders::_1));
     };
     // special permissions according to ServerConfig options
     std::shared_ptr<Command> kick_command = mp["kick"].lock();
@@ -944,7 +940,7 @@ void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
     context.m_command = command;
     try
     {
-        (*(command->m_action))(context);
+        (command->m_action)(context);
     }
     catch (std::exception& ex)
     {
@@ -4028,14 +4024,17 @@ std::shared_ptr<Command> CommandManager::addChildCommand(std::shared_ptr<Command
         std::string name, void (CommandManager::*f)(Context& context),
         int permissions, int mode_scope, int state_scope)
 {
-    std::shared_ptr<Command> child = std::make_shared<Command>(name, f,
-                                   permissions, mode_scope, state_scope);
+    std::shared_ptr<Command> child = std::make_shared<Command>(name,
+            std::bind(f, this, std::placeholders::_1), permissions, mode_scope, state_scope);
+
     target->m_subcommands.push_back(child);
     child->m_parent = std::weak_ptr<Command>(target);
+
     if (target->m_prefix_name.empty())
         child->m_prefix_name = name;
     else
         child->m_prefix_name = target->m_prefix_name + " " + name;
+
     target->m_name_to_subcommand[name] = std::weak_ptr<Command>(child);
     return child;
 } // addChildCommand
