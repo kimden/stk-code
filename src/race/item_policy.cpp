@@ -53,7 +53,8 @@ int ItemPolicy::selectItemFrom(const std::vector<PowerupManager::PowerupType>& t
 }
 //--------------------------------------------------
 void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int next_section_start_laps, int current_lap, int current_time, int prev_lap_item_amount) {
-    if (section.m_section_type == IP_TIME_BASED) {
+    if (section.m_section_type == IP_TIME_BASED)
+    {
         Log::error("ItemPolicy", "Time-implemented item policy sections are not implemented yet");
         return;
     }
@@ -90,12 +91,6 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
     else
         amount_to_add_linear = 0;
 
-    int new_amount = curr_item_amount;
-    if (section_start && linear_clear) new_amount = 0;
-    new_amount += amount_to_add;
-    new_amount += amount_to_add_linear;
-    if (progressive_cap && (new_amount > section.m_progressive_cap*remaining_laps))
-        new_amount = section.m_progressive_cap*remaining_laps;
 
     PowerupManager::PowerupType new_type = curr_item_type;
 
@@ -103,22 +98,38 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
 
     // If the list of weights is empty, then we take this to mean that any item type is correct.
     bool empty_weights = section.m_weight_distribution.size() == 0;
-    if (!empty_weights) {
-        auto found_item = std::find(section.m_weight_distribution.begin(),
-                                    section.m_weight_distribution.end(),
+    if (!empty_weights)
+    {
+        auto found_item = std::find(section.m_possible_types.begin(),
+                                    section.m_possible_types.end(),
                                     curr_item_type);
-        item_is_valid = found_item != section.m_weight_distribution.end();
+        item_is_valid = found_item != section.m_possible_types.end();
     }
+
+    int new_amount = curr_item_amount;
+
+    if (!item_is_valid)
+        new_amount = 0;
+
+    if (section_start && linear_clear)
+        new_amount = 0;
+
+    new_amount += amount_to_add;
+    new_amount += amount_to_add_linear;
+    if (progressive_cap && (new_amount > section.m_progressive_cap*remaining_laps))
+        new_amount = section.m_progressive_cap*remaining_laps;
 
     if (!empty_weights)
     {
-        if (( section_start  && (linear_clear || new_amount != 0) ) ||
-            ( !section_start && !item_is_valid && active_role     ) ||
-            ( overwrite )                                           ||
-            ( new_amount == 0 ))
+        bool selecting_item = overwrite || new_amount == 0;
+        selecting_item |= (section_start && (linear_clear || new_amount != 0));
+        selecting_item |= (!section_start && !item_is_valid && active_role);
+
+        if (selecting_item)
         {
             int index = selectItemFrom(section.m_possible_types, section.m_weight_distribution);
-            if (index == -1) return;
+            if (index == -1)
+                return;
             new_type = section.m_possible_types[index];
         }
     }
@@ -130,7 +141,8 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
     if (new_type == PowerupManager::PowerupType::POWERUP_NOTHING)
         new_amount = 0;
 
-    if (new_type == curr_item_type) {
+    if (new_type == curr_item_type)
+    {
         // STK by default will add instead of overwriting items of the same type,
         // so we set it to 0 like this manually if that will happen.
         // Yes, this is stupid, but it's the only way without touching the whole codebase.
