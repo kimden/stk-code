@@ -488,7 +488,8 @@ void LinearWorld::newLap(unsigned int kart_index)
 
     ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
 
-    int sec = item_policy->applyRules(kart, kart_info.m_finished_laps, World::getWorld()->getTime(), RaceManager::get()->getNumLaps());
+    int sec = item_policy->applyRules(kart, kart_info.m_finished_laps,
+        World::getWorld()->getTime(), RaceManager::get()->getNumLaps());
     kart->m_item_type_last_lap = kart->getPowerup()->getType();
     kart->m_item_amount_last_lap = kart->getPowerup()->getNum();
 

@@ -715,7 +715,8 @@ namespace ServerConfig
         "A custom item policy to be used, "
         "should have format 'num section section section ...', where "
         "num is the number of sections, and each 'section' is of the form "
-        "'bitstring' linear_multiplier items_per_lap progressive_cap progressive_penalty item_number [item1 weight1 item2 weight2...]"));
+        "'bitstring' linear_multiplier items_per_lap progressive_cap "
+        "progressive_penalty item_number [item1 weight1 item2 weight2...]"));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_gp_scoring
         SERVER_CFG_DEFAULT(StringServerConfigParam(

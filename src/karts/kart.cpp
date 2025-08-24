@@ -2673,7 +2673,6 @@ void Kart::updatePhysics(int ticks)
     const Material *m = getMaterial();
     auto& stk_config = STKConfig::get();
 
-
     ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
     item_policy->enforceVirtualPaceCarRulesForKart(this);
 

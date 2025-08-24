@@ -111,19 +111,24 @@ PowerupManager::PowerupType PowerupManager::getPowerupType(const std::string &na
 {
     for(unsigned int i=POWERUP_FIRST; i<=POWERUP_LAST; i++)
     {
-        if (name=="")
+        if (name == "")
             return POWERUP_NOTHING;
-        if (powerup_names[i]==name)
-            return(PowerupType)i;
+        if (powerup_names[i] == name)
+            return (PowerupType)i;
     }
     return POWERUP_NOTHING;
 }   // getPowerupType
 
 std::string PowerupManager::getPowerupAsString(PowerupManager::PowerupType type)
 {
-    int size = sizeof(powerup_names)/sizeof(*powerup_names);
-    if (type == POWERUP_NOTHING) return "nothing";
-    if (size < type-POWERUP_FIRST) return "nothing";
+    int size = sizeof(powerup_names) / sizeof(*powerup_names);
+
+    if (type == POWERUP_NOTHING)
+        return "nothing";
+
+    if (size < type - POWERUP_FIRST)
+        return "nothing";
+
     return powerup_names[type - POWERUP_FIRST + 1];
 }   // getPowerupAsString
 

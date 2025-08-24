@@ -295,7 +295,7 @@ protected:
     void          initSound();
 public:
     /** Handles speed increase and capping due to powerup, terrain, ... */
-    MaxSpeed *m_max_speed;
+    MaxSpeed       *m_max_speed;
 
                    Kart(const std::string& ident, unsigned int world_kart_id,
                         int position, const btTransform& init_transform,
