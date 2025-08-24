@@ -104,6 +104,8 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
                                     section.m_possible_types.end(),
                                     curr_item_type);
         item_is_valid = found_item != section.m_possible_types.end();
+    } else {
+        item_is_valid = true;
     }
 
     int new_amount = curr_item_amount;
