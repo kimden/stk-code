@@ -497,9 +497,9 @@ void Kart::instantSpeedIncrease(unsigned int category, float add_max_speed,
 
 // -----------------------------------------------------------------------------
 void Kart::setSlowdown(unsigned int category, float max_speed_fraction,
-                       int fade_in_time)
+                       int fade_in_time, int duration)
 {
-    m_max_speed->setSlowdown(category, max_speed_fraction,  fade_in_time);
+    m_max_speed->setSlowdown(category, max_speed_fraction,  fade_in_time, duration);
 }   // setSlowdown
 
 // -----------------------------------------------------------------------------
@@ -2671,6 +2671,10 @@ void Kart::updatePhysics(int ticks)
 
     // Cap speed if necessary
     const Material *m = getMaterial();
+    auto& stk_config = STKConfig::get();
+
+    ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+    item_policy->enforceVirtualPaceCarRulesForKart(this);
 
     float min_speed =  m && m->isZipper() ? m->getZipperMinSpeed() : -1.0f;
     m_max_speed->setMinSpeed(min_speed);

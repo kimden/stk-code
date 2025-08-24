@@ -23,6 +23,8 @@
 #include "audio/sfx_base.hpp"
 #include "audio/sfx_manager.hpp"
 #include "config/user_config.hpp"
+#include "items/powerup.hpp"
+#include "karts/max_speed.hpp"
 #include "karts/abstract_kart.hpp"
 #include "karts/cannon_animation.hpp"
 #include "karts/controller/controller.hpp"
@@ -40,6 +42,8 @@
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "race/history.hpp"
+#include "race/race_manager.hpp"
+#include "race/item_policy.hpp"
 #include "states_screens/race_gui_base.hpp"
 #include "tracks/check_manager.hpp"
 #include "tracks/check_structure.hpp"
@@ -481,6 +485,15 @@ void LinearWorld::newLap(unsigned int kart_index)
     // errors. In this case the call to updateRacePosition will avoid
     // duplicated race positions as well.
     updateRacePosition();
+
+    ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+
+    int sec = item_policy->applyRules(kart, kart_info.m_finished_laps,
+        World::getWorld()->getTime(), RaceManager::get()->getNumLaps());
+    kart->m_item_type_last_lap = kart->getPowerup()->getType();
+    kart->m_item_amount_last_lap = kart->getPowerup()->getNum();
+
+    item_policy->checkAndApplyVirtualPaceCarRules(kart, sec, kart_info.m_finished_laps);
 
     // Race finished
     // We compute the exact moment the kart crossed the line

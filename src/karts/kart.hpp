@@ -109,8 +109,6 @@ protected:
     uint8_t      m_bounce_back_ticks;
 
 protected:
-    /** Handles speed increase and capping due to powerup, terrain, ... */
-    MaxSpeed *m_max_speed;
 
     /** Stores information about the terrain the kart is on. */
     TerrainInfo *m_terrain_info;
@@ -296,6 +294,9 @@ protected:
     void          updateWeight();
     void          initSound();
 public:
+    /** Handles speed increase and capping due to powerup, terrain, ... */
+    MaxSpeed       *m_max_speed;
+
                    Kart(const std::string& ident, unsigned int world_kart_id,
                         int position, const btTransform& init_transform,
                         HandicapLevel handicap,
@@ -360,7 +361,7 @@ public:
                                     int duration, int fade_out_time) OVERRIDE;
     // ----------------------------------------------------------------------------------------
     virtual void   setSlowdown(unsigned int category, float max_speed_fraction,
-                               int fade_in_time) OVERRIDE;
+                               int fade_in_time, int duration = -1) OVERRIDE;
     // ----------------------------------------------------------------------------------------
     virtual int   getSpeedIncreaseTicksLeft(unsigned int category) const OVERRIDE;
     // ----------------------------------------------------------------------------------------

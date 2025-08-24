@@ -954,6 +954,24 @@ here later. For now, please refer to the code for the strings being used. -->
                  state-scope="SS_LOBBY"
         />
     </command>
+
+    <command name="itempolicy"
+             usage="/itempolicy"
+             description="Shows item policy."
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             state-scope="SS_ALWAYS"
+    >
+        <command name="="
+                 usage="/itempolicy ((num) (sections, where each section is (bitstring data1 data2 data3 data4 num_pairs [item1 weight1...]) ))"
+                 omit-name="true"
+                 permissions-verbose="hammers"
+                 description="Sets item policy to the specified one."
+                 permissions="UP_HAMMER"
+                 state-scope="SS_LOBBY"
+        />
+    </command>
+
     <command name="version"
              usage="/version"
              permissions="UP_EVERYONE | PE_ALLOW_ANYONE"

@@ -78,6 +78,8 @@ void LobbySettings::setupContextUser()
     loadWhiteList();
     loadPreservedSettings();
 
+    RaceManager::get()->setItemPolicy(ServerConfig::m_item_policy);
+
     m_live_players = ServerConfig::m_live_players;
 
     m_ai_anywhere                    = ServerConfig::m_ai_anywhere;
