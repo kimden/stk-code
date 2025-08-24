@@ -30,7 +30,7 @@
                max-life-traction="1360 1360 2720 3672 5280 1000 1000 1000 1000 1000"
                min-life-turning="150 150 300 640 640 100 100 100 100 100"
                min-life-traction="650 650 1300 2000 2400 100 100 100 100 100"
-               default-color="1 1 12 63 63 -1 -1 -1 -1 29"
+               default-color="-1 1 12 63 -1 -1 -1 -1 -1 29"
                regular-transfer-turning="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"
                regular-transfer-traction="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"
                limiting-transfer-turning="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"

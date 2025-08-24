@@ -57,7 +57,7 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
     x_speed = y_speed = w_speed = h_speed = 1.0f;
     m_ready = false;
     m_handicap = 0;
-    m_starting_tyre = TME_CONSTANT_DEFAULT_TYRE;
+    m_starting_tyre = 0; // Not the default, but 0 which means random, because the spinner will not run its code unless clicked, and 0 is its default state.
     m_not_updated_yet = true;
 
     m_irrlicht_widget_id = irrlicht_widget_id;
@@ -117,17 +117,40 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
 
         m_handicap_spinner->setPlayerID(m_player_id);
         m_handicap_spinner->setPlayerIDSupport(true);
+
+
+
+
+        m_starting_tyre_spinner = NULL;
+
+        m_starting_tyre_spinner = new SpinnerWidget(/* gauge */ false);
+        m_starting_tyre_spinner->m_w = player_name_w;
+        m_starting_tyre_spinner->m_h = player_name_h;
+
+        core::stringw label2 = _("TYRE: RANDOM");
+        m_starting_tyre_spinner->addLabel(label2);
+        m_starting_tyre_spinner->setValue(label2);
+
+        const KartProperties *kp = kart_properties_manager->getKart("tux");
+        const unsigned compound_number = kp->getTyresCompoundNumber();
+        auto compound_colors = kp->getTyresDefaultColor();
+
+        for (int i = 0; i < compound_number; i++) {
+            if (compound_colors[i] > -0.5f) {
+                std::string name = StringUtils::getStringFromCompound(i+1, false);
+                label2 = _("TYRE: %s", name.c_str());
+                m_starting_tyre_spinner->addLabel(label2);
+            }
+        }
+
+        //m_starting_tyre_spinner->setValue(0);
+
+        m_starting_tyre_spinner->setPlayerID(m_player_id);
+        m_starting_tyre_spinner->setPlayerIDSupport(true);
+
+
     }
 
-    m_starting_tyre_spinner = NULL;
-
-    m_starting_tyre_spinner = new SpinnerWidget(/* gauge */ false);
-    m_starting_tyre_spinner->m_w = player_name_w;
-    m_starting_tyre_spinner->m_h = player_name_h;
-
-    m_starting_tyre_spinner->setPlayerID(m_player_id);
-    m_starting_tyre_spinner->setPlayerIDSupport(true);
-    m_starting_tyre_spinner->setValue(m_starting_tyre);
 
     // ---- KartStatsWidget
     m_kart_stats = NULL;
@@ -754,7 +777,26 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
         }
     } // playerSpinnerID
 
-    m_starting_tyre = m_starting_tyre_spinner->getValue();
+    m_starting_tyre = 0;
+    int tyre_spinner_value = m_starting_tyre_spinner->getValue();
+    if (tyre_spinner_value == 0) {
+        m_starting_tyre = 0; // Random tyre
+    } else {
+        const KartProperties *kp = kart_properties_manager->getKart("tux");
+        const unsigned compound_number = kp->getTyresCompoundNumber();
+        auto compound_colors = kp->getTyresDefaultColor();
+
+        unsigned valid_count = 0;
+        for (int i = 0; i < compound_number; i++) {
+            if (compound_colors[i] > -0.5f)
+                valid_count += 1;
+            if (tyre_spinner_value == valid_count) {
+                m_starting_tyre = i+1;
+                break;
+            }
+        }
+    }
+
 
     //if (UserConfigParams::m_per_player_difficulty &&
     if (true && originator == handicapSpinnerID)
@@ -901,5 +943,5 @@ void PlayerKartWidget::setHandicapForNetwork(uint8_t x)
 void PlayerKartWidget::setTyreForNetwork(unsigned x)
 {
     m_starting_tyre = x;
-    m_starting_tyre_spinner->setValue(x);
+    //m_starting_tyre_spinner->setValue(x);
 }   // enableHandicapForNetwork
