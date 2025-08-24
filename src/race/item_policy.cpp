@@ -101,14 +101,6 @@ void ItemPolicy::applySectionRules(
     else
         amount_to_add_linear = 0;
 
-    int new_amount = curr_item_amount;
-    if (section_start && linear_clear)
-        new_amount = 0;
-
-    new_amount += amount_to_add;
-    new_amount += amount_to_add_linear;
-    if (progressive_cap && (new_amount > section.m_progressive_cap*remaining_laps))
-        new_amount = section.m_progressive_cap*remaining_laps;
 
     PowerupManager::PowerupType new_type = curr_item_type;
 
@@ -118,11 +110,24 @@ void ItemPolicy::applySectionRules(
     bool empty_weights = section.m_weight_distribution.size() == 0;
     if (!empty_weights)
     {
-        auto found_item = std::find(section.m_weight_distribution.begin(),
-                                    section.m_weight_distribution.end(),
+        auto found_item = std::find(section.m_possible_types.begin(),
+                                    section.m_possible_types.end(),
                                     curr_item_type);
-        item_is_valid = found_item != section.m_weight_distribution.end();
+        item_is_valid = found_item != section.m_possible_types.end();
     }
+
+    int new_amount = curr_item_amount;
+
+    if (!item_is_valid)
+        new_amount = 0;
+
+    if (section_start && linear_clear)
+        new_amount = 0;
+
+    new_amount += amount_to_add;
+    new_amount += amount_to_add_linear;
+    if (progressive_cap && (new_amount > section.m_progressive_cap*remaining_laps))
+        new_amount = section.m_progressive_cap*remaining_laps;
 
     if (!empty_weights)
     {
