@@ -159,7 +159,7 @@ private:
     std::string m_config_file;
 
 public:
-    static PowerupType   getPowerupType(const std::string &name);
+    static PowerupType getPowerupType(const std::string &name);
     static std::string getPowerupAsString(PowerupType type);
     static void unitTesting();
 

@@ -16,8 +16,8 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#ifndef HEADER_ITEMPOLICY_HPP
-#define HEADER_ITEMPOLICY_HPP
+#ifndef HEADER_ITEM_POLICY_HPP
+#define HEADER_ITEM_POLICY_HPP
 
 #include <vector>
 #include <cstdint>
@@ -28,6 +28,9 @@
 class AbstractKart;
 class Kart;
 class PowerupManager;
+
+
+// Note during PR: Please make it prettier.
 
 enum ItemPolicyRules {
     // Give items at section start: m_linear_mult X section_length
@@ -80,13 +83,15 @@ enum ItemPolicyRules {
     IPT_UNLAPPING  =  1 << 11
 };
 
-
+enum ItemPolicySectionBase
+{
+    IP_LAPS_BASED = 0,
+    IP_TIME_BASED = 1
+};
 
 // An event can have several sections which each run by different rules.
 // Item policies are only applied at the start of the race (lap 0), and at the start of every new lap.
 struct ItemPolicySection {
-    #define IP_TIME_BASED 1
-    #define IP_LAPS_BASED 0
     int m_section_type;
 
     // The key used to decide the current section,
@@ -126,20 +131,27 @@ struct ItemPolicy {
     // code  = -1  : Normal racing, remove all penalties.
     // code >=  0  : Slow down indefinitely when the kart finishes lap [code]
     int m_virtual_pace_code;
+
     // Number of karts that are ready to restart the race. Used to trigger the restart procedure.
     int m_restart_count;
 
     int selectItemFrom(const std::vector<PowerupManager::PowerupType>& types,
                        const std::vector<int>& weights);
+
     void applySectionRules (ItemPolicySection &section, AbstractKart *kart,
                             int next_section_start_laps, int current_lap,
                             int current_time, int prev_lap_item_amount);
 
-    int applyRules(AbstractKart *kart, int current_lap, int current_time, int total_laps_of_race);
+    int applyRules(AbstractKart *kart, int current_lap, int current_time,
+                   int total_laps_of_race);
 
-    bool isHitValid(float sender_distance, float sender_lap, float recv_distance, float recv_lap, float track_length);
+    bool isHitValid(float sender_distance, float sender_lap, float recv_distance,
+                    float recv_lap, float track_length);
 
-    int computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemState::ItemType curr_type, int curr_type_respawn_ticks, int curr_ticks_till_return);
+    int computeItemTicksTillReturn(ItemState::ItemType orig_type,
+                                   ItemState::ItemType curr_type,
+                                   int curr_type_respawn_ticks,
+                                   int curr_ticks_till_return);
 
     void enforceVirtualPaceCarRulesForKart(Kart *k);
 
@@ -149,4 +161,4 @@ struct ItemPolicy {
     std::string toString();
 };
 
-#endif
+#endif // HEADER_ITEM_POLICY_HPP
