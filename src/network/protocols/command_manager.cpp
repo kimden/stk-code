@@ -21,7 +21,6 @@
 #include "addons/addon.hpp"
 #include "io/file_manager.hpp"
 #include "modes/soccer_world.hpp"
-#include "network/crypto.hpp"
 #include "network/database_connector.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
@@ -125,6 +124,15 @@ namespace
         return QM_NONE;
     } // another_cyclic_queue
     // ====================================================================
+
+    void restoreCmdByArgv(std::string& cmd,
+            std::vector<std::string>& argv, char c, char d, char e, char f,
+            int from = 0)
+    {
+        cmd = StringUtils::quoteEscapeArray(argv.begin() + from, argv.end(),
+            c, d, e, f);
+    }   // restoreCmdByArgv
+    // ========================================================================
     
 
     // Auxiliary things, should be moved somewhere because they just help
@@ -154,136 +162,6 @@ namespace
 
     // End of auxiliary things
 } // namespace
-
-EnumExtendedReader CommandManager::mode_scope_reader({
-    {"MS_DEFAULT", MS_DEFAULT},
-    {"MS_SOCCER_TOURNAMENT", MS_SOCCER_TOURNAMENT}
-});
-
-EnumExtendedReader CommandManager::state_scope_reader({
-    {"SS_LOBBY", SS_LOBBY},
-    {"SS_INGAME", SS_INGAME},
-    {"SS_ALWAYS", SS_ALWAYS}
-});
-
-EnumExtendedReader CommandManager::permission_reader({
-    {"PE_NONE", PE_NONE},
-    {"UU_SPECTATOR", UU_SPECTATOR},
-    {"UU_USUAL", UU_USUAL},
-    {"UU_CROWNED", UU_CROWNED},
-    {"UU_SINGLE", UU_SINGLE},
-    {"UU_HAMMER", UU_HAMMER},
-    {"UU_MANIPULATOR", UU_MANIPULATOR},
-    {"UU_CONSOLE", UU_CONSOLE},
-    {"PE_SPECTATOR", PE_SPECTATOR},
-    {"PE_USUAL", PE_USUAL},
-    {"PE_CROWNED", PE_CROWNED},
-    {"PE_SINGLE", PE_SINGLE},
-    {"PE_HAMMER", PE_HAMMER},
-    {"PE_MANIPULATOR", PE_MANIPULATOR},
-    {"PE_CONSOLE", PE_CONSOLE},
-    {"UU_OWN_COMMANDS", UU_OWN_COMMANDS},
-    {"UU_OTHERS_COMMANDS", UU_OTHERS_COMMANDS},
-    {"PE_ALLOW_ANYONE", PE_ALLOW_ANYONE},
-    {"PE_VOTED_SPECTATOR", PE_VOTED_SPECTATOR},
-    {"PE_VOTED_NORMAL", PE_VOTED_NORMAL},
-    {"PE_VOTED", PE_VOTED},
-    {"UP_CONSOLE", UP_CONSOLE},
-    {"UP_MANIPULATOR", UP_MANIPULATOR},
-    {"UP_HAMMER", UP_HAMMER},
-    {"UP_SINGLE", UP_SINGLE},
-    {"UP_CROWNED", UP_CROWNED},
-    {"UP_NORMAL", UP_NORMAL},
-    {"UP_EVERYONE", UP_EVERYONE}
-});
-// ========================================================================
-
-
-CommandManager::FileResource::FileResource(std::string file_name, uint64_t interval)
-{
-    m_file_name = std::move(file_name);
-    m_interval = interval;
-    m_contents = "";
-    m_last_invoked = 0;
-    read();
-} // FileResource::FileResource
-// ========================================================================
-
-void CommandManager::FileResource::read()
-{
-    if (m_file_name.empty()) // in case it is not properly initialized
-        return;
-    // idk what to do with absolute or relative paths
-    const std::string& path = /*ServerConfig::getConfigDirectory() + "/" + */m_file_name;
-    std::ifstream message(FileUtils::getPortableReadingPath(path));
-    std::string answer;
-    if (message.is_open())
-    {
-        for (std::string line; std::getline(message, line); )
-        {
-            answer += line;
-            answer.push_back('\n');
-        }
-        if (!answer.empty())
-            answer.pop_back();
-    }
-    m_contents = answer;
-    m_last_invoked = StkTime::getMonoTimeMs();
-} // FileResource::read
-// ========================================================================
-
-std::string CommandManager::FileResource::get()
-{
-    uint64_t current_time = StkTime::getMonoTimeMs();
-    if (m_interval == 0 || current_time < m_interval + m_last_invoked)
-        return m_contents;
-    read();
-    return m_contents;
-} // FileResource::get
-// ========================================================================
-
-CommandManager::AuthResource::AuthResource(std::string secret, std::string server,
-    std::string link_format):
-    m_secret(secret), m_server(server), m_link_format(link_format)
-{
-
-} // AuthResource::AuthResource
-// ========================================================================
-
-std::string CommandManager::AuthResource::get(const std::string& username, int online_id) const
-{
-#ifdef ENABLE_CRYPTO_OPENSSL
-    std::string header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-    uint64_t timestamp = StkTime::getTimeSinceEpoch();
-    std::string payload = "{\"sub\":\"" + username + "/" + std::to_string(online_id) + "\",";
-    payload += "\"iat\":\"" + std::to_string(timestamp) + "\",";
-    payload += "\"iss\":\"" + m_server + "\"}";
-    header = Crypto::base64url(StringUtils::toUInt8Vector(header));
-    payload = Crypto::base64url(StringUtils::toUInt8Vector(payload));
-    std::string message = header + "." + payload;
-    std::string signature = Crypto::base64url(Crypto::hmac_sha256_array(m_secret, message));
-    std::string token = message + "." + signature;
-    std::string response = StringUtils::insertValues(m_link_format, token.c_str());
-    return response;
-#else
-    return "This command is currently only supported for OpenSSL";
-#endif
-} // AuthResource::get
-// ========================================================================
-
-CommandManager::Command::Command(std::string name,
-                                 void (CommandManager::*f)(Context& context),
-                                 int permissions,
-                                 int mode_scope,
-                                 int state_scope):
-        m_name(name), m_action(f), m_permissions(permissions),
-        m_mode_scope(mode_scope), m_state_scope(state_scope),
-        m_omit_name(false)
-{
-    // Handling players who are allowed to run for anyone in any case
-    m_permissions |= UU_OTHERS_COMMANDS;
-} // Command::Command(5)
-// ========================================================================
 
 const SetTypoFixer& CommandManager::getFixer(TypoFixerType type)
 {
@@ -338,118 +216,21 @@ void CommandManager::initCommandsInfo()
         for (unsigned int i = 0; i < current->getNumNodes(); i++)
         {
             const XMLNode *node = current->getNode(i);
-            std::string node_name = node->getName();
-            if (node_name == "external-commands-file")
-                continue;
-            // here the commands go
-            std::string name = "";
-            std::string text = ""; // for text-command
-            std::string file = ""; // for file-command
-            uint64_t interval = 0; // for file-command
-            std::string usage = "";
-            std::string permissions_s = "UP_EVERYONE";
-            std::string mode_scope_s = "MS_DEFAULT";
-            std::string state_scope_s = "SS_ALWAYS";
-            bool omit_name = false;
-            int permissions;
-            int mode_scope;
-            int state_scope;
-            std::string permissions_str = "";
-            std::string description = "";
-            std::string aliases = "";
-            std::string secret = ""; // for auth-command
-            std::string link_format = ""; // for auth-command
-            std::string server = ""; // for auth-command
 
-            // Name is read before enabled/disabled property, because we want
-            // to disable commands in "default" config that are present in
-            // "custom" config, regardless of server name
-            node->get("name", &name);
-            if (current == root2 && command == m_root_command
-                    && used_commands.find(name) != used_commands.end())
-            {
+            auto c = Command::unknownTypeFromXmlNode(node); 
+            if (!c)
                 continue;
-            }
+
+            const std::string name = c->getShortName();
+
+            if (current == root2 && command == m_root_command && used_commands.find(name) != used_commands.end())
+                continue;
             else if (current == root)
-            {
                 used_commands.insert(name);
-            }
 
-            // If enabled is not empty, command is added iff the server name is in enabled
-            // Otherwise it is added iff the server name is not in disabled
-            std::string enabled = "";
-            std::string disabled = "";
-            node->get("enabled", &enabled);
-            node->get("disabled", &disabled);
-            std::vector<std::string> enabled_split = StringUtils::split(enabled, ' ');
-            std::vector<std::string> disabled_split = StringUtils::split(disabled, ' ');
-            bool ok;
-            if (!enabled.empty())
-            {
-                ok = false;
-                for (const std::string& s: enabled_split)
-                    if (s == ServerConfig::m_server_uid)
-                        ok = true;
-            }
-            else
-            {
-                ok = true;
-                for (const std::string& s: disabled_split)
-                    if (s == ServerConfig::m_server_uid)
-                        ok = false;
-            }
-            if (!ok)
-                continue;
-
-            node->get("usage", &usage);
-            node->get("permissions", &permissions_s);
-            permissions = CommandManager::permission_reader.parse(permissions_s);
-            node->get("mode-scope", &mode_scope_s);
-            mode_scope = CommandManager::mode_scope_reader.parse(mode_scope_s);
-            node->get("state-scope", &state_scope_s);
-            state_scope = CommandManager::state_scope_reader.parse(state_scope_s);
-            node->get("permissions-verbose", &permissions_str);
-            node->get("description", &description);
-            node->get("omit-name", &omit_name);
-            node->get("aliases", &aliases);
-            std::vector<std::string> aliases_split = StringUtils::split(aliases, ' ');
-
-            std::shared_ptr<Command> c;
-            if (node_name == "command")
-            {
-                c = addChildCommand(command, name, &CommandManager::special, permissions, mode_scope, state_scope);
-            }
-            else if (node_name == "text-command")
-            {
-                c = addChildCommand(command, name, &CommandManager::process_text, permissions, mode_scope, state_scope);
-                node->get("text", &text);
-                addTextResponse(c->getFullName(), text);
-            }
-            else if (node_name == "file-command")
-            {
-                c = addChildCommand(command, name, &CommandManager::process_file, permissions, mode_scope, state_scope);
-                node->get("file", &file);
-                node->get("interval", &interval);
-                addFileResource(c->getFullName(), file, interval);
-            }
-            else if (node_name == "auth-command")
-            {
-                c = addChildCommand(command, name, &CommandManager::process_auth, permissions, mode_scope, state_scope);
-                node->get("secret", &secret);
-                node->get("server", &server);
-                node->get("link-format", &link_format);
-                addAuthResource(name, secret, server, link_format);
-            }
-            c->m_description = CommandDescription(usage, permissions_str, description);
+            command->addChild(c);
             m_all_commands.emplace_back(c);
             m_full_name_to_command[c->getFullName()] = std::weak_ptr<Command>(c);
-            c->m_omit_name = omit_name;
-            command->m_stf_subcommand_names.add(name);
-            for (const std::string& alias_name: aliases_split)
-            {
-                command->m_stf_subcommand_names.add(alias_name, name);
-                command->m_name_to_subcommand[alias_name] = command->m_name_to_subcommand[name];
-            }
             dfs(node, c);
         }
     };
@@ -465,11 +246,15 @@ void CommandManager::initCommands()
 {
     using CM = CommandManager;
     auto& mp = m_full_name_to_command;
-    m_root_command = std::make_shared<Command>("", &CM::special);
+    m_root_command = std::make_shared<Command>();
+    m_root_command->setFunction(getDefaultAction());
+    // std::bind(&CM::special, this, std::placeholders::_1));
 
     initCommandsInfo();
 
-    auto applyFunctionIfPossible = [&](std::string&& name, void (CM::*f)(Context& context)) {
+    auto ptr = this;
+
+    auto applyFunctionIfPossible = [ptr, &mp](std::string&& name, std::function<void(CommandManager*, Context&)> f) {
         auto it = mp.find(name);
         if (it == mp.end())
             return;
@@ -477,16 +262,45 @@ void CommandManager::initCommands()
         std::shared_ptr<Command> command = it->second.lock();
         if (!command)
             return;
-
-        command->changeFunction(f);
+        
+        command->setFunction(std::bind(std::move(f), ptr, std::placeholders::_1));
     };
+
+    auto applyTextIfPossible = [ptr, &mp](std::string&& name, const std::string& value) {
+        auto it = mp.find(name);
+        if (it == mp.end())
+            return;
+
+        std::shared_ptr<Command> command = it->second.lock();
+        if (!command)
+            return;
+        
+        std::shared_ptr<TextResource> resource = std::dynamic_pointer_cast<TextResource>(command);
+        if (!resource)
+            return;
+        
+        resource->setText(value);
+    };
+
     // special permissions according to ServerConfig options
     std::shared_ptr<Command> kick_command = mp["kick"].lock();
     if (kick_command) {
         if (getSettings()->hasKicksAllowed())
-            kick_command->m_permissions |= UU_CROWNED;
+        {
+            kick_command->changePermissions(
+                kick_command->getPermissions() | UU_CROWNED,
+                kick_command->getModeScope(),
+                kick_command->getStateScope()
+            );
+        }
         else
-            kick_command->m_permissions &= ~UU_CROWNED;
+        {
+            kick_command->changePermissions(
+                kick_command->getPermissions() & (~UU_CROWNED),
+                kick_command->getModeScope(),
+                kick_command->getStateScope()
+            );
+        }
     }
 
     applyFunctionIfPossible("commands", &CM::process_commands);
@@ -512,8 +326,6 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("mute", &CM::process_mute);
     applyFunctionIfPossible("unmute", &CM::process_unmute);
     applyFunctionIfPossible("listmute", &CM::process_listmute);
-    applyFunctionIfPossible("description", &CM::process_text);
-    applyFunctionIfPossible("moreinfo", &CM::process_text);
     applyFunctionIfPossible("gnu", &CM::process_gnu);
     applyFunctionIfPossible("nognu", &CM::process_gnu);
     applyFunctionIfPossible("tell", &CM::process_tell);
@@ -572,8 +384,6 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("teamhit =", &CM::process_teamhit_assign);
     applyFunctionIfPossible("scoring", &CM::process_scoring);
     applyFunctionIfPossible("scoring =", &CM::process_scoring_assign);
-    applyFunctionIfPossible("version", &CM::process_text);
-    applyFunctionIfPossible("clear", &CM::process_text);
     applyFunctionIfPossible("register", &CM::process_register);
     applyFunctionIfPossible("muteall", &CM::process_muteall);
     applyFunctionIfPossible("game", &CM::process_game);
@@ -625,16 +435,24 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("liststkaddon", &CM::special);
     applyFunctionIfPossible("listlocaladdon", &CM::special);
 
-    addTextResponse("description", getSettings()->getMotd());
-    addTextResponse("moreinfo", getSettings()->getHelpMessage());
-
     std::string version = Version::version();
     std::string branch = Version::branch();
     if (!branch.empty())
         version += ", branch " + branch;
 
-    addTextResponse("version", version);
-    addTextResponse("clear", std::string(30, '\n'));
+    applyTextIfPossible("description", getSettings()->getMotd());
+    applyTextIfPossible("moreinfo", getSettings()->getHelpMessage());
+    applyTextIfPossible("version", version);
+    applyTextIfPossible("clear", std::string(30, '\n'));
+
+    for (auto& element: m_full_name_to_command)
+    {
+        std::shared_ptr<Command> command = element.second.lock();
+        if (!command || !command->needsFunction() || command->hasFunction())
+            continue;
+        
+        command->setFunction(getDefaultAction());
+    };
 
     // m_votables.emplace("replay", 1.0);
     m_votables.emplace("start", 0.81);
@@ -711,7 +529,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
     if (argv.empty())
         return;
-    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 
     permissions = getLobby()->getPermissions(peer);
     voting = false;
@@ -734,7 +552,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
                 if (argv.empty())
                     return;
-                CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+                restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
                 voting = m_user_saved_voting[username];
                 target_peer = m_user_saved_acting_peer[username];
                 target_peer_strong = target_peer.lock();
@@ -816,20 +634,20 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     std::shared_ptr<Command> executed_command;
     for (int idx = 0; ; idx++)
     {
-        bool one_omittable_subcommand = (current_command->m_subcommands.size() == 1
-                && current_command->m_subcommands[0]->m_omit_name);
+        const auto& subcommands = current_command->getSubcommands();
+        bool one_omittable_subcommand = (subcommands.size() == 1 && subcommands[0]->omittedName());
 
         std::shared_ptr<Command> command;
         if (one_omittable_subcommand)
         {
-            command = current_command->m_subcommands[0];
+            command = subcommands[0];
         }
         else
         {
-            if (hasTypo(target_peer_strong, peer, voting, argv, cmd, idx, current_command->m_stf_subcommand_names, 3, false, false))
+            if (hasTypo(target_peer_strong, peer, voting, argv, cmd, idx, current_command->subcommandNamesTypoFixer(), 3, false, false))
                 return;
-            auto command_iterator = current_command->m_name_to_subcommand.find(argv[idx]);
-            command = command_iterator->second.lock();
+
+            command = current_command->findChild(argv[idx]);
         }
 
         if (!command)
@@ -846,7 +664,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
 
         // Note that we use caller's permissions to determine if the command can be invoked,
         // and during its invocation, we use acting peer's permissions.
-        int mask = ((permissions & command->m_permissions) & (~MASK_MANIPULATION));
+        int mask = ((permissions & command->getPermissions()) & (~MASK_MANIPULATION));
         if (mask == 0)
         {
             context.say("You don't have permissions to " + action + " this command");
@@ -855,7 +673,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         // kimden: both might be nullptr, which means different things
         if (target_peer.lock() != peer)
         {
-            int mask_manip = (permissions & command->m_permissions & MASK_MANIPULATION);
+            int mask_manip = (permissions & command->getPermissions() & MASK_MANIPULATION);
             if (mask_manip == 0)
             {
                 context.say("You don't have permissions to " + action
@@ -870,7 +688,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
         if (one_omittable_subcommand)
             --idx;
         current_command = command;
-        if (idx + 1 == (int)argv.size() || command->m_subcommands.empty()) {
+        if (idx + 1 == (int)argv.size() || command->getSubcommands().empty()) {
             executed_command = command;
             execute(command, context);
             break;
@@ -908,7 +726,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 {
                     std::string new_cmd = p.first + " " + p.second;
                     auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
-                    CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
+                    restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                     std::string msg2 = StringUtils::insertValues(
                             "Command \"/%s\" has been successfully voted",
                             new_cmd.c_str());
@@ -934,8 +752,8 @@ int CommandManager::getCurrentModeScope()
 
 bool CommandManager::isAvailable(std::shared_ptr<Command> c)
 {
-    return (getCurrentModeScope() & c->m_mode_scope) != 0
-        && (getLobby()->getCurrentStateScope() & c->m_state_scope) != 0;
+    return (getCurrentModeScope() & c->getModeScope()) != 0
+        && (getLobby()->getCurrentStateScope() & c->getStateScope()) != 0;
 } // getCurrentModeScope
 // ========================================================================
 
@@ -948,11 +766,11 @@ void CommandManager::vote(Context& context, std::string category, std::string va
     if (!acting_peer->hasPlayerProfiles())
         return;
     std::string username = acting_peer->getMainName();
-    auto& votable = m_votables[command->m_prefix_name];
+    auto& votable = m_votables[command->getFullName()];
     bool neededCheck = votable.needsCheck();
     votable.castVote(username, category, value);
     if (votable.needsCheck() && !neededCheck)
-        m_triggered_votables.push(command->m_prefix_name);
+        m_triggered_votables.push(command->getFullName());
 } // vote
 // ========================================================================
 
@@ -969,7 +787,7 @@ void CommandManager::update()
             {
                 std::string new_cmd = p.first + " " + p.second;
                 auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
-                CommandManager::restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
+                restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                 std::string msg = StringUtils::insertValues(
                         "Command \"/%s\" has been successfully voted",
                         new_cmd.c_str());
@@ -993,29 +811,9 @@ void CommandManager::update()
 
 void CommandManager::error(Context& context, bool is_error)
 {
-    std::string msg;
-    if (is_error)
-        Log::error("CommandManager", "An error occurred while invoking %s", context.m_cmd.c_str());
-    auto command = context.m_command.lock();
-    auto peer = context.m_peer.lock();
-    if (!command) {
-        Log::error("CommandManager", "CM::error: cannot load command");
-        return;
-    }
-    if (!peer) {
-        Log::error("CommandManager", "CM::error: cannot load peer to send error");
-        return;
-    }
-    msg = command->getUsage();
-    if (msg.empty())
-        msg = StringUtils::insertValues("An error occurred "
-                "while invoking command \"%s\".",
-                command->getFullName().c_str());
-
-    if (is_error)
-        msg += "\n/!\\ Please report this error to the server owner";
-    context.say(msg);
-} // error
+    // When you have no time, change all error(context) calls to context.error()
+    context.error(is_error);
+}   // error
 // ========================================================================
 
 void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
@@ -1024,7 +822,7 @@ void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
     context.m_command = command;
     try
     {
-        (this->*(command->m_action))(context);
+        command->execute(context);
     }
     catch (std::exception& ex)
     {
@@ -1048,15 +846,18 @@ void CommandManager::process_help(Context& context)
     auto peer = context.peer();
 
     std::shared_ptr<Command> command = m_root_command;
-    for (int i = 1; i < (int)argv.size(); ++i) {
-        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
+    for (int i = 1; i < (int)argv.size(); ++i)
+    {
+        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->subcommandNamesTypoFixer(), 3, false, false))
             return;
-        auto ptr = command->m_name_to_subcommand[argv[i]].lock();
+
+        auto ptr = command->findChild(argv[i]);
         if (ptr)
             command = ptr;
         else
             break;
-        if (command->m_subcommands.empty())
+
+        if (command->getSubcommands().empty())
             break;
     }
     if (command == m_root_command)
@@ -1068,63 +869,6 @@ void CommandManager::process_help(Context& context)
 } // process_help
 // ========================================================================
 
-void CommandManager::process_text(Context& context)
-{
-    std::string response;
-    auto command = context.command();
-    auto it = m_text_response.find(command->getFullName());
-    if (it == m_text_response.end())
-        response = StringUtils::insertValues(
-                "Error: a text command %s is defined without text",
-                command->getFullName().c_str());
-    else
-        response = it->second;
-    context.say(response);
-} // process_text
-// ========================================================================
-
-void CommandManager::process_file(Context& context)
-{
-    std::string response;
-    auto command = context.command();
-
-    auto it = m_file_resources.find(command->getFullName());
-    if (it == m_file_resources.end())
-        response = StringUtils::insertValues(
-                "Error: file not found for a file command %s",
-                command->getFullName().c_str());
-    else
-        response = it->second.get();
-    context.say(response);
-} // process_text
-// ========================================================================
-
-void CommandManager::process_auth(Context& context)
-{
-    std::string response;
-    auto acting_peer = context.actingPeer();
-    auto command = context.command();
-
-    auto it = m_auth_resources.find(command->getFullName());
-    if (it == m_auth_resources.end())
-        response = StringUtils::insertValues(
-                "Error: auth method not found for a command %s",
-                command->getFullName().c_str());
-    else
-    {
-        auto profile = acting_peer->getMainProfile();
-        std::string username = StringUtils::wideToUtf8(profile->getName());
-        int online_id = profile->getOnlineId();
-        if (online_id == 0)
-            response = "Error: you need to join with an "
-                       "online account to use auth methods";
-        else
-            response = it->second.get(username, online_id);
-    }
-    context.say(response);
-} // process_text
-// ========================================================================
-
 void CommandManager::process_commands(Context& context)
 {
     std::string result;
@@ -1134,13 +878,16 @@ void CommandManager::process_commands(Context& context)
     auto& argv = context.m_argv;
     std::shared_ptr<Command> command = m_root_command;
     bool valid_prefix = true;
-    for (int i = 1; i < (int)argv.size(); ++i) {
-        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->m_stf_subcommand_names, 3, false, false))
+    for (int i = 1; i < (int)argv.size(); ++i)
+    {
+        if (hasTypo(acting_peer, peer, context.m_voting, context.m_argv, context.m_cmd, i, command->subcommandNamesTypoFixer(), 3, false, false))
             return;
-        auto ptr = command->m_name_to_subcommand[argv[i]].lock();
+
+        auto ptr = command->findChild(argv[i]);
         if (!ptr)
             break;
-        if ((context.m_acting_user_permissions & ptr->m_permissions) != 0
+
+        if ((context.m_acting_user_permissions & ptr->getPermissions()) != 0
                 && isAvailable(ptr))
             command = ptr;
         else
@@ -1148,7 +895,7 @@ void CommandManager::process_commands(Context& context)
             valid_prefix = false;
             break;
         }
-        if (command->m_subcommands.empty())
+        if (command->getSubcommands().empty())
             break;
     }
     if (!valid_prefix)
@@ -1161,19 +908,19 @@ void CommandManager::process_commands(Context& context)
     result += ":";
     bool had_any_subcommands = false;
     std::map<std::string, int> res;
-    for (std::shared_ptr<Command>& subcommand: command->m_subcommands)
+    for (const std::shared_ptr<Command>& subcommand: command->getSubcommands())
     {
-        if ((context.m_acting_user_permissions & subcommand->m_permissions) != 0
+        if ((context.m_acting_user_permissions & subcommand->getPermissions()) != 0
                 && isAvailable(subcommand))
         {
             bool subcommands_available = false;
-            for (auto& c: subcommand->m_subcommands)
+            for (auto& c: subcommand->getSubcommands())
             {
-                if ((context.m_acting_user_permissions & c->m_permissions) != 0
+                if ((context.m_acting_user_permissions & c->getPermissions()) != 0
                         && isAvailable(c))
                     subcommands_available = true;
             }
-            res[subcommand->m_name] = subcommands_available;
+            res[subcommand->getShortName()] = subcommands_available;
             if (subcommands_available)
                 had_any_subcommands = true;
         }
@@ -2473,7 +2220,7 @@ void CommandManager::process_queue_push(Context& context)
         argv[2] = asset_manager->getRandomAddonMap();
 
     std::string filter_text = "";
-    CommandManager::restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
+    restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
 
     // Fix typos only if track queues are used (majority of cases anyway)
     // TODO: I don't know how to fix typos for both karts and tracks
@@ -3106,7 +2853,7 @@ void CommandManager::process_scoring_assign(Context& context)
     auto& argv = context.m_argv;
 
     std::string cmd2;
-    CommandManager::restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
+    restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     if (getGPManager()->trySettingGPScoring(cmd2))
         Comm::sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
     else
@@ -3985,20 +3732,6 @@ void CommandManager::deleteUser(std::string& s)
 } // deleteUser
 // ========================================================================
 
-void CommandManager::restoreCmdByArgv(std::string& cmd,
-        std::vector<std::string>& argv, char c, char d, char e, char f,
-        int from)
-{
-    cmd.clear();
-    for (int i = from; i < (int)argv.size(); ++i) {
-        if (i > from) {
-            cmd.push_back(c);
-        }
-        cmd += StringUtils::quoteEscape(argv[i], c, d, e, f);
-    }
-}   // restoreCmdByArgv
-// ========================================================================
-
 bool CommandManager::validate(Context& ctx, int idx,
     TypoFixerType fixer_type, bool case_sensitive, bool allow_as_is)
 {
@@ -4069,12 +3802,12 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
         }
         for (unsigned i = 0; i < closest_commands.size(); ++i) {
             argv[idx] = prefix + closest_commands[i].first + suffix;
-            CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+            restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
             m_user_command_replacements[username].push_back(cmd);
             response += "\ntype /" + std::to_string(i + 1) + " to choose \"" + closest_commands[i].first + "\"";
         }
         argv[idx] = initial_argument;
-        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
         Comm::sendStringToPeer(peer, response);
         return true;
     }
@@ -4082,7 +3815,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
     if (!dont_replace)
     {
         argv[idx] = prefix + closest_commands[0].first + suffix; // converts case or regex
-        CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
     }
     return false;
 } // hasTypo
@@ -4103,101 +3836,6 @@ void CommandManager::onStartSelection()
     m_votables["randomteams"].resetAllVotes();
     update();
 } // onStartSelection
-// ========================================================================
-std::shared_ptr<CommandManager::Command> CommandManager::addChildCommand(std::shared_ptr<Command> target,
-        std::string name, void (CommandManager::*f)(Context& context),
-        int permissions, int mode_scope, int state_scope)
-{
-    std::shared_ptr<Command> child = std::make_shared<Command>(name, f,
-                                   permissions, mode_scope, state_scope);
-    target->m_subcommands.push_back(child);
-    child->m_parent = std::weak_ptr<Command>(target);
-    if (target->m_prefix_name.empty())
-        child->m_prefix_name = name;
-    else
-        child->m_prefix_name = target->m_prefix_name + " " + name;
-    target->m_name_to_subcommand[name] = std::weak_ptr<Command>(child);
-    return child;
-} // addChildCommand
-// ========================================================================
-
-std::shared_ptr<STKPeer> CommandManager::Context::peer()
-{
-    if (m_peer.expired())
-        throw std::logic_error("Peer is expired");
-
-    auto peer = m_peer.lock();
-    if (!peer)
-        throw std::logic_error("Peer is invalid");
-
-    return peer;
-}   // peer
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<STKPeer> CommandManager::Context::peerMaybeNull()
-{
-    // if (m_peer.expired())
-    //     throw std::logic_error("Peer is expired");
-
-    auto peer = m_peer.lock();
-    return peer;
-}   // peerMaybeNull
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<STKPeer> CommandManager::Context::actingPeer()
-{
-    if (m_target_peer.expired())
-        throw std::logic_error("Target peer is expired");
-
-    auto acting_peer = m_target_peer.lock();
-    if (!acting_peer)
-        throw std::logic_error("Target peer is invalid");
-
-    return acting_peer;
-}   // actingPeer
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<STKPeer> CommandManager::Context::actingPeerMaybeNull()
-{
-    // if (m_target_peer.expired())
-    //     throw std::logic_error("Target peer is expired");
-
-    auto acting_peer = m_target_peer.lock();
-    return acting_peer;
-}   // actingPeerMaybeNull
-//-----------------------------------------------------------------------------
-
-std::shared_ptr<CommandManager::Command> CommandManager::Context::command()
-{
-    if (m_command.expired())
-        throw std::logic_error("Command is expired");
-
-    auto command = m_command.lock();
-    if (!command)
-        throw std::logic_error("Command is invalid");
-
-    return command;
-}   // command
-//-----------------------------------------------------------------------------
-
-void CommandManager::Context::say(const std::string& s)
-{
-    if (m_peer.expired())
-        throw std::logic_error("Context::say: Peer has expired");
-
-    auto peer = m_peer.lock();
-    Comm::sendStringToPeer(peer, s);
-}   // say
-//-----------------------------------------------------------------------------
-
-void CommandManager::Command::changePermissions(int permissions,
-        int mode_scope, int state_scope)
-{
-    // Handling players who are allowed to run for anyone in any case
-    m_permissions = permissions | UU_OTHERS_COMMANDS;
-    m_mode_scope = mode_scope;
-    m_state_scope = state_scope;
-} // changePermissions
 // ========================================================================
 
 std::string CommandManager::getAddonPreferredType() const
@@ -4269,6 +3907,12 @@ void CommandManager::shift(std::string& cmd, std::vector<std::string>& argv,
 
     m_user_last_correct_argument[username].first -= count;
 
-    CommandManager::restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
 }   // shift
+//-----------------------------------------------------------------------------
+
+std::function<void(Context&)> CommandManager::getDefaultAction()
+{
+    return std::bind(&CommandManager::special, this, std::placeholders::_1);
+}   // getDefaultAction
 //-----------------------------------------------------------------------------

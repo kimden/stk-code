@@ -254,6 +254,22 @@ namespace StringUtils
 
         return ans;
     }   // quoteEscape
+
+
+    std::string quoteEscapeArray(const std::vector<std::string>::iterator begin,
+                                 const std::vector<std::string>::iterator end,
+                                 char c, char d, char e, char f)
+    {
+        std::string res = "";
+        for (auto it = begin; it != end; ++it)
+        {
+            if (it != begin) {
+                res.push_back(c);
+            }
+            res += StringUtils::quoteEscape(*it, c, d, e, f);
+        }
+        return res;
+    }   // quoteEscapeArray
     //-------------------------------------------------------------------------
     /** Splits a string into substrings separated by a certain character, and
      *  returns a std::vector of all those substring. E.g.:

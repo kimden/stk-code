@@ -148,14 +148,14 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions-verbose="everyone"
              description="Lists players whom you blocked using /mute command."
     />
-    <command name="description"
+    <text-command name="description"
              usage="/description"
              permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
              permissions-verbose="everyone; invokable for another player"
              description="Displays server description, also known as MOTD."
              aliases="desc"
     />
-    <command name="moreinfo"
+    <text-command name="moreinfo"
              usage="/moreinfo"
              permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
              permissions-verbose="everyone; invokable for another player"
@@ -954,13 +954,13 @@ here later. For now, please refer to the code for the strings being used. -->
                  state-scope="SS_LOBBY"
         />
     </command>
-    <command name="version"
+    <text-command name="version"
              usage="/version"
              permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
              permissions-verbose="everyone; invokable for another player"
              description="Displays version."
     />
-    <command name="clear"
+    <text-command name="clear"
              usage="/clear"
              permissions-verbose="everyone"
              description="Puts newlines onto the screen so that the previous messages are not visible."
