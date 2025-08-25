@@ -98,6 +98,8 @@ void MapFileResource::execute(Context& context)
         return;
     }
 
+    std::string msg = "";
+
     // I'm not sure if we should search by username.
     // After all, the search column might contain something else.
     if (argv[1] == "search")
@@ -115,7 +117,6 @@ void MapFileResource::execute(Context& context)
             context.say(StringUtils::insertValues("Nothing found for %s", key.c_str()));
         else
         {
-            std::string msg = "";
             int sz = it->second.size();
             if (sz >= 2)
                 msg += StringUtils::insertValues("Found %s lines\n", sz);
@@ -129,14 +130,54 @@ void MapFileResource::execute(Context& context)
                 msg += "\n";
             }
             msg.pop_back();
-            context.say(msg);
         }
     }
     else
     {
-        // Implement /command to and /command from to later
-        context.error();
-        return;
+        int from, to;
+        bool has_from = (1 < argv.size() && StringUtils::parseString<int>(argv[1], &from) && from != 0);
+        bool has_to   = (2 < argv.size() && StringUtils::parseString<int>(argv[2], &to) && to != 0);
+        if (!has_from || (!has_to && 2 < argv.size()))
+        {
+            context.error();
+            return;
+        }
+        if (!has_to)
+            to = (from > 0 ? 1 : -1);
+        
+        if (from >= to)
+            std::swap(from, to);
+        
+        if (from >= 0) // 3 8 -> [2, 8)
+            --from;
+        else if (to < 0) // -8 -3 -> [-8, -2)
+            ++to;
+        // else nothing: -4 5 -> [-4, 5)
+
+        int n = m_indexed.size();
+        int shift = (from / n) * n + (from < 0 ? -n : 0);
+        from -= shift;
+        to -= shift;
+        if (to - from > 0)
+            to = from + (to - from - 1) % n + 1;
+        
+        int sz = to - from;
+        if (sz >= 2)
+            msg += StringUtils::insertValues("Found %s lines\n", sz);
+
+        for (int i = from; i < to; ++i)
+        {
+            int x = (i >= n ? i - n : i);
+            auto& row = m_rows[x];
+            if (row)
+                msg += StringUtils::quoteEscapeArray(
+                    row->cells.begin(), row->cells.end(), m_out_field_delimiter,
+                    m_left_quote, m_right_quote, m_escape);
+
+            msg += "\n";
+        }
+        msg.pop_back();
     }
+    context.say(msg);
 }   // execute
 //-----------------------------------------------------------------------------
