@@ -22,7 +22,7 @@
         <gauge id="handicap" min_value="0" max_value="48" width="90%" align="center">
 
         <label id="starting-tyre-label" proportion="1" width="90%" align="center" text_align="center" word_wrap="true" text="Tyre"/>
-        <spinner id="starting-tyre" min_value="0" max_value="10" width="90%" align="center">
+        <spinner id="starting-tyre" width="90%" align="center">
 
         <buttonbar id="options" width="90%" height="20%" align="center">
             <icon-button id="cancel" width="64" height="64" icon="gui/icons/back.png"
