@@ -58,7 +58,7 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="Inside pits, you'll find different eggs. Run into the desired one to pit tyres (with their respective types S, M or H showing above eggs) or to pit fuel (as egg, too)."/>
+                            text="Inside pits, you'll find different tyre stacks. Run into the desired one to pit tyres (with their respective types S, M or H showing above eggs) or to pit fuel (as tyre stack called FUEL)."/>
                 </div>
                 <spacer height="1%" width="10"/>
 
@@ -85,7 +85,7 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="Some official TME tracks don't support fuel yet, only tyres."/>
+                            text="All TME official tracks support pitting, but most other tracks don't. Search for TME or Tyre Mod in the Add-Ons track menu."/>
                 </div>
             </box>
 

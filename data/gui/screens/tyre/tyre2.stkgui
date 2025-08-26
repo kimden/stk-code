@@ -34,7 +34,7 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="The heavier the kart, the less the tyres last. Same principle applies with how much the fuel tank is filled."/>
+                            text="The heavier the kart, the less the tyres last. The fuel tank is bigger for heavier karts, which can mean less pit stops."/>
                 </div>
                 <spacer height="1%" width="10"/>
                 <label align="left" word_wrap="true" text="In race:"/>
@@ -71,9 +71,7 @@ Try to minimize changes in speed: don't brake, use nitro and skid taking turns i
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="Engine consumption doubles under 40% fuel tank remaining.
-
-See ''Fuel'' section for specific fuel saving advice."/>
+                            text="To save fuel, release the accelerator when turning. This will consume 10% less fuel."/>
                 </div>
             </box>
 

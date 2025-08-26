@@ -120,6 +120,9 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     /*The base rate is immutable, while the regular rate can be modified on the fly by item policy*/
     float fuel_rate_factor = lift_and_coast_factor*m_c_fuel_rate_base*m_c_fuel_rate*0.001f;
 
+    if (m_current_fuel > m_kart->getKartProperties()->getFuelCapacity()) m_current_fuel = m_kart->getKartProperties()->getFuelCapacity();
+    if (m_current_fuel < 0.0f) m_current_fuel = 0.0f;
+
     //Doesn't make much sense to degrade the tyres/consume fuel midair or in reverse or at ridiculously low speeds, now does it?
     if (!is_on_ground || speed < 1.0f) {
         m_high_fuel_demand = false;

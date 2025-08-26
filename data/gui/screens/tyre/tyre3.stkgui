@@ -69,6 +69,16 @@ Click the wrench icon then you'll find a setting panel for tyres and fuel alloca
 
 See ''Fuel'' section for specific fuel settings."/>
                 </div>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/options_ui.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Fuel settings: 0 means fuel is off, 1 means fuel is on but will not affect car handling, and 2 means fuel is fully on"/>
+                </div>
+            </box>
+
             </box>
 
 

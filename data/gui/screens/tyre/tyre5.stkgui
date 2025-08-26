@@ -36,67 +36,29 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="Cruise mode is enabled by releasing the accelerator and tapping the nitro button. Throttle will then be set to 40%."/>
+                            text="If your kart runs out of fuel, it will go very slowly, so never let that happen!"/>
                 </div>
+
                 <spacer height="1%" width="10"/>
 
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <spacer width="11%" height="100%"/>
-                    <bubble proportion="1" height="100%"
-                            I18N="In the help menu"
-                            text="It is meant to be used to consume less fuel during corners, and is a better alternative than pressing and releasing the accelerator button very fast, both in terms of fuel waste and of ease of use."/>
-                </div>
-                <spacer height="1%" width="10"/>
-
-                <div width="100%" proportion="4" layout="horizontal-row">
-                    <spacer width="11%" height="100%"/>
-                    <bubble proportion="1" height="100%"
-                            I18N="In the help menu"
-                            text="It will be disabled if the brake or the accelerator are pressed again."/>
-                </div>
-                <spacer height="1%" width="10"/>
-                <label align="left" word_wrap="true" text="Fuel parameters:"/>
-                <spacer height="2%" width="10"/>
-
-                <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/options_ui.png"/>
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/steering_wheel.png"/>
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="Max fuel: The maximum fuel is always 1000. Starting fuel: 1-1000L"/>
+                            text="In fuel mode 2 (full), karts will be slower and degrade tyres more with a full fuel tank as opposed to a near-empty one."/>
                 </div>
+
                 <spacer height="1%" width="10"/>
 
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <spacer width="11%" height="100%"/>
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/steering_wheel.png"/>
+                    <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="Fuel consumption: How many liters the engine consumes each kilometer. Fuel consumption will be half when you release the throttle."/>
+                            text="When refueling, you can select (using the nitro button, as explained elsewhere) to refuel 25%/50%/75%/100% of the fuel tank, each with a different time penalty!"/>
                 </div>
-                <spacer height="1%" width="10"/>
 
-                <div width="100%" proportion="4" layout="horizontal-row">
-                    <spacer width="11%" height="100%"/>
-                    <bubble proportion="1" height="100%"
-                            I18N="In the help menu"
-                            text="Fuel weight: at weight 1, 1000L = 10kgs. At weight 100, 1000L=1000kg. For scale, Tux weights 262kg."/>
-                </div>
-                <spacer height="1%" width="10"/>
-
-                <div width="100%" proportion="4" layout="horizontal-row">
-                    <spacer width="11%" height="100%"/>
-                    <bubble proportion="1" height="100%"
-                            I18N="In the help menu"
-                            text="Fuel stop time: 0 means there is no penalty for putting 1000 liters into the tank. At pump speed 1, 1000 liters will take 1 second. At pump speed 1000, 1000 liters will take around 20 minutes."/>
-                </div>
-                <spacer height="1%" width="10"/>
-
-                <div width="100%" proportion="4" layout="horizontal-row">
-                    <spacer width="11%" height="100%"/>
-                    <bubble proportion="1" height="100%"
-                            I18N="In the help menu"
-                            text="Fuel regeneration: When the throttle is released, deceleration will make the engine regenerate fuel/energy. If the fuel weight is 0, this is equivalent to an electric system."/>
-                </div>
             </box>
 
 

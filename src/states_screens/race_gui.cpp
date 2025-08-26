@@ -451,6 +451,10 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     video::SColor color_fuel = (kart->m_tyres->m_high_fuel_demand) ?
                                   video::SColor(180, 100, 0, 115)  : // Purple
                                   video::SColor(180, 168, 65, 184); // Lighter shade of purple
+    if (kart->m_is_refueling) {
+        color_fuel = video::SColor(180, 12, 186, 24);
+    }
+
     video::SColor color_base = video::SColor(80, 100, 100, 100);
 
     float maxLives[2] = {kart->getKartProperties()->getTyresMaxLifeTraction()[kart->m_tyres->m_current_compound-1], kart->getKartProperties()->getTyresMaxLifeTurning()[kart->m_tyres->m_current_compound-1]};
@@ -598,7 +602,11 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     //Precision originally 1
     stream_percent_traction << std::fixed << std::setprecision(1) << 100.0f*currlives[0]/maxLives[0] << "%";
     stream_percent_turning << std::fixed << std::setprecision(1) << 100.0f*currlives[1]/maxLives[1] << "%";
+
+    if (kart->m_is_refueling)
+        stream_percent_fuel << "+";
     stream_percent_fuel << std::fixed << std::setprecision(1) << currfuel << "L";
+
     std::string s_tra = stream_percent_traction.str();
     std::string s_tur = stream_percent_turning.str();
     std::string s_fuel = stream_percent_fuel.str();

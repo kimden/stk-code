@@ -28,31 +28,25 @@
                 <div width="100%" proportion="2" layout="vertical-row">
 
                 <spacer height="1%" width="10"/>
-                <label align="left" word_wrap="true" text="TYPE 2 - Soft tyre"/>
+                <label align="left" word_wrap="true" text="Soft tyre"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Starts out very fast, but also degrades very fast!"
 />
                 <spacer height="4%" width="10"/>
-                <label align="left" word_wrap="true" text="TYPE 3 - Medium tyre"/>
+                <label align="left" word_wrap="true" text="Medium tyre"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Starts out at normal speed (according to chosen kart type), and degrades at a normal rate."
 />
                 <spacer height="4%" width="10"/>
-                <label align="left" word_wrap="true" text="TYPE 4 - Hard tyre"/>
+                <label align="left" word_wrap="true" text="Hard tyre"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly."
 />
                 <spacer height="4%" width="10"/>
-                <label align="left" word_wrap="true" text="TYPE 5 - SuperHard tyre"/>
-<bubble proportion="1" height="100%" width="100%"
-I18N="In the help menu"
-text="The old hard tyre. Absurdly slow tyre, absurdly low degradation. Do not use it unless you want to lose!"
-/>
-                <spacer height="4%" width="10"/>
-                <label align="left" word_wrap="true" text="TYPE 10 - Flat tyre"/>
+                <label align="left" word_wrap="true" text="CHEAT tyre"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Same user experience as if you were using standard STK: no degradation."
