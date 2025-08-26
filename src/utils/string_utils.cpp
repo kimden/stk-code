@@ -803,20 +803,12 @@ namespace StringUtils
         switch(c) {
             case 0:
                 return shortver ? "?" : "INVALID";
-            case 1:
-                return shortver ? "S+" : "SOFT+";
             case 2:
                 return shortver ? "S" : "SOFT";
             case 3:
                 return shortver ? "M" : "MEDIUM";
             case 4:
                 return shortver ? "H" : "HARD";
-            case 5:
-                return shortver ? "H+" : "HARD+";
-            case 6:
-                return shortver ? "EKS" : "KARTSOFT";
-            case 7:
-                return shortver ? "EKH" : "KARTHARD";
             case 10:
                 return shortver ? "CHEAT" : "CHEAT";
             case 123:
@@ -856,12 +848,8 @@ namespace StringUtils
     std::string stintsToString(std::vector<std::tuple<unsigned, unsigned>> x) {
         std::string retval;
         for (int i = 0; i < x.size(); i++) {
-            unsigned compval = std::get<0>(x[i]) % 10;
-            std::string compstr;
-            if (compval == 2) compstr = "S";
-            else if (compval == 3) compstr = "M";
-            else if (compval == 4) compstr = "H";
-            else compstr = std::to_string(compval);
+            unsigned compval = std::get<0>(x[i]);
+            std::string compstr = getStringFromCompound(compval, /*shortversion*/ true);
 
             retval.append(compstr);
             retval.append(":");
