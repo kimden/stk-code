@@ -13,17 +13,14 @@
                 <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Degradation"/>
                 <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Settings"/>
+                        I18N="Tab in help menu" text="Fuel"/>
                 <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Pits"/>
                 <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Fuel"/>
+                        I18N="Tab in help menu" text="Settings"/>
                 <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Some use cases"/>
             </vertical-tabs>
-
-
-
 
 
 
@@ -31,56 +28,56 @@
 
             <box width="78%" height="100%" layout="vertical-row">
                 <spacer height="1%" width="10"/>
-                <label align="left" word_wrap="true" text="When playing in local mode:"/>
+                <label align="left" word_wrap="true" text="Fuel modes:"/>
                 <spacer height="2%" width="10"/>
 
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/main_race.png"/>
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/speedback.png"/>
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="In kart selection menu, at the top of the screen, you can pick the tyre type you'll start with.
-
-In race setup menu, you'll find a setting panel for tyres and fuel allocation."/>
+                            text="0 - No fuel. Same as original STK behavior: no need to pit for fuel, kart never runs out, no impact on weight nor upon tyre degradation."/>
                 </div>
+
                 <spacer height="1%" width="10"/>
-                <label align="left" word_wrap="true" text="When playing in online mode:"/>
-                <spacer height="2%" width="10"/>
 
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/menu_online.png"/>
-                    <spacer width="3%" height="100%"/>
+                    <spacer width="11%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="In server lobby, double-click your name to be able to pick the tyre type you'll start with.
-
-Click the wrench icon then you'll find a setting panel for tyres and fuel allocation."/>
+                            text="1 - Weightless mode. Pit for fuel before you run out! However, no impact on speed nor upon tyre degradation."/>
                 </div>
+
                 <spacer height="1%" width="10"/>
-                <label align="left" word_wrap="true" text="How to allocate:"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="2 - Fully on. Pit for fuel before you run out! The more fuel in the tank, the slower the kart will be and the more tyres will degrade."/>
+                </div>
+
+                <spacer height="1%" width="10"/>
+                <label align="left" word_wrap="true" text="Fuel tips:"/>
                 <spacer height="2%" width="10"/>
 
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/options_ui.png"/>
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/nitro_empty.png"/>
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="For each compound: ''-1'' means infinite, ''0'' means no pit for the tyre type. Any other ''n'' number means the compound type can be pitted ''n'' times.
-
-See ''Fuel'' section for specific fuel settings."/>
+                            text="If your kart runs out of fuel, it will go very slowly, so never let that happen!"/>
                 </div>
 
+                <spacer height="1%" width="10"/>
+
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/options_ui.png"/>
-                    <spacer width="3%" height="100%"/>
+                    <spacer width="11%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="Fuel settings: 0 means fuel is off, 1 means fuel is on but will not affect car handling, and 2 means fuel is fully on"/>
+                            text="The fuel tank is bigger for heavier karts, which can mean less pit stops."/>
                 </div>
             </box>
-
-            </box>
-
 
 
 

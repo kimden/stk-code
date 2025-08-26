@@ -13,11 +13,11 @@
                 <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Degradation"/>
                 <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Settings"/>
+                        I18N="Tab in help menu" text="Fuel"/>
                 <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Pits"/>
                 <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Fuel"/>
+                        I18N="Tab in help menu" text="Settings"/>
                 <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Some use cases"/>
             </vertical-tabs>
@@ -28,25 +28,25 @@
                 <div width="100%" proportion="2" layout="vertical-row">
 
                 <spacer height="1%" width="10"/>
-                <label align="left" word_wrap="true" text="Soft tyre"/>
+                <label align="left" word_wrap="true" text="SOFT"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Starts out very fast, but also degrades very fast!"
 />
                 <spacer height="4%" width="10"/>
-                <label align="left" word_wrap="true" text="Medium tyre"/>
+                <label align="left" word_wrap="true" text="MEDIUM"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Starts out at normal speed (according to chosen kart type), and degrades at a normal rate."
 />
                 <spacer height="4%" width="10"/>
-                <label align="left" word_wrap="true" text="Hard tyre"/>
+                <label align="left" word_wrap="true" text="HARD"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Starts out at a lowish speed, gets slightly faster as it warms up, and then degrades very slowly."
 />
                 <spacer height="4%" width="10"/>
-                <label align="left" word_wrap="true" text="CHEAT tyre"/>
+                <label align="left" word_wrap="true" text="CHEAT"/>
 <bubble proportion="1" height="100%" width="100%"
 I18N="In the help menu"
 text="Same user experience as if you were using standard STK: no degradation."

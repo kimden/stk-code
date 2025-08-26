@@ -13,11 +13,11 @@
                 <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Degradation"/>
                 <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Settings"/>
+                        I18N="Tab in help menu" text="Fuel"/>
                 <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Pits"/>
                 <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Fuel"/>
+                        I18N="Tab in help menu" text="Settings"/>
                 <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Some use cases"/>
             </vertical-tabs>
@@ -76,7 +76,7 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="For fuel, you'll have to push the nitro key until you get the desired amount of fuel you want to refill."/>
+                            text="For fuel, you'll have to push the nitro key until you get the desired amount (25, 50, 75 or 100%) of fuel you want to refill. Penalty time in pit increases with refill amount."/>
                 </div>
                 <spacer height="1%" width="10"/>
 
@@ -85,7 +85,7 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="All TME official tracks support pitting, but most other tracks don't. Search for TME or Tyre Mod in the Add-Ons track menu."/>
+                            text="All TME official tracks support pitting, but most other tracks don't. In track selection, they are inside the ''TME'' category. To install new tracks, you can search ''TME'' or ''Tyre Mod'' in add-on tracks manager."/>
                 </div>
             </box>
 

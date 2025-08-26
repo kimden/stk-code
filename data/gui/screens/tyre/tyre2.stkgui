@@ -13,11 +13,11 @@
                 <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Degradation"/>
                 <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Settings"/>
+                        I18N="Tab in help menu" text="Fuel"/>
                 <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Pits"/>
                 <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Fuel"/>
+                        I18N="Tab in help menu" text="Settings"/>
                 <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Some use cases"/>
             </vertical-tabs>
@@ -34,7 +34,7 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="The heavier the kart, the less the tyres last. The fuel tank is bigger for heavier karts, which can mean less pit stops."/>
+                            text="The heavier the kart, the less the tyres last."/>
                 </div>
                 <spacer height="1%" width="10"/>
                 <label align="left" word_wrap="true" text="In race:"/>

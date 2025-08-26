@@ -13,11 +13,11 @@
                 <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Degradation"/>
                 <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Settings"/>
+                        I18N="Tab in help menu" text="Fuel"/>
                 <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Pits"/>
                 <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Fuel"/>
+                        I18N="Tab in help menu" text="Settings"/>
                 <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Some use cases"/>
             </vertical-tabs>
@@ -31,7 +31,30 @@
 
 <bubble proportion="1" height="100%"
 I18N="In the help menu"
-text="Some tyre types are more sensitive. By example, with soft one, degradation is more important in high-speed turning. In Hacienda, one of the least demanding tracks on tyre degradation, it can be useful to pit another tyres after around 5 laps only if you don't manage turning efficiently."
+text="Some tyre types are more sensitive.
+By example, with SOFT one, degradation is more important in high-speed turning.
+
+In Hacienda, one of the least demanding tracks on tyre degradation, it can be useful to pit another tyres after around 5 laps only if you don't manage turning efficiently."
+/>
+
+
+
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Some tyre types are more sensitive.
+By example, with SOFT one, degradation is more important in high-speed turning.
+
+In Hacienda, one of the least demanding tracks on tyre degradation, it can be useful to pit another tyres after around 5 laps only if you don't manage turning efficiently."
+/>
+
+
+
+<bubble proportion="1" height="100%"
+I18N="In the help menu"
+text="Some tyre types are more sensitive.
+By example, with SOFT one, degradation is more important in high-speed turning.
+
+In Hacienda, one of the least demanding tracks on tyre degradation, it can be useful to pit another tyres after around 5 laps only if you don't manage turning efficiently."
 />
 
                 </div>

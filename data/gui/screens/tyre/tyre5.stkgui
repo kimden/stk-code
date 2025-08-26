@@ -13,14 +13,17 @@
                 <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Degradation"/>
                 <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Settings"/>
+                        I18N="Tab in help menu" text="Fuel"/>
                 <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Pits"/>
                 <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
-                        I18N="Tab in help menu" text="Fuel"/>
+                        I18N="Tab in help menu" text="Settings"/>
                 <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
                         I18N="Tab in help menu" text="Some use cases"/>
             </vertical-tabs>
+
+
+
 
 
 
@@ -28,38 +31,47 @@
 
             <box width="78%" height="100%" layout="vertical-row">
                 <spacer height="1%" width="10"/>
-                <label align="left" word_wrap="true" text="Fuel saving:"/>
+                <label align="left" word_wrap="true" text="Select tyres before race:"/>
                 <spacer height="2%" width="10"/>
 
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/steering_wheel.png"/>
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/drift.png"/>
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="If your kart runs out of fuel, it will go very slowly, so never let that happen!"/>
+                            text="In offline mode: in the kart selection menu, at the top of the screen.
+In online mode: in server lobby, double-click your name."/>
                 </div>
-
                 <spacer height="1%" width="10"/>
+                <label align="left" word_wrap="true" text="How to allocate pits:"/>
+                <spacer height="2%" width="10"/>
 
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/steering_wheel.png"/>
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/options_ui.png"/>
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="In fuel mode 2 (full), karts will be slower and degrade tyres more with a full fuel tank as opposed to a near-empty one."/>
+                            text="In offline mode: in race setup menu, you'll find a setting panel.
+In online mode: click the wrench icon then you'll find a setting panel."/>
                 </div>
-
                 <spacer height="1%" width="10"/>
-
                 <div width="100%" proportion="4" layout="horizontal-row">
-                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/steering_wheel.png"/>
-                    <spacer width="3%" height="100%"/>
+                    <spacer width="11%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="When refueling, you can select (using the nitro button, as explained elsewhere) to refuel 25%/50%/75%/100% of the fuel tank, each with a different time penalty!"/>
+                            text="For each compound: ''-1'' means infinite, ''0'' means no pit for the tyre type. Any other ''n'' number means the compound type can be pitted ''n'' times."/>
                 </div>
+                <spacer height="1%" width="10"/>
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Fuel settings: ''0'' means no fuel, ''1'' means fuel but will not affect car handling (weightless mode), ''2'' means fuel is fully on."/>
+                </div>
+            </box>
 
             </box>
+
 
 
 
