@@ -169,7 +169,7 @@ void ItemState::update(int ticks)
     }   // if collected
 
     ItemPolicy *policy = RaceManager::get()->getItemPolicy();
-    m_ticks_till_return = policy->computeItemTicksTillReturn(m_original_type, m_type, getRespawnTicks(m_type), m_ticks_till_return);
+    m_ticks_till_return = policy->computeItemTicksTillReturn(m_original_type, m_type, getRespawnTicks(m_type), m_ticks_till_return, m_compound);
 }   // update
 
 // ----------------------------------------------------------------------------

@@ -359,7 +359,7 @@ bool ItemPolicy::isHitValid(float sender_distance, float sender_lap, float recv_
 
 
 // Returns the amount of ticks till return to set for the current situation
-int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemState::ItemType curr_type, int curr_type_respawn_ticks, int curr_ticks_till_return) {
+int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemState::ItemType curr_type, int curr_type_respawn_ticks, int curr_ticks_till_return, int payload) {
     int current_section = m_leader_section;
 
     if (current_section <= -1)
@@ -384,6 +384,10 @@ int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemSt
     bool forbid_curr = ((rules_curr & ItemPolicyRules::IPT_FORBID_BONUSBOX) && curr_type==ItemState::ItemType::ITEM_BONUS_BOX) ||
                       ((rules_curr & ItemPolicyRules::IPT_FORBID_BANANA) && curr_type==ItemState::ItemType::ITEM_BANANA)      ||
                       ((rules_curr & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
+
+    int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
+    if (fuel_mode == 0 && orig_type==ItemState::ItemType::ITEM_TYRE_CHANGE && payload == 123) // If we're a fuel tyre changer and fuel is off, don't spawn
+       forbid_curr = true;
 
 
     auto& stk_config = STKConfig::get();

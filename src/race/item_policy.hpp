@@ -140,7 +140,7 @@ struct ItemPolicy {
 
     bool isHitValid(float sender_distance, float sender_lap, float recv_distance, float recv_lap, float track_length);
 
-    int computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemState::ItemType curr_type, int curr_type_respawn_ticks, int curr_ticks_till_return);
+    int computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemState::ItemType curr_type, int curr_type_respawn_ticks, int curr_ticks_till_return, int payload);
 
     void enforceVirtualPaceCarRulesForKart(Kart *k);
 
