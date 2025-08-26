@@ -53,6 +53,8 @@
                                 raw_text="TEST: Outro" label_location="hover"/>
                     <icon-button id="options" width="64" height="64" icon="gui/icons/main_options.png"
                                 I18N="In the main screen"  text="Options" label_location="hover"/>
+                    <icon-button id="tyre" width="64" height="64" icon="gui/icons/android/drift.png"
+                                I18N="In the main screen" text="TyrePedia" label_location="hover"/>
                     <icon-button id="help" width="64" height="64" icon="gui/icons/main_help.png"
                                 I18N="In the main screen" text="Help" label_location="hover"/>
                     <icon-button id="startTutorial" width="64" height="64" icon="gui/icons/tutorial.png"

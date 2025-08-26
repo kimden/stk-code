@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stkgui>
+    <icon-button id="back" x="1%" y="0" height="9%" icon="gui/icons/back.png"/>
+    <div x="1%" y="1%" width="98%" height="98%" layout="vertical-row" >
+        <header width="80%" height="8%" align="center" text="TyrePedia" text_align="center"/>
+        <spacer height="1%" width="100%"/>
+
+        <div width="100%" height="91%" layout="horizontal-row" >
+
+            <vertical-tabs id="category" height="100%" width="20%">
+                <icon-button id="page1" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Tyre Types"/>
+                <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Degradation"/>
+                <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Settings"/>
+                <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Pits"/>
+                <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Fuel"/>
+                <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Some use cases"/>
+            </vertical-tabs>
+
+
+
+            <spacer width="2%" height="100%"/>
+
+            <box width="78%" height="100%" layout="vertical-row">
+                <spacer height="1%" width="10"/>
+                <label align="left" word_wrap="true" text="Fuel saving:"/>
+                <spacer height="2%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/steering_wheel.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Cruise mode is enabled by releasing the accelerator and tapping the nitro button. Throttle will then be set to 40%."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="It is meant to be used to consume less fuel during corners, and is a better alternative than pressing and releasing the accelerator button very fast, both in terms of fuel waste and of ease of use."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="It will be disabled if the brake or the accelerator are pressed again."/>
+                </div>
+                <spacer height="1%" width="10"/>
+                <label align="left" word_wrap="true" text="Fuel parameters:"/>
+                <spacer height="2%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/options_ui.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Max fuel: The maximum fuel is always 1000. Starting fuel: 1-1000L"/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Fuel consumption: How many liters the engine consumes each kilometer. Fuel consumption will be half when you release the throttle."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Fuel weight: at weight 1, 1000L = 10kgs. At weight 100, 1000L=1000kg. For scale, Tux weights 262kg."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Fuel stop time: 0 means there is no penalty for putting 1000 liters into the tank. At pump speed 1, 1000 liters will take 1 second. At pump speed 1000, 1000 liters will take around 20 minutes."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <spacer width="11%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Fuel regeneration: When the throttle is released, deceleration will make the engine regenerate fuel/energy. If the fuel weight is 0, this is equivalent to an electric system."/>
+                </div>
+            </box>
+
+
+
+
+        </div>
+    </div>
+</stkgui>

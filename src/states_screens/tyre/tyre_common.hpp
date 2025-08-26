@@ -15,29 +15,30 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#ifndef __HEADER_HELP_COMMON_HPP__
-#define __HEADER_HELP_COMMON_HPP__
+#ifndef __HEADER_TYRE_COMMON_HPP__
+#define __HEADER_TYRE_COMMON_HPP__
 
-// This file contains include headers that are used by all or most help screens.
-// It also contains a standalone function to switch between the help screens.
+// This file contains include headers that are used by all or most tyre screens.
+// It also contains a standalone function to switch between the tyre screens.
 // This simplifies maintenance.
 
 // Frequent widgets used by multiple option screens
 #include "guiengine/widgets/ribbon_widget.hpp"
 
-// Other help screens, for navigation between them
-#include "states_screens/help/help_screen_1.hpp"
-#include "states_screens/help/help_screen_2.hpp"
-#include "states_screens/help/help_screen_3.hpp"
-#include "states_screens/help/help_screen_4.hpp"
-#include "states_screens/help/help_screen_5.hpp"
-#include "states_screens/help/help_screen_6.hpp"
-#include "states_screens/help/help_screen_7.hpp"
+// Other tyre screens, for navigation between them
+#include "states_screens/tyre/tyre_screen_1.hpp"
+#include "states_screens/tyre/tyre_screen_2.hpp"
+#include "states_screens/tyre/tyre_screen_3.hpp"
+#include "states_screens/tyre/tyre_screen_4.hpp"
+#include "states_screens/tyre/tyre_screen_5.hpp"
+#include "states_screens/tyre/tyre_screen_6.hpp"
+#include "states_screens/tyre/tyre_screen_7.hpp"
+#include "states_screens/tyre/tyre_screen_8.hpp"
 
 // GUI management
 #include "states_screens/state_manager.hpp"
 
-namespace HelpCommon
+namespace TyreCommon
 {
     void switchTab(std::string selected_tab);
 }

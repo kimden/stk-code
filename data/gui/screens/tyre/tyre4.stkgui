@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stkgui>
+    <icon-button id="back" x="1%" y="0" height="9%" icon="gui/icons/back.png"/>
+    <div x="1%" y="1%" width="98%" height="98%" layout="vertical-row" >
+        <header width="80%" height="8%" align="center" text="TyrePedia" text_align="center"/>
+        <spacer height="1%" width="100%"/>
+
+        <div width="100%" height="91%" layout="horizontal-row" >
+
+            <vertical-tabs id="category" height="100%" width="20%">
+                <icon-button id="page1" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Tyre Types"/>
+                <icon-button id="page2" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Degradation"/>
+                <icon-button id="page3" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Settings"/>
+                <icon-button id="page4" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Pits"/>
+                <icon-button id="page5" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Fuel"/>
+                <icon-button id="page6" width="128" height="128" icon="gui/icons/android/drift.png"
+                        I18N="Tab in help menu" text="Some use cases"/>
+            </vertical-tabs>
+
+
+
+
+
+
+
+
+
+            <spacer width="2%" height="100%"/>
+
+            <box width="78%" height="100%" layout="vertical-row">
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/drift.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="You can change tyres or even refuel during race. A table is shown at the bottom of the screen, with how many times, for each tyre type (S M H), you are allowed to pit until the end of the race."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/player_view.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="The current tyre type of each player is shown in the leaderboard (top left), with a letter (S, M or H) inside kart thumbnail's bubble."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/mode_easter.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Inside pits, you'll find different eggs. Run into the desired one to pit tyres (with their respective types S, M or H showing above eggs) or to pit fuel (as egg, too)."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/anchor-icon.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="If you try to pit whereas you have zero remaining tyre change for desired type, you won't get new tyres, plus you'll get a penalty!"/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/android/nitro_empty.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="For fuel, you'll have to push the nitro key until you get the desired amount of fuel you want to refill."/>
+                </div>
+                <spacer height="1%" width="10"/>
+
+                <div width="100%" proportion="4" layout="horizontal-row">
+                    <icon align="center" width="8%" height="100%" icon="gui/icons/red_x.png"/>
+                    <spacer width="3%" height="100%"/>
+                    <bubble proportion="1" height="100%"
+                            I18N="In the help menu"
+                            text="Some official TME tracks don't support fuel yet, only tyres."/>
+                </div>
+            </box>
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+    </div>
+</stkgui>

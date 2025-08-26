@@ -15,29 +15,31 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "states_screens/help/help_common.hpp"
+#include "states_screens/tyre/tyre_common.hpp"
 
 #include "guiengine/screen.hpp"
 
-namespace HelpCommon
+namespace TyreCommon
 {
     void switchTab(std::string selected_tab)
     {
         GUIEngine::Screen *screen = NULL;
         if (selected_tab == "page1")
-            screen = HelpScreen1::getInstance();
+            screen = TyreScreen1::getInstance();
         else if (selected_tab == "page2")
-            screen = HelpScreen2::getInstance();
+            screen = TyreScreen2::getInstance();
         else if (selected_tab == "page3")
-            screen = HelpScreen3::getInstance();
+            screen = TyreScreen3::getInstance();
         else if (selected_tab == "page4")
-            screen = HelpScreen4::getInstance();
+            screen = TyreScreen4::getInstance();
         else if (selected_tab == "page5")
-            screen = HelpScreen5::getInstance();
+            screen = TyreScreen5::getInstance();
         else if (selected_tab == "page6")
-            screen = HelpScreen6::getInstance();
+            screen = TyreScreen6::getInstance();
         else if (selected_tab == "page7")
-            screen = HelpScreen7::getInstance();
+            screen = TyreScreen7::getInstance();
+        else if (selected_tab == "page8")
+            screen = TyreScreen8::getInstance();
         if(screen)
             StateManager::get()->replaceTopMostScreen(screen);
     }

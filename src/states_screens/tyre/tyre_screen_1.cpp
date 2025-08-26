@@ -1,5 +1,8 @@
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2016 Nomagno
+//  Copyright (C) 2009-2015 Marianne Gagnon
+//  Copyright (C) 2016 C. Michael Murphey
+//  Copyright (C) 2024-2025 Nomagno
+//  Copyright (C) 2025 Matahina
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -15,34 +18,34 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-// Manages includes common to all help screens
-#include "states_screens/help/help_common.hpp"
+// Manages includes common to all tyre screens
+#include "states_screens/tyre/tyre_common.hpp"
 
 using namespace GUIEngine;
 
 // -----------------------------------------------------------------------------
 
-HelpScreen8::HelpScreen8() : Screen("help/help8.stkgui")
+TyreScreen1::TyreScreen1() : Screen("tyre/tyre1.stkgui")
 {
-}   // HelpScreen8
+}   // TyreSCreen1
 
 // -----------------------------------------------------------------------------
 
-void HelpScreen8::loadedFromFile()
+void TyreScreen1::loadedFromFile()
 {
 }   // loadedFromFile
 
 // -----------------------------------------------------------------------------
 
-void HelpScreen8::eventCallback(Widget* widget, const std::string& name, const int playerID)
+void TyreScreen1::eventCallback(Widget* widget, const std::string& name, const int playerID)
 {
     if (name == "category")
     {
-        
+
         std::string selection = ((RibbonWidget*)widget)->getSelectionIDString(PLAYER_ID_GAME_MASTER);
 
-        if (selection != "page8")
-            HelpCommon::switchTab(selection);
+        if (selection != "page1")
+            TyreCommon::switchTab(selection);
     }
     else if (name == "back")
     {
@@ -52,7 +55,7 @@ void HelpScreen8::eventCallback(Widget* widget, const std::string& name, const i
 
 // -----------------------------------------------------------------------------
 
-void HelpScreen8::init()
+void TyreScreen1::init()
 {
     Screen::init();
     RibbonWidget* w = this->getWidget<RibbonWidget>("category");
@@ -60,7 +63,7 @@ void HelpScreen8::init()
     if (w != NULL)
     {
         w->setFocusForPlayer(PLAYER_ID_GAME_MASTER);
-        w->select( "page8", PLAYER_ID_GAME_MASTER );
+        w->select( "page1", PLAYER_ID_GAME_MASTER );
     }
 }   // init
 
