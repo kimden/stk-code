@@ -447,7 +447,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     bool has_fuel = (std::abs(kart->m_tyres->m_c_fuel_rate_base) > 0.00099f);
     //ARGB
     video::SColor color_traction = video::SColor(180, 200, 20, 20);
-    video::SColor color_turning = video::SColor(180, 20, 20, 200);
+    video::SColor color_turning = video::SColor(180, 202, 202, 242);
     video::SColor color_fuel = (kart->m_tyres->m_high_fuel_demand) ?
                                   video::SColor(180, 100, 0, 115)  : // Purple
                                   video::SColor(180, 168, 65, 184); // Lighter shade of purple
@@ -528,71 +528,76 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     if(has_fuel) GL32_draw2DRectangle(color_fuel, pos_bars_inner[2]);
 #endif
 
-    std::stringstream stream;
+    std::stringstream streams[3];
+    std::string comp_num_strings[3];
     auto tyres_queue = kart->m_tyres_queue;
-    bool dc1 = true;
-    bool dc2 = true;
-    bool dc3 = true;
+    bool draw_comp[3] = {true, true, true};
     if (tyres_queue.size() < 4) { //Hardcoded range from compound 2 (soft) to compound 4 (hard)
-        stream << "000  000  000";
+        comp_num_strings[0] = "000";
+        comp_num_strings[1] = "000";
+        comp_num_strings[2] = "000";
     } else {
         long signed remaining_compounds[3] = {
             tyres_queue[1],
             tyres_queue[2],
             tyres_queue[3]
         };
-        if (remaining_compounds[0] < 0) {
-            dc1 = false;
-            //stream << "INF" << "  ";
-        } else {
-            stream << std::setfill('0') << std::setw(3) << remaining_compounds[0] << "  ";
+        for (int i = 0; i <= 2; i++) {
+            if (remaining_compounds[i] < 0) {
+                draw_comp[i] = false;
+                streams[i] /*<< std::setfill('0') << std::setw(3)*/ << 0;
+            } else {
+                draw_comp[i] = true;
+                streams[i] /*<< std::setfill('0') << std::setw(3)*/ << remaining_compounds[i];
+            }
+            comp_num_strings[i] = streams[i].str();
         }
-
-        if (remaining_compounds[1] < 0) {
-            dc2 = false;
-            //stream << "INF" << "  ";
-        } else {
-            stream << std::setfill('0') << std::setw(3) << remaining_compounds[1] << "  ";
-        }
-
-        if (remaining_compounds[2] < 0) {
-            dc3 = false;
-            //stream << "INF";
-        } else {
-            stream << std::setfill('0') << std::setw(3) << remaining_compounds[2];
-        }
-
     }
-    std::string s = stream.str();
 
-    core::recti pos_text_1;
-    core::recti pos_text_2;
+    core::recti pos_texts[3];
 
-    pos_text_1.LowerRightCorner.X = pos_bars_outer[0].UpperLeftCorner.X + font->getDimension(L"xxx xxx xxx").Width;
-    pos_text_1.LowerRightCorner.Y = pos_bars_outer[0].UpperLeftCorner.Y - (font->getDimension(L"9").Height/2.0f);
-    pos_text_1.UpperLeftCorner.X = pos_text_1.LowerRightCorner.X - font->getDimension(L"xxx xxx xxx").Width;
-    pos_text_1.UpperLeftCorner.Y = pos_text_1.LowerRightCorner.Y - font->getDimension(L"9").Height;
+    pos_texts[0].LowerRightCorner.X = pos_bars_outer[0].UpperLeftCorner.X + font->getDimension(L"XXX").Width;
+    pos_texts[0].LowerRightCorner.Y = pos_bars_outer[0].UpperLeftCorner.Y - 0.4f*font->getDimension(L"X").Height;
+    pos_texts[0].UpperLeftCorner.X = pos_bars_outer[0].UpperLeftCorner.X;
+    pos_texts[0].UpperLeftCorner.Y = pos_texts[0].LowerRightCorner.Y - 1.4f*font->getDimension(L"X").Height;
 
-
-    pos_text_2.LowerRightCorner.X = pos_text_1.LowerRightCorner.X;
-    pos_text_2.LowerRightCorner.Y = pos_text_1.LowerRightCorner.Y - (font->getDimension(L"9").Height);
-    pos_text_2.UpperLeftCorner.X = pos_text_1.UpperLeftCorner.X;
-    pos_text_2.UpperLeftCorner.Y = pos_text_2.LowerRightCorner.Y - (font->getDimension(L"9").Height);
+    for (int i = 1; i <= 2; i++) {
+        if (!draw_comp[i-1]) {
+            pos_texts[i] = pos_texts[i-1];
+        } else {
+            pos_texts[i].LowerRightCorner.Y = pos_texts[i-1].LowerRightCorner.Y;
+            pos_texts[i].LowerRightCorner.X = pos_texts[i-1].LowerRightCorner.X + font->getDimension(L"XXX").Width;
+            pos_texts[i].UpperLeftCorner.X = pos_texts[i-1].LowerRightCorner.X;
+            pos_texts[i].UpperLeftCorner.Y = pos_texts[i-1].UpperLeftCorner.Y;
+        }
+    }
 
     video::SColor color_text_1 = video::SColor(255, 255, 255, 200);
-    video::SColor color_text_2 = video::SColor(255, 230, 40, 30);
+    video::SColor color_text_2 = video::SColor(255, 200, 250, 40);
     video::SColor color_text_3 = video::SColor(255, 180, 180, 255);
     video::SColor color_text_4 = video::SColor(255, 200, 20, 20);
-    video::SColor color_text_5 = video::SColor(255, 20, 20, 200);
+    video::SColor color_text_5 = video::SColor(255, 202, 202, 242);
 
-    font->setBlackBorder(true);
-    font->draw(s.c_str(), pos_text_1, color_text_1);
-    font->draw(
-    (((dc1) ? std::string("S--  ") : std::string("")) +
-    ((dc2) ? std::string("M--  ") : std::string("")) +
-    ((dc3) ? std::string("H--  ") : std::string(""))).c_str()
-    , pos_text_2, color_text_2);
-    font->setBlackBorder(false);
+    for (int i = 0; i <= 2; i++) {
+        if (draw_comp[i]) {
+            core::recti upper_pos = pos_texts[i];
+            upper_pos.UpperLeftCorner.Y  -= 0.7*font->getDimension(L"X").Height;
+            upper_pos.LowerRightCorner.Y -= 0.7*font->getDimension(L"X").Height;
+            std::string upper_str = (draw_comp[i]) ? std::string(StringUtils::getStringFromCompound(i+2, /*shortversion*/ true)) : std::string("");
+
+            
+            font->setBlackBorder(true);
+            std::wstring widestr = std::wstring(upper_str.begin(), upper_str.end());
+            const wchar_t *upper_wide = widestr.c_str();
+            font->draw(irr::core::stringw(upper_wide), upper_pos, color_text_2);
+
+            std::wstring widestr2 = std::wstring(comp_num_strings[i].begin(), comp_num_strings[i].end());
+            const wchar_t *text_wide = widestr2.c_str();
+            font->draw(irr::core::stringw(text_wide), pos_texts[i], color_text_1);
+            font->setBlackBorder(false);
+
+        }
+    }
 
 
     std::stringstream stream_percent_traction;
