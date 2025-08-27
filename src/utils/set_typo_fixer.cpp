@@ -46,14 +46,17 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
 {
     std::map<std::string, int> ans_map;
     std::vector<std::pair<std::string, int>> ans;
+
     if (m_set.empty())
         return ans;
+
     auto it = m_set.find(query);
     if (it != m_set.end())
     {
         ans.emplace_back(m_map.find(query)->second, 0);
         return ans;
     }
+
     const std::string& query_ref = query;
     for (const std::string& s: m_set)
     {
@@ -66,8 +69,10 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
         else
             ans_map[value] = distance;
     }
+
     for (const auto& p: ans_map)
         ans.emplace_back(p.first, p.second);
+
     std::sort(ans.begin(), ans.end(), []
             (const std::pair<std::string, int>& a,
              const std::pair<std::string, int>& b) -> bool
@@ -76,8 +81,10 @@ std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
             return a.second < b.second;
         return a.first < b.first;
     });
+
     if ((int)ans.size() > count)
         ans.resize(count);
+
     return ans;
 }   // getClosest
 //-----------------------------------------------------------------------------

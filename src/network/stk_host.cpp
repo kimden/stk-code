@@ -1472,20 +1472,26 @@ std::shared_ptr<STKPeer> STKHost::findPeerByHostId(uint32_t id) const
 //-----------------------------------------------------------------------------
 
 std::shared_ptr<STKPeer>
-    STKHost::findPeerByName(const core::stringw& name) const
+    STKHost::findPeerByName(const core::stringw& name,
+                            bool mustBeOfficial) const
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     auto ret = std::find_if(m_peers.begin(), m_peers.end(),
-        [name](const std::pair<ENetPeer*, std::shared_ptr<STKPeer> >& p)
+        [name, mustBeOfficial](const std::pair<ENetPeer*, std::shared_ptr<STKPeer> >& p)
         {
             bool found = false;
             for (auto& profile : p.second->getPlayerProfiles())
             {
-                if (profile->getName() == name)
-                {
+                if (profile->getName() == name &&
+                    (!mustBeOfficial || profile->getOnlineId() > 0))
+                {                    
                     found = true;
                     break;
                 }
+
+                // Check only first profile if mustBeOfficial
+                if (mustBeOfficial)
+                    break;
             }
             return found;
         });

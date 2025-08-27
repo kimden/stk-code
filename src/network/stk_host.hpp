@@ -268,8 +268,13 @@ public:
     // ------------------------------------------------------------------------
     std::shared_ptr<STKPeer> findPeerByHostId(uint32_t id) const;
     // ------------------------------------------------------------------------
-    std::shared_ptr<STKPeer> findPeerByName(const core::stringw& name) const;
-    std::shared_ptr<STKPeer> findPeerByWildcard(const core::stringw& name_pattern, std::string &name_found) const;
+    std::shared_ptr<STKPeer> findPeerByName(
+        const core::stringw& name,
+        bool mustBeOfficial = false) const;
+    // ------------------------------------------------------------------------
+    std::shared_ptr<STKPeer> findPeerByWildcard(
+            const core::stringw& name_pattern,
+            std::string &name_found) const;
     // ------------------------------------------------------------------------
     void sendPacketExcept(std::shared_ptr<STKPeer> peer, NetworkString *data,
                           PacketReliabilityMode reliable = PRM_RELIABLE);

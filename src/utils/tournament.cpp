@@ -1,6 +1,6 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2024 kimden
+//  Copyright (C) 2025 kimden
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -33,11 +33,33 @@
 namespace
 {
     static int g_history_limit = 100;
+
+    static const std::string g_default_rules_config =
+            "nochat 10 TTTTG RRBBR +++++;;;not %1;not %1 %2;;;";
 }
 
 void Tournament::setupContextUser()
 {
-    initTournamentPlayers();
+    try
+    {
+        initTournamentPlayers(
+            (std::string)ServerConfig::m_soccer_tournament_match,
+            (std::string)ServerConfig::m_soccer_tournament_rules);
+    }
+    catch (std::exception& ex)
+    {
+        Log::error("Tournament", "Error while loading match config \"%s\": %s. "
+            "Falling back to default settings",
+            ServerConfig::m_soccer_tournament_rules.c_str(),
+            ex.what());
+
+        // There are no exceptions for _match yet. Add another handler when they appear
+        ServerConfig::m_soccer_tournament_rules = g_default_rules_config;
+        initTournamentPlayers(
+            (std::string)ServerConfig::m_soccer_tournament_match,
+            (std::string)ServerConfig::m_soccer_tournament_rules);
+    }
+
     m_game = 0;
     m_extra_seconds = 0.0f;
 }   // setupContextUser
@@ -116,6 +138,7 @@ void Tournament::applyRestrictionsOnDefaultVote(PeerVote* default_vote) const
 
 void Tournament::applyRestrictionsOnVote(PeerVote* vote) const
 {
+    vote->m_num_laps = m_length;
     vote->m_reverse = false;
 }   // applyRestrictionsOnVote
 //-----------------------------------------------------------------------------
@@ -208,11 +231,11 @@ bool Tournament::hasColorsSwapped(int game) const
 }   // hasColorsSwapped
 //-----------------------------------------------------------------------------
 
-void Tournament::initTournamentPlayers()
+// To be honest, way more validity checks are needed here.
+void Tournament::initTournamentPlayers(const std::string& match, const std::string& rules)
 {
     // Init playing teams
-    std::vector<std::string> tokens = StringUtils::split(
-        ServerConfig::m_soccer_tournament_match, ' ');
+    std::vector<std::string> tokens = StringUtils::split(match, ' ');
     std::string type = "";
     for (std::string& s: tokens)
     {
@@ -239,58 +262,25 @@ void Tournament::initTournamentPlayers()
         else if (type == "J")
             m_referees.insert(s);
     }
-    for (const std::string& s: m_red_players)
-    {
-        Log::info("ServerLobby", "SoccerMatchLog: Role of %s is initially set to r",
-            s.c_str());
-    }
-    for (const std::string& s: m_blue_players)
-    {
-        Log::info("ServerLobby", "SoccerMatchLog: Role of %s is initially set to b",
-            s.c_str());
-    }
-    for (const std::string& s: m_referees)
-    {
-        Log::info("ServerLobby", "SoccerMatchLog: Role of %s is initially set to j",
-            s.c_str());
-    }
     m_init_red = m_red_players;
     m_init_blue = m_blue_players;
     m_init_ref = m_referees;
 
     // Init tournament format
-    tokens = StringUtils::split(
-        ServerConfig::m_soccer_tournament_rules, ';');
-    bool fallback = tokens.size() < 2;
+    tokens = StringUtils::split(rules, ';');
+    if (tokens.size() < 2)
+        throw std::logic_error(StringUtils::insertValues(
+            "There should be at least 2 tokens, found %s",
+            tokens.size()));
+
     std::vector<std::string> general;
-    if (!fallback)
-    {
-        general = StringUtils::split(tokens[0], ' ');
-        if (general.size() < 5)
-            fallback = true;
-    }
-    if (fallback)
-    {
-        Log::warn("ServerLobby", "Tournament rules are not complete, fallback to default");
-        general.clear();
-        general.push_back("nochat");
-        general.push_back("10");
-        general.push_back("GGGGT");
-        general.push_back("RRBBR");
-        general.push_back("+++++");
-        tokens.clear();
-        tokens.push_back("nochat 10 GGGT RRBBR");
-        tokens.push_back("");
-        tokens.push_back("");
-        tokens.push_back("not %0");
-        tokens.push_back("not %0" " %1");
-        tokens.push_back("");
-        ServerConfig::m_soccer_tournament_rules = "nochat 10 TTTTG RRBBR +++++;"
-            ";;not %1;"
-            "not %1 "
-            "%2;;;";
-    }
-    Log::info("ServerLobby", "SoccerMatchLog: Tournament rules are set to \"%s\"",
+    general = StringUtils::split(tokens[0], ' ');
+    if (general.size() < 5)
+        throw std::logic_error(StringUtils::insertValues(
+            "There should be at least 5 tokens in general section, found %s",
+            general.size()));
+
+    Log::info("Tournament", "SoccerMatchLog: Tournament rules are set to \"%s\"",
         ServerConfig::m_soccer_tournament_rules.c_str());
     m_limited_chat = false;
     m_length = 10;
@@ -312,6 +302,22 @@ void Tournament::initTournamentPlayers()
     m_votability = general[4];
     for (int i = 0; i < m_max_games; i++)
         m_track_filters.emplace_back(tokens[i + 1]);
+
+    for (const std::string& s: m_red_players)
+    {
+        Log::info("Tournament", "SoccerMatchLog: Role of %s is initially set to r",
+            s.c_str());
+    }
+    for (const std::string& s: m_blue_players)
+    {
+        Log::info("Tournament", "SoccerMatchLog: Role of %s is initially set to b",
+            s.c_str());
+    }
+    for (const std::string& s: m_referees)
+    {
+        Log::info("Tournament", "SoccerMatchLog: Role of %s is initially set to j",
+            s.c_str());
+    }
 }   // initTournamentPlayers
 //-----------------------------------------------------------------------------
 
@@ -505,11 +511,11 @@ bool Tournament::hasProfileThatSeesTeamchats(std::shared_ptr<STKPeer> peer) cons
 }   // hasProfileThatSeesTeamchats
 //-----------------------------------------------------------------------------
 
-bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, KartTeam target_team)
+bool Tournament::hasProfileFromTeam(std::shared_ptr<STKPeer> peer, int target_team)
 {
     for (auto& player : peer->getPlayerProfiles())
     {
-        if (player->getTeam() == target_team)
+        if (player->getTemporaryTeam() == target_team)
             return true;
     }
     return false;

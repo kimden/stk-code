@@ -40,10 +40,12 @@ class SetTypoFixer
 private:
     std::multiset<std::string> m_set;
     std::map<std::string, std::string> m_map;
+
 public:
     void add(const std::string& key);
     void add(const std::string& key, const std::string& value);
     void remove(const std::string& key);
+
     std::vector<std::pair<std::string, int>> getClosest(
             const std::string& query, int count = 3,
             bool case_sensitive = true) const;

@@ -4,6 +4,7 @@
 #include "network/protocol.hpp"
 #include "utils/types.hpp"
 #include "utils/cpp2011.hpp"
+#include <cstdint>
 
 class Kart;
 

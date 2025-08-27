@@ -560,6 +560,9 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("resetteams", &CM::process_resetteams);
     applyFunctionIfPossible("randomteams", &CM::process_randomteams);
     applyFunctionIfPossible("resetgp", &CM::process_resetgp);
+    applyFunctionIfPossible("vip", &CM::process_vip);
+    applyFunctionIfPossible("vip+", &CM::process_vip);
+    applyFunctionIfPossible("vip-", &CM::process_vip);
     applyFunctionIfPossible("cat+", &CM::process_cat);
     applyFunctionIfPossible("cat-", &CM::process_cat);
     applyFunctionIfPossible("catshow", &CM::process_cat);
@@ -2118,19 +2121,19 @@ void CommandManager::process_gnu(Context& context)
     auto kart_elimination = getKartElimination();
     if (turn_on && kart_elimination->isEnabled())
     {
-        context.say("Gnu Elimination mode was already enabled!");
+        context.say(kart_elimination->getAlreadyEnabledString());
         return;
     }
     if (!turn_on && !kart_elimination->isEnabled())
     {
-        context.say("Gnu Elimination mode was already off!");
+        context.say(kart_elimination->getAlreadyOffString());
         return;
     }
     if (turn_on &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_NORMAL_RACE &&
         RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_TIME_TRIAL)
     {
-        context.say("Gnu Elimination is available only with racing modes");
+        context.say(kart_elimination->getOnlyRacingString());
         return;
     }
     std::string kart;
@@ -2170,7 +2173,7 @@ void CommandManager::process_gnu(Context& context)
     if (kart == "off")
     {
         kart_elimination->disable();
-        Comm::sendStringToAllPeers("Gnu Elimination is now off");
+        Comm::sendStringToAllPeers(kart_elimination->getNowOffMessage());
     }
     else
     {
@@ -2932,6 +2935,68 @@ void CommandManager::process_cat(Context& context)
 } // process_cat
 // ========================================================================
 
+void CommandManager::process_vip(Context& context)
+{
+    std::string msg;
+    auto& argv = context.m_argv;
+
+    if (argv[0] == "vip")
+    {
+        if (argv.size() > 2)
+        {
+            error(context);
+            return;
+        }
+        if (argv.size() == 2)
+        {
+            if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
+                return;
+            context.say(getSettings()->isSlotBookedForAsString(argv[1]));
+        }
+        else
+        {
+            context.say(getSettings()->getAllBookedSlotsAsString());
+        }
+
+        return;
+    }
+    if (argv[0] == "vip+")
+    {
+        if (argv.size() != 2)
+        {
+            error(context);
+            return;
+        }
+        if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
+            return;
+        std::string player = argv[1];
+        getSettings()->bookSlotForPlayer(player);
+        getLobby()->updatePlayerList();
+        context.say(StringUtils::insertValues(
+            "Booked a slot for %s",
+            player));
+        return;
+    }
+    if (argv[0] == "vip-")
+    {
+        if (argv.size() != 2)
+        {
+            error(context);
+            return;
+        }
+        if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
+            return;
+        std::string player = argv[1];
+        getSettings()->unbookSlotForPlayer(player);
+        getLobby()->updatePlayerList();
+        context.say(StringUtils::insertValues(
+            "Unbooked a slot for %s",
+            player));
+        return;
+    }
+} // process_vip
+// ========================================================================
+
 void CommandManager::process_troll(Context& context)
 {
     std::string msg;
@@ -3197,7 +3262,7 @@ void CommandManager::process_game(Context& context)
 
     if (tournament->hasColorsSwapped(new_game_number) ^ tournament->hasColorsSwapped(old_game_number))
     {
-        getTeamManager()->changeColors();
+        getTeamManager()->swapRedBlueTeams();
         getLobby()->updatePlayerList();
     }
 

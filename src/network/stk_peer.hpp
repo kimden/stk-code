@@ -140,6 +140,8 @@ protected:
     std::array<int, AS_TOTAL> m_addons_scores;
 
     std::atomic_int m_angry_host;
+
+    std::atomic_bool m_booked_slot;
 public:
     STKPeer(ENetPeer *enet_peer, STKHost* host, uint32_t host_id);
     // ------------------------------------------------------------------------
@@ -382,6 +384,13 @@ public:
     int hammerLevel() const                     { return m_angry_host.load(); }
     // ------------------------------------------------------------------------
     void setHammerLevel(int val)                   { m_angry_host.store(val); }
+    // ------------------------------------------------------------------------
+    bool hasSlotBooked() const                 { return m_booked_slot.load(); }
+    // ------------------------------------------------------------------------
+    // Note that m_bookedSlot is just a copy from LobbySettings' setting.
+    // Setter provided here should not be used externally.
+
+    void setBookedSlot(bool value)              { m_booked_slot.store(value); }
     // ------------------------------------------------------------------------
     std::shared_ptr<NetworkPlayerProfile> getMainProfile();
     // ------------------------------------------------------------------------

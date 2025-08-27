@@ -55,6 +55,11 @@ public:
     std::string getStartingMessage() const;
     std::string getWarningMessage(bool isEliminated) const;
     std::string onRaceFinished();
+
+    static std::string getNowOffMessage();
+    static std::string getAlreadyEnabledString();
+    static std::string getAlreadyOffString();
+    static std::string getOnlyRacingString();
 };
 
 #endif

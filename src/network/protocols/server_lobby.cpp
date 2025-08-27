@@ -399,8 +399,12 @@ void ServerLobby::handleChat(Event* event)
     if (event->data().size() > 0)
         target_team = (KartTeam)event->data().getUInt8();
 
-    getChatManager()->handleNormalChatMessage(peer,
-            StringUtils::wideToUtf8(message), target_team, m_name_decorator);
+    getChatManager()->handleNormalChatMessage(
+        peer,
+        StringUtils::wideToUtf8(message),
+        TeamUtils::getIndexFromKartTeam(target_team),
+        m_name_decorator
+    );
 }   // handleChat
 
 //-----------------------------------------------------------------------------
@@ -2580,6 +2584,10 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
 
     auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
     std::string utf8_online_name = StringUtils::wideToUtf8(online_name);
+
+    if (online_id > 0 && getSettings()->isSlotBookedFor(utf8_online_name))
+        peer->setBookedSlot(true);
+    
     for (unsigned i = 0; i < player_count; i++)
     {
         core::stringw name;
@@ -2882,6 +2890,15 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             profile_name = StringUtils::utf32ToWide({0x1F528}) + profile_name;
 
         profile_name = StringUtils::utf8ToWide(profile->getTyreCircle()) + profile_name;
+
+        auto peer = profile->getPeer();
+        if (peer)
+        {
+            if (peer->hasSlotBooked() && peer->getMainProfile() == profile)
+                profile_name = StringUtils::utf32ToWide({ 0x1F22F }) + profile_name;
+        }
+        else
+            Log::error("ServerLobby", "updatePlayerList: profile has no peer!");
 
         std::string prefix = "";
         for (const std::string& category: getTeamManager()->getVisibleCategoriesForPlayer(utf8_profile_name))

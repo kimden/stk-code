@@ -400,8 +400,11 @@ A typical current server configuration xml that fits the current code version is
     <!-- Whether the game can be started immediately when the server is opened. -->
     <start-allowed value="true" />
 
-    <!-- Timeout in seconds during which you cannot start the next game, regardless of hammers, votes, or buttons pressed.-->
+    <!-- Timeout in seconds during which you cannot start the next game, regardless of hammers, votes, or buttons pressed. -->
     <lobby-cooldown value="0" />
+
+    <!-- Official players with these usernames will be allowed to enter and take the playable slots of the server, even if the server is full. Make sure to not specify too many of them! -->
+    <reserve-slots-for-players value="" />
 
 </server-config>
 ```
