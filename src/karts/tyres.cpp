@@ -26,6 +26,7 @@
 #include "karts/max_speed.hpp"
 #include "tracks/track.hpp"
 #include "race/race_manager.hpp"
+#include "modes/world.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include "config/user_config.hpp"
@@ -272,7 +273,11 @@ void Tyres::reset() {
     }
 
     if (m_reset_fuel) {
-        m_c_fuel_rate = 0; // Will be set to the appropiate one by itempolicy on pass by start/finish line
+        if (World::getWorld()->raceHasLaps()) {
+            m_c_fuel_rate = 0; // Will be set to the appropiate one by itempolicy on pass by start/finish line
+        } else {
+            m_c_fuel_rate = 1; // Always 1 for now, because in non-race it's not controlled by itempolicy
+        }
         int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
         switch (fuel_mode) {
         case 0: // Fuel off
