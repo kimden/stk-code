@@ -447,13 +447,24 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     bool has_degradation = kart->m_tyres->m_current_compound != 10;
     bool has_fuel = (std::abs(kart->m_tyres->m_c_fuel_rate_base) > 0.00099f);
     //ARGB
-    video::SColor color_traction = video::SColor(180, 200, 20, 20);
-    video::SColor color_turning = video::SColor(180, 202, 202, 242);
+
+    video::SColor color_text_allocs = video::SColor(255, 0xE1, 0xE1, 0xE1);
+    video::SColor color_text_smh_table = video::SColor(255, 0xB1, 0xB1, 0xB1);
+
+    video::SColor color_text_fuel = video::SColor(255, 0x8C, 0x4F, 0xD9);
+    video::SColor color_text_fuel_low_demand = video::SColor(255, 0xB7, 0x9D, 0xD9);
+    video::SColor color_text_fuel_refill = video::SColor(255, 0x5E, 0x4F, 0xD9);
+
+    video::SColor color_text_traction = video::SColor(255, 0xD9, 0x4F, 0x56);
+    video::SColor color_text_turning = video::SColor(255, 0x9C, 0xD9, 0x4F);
+
+    video::SColor color_traction = color_text_traction;
+    video::SColor color_turning = color_text_turning;
     video::SColor color_fuel = (kart->m_tyres->m_high_fuel_demand) ?
-                                  video::SColor(180, 100, 0, 115)  : // Purple
-                                  video::SColor(180, 168, 65, 184); // Lighter shade of purple
+                                  color_text_fuel  : // Purple
+                                  color_text_fuel_low_demand; // Lighter shade of purple
     if (kart->m_is_refueling) {
-        color_fuel = video::SColor(180, 12, 186, 24);
+        color_fuel = color_text_fuel_refill;
     }
 
     video::SColor color_base = video::SColor(80, 100, 100, 100);
@@ -584,12 +595,6 @@ void RaceGUI::drawCompoundData(const Kart* kart,
         }
     }
 
-    video::SColor color_text_1 = video::SColor(255, 255, 255, 200);
-    video::SColor color_text_2 = video::SColor(255, 200, 250, 40);
-    video::SColor color_text_3 = video::SColor(255, 180, 180, 255);
-    video::SColor color_text_4 = video::SColor(255, 200, 20, 20);
-    video::SColor color_text_5 = video::SColor(255, 202, 202, 242);
-
     for (int i = 0; i <= 2; i++) {
         if (draw_comp[i]) {
             core::recti upper_pos = pos_texts[i];
@@ -601,14 +606,14 @@ void RaceGUI::drawCompoundData(const Kart* kart,
             font->setBlackBorder(true);
             std::wstring widestr = std::wstring(upper_str.begin(), upper_str.end());
             const wchar_t *upper_wide = widestr.c_str();
-            font->draw(irr::core::stringw(upper_wide), upper_pos, color_text_2);
+            font->draw(irr::core::stringw(upper_wide), upper_pos, color_text_smh_table);
 
             if (comp_num_strings[i] == "INF") {
-                font->draw(StringUtils::utf32ToWide({ 0x221E /*infinite sign*/ }), pos_texts[i], color_text_1);
+                font->draw(StringUtils::utf32ToWide({ 0x221E /*infinite sign*/ }), pos_texts[i], color_text_allocs);
             } else {
                 std::wstring widestr2 = std::wstring(comp_num_strings[i].begin(), comp_num_strings[i].end());
                 const wchar_t *text_wide = widestr2.c_str();
-                font->draw(irr::core::stringw(text_wide), pos_texts[i], color_text_1);
+                font->draw(irr::core::stringw(text_wide), pos_texts[i], color_text_allocs);
             }
             font->setBlackBorder(false);
 
@@ -632,11 +637,11 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     std::string s_tur = stream_percent_turning.str();
     std::string s_fuel = stream_percent_fuel.str();
 
-    gui::ScalableFont* font2 = GUIEngine::getHighresDigitFont();
+    gui::ScalableFont* font2 = GUIEngine::getFont();
     font2->setBlackBorder(true);
     int co = 0;
     while (co < 100) {
-        if (font2->getDimension(L"100.0").Width > 3.0f*(float)(pos_bars_outer[0].LowerRightCorner.X-pos_bars_outer[0].UpperLeftCorner.X)) {
+        if (font2->getDimension(L"100.0").Width > 2.0f*(float)(pos_bars_outer[0].LowerRightCorner.X-pos_bars_outer[0].UpperLeftCorner.X)) {
             font2->setScale(0.95f * font2->getScale());
         } else {
             break;
@@ -671,9 +676,9 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     pos_text_fuel.UpperLeftCorner.X = pos_bars_outer[2].LowerRightCorner.X + font2->getDimension(L"9").Width/3.0f;
     pos_text_fuel.LowerRightCorner.X = pos_text_fuel.UpperLeftCorner.X + 2*font2->getDimension(L"100.0").Width;
 
-    if(has_degradation) font2->draw(s_tra.c_str(), pos_text_traction, color_text_4);
-    if(has_degradation) font2->draw(s_tur.c_str(), pos_text_turning, color_text_5);
-    if(has_fuel) font2->draw(s_fuel.c_str(), pos_text_fuel, color_text_3);
+    if(has_degradation) font2->draw(s_tra.c_str(), pos_text_traction, color_text_traction);
+    if(has_degradation) font2->draw(s_tur.c_str(), pos_text_turning, color_text_turning);
+    if(has_fuel) font2->draw(s_fuel.c_str(), pos_text_fuel, color_text_fuel);
 
 
     font->setBlackBorder(false);
