@@ -44,6 +44,7 @@
 #include "states_screens/state_manager.hpp"
 #include "tracks/track.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 
 #include <IGUIEnvironment.h>
@@ -561,7 +562,7 @@ void TrackInfoScreen::updateHighScores()
             std::vector<std::tuple<unsigned, unsigned>> stints;
             highscores->getEntry(n, kart_name, name, &time, stints);
 
-            std::string stints_string = StringUtils::stintsToString(stints);
+            std::string stints_string = TyreUtils::stintsToString(stints);
 
             std::string highscore_string;
             if (RaceManager::get()->isLapTrialMode())

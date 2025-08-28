@@ -52,6 +52,7 @@
 #include "tracks/track.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 
 #include <GlyphLayout.h>
@@ -1255,7 +1256,7 @@ void RaceGUIBase::drawPlayerIcon(Kart *kart, int x, int y, int w,
         video::SColor tyre_color = tyre_colorf.toSColor();
 
         if (pit) font->draw(L"PIT", posNumber, tyre_color);
-        else font->draw(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(kart->m_tyres->m_current_compound, true)), posNumber, tyre_color);
+        else font->draw(StringUtils::utf8ToWide(TyreUtils::getStringFromCompound(kart->m_tyres->m_current_compound, true)), posNumber, tyre_color);
         font->setScale(1.0f);
     }
 

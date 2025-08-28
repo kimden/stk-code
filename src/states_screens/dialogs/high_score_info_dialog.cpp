@@ -40,6 +40,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 
 using namespace GUIEngine;
@@ -197,7 +198,7 @@ void HighScoreInfoDialog::updateHighscoreEntries()
         {
             m_hs->getEntry(n, kart_name, name, &time, stints);
 
-            std::string stint_string = StringUtils::stintsToString(stints);
+            std::string stint_string = TyreUtils::stintsToString(stints);
 
             std::string highscore_string;
             if (m_minor_mode == RaceManager::MINOR_MODE_LAP_TRIAL)

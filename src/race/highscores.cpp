@@ -24,6 +24,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/log.hpp"
+#include "utils/tyre_utils.hpp"
 
 #include <stdexcept>
 #include <fstream>
@@ -145,7 +146,7 @@ void Highscores::readEntry(const XMLNode &node)
             m_stint[i].clear();
             m_stint[i].push_back(std::make_tuple(0, 0));
         } else {
-            m_stint[i] = StringUtils::stringToStints(stintstr);
+            m_stint[i] = TyreUtils::stringToStints(stintstr);
         }
 
         // a non-empty entry needs a non-empty kart name.
@@ -196,7 +197,7 @@ void Highscores::writeEntry(UTFWriter &writer)
             writer << "             <entry time    =\"" << m_time[i] << L"\"\n";
             writer << "                    name    =\"" << StringUtils::xmlEncode(m_name[i]) << L"\"\n";
             writer << "                    kartname=\"" << m_kart_name[i] << L"\"\n";
-            writer << "                    stints=\"" << StringUtils::stintsToString(m_stint[i]) << L"\"\n";
+            writer << "                    stints=\"" << TyreUtils::stintsToString(m_stint[i]) << L"\"\n";
             writer << "/>\n";
         }
     }   // for i

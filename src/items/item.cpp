@@ -36,6 +36,7 @@
 #include "tracks/drive_node.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "font/bold_face.hpp"
 #include "font/font_manager.hpp"
 
@@ -452,7 +453,7 @@ void Item::handleNewMesh(ItemType type)
             core::vector3df(0.0f, 2.0f, 0.0f),
             core::vector3df(0.5f, 0.5f, 0.5f));
         //if (CVS->isGLSL())
-            tb->init(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(m_compound, false)), bold_face);
+            tb->init(StringUtils::utf8ToWide(TyreUtils::getStringFromCompound(m_compound, false)), bold_face);
         //else
             //tb->initLegacy(StringUtils::utf8ToWide(StringUtils::getStringFromCompound(m_compound, false)), bold_face);
         tb->drop();

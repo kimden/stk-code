@@ -32,6 +32,7 @@
 #include "karts/kart_properties_manager.hpp"
 #include "states_screens/kart_selection.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 
 #include <IGUIEnvironment.h>
@@ -137,7 +138,7 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
 
         for (int i = 0; i < compound_number; i++) {
             if (compound_colors[i] > -0.5f) {
-                std::string name = StringUtils::getStringFromCompound(i+1, false);
+                std::string name = TyreUtils::getStringFromCompound(i+1, false);
                 label2 = _("TYRE: %s", name.c_str());
                 m_starting_tyre_spinner->addLabel(label2);
             }

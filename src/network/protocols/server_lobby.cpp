@@ -64,6 +64,7 @@
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/translation.hpp"
+#include "utils/tyre_utils.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -4521,12 +4522,12 @@ std::string ServerLobby::getRecord(std::string& track, std::string& mode,
         message = StringUtils::insertValues(
             "The record is %s by %s\nStints data: [%s]",
             StringUtils::timeToString(best_result),
-            user_filter, StringUtils::stintsToString(stints_data));
+            user_filter, TyreUtils::stintsToString(stints_data));
     } else {
         message = StringUtils::insertValues(
             "The best time of %s is %s\nStints data: [%s]",
             user_filter, StringUtils::timeToString(best_result),
-            StringUtils::stintsToString(stints_data));
+            TyreUtils::stintsToString(stints_data));
     }
     return message;
 }   // getRecord

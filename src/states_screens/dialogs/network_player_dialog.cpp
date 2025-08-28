@@ -38,6 +38,7 @@
 #include "states_screens/dialogs/ranking_callback.hpp"
 #include "states_screens/state_manager.hpp"
 #include "utils/communication.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 
 #include <IGUIEnvironment.h>
@@ -150,7 +151,7 @@ void NetworkPlayerDialog::beforeAddingWidgets()
     bool first_label = true;
     for (int i = 0; i < compound_number; i++) {
         if (compound_colors[i] > -0.5f) {
-            std::string name = StringUtils::getStringFromCompound(i+1, false);
+            std::string name = TyreUtils::getStringFromCompound(i+1, false);
             label = _("%s", name.c_str());
             m_tyre_widget->addLabel(label);
             if (first_label) {

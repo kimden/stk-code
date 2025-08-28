@@ -799,68 +799,6 @@ namespace StringUtils
     }
     
 
-    std::string getStringFromCompound(unsigned c, bool shortver) {
-        switch(c) {
-            case 0:
-                return shortver ? "?" : "INVALID";
-            case 2:
-                return shortver ? "S" : "SOFT";
-            case 3:
-                return shortver ? "M" : "MEDIUM";
-            case 4:
-                return shortver ? "H" : "HARD";
-            case 10:
-                return shortver ? "CHEAT" : "CHEAT";
-            case 123:
-                return shortver ? "FU" : "FUEL";
-            default:
-                return shortver ? ("C" + std::to_string(c)) : ("COMP " + std::to_string(c));
-        }
-    };
-
-    //Compound, length
-    std::vector<std::tuple<unsigned, unsigned>> stringToStints(std::string x) {
-        std::vector<std::tuple<unsigned, unsigned>> retval;
-        std::vector<std::string> items = splitString(x, ',');
-        for (int i = 0; i < items.size(); i++) {
-            retval.push_back(std::make_tuple(0, 0));
-            if (items[i].at(0) == ' ') items[i].erase(0, 1);
-            switch (items[i].at(0)) {
-            case 'S':
-                std::get<0>(retval[i]) = 2;
-                break;
-            case 'M':
-                std::get<0>(retval[i]) = 3;
-                break;
-            case 'H':
-                std::get<0>(retval[i]) = 4;
-                break;
-            default:
-                std::get<0>(retval[i]) = items[i].at(0) - '0';
-                break;
-            }
-            items[i].erase(0, 2);
-            std::get<1>(retval[i]) = stoi(items[i]);
-        }
-        return retval;
-    }
-
-    std::string stintsToString(std::vector<std::tuple<unsigned, unsigned>> x) {
-        std::string retval;
-        for (int i = 0; i < x.size(); i++) {
-            unsigned compval = std::get<0>(x[i]);
-            std::string compstr = getStringFromCompound(compval, /*shortversion*/ true);
-
-            retval.append(compstr);
-            retval.append(":");
-            retval.append(std::to_string(std::get<1>(x[i])));
-            if (i < x.size()-1) {
-                retval.append(", ");
-            }
-        }
-        return retval;
-    }
-
     // ------------------------------------------------------------------------
     /** Shows a increasing number of dots.
       * \param interval A float representing the time it takes to add a new dot

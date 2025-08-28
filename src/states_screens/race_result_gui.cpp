@@ -70,6 +70,7 @@
 #include "utils/profiler.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 #include "main_loop.hpp"
 
@@ -2048,7 +2049,7 @@ int RaceResultGUI::displayHighscores(int x, int y, bool increase_density)
 
         current_x = (int)(UserConfigParams::m_width * SCORE_X_RATIO);
 
-        std::string stint_string = StringUtils::stintsToString(stints);
+        std::string stint_string = TyreUtils::stintsToString(stints);
 
         // Finally draw the time
         std::string highscore_string;

@@ -61,6 +61,7 @@ using namespace irr;
 #include "tracks/track_object_manager.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 
 #include <algorithm>
@@ -583,7 +584,7 @@ void RaceGUI::drawCompoundData(const Kart* kart,
             core::recti upper_pos = pos_texts[i];
             upper_pos.UpperLeftCorner.Y  -= 0.7*font->getDimension(L"X").Height;
             upper_pos.LowerRightCorner.Y -= 0.7*font->getDimension(L"X").Height;
-            std::string upper_str = (draw_comp[i]) ? std::string(StringUtils::getStringFromCompound(i+2, /*shortversion*/ true)) : std::string("");
+            std::string upper_str = (draw_comp[i]) ? std::string(TyreUtils::getStringFromCompound(i+2, /*shortversion*/ true)) : std::string("");
 
             
             font->setBlackBorder(true);

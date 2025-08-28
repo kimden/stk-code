@@ -41,6 +41,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "karts/kart_properties.hpp"
@@ -528,7 +529,7 @@ void GPInfoScreen::updateHighscores()
             std::vector<std::tuple<unsigned, unsigned>> stints;
             highscores->getEntry(i, kart, name, &time, stints);
 
-            std::string stint_string = StringUtils::stintsToString(stints);
+            std::string stint_string = TyreUtils::stintsToString(stints);
 
             std::string highscore_string;
             if (RaceManager::get()->isLapTrialMode())
