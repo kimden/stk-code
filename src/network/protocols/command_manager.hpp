@@ -119,7 +119,6 @@ private:
 
     void vote(Context& context, std::string category, std::string value);
     void update();
-    void error(Context& context, bool is_error = false);
 
     void execute(std::shared_ptr<Command> command, Context& context);
 

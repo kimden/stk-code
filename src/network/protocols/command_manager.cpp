@@ -21,14 +21,10 @@
 #include "addons/addon.hpp"
 #include "io/file_manager.hpp"
 #include "modes/soccer_world.hpp"
-#include "network/database_connector.hpp"
-#include "network/event.hpp"
 #include "network/game_setup.hpp"
 #include "network/network_player_profile.hpp"
 #include "network/protocols/server_lobby.hpp"
-#include "network/server_config.hpp"
 #include "network/stk_host.hpp"
-#include "network/stk_peer.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/chat_manager.hpp"
@@ -39,7 +35,6 @@
 #include "utils/hourglass_reason.hpp"
 #include "utils/kart_elimination.hpp"
 #include "utils/lobby_asset_manager.hpp"
-#include "utils/lobby_context.hpp"
 #include "utils/lobby_gp_manager.hpp"
 #include "utils/lobby_settings.hpp"
 #include "utils/lobby_queues.hpp"
@@ -50,14 +45,6 @@
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/version.hpp"
-
-#include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <iterator>
-#include <utility>
 
 // TODO: kimden: should decorators use acting_peer?
 
@@ -73,13 +60,14 @@ namespace
     static const std::string g_type_soccer = "soccer";
 
     const std::vector<std::string> g_queue_names = {
-        "", "mqueue", "mcyclic", "mboth",
-        "kqueue", "qregular", "", "",
-        "kcyclic", "", "qcyclic", "",
-        "kboth", "", "", "qboth"
+        "",        "mqueue",   "mcyclic", "mboth",
+        "kqueue",  "qregular", "",        "",
+        "kcyclic", "",         "qcyclic", "",
+        "kboth",   "",         "",        "qboth"
     };
 
-    enum QueueMask: int {
+    enum QueueMask: int
+    {
         QM_NONE = -1,
         QM_MAP_ONETIME = 1,
         QM_MAP_CYCLIC = 2,
@@ -809,13 +797,6 @@ void CommandManager::update()
 } // update
 // ========================================================================
 
-void CommandManager::error(Context& context, bool is_error)
-{
-    // When you have no time, change all error(context) calls to context.error()
-    context.error(is_error);
-}   // error
-// ========================================================================
-
 void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
 {
     m_current_argv = context.m_argv;
@@ -827,7 +808,7 @@ void CommandManager::execute(std::shared_ptr<Command> command, Context& context)
     catch (std::exception& ex)
     {
         // auto peer = context.m_peer.lock();
-        error(context, true);
+        context.error(true);
 
         // // kimden: make error message better + add log
         // context.say(StringUtils::insertValues(
@@ -862,7 +843,7 @@ void CommandManager::process_help(Context& context)
     }
     if (command == m_root_command)
     {
-        error(context);
+        context.error();
         return;
     }
     context.say(command->getHelp());
@@ -1100,7 +1081,7 @@ void CommandManager::process_spectate(Context& context)
     if (argv.size() < 2 || !StringUtils::fromString(argv[1], value)
             || value < 0 || value > 2)
     {
-        error(context);
+        context.error();
         return;
     }
     if (value >= 1)
@@ -1272,7 +1253,7 @@ void CommandManager::process_checkaddon(Context& context)
 
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     if (!validate(context, 1, TFT_ADDON_MAPS, false, true))
@@ -1388,7 +1369,7 @@ void CommandManager::process_id(Context& context)
 
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     if (!validate(context, 1, TFT_ALL_MAPS, false, true))
@@ -1416,7 +1397,7 @@ void CommandManager::process_lsa(Context& context)
         (argv.size() == 2 && (argv[1].size() < 3 || has_options)) ||
         (argv.size() == 3 && (!has_options || argv[2].size() < 3)))
     {
-        error(context);
+        context.error();
         return;
     }
     std::string type = "";
@@ -1480,7 +1461,7 @@ void CommandManager::process_pha(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() < 3)
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -1497,7 +1478,7 @@ void CommandManager::process_pha(Context& context)
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer || addon_id.empty())
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -1534,7 +1515,7 @@ void CommandManager::process_kick(Context& context)
     auto acting_peer = context.actingPeerMaybeNull();
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -1547,7 +1528,7 @@ void CommandManager::process_kick(Context& context)
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer || player_peer->isAIPeer())
     {
-        error(context);
+        context.error();
         return;
     }
     if (player_peer->hammerLevel() > 0)
@@ -1584,13 +1565,13 @@ void CommandManager::process_unban(Context& context)
 
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     std::string player_name = argv[1];
     if (player_name.empty())
     {
-        error(context);
+        context.error();
         return;
     }
     Log::info("CommandManager", "%s is now unbanned", player_name.c_str());
@@ -1606,13 +1587,13 @@ void CommandManager::process_ban(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     player_name = argv[1];
     if (player_name.empty())
     {
-        error(context);
+        context.error();
         return;
     }
     Log::info("CommandManager", "%s is now banned", player_name.c_str());
@@ -1634,7 +1615,7 @@ void CommandManager::process_pas(Context& context)
         if (acting_peer->getPlayerProfiles().empty())
         {
             Log::warn("CommandManager", "pas: no existing player profiles??");
-            error(context);
+            context.error();
             return;
         }
         player_name = acting_peer->getMainName();
@@ -1649,7 +1630,7 @@ void CommandManager::process_pas(Context& context)
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer)
     {
-        error(context);
+        context.error();
         return;
     }
     auto& scores = player_peer->getAddonsScores();
@@ -1766,7 +1747,7 @@ void CommandManager::process_sha(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() != 2)
     {
-        error(context);
+        context.error();
         return;
     }
     std::set<std::string> total_addons;
@@ -1797,7 +1778,7 @@ void CommandManager::process_mute(Context& context)
 
     if (argv.size() != 2 || argv[1].empty())
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -1819,7 +1800,7 @@ void CommandManager::process_unmute(Context& context)
 
     if (argv.size() != 2 || argv[1].empty())
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -1933,7 +1914,7 @@ void CommandManager::process_tell(Context& context)
 
     if (argv.size() == 1)
     {
-        error(context);
+        context.error();
         return;
     }
     std::string ans;
@@ -2003,7 +1984,7 @@ void CommandManager::process_to(Context& context)
 
     if (argv.size() == 1)
     {
-        error(context);
+        context.error();
         return;
     }
     std::vector<std::string> receivers;
@@ -2035,7 +2016,7 @@ void CommandManager::process_record(Context& context)
 #ifdef ENABLE_SQLITE3
     if (argv.size() < 5)
     {
-        error(context);
+        context.error();
         return;
     }
     bool error = false;
@@ -2122,7 +2103,7 @@ void CommandManager::process_length_multi(Context& context)
     if (argv.size() < 3 ||
         !StringUtils::parseString<double>(argv[2], &temp_double))
     {
-        error(context);
+        context.error();
         return;
     }
     double value = std::max<double>(0.0, temp_double);
@@ -2138,7 +2119,7 @@ void CommandManager::process_length_fixed(Context& context)
     if (argv.size() < 3 ||
         !StringUtils::parseString<int>(argv[2], &temp_int))
     {
-        error(context);
+        context.error();
         return;
     }
     int value = std::max<int>(0, temp_int);
@@ -2165,13 +2146,13 @@ void CommandManager::process_direction_assign(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     int temp_int = -1;
     if (!StringUtils::parseString<int>(argv[1], &temp_int) || !getSettings()->setDirection(temp_int))
     {
-        error(context);
+        context.error();
         return;
     }
     Comm::sendStringToAllPeers(getSettings()->getDirectionAsString(true));
@@ -2207,7 +2188,7 @@ void CommandManager::process_queue_push(Context& context)
 
     if (argv.size() < 3)
     {
-        error(context);
+        context.error();
         return;
     }
     int mask = get_queue_mask(argv[0]);
@@ -2425,7 +2406,7 @@ void CommandManager::process_allowstart_assign(Context& context)
     // because of an extra cast.
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        error(context);
+        context.error();
         return;
     }
     getSettings()->setAllowedToStart(argv[1] != "0");
@@ -2445,7 +2426,7 @@ void CommandManager::process_shuffle_assign(Context& context)
     // Move validation to lobby settings.
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        error(context);
+        context.error();
         return;
     }
     getSettings()->setGPGridShuffled(argv[1] != "0");
@@ -2459,7 +2440,7 @@ void CommandManager::process_timeout(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() < 2 || !StringUtils::parseString(argv[1], &seconds) || seconds <= 0)
     {
-        error(context);
+        context.error();
         return;
     }
     getLobby()->setTimeoutFromNow(seconds);
@@ -2474,7 +2455,7 @@ void CommandManager::process_team(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() != 3)
     {
-        error(context);
+        context.error();
         return;
     }
     if (!validate(context, 2, TFT_PRESENT_USERS, false, true))
@@ -2508,7 +2489,7 @@ void CommandManager::process_swapteams(Context& context)
 
     if (argv.size() != 2)
     {
-        error(context);
+        context.error();
         return;
     }
     // todo move list of teams and checking teams to another unit later,
@@ -2600,12 +2581,13 @@ void CommandManager::process_randomteams(Context& context)
 void CommandManager::process_resetgp(Context& context)
 {
     auto& argv = context.m_argv;
-    if (argv.size() >= 2) {
+    if (argv.size() >= 2)
+    {
         int number_of_games;
         if (!StringUtils::parseString(argv[1], &number_of_games)
             || number_of_games <= 0)
         {
-            error(context);
+            context.error();
             return;
         }
         getGameSetupFromCtx()->setGrandPrixTrack(number_of_games);
@@ -2624,7 +2606,7 @@ void CommandManager::process_cat(Context& context)
     {
         if (argv.size() != 3)
         {
-            error(context);
+            context.error();
             return;
         }
         std::string category = argv[1];
@@ -2639,7 +2621,7 @@ void CommandManager::process_cat(Context& context)
     {
         if (argv.size() != 3)
         {
-            error(context);
+            context.error();
             return;
         }
         std::string category = argv[1];
@@ -2660,7 +2642,7 @@ void CommandManager::process_cat(Context& context)
             if (argv.size() != 3 || !StringUtils::parseString(argv[2], &displayed)
                     || displayed < -1 || displayed > 1)
             {
-                error(context);
+                context.error();
                 return;
             }
         }
@@ -2681,7 +2663,7 @@ void CommandManager::process_vip(Context& context)
     {
         if (argv.size() > 2)
         {
-            error(context);
+            context.error();
             return;
         }
         if (argv.size() == 2)
@@ -2701,7 +2683,7 @@ void CommandManager::process_vip(Context& context)
     {
         if (argv.size() != 2)
         {
-            error(context);
+            context.error();
             return;
         }
         if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
@@ -2718,7 +2700,7 @@ void CommandManager::process_vip(Context& context)
     {
         if (argv.size() != 2)
         {
-            error(context);
+            context.error();
             return;
         }
         if (!validate(context, 1, TFT_PRESENT_USERS, false, true))
@@ -2753,7 +2735,7 @@ void CommandManager::process_troll_assign(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        error(context);
+        context.error();
         return;
     }
     auto hit_processor = getHitProcessor();
@@ -2788,7 +2770,7 @@ void CommandManager::process_hitmsg_assign(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        error(context);
+        context.error();
         return;
     }
     auto hit_processor = getHitProcessor();
@@ -2823,7 +2805,7 @@ void CommandManager::process_teamhit_assign(Context& context)
     auto& argv = context.m_argv;
     if (argv.size() == 1 || !(argv[1] == "0" || argv[1] == "1"))
     {
-        error(context);
+        context.error();
         return;
     }
     auto hit_processor = getHitProcessor();
@@ -2896,7 +2878,7 @@ void CommandManager::process_muteall(Context& context)
     auto tournament = getTournament();
     if (!tournament)
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     if (!acting_peer->hasPlayerProfiles())
@@ -2926,7 +2908,7 @@ void CommandManager::process_game(Context& context)
     auto tournament = getTournament();
     if (!tournament)
     {
-        error(context, true);
+        context.error(true);
         return;
     }
 
@@ -3001,12 +2983,12 @@ void CommandManager::process_role(Context& context)
     auto tournament = getTournament();
     if (!tournament)
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     if (argv.size() < 3)
     {
-        error(context);
+        context.error();
         return;
     }
     if (argv[1].length() > argv[2].length())
@@ -3021,7 +3003,7 @@ void CommandManager::process_role(Context& context)
         (argv[3] == "p" || argv[3] == "permanent"));
     if (role.length() != 1)
     {
-        error(context);
+        context.error();
         return;
     }
     char role_char = role[0];
@@ -3142,7 +3124,7 @@ void CommandManager::process_stop(Context& context)
 {
     if (!getTournament())
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     World* w = World::getWorld();
@@ -3159,7 +3141,7 @@ void CommandManager::process_go(Context& context)
 {
     if (!getTournament())
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     World* w = World::getWorld();
@@ -3176,7 +3158,7 @@ void CommandManager::process_lobby(Context& context)
 {
     if (!getTournament())
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     World* w = World::getWorld();
@@ -3193,7 +3175,7 @@ void CommandManager::process_init(Context& context)
     auto& argv = context.m_argv;
     if (!getTournament())
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     int red, blue;
@@ -3201,7 +3183,7 @@ void CommandManager::process_init(Context& context)
         !StringUtils::parseString<int>(argv[1], &red) ||
         !StringUtils::parseString<int>(argv[2], &blue))
     {
-        error(context);
+        context.error();
         return;
     }
     World* w = World::getWorld();
@@ -3243,7 +3225,7 @@ void CommandManager::process_test(Context& context)
     argv.resize(4, "");
     if (argv[2] == "no" && argv[3] == "u")
     {
-        error(context);
+        context.error();
         return;
     }
     if (context.m_voting)
@@ -3287,7 +3269,7 @@ void CommandManager::process_slots_assign(Context& context)
         fail = true;
     if (fail)
     {
-        error(context);
+        context.error();
         return;
     }
     if (context.m_voting)
@@ -3348,7 +3330,7 @@ void CommandManager::process_preserve_assign(Context& context)
     std::string msg = "";
     if (argv.size() != 3)
     {
-        error(context);
+        context.error();
         return;
     }
     if (argv[2] == "0")
@@ -3372,7 +3354,7 @@ void CommandManager::process_history(Context& context)
     auto tournament = getTournament();
     if (!tournament)
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     std::string msg = "Map history:";
@@ -3389,19 +3371,19 @@ void CommandManager::process_history_assign(Context& context)
     auto tournament = getTournament();
     if (!tournament)
     {
-        error(context, true);
+        context.error(true);
         return;
     }
     std::string msg = "";
     if (argv.size() != 3)
     {
-        error(context);
+        context.error();
         return;
     }
     int index;
     if (!StringUtils::fromString(argv[1], index) || index < 0)
     {
-        error(context);
+        context.error();
         return;
     }
     if (!validate(context, 2, TFT_ALL_MAPS, false, false))
@@ -3409,7 +3391,7 @@ void CommandManager::process_history_assign(Context& context)
     std::string id = argv[2];
     if (!tournament->assignToHistory(index, id))
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -3432,13 +3414,13 @@ void CommandManager::process_voting_assign(Context& context)
     std::string msg = "";
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     int value;
     if (!StringUtils::fromString(argv[1], value) || value < 0 || value > 1)
     {
-        error(context);
+        context.error();
         return;
     }
     getMapVoteHandler()->setAlgorithm(value);
@@ -3459,7 +3441,7 @@ void CommandManager::process_why_hourglass(Context& context)
         if (acting_peer->getPlayerProfiles().empty())
         {
             Log::warn("CommandManager", "whyhourglass: no existing player profiles??");
-            error(context);
+            context.error();
             return;
         }
         player_name = acting_peer->getMainName();
@@ -3474,7 +3456,7 @@ void CommandManager::process_why_hourglass(Context& context)
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer)
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -3501,7 +3483,7 @@ void CommandManager::process_available_teams_assign(Context& context)
 
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     std::string value = "";
@@ -3552,14 +3534,14 @@ void CommandManager::process_cooldown_assign(Context& context)
 
     if (argv.size() < 2)
     {
-        error(context);
+        context.error();
         return;
     }
     int new_cooldown = -1;
     // kimden: figure out what's with epsilons in STK
     if (!StringUtils::parseString<int>(argv[1], &new_cooldown) || new_cooldown < 0)
     {
-        error(context);
+        context.error();
         return;
     }
     getSettings()->setLobbyCooldown(new_cooldown);
@@ -3589,7 +3571,7 @@ void CommandManager::process_net(Context& context)
         if (acting_peer->getPlayerProfiles().empty())
         {
             Log::warn("CommandManager", "net: no existing player profiles??");
-            error(context);
+            context.error();
             return;
         }
         player_name = acting_peer->getMainName();
@@ -3604,7 +3586,7 @@ void CommandManager::process_net(Context& context)
         StringUtils::utf8ToWide(player_name));
     if (player_name.empty() || !player_peer)
     {
-        error(context);
+        context.error();
         return;
     }
 
@@ -3678,7 +3660,7 @@ void CommandManager::process_temp250318(Context& context)
     int value = 0;
     if (argv.size() < 2 || !StringUtils::parseString<int>(argv[1], &value))
     {
-        error(context);
+        context.error();
         return;
     }
     auto settings = getSettings();
