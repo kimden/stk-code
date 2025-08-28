@@ -533,23 +533,34 @@ void RaceGUI::drawCompoundData(const Kart* kart,
     std::string comp_num_strings[3];
     auto tyres_queue = kart->m_tyres_queue;
     bool draw_comp[3] = {true, true, true};
-    if (tyres_queue.size() < 4) { //Hardcoded range from compound 2 (soft) to compound 4 (hard)
-        comp_num_strings[0] = "000";
-        comp_num_strings[1] = "000";
-        comp_num_strings[2] = "000";
+
+    long signed remaining_compounds[3];
+
+
+    if (tyres_queue.size() < 4) {
+        draw_comp[0] = false;
+        draw_comp[1] = false;
+        draw_comp[2] = false;
+        remaining_compounds[0] = -1;
+        remaining_compounds[1] = -1;
+        remaining_compounds[2] = -1;
+    }  else { //Hardcoded range from compound 2 (soft) to compound 4 (hard)
+        remaining_compounds[0] = tyres_queue[1];
+        remaining_compounds[1] = tyres_queue[2];
+        remaining_compounds[2] = tyres_queue[3];
+    }
+
+    if (remaining_compounds[0] < 0 && remaining_compounds[1] < 0 && remaining_compounds[2] < 0){
+        draw_comp[0] = false;
+        draw_comp[1] = false;
+        draw_comp[2] = false;
     } else {
-        long signed remaining_compounds[3] = {
-            tyres_queue[1],
-            tyres_queue[2],
-            tyres_queue[3]
-        };
         for (int i = 0; i <= 2; i++) {
+            draw_comp[i] = true;
             if (remaining_compounds[i] < 0) {
-                draw_comp[i] = false;
-                streams[i] /*<< std::setfill('0') << std::setw(3)*/ << 0;
+                streams[i] << "INF";
             } else {
-                draw_comp[i] = true;
-                streams[i] /*<< std::setfill('0') << std::setw(3)*/ << remaining_compounds[i];
+                streams[i] << remaining_compounds[i];
             }
             comp_num_strings[i] = streams[i].str();
         }
@@ -592,9 +603,13 @@ void RaceGUI::drawCompoundData(const Kart* kart,
             const wchar_t *upper_wide = widestr.c_str();
             font->draw(irr::core::stringw(upper_wide), upper_pos, color_text_2);
 
-            std::wstring widestr2 = std::wstring(comp_num_strings[i].begin(), comp_num_strings[i].end());
-            const wchar_t *text_wide = widestr2.c_str();
-            font->draw(irr::core::stringw(text_wide), pos_texts[i], color_text_1);
+            if (comp_num_strings[i] == "INF") {
+                font->draw(StringUtils::utf32ToWide({ 0x221E /*infinite sign*/ }), pos_texts[i], color_text_1);
+            } else {
+                std::wstring widestr2 = std::wstring(comp_num_strings[i].begin(), comp_num_strings[i].end());
+                const wchar_t *text_wide = widestr2.c_str();
+                font->draw(irr::core::stringw(text_wide), pos_texts[i], color_text_1);
+            }
             font->setBlackBorder(false);
 
         }

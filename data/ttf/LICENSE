@@ -10,3 +10,4 @@ Noto is a trademark of Google Inc. Noto fonts are open source. All Noto fonts ar
 Cantarell font is released under the SIL open font license 1.1 ( https://gitlab.gnome.org/GNOME/cantarell-fonts )
 
 SigmarOne is released under the SIL open font license 1.1 ( https://www.google.com/fonts/specimen/Sigmar+One )
+SigmarOne was modified to add an infinity glyph, traced from https://www.svgrepo.com/svg/449788/infinity . Said symbol is made by ShopWare, and released under the MIT License
