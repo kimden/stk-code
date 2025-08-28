@@ -86,7 +86,7 @@ namespace
                 return i;
         return QueueMask::QM_NONE;
     } // get_queue_mask
-    // ====================================================================
+    //-------------------------------------------------------------------------
 
     std::string get_queue_name(int x)
     {
@@ -101,7 +101,7 @@ namespace
         return StringUtils::insertValues(
             "[Error QN%d: please report with /tell about it] queue", x);
     } // get_queue_name
-    // ====================================================================
+    //-------------------------------------------------------------------------
 
     int another_cyclic_queue(int x)
     {
@@ -111,7 +111,18 @@ namespace
         //    return QM_KART_CYCLIC;
         return QM_NONE;
     } // another_cyclic_queue
-    // ====================================================================
+    //-------------------------------------------------------------------------
+    
+    template<typename Fn>
+    void forAllQueuesInMask(int mask, Fn&& fn)
+    {
+        for (int x = QM_START; x < QM_END; x <<= 1)
+        {
+            if (mask & x)
+                fn(x);
+        }
+    }   // forAllQueuesInMask
+    //-------------------------------------------------------------------------
 
     void restoreCmdByArgv(std::string& cmd,
             std::vector<std::string>& argv, char c, char d, char e, char f,
@@ -120,7 +131,7 @@ namespace
         cmd = StringUtils::quoteEscapeArray(argv.begin() + from, argv.end(),
             c, d, e, f);
     }   // restoreCmdByArgv
-    // ========================================================================
+    //-------------------------------------------------------------------------
     
 
     // Auxiliary things, should be moved somewhere because they just help
@@ -211,7 +222,8 @@ void CommandManager::initCommandsInfo()
 
             const std::string name = c->getShortName();
 
-            if (current == root2 && command == m_root_command && used_commands.find(name) != used_commands.end())
+            if (current == root2 && command == m_root_command
+                    && used_commands.find(name) != used_commands.end())
                 continue;
             else if (current == root)
                 used_commands.insert(name);
@@ -222,9 +234,11 @@ void CommandManager::initCommandsInfo()
             dfs(node, c);
         }
     };
+
     dfs(root, m_root_command);
     if (root2)
         dfs(root2, m_root_command);
+
     delete root;
     delete root2;
 } // initCommandsInfo
@@ -2163,18 +2177,19 @@ void CommandManager::process_queue(Context& context)
 {
     std::string msg = "";
     int mask = get_queue_mask(context.m_argv[0]);
-    for (int x = QM_START; x < QM_END; x <<= 1)
+
+    forAllQueuesInMask(mask, [&](int x)
     {
-        if (mask & x)
-        {
-            auto& queue = get_queue(x);
-            msg += StringUtils::insertValues("%s (size = %d):",
-                get_queue_name(x), (int)queue.size());
-            for (std::shared_ptr<Filter>& s: queue)
-                msg += " " + s->toString();
-            msg += "\n";
-        }
-    }
+        auto& queue = get_queue(x);
+
+        msg += StringUtils::insertValues("%s (size = %d):",
+            get_queue_name(x), (int)queue.size());
+
+        for (std::shared_ptr<Filter>& s: queue)
+            msg += " " + s->toString();
+        msg += "\n";
+    });
+
     msg.pop_back();
     context.say(msg);
 } // process_queue
@@ -2242,31 +2257,23 @@ void CommandManager::process_queue_push(Context& context)
 
     std::string msg = "";
 
-    for (int x = QM_START; x < QM_END; x <<= 1)
+    forAllQueuesInMask(mask, [&](int x)
     {
-        if (mask & x)
-        {
-            if (mask & QM_ALL_KART_QUEUES)
-            {
-                // TODO Make sure to update the next branch too; unite them somehow?
-                add_to_queue<KartFilter>(x, mask, to_front, filter_text);
-            }
-            else
-            {
-                // TODO Make sure to update the previous branch too; unite them somehow?
-                add_to_queue<TrackFilter>(x, mask, to_front, filter_text);
-            }
+        // TODO: Make sure to update both branches if at all
+        if (mask & QM_ALL_KART_QUEUES)
+            add_to_queue<KartFilter>(x, mask, to_front, filter_text);
+        else
+            add_to_queue<TrackFilter>(x, mask, to_front, filter_text);
 
-            msg += StringUtils::insertValues(
-                    "Pushed { %s } to the %s of %s, current queue size: %d",
-                    filter_text.c_str(),
-                    (to_front ? "front" : "back"),
-                    get_queue_name(x).c_str(),
-                    get_queue(x).size()
-            );
-            msg += "\n";
-        }
-    }
+        msg += StringUtils::insertValues(
+                "Pushed { %s } to the %s of %s, current queue size: %d",
+                filter_text.c_str(),
+                (to_front ? "front" : "back"),
+                get_queue_name(x).c_str(),
+                get_queue(x).size()
+        );
+        msg += "\n";
+    });
 
     msg.pop_back();
     Comm::sendStringToAllPeers(msg);
@@ -2282,42 +2289,41 @@ void CommandManager::process_queue_pop(Context& context)
     int mask = get_queue_mask(argv[0]);
     bool from_back = (argv[1] == "pop_back");
 
-    for (int x = QM_START; x < QM_END; x <<= 1)
+    forAllQueuesInMask(mask, [&](int x)
     {
-        if (mask & x)
+        int another = another_cyclic_queue(x);
+
+        if (get_queue(x).empty())
         {
-            int another = another_cyclic_queue(x);
-            if (get_queue(x).empty()) {
-                msg += "The " + get_queue_name(x) + " was empty before.\n";
-            }
-            else
-            {
-                auto object = (from_back ? get_queue(x).back() : get_queue(x).front());
-                msg += "Popped " + object->toString()
-                    + " from the " + (from_back ? "back" : "front") + " of the "
-                    + get_queue_name(x) + ",";
-                if (from_back)
-                {
-                    get_queue(x).pop_back();
-                }
-                else
-                {
-                    get_queue(x).pop_front();
-                }
-                if (another >= QM_START && !(mask & another))
-                {
-                    // here you have to pop from FRONT and not back because it
-                    // was pushed to the front - see process_queue_push
-                    auto& q = get_queue(another);
-                    if (!q.empty() && q.front()->isPlaceholder())
-                        q.pop_front();
-                }
-                msg += " current queue size: "
-                    + std::to_string(get_queue(x).size());
-                msg += "\n";
-            }
+            msg += StringUtils::insertValues(
+                "The %s was empty before.\n", get_queue_name(x).c_str());
+            return;
         }
-    }
+
+        auto object = (from_back ? get_queue(x).back() : get_queue(x).front());
+        msg += StringUtils::insertValues("Popped %s from the %s of the %s,",
+            object->toString().c_str(),
+            (from_back ? "back" : "front"),
+            get_queue_name(x).c_str()
+        );
+
+        if (from_back)
+            get_queue(x).pop_back();
+        else
+            get_queue(x).pop_front();
+
+        if (another >= QM_START && !(mask & another))
+        {
+            // here you have to pop from FRONT and not back because it
+            // was pushed to the front - see process_queue_push
+            auto& q = get_queue(another);
+            if (!q.empty() && q.front()->isPlaceholder())
+                q.pop_front();
+        }
+        msg += StringUtils::insertValues(" current queue size: %s\n",
+            get_queue(x).size());
+    });
+
     msg.pop_back();
     Comm::sendStringToAllPeers(msg);
     getLobby()->updatePlayerList();
@@ -2328,24 +2334,22 @@ void CommandManager::process_queue_clear(Context& context)
 {
     int mask = get_queue_mask(context.m_argv[0]);
     std::string msg = "";
-    for (int x = QM_START; x < QM_END; x <<= 1)
+    forAllQueuesInMask(mask, [&](int x)
     {
-        if (mask & x)
-        {
-            int another = another_cyclic_queue(x);
-            msg += StringUtils::insertValues(
-                "The " + get_queue_name(x) + " is now empty (previous size: %d)",
-                (int)get_queue(x).size()) + "\n";
-            get_queue(x).clear();
+        int another = another_cyclic_queue(x);
 
-            if (another >= QM_START && !(mask & another))
-            {
-                auto& q = get_queue(another);
-                while (!q.empty() && q.front()->isPlaceholder())
-                    q.pop_front();
-            }
+        msg += StringUtils::insertValues(
+            "The " + get_queue_name(x) + " is now empty (previous size: %d)",
+            (int)get_queue(x).size()) + "\n";
+        get_queue(x).clear();
+
+        if (another >= QM_START && !(mask & another))
+        {
+            auto& q = get_queue(another);
+            while (!q.empty() && q.front()->isPlaceholder())
+                q.pop_front();
         }
-    }
+    });
     msg.pop_back();
     Comm::sendStringToAllPeers(msg);
     getLobby()->updatePlayerList();
@@ -2364,28 +2368,26 @@ void CommandManager::process_queue_shuffle(Context& context)
     // we don't have to do anything with placeholders for the corresponding
     // cyclic queue, BUT we have to not shuffle the placeholders in the
     // current queue itself
-    for (int x = QM_START; x < QM_END; x <<= 1)
+    forAllQueuesInMask(mask, [&](int x)
     {
-        if (mask & x)
+        auto& queue = get_queue(x);
+        // As the placeholders can be only at the start of a queue,
+        // let's just do a binary search - in case there are many placeholders
+        int L = -1;
+        int R = queue.size();
+        int mid;
+        while (R - L > 1)
         {
-            auto& queue = get_queue(x);
-            // As the placeholders can be only at the start of a queue,
-            // let's just do a binary search - in case there are many placeholders
-            int L = -1;
-            int R = queue.size();
-            int mid;
-            while (R - L > 1)
-            {
-                mid = (L + R) / 2;
-                if (queue[mid]->isPlaceholder())
-                    L = mid;
-                else
-                    R = mid;
-            }
-            std::shuffle(queue.begin() + R, queue.end(), g);
-            msg += "The " + get_queue_name(x) + " is now shuffled\n";
+            mid = (L + R) / 2;
+            if (queue[mid]->isPlaceholder())
+                L = mid;
+            else
+                R = mid;
         }
-    }
+        std::shuffle(queue.begin() + R, queue.end(), g);
+        msg += "The " + get_queue_name(x) + " is now shuffled\n";
+    });
+
     msg.pop_back();
     Comm::sendStringToAllPeers(msg);
     getLobby()->updatePlayerList();
