@@ -386,7 +386,7 @@ int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemSt
                       ((rules_curr & ItemPolicyRules::IPT_FORBID_NITRO) && (is_nitro || was_nitro));
 
     int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
-    if (fuel_mode == 0 && orig_type==ItemState::ItemType::ITEM_TYRE_CHANGE && payload == 123) // If we're a fuel tyre changer and fuel is off, don't spawn
+    if (fuel_mode == 0 && curr_type==ItemState::ItemType::ITEM_TYRE_CHANGE && payload == 123) // If we're a fuel tyre changer and fuel is off, don't spawn
        forbid_curr = true;
 
 
