@@ -29,7 +29,7 @@
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/lobby_gp_manager.hpp"
-#include "utils/gp_scoring.hpp"
+#include "utils/scoring/scoring.hpp"
 #include "utils/crown_manager.hpp"
 #include "network/game_setup.hpp"
 #include "network/database_connector.hpp"
