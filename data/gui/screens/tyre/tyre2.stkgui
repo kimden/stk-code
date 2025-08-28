@@ -45,7 +45,7 @@
                     <spacer width="3%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="For tyres, a bar plot is shown in the bottom of the screen, with two categories: traction life (left, red bar) and turning life (right, blue bar). Traction impacts topspeed and acceleration.
+                            text="For tyres, a bar plot is shown in the bottom of the screen, with two categories: traction life (left, red bar) and turning life (right, green bar). Traction impacts topspeed and acceleration.
 
 For fuel, another purple bar appears close to the speed-o-meter."/>
                 </div>
