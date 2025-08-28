@@ -44,6 +44,8 @@
 namespace TyreUtils
 {
     std::string getStringFromCompound(unsigned c, bool shortver) {
+        if (c == 123) return std::string("FUEL");
+
         const KartProperties *kp = kart_properties_manager->getKart("tux");
 
         std::vector<std::string> names;
