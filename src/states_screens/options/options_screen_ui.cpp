@@ -24,9 +24,12 @@
 #include "graphics/irr_driver.hpp"
 #include "items/attachment_manager.hpp"
 #include "items/powerup_manager.hpp"
+#include "karts/kart_properties.hpp"
+#include "karts/kart_properties_manager.hpp"
 #include "modes/world.hpp"
 #include "states_screens/dialogs/message_dialog.hpp"
 #include "states_screens/main_menu_screen.hpp"
+#include "utils/tyre_utils.hpp"
 
 #include <IrrlichtDevice.h>
 
@@ -125,6 +128,42 @@ void OptionsScreenUI::loadedFromFile()
 }   // loadedFromFile
 
 // -----------------------------------------------------------------------------
+
+static unsigned realToSpinner(unsigned n) {
+    int tyre_spinner_value = n;
+    switch (n) {
+    case 0:
+        return 0;
+        break;
+    case 1:
+        return 1;
+        break;
+    case 2:
+        return 0;
+        break;
+    case 3:
+        return 0;
+        break;
+    default:
+        const KartProperties *kp = kart_properties_manager->getKart("tux");
+        const unsigned compound_number = kp->getTyresCompoundNumber();
+        auto compound_colors = kp->getTyresDefaultColor();
+        unsigned target_tyre = n-3;
+
+        unsigned valid_count = 0;
+        for (int i = 0; i < compound_number; i++) {
+            if (compound_colors[i] > -0.5f)
+                valid_count += 1;
+            if (target_tyre == i+1) {
+                return valid_count+1;
+                break;
+            }
+        }
+
+        return n-2;
+        break;
+    }
+}
 
 void OptionsScreenUI::init()
 {
@@ -242,7 +281,27 @@ void OptionsScreenUI::init()
 
     GUIEngine::SpinnerWidget* tyre_selection_mode = getWidget<GUIEngine::SpinnerWidget>("tyre_selection_mode");
     assert( tyre_selection_mode != NULL );
-    tyre_selection_mode->setValue(UserConfigParams::m_tyre_selection_mode);
+
+    core::stringw label = _("RANDOM TYRE");
+    tyre_selection_mode->addLabel(label);
+    tyre_selection_mode->setValue(label);
+
+    label = _("BASED ON RACE LENGTH");
+    tyre_selection_mode->addLabel(label);
+
+    const KartProperties *kp = kart_properties_manager->getKart("tux");
+    const unsigned compound_number = kp->getTyresCompoundNumber();
+    auto compound_colors = kp->getTyresDefaultColor();
+
+    for (int i = 0; i < compound_number; i++) {
+        if (compound_colors[i] > -0.5f) {
+            std::string name = TyreUtils::getStringFromCompound(i+1, false);
+            label = _("FORCED: %s", name.c_str());
+            tyre_selection_mode->addLabel(label);
+        }
+    }
+
+    tyre_selection_mode->setValue(realToSpinner(UserConfigParams::m_tyre_selection_mode));
 
     CheckBoxWidget* fps = getWidget<CheckBoxWidget>("showfps");
     assert( fps != NULL );
@@ -481,7 +540,28 @@ void OptionsScreenUI::eventCallback(Widget* widget, const std::string& name, con
     {
         GUIEngine::SpinnerWidget* tyre_selection_mode = getWidget<GUIEngine::SpinnerWidget>("tyre_selection_mode");
         assert( tyre_selection_mode != NULL );
-        UserConfigParams::m_tyre_selection_mode = tyre_selection_mode->getValue();
+
+        unsigned mode = 0;
+        int tyre_spinner_value = tyre_selection_mode->getValue();
+        if (tyre_spinner_value <= 1) {
+            mode = tyre_spinner_value; // Random tyre
+        } else {
+            const KartProperties *kp = kart_properties_manager->getKart("tux");
+            const unsigned compound_number = kp->getTyresCompoundNumber();
+            auto compound_colors = kp->getTyresDefaultColor();
+
+            unsigned valid_count = 0;
+            for (int i = 0; i < compound_number; i++) {
+                if (compound_colors[i] > -0.5f)
+                    valid_count += 1;
+                if (tyre_spinner_value-1 == valid_count) {
+                    mode = i+4;
+                    break;
+                }
+            }
+        }
+        UserConfigParams::m_tyre_selection_mode = mode;
+
     }
     else if (name == "showfps")
     {
