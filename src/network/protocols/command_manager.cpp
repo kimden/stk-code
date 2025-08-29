@@ -124,13 +124,13 @@ namespace
     }   // forAllQueuesInMask
     //-------------------------------------------------------------------------
 
-    void restoreCmdByArgv(std::string& cmd,
+    void restoreCmdFromArgv(std::string& cmd,
             std::vector<std::string>& argv, char c, char d, char e, char f,
             int from = 0)
     {
         cmd = StringUtils::quoteEscapeArray(argv.begin() + from, argv.end(),
             c, d, e, f);
-    }   // restoreCmdByArgv
+    }   // restoreCmdFromArgv
     //-------------------------------------------------------------------------
     
 
@@ -531,7 +531,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
     argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
     if (argv.empty())
         return;
-    restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    StringUtils::restoreCmdFromArgv(cmd, argv, ' ', '"', '"', '\\');
 
     permissions = getLobby()->getPermissions(peer);
     voting = false;
@@ -554,7 +554,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 argv = StringUtils::splitQuoted(cmd, ' ', '"', '"', '\\');
                 if (argv.empty())
                     return;
-                restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+                StringUtils::restoreCmdFromArgv(cmd, argv, ' ', '"', '"', '\\');
                 voting = m_user_saved_voting[username];
                 target_peer = m_user_saved_acting_peer[username];
                 target_peer_strong = target_peer.lock();
@@ -728,7 +728,7 @@ void CommandManager::handleCommand(Event* event, std::shared_ptr<STKPeer> peer)
                 {
                     std::string new_cmd = p.first + " " + p.second;
                     auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
-                    restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
+                    StringUtils::restoreCmdFromArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                     std::string msg2 = StringUtils::insertValues(
                             "Command \"/%s\" has been successfully voted",
                             new_cmd.c_str());
@@ -789,7 +789,7 @@ void CommandManager::update()
             {
                 std::string new_cmd = p.first + " " + p.second;
                 auto new_argv = StringUtils::splitQuoted(new_cmd, ' ', '"', '"', '\\');
-                restoreCmdByArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
+                StringUtils::restoreCmdFromArgv(new_cmd, new_argv, ' ', '"', '"', '\\');
                 std::string msg = StringUtils::insertValues(
                         "Command \"/%s\" has been successfully voted",
                         new_cmd.c_str());
@@ -2216,7 +2216,7 @@ void CommandManager::process_queue_push(Context& context)
         argv[2] = asset_manager->getRandomAddonMap();
 
     std::string filter_text = "";
-    restoreCmdByArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
+    restoreCmdFromArgv(filter_text, argv, ' ', '"', '"', '\\', 2);
 
     // Fix typos only if track queues are used (majority of cases anyway)
     // TODO: I don't know how to fix typos for both karts and tracks
@@ -2837,7 +2837,7 @@ void CommandManager::process_scoring_assign(Context& context)
     auto& argv = context.m_argv;
 
     std::string cmd2;
-    restoreCmdByArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
+    StringUtils::restoreCmdFromArgv(cmd2, argv, ' ', '"', '"', '\\', 1);
     if (getGPManager()->trySettingGPScoring(cmd2))
         Comm::sendStringToAllPeers("Scoring set to \"" + cmd2 + "\"");
     else
@@ -3734,13 +3734,16 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
 {
     if (!acting_peer.get()) // voted
         return false;
+
     std::string username = "";
     if (peer->hasPlayerProfiles())
         username = peer->getMainName();
+
     auto it = m_user_last_correct_argument.find(username);
     if (it != m_user_last_correct_argument.end() &&
             std::make_pair(idx, subidx) <= it->second)
         return false;
+
     std::string text = argv[idx];
     std::string prefix = "";
     std::string suffix = "";
@@ -3750,6 +3753,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
         suffix = text.substr(substr_r);
         text = text.substr(substr_l, substr_r - substr_l);
     }
+
     auto closest_commands = stf.getClosest(text, top, case_sensitive);
     if (closest_commands.empty())
     {
@@ -3786,12 +3790,12 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
         }
         for (unsigned i = 0; i < closest_commands.size(); ++i) {
             argv[idx] = prefix + closest_commands[i].first + suffix;
-            restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+            StringUtils::restoreCmdFromArgv(cmd, argv, ' ', '"', '"', '\\');
             m_user_command_replacements[username].push_back(cmd);
             response += "\ntype /" + std::to_string(i + 1) + " to choose \"" + closest_commands[i].first + "\"";
         }
         argv[idx] = initial_argument;
-        restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        StringUtils::restoreCmdFromArgv(cmd, argv, ' ', '"', '"', '\\');
         Comm::sendStringToPeer(peer, response);
         return true;
     }
@@ -3799,7 +3803,7 @@ bool CommandManager::hasTypo(std::shared_ptr<STKPeer> acting_peer, std::shared_p
     if (!dont_replace)
     {
         argv[idx] = prefix + closest_commands[0].first + suffix; // converts case or regex
-        restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+        StringUtils::restoreCmdFromArgv(cmd, argv, ' ', '"', '"', '\\');
     }
     return false;
 } // hasTypo
@@ -3891,7 +3895,7 @@ void CommandManager::shift(std::string& cmd, std::vector<std::string>& argv,
 
     m_user_last_correct_argument[username].first -= count;
 
-    restoreCmdByArgv(cmd, argv, ' ', '"', '"', '\\');
+    StringUtils::restoreCmdFromArgv(cmd, argv, ' ', '"', '"', '\\');
 }   // shift
 //-----------------------------------------------------------------------------
 
