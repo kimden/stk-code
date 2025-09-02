@@ -27,7 +27,7 @@
 #include "network/network_string.hpp"
 #include "network/protocols/server_lobby.hpp"
 #include "network/server_config.hpp"
-#include "utils/gp_scoring.hpp"
+#include "utils/scoring/scoring.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/team_manager.hpp"
 
