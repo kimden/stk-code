@@ -58,8 +58,12 @@ namespace TyreUtils
         }
 
         // Compounds are 1-indexed
-        if (names.size() >= c) return names[c-1];
-        else {
+        if (c == 0) {
+            std::string ret = "?0";
+            return ret;
+        } else if (names.size() >= c) {
+            return names[c-1];
+        } else {
             std::string ret = "?";
             ret = ret + std::to_string(c);
             return ret;
