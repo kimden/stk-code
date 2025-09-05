@@ -654,8 +654,8 @@ void STKHost::setPublicAddress(short family)
             stunv6_map[s.first] = 0;
     }
 
-    auto& stun_map = family == AF_INET ? UserConfigParams::m_stun_servers_v4 :
-        UserConfigParams::m_stun_servers;
+    auto& stun_map = family == AF_INET ? stunv4_map :
+        stunv6_map;
     std::vector<std::pair<std::string, uint32_t> > untried_server;
     for (auto& p : stun_map)
         untried_server.push_back(p);
