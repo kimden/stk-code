@@ -29,6 +29,7 @@
 
 #include "graphics/abstract_renderer.hpp"
 #include "graphics/gl_headers.hpp"
+#include "graphics/material.hpp"
 #include "graphics/wind.hpp"
 #include "io/file_manager.hpp"
 #include "utils/aligned_array.hpp"
@@ -245,6 +246,11 @@ public:
     scene::ISceneNode    *addBillboard(const core::dimension2d< f32 > size,
                                        const std::string& tex_name,
                                        scene::ISceneNode* parent=NULL);
+
+    scene::ISceneNode    *addBillboard(const core::dimension2d< f32 > size,
+                                       Material *m,
+                                       scene::ISceneNode* parent=NULL);
+
     scene::IParticleSystemSceneNode
                          *addParticleNode(bool default_emitter=true);
     scene::ISceneNode    *addSkyBox(const std::vector<video::ITexture*> &texture_names,

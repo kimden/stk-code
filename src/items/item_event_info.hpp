@@ -83,10 +83,12 @@ public:
      *  need to encode the new item type.
      */
     ItemEventInfo(int ticks, ItemState::ItemType type, int index,
-                  int kart_id, const Vec3 &xyz, const Vec3 &normal)
+                  int kart_id, const Vec3 &xyz, const Vec3 &normal, int compound, int stop_time)
         : m_ticks(ticks), m_index(index), m_kart_id(kart_id), m_xyz(xyz),
           m_normal(normal), m_ticks_till_return(0)
     {
+        m_compound = compound;
+        m_stop_time = stop_time;
         m_type = IEI_NEW;
     }   // ItemEventInfo(new item)
 

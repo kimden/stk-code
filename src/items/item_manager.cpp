@@ -398,7 +398,11 @@ void ItemManager::collectedItem(ItemState *item, Kart *kart)
     item->collected(kart);
     // Inform the world - used for Easter egg hunt
     World::getWorld()->collectedItem(kart, item);
+
     kart->collectedItem(item);
+
+    if (item->m_type == ItemState::ItemType::ITEM_BONUS_BOX)
+        item->respawnBonusBox(item->getItemId());
 }   // collectedItem
 
 //-----------------------------------------------------------------------------

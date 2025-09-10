@@ -100,7 +100,8 @@ void NetworkItemManager::collectedItem(ItemState *item, Kart *kart)
         m_item_events.getData().emplace_back(World::getWorld()->getTicksSinceStart(),
                                              item->getItemId(),
                                              kart->getWorldKartId(),
-                                             item->getTicksTillReturn(), item->m_compound, item->m_stop_time);
+                                             item->getTicksTillReturn(),
+                                             item->m_compound, item->m_stop_time);
         m_item_events.unlock();
     }
     else
@@ -156,7 +157,7 @@ Item* NetworkItemManager::dropNewItem(ItemState::ItemType type,
                                          type, item->getItemId(),
                                          kart->getWorldKartId(),
                                          item->getXYZ(),
-                                         item->getNormal());
+                                         item->getNormal(), item->m_compound, item->m_stop_time);
     m_item_events.unlock();
     return item;
 }   // dropNewItem
@@ -391,6 +392,8 @@ void NetworkItemManager::restoreState(BareNetworkString *buffer, int count)
 
             assert(m_confirmed_state[index] != NULL);
             m_confirmed_state[index]->collected(kart); // Collect item
+            if (m_confirmed_state[index]->getType() == ItemState::ItemType::ITEM_BONUS_BOX) // Respawn it if it's a bonus box
+                m_confirmed_state[index]->respawnBonusBox(m_confirmed_state[index]->getItemId()); // Collect item
             // Reset till ticks return from state (required for eating banana with bomb)
             int ttr = iei.getTicksTillReturn();
             m_confirmed_state[index]->setTicksTillReturn(ttr);
@@ -406,7 +409,7 @@ void NetworkItemManager::restoreState(BareNetworkString *buffer, int count)
             Kart *kart = world->getKart(iei.getKartId());
             ItemState *is = new ItemState(iei.getNewItemType(), kart,
                                           iei.getIndex()             );
-            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), 0, 0);
+            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), iei.m_compound, iei.m_stop_time);
             if (m_switch_ticks >= 0)
             {
                 ItemState::ItemType new_type = m_switch_to[is->getType()];

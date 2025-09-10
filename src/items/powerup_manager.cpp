@@ -926,24 +926,15 @@ PowerupManager::PowerupType PowerupManager::getRandomPowerup(unsigned int pos,
     auto& stk_config = STKConfig::get();
 
     // Prevents some items early on:
-    // - Cakes right after the start destroy too much and too easily
-    // - The small gap between the karts ahead and the karts in the back makes the
-    //   basketball, the parachute and the nitro-hack unwelcome
-    // - The swatter and the bowling ball make the start too random
+    // - The small gap between the karts ahead and the karts in the back makes the basketball unwelcome
     if (World::getWorld() && 
         stk_config->ticks2Time(World::getWorld()->getTicksSinceStart()) <
                                       stk_config->m_limited_items_timeout)
     {
-        if (powerup == POWERUP_CAKE || powerup == POWERUP_RUBBERBALL ||
-            powerup == POWERUP_PARACHUTE || powerup == POWERUP_SUDO)
+        if (powerup == POWERUP_RUBBERBALL)
         {
             powerup = POWERUP_ZIPPER;
             *n = 1;            
-        }
-        else if (powerup == POWERUP_SWATTER || powerup == POWERUP_BOWLING)
-        {
-            powerup = POWERUP_BUBBLEGUM;
-            *n = 1;        
         }
     }
     return (PowerupType)powerup;

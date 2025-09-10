@@ -1517,6 +1517,32 @@ scene::ISceneNode *IrrDriver::addBillboard(const core::dimension2d< f32 > size,
     m->setMaterialProperties(&(node->getMaterial(0)), NULL);
     return node;
 }   // addBillboard
+// ----------------------------------------------------------------------------
+/** Adds a billboard node to scene.
+ */
+scene::ISceneNode *IrrDriver::addBillboard(const core::dimension2d< f32 > size,
+                                           Material *m,
+                                           scene::ISceneNode* parent)
+{
+    scene::IBillboardSceneNode* node;
+    node = m_scene_manager->addBillboardSceneNode(parent, size);
+
+    video::ITexture* tex = m->getTexture(true/*srgb*/,
+        m->getShaderName() == "additive" ||
+        m->getShaderName() == "alphablend" ?
+        true : false/*premul_alpha*/);
+
+    assert(node->getMaterialCount() > 0);
+    node->setMaterialTexture(0, tex);
+    if (!(m->getShaderName() == "additive" ||
+        m->getShaderName() == "alphablend"))
+    {
+        // Alpha test for billboard otherwise
+        m->setShaderName("alphatest");
+    }
+    m->setMaterialProperties(&(node->getMaterial(0)), NULL);
+    return node;
+}   // addBillboard
 
 // ----------------------------------------------------------------------------
 /** Creates a quad mesh with a given material.

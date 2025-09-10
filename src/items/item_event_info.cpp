@@ -45,7 +45,9 @@ ItemEventInfo::ItemEventInfo(BareNetworkString *buffer, int *count)
         {
             m_xyz = buffer->getVec3();
             m_normal = buffer->getVec3();
-            *count -= 24;
+            m_compound = buffer->getUInt8();
+            m_stop_time = buffer->getUInt8();
+            *count -= 26;
         }
         else   // IEI_COLLECT
         {
@@ -78,6 +80,8 @@ void ItemEventInfo::saveState(BareNetworkString *buffer)
         {
             buffer->add(m_xyz);
             buffer->add(m_normal);
+            buffer->addUInt8(m_compound);
+            buffer->addUInt8(m_stop_time);
         }
         else if (m_type == IEI_COLLECT) {
             buffer->addUInt16(m_ticks_till_return);

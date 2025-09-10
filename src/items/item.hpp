@@ -30,6 +30,9 @@
 #include "utils/log.hpp"
 #include "utils/no_copy.hpp"
 #include "utils/vec3.hpp"
+#include "graphics/stk_text_billboard.hpp"
+
+#include "items/powerup_manager.hpp"
 
 #include <line3d.h>
 
@@ -160,6 +163,11 @@ public:
     void setDisappearCounter();
     int m_compound;
     int m_stop_time;
+    void respawnBonusBox(unsigned itemid);
+
+    /** The text displayed above this itemState*/
+    STKTextBillboard *m_tb;
+
     virtual void collected(const Kart *kart);
     // ------------------------------------------------------------------------
     virtual ~ItemState() {}
@@ -216,6 +224,8 @@ public:
             setType(m_original_type);
             m_original_type = ITEM_NONE;
         }
+        if (m_type == ITEM_BONUS_BOX || m_type == ITEM_BANANA) // bananas also get an initial powerup in case they get switched
+            respawnBonusBox(getItemId());
     }   // reset
 
     // -----------------------------------------------------------------------
@@ -352,6 +362,11 @@ private:
 
     /** Billboard that shows when the item is about to respawn */
     scene::ISceneNode* m_icon_node;
+
+    /** Billboard that the next powerup for bonus boxes */
+    scene::ISceneNode* m_powerup_node;
+    /** stores the powerup to draw above item boxes  */
+    int m_graphical_powerup;
 
     /** Stores if the item was available in the previously rendered frame. */
     bool m_was_available_previously;
