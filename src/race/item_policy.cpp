@@ -296,6 +296,8 @@ std::string ItemPolicy::toString() {
         ss << m_policy_sections[i].m_items_per_lap << " ";
         ss << m_policy_sections[i].m_progressive_cap << " ";
         ss << m_policy_sections[i].m_virtual_pace_gaps << " ";
+        ss << m_policy_sections[i].m_deg_mult << " ";
+        ss << m_policy_sections[i].m_fuel_mult << " ";
         ss << m_policy_sections[i].m_possible_types.size() << " ";
         for (unsigned j = 0; j < m_policy_sections[i].m_possible_types.size(); j++) {
             ss << PowerupManager::getPowerupAsString(m_policy_sections[i].m_possible_types[j])
