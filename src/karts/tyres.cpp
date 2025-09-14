@@ -312,6 +312,19 @@ void Tyres::reset() {
     m_acceleration = 0.0f;
     m_time_elapsed = 0.0f;
     m_debug_cycles = 0;
+
+
+    // Deduct starting tyre from allocation for kart if possible
+    if (m_reset_compound && m_kart->m_tyres_queue.size() >= m_current_compound ) {
+        if (m_kart->m_tyres_queue[m_current_compound-1] > 0) {
+            m_kart->m_tyres_queue[m_current_compound-1] -= 1;
+        } else if (m_kart->m_tyres_queue[m_current_compound-1] == 0) { // Tried to start with forbidden tyre, apply penalty
+            m_current_life_traction *= 0.5;
+            m_current_life_turning *= 0.5;
+        } else { // Tyre alloc is <= -1, which means infinite, nothing to do
+            ;
+        }
+    }
 }
 
 
