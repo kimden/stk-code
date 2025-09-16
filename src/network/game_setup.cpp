@@ -111,11 +111,17 @@ void GameSetup::addServerInfo(NetworkString* ns)
     auto sl = LobbyProtocol::get<ServerLobby>();
     assert(sl);
 
-    ns->addUInt8(std::get<0>(RaceManager::get()->getFuelAndQueueInfo()));
+    auto fuel_and_queue = RaceManager::get()->getFuelAndQueueInfo();
+    int fuel_mode = std::get<0>(fuel_and_queue);
+    auto alloc = std::get<1>(fuel_and_queue);
+    int wildcards = std::get<2>(fuel_and_queue);
 
-    ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[0]);
-    ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[1]);
-    ns->addUInt8((std::get<1>(RaceManager::get()->getFuelAndQueueInfo()))[2]);
+    ns->addUInt8(fuel_mode);
+
+    ns->addUInt8(alloc[1]);
+    ns->addUInt8(alloc[2]);
+    ns->addUInt8(alloc[3]);
+    ns->addUInt8(wildcards);
 
     ns->addUInt8((uint8_t)sl->getDifficulty())
         .addUInt8((uint8_t)ServerConfig::m_server_max_players)

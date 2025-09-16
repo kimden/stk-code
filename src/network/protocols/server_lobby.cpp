@@ -3817,7 +3817,9 @@ void ServerLobby::handleServerConfiguration(Event* event)
         compound_amount[1] = data.getUInt8()-1;
         compound_amount[2] = data.getUInt8()-1;
 
-        RaceManager::get()->setFuelAndQueueInfo(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2]);
+        int wildcards = data.getUInt8();
+
+        RaceManager::get()->setFuelAndQueueInfo(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards);
 
         int received_new_game_mode = data.getUInt8();
         if (received_new_game_mode != new_game_mode) {

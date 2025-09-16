@@ -109,6 +109,11 @@ class TrackInfoScreen : public GUIEngine::Screen,
     /** The label besides the hard alloc spinner. */
     GUIEngine::LabelWidget* m_allowed_compound_3_label;
 
+    /** Spinner for tyre wildcards*/
+    GUIEngine::SpinnerWidget* m_allowed_wildcards_spinner;
+    /** The label besides the wildcards spinner. */
+    GUIEngine::LabelWidget* m_allowed_wildcards_label;
+
 
     /** Spinner for number of AI karts. */
     GUIEngine::SpinnerWidget* m_ai_kart_spinner;

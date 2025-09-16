@@ -324,7 +324,7 @@ private:
     std::vector<RemoteKartInfo>      m_player_karts;
     std::vector<std::string>         m_tracks;
     int m_fuel_info;
-    std::array<int, 3> m_compound_limits;
+    int m_wildcards;
     std::vector<int> m_tyres_queue_info;
 
     /** Number of local players. */
@@ -445,9 +445,9 @@ public:
      */
     void setTrack(const std::string& track);
 
-    void setFuelAndQueueInfo(int fuel_mode, int allowed_1, int allowed_2, int allowed_3);
+    void setFuelAndQueueInfo(int fuel_mode, int allowed_1, int allowed_2, int allowed_3, int wildcards);
 
-    std::tuple<int, std::array<int, 3>, std::vector<int>> getFuelAndQueueInfo(void);
+    std::tuple<int, std::vector<int>, int> getFuelAndQueueInfo(void);
 
 
     /** \brief Returns the kart with a given GP rank (or NULL if no such

@@ -57,6 +57,9 @@ private:
     GUIEngine::SpinnerWidget* m_allowed_compounds_3_spinner;
     GUIEngine::LabelWidget* m_allowed_compounds_3_text;
 
+    GUIEngine::SpinnerWidget* m_allowed_wildcards_spinner;
+    GUIEngine::LabelWidget* m_allowed_wildcards_text;
+
 
     GUIEngine::RibbonWidget* m_difficulty_widget;
     GUIEngine::RibbonWidget* m_game_mode_widget;

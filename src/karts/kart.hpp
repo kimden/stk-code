@@ -428,10 +428,10 @@ public:
     bool m_is_refueling;
     float m_target_refuel;
     Tyres *m_tyres;
-    //This variable in incremented in linear world.
-    /** Format of each tuple: age in laps, life turning, life traction, temperature
-        There can be multiple in the queue, and there's a queue for each compound*/
+
     std::vector<int> m_tyres_queue;
+    int m_wildcards;
+
     bool m_is_under_tme_ruleset;
     bool m_is_disqualified;
     float m_initial_color;

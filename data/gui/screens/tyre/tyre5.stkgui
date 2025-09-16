@@ -59,7 +59,7 @@ In online mode: click the wrench icon then you'll find a setting panel."/>
                     <spacer width="11%" height="100%"/>
                     <bubble proportion="1" height="100%"
                             I18N="In the help menu"
-                            text="For each compound: ''-1'' means infinite, ''0'' means no pit for the tyre type. Any other ''n'' number means the compound type can be pitted ''n'' times."/>
+                            text="For each compound: ''-1'' means infinite, ''0'' means no pit for the tyre type. Any other ''n'' number means the compound type can be pitted ''n'' times. ''Wildcards'' is the number of times you can pit for tyres even if it would normally result in a penalty."/>
                 </div>
                 <spacer height="1%" width="10"/>
                 <div width="100%" proportion="4" layout="horizontal-row">

@@ -156,10 +156,8 @@ RaceManager::RaceManager()
     setNumPlayers(0);
     setSpareTireKartNum(0);
     m_fuel_info = 0;
-    m_compound_limits[0] = 0;
-    m_compound_limits[1] = 0;
-    m_compound_limits[2] = 0;
-    m_tyres_queue_info = {};
+    m_wildcards = 0;
+    m_tyres_queue_info = {-1,-1,-1,-1,-1,-1,-1,-1,-1,0};
 
     setItemPolicy("normal");
 }   // RaceManager
@@ -361,7 +359,7 @@ void RaceManager::setTrack(const std::string& track)
     m_coin_target = 0;
 }   // setTrack
 
-void RaceManager::setFuelAndQueueInfo(int fuel, int amount_1, int amount_2, int amount_3)
+void RaceManager::setFuelAndQueueInfo(int fuel, int amount_1, int amount_2, int amount_3, int wildcard_amount)
 {
     printf("FUEL+ALLOC INFO WAS JUST SET:\n"
            "\t fuel        %d\n"
@@ -369,27 +367,24 @@ void RaceManager::setFuelAndQueueInfo(int fuel, int amount_1, int amount_2, int 
            "------\n\n",
            fuel, amount_1, amount_2, amount_3);
     m_fuel_info = fuel;
-
-    m_compound_limits[0] = amount_1;
-    m_compound_limits[1] = amount_2;
-    m_compound_limits[2] = amount_3;
+    m_wildcards = wildcard_amount;
 
     m_tyres_queue_info = {};
 
-    m_tyres_queue_info.push_back(0); // Empty compound 1
+    m_tyres_queue_info.push_back(-1); // Infinite compound 1
     m_tyres_queue_info.push_back(amount_1);
     m_tyres_queue_info.push_back(amount_2);
     m_tyres_queue_info.push_back(amount_3);
-    m_tyres_queue_info.push_back(0); // Empty compound 5
-    m_tyres_queue_info.push_back(0); // Empty compound 6
-    m_tyres_queue_info.push_back(0); // Empty compound 7
-    m_tyres_queue_info.push_back(0); // Empty compound 8
-    m_tyres_queue_info.push_back(0); // Empty compound 9
-    m_tyres_queue_info.push_back(0); // Empty compound 10 (This one's specially important, can't pit for the no-degradation tyre under any circumstances, only start with it!)
+    m_tyres_queue_info.push_back(-1); // Infinite compound 5
+    m_tyres_queue_info.push_back(-1); // Infinite compound 6
+    m_tyres_queue_info.push_back(-1); // Infinite compound 7
+    m_tyres_queue_info.push_back(-1); // Infinite compound 8
+    m_tyres_queue_info.push_back(-1); // Infinite compound 9
+    m_tyres_queue_info.push_back(0); // Empty compound 10 (Can't pit for the no-degradation tyre under any circumstances, only start with it!)
 }
 
-std::tuple<int, std::array<int, 3>, std::vector<int>> RaceManager::getFuelAndQueueInfo(void) {
-        return std::make_tuple(m_fuel_info, m_compound_limits, m_tyres_queue_info);
+std::tuple<int, std::vector<int>, int> RaceManager::getFuelAndQueueInfo(void) {
+        return std::make_tuple(m_fuel_info, m_tyres_queue_info, m_wildcards);
 }
 
 

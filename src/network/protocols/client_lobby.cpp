@@ -746,7 +746,9 @@ void ClientLobby::handleServerInfo(Event* event)
     compound_amount[1] = data.getUInt8()-1;
     compound_amount[2] = data.getUInt8()-1;
 
-    RaceManager::get()->setFuelAndQueueInfo(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2]);
+    int wildcards = data.getUInt8();
+
+    RaceManager::get()->setFuelAndQueueInfo(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards);
 
     uint8_t u_data;
     u_data = data.getUInt8();

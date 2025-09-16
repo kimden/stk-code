@@ -52,7 +52,7 @@ Tyres::Tyres(Kart *kart) {
     m_speed_fetching_period = 0.3f;
     m_speed_accumulation_limit = 6;
 
-    m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
+    m_kart->m_tyres_queue = std::get<1>(RaceManager::get()->getFuelAndQueueInfo());
 
     // Boilerplate to initialize all the m_c_xxx constants
     #include "karts/tyres_boilerplate.txt"
@@ -297,7 +297,8 @@ void Tyres::reset() {
     }
 
     if (m_reset_fuel) {
-        m_kart->m_tyres_queue = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
+        m_kart->m_tyres_queue = std::get<1>(RaceManager::get()->getFuelAndQueueInfo());
+        m_kart->m_wildcards = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
         m_current_fuel = m_c_fuel;
         m_high_fuel_demand = false;
     }
@@ -318,9 +319,14 @@ void Tyres::reset() {
     if (m_reset_compound && m_kart->m_tyres_queue.size() >= m_current_compound ) {
         if (m_kart->m_tyres_queue[m_current_compound-1] > 0) {
             m_kart->m_tyres_queue[m_current_compound-1] -= 1;
-        } else if (m_kart->m_tyres_queue[m_current_compound-1] == 0) { // Tried to start with forbidden tyre, apply penalty
-            m_current_life_traction *= 0.5;
-            m_current_life_turning *= 0.5;
+        } else if (m_kart->m_tyres_queue[m_current_compound-1] == 0) { // Tried to start with forbidden tyre
+            if (m_kart->m_wildcards > 0) { // One wildcard was spent, but do not penalize
+                m_kart->m_wildcards -= 1;
+            } else { // No wildcards available, penalize
+                m_current_life_traction *= 0.5;
+                m_current_life_turning *= 0.5;
+                m_kart->m_wildcards = 0;
+            }
         } else { // Tyre alloc is <= -1, which means infinite, nothing to do
             ;
         }
@@ -336,6 +342,7 @@ void Tyres::saveState(BareNetworkString *buffer)
     buffer->addFloat(m_kart->m_target_refuel);
     buffer->addUInt8(m_current_compound);
     buffer->addUInt8(m_lap_count);
+    buffer->addUInt8(m_kart->m_wildcards);
     buffer->addUInt8(m_kart->m_tyres_queue.size());
     for (long unsigned i = 0; i < m_kart->m_tyres_queue.size(); i++) {
         buffer->addUInt8(m_kart->m_tyres_queue[i]+1);
@@ -350,6 +357,7 @@ void Tyres::rewindTo(BareNetworkString *buffer)
     m_kart->m_target_refuel = buffer->getFloat();
     m_current_compound = buffer->getUInt8();
     m_lap_count = buffer->getUInt8();
+    m_kart->m_wildcards = buffer->getUInt8();
     unsigned queue_size = buffer->getUInt8();
     std::vector<int> tmpvec;
     for (unsigned i = 0; i < queue_size; i++) {
@@ -492,10 +500,13 @@ void Tyres::commandChange(int compound, int time) {
             }
 
             if (should_disqualify) {
-                /*Penalty for pitting with no available compound*/
-                m_kart->m_is_disqualified = true;
-                m_current_life_turning *= 0.5;
-                m_current_life_traction *= 0.5;
+                if (m_kart->m_wildcards > 0) { // Spend a wildcard and don't penalize
+                    ;
+                } else { /*Penalty for pitting with no available compound*/ 
+                    m_kart->m_is_disqualified = true;
+                    m_current_life_turning *= 0.5;
+                    m_current_life_traction *= 0.5;
+                }
             }
         }
     }

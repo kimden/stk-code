@@ -86,6 +86,16 @@
                 </div>
             </div>
 
+            <div width="100%" height="fit" layout="horizontal-row">
+                <div width="33%" height="fit" layout="horizontal-row">
+                    <div proportion="3" height="fit" layout="horizontal-row">
+                        <spinner id="allowed-wildcards-spinner" width="100%" min_value="0" max_value="10" align="center"
+                                 wrap_around="true" />
+                    </div>
+                    <label id="allowed-wildcards-label" proportion="3" I18N="In the track info screen" text="Wildcards:" text_align="left" />
+                </div>
+            </div>
+
             <spacer height="1%" width="20"/>
 
 

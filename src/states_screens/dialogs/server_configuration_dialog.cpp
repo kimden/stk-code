@@ -77,6 +77,13 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_allowed_compounds_3_spinner->setVisible(true);
     m_allowed_compounds_3_text->setVisible(true);
 
+    m_allowed_wildcards_text = getWidget<LabelWidget>("allowed-wildcards-label");
+    assert(m_allowed_wildcards_text != NULL);
+    m_allowed_wildcards_spinner = getWidget<SpinnerWidget>("allowed-wildcards-spinner");
+    assert(m_allowed_wildcards_spinner != NULL);
+    m_allowed_wildcards_spinner->setVisible(true);
+    m_allowed_wildcards_text->setVisible(true);
+
 
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
@@ -111,6 +118,7 @@ void ServerConfigurationDialog::init()
     m_allowed_compounds_1_spinner->setValue(-1);
     m_allowed_compounds_2_spinner->setValue(-1);
     m_allowed_compounds_3_spinner->setValue(-1);
+    m_allowed_wildcards_spinner->setValue(0);
 }   // init
 
 // ----------------------------------------------------------------------------
@@ -139,11 +147,13 @@ GUIEngine::EventPropagation
             change.addUInt8(m_allowed_compounds_1_spinner->getValue()+1);
             change.addUInt8(m_allowed_compounds_2_spinner->getValue()+1);
             change.addUInt8(m_allowed_compounds_3_spinner->getValue()+1);
+            change.addUInt8(m_allowed_wildcards_spinner->getValue());
 
             RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(),
                                                     m_allowed_compounds_1_spinner->getValue(),
                                                     m_allowed_compounds_2_spinner->getValue(),
-                                                    m_allowed_compounds_3_spinner->getValue());
+                                                    m_allowed_compounds_3_spinner->getValue(),
+                                                    m_allowed_wildcards_spinner->getValue());
 
             switch (m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER))
             {
