@@ -128,6 +128,15 @@ void MapFileResource::execute(Context& context)
 
     std::string msg = "";
 
+    int n = m_indexed.size();
+    if (n == 0)
+    {
+        // Might be bad to say it without even reading arguments,
+        // but for now I guess it's fine
+        context.say("Nothing found");
+        return;
+    }
+
     // I'm not sure if we should search by username.
     // After all, the search column might contain something else.
     if (argv[1] == "search")
@@ -170,8 +179,16 @@ void MapFileResource::execute(Context& context)
             context.error();
             return;
         }
+
+        // Happily n is not zero
         if (!has_to)
+        {
             to = (from > 0 ? 1 : -1);
+            if (from > 0)
+                from = std::min(from, n);
+            else
+                from = std::max(from, -n);
+        }
         
         if (from >= to)
             std::swap(from, to);
@@ -182,7 +199,7 @@ void MapFileResource::execute(Context& context)
             ++to;
         // else nothing: -4 5 -> [-4, 5)
 
-        int n = m_indexed.size();
+        // Happily n is not zero
         int shift = (from / n) * n + (from < 0 ? -n : 0);
         from -= shift;
         to -= shift;
