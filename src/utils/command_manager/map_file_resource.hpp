@@ -40,6 +40,8 @@ private:
     // Except the lack of practical need, of course.
     int m_index = 0;
 
+    int m_public = -1;
+
     struct Row
     {
         std::vector<std::string> cells;

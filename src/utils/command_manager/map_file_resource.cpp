@@ -19,6 +19,8 @@
 #include "utils/command_manager/map_file_resource.hpp"
 
 #include "utils/string_utils.hpp"
+#include "utils/public_player_value_storage.hpp"
+#include <optional>
 
 namespace
 {
@@ -53,7 +55,33 @@ void MapFileResource::fromXmlNode(const XMLNode* node)
     readChar(node, "right-quote", &m_right_quote);
     readChar(node, "escape", &m_escape);
     node->get("index", &m_index);
-}   // MapFileResource
+    node->get("public", &m_public);
+    if (m_public >= 0)
+    {
+        PublicPlayerValueStorage::add(
+            std::make_shared<PublicPlayerValue>(
+                [this](const std::string& name) -> std::optional<std::string> {
+                    auto it = m_indexed.find(name);
+                    if (it == m_indexed.end() || it->second.empty())
+                        return std::nullopt;
+
+                    // We don't care about non-first rows for now.
+                    auto& vec = it->second[0]->cells;
+                    if (m_public >= (int)vec.size())
+                        return std::nullopt;
+
+                    return { vec[m_public] };
+                },
+                [this]() {
+                    tryUpdate();
+                }
+            )
+        );
+
+        // We usually don't call it immediately, but if we have it published, we have to call
+        tryUpdate();
+    }
+}   // fromXmlNode
 //-----------------------------------------------------------------------------
 
 void MapFileResource::onContentChange()

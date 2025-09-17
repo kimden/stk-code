@@ -61,6 +61,7 @@
 #include "utils/lobby_queues.hpp"
 #include "utils/map_vote_handler.hpp"
 #include "utils/name_decorators/generic_decorator.hpp"
+#include "utils/public_player_value_storage.hpp"
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/translation.hpp"
@@ -2910,6 +2911,11 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         if (team != 0 && !RaceManager::get()->teamEnabled()) {
             prefix = TeamUtils::getTeamByIndex(team).getEmoji() + " " + prefix;
         }
+
+        PublicPlayerValueStorage::tryUpdate();
+        std::string public_values = PublicPlayerValueStorage::get(utf8_profile_name);
+        if (!public_values.empty())
+            prefix = "{" + public_values + "} " + prefix;
 
         profile_name = StringUtils::utf8ToWide(prefix) + profile_name;
 
