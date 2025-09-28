@@ -88,8 +88,8 @@ class TrackInfoScreen : public GUIEngine::Screen,
     /** The label besides the fuel spinner. */
     GUIEngine::LabelWidget* m_fuel_label;
 
-    /** Text box for rules */
-    GUIEngine::TextBoxWidget* m_rules_textbox;
+    /** Spinner for rules */
+    GUIEngine::SpinnerWidget* m_rules_spinner;
 
     /** The label besides the rules textbox. */
     GUIEngine::LabelWidget* m_rules_label;
@@ -137,6 +137,8 @@ class TrackInfoScreen : public GUIEngine::Screen,
     
     int m_icon_unknown_kart;
 
+    std::vector<std::string> m_rule_files;
+    void buildRulesFileListAndSpinner();
     void updateHighScores();
     void setSoccerWidgets(bool has_AI);
     void setSoccerTarget(bool time_limit);

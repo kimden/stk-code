@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stkgui>
+    <div x="2%" y="2%" width="96%" height="96%" layout="vertical-row" >
+        <header id="title" text_align="center" width="80%" align="center" I18N="In Item Policy Rules config" text="Item Policy Edit"/>
+        <spacer height="1%" width="20"/>
+        <box proportion="1" width="90%" layout="vertical-row" align="center">
+
+            <label width="100%" height="6%" text_align="left" I18N="In Item Policy Rules config" text="Difficulty"/>
+
+            <div width="100%" height="fit" layout="horizontal-row">
+                <div proportion="3" height="fit" layout="horizontal-row">
+                    <spinner id="current-section-spinner" width="100%" min_value="0" max_value="3" align="center" wrap_around="false" />
+                </div>
+                <label id="current-section-label" proportion="3" I18N="In the track info screen" text="Current Section" text_align="left" />
+            </div>
+
+            <div width="100%" height="fit" layout="horizontal-row">
+                <div proportion="3" height="fit" layout="horizontal-row">
+                    <spinner id="config-mode-spinner" width="100%" min_value="0" max_value="3" align="center" wrap_around="false" />
+                </div>
+                <label id="config-mode-label" proportion="3" I18N="In the track info screen" text="Configuration mode:" text_align="left" />
+            </div>
+
+            <spacer height="1%" width="20"/>
+
+
+            <buttonbar id="options" x="0" y="0" width="40%" height="10%" align="center">
+                <icon-button id="cancel" width="64" height="64" icon="gui/icons/red_x.png"
+                             I18N="In Item Policy Rules config" text="Cancel" label_location="bottom"/>
+                <icon-button id="ok" width="64" height="64" icon="gui/icons/green_check.png"
+                             I18N="In Item Policy Rules config" text="OK" label_location="bottom"/>
+            </buttonbar>
+
+            <spacer height="1f" width="20"/>
+        </box>
+    </div>
+</stkgui>

@@ -40,9 +40,20 @@
                     </div>
 
 	                    <div width="100%" height="fit" layout="horizontal-row">
-	                        <label id="rules-text" proportion="3" I18N="In the track info screen" text="Item policy:" text_align="left" />
-                            <textbox id="rules-textbox" width="70%" align="center"/>
+	                        <label id="rules-text" proportion="3" I18N="In the track info screen" text="Rules:" text_align="left" />
+                            <spinner id="rules-spinner" width="50%" align="center" wrap_around="true" />
 	                    </div>
+	                    
+                    <spacer width="1" height="1%"/>
+	                    <buttonbar id="rule-buttons" height="20%" width="30%" align="center">
+	                        <icon-button id="edit" width="64" height="64" icon="gui/icons/green_check.png"
+	                                I18N="In the track info screen" text="Edit rules"/>
+	                        <icon-button id="new" width="64" height="64" icon="gui/icons/green_check.png"
+	                                I18N="In the track info screen" text="New rule"/>
+	                        <icon-button id="delete" width="64" height="64" icon="gui/icons/green_check.png"
+	                                I18N="In the track info screen" text="Delete rule"/>
+	                    </buttonbar>
+
 
 
 	                    <div width="100%" height="fit" layout="horizontal-row">
