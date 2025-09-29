@@ -717,7 +717,19 @@ void TrackInfoScreen::onEnterPressedInternal()
         RaceManager::get()->setNumBlueAI(m_ai_blue_spinner->getValue());
     }
 
-   RaceManager::get()->startSingleRace(m_track->getIdent(), num_laps, false);
+    if (m_rules_spinner->getValue() != 0) {
+        std::wstring tmp1 = m_rules_spinner->getStringValueFromID(m_rules_spinner->getValue()).c_str();
+        std::string tmp2( tmp1.begin(), tmp1.end() );
+        std::string policy = ItemPolicyDialog::loadConfig("/rules/"+tmp2);
+        if (policy == "FAILURE") {
+            policy = "normal";
+        }
+        RaceManager::get()->setItemPolicy(policy);
+    } else {
+        std::string policy = "normal";
+        RaceManager::get()->setItemPolicy(policy)        ;
+    }
+    RaceManager::get()->startSingleRace(m_track->getIdent(), num_laps, false);
 }   // onEnterPressedInternal
 
 // ----------------------------------------------------------------------------

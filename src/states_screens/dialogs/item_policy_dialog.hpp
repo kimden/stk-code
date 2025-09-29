@@ -50,9 +50,6 @@ private:
     GUIEngine::IconButtonWidget* m_cancel_widget;
 
     void updateMoreOption(int game_mode);
-    void saveConfig(void);
-    void loadConfig(void);
-
 public:
     ItemPolicyDialog(std::string path);
     // ------------------------------------------------------------------------
@@ -72,10 +69,16 @@ public:
     // ------------------------------------------------------------------------
     void onUpdate(float dt) {
         if (m_self_destroy) {
-            if (m_save) saveConfig();
+            if (m_save) {
+                saveConfig(m_path, m_item_policy.toString());
+                RaceManager::get()->setItemPolicy(m_item_policy.toString());
+            }
             ModalDialog::dismiss();
         }
     }
+
+    static std::string loadConfig(const std::string &path);
+    static bool saveConfig(const std::string &path, const std::string &policy);
 };   // class ServerConfigurationDialog
 
 #endif

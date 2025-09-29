@@ -40,51 +40,55 @@ ItemPolicyDialog::ItemPolicyDialog(std::string path) : ModalDialog(0.8f, 0.8f) {
     m_save = false;
     m_path = "/rules/"+path;
 
-    loadConfig();
+    std::string policy = loadConfig(m_path);
+    if(policy != "FAILURE")
+        m_item_policy.fromString(policy);
+    else {
+        policy = "normal";
+        m_item_policy.fromString(policy);
+        m_save = false;
+        m_self_destroy = true;
+    }
+
 
     loadFromFile("online/item_policy_dialog.stkgui");
 }
 
 // ----------------------------------------------------------------------------
-void ItemPolicyDialog::loadConfig() {
+std::string ItemPolicyDialog::loadConfig(const std::string &path) {
 
-    std::string tmp = "normal";
-    m_item_policy.fromString(tmp);
+    std::string policy = "normal";
 
-    const std::string filename = file_manager->getUserConfigFile(m_path);
-    m_root = file_manager->createXMLTree(filename);
+    const std::string filename = file_manager->getUserConfigFile(path);
+    auto root = file_manager->createXMLTree(filename);
 
-   if(!m_root || m_root->getName() != "item-policy-preset") {
+   if(!root || root->getName() != "item-policy-preset") {
         Log::info("ItemPolicyDialog::loadConfig",
                    "Could not read item policy  file '%s'.  A new file will be created.", filename.c_str());
-        saveConfig();
-        delete m_root;
-        m_root = file_manager->createXMLTree(filename);
-        //m_self_destroy = true;        
-        //ModalDialog::dismiss();
-        //return;
+        saveConfig(path, "normal");
+        delete root;
+        root = file_manager->createXMLTree(filename);
     }
 
-    std::string policy;
-    bool success = m_root->get("itempolicy", &policy);
+    bool success = root->get("itempolicy", &policy);
     if (!success) {
         Log::info("ItemPolicyDialog::loadConfig",
                    "Malformed item policy, aborting", filename.c_str());
-        m_self_destroy = true;        
+        policy = "FAILURE";
         ModalDialog::dismiss();
-        return;
     }
+    return policy;
 }
 
 // ----------------------------------------------------------------------------
-void ItemPolicyDialog::saveConfig()
+bool ItemPolicyDialog::saveConfig(const std::string &path, const std::string &policy)
 {
-    const std::string filename = file_manager->getUserConfigFile(m_path);
+    const std::string filename = file_manager->getUserConfigFile(path);
     std::stringstream ss;
     ss << "<?xml version=\"1.0\"?>\n";
     ss << "<item-policy-preset \n\n";
     const std::string quote = "\"";
-    ss << "itempolicy=" << quote << m_item_policy.toString() << quote << ">" << "\n";
+    ss << "itempolicy=" << quote << policy << quote << ">" << "\n";
     ss << "</item-policy-preset>\n";
 
     try
@@ -94,14 +98,14 @@ void ItemPolicyDialog::saveConfig()
             std::ofstream::out);
         configfile << ss.rdbuf();
         configfile.close();
+        return true;
     }
     catch (std::runtime_error& e)
     {
         Log::error("ItemPolicyDialog::saveConfig", "Failed to write Item Policy Preset to %s, "
             "because %s", filename.c_str(), e.what());
+        return false;
     }
-    RaceManager::get()->setItemPolicy(m_item_policy.toString());
-
 }   // saveConfig
 // ----------------------------------------------------------------------------
 void ItemPolicyDialog::beforeAddingWidgets()
