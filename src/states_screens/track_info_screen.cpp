@@ -720,7 +720,7 @@ void TrackInfoScreen::onEnterPressedInternal()
     if (m_rules_spinner->getValue() != 0) {
         std::wstring tmp1 = m_rules_spinner->getStringValueFromID(m_rules_spinner->getValue()).c_str();
         std::string tmp2( tmp1.begin(), tmp1.end() );
-        std::string policy = ItemPolicyDialog::loadConfig("/rules/"+tmp2);
+        std::string policy = ItemPolicyDialog::loadConfig("/rules/"+tmp2, /*create_if_missing*/ false);
         if (policy == "FAILURE") {
             policy = "normal";
         }

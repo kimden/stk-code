@@ -69,6 +69,7 @@
 #include "states_screens/online/networking_lobby.hpp"
 #include "states_screens/online/network_kart_selection.hpp"
 #include "states_screens/online/tracks_screen.hpp"
+#include "states_screens/dialogs/item_policy_dialog.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
 #include "utils/communication.hpp"
@@ -1748,6 +1749,22 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         NetworkString change_color(PROTOCOL_LOBBY_ROOM);
         change_color.addUInt8(LobbyEvent::LE_CHANGE_COLOR).addUInt8(/*PlayerManager::getCurrentPlayer()->getLocalPlayerId()*/0).addFloat(new_hue);
         STKHost::get()->sendToServer(&change_color, PRM_RELIABLE);
+    }
+    else if (argv[0] == "itempolicypreset" && argv.size() == 2) {
+        std::string policy = ItemPolicyDialog::loadConfig("/rules/"+argv[1]+".xml", /*create_if_missing*/ false);
+        if (policy == "FAILURE") {
+            core::stringw msg = L"File is missing or malformed: ";
+            msg += argv[1].c_str();
+            msg += ".xml";
+            NetworkingLobby::getInstance()->addMoreServerInfo(msg);
+        } else {
+            // Send for server command
+            NetworkString* cmd_ns = getNetworkString(1);
+            const std::string& language = UserConfigParams::m_language;
+            cmd_ns->addUInt8(LE_COMMAND).encodeString(language).encodeString("itempolicy " + policy);
+            Comm::sendToServer(cmd_ns, PRM_RELIABLE);
+            delete cmd_ns;
+        }
     }
     else if (argv[0] == "installaddon" && argv.size() == 2)
         AddonsPack::install(argv[1]);

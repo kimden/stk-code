@@ -40,7 +40,7 @@ ItemPolicyDialog::ItemPolicyDialog(std::string path) : ModalDialog(0.8f, 0.8f) {
     m_save = false;
     m_path = "/rules/"+path;
 
-    std::string policy = loadConfig(m_path);
+    std::string policy = loadConfig(m_path, /*create_if_missing*/ true);
     if(policy != "FAILURE")
         m_item_policy.fromString(policy);
     else {
@@ -55,7 +55,7 @@ ItemPolicyDialog::ItemPolicyDialog(std::string path) : ModalDialog(0.8f, 0.8f) {
 }
 
 // ----------------------------------------------------------------------------
-std::string ItemPolicyDialog::loadConfig(const std::string &path) {
+std::string ItemPolicyDialog::loadConfig(const std::string &path, bool create_if_missing) {
 
     std::string policy = "normal";
 
@@ -63,11 +63,18 @@ std::string ItemPolicyDialog::loadConfig(const std::string &path) {
     auto root = file_manager->createXMLTree(filename);
 
    if(!root || root->getName() != "item-policy-preset") {
-        Log::info("ItemPolicyDialog::loadConfig",
-                   "Could not read item policy  file '%s'.  A new file will be created.", filename.c_str());
-        saveConfig(path, "normal");
         delete root;
-        root = file_manager->createXMLTree(filename);
+        if (create_if_missing) {
+            Log::info("ItemPolicyDialog::loadConfig",
+                    "Could not read item policy  file '%s'.  A new file will be created.", filename.c_str());
+            saveConfig(path, "normal");
+            root = file_manager->createXMLTree(filename);
+        } else {
+            Log::info("ItemPolicyDialog::loadConfig",
+                    "Could not read item policy  file '%s'. Aborting.", filename.c_str());
+            policy = "FAILURE";
+            return policy;
+        }
     }
 
     bool success = root->get("itempolicy", &policy);
@@ -75,7 +82,6 @@ std::string ItemPolicyDialog::loadConfig(const std::string &path) {
         Log::info("ItemPolicyDialog::loadConfig",
                    "Malformed item policy, aborting", filename.c_str());
         policy = "FAILURE";
-        ModalDialog::dismiss();
     }
     return policy;
 }

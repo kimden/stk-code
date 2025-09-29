@@ -77,7 +77,7 @@ public:
         }
     }
 
-    static std::string loadConfig(const std::string &path);
+    static std::string loadConfig(const std::string &path, bool create_if_missing);
     static bool saveConfig(const std::string &path, const std::string &policy);
 };   // class ServerConfigurationDialog
 
