@@ -43,10 +43,12 @@
 #include "race/race_manager.hpp"
 #include "states_screens/state_manager.hpp"
 #include "states_screens/dialogs/item_policy_dialog.hpp"
+#include "states_screens/dialogs/name_prompt_dialog.hpp"
 #include "tracks/track.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
+#include <functional>
 
 #include <IGUIEnvironment.h>
 #include <IGUIImage.h>
@@ -78,7 +80,6 @@ void TrackInfoScreen::buildRulesFileListAndSpinner() {
     m_rules_spinner->addLabel(_("None"));
     for(std::string file : m_rule_files)
     {
-        printf("FILE: %s\n", file.c_str());
         if (file != ".." && file != ".")
             m_rules_spinner->addLabel(irr::core::stringw(file.c_str()));
     }   // for all files in the currently handled directory
@@ -754,11 +755,20 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
             std::string tmp2( tmp1.begin(), tmp1.end() );
             new ItemPolicyDialog(tmp2); // Automatically saves to global itempolicy if needed
         } else if(button=="new") {
-            new ItemPolicyDialog(std::to_string(m_rule_files.size()) + ".xml"); // Automatically creates to file if needed
+            std::string name = "";
+            new NamePromptDialog(_("Enter preset name:"),
+            [name, this](std::string x){
+                printf("FILE:%s\n", x.c_str());
+                if (x == " " || x == "") {
+                    // Do nothing if the name was invalid (two sentinel values)
+                } else {
+                    // Automatically creates the file if needed, else overwrites it
+                    new ItemPolicyDialog(x + ".xml");
+                }
+            });
         } else if(button=="delete") {
             ; // TODO: implement a file deletal prompt
         }
-        buildRulesFileListAndSpinner();
     }
     else if (name == "back")
     {

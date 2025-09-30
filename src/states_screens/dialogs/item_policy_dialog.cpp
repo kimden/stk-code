@@ -148,10 +148,6 @@ GUIEngine::EventPropagation
     std::string source = src;
     if (source == "options")
         source = getWidget<GUIEngine::RibbonWidget>("options")->getSelectionIDString(PLAYER_ID_GAME_MASTER);
-    printf("%s\n", m_cancel_widget->m_properties[PROP_ID].c_str());
-    printf("%s\n", m_ok_widget->m_properties[PROP_ID].c_str());
-    printf("%s\n", m_config_mode_spinner->m_properties[PROP_ID].c_str());
-    printf("%s\n", source.c_str());
     if (source == m_cancel_widget->m_properties[PROP_ID])
     {
         m_save = false;
