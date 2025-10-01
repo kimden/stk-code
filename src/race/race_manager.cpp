@@ -157,6 +157,7 @@ RaceManager::RaceManager()
     setSpareTireKartNum(0);
     m_fuel_info = 0;
     m_wildcards = 0;
+    m_number_of_rule_files = 0;
     m_tyres_queue_info = {-1,-1,-1,-1,-1,-1,-1,-1,-1,0};
 
     setItemPolicy("normal");

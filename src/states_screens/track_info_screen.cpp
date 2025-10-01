@@ -71,8 +71,12 @@ void TrackInfoScreen::buildRulesFileListAndSpinner() {
     file_manager->listFiles(files, file_manager->getUserConfigFile("/rules/"));
 
     m_rule_files.clear();
-    for(std::string file : files)
-        m_rule_files.push_back(file);
+    for(std::string file : files) {
+        if (file != ".." && file != ".")
+            m_rule_files.push_back(file);
+    }
+    m_number_of_rule_files = m_rule_files.size();
+    RaceManager::get()->setNumberOfRuleFiles(m_rule_files.size());
 
     if (!m_rules_spinner) return;
 
@@ -80,8 +84,7 @@ void TrackInfoScreen::buildRulesFileListAndSpinner() {
     m_rules_spinner->addLabel(_("None"));
     for(std::string file : m_rule_files)
     {
-        if (file != ".." && file != ".")
-            m_rules_spinner->addLabel(irr::core::stringw(file.c_str()));
+        m_rules_spinner->addLabel(irr::core::stringw(file.c_str()));
     }   // for all files in the currently handled directory
 }
 
@@ -640,6 +643,13 @@ void TrackInfoScreen::updateHighScores()
 
 // ----------------------------------------------------------------------------
 
+void TrackInfoScreen::onUpdate(float dt) {
+    if (m_number_of_rule_files != RaceManager::get()->getNumberOfRuleFiles()) {
+        buildRulesFileListAndSpinner();
+    }
+    GUIEngine::Screen::onUpdate(dt);
+}
+
 void TrackInfoScreen::onEnterPressedInternal()
 {
     RaceManager::get()->setRecordRace(m_record_this_race);
@@ -757,7 +767,7 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
         } else if(button=="new") {
             std::string name = "";
             new NamePromptDialog(_("Enter preset name:"),
-            [name, this](std::string x){
+            [](std::string x){
                 printf("FILE:%s\n", x.c_str());
                 if (x == " " || x == "") {
                     // Do nothing if the name was invalid (two sentinel values)
@@ -769,6 +779,7 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
         } else if(button=="delete") {
             ; // TODO: implement a file deletal prompt
         }
+        buildRulesFileListAndSpinner();
     }
     else if (name == "back")
     {

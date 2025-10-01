@@ -59,10 +59,11 @@ std::string ItemPolicyDialog::loadConfig(const std::string &path, bool create_if
 
     std::string policy = "normal";
 
+    file_manager->checkAndCreateDirectory(file_manager->getUserConfigFile("/rules/"));
     const std::string filename = file_manager->getUserConfigFile(path);
     auto root = file_manager->createXMLTree(filename);
 
-   if(!root || root->getName() != "item-policy-preset") {
+    if(!root || root->getName() != "item-policy-preset") {
         delete root;
         if (create_if_missing) {
             Log::info("ItemPolicyDialog::loadConfig",
@@ -99,11 +100,13 @@ bool ItemPolicyDialog::saveConfig(const std::string &path, const std::string &po
 
     try
     {
+        file_manager->checkAndCreateDirectory(file_manager->getUserConfigFile("/rules/"));
         std::string s = ss.str();
         std::ofstream configfile(FileUtils::getPortableWritingPath(filename),
             std::ofstream::out);
         configfile << ss.rdbuf();
         configfile.close();
+        RaceManager::get()->setNumberOfRuleFiles(RaceManager::get()->getNumberOfRuleFiles()+1);
         return true;
     }
     catch (std::runtime_error& e)
