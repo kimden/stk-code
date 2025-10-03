@@ -191,8 +191,8 @@ GUIEngine::EventPropagation
         last->m_items_per_lap = 0.0f;
         last->m_progressive_cap = 0.0f;
         last->m_virtual_pace_gaps = 0.0f;
-        last->m_deg_mult = 0.0f;
-        last->m_fuel_mult = 0.0f;
+        last->m_deg_mult = 1.0f;
+        last->m_fuel_mult = 1.0f;
         last->m_tyre_change_time = 0.0f;
         last->m_possible_types.clear();
         last->m_weight_distribution.clear();
@@ -236,6 +236,7 @@ void ItemPolicyDialog::onUpdate(float dt) {
         updateMoreOption(m_current_config_tab);
     }
     computePolicyFromGUI();
+    printf("CURR POLICY: %s\n", m_item_policy.toString().c_str());
 }
 
 // ----------------------------------------------------------------------------
@@ -282,8 +283,8 @@ void ItemPolicyDialog::updateMoreOption(int config_mode)
 #define TEXTBOX(__str) getWidget<GUIEngine::TextBoxWidget> _S(__str, "-textbox")
 
 
-#define SETRULE(__x, __y) cs->m_rules |= (__x) ? (ItemPolicyRules::__y) : 0; 
-#define READ_TEXTBOX_FLOAT(__y, __x) { std::string __tmp = StringUtils::wideToUtf8(TEXTBOX(__x)->getText()); __y = std::stof(__tmp); } 
+#define SETRULE(__x, __y) if (__x) { cs->m_rules |= (ItemPolicyRules::__y); } else { cs->m_rules &= ~(ItemPolicyRules::__y); } 
+#define READ_TEXTBOX_FLOAT(__y, __x) { std::string __tmp = StringUtils::wideToUtf8(TEXTBOX(__x)->getText()); try { __y = std::stof(__tmp);  } catch(...) { __y = 0; } } 
 #define READ_SPINNER(__y, __x) __y = SPINNER(__x)->getValue(); 
 
 void ItemPolicyDialog::computePolicyFromGUI() {
@@ -291,6 +292,8 @@ void ItemPolicyDialog::computePolicyFromGUI() {
     cs->m_section_type = IP_LAPS_BASED;
 
     READ_SPINNER(cs->m_section_start, "current-section");
+
+    READ_SPINNER(cs->m_section_start, "section-start");
 
     READ_TEXTBOX_FLOAT(cs->m_linear_mult, "give-at-start");
     SETRULE(cs->m_linear_mult > 0.0f, IPT_LINEAR);
@@ -337,6 +340,11 @@ void ItemPolicyDialog::computePolicyFromGUI() {
 
             if (m_current_config_tab == 1)
                 LABEL("powerup-"+powerup_name+"-autorefreshed")->setVisible(true);
+        } else if (CHECKBOX("powerup-"+powerup_name)->getState() == true) {
+            int new_weight;
+            READ_SPINNER(new_weight, "powerup-"+powerup_name);
+            cs->m_possible_types.push_back(PowerupManager::getPowerupType(powerup_name));
+            cs->m_weight_distribution.push_back(new_weight);
         } else {
             SPINNER("powerup-"+powerup_name)->setVisible(false);
             LABEL("powerup-"+powerup_name+"-autorefreshed")->setVisible(false);
@@ -371,7 +379,6 @@ void ItemPolicyDialog::setGUIFromPolicy(){
 
     if (GETRULE(IPT_LINEAR)) {
         SET_TEXTBOX_FLOAT(cs->m_linear_mult, "give-at-start");
-        SET_TEXTBOX_FLOAT(0.0f, "give-at-start");
     } else {
         SET_TEXTBOX_FLOAT(0.0f, "give-at-start");
     }

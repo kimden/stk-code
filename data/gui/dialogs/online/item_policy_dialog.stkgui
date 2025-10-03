@@ -45,7 +45,7 @@
             <div x="2%" x="2%" width="96%" height="96%">
             <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="clear-previous-label" proportion="3" text="Clear previous items" text_align="left" />
+                        <label id="clear-previous-label" proportion="9" text="Clear previous items" text_align="left" />
                         <checkbox id="clear-previous-checkbox" proportion="1" />
                     </div>
 
@@ -62,27 +62,27 @@
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="overwrite-label" proportion="3" text="Overwrite items" text_align="left" />
+                        <label id="overwrite-label" proportion="9" text="Overwrite items" text_align="left" />
                         <checkbox id="overwrite-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="force-use-label" proportion="3" text="Only give new powerups each lap if spent (force use)" text_align="left" />
+                        <label id="force-use-label" proportion="9" text="Only give new powerups each lap if spent (force use)" text_align="left" />
                         <checkbox id="force-use-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="anti-hoard-label" proportion="3" text="Remove excess powerups (anti-hoard)" text_align="left" />
+                        <label id="anti-hoard-label" proportion="9" text="Remove excess powerups (anti-hoard)" text_align="left" />
                         <checkbox id="anti-hoard-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="anti-hoard-strength-label" proportion="3" text="How many items per lap are considered excess (anti-hoard strength)" text_align="left" />
+                        <label id="anti-hoard-strength-label" proportion="9" text="How many items per lap are considered excess (anti-hoard strength)" text_align="left" />
                         <textbox id="anti-hoard-strength-textbox" proportion="3" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="override-gifts-label" proportion="3" text="Override gift boxes powerup pool" text_align="left" />
+                        <label id="override-gifts-label" proportion="9" text="Override gift boxes powerup pool" text_align="left" />
                         <checkbox id="override-gifts-checkbox" proportion="1" wrap_around="false" />
                     </div>
             </div>
@@ -90,7 +90,7 @@
 
             <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="automatic-weights-label" proportion="3" text="Automatic weights?" text_align="left" />
+                        <label id="automatic-weights-label" proportion="9" text="Automatic weights?" text_align="left" />
                         <checkbox id="automatic-weights-checkbox" proportion="1" />
                     </div>
 
@@ -177,17 +177,17 @@
 
             <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="disable-lapping-hits-label" proportion="3" text="Disable lapping hits" text_align="left" />
+                        <label id="disable-lapping-hits-label" proportion="9" text="Disable lapping hits" text_align="left" />
                         <checkbox id="disable-lapping-hits-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="pace-car-label" proportion="3" text="Virtual Pace Car" text_align="left" />
+                        <label id="pace-car-label" proportion="9" text="Virtual Pace Car" text_align="left" />
                         <checkbox id="pace-car-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="pace-car-unlap-label" proportion="3" text="Allow unlapping uncer VPC" text_align="left" />
+                        <label id="pace-car-unlap-label" proportion="9" text="Allow unlapping uncer VPC" text_align="left" />
                         <checkbox id="pace-car-unlap-checkbox" proportion="1" />
                     </div>
 
@@ -197,22 +197,22 @@
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="forbid-bananas-label" proportion="3" text="Forbid bananas" text_align="left" />
+                        <label id="forbid-bananas-label" proportion="9" text="Forbid bananas" text_align="left" />
                         <checkbox id="forbid-bananas-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="forbid-gifts-label" proportion="3" text="Forbid gift boxes" text_align="left" />
+                        <label id="forbid-gifts-label" proportion="9" text="Forbid gift boxes" text_align="left" />
                         <checkbox id="forbid-gifts-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="forbid-nitro-label" proportion="3" text="Forbid nitro" text_align="left" />
+                        <label id="forbid-nitro-label" proportion="9" text="Forbid nitro" text_align="left" />
                         <checkbox id="forbid-nitro-checkbox" proportion="1" />
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="joker-laps-override-label" proportion="3" text="Joker laps override" text_align="left" />
+                        <label id="joker-laps-override-label" proportion="9" text="Joker laps override" text_align="left" />
                         <checkbox id="joker-laps-override-checkbox" proportion="1" />
                     </div>
 
@@ -237,7 +237,7 @@
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="tyre-change-override-label" proportion="3" text="Tyre change time override?" text_align="left" />
+                        <label id="tyre-change-override-label" proportion="9" text="Tyre change time override?" text_align="left" />
                         <checkbox id="tyre-change-override-checkbox" proportion="1" />
                     </div>
 
