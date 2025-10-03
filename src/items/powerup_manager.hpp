@@ -192,6 +192,9 @@ private:
 
 public:
 
+    // Must match the order of PowerupType in powerup_manager.hpp!!
+    const static std::string powerup_names[14];
+
     static PowerupType   getPowerupType(const std::string &name);
     static std::string getPowerupAsString(PowerupType type);
     static void unitTesting();

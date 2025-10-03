@@ -197,8 +197,8 @@ static std::string fetch(std::vector<std::string>& strings, unsigned idx) {
 }
 //--------------------------------------------------
 void ItemPolicy::fromString(std::string& input) {
-    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 1 1 0";
-    std::string tt_preset = "1 0 0010000001 1 0 0 0 1 1 1 zipper 1";
+    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 1 1 0 0";
+    std::string tt_preset = "1 0 0010000001 1 0 0 0 1 1 0 1 zipper 1";
     if (input.empty()) {
         fromString(normal_race_preset);
         return;
@@ -213,9 +213,9 @@ void ItemPolicy::fromString(std::string& input) {
     }
     std::vector<std::string> params = StringUtils::split(input, ' ');
     // Format can not form a valid policy with less than 10 space-separated parameters:
-    // 1 0 0000000000 0 0 0 0 1 1 0
-    // 1 section starting on lap 1 with no rules, all data to 0, fuel and deg to 1, and a length-0 item vector
-    if (params.empty() || params.size() < 10) {
+    // 1 0 0000000000 0 0 0 0 1 1 0 0
+    // 1 section starting on lap 1 with no rules, all data to 0, fuel and deg to 1, no overridden stop time, and a length-0 item vector
+    if (params.empty() || params.size() < 11) {
         fromString(normal_race_preset);
         return;
     }
@@ -260,6 +260,7 @@ void ItemPolicy::fromString(std::string& input) {
         retrieve_float(tmp.m_virtual_pace_gaps);
         retrieve_float(tmp.m_deg_mult);
         retrieve_float(tmp.m_fuel_mult);
+        retrieve_float(tmp.m_tyre_change_time);
 
         unsigned item_vector_length = 0;
         retrieve_uint(item_vector_length);
@@ -290,7 +291,7 @@ std::string ItemPolicy::toString() {
             return "Time based sections not supported yet";
         }
         ss << m_policy_sections[i].m_section_start << " ";
-        std::string bs = std::bitset<12>(m_policy_sections[i].m_rules).to_string();
+        std::string bs = std::bitset<16>(m_policy_sections[i].m_rules).to_string();
         ss << bs << " ";
         ss << m_policy_sections[i].m_linear_mult << " ";
         ss << m_policy_sections[i].m_items_per_lap << " ";
@@ -298,6 +299,7 @@ std::string ItemPolicy::toString() {
         ss << m_policy_sections[i].m_virtual_pace_gaps << " ";
         ss << m_policy_sections[i].m_deg_mult << " ";
         ss << m_policy_sections[i].m_fuel_mult << " ";
+        ss << m_policy_sections[i].m_tyre_change_time << " ";
         ss << m_policy_sections[i].m_possible_types.size() << " ";
         for (unsigned j = 0; j < m_policy_sections[i].m_possible_types.size(); j++) {
             ss << PowerupManager::getPowerupAsString(m_policy_sections[i].m_possible_types[j])

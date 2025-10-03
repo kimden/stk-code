@@ -10,6 +10,12 @@
                     <spinner id="current-section-spinner" width="100%" min_value="0" max_value="3" align="center" wrap_around="false" />
                 </div>
                 <label id="current-section-label" proportion="3" I18N="In the track info screen" text="Current Section" text_align="left" />
+                <buttonbar id="section-control" x="0" y="0" width="40%" height="10%" align="center">
+                    <icon-button id="remove-section" width="64" height="64" icon="gui/icons/red_x.png"
+                                 I18N="In Item Policy Rules config" text="Remove" label_location="bottom"/>
+                    <icon-button id="new-section" width="64" height="64" icon="gui/icons/green_check.png"
+                                 I18N="In Item Policy Rules config" text="New" label_location="bottom"/>
+                </buttonbar>
             </div>
 
             <div width="100%" height="fit" layout="horizontal-row">
@@ -21,6 +27,11 @@
 
             <spacer height="1%" width="20"/>
 
+            <div width="90%" height="fit" layout="horizontal-row">
+                <label id="section-start-label" proportion="3" text="Start lap:" text_align="left" />
+                <spinner id="section-start-spinner" proportion="3" wrap_around="false" />
+            </div>
+
 
             <buttonbar id="options" x="0" y="0" width="40%" height="10%" align="center">
                 <icon-button id="cancel" width="64" height="64" icon="gui/icons/red_x.png"
@@ -30,6 +41,212 @@
             </buttonbar>
 
             <spacer height="1f" width="20"/>
+
+            <div x="2%" x="2%" width="96%" height="96%">
+            <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="clear-previous-label" proportion="3" text="Clear previous items" text_align="left" />
+                        <checkbox id="clear-previous-checkbox" proportion="1" />
+                    </div>
+
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="give-at-start-label" proportion="3" text="Give items at section start:" text_align="left" />
+                        <textbox id="give-at-start-textbox" proportion="3" />
+                        <label id="give-at-start-info-label" proportion="3" text="* Length" text_align="left" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="give-per-lap-label" proportion="3" text="Give items per lap:" text_align="left" />
+                        <spinner id="give-per-lap-spinner" proportion="3" wrap_around="false" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="overwrite-label" proportion="3" text="Overwrite items" text_align="left" />
+                        <checkbox id="overwrite-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="force-use-label" proportion="3" text="Only give new powerups each lap if spent (force use)" text_align="left" />
+                        <checkbox id="force-use-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="anti-hoard-label" proportion="3" text="Remove excess powerups (anti-hoard)" text_align="left" />
+                        <checkbox id="anti-hoard-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="anti-hoard-strength-label" proportion="3" text="How many items per lap are considered excess (anti-hoard strength)" text_align="left" />
+                        <textbox id="anti-hoard-strength-textbox" proportion="3" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="override-gifts-label" proportion="3" text="Override gift boxes powerup pool" text_align="left" />
+                        <checkbox id="override-gifts-checkbox" proportion="1" wrap_around="false" />
+                    </div>
+            </div>
+
+
+            <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="automatic-weights-label" proportion="3" text="Automatic weights?" text_align="left" />
+                        <checkbox id="automatic-weights-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="powerup-nothing-label" proportion="3" text="nothing" text_align="left" />
+                        <checkbox id="powerup-nothing-checkbox" proportion="1" />
+                        <spinner id="powerup-nothing-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-nothing-autorefreshed-label" proportion="3" text="....." text_align="left" />
+
+                        <label id="powerup-bubblegum-label" proportion="3" text="bubblegum" text_align="left" />
+                        <checkbox id="powerup-bubblegum-checkbox" proportion="1" />
+                        <spinner id="powerup-bubblegum-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-bubblegum-autorefreshed-label" proportion="3" text="....." text_align="left" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="powerup-cake-label" proportion="3" text="cake" text_align="left" />
+                        <checkbox id="powerup-cake-checkbox" proportion="1" />
+                        <spinner id="powerup-cake-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-cake-autorefreshed-label" proportion="3" text="....." text_align="left" />
+
+                        <label id="powerup-bowling-label" proportion="3" text="bowling" text_align="left" />
+                        <checkbox id="powerup-bowling-checkbox" proportion="1" />
+                        <spinner id="powerup-bowling-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-bowling-autorefreshed-label" proportion="3" text="....." text_align="left" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="powerup-zipper-label" proportion="3" text="zipper" text_align="left" />
+                        <checkbox id="powerup-zipper-checkbox" proportion="1" />
+                        <spinner id="powerup-zipper-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-zipper-autorefreshed-label" proportion="3" text="....." text_align="left" />
+
+                        <label id="powerup-plunger-label" proportion="3" text="plunger" text_align="left" />
+                        <checkbox id="powerup-plunger-checkbox" proportion="1" />
+                        <spinner id="powerup-plunger-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-plunger-autorefreshed-label" proportion="3" text="....." text_align="left" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="powerup-switch-label" proportion="3" text="switch" text_align="left" />
+                        <checkbox id="powerup-switch-checkbox" proportion="1" />
+                        <spinner id="powerup-switch-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-switch-autorefreshed-label" proportion="3" text="....." text_align="left" />
+
+                        <label id="powerup-swatter-label" proportion="3" text="swatter" text_align="left" />
+                        <checkbox id="powerup-swatter-checkbox" proportion="1" />
+                        <spinner id="powerup-swatter-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-swatter-autorefreshed-label" proportion="3" text="....." text_align="left" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="powerup-rubber-ball-label" proportion="3" text="rubber-ball" text_align="left" />
+                        <checkbox id="powerup-rubber-ball-checkbox" proportion="1" />
+                        <spinner id="powerup-rubber-ball-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-rubber-ball-autorefreshed-label" proportion="3" text="....." text_align="left" />
+
+                        <label id="powerup-parachute-label" proportion="3" text="parachute" text_align="left" />
+                        <checkbox id="powerup-parachute-checkbox" proportion="1" />
+                        <spinner id="powerup-parachute-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-parachute-autorefreshed-label" proportion="3" text="....." text_align="left" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="powerup-nitro-hack-label" proportion="3" text="nitro-hack" text_align="left" />
+                        <checkbox id="powerup-nitro-hack-checkbox" proportion="1" />
+                        <spinner id="powerup-nitro-hack-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-nitro-hack-autorefreshed-label" proportion="3" text="....." text_align="left" />
+
+                        <label id="powerup-electro-shield-label" proportion="3" text="electro-shield" text_align="left" />
+                        <checkbox id="powerup-electro-shield-checkbox" proportion="1" />
+                        <spinner id="powerup-electro-shield-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-electro-shield-autorefreshed-label" proportion="3" text="....." text_align="left" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="powerup-mini-wish-label" proportion="3" text="mini-wish" text_align="left" />
+                        <checkbox id="powerup-mini-wish-checkbox" proportion="1" />
+                        <spinner id="powerup-mini-wish-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-mini-wish-autorefreshed-label" proportion="3" text="....." text_align="left" />
+
+                        <label id="powerup-anchor-label" proportion="3" text="anchor" text_align="left" />
+                        <checkbox id="powerup-anchor-checkbox" proportion="1" />
+                        <spinner id="powerup-anchor-spinner" proportion="3" wrap_around="false" />
+                        <label id="powerup-anchor-autorefreshed-label" proportion="3" text="....." text_align="left" />
+                    </div>
+            </div>
+
+
+
+            <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="disable-lapping-hits-label" proportion="3" text="Disable lapping hits" text_align="left" />
+                        <checkbox id="disable-lapping-hits-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="pace-car-label" proportion="3" text="Virtual Pace Car" text_align="left" />
+                        <checkbox id="pace-car-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="pace-car-unlap-label" proportion="3" text="Allow unlapping uncer VPC" text_align="left" />
+                        <checkbox id="pace-car-unlap-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="pace-car-intervals-label" proportion="3" text="VPC release intervals (secs)" text_align="left" />
+                        <textbox id="pace-car-intervals-textbox" proportion="3" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-bananas-label" proportion="3" text="Forbid bananas" text_align="left" />
+                        <checkbox id="forbid-bananas-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-gifts-label" proportion="3" text="Forbid gift boxes" text_align="left" />
+                        <checkbox id="forbid-gifts-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-nitro-label" proportion="3" text="Forbid nitro" text_align="left" />
+                        <checkbox id="forbid-nitro-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="joker-laps-override-label" proportion="3" text="Joker laps override" text_align="left" />
+                        <checkbox id="joker-laps-override-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="joker-laps-min-max-label" proportion="3" text="Joker laps min/max (WIP USELESS)" text_align="left" />
+                        <spinner id="joker-laps-min-spinner" proportion="3" wrap_around="false" />
+                        <spinner id="joker-laps-max-spinner" proportion="3" wrap_around="false" />
+                    </div>
+            </div>
+
+
+
+            <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="deg-mult-label" proportion="3" text="Degradation multiplier:" text_align="left" />
+                        <textbox id="deg-mult-textbox" proportion="3" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="fuel-mult-label" proportion="3" text="Fuel consumption multiplier:" text_align="left" />
+                        <textbox id="fuel-mult-textbox" proportion="3" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="tyre-change-override-label" proportion="3" text="Tyre change time override?" text_align="left" />
+                        <checkbox id="tyre-change-override-checkbox" proportion="1" />
+                    </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="tyre-change-override-val-label" proportion="3" text="Tyre change override val:" text_align="left" />
+                        <textbox id="tyre-change-override-val-textbox" proportion="3" />
+                    </div>
+            </div>
+            </div>
         </box>
     </div>
 </stkgui>

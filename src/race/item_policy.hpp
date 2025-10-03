@@ -76,7 +76,20 @@ enum ItemPolicyRules {
     IPT_VIRTUAL_PACE = 1 << 10,
 
     // The "virtual pace car" procedure will let all karts fully unlap.
-    IPT_UNLAPPING  =  1 << 11
+    IPT_UNLAPPING  =  1 << 11,
+
+    // Joker laps (min and mass passes of all volumes) will be overridden from default lap-multiplied integer.
+    IPT_JOKER_OVERRIDE  =  1 << 12,
+
+    // Bonus boxes will instead have their powerup pool draw from the item policy section's current one, rather than the one in powerup.xml.
+    IPT_BONUS_BOX_OVERRIDE  =  1 << 13,
+
+    // Provided weights for the powerup pool will be ignored, instead using automatic ones to try to attempt reasonable balance.
+    IPT_AUTOMATIC_WEIGHTS =  1 << 14,
+
+    // Stop time for all non-fuel tire changers will be m_tyre_change_time instead of their regular one
+    IPT_TYRE_CHANGE_TIME_OVERRIDE =  1 << 15
+
 };
 
 
@@ -101,6 +114,7 @@ struct ItemPolicySection {
     float m_virtual_pace_gaps;
     float m_deg_mult;
     float m_fuel_mult;
+    float m_tyre_change_time;
 
     // Which items can be handed out
     std::vector<PowerupManager::PowerupType> m_possible_types;

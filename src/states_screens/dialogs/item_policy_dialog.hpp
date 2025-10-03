@@ -36,12 +36,20 @@ private:
     bool m_self_destroy;
     bool m_save;
 
+    int m_current_section;
+    int m_current_config_tab;
+
     ItemPolicy m_item_policy;
     std::string m_path;
     XMLNode *m_root;
 
     GUIEngine::SpinnerWidget* m_current_section_spinner;
     GUIEngine::LabelWidget* m_current_section_label;
+    GUIEngine::IconButtonWidget* m_new_section_widget;
+    GUIEngine::IconButtonWidget* m_remove_section_widget;
+
+    GUIEngine::SpinnerWidget* m_section_start_spinner;
+    GUIEngine::LabelWidget* m_section_start_label;
 
     GUIEngine::SpinnerWidget* m_config_mode_spinner;
     GUIEngine::LabelWidget* m_config_mode_label;
@@ -49,6 +57,12 @@ private:
     GUIEngine::IconButtonWidget* m_ok_widget;
     GUIEngine::IconButtonWidget* m_cancel_widget;
 
+    void computePolicyFromGUI();
+    void setGUIFromPolicy();
+    void setVisibilityOfPowerupTab(bool visible);
+    void setVisibilityOfPowerupPoolTab(bool visible);
+    void setVisibilityOfRulesTab(bool visible);
+    void setVisibilityOfFuelAndTyresTab(bool visible);
     void updateMoreOption(int game_mode);
 public:
     ItemPolicyDialog(std::string path);
@@ -67,16 +81,7 @@ public:
         return false;
     }
     // ------------------------------------------------------------------------
-    void onUpdate(float dt) {
-        if (m_self_destroy) {
-            if (m_save) {
-                saveConfig(m_path, m_item_policy.toString());
-                RaceManager::get()->setItemPolicy(m_item_policy.toString());
-            }
-            ModalDialog::dismiss();
-        }
-    }
-
+    void onUpdate(float dt) OVERRIDE;
     static std::string loadConfig(const std::string &path, bool create_if_missing);
     static bool saveConfig(const std::string &path, const std::string &policy);
 };   // class ServerConfigurationDialog
