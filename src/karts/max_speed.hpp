@@ -40,6 +40,7 @@ public:
            MS_INCREASE_SLIPSTREAM,
            MS_INCREASE_NITRO,
            MS_INCREASE_RUBBER,
+           MS_INCREASE_GUM,
            MS_INCREASE_SKIDDING,
            MS_INCREASE_RED_SKIDDING,
            MS_INCREASE_PURPLE_SKIDDING,

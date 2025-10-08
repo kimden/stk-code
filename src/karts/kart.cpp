@@ -1325,7 +1325,7 @@ void Kart::collectedItem(ItemState *item_state)
 {
     float old_energy          = m_collected_energy;
     const Item::ItemType type = item_state->getType();
-
+    bool is_mini;
     auto& stk_config = STKConfig::get();
 
     switch (type)
@@ -1353,23 +1353,30 @@ void Kart::collectedItem(ItemState *item_state)
         break;
     case Item::ITEM_BUBBLEGUM:
     case Item::ITEM_BUBBLEGUM_SMALL:
+        is_mini = type == Item::ITEM_BUBBLEGUM_SMALL;
         m_has_caught_nolok_bubblegum = 
             (item_state->getPreviousOwner()&&
              item_state->getPreviousOwner()->getIdent() == "nolok");
 
-        // slow down
-        m_bubblegum_ticks = (int16_t)stk_config->time2Ticks(
-            m_kart_properties->getBubblegumDuration());
-        m_bubblegum_torque_sign =
-            ((World::getWorld()->getTicksSinceStart() / 10) % 2 == 0) ?
-            true : false;
-        m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE,
-            m_kart_properties->getBubblegumSpeedFraction() ,
-            stk_config->time2Ticks(m_kart_properties->getBubblegumFadeInTime()),
-            m_bubblegum_ticks);
+        // collect gum and give bonus
+        if (isGumShielded()) {        
+            m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_GUM,
+                is_mini ? 2.0 : 3.5, is_mini ? 1.0 : 2.2, 1.30f, stk_config->time2Ticks(1.0f), 0.1f);
+            setShieldTime(0.30f*m_kart_properties->getBubblegumShieldDuration()*(is_mini ? 0.5f : 1.0f) + getShieldTime());
+        } else { // collect gum and give slowdown        
+            m_bubblegum_ticks = (int16_t)stk_config->time2Ticks(
+                m_kart_properties->getBubblegumDuration());
+            m_bubblegum_torque_sign =
+                ((World::getWorld()->getTicksSinceStart() / 10) % 2 == 0) ?
+                true : false;
+            m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE,
+                m_kart_properties->getBubblegumSpeedFraction() ,
+                stk_config->time2Ticks(m_kart_properties->getBubblegumFadeInTime()),
+                m_bubblegum_ticks);
+        }
+
         if (!RewindManager::get()->isRewinding())
             getNextEmitter()->play(getSmoothedXYZ(), m_goo_sound);
-
         // Play appropriate custom character sound
         playCustomSFX(SFXManager::CUSTOM_GOO);
         break;

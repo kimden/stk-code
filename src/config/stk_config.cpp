@@ -222,6 +222,7 @@ void STKConfig::init_defaults()
     m_physics_fps                = -100;
     m_bubblegum_counter          = -100;
     m_shield_restrict_weapons    = false;
+    m_shield_gum_boost           = false;
     m_max_karts                  = -100;
     m_max_skidmarks              = -100;
     m_min_kart_version           = -100;
@@ -538,6 +539,7 @@ void STKConfig::getAllData(const XMLNode * root)
     {
         bubblegum_node->get("disappear-counter", &m_bubblegum_counter      );
         bubblegum_node->get("restrict-weapons",  &m_shield_restrict_weapons);
+        bubblegum_node->get("gum-boos",  &m_shield_gum_boost);
     }
 
 

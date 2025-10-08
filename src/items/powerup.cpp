@@ -472,7 +472,7 @@ int Powerup::useBubblegum(bool mini)
         {
             m_kart->getAttachment()->set(type,
                 STKConfig::get()->time2Ticks(kp->getBubblegumShieldDuration() * mini_factor
-                                       + (m_kart->getShieldTime() / 2.0f)) );
+                                       + (m_kart->getShieldTime() / 1.4f)) );
         }
         sound_type = 2;
     }
