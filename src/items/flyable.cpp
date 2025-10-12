@@ -576,7 +576,7 @@ bool Flyable::hit(AbstractKart *kart_hit, PhysicalObject* object)
         // and a lapped or vice versa. Let ItemPolicy decide this
      
         ItemPolicy *policy = RaceManager::get()->getItemPolicy(); 
-        return policy->isHitValid(sender_distance, sender_lap, recv_distance, recv_lap, track_length);
+        return policy->isHitValid(sender_distance, sender_lap, m_owner->getPosition(), recv_distance, recv_lap, kart_hit->getPosition(), track_length);
     } else {
         return true;
     }
