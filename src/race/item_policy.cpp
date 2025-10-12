@@ -493,33 +493,21 @@ int ItemPolicy::computeItemTicksTillReturn(
 }   // computeItemTicksTillReturn
 //-----------------------------------------------------------------------------
 
-<<<<<<< HEAD
-void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart)
-{
-=======
 void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
->>>>>>> 4d229c09d (Make hits not work under VPC, make top speed of PIT effect fixed)
     auto& stk_config = STKConfig::get();
 
     bool start_of_race_vpc = m_leader_section <= -1 && (m_policy_sections[0].m_rules & ItemPolicyRules::IPT_VIRTUAL_PACE);
     // Not in a virtual pace car yet, but since it is on the start of the race, this is done to prevent overtaking
     if (start_of_race_vpc) {
-        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), -1);
+        kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), -1);
         return;
     }
 
     bool is_restart = m_virtual_pace_code <= -3;
     bool did_restart = false;
-<<<<<<< HEAD
-    if (is_restart)
-    {
+    if (is_restart) {
         // Reaffirm the penalty in case someone tried to be funny and hit a gum in the middle of a safety car restart to shorten their penalty
         kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), -1);
-=======
-    if (is_restart) {
-        // Reaffirm the penalty in case someone tried to be funny and change tyres in the middle of a safety car restart to shorten their penalty
-        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), -1);
->>>>>>> 4d229c09d (Make hits not work under VPC, make top speed of PIT effect fixed)
         int restart_time = -(m_virtual_pace_code + 3);
         float gap = m_policy_sections[m_leader_section].m_virtual_pace_gaps;
         gap *= kart->getPosition();
@@ -528,7 +516,7 @@ void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
         if (current_time > restart_time)
         {
             // Set slowdown time to 0 (disable it) if its time to restart
-            kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
+            kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
             did_restart = true;
         }
     }
@@ -541,18 +529,10 @@ void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
         m_restart_count = -1;
     }
 
-<<<<<<< HEAD
     // the only reason such a ridiculous infinite gum penalty (-1) can be given is if it's a virtual pace car restart
     // plainly, the only reason this exists is because first place won't get its penalty overturned if for some reason
     if (m_virtual_pace_code == -1 && kart->m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_BUBBLE) == -1)
         kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
-=======
-    // the only reason such a ridiculous infinite pit penalty (-1) can be given is if it's a virtual pace car restart
-    // plainly, the only reason this exists is because first place won't get its penalty overturned sometimes
-    if (m_virtual_pace_code == -1 && kart->m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_STOP) == -1) {
-        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
-    }
->>>>>>> 4d229c09d (Make hits not work under VPC, make top speed of PIT effect fixed)
 
 }   // enforceVirtualPaceCarRulesForKart
 //-----------------------------------------------------------------------------
@@ -581,13 +561,9 @@ void ItemPolicy::checkAndApplyVirtualPaceCarRules(
     {
         auto& stk_config = STKConfig::get();
         m_restart_count += 1;
-<<<<<<< HEAD
         kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f,
                           stk_config->time2Ticks(0.1f),
                         stk_config->time2Ticks(99999));
-=======
-        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(99999));
->>>>>>> 4d229c09d (Make hits not work under VPC, make top speed of PIT effect fixed)
         slowed_down = true;
     }
 
