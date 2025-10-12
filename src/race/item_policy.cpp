@@ -311,7 +311,33 @@ std::string ItemPolicy::toString() {
 } // toString
 //--------------------------------------------------
 
-bool ItemPolicy::isHitValid(float sender_distance, float sender_lap, float recv_distance, float recv_lap, float track_length) {
+static bool isKartUnderVirtualPaceCarSlowdown(ItemPolicy *self, int position) {
+    bool start_of_race_vpc = self->m_leader_section <= -1 && (self->m_policy_sections[0].m_rules & ItemPolicyRules::IPT_VIRTUAL_PACE);
+    // Not in a virtual pace car yet, but since it is on the start of the race, this is done to prevent overtaking
+    if (start_of_race_vpc)
+        return true;
+
+    bool is_restart = self->m_virtual_pace_code <= -3;
+    bool did_restart = false;
+    if (is_restart) {
+        int restart_time = -(self->m_virtual_pace_code + 3);
+        float gap = self->m_policy_sections[self->m_leader_section].m_virtual_pace_gaps;
+        gap *= position;
+        restart_time += gap;
+        int current_time = World::getWorld()->getTime();
+        if (current_time > restart_time) {
+            // Set slowdown time to 0 (disable it) if its time to restart
+            did_restart = true;
+        }
+    }
+    if (is_restart && !did_restart)
+        return true;
+    else
+        return false;
+}
+
+
+bool ItemPolicy::isHitValid(float sender_distance, float sender_lap, int sender_position, float recv_distance, int recv_position, float recv_lap, float track_length) {
 
     int leader_section_idx = m_leader_section;
     // If leader is not in a valid section, allow the hit
@@ -320,6 +346,10 @@ bool ItemPolicy::isHitValid(float sender_distance, float sender_lap, float recv_
     // If blue flags are not enabled, ALSO allow the hit
     if (!(m_policy_sections[leader_section_idx].m_rules & ItemPolicyRules::IPT_BLUE_FLAGS))
         return true;
+
+    // If one of the karts is under a virtual pace car restart, forbid the hit
+    if (isKartUnderVirtualPaceCarSlowdown(this, sender_position) || isKartUnderVirtualPaceCarSlowdown(this, recv_position))
+        return false;
 
     //float minimum_distance_empirical = 200.0f;
 
@@ -423,15 +453,21 @@ int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemSt
     return new_ticks_till_return;
 }
 
-
 void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
     auto& stk_config = STKConfig::get();
+
+    bool start_of_race_vpc = m_leader_section <= -1 && (m_policy_sections[0].m_rules & ItemPolicyRules::IPT_VIRTUAL_PACE);
+    // Not in a virtual pace car yet, but since it is on the start of the race, this is done to prevent overtaking
+    if (start_of_race_vpc) {
+        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), -1);
+        return;
+    }
 
     bool is_restart = m_virtual_pace_code <= -3;
     bool did_restart = false;
     if (is_restart) {
-        // Reaffirm the penalty in case someone tried to be funny and hit a gum in the middle of a safety car restart to shorten their penalty
-        kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), -1);
+        // Reaffirm the penalty in case someone tried to be funny and change tyres in the middle of a safety car restart to shorten their penalty
+        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), -1);
         int restart_time = -(m_virtual_pace_code + 3);
         float gap = m_policy_sections[m_leader_section].m_virtual_pace_gaps;
         gap *= kart->getPosition();
@@ -439,7 +475,7 @@ void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
         int current_time = World::getWorld()->getTime();
         if (current_time > restart_time) {
             // Set slowdown time to 0 (disable it) if its time to restart
-            kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
+            kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
             did_restart = true;
         }
     }
@@ -451,10 +487,10 @@ void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
         m_restart_count = -1;
     }
 
-    // the only reason such a ridiculous infinite gum penalty (-1) can be given is if it's a virtual pace car restart
-    // plainly, the only reason this exists is because first place won't get its penalty overturned if for some reason
-    if (m_virtual_pace_code == -1 && kart->m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_BUBBLE) == -1) {
-        kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
+    // the only reason such a ridiculous infinite pit penalty (-1) can be given is if it's a virtual pace car restart
+    // plainly, the only reason this exists is because first place won't get its penalty overturned sometimes
+    if (m_virtual_pace_code == -1 && kart->m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_STOP) == -1) {
+        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(0));
     }
 
 }
@@ -478,7 +514,7 @@ void ItemPolicy::checkAndApplyVirtualPaceCarRules(Kart *kart, int kart_section, 
     if (m_virtual_pace_code == finished_laps || m_virtual_pace_code == -2) {
         auto& stk_config = STKConfig::get();
         m_restart_count += 1;
-        kart->setSlowdown(MaxSpeed::MS_DECREASE_BUBBLE, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(99999));
+        kart->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(99999));
         slowed_down = true;
     }
 

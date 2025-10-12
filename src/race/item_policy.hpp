@@ -152,7 +152,7 @@ struct ItemPolicy {
 
     int applyRules(Kart *kart, int current_lap, int current_time, int total_laps_of_race);
 
-    bool isHitValid(float sender_distance, float sender_lap, float recv_distance, float recv_lap, float track_length);
+    bool isHitValid(float sender_distance, float sender_lap, int sender_position, float recv_distance, int recv_position, float recv_lap, float track_length);
 
     int computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemState::ItemType curr_type, int curr_type_respawn_ticks, int curr_ticks_till_return, int payload);
 

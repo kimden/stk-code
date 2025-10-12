@@ -22,6 +22,7 @@
 #include "config/stk_config.hpp"
 #include "karts/kart.hpp"
 #include "karts/kart_properties.hpp"
+#include "karts/kart_properties_manager.hpp"
 #include "network/network_string.hpp"
 #include "physics/btKart.hpp"
 
@@ -508,6 +509,12 @@ void MaxSpeed::update(int ticks)
     // should be redesigned to make it less confusing...
     else 
         m_kart->getVehicle()->setMinSpeed(0);   // no additional acceleration
+
+    // PIT LIMITED / MAX SPEED IN PITS / PIT SPEED LIMITER
+    if(m_speed_decrease[MS_DECREASE_STOP].m_duration != 0) {
+        m_current_max_speed = kart_properties_manager->getKart(std::string("tux"))->getEngineMaxSpeed()*0.1f;
+        m_add_engine_force = 0.0f;
+    }
 
     if (m_kart->isOnGround())
         m_kart->getVehicle()->setMaxSpeed(m_current_max_speed);
