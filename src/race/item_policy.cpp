@@ -223,8 +223,8 @@ static std::string fetch(std::vector<std::string>& strings, unsigned idx)
 
 void ItemPolicy::fromString(std::string& input)
 {
-    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 0";
-    std::string tt_preset = "1 0 0010000001 1 0 0 0 1 zipper 1";
+    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 0 0 0";
+    std::string tt_preset = "1 0 0010000001 1 0 0 0 0 0 1 zipper 1";
     if (input.empty())
     {
         fromString(normal_race_preset);
@@ -242,8 +242,8 @@ void ItemPolicy::fromString(std::string& input)
     }
     std::vector<std::string> params = StringUtils::split(input, ' ');
     // Format can not form a valid policy with less than 10 space-separated parameters:
-    // 1 0 0000000000 0 0 0 0 1 1 0
-    // 1 section starting on lap 1 with no rules, all data to 0, and a length-0 item vector
+    // 1 0 0000000000 0 0 0 0 0 0 0 
+    // 1 section starting on lap 1 with no rules, all data to 0, no overridden stop time, and a length-0 item vector
     if (params.empty() || params.size() < 8)
     {
         fromString(normal_race_preset);
@@ -329,7 +329,7 @@ std::string ItemPolicy::toString()
             return "Time based sections not supported yet";
         }
         ss << m_policy_sections[i].m_section_start << " ";
-        std::string bs = std::bitset<12>(m_policy_sections[i].m_rules).to_string();
+        std::string bs = std::bitset<16>(m_policy_sections[i].m_rules).to_string();
         ss << bs << " ";
         ss << m_policy_sections[i].m_linear_mult << " ";
         ss << m_policy_sections[i].m_items_per_lap << " ";
