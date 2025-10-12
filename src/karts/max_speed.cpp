@@ -457,11 +457,13 @@ void MaxSpeed::update(int ticks)
     else 
         m_kart->getVehicle()->setMinSpeed(0);   // no additional acceleration
 
+    // TODO
+    // 1.X ITEM POLICY: ENABLE THIS OR NOT? It will cause slight lag for all non-tux karts, but it's very needed
     // PIT LIMITED / MAX SPEED IN PITS / PIT SPEED LIMITER
-    if(m_speed_decrease[MS_DECREASE_STOP].m_duration != 0) {
-        m_current_max_speed = kart_properties_manager->getKart(std::string("tux"))->getEngineMaxSpeed()*0.1f;
-        m_add_engine_force = 0.0f;
-    }
+    // if(m_speed_decrease[MS_DECREASE_BUBBLE].m_duration != 0) {
+    //    m_current_max_speed = kart_properties_manager->getKart(std::string("tux"))->getEngineMaxSpeed()*0.1f;
+    //    m_add_engine_force = 0.0f;
+    // }
 
     if (m_kart->isOnGround())
         m_kart->getVehicle()->setMaxSpeed(m_current_max_speed);
