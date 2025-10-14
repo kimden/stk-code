@@ -87,6 +87,9 @@ extern "C"
 }
 #endif
 
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+
 // ============================================================================
 std::thread ClientLobby::m_background_download;
 std::shared_ptr<Online::HTTPRequest> ClientLobby::m_download_request;
@@ -1717,6 +1720,8 @@ void ClientLobby::reportSuccess(Event* event)
     }
 }   // reportSuccess
 
+static int batch(std::string, std::string, std::string);
+
 // ----------------------------------------------------------------------------
 void ClientLobby::handleClientCommand(const std::string& cmd)
 {
@@ -1950,6 +1955,18 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         UserConfigParams::m_render_driver = "vulkan";
         user_config->saveConfig();
     }
+    else if (argv[0] == "batch")
+    {
+        if (argv.size() < 2)
+            return;
+        std::string filedir = file_manager->getAsset("batch_scripts/");
+        int retval = batch(filedir, argv[1], cmd);
+        if (retval != 0) {
+            NetworkingLobby::getInstance()->addMoreServerInfo(L"There was an error running the batch");
+        }
+
+
+    }
     else
     {
         // Send for server command
@@ -1961,6 +1978,117 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
     }
 #endif
 }   // handleClientCommand
+
+/* Return the number of arguments of the application command line */
+static PyObject* stkbatchpy_addCommand(PyObject *self, PyObject *args)
+{
+    char *str;
+    if (!PyArg_ParseTuple(args, "s#", &str))
+        return NULL;
+
+    NetworkString *nstr = new NetworkString(PROTOCOL_LOBBY_ROOM, 1);
+    const std::string& language = UserConfigParams::m_language;
+    nstr->addUInt8(LE_COMMAND).encodeString(language).encodeString(std::string(str));
+    Comm::sendToServer(nstr, PRM_RELIABLE);
+
+    Py_RETURN_NONE;
+}
+
+/* Return the number of arguments of the application command line */
+static PyObject* stkbatchpy_addMessage(PyObject *self, PyObject *args)
+{
+    char *str;
+    if (!PyArg_ParseTuple(args, "s#", &str))
+        return NULL;
+
+    NetworkingLobby::getInstance()->addMoreServerInfo(StringUtils::utf8ToWide(str));
+    Py_RETURN_NONE;
+}
+
+
+static PyMethodDef stkbatchpy_module_methods[] = {
+    {"addCommand", stkbatchpy_addCommand, METH_VARARGS,
+     "Appends a command to be sent to the server"},
+    {"addMessage", stkbatchpy_addMessage, METH_VARARGS,
+     "Appends a message to be shown to the user"},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef stkbatchpy_module = {
+    .m_base = PyModuleDef_HEAD_INIT,
+    .m_name = "stkbatchpy",
+    .m_size = 0,
+    .m_methods = stkbatchpy_module_methods,
+};
+
+static PyObject* PyInit_stkbatchpy(void)
+{
+    return PyModuleDef_Init(&stkbatchpy_module);
+}
+
+static int batch(std::string filedir, std::string commandname, std::string cmd) {
+    PyObject *pName, *pModule, *pFunc;
+    PyObject *pArgs, *pValue;
+    int retval = 0;
+
+    // The interpreter will only be initialized ONCE, and never finalized (for now, might add the finalization to main)
+    if (!Py_IsInitialized()) {
+        PyImport_AppendInittab("stkbatchpy", &PyInit_stkbatchpy);
+        Py_Initialize();
+    }
+
+    PyRun_SimpleString((std::string("import sys\nsys.path.insert(0, '") + filedir + std::string("')")).c_str());
+    pName = PyUnicode_DecodeFSDefault(commandname.c_str());
+    pModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+
+    if (pModule != NULL) {
+        // In case the file was modified
+        PyImport_ReloadModule(pModule);
+
+        pFunc = PyObject_GetAttrString(pModule, "batch_entry");
+        /* pFunc is a new reference */
+
+        if (pFunc && PyCallable_Check(pFunc)) {
+            pArgs = PyTuple_New(1);
+            pValue = PyBytes_FromString(cmd.c_str());
+            /* pValue reference stolen here: */
+            PyTuple_SetItem(pArgs, 0, pValue);
+
+            pValue = PyObject_CallObject(pFunc, pArgs);
+            Py_DECREF(pArgs);
+            if (pValue != NULL) {
+                printf("STKBATCHPY: Batch ran successfully\n");
+                Py_DECREF(pValue);
+            }
+            else {
+                Py_DECREF(pFunc);
+                Py_DECREF(pModule);
+                PyErr_Print();
+                printf("STKBATCHPY: Batch failed, oh no!\n");
+                retval = 3;
+            }
+        }
+        else {
+            if (PyErr_Occurred())
+                PyErr_Print();
+            fprintf(stderr, "STKBATCHPY: Cannot find function batch_entry\n");
+            retval = 2;
+        }
+        Py_XDECREF(pFunc);
+        Py_DECREF(pModule);
+    }
+    else {
+        PyErr_Print();
+        fprintf(stderr, "STKBATCHPY: Failed to load %s\n", (filedir + "/" + commandname + ".py").c_str());
+        retval = 1;
+    }
+    //if (Py_FinalizeEx() < 0) {
+    //        fprintf(stderr, "STKBATCHPY: The interpreter didn't finalize correctly for some reason\n");
+    //        retval = 4;
+    //}
+    return retval;
+}
 
 // ----------------------------------------------------------------------------
 void ClientLobby::getKartsTracksNetworkString(BareNetworkString* ns)

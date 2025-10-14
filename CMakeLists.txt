@@ -313,6 +313,17 @@ endif()
 # MiniGLM is there
 include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/graphics_engine/include")
 
+
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+if(Python_FOUND)
+    message(STATUS "Python Found: ${Python_EXECUTABLE}")
+    message(STATUS "Python Found: ${Python_INCLUDE_DIRS}")
+    message(STATUS "Python Found: ${Python_LIBRARIES}")
+    message(STATUS "Python Found: ${Python_LIBRARY_DIRS}")
+    include_directories(${Python_INCLUDE_DIRS})
+endif()
+
+
 if (NOT SERVER_ONLY)
     # Add jpeg library
     find_package(JPEG REQUIRED)
@@ -536,7 +547,7 @@ endif()
 
 # Set some compiler options
 if(UNIX OR MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -I/usr/include/python3.11 -fstack-protector-strong -fwrapv")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
 endif()
 
@@ -717,6 +728,7 @@ target_link_libraries(supertuxkart
     bulletdynamics
     bulletcollision
     bulletmath
+    ${Python_LIBRARIES}
     ${ENET_LIBRARIES}
     stkirrlicht
     ${Angelscript_LIBRARIES}
@@ -842,6 +854,8 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
 endif()
+
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/python3.11/config-3.11-x86_64-linux-gnu -ldl")
 
 if(HAIKU)
     target_link_libraries(supertuxkart -lbe -lnetwork)
