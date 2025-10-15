@@ -2060,11 +2060,11 @@ static int batch(std::string filedir, std::string commandname, std::string cmd, 
 
         if (pFunc && PyCallable_Check(pFunc)) {
             pArgs = PyTuple_New(2);
-            pValue = PyBytes_FromString(cmd.c_str());
+            pValue = PyUnicode_FromString(cmd.c_str());
             /* pValue reference stolen here: */
             PyTuple_SetItem(pArgs, 0, pValue);
 
-            pValue = PyBytes_FromString(players.c_str());
+            pValue = PyUnicode_FromString(players.c_str());
             /* pValue reference stolen here: */
             PyTuple_SetItem(pArgs, 1, pValue);
 
