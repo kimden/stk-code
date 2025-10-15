@@ -20,6 +20,7 @@
 
 #include "utils/tme_constants.hpp"
 
+#include "online/profile_manager.hpp"
 #include "addons/addons_manager.hpp"
 #include "audio/music_manager.hpp"
 #include "audio/sfx_manager.hpp"
@@ -1720,7 +1721,7 @@ void ClientLobby::reportSuccess(Event* event)
     }
 }   // reportSuccess
 
-static int batch(std::string, std::string, std::string);
+static int batch(std::string, std::string, std::string, std::string players);
 
 // ----------------------------------------------------------------------------
 void ClientLobby::handleClientCommand(const std::string& cmd)
@@ -1960,7 +1961,15 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         if (argv.size() < 2)
             return;
         std::string filedir = file_manager->getAsset("batch_scripts/");
-        int retval = batch(filedir, argv[1], cmd);
+        std::string players = "";
+        
+        for (LobbyPlayer &p : m_lobby_players) {
+            std::string pstr = StringUtils::wideToUtf8(Online::ProfileManager::get()->getProfileByID(p.m_online_id)->getUserName());
+            players += pstr;
+            players += ";";
+        }
+
+        int retval = batch(filedir, argv[1], cmd, players);
         if (retval != 0) {
             NetworkingLobby::getInstance()->addMoreServerInfo(L"There was an error running the batch");
         }
@@ -2026,7 +2035,7 @@ static PyObject* PyInit_stkbatchpy(void)
     return PyModuleDef_Init(&stkbatchpy_module);
 }
 
-static int batch(std::string filedir, std::string commandname, std::string cmd) {
+static int batch(std::string filedir, std::string commandname, std::string cmd, std::string players) {
     PyObject *pName, *pModule, *pFunc;
     PyObject *pArgs, *pValue;
     int retval = 0;
@@ -2050,10 +2059,14 @@ static int batch(std::string filedir, std::string commandname, std::string cmd) 
         /* pFunc is a new reference */
 
         if (pFunc && PyCallable_Check(pFunc)) {
-            pArgs = PyTuple_New(1);
+            pArgs = PyTuple_New(2);
             pValue = PyBytes_FromString(cmd.c_str());
             /* pValue reference stolen here: */
             PyTuple_SetItem(pArgs, 0, pValue);
+
+            pValue = PyBytes_FromString(players.c_str());
+            /* pValue reference stolen here: */
+            PyTuple_SetItem(pArgs, 1, pValue);
 
             pValue = PyObject_CallObject(pFunc, pArgs);
             Py_DECREF(pArgs);
