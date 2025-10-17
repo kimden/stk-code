@@ -1721,7 +1721,7 @@ void ClientLobby::reportSuccess(Event* event)
     }
 }   // reportSuccess
 
-static int batch(std::string, std::string, std::string, std::string players);
+static int pyrun(std::string, std::string, std::string, std::string players);
 
 // ----------------------------------------------------------------------------
 void ClientLobby::handleClientCommand(const std::string& cmd)
@@ -1956,11 +1956,11 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
         UserConfigParams::m_render_driver = "vulkan";
         user_config->saveConfig();
     }
-    else if (argv[0] == "batch")
+    else if (argv[0] == "pyrun")
     {
         if (argv.size() < 2)
             return;
-        std::string filedir = file_manager->getAsset("batch_scripts/");
+        std::string filedir = file_manager->getAsset("python_scripts/");
         std::string players = "";
         
         for (LobbyPlayer &p : m_lobby_players) {
@@ -1969,9 +1969,9 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
             players += ";";
         }
 
-        int retval = batch(filedir, argv[1], cmd, players);
+        int retval = pyrun(filedir, argv[1], cmd, players);
         if (retval != 0) {
-            NetworkingLobby::getInstance()->addMoreServerInfo(L"There was an error running the batch");
+            NetworkingLobby::getInstance()->addMoreServerInfo(L"There was an error running the python script");
         }
 
 
@@ -1989,7 +1989,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
 }   // handleClientCommand
 
 /* Return the number of arguments of the application command line */
-static PyObject* stkbatchpy_addCommand(PyObject *self, PyObject *args)
+static PyObject* stkclientpy_addCommand(PyObject *self, PyObject *args)
 {
     char *str;
     if (!PyArg_ParseTuple(args, "s#", &str))
@@ -2004,7 +2004,7 @@ static PyObject* stkbatchpy_addCommand(PyObject *self, PyObject *args)
 }
 
 /* Return the number of arguments of the application command line */
-static PyObject* stkbatchpy_addMessage(PyObject *self, PyObject *args)
+static PyObject* stkclientpy_addMessage(PyObject *self, PyObject *args)
 {
     char *str;
     if (!PyArg_ParseTuple(args, "s#", &str))
@@ -2015,34 +2015,34 @@ static PyObject* stkbatchpy_addMessage(PyObject *self, PyObject *args)
 }
 
 
-static PyMethodDef stkbatchpy_module_methods[] = {
-    {"addCommand", stkbatchpy_addCommand, METH_VARARGS,
+static PyMethodDef stkclientpy_module_methods[] = {
+    {"addCommand", stkclientpy_addCommand, METH_VARARGS,
      "Appends a command to be sent to the server"},
-    {"addMessage", stkbatchpy_addMessage, METH_VARARGS,
+    {"addMessage", stkclientpy_addMessage, METH_VARARGS,
      "Appends a message to be shown to the user"},
     {NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef stkbatchpy_module = {
+static struct PyModuleDef stkclientpy_module = {
     .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "stkbatchpy",
+    .m_name = "stkclientpy",
     .m_size = 0,
-    .m_methods = stkbatchpy_module_methods,
+    .m_methods = stkclientpy_module_methods,
 };
 
-static PyObject* PyInit_stkbatchpy(void)
+static PyObject* PyInit_stkclientpy(void)
 {
-    return PyModuleDef_Init(&stkbatchpy_module);
+    return PyModuleDef_Init(&stkclientpy_module);
 }
 
-static int batch(std::string filedir, std::string commandname, std::string cmd, std::string players) {
+static int pyrun(std::string filedir, std::string commandname, std::string cmd, std::string players) {
     PyObject *pName, *pModule, *pFunc;
     PyObject *pArgs, *pValue;
     int retval = 0;
 
     // The interpreter will only be initialized ONCE, and never finalized (for now, might add the finalization to main)
     if (!Py_IsInitialized()) {
-        PyImport_AppendInittab("stkbatchpy", &PyInit_stkbatchpy);
+        PyImport_AppendInittab("stkclientpy", &PyInit_stkclientpy);
         Py_Initialize();
     }
 
@@ -2055,7 +2055,7 @@ static int batch(std::string filedir, std::string commandname, std::string cmd, 
         // In case the file was modified
         PyImport_ReloadModule(pModule);
 
-        pFunc = PyObject_GetAttrString(pModule, "batch_entry");
+        pFunc = PyObject_GetAttrString(pModule, "stk_client_entry");
         /* pFunc is a new reference */
 
         if (pFunc && PyCallable_Check(pFunc)) {
@@ -2071,21 +2071,21 @@ static int batch(std::string filedir, std::string commandname, std::string cmd, 
             pValue = PyObject_CallObject(pFunc, pArgs);
             Py_DECREF(pArgs);
             if (pValue != NULL) {
-                printf("STKBATCHPY: Batch ran successfully\n");
+                printf("STKCLIENTPY: Python script ran successfully\n");
                 Py_DECREF(pValue);
             }
             else {
                 Py_DECREF(pFunc);
                 Py_DECREF(pModule);
                 PyErr_Print();
-                printf("STKBATCHPY: Batch failed, oh no!\n");
+                printf("STKCLIENTPY: Python script failed, oh no!\n");
                 retval = 3;
             }
         }
         else {
             if (PyErr_Occurred())
                 PyErr_Print();
-            fprintf(stderr, "STKBATCHPY: Cannot find function batch_entry\n");
+            fprintf(stderr, "STKCLIENTPY: Cannot find function stk_client_entry\n");
             retval = 2;
         }
         Py_XDECREF(pFunc);
@@ -2093,11 +2093,11 @@ static int batch(std::string filedir, std::string commandname, std::string cmd, 
     }
     else {
         PyErr_Print();
-        fprintf(stderr, "STKBATCHPY: Failed to load %s\n", (filedir + "/" + commandname + ".py").c_str());
+        fprintf(stderr, "STKCLIENTPY: Failed to load %s\n", (filedir + "/" + commandname + ".py").c_str());
         retval = 1;
     }
     //if (Py_FinalizeEx() < 0) {
-    //        fprintf(stderr, "STKBATCHPY: The interpreter didn't finalize correctly for some reason\n");
+    //        fprintf(stderr, "STKCLIENTPY: The interpreter didn't finalize correctly for some reason\n");
     //        retval = 4;
     //}
     return retval;
