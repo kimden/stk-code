@@ -1988,7 +1988,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
 #endif
 }   // handleClientCommand
 
-/* Return the number of arguments of the application command line */
+/* Sends a command to the server */
 static PyObject* stkclientpy_addCommand(PyObject *self, PyObject *args)
 {
     char *str;
@@ -2003,8 +2003,33 @@ static PyObject* stkclientpy_addCommand(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-/* Return the number of arguments of the application command line */
-static PyObject* stkclientpy_addMessage(PyObject *self, PyObject *args)
+/* Attempts to load an Item Policy preset from a file */
+static PyObject* stkclientpy_loadItemPolicyPreset(PyObject *self, PyObject *args)
+{
+    char *str;
+    if (!PyArg_ParseTuple(args, "s#", &str))
+        return NULL;
+
+    std::string mystr = str;
+    std::string policy = ItemPolicyDialog::loadConfig("/rules/"+mystr+".xml", /*create_if_missing*/ false);
+    if (policy == "FAILURE") {
+        core::stringw msg = L"File is missing or malformed: ";
+        msg += mystr.c_str();
+        msg += ".xml";
+        NetworkingLobby::getInstance()->addMoreServerInfo(msg);
+    } else {
+        // Send for server command
+        NetworkString* cmd_ns = new NetworkString(PROTOCOL_LOBBY_ROOM, 1);
+        const std::string& language = UserConfigParams::m_language;
+        cmd_ns->addUInt8(LE_COMMAND).encodeString(language).encodeString("itempolicy " + policy);
+        Comm::sendToServer(cmd_ns, PRM_RELIABLE);
+        delete cmd_ns;
+    }
+    Py_RETURN_NONE;
+}
+
+/* Display a message to the user who ran the script */
+static PyObject* stkclientpy_privateMessage(PyObject *self, PyObject *args)
 {
     char *str;
     if (!PyArg_ParseTuple(args, "s#", &str))
@@ -2014,12 +2039,29 @@ static PyObject* stkclientpy_addMessage(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+/* Sends a message as if it was sent by the user */
+static PyObject* stkclientpy_publicMessage(PyObject *self, PyObject *args)
+{
+    char *str;
+    if (!PyArg_ParseTuple(args, "s#", &str))
+        return NULL;
+
+    auto cl = LobbyProtocol::get<ClientLobby>();
+    irr::core::stringw message = StringUtils::utf8ToWide(str);
+    cl->sendChat(message, KartTeam::KART_TEAM_NONE);
+    Py_RETURN_NONE;
+}
+
 
 static PyMethodDef stkclientpy_module_methods[] = {
     {"addCommand", stkclientpy_addCommand, METH_VARARGS,
-     "Appends a command to be sent to the server"},
-    {"addMessage", stkclientpy_addMessage, METH_VARARGS,
-     "Appends a message to be shown to the user"},
+     "Sends a command to the server"},
+    {"loadItemPolicyPreset", stkclientpy_loadItemPolicyPreset, METH_VARARGS,
+     "Attempts to load an Item Policy preset from a file"},
+    {"privateMessage", stkclientpy_privateMessage, METH_VARARGS,
+     "Display a message to the user who ran the script"},
+    {"publicMessage", stkclientpy_publicMessage, METH_VARARGS,
+     "Sends a message as if it was sent by the user"},
     {NULL, NULL, 0, NULL}
 };
 
