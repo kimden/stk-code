@@ -310,6 +310,15 @@ public:
                 { m_boosted_ai = false; m_color = 0.0f; }
 
     };   // KartStatus
+
+	/** Just some settings controlled by the user that are static and set before the race start */
+	struct TyreModRules {
+		int fuel_mode; /*0 = off, 1 = weightless, 2 = on*/
+		bool do_item_preview;
+		std::vector<int> tyre_allocation; /*Allocation for each compound*/
+		int wildcards; /*Amount of wildcards*/
+	}; // TyreModRules
+
 private:
 
     /** The kart status data for each kart. */
@@ -326,9 +335,8 @@ private:
     /** Stores remote kart information about all player karts. */
     std::vector<RemoteKartInfo>      m_player_karts;
     std::vector<std::string>         m_tracks;
-    int m_fuel_info;
-    int m_wildcards;
-    std::vector<int> m_tyres_queue_info;
+
+	TyreModRules m_tme_rules;
 
     /** Number of local players. */
     unsigned int m_num_local_players;
@@ -448,9 +456,9 @@ public:
      */
     void setTrack(const std::string& track);
 
-    void setFuelAndQueueInfo(int fuel_mode, int allowed_1, int allowed_2, int allowed_3, int wildcards);
+    void setTyreModRules(int fuel_mode, int allowed_1, int allowed_2, int allowed_3, int wildcards, bool item_preview);
 
-    std::tuple<int, std::vector<int>, int> getFuelAndQueueInfo(void);
+    TyreModRules *getTyreModRules(void);
 
 
     /** \brief Returns the kart with a given GP rank (or NULL if no such

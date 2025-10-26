@@ -1361,7 +1361,7 @@ void Kart::collectedItem(ItemState *item_state)
         // collect gum and give bonus
         if (isGumShielded()) {        
             m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_GUM,
-                is_mini ? 2.0 : 3.5, is_mini ? 1.0 : 2.2, 1.30f, stk_config->time2Ticks(1.0f), 0.1f);
+                is_mini ? 2.0 : 3.5, is_mini ? 1.0 : 2.2, 1.30f, stk_config->time2Ticks(1.0f), stk_config->time2Ticks(0.1f));
             setShieldTime(0.30f*m_kart_properties->getBubblegumShieldDuration()*(is_mini ? 0.5f : 1.0f) + getShieldTime());
         } else { // collect gum and give slowdown        
             m_bubblegum_ticks = (int16_t)stk_config->time2Ticks(

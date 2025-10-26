@@ -111,10 +111,11 @@ void GameSetup::addServerInfo(NetworkString* ns)
     auto sl = LobbyProtocol::get<ServerLobby>();
     assert(sl);
 
-    auto fuel_and_queue = RaceManager::get()->getFuelAndQueueInfo();
-    int fuel_mode = std::get<0>(fuel_and_queue);
-    auto alloc = std::get<1>(fuel_and_queue);
-    int wildcards = std::get<2>(fuel_and_queue);
+	RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+    int fuel_mode = tme_rules->fuel_mode;
+    auto alloc = tme_rules->tyre_allocation;
+    int wildcards = tme_rules->wildcards;
+    bool item_preview = tme_rules->do_item_preview;
 
     ns->addUInt8(fuel_mode);
 
@@ -122,6 +123,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
     ns->addUInt8(alloc[2]);
     ns->addUInt8(alloc[3]);
     ns->addUInt8(wildcards);
+    ns->addUInt8(item_preview);
 
     ns->addUInt8((uint8_t)sl->getDifficulty())
         .addUInt8((uint8_t)ServerConfig::m_server_max_players)

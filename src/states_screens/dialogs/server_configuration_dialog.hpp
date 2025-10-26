@@ -60,6 +60,9 @@ private:
     GUIEngine::SpinnerWidget* m_allowed_wildcards_spinner;
     GUIEngine::LabelWidget* m_allowed_wildcards_text;
 
+    GUIEngine::SpinnerWidget* m_item_preview_spinner;
+    GUIEngine::LabelWidget* m_item_preview_text;
+
 
     GUIEngine::RibbonWidget* m_difficulty_widget;
     GUIEngine::RibbonWidget* m_game_mode_widget;

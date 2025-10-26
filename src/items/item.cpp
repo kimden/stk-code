@@ -114,6 +114,23 @@ void ItemState::setDisappearCounter()
     }   // switch
 }   // setDisappearCounter
 
+void ItemState::reset() {
+    m_deactive_ticks    = 0;
+    m_ticks_till_return = 0;
+    setDisappearCounter();
+    // If the item was switched:
+    if (m_original_type != ITEM_NONE)
+    {
+        setType(m_original_type);
+        m_original_type = ITEM_NONE;
+    }
+
+	bool do_preview = RaceManager::get()->getTyreModRules()->do_item_preview;
+    if (do_preview && (m_type == ITEM_BONUS_BOX || m_type == ITEM_BANANA)) // bananas also get an initial powerup in case they get switched
+        respawnBonusBox(getItemId());
+}   // reset
+
+
 // -----------------------------------------------------------------------
 /** Initialises an item.
  *  \param type Type for this item.
@@ -425,7 +442,8 @@ void Item::reset()
     ItemState::reset();
 
 
-    if (!GUIEngine::isNoGraphics() && getType() == ITEM_BONUS_BOX) {
+	bool do_preview = RaceManager::get()->getTyreModRules()->do_item_preview;
+    if (do_preview && !GUIEngine::isNoGraphics() && getType() == ITEM_BONUS_BOX) {
         if (m_powerup_node) {
             m_graphical_powerup = -1;
             m_node->removeChild(m_powerup_node);
@@ -598,7 +616,10 @@ void Item::updateGraphics(float dt)
     m_node->setVisible(is_visible);
     m_node->setPosition(getXYZ().toIrrVector());
 
-    if (getType() == ITEM_BONUS_BOX && isAvailable()) {
+
+	bool do_preview = RaceManager::get()->getTyreModRules()->do_item_preview;
+
+    if (do_preview && getType() == ITEM_BONUS_BOX && isAvailable()) {
         if (m_powerup_node && m_compound == m_graphical_type)
             m_powerup_node->setVisible(true);
         else { // If the powerup for item preview doesn't exist or is mismatched, redraw
@@ -636,7 +657,7 @@ void Item::updateGraphics(float dt)
         m_animation_start_ticks = World::getWorld()->getTicksSinceStart();
         m_node->setScale(core::vector3df(0.0f, 0.0f, 0.0f));
 
-        if (getType() == ITEM_BONUS_BOX) {
+        if (do_preview && getType() == ITEM_BONUS_BOX) {
             if (m_powerup_node) {
                 m_graphical_powerup = (int)PowerupManager::PowerupType::POWERUP_NOTHING;
                 m_node->removeChild(m_powerup_node);

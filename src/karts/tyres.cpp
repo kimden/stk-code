@@ -25,13 +25,13 @@
 #include "karts/kart_properties_manager.hpp"
 #include "karts/max_speed.hpp"
 #include "tracks/track.hpp"
-#include "race/race_manager.hpp"
 #include "modes/world.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include "config/user_config.hpp"
 #include "config/stk_config.hpp"
 #include "network/network_config.hpp"
+#include "race/race_manager.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -52,7 +52,8 @@ Tyres::Tyres(Kart *kart) {
     m_speed_fetching_period = 0.3f;
     m_speed_accumulation_limit = 6;
 
-    m_kart->m_tyres_queue = std::get<1>(RaceManager::get()->getFuelAndQueueInfo());
+	RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+    m_kart->m_tyres_queue = tme_rules->tyre_allocation;
 
     // Boilerplate to initialize all the m_c_xxx constants
     #include "karts/tyres_boilerplate.txt"
@@ -278,7 +279,8 @@ void Tyres::reset() {
         } else {
             m_c_fuel_rate = 1; // Always 1 for now, because in non-race it's not controlled by itempolicy
         }
-        int fuel_mode = std::get<0>(RaceManager::get()->getFuelAndQueueInfo());
+		RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+        int fuel_mode = tme_rules->fuel_mode;
         switch (fuel_mode) {
         case 0: // Fuel off
             m_c_fuel_rate_base = 0;
@@ -297,8 +299,9 @@ void Tyres::reset() {
     }
 
     if (m_reset_fuel) {
-        m_kart->m_tyres_queue = std::get<1>(RaceManager::get()->getFuelAndQueueInfo());
-        m_kart->m_wildcards = std::get<2>(RaceManager::get()->getFuelAndQueueInfo());
+    	RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+        m_kart->m_tyres_queue = tme_rules->tyre_allocation;
+        m_kart->m_wildcards = tme_rules->wildcards;
         m_current_fuel = m_c_fuel;
         m_high_fuel_demand = false;
     }

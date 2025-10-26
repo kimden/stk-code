@@ -3819,7 +3819,9 @@ void ServerLobby::handleServerConfiguration(Event* event)
 
         int wildcards = data.getUInt8();
 
-        RaceManager::get()->setFuelAndQueueInfo(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards);
+        bool item_preview = data.getUInt8();
+
+        RaceManager::get()->setTyreModRules(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards, item_preview);
 
         int received_new_game_mode = data.getUInt8();
         if (received_new_game_mode != new_game_mode) {

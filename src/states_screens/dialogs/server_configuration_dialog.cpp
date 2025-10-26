@@ -84,6 +84,13 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_allowed_wildcards_spinner->setVisible(true);
     m_allowed_wildcards_text->setVisible(true);
 
+    m_item_preview_text = getWidget<LabelWidget>("item-preview-label");
+    assert(m_item_preview_text != NULL);
+    m_item_preview_spinner = getWidget<SpinnerWidget>("item-preview-spinner");
+    assert(m_item_preview_spinner != NULL);
+    m_item_preview_spinner->setVisible(true);
+    m_item_preview_text->setVisible(true);
+
 
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
@@ -119,6 +126,7 @@ void ServerConfigurationDialog::init()
     m_allowed_compounds_2_spinner->setValue(-1);
     m_allowed_compounds_3_spinner->setValue(-1);
     m_allowed_wildcards_spinner->setValue(0);
+    m_item_preview_spinner->setValue(0);
 }   // init
 
 // ----------------------------------------------------------------------------
@@ -148,12 +156,14 @@ GUIEngine::EventPropagation
             change.addUInt8(m_allowed_compounds_2_spinner->getValue()+1);
             change.addUInt8(m_allowed_compounds_3_spinner->getValue()+1);
             change.addUInt8(m_allowed_wildcards_spinner->getValue());
+            change.addUInt8(m_item_preview_spinner->getValue());
 
-            RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(),
+            RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
                                                     m_allowed_compounds_1_spinner->getValue(),
                                                     m_allowed_compounds_2_spinner->getValue(),
                                                     m_allowed_compounds_3_spinner->getValue(),
-                                                    m_allowed_wildcards_spinner->getValue());
+                                                    m_allowed_wildcards_spinner->getValue(),
+                                                    m_item_preview_spinner->getValue());
 
             switch (m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER))
             {

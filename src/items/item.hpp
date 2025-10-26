@@ -213,20 +213,7 @@ public:
 
     // -----------------------------------------------------------------------
     /** Resets an item to its start state. */
-    virtual void reset()
-    {
-        m_deactive_ticks    = 0;
-        m_ticks_till_return = 0;
-        setDisappearCounter();
-        // If the item was switched:
-        if (m_original_type != ITEM_NONE)
-        {
-            setType(m_original_type);
-            m_original_type = ITEM_NONE;
-        }
-        if (m_type == ITEM_BONUS_BOX || m_type == ITEM_BANANA) // bananas also get an initial powerup in case they get switched
-            respawnBonusBox(getItemId());
-    }   // reset
+    virtual void reset();
 
     // -----------------------------------------------------------------------
     /** Switches an item to be of a different type. Used for the switch

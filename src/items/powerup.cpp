@@ -553,7 +553,126 @@ int Powerup::useNitroHack()
  */
 void Powerup::hitBonusBox(const ItemState &item_state)
 {
-    set((PowerupManager::PowerupType)item_state.m_compound, item_state.m_stop_time);
+
+	bool do_preview = RaceManager::get()->getTyreModRules()->do_item_preview;
+	if (do_preview) {
+	    set((PowerupManager::PowerupType)item_state.m_compound, item_state.m_stop_time);
+	    return;
+	}
+	/* The below gets skipped when Global Items/Item Preview is enabled, since the procedure is different*/
+
+    // Position can be -1 in case of a battle mode (which doesn't have
+    // positions), but this case is properly handled in getRandomPowerup.
+    int position = m_kart->getPosition();
+
+    unsigned int n=1;
+    PowerupManager::PowerupType new_powerup;
+    World *world = World::getWorld();
+
+    // Determine a 'random' number based on time, index of the item,
+    // and position of the kart. The idea is that this process is
+    // randomly enough to get the right distribution of the powerups,
+    // does not involve additional network communication to keep 
+    // client and server in sync, and is not exploitable:
+    // While it is not possible for a client to determine the item
+    // (the server will always finally determine which item a player
+    // receives), we need to make sure that people cannot modify the
+    // sources and display the item that will be collected next
+    // at a box - otherwise the player could chose the 'best' box.
+    // Using synchronised pseudo-random-generators would not prevent
+    // cheating, since the a cheater could determine the next random
+    // number that will be used. If we use the server to always
+    // send the information to the clients, we need to add a delay
+    // before items can be used.
+    // So instead we determine a random number that is based on:
+    // (1) The item id
+    // (2) The time
+    // (3) The position of the kart
+    // (4) An extra random 64bit integer
+    // Using (1) means that not all boxes at a certain time for a kart
+    // will give the same box. Using (2) means that the item will
+    // change over time - even if the next item is displayed, it 
+    // will mean a cheater has to wait, and because of the frequency
+    // of the time component it will also be difficult to get the
+    // item at the right time. Using (3) adds another cheat-prevention
+    // layer: even if a cheater is waiting for the right sequence
+    // of items, if he is overtaken the sequence will change, using (4)
+    // to avoid same item sequence when starting
+    //
+
+    // In order to increase the probability of correct client prediction
+    // in networking (where there might be 1 or 2 frames difference
+    // between client and server when collecting an item), the time
+    // is divided by 10, meaning even if there is one frame difference,
+    // the client will still have a 90% chance to correctly predict the
+    // item.
+    const int time = world->getTicksSinceStart() / STKConfig::get()->time2Ticks(0.083334f);
+
+    // A bitmask storing which random buckets have been used
+    uint32_t buckets_mask = m_kart->getPowerupMask();
+    int random_number = 0;
+
+    // Pick a random number
+    // If not in full random mode, check that's not in one of the already used buckets
+    for (unsigned int i=0; i<30;i++)
+    {
+        // Random_number is in the range 0-32767 
+        random_number = simplePRNG((int)(powerup_manager->getRandomSeed()+i),
+                                    time+1000*i, item_state.getItemId(), position);
+
+        // Make sure the random number is equally likely to be in any
+        // of the buckets
+        if (random_number > (32767 - (32768 % BUCKET_COUNT)))
+            continue;
+
+        // We don't check for buckets if full random mode is enabled in config
+        // This steps occurs after the previous one to ensure that
+        // the random number is equally likely to be in any part of
+        // the weights list
+        if (STKConfig::get()->m_full_random)
+            break; 
+
+        // Determine the random number's bucket
+        int bucket = random_number / (32768 / BUCKET_COUNT);
+
+        uint32_t temp_mask = 1 << bucket;
+        // Check that the new random number is not in an already used bucket
+        if ((buckets_mask & temp_mask) == 0)
+        {
+            // We update the buckets_mask
+            // This function also handles removing previously used buckets
+            // before we have cycled over all possible buckets
+            m_kart->updatePowerupMask(bucket);
+            break;
+        }
+    }
+
+    new_powerup = powerup_manager->getRandomPowerup(position, &n, 
+                                                    random_number);
+
+    auto& stk_config = STKConfig::get();
+
+    // Always add a new powerup in ITEM_MODE_NEW (or if the kart
+    // doesn't have a powerup atm).
+    if(m_type == PowerupManager::POWERUP_NOTHING ||
+       stk_config->m_same_powerup_mode == STKConfig::POWERUP_MODE_NEW )
+    {
+        set( new_powerup, n );
+    }
+    else
+    {
+        // If powerup mode is 'SAME', or it's ONLY_IF_SAME and it is the
+        // same powerup, increase the number of items.
+        if(stk_config->m_same_powerup_mode == STKConfig::POWERUP_MODE_SAME ||
+            new_powerup==m_type)
+        {
+            m_number+=n;
+            if(m_number > MAX_POWERUPS)
+                m_number = MAX_POWERUPS;
+        }
+    }
+    // Ignore new powerup if it is different from the current one and not
+    // POWERUP_MODE_SAME
 }   // hitBonusBox
 
 //-----------------------------------------------------------------------------

@@ -753,7 +753,9 @@ void ClientLobby::handleServerInfo(Event* event)
 
     int wildcards = data.getUInt8();
 
-    RaceManager::get()->setFuelAndQueueInfo(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards);
+    bool item_preview = data.getUInt8();
+
+    RaceManager::get()->setTyreModRules(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards, item_preview);
 
     uint8_t u_data;
     u_data = data.getUInt8();

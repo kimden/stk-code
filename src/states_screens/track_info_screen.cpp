@@ -119,6 +119,9 @@ void TrackInfoScreen::loadedFromFile()
     m_allowed_wildcards_spinner  = getWidget<SpinnerWidget>("allowed-wildcards-spinner");
     m_allowed_wildcards_label  = getWidget<LabelWidget>("allowed-wildcards-text");
 
+    m_item_preview_spinner  = getWidget<SpinnerWidget>("item-preview-spinner");
+    m_item_preview_label  = getWidget<LabelWidget>("item-preview-text");
+
 
     m_ai_kart_spinner       = getWidget<SpinnerWidget>("ai-spinner");
     m_ai_kart_label         = getWidget<LabelWidget>("ai-text");
@@ -253,11 +256,17 @@ void TrackInfoScreen::init()
     m_allowed_wildcards_label->setVisible(true);
     m_allowed_wildcards_label->setText(_("Wildcards:"), false);
 
-    RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(),
+    m_item_preview_spinner->setValue(0);
+    m_item_preview_spinner->setVisible(true);
+    m_item_preview_label->setVisible(true);
+    m_item_preview_label->setText(_("Global powerups?"), false);
+
+    RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
                                             m_allowed_compound_1_spinner->getValue(),
                                             m_allowed_compound_2_spinner->getValue(),
                                             m_allowed_compound_3_spinner->getValue(),
-                                            m_allowed_wildcards_spinner->getValue());
+                                            m_allowed_wildcards_spinner->getValue(),
+                                            m_item_preview_spinner->getValue());
     RaceManager::get()->setItemPolicy("normal");
 
 // fuel fuel_regen fuel_stop fuel_weight fuel_rate amount_1 amount_2 amount_3
@@ -835,12 +844,16 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
             updateHighScores();
         }
     }
-    else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" || name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-1-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-3-spinner" || name == "allowed-wildcards-spinner") {
-        RaceManager::get()->setFuelAndQueueInfo(m_fuel_spinner->getValue(),
+    else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" ||
+    		 name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-1-spinner" || 
+    		 name == "allowed-compound-2-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-3-spinner" || 
+    		 name == "allowed-wildcards-spinner" || name == "item-preview-spinner") {
+        RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
                                                 m_allowed_compound_1_spinner->getValue(),
                                                 m_allowed_compound_2_spinner->getValue(),
                                                 m_allowed_compound_3_spinner->getValue(),
-                                                m_allowed_wildcards_spinner->getValue());
+                                                m_allowed_wildcards_spinner->getValue(),
+                                                m_item_preview_spinner->getValue());
     }
     else if (name == "option")
     {
