@@ -22,6 +22,7 @@
 #include "audio/sfx_manager.hpp"
 #include "config/player_manager.hpp"
 #include "config/stk_config.hpp"
+#include "race/item_policy.hpp"
 #include "items/attachment.hpp"
 #include "items/item_manager.hpp"
 #include "items/powerup_audio.hpp"
@@ -625,11 +626,20 @@ void Powerup::hitBonusBox(const ItemState &item_state)
         if (random_number > (32767 - (32768 % BUCKET_COUNT)))
             continue;
 
+
+		ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+		int leader_section = item_policy->m_leader_section;
+		if (leader_section == -1) leader_section = 0;
+		ItemPolicySection *curr_sec = &item_policy->m_policy_sections[leader_section];
+		uint16_t rules = curr_sec->m_rules;
+		bool item_override = rules & ItemPolicyRules::IPT_BONUS_BOX_OVERRIDE;
+
         // We don't check for buckets if full random mode is enabled in config
         // This steps occurs after the previous one to ensure that
         // the random number is equally likely to be in any part of
         // the weights list
-        if (STKConfig::get()->m_full_random)
+        // We also don't check if in item policy override mode
+        if (item_override || STKConfig::get()->m_full_random)
             break; 
 
         // Determine the random number's bucket

@@ -164,7 +164,7 @@ void PowerupManager::loadPowerupsModels()
     loadWeights(root, "soccer-weight-list"  );
     loadWeights(root, "tutorial-weight-list");
 
-    sortRaceWeights(root, "race-goodness");
+    sortRaceWeights(root, "race-goodness", m_sorted_race_weights);
 
     delete root;
 
@@ -189,7 +189,7 @@ void PowerupManager::loadPowerupsModels()
  *  \param class_name The name of the attribute with the goodness rankings
  */
 void PowerupManager::sortRaceWeights(const XMLNode *powerup_node,
-                                 const std::string &node_name)
+                                 const std::string &node_name, std::vector<int> &values)
 {
     const XMLNode *node = powerup_node->getNode(node_name);
     if(!node)
@@ -209,7 +209,7 @@ void PowerupManager::sortRaceWeights(const XMLNode *powerup_node,
     std::vector<std::string> l_string =
             StringUtils::split(single_string+" "+double_string+" "+triple_string, ' ');
 
-    std::vector<int> values;
+    values.clear();
     for(unsigned int i=0; i<l_string.size(); i++)
     {
         if(l_string[i]=="") continue;
@@ -362,6 +362,11 @@ void PowerupManager::WeightsData::readData(int num_karts, const XMLNode *node)
         }
     }   // for i in getNumNodes()
 }   // WeightsData::readData
+
+void PowerupManager::WeightsData::setData(int num_karts, const std::vector<std::vector<int>> &weights) {
+	m_num_karts = num_karts;
+	m_weights_for_section = weights;
+}
 
 //-----------------------------------------------------------------------------
 /** Sorts the weight according to the data contained within m_powerup_order
@@ -842,6 +847,44 @@ void PowerupManager::computeWeightsForRace(int num_karts)
                     RaceManager::get()->getMinorMode());
     }
     class_name +="-weight-list";
+
+	ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+	int leader_section = item_policy->m_leader_section;
+	if (leader_section == -1) leader_section = 0;
+	ItemPolicySection *curr_sec = &item_policy->m_policy_sections[leader_section];
+	uint16_t rules = curr_sec->m_rules;
+	bool item_override = rules & ItemPolicyRules::IPT_BONUS_BOX_OVERRIDE;
+	bool item_automatic = rules & ItemPolicyRules::IPT_AUTOMATIC_WEIGHTS;
+
+	printf("ACTIVATION: %u, %u\n", item_override, item_automatic);
+
+	if (item_override && !item_automatic) {
+		m_current_item_weights.reset();
+		WeightsData *newweight = new WeightsData();
+		m_current_item_weights = *newweight;
+		m_current_item_weights.m_powerup_order = m_sorted_race_weights;
+		std::vector<std::vector<int>> weights;
+		weights.emplace_back();
+		weights[0].clear();
+		for (int i = 0; i < 3*(int)POWERUP_LAST; i++) {
+			weights[0].push_back(0);
+		}
+		int powerup_amount = (int)POWERUP_LAST;
+	
+		for (int j = 0; j < curr_sec->m_possible_types.size(); j++) {
+				PowerupType currtype = curr_sec->m_possible_types[j];
+
+				if (currtype == POWERUP_NOTHING) continue;
+				weights[0][0*powerup_amount + (int)currtype-1] = curr_sec->m_weight_distribution[j];
+				// TODO: make triple items have a 5-10% chance to spawn automatically?
+				// This is since item policy does not allow to specify a weight for
+				// double and triple items.
+		}
+		m_current_item_weights.setData(1, weights);
+        m_current_item_weights.setNumKarts(num_karts);
+		m_current_item_weights.precomputeWeights();
+		return;
+	}
 
     std::vector<WeightsData*> wd = m_all_weights[class_name];
 

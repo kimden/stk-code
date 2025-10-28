@@ -118,6 +118,7 @@ private:
         WeightsData() { m_num_karts = 0; }
         void reset();
         void readData(int num_karts, const XMLNode *node);
+        void setData(int num_karts, const std::vector<std::vector<int>> &weights);
         void interpolate(WeightsData *prev, WeightsData *next, int num_karts);
         void sortWeights();
         void convertRankToSection(int rank, int *prev, int *next,
@@ -190,6 +191,8 @@ private:
 
     void          loadMiniIconsHalf   (const XMLNode &node, bool wide);
 
+	std::vector<int> m_sorted_race_weights;
+
 public:
 
     // Must match the order of PowerupType in powerup_manager.hpp!!
@@ -205,7 +208,8 @@ public:
     std::string   getFileName()                        { return m_config_file; }
     void          loadPowerupsModels ();
     void          loadWeights(const XMLNode *node, const std::string &category);
-    void          sortRaceWeights(const XMLNode *powerup_node, const std::string &node_name);
+    void          sortRaceWeights(const XMLNode *powerup_node, const std::string &node_name,
+                                     std::vector<int> &values);
     void          unloadPowerups  ();
     void          computeWeightsForRace(int num_karts);
     void          loadPowerup     (PowerupType type, const XMLNode &node);

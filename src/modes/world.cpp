@@ -344,6 +344,8 @@ void World::reset(bool restart)
 {
     RewindManager::get()->reset();
 
+	powerup_manager->computeWeightsForRace(RaceManager::get()->getNumberOfKarts());
+
     // If m_saved_race_gui is set, it means that the restart was done
     // when the race result gui was being shown. In this case restore the
     // race gui (note that the race result gui is cached and so never really

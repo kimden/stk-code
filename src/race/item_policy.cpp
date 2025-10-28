@@ -53,6 +53,9 @@ int ItemPolicy::selectItemFrom(const std::vector<PowerupManager::PowerupType>& t
 }
 //--------------------------------------------------
 void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int next_section_start_laps, int current_lap, int current_time, int prev_lap_item_amount) {
+
+	powerup_manager->computeWeightsForRace(RaceManager::get()->getNumberOfKarts());
+
     if (section.m_section_type == IP_TIME_BASED)
     {
         Log::error("ItemPolicy", "Time-implemented item policy sections are not implemented yet");
