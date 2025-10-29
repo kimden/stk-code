@@ -1283,7 +1283,7 @@ namespace UserConfigParams
                            "If debug logging should be enabled for rich presence") );
 
     PARAM_PREFIX StringUserConfigParam      m_skin_file
-            PARAM_DEFAULT(  StringUserConfigParam("classic", "skin_name",
+            PARAM_DEFAULT(  StringUserConfigParam("cartoon-tyre", "skin_name",
                                                   "Name of the skin to use") );
 
     // ---- settings for minimap display
