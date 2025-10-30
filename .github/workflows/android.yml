@@ -11,6 +11,10 @@
 #         ~ Semphris (responsible for transfering and adapting the file)
 
 name: android
+
+env:
+ BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+
 on:
   push:
     branches:
@@ -41,6 +45,7 @@ jobs:
         run: |
           echo "release_tag=git`date +%Y%m%d`" >> $GITHUB_ENV
           echo "release_name=preview" >> $GITHUB_ENV
+          printf '#ifndef VERSION_HPP\n#define VERSION_HPP\n#include <string>\nstruct Version { static std::string branch()  { return "%s"; } static std::string version() { return "%s"; } };\n#endif\n' $BRANCH_NAME $GITHUB_SHA > src/utils/version.hpp
       - name: Install dependencies
         run: |
           sudo apt install -y autoconf automake make imagemagick cmake vorbis-tools pngquant advancecomp libjpeg-progs optipng
