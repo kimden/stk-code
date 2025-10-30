@@ -1,0 +1,77 @@
+#  Copyright (C) 2020-2021 Jacob Burroughs <maths22@gmail.com>
+#                2020-2021 A. Semphris <semphris@protonmail.com>
+#
+#  Released under the Creative Commons Zero (CC0) license, available at:
+#    Legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+#    Information: https://creativecommons.org/share-your-work/public-domain/cc0/
+
+
+
+# Note: Parts of this code were taken from the SuperTux project.
+#         ~ Semphris (responsible for transfering and adapting the file)
+
+name: android
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
+  pull_request: {}
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [gcc]
+        build_type: [Beta]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/upload-artifact@v4
+        with:
+          path: android/stk-tme.apk
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          submodules: true
+      - name: Configure packaging name for git master branch
+        run: |
+          echo "release_tag=git`date +%Y%m%d`" >> $GITHUB_ENV
+          echo "release_name=preview" >> $GITHUB_ENV
+      - name: Install dependencies
+        run: |
+          sudo apt install -y autoconf automake make imagemagick cmake vorbis-tools pngquant advancecomp libjpeg-progs optipng
+          wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip
+          mkdir tmp
+          cd tmp
+          unzip ../android-ndk-r23b-linux.zip > /dev/null
+          rm ../android-ndk-r23b-linux.zip
+          cd ..
+          echo "PROGRESS CHECK: $PWD"
+          sudo mv tmp/android-ndk-r23b /usr/local/lib/android/sdk/ndk/23.1.7779620
+          rm -r tmp
+          ln -s /usr/local/lib/android/sdk android/android-sdk
+          ln -s /usr/local/lib/android/sdk/ndk android/android-ndk
+          wget -q https://github.com/Nomagno/stk-assets/archive/refs/heads/master.zip
+          unzip master.zip -d ../ > /dev/null
+          mv ../stk-assets-master ../stk-assets
+          rm master.zip
+          cd lib
+          wget -q https://github.com/supertuxkart/dependencies/releases/download/1.4/dependencies-android-src.tar.xz
+          tar xf dependencies-android-src.tar.xz
+          rm dependencies-android-src.tar.xz
+          cd ..
+      - name: Build
+        run: |
+          cd android
+          # SDK_PATH=/usr/local/lib/android/sdk NDK_PATH=/usr/local/lib/android/sdk/ndk
+          PROJECT_VERSION=tme-git PROJECT_CODE=1 COMPILE_ARCH=aarch64 BUILD_TYPE=beta ./generate_assets.sh
+          PROJECT_VERSION=tme-git PROJECT_CODE=1 COMPILE_ARCH=aarch64 BUILD_TYPE=beta ./make_deps.sh
+          # manual fix for bad naming:
+          cp ./deps-arm64-v8a/astc-encoder/Source/libastcenc-native-static.a ./deps-arm64-v8a/astc-encoder/Source/libastcenc.a
+          PROJECT_VERSION=tme-git PROJECT_CODE=1 COMPILE_ARCH=aarch64 BUILD_TYPE=beta ./make.sh
+          mv build/outputs/apk/debug/*.apk stk-tme.apk
+          cd ..

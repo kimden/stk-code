@@ -301,7 +301,7 @@ convert_sound()
         return
     fi
 
-    oggdec "$FILE" -o tmp.wav
+    oggdec -Q "$FILE" -o tmp.wav
 
     if [ -s tmp.wav ]; then
         OGGENC_CMD=""
@@ -319,7 +319,7 @@ convert_sound()
 
         OGGENC_CMD="$OGGENC_CMD -b $SOUND_QUALITY"
 
-        oggenc $OGGENC_CMD tmp.wav -o tmp.ogg
+        oggenc -Q $OGGENC_CMD tmp.wav -o tmp.ogg
     fi
 
     if [ -s tmp.ogg ]; then
