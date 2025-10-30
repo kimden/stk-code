@@ -73,5 +73,5 @@ jobs:
           # manual fix for bad naming:
           cp ./deps-arm64-v8a/astc-encoder/Source/libastcenc-native-static.a ./deps-arm64-v8a/astc-encoder/Source/libastcenc.a
           PROJECT_VERSION=tme-git PROJECT_CODE=1 COMPILE_ARCH=aarch64 BUILD_TYPE=beta ./make.sh
-          mv build/outputs/apk/debug/*.apk stk-tme.apk
+          find build/outputs/apk/ -type f -name "*.apk" -exec mv {} stk-tme.apk \;
           cd ..
