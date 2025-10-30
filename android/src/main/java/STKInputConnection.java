@@ -1,6 +1,6 @@
-package org.supertuxkart.stk_dbg;
+package org.nomagno.stktyremod_beta;
 
-import org.supertuxkart.stk_dbg.STKEditText;
+import org.nomagno.stktyremod_beta.STKEditText;
 
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;

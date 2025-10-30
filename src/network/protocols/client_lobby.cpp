@@ -88,8 +88,12 @@ extern "C"
 }
 #endif
 
+#ifdef STK_ENABLE_PYTHON
+
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
+#endif
 
 // ============================================================================
 std::thread ClientLobby::m_background_download;
@@ -1723,7 +1727,9 @@ void ClientLobby::reportSuccess(Event* event)
     }
 }   // reportSuccess
 
+#ifdef STK_ENABLE_PYTHON
 static int pyrun(std::string, std::string, std::string, std::string players);
+#endif
 
 // ----------------------------------------------------------------------------
 void ClientLobby::handleClientCommand(const std::string& cmd)
@@ -1960,6 +1966,7 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
     }
     else if (argv[0] == "pyrun")
     {
+#ifdef STK_ENABLE_PYTHON
         if (argv.size() < 2)
             return;
         std::string filedir = file_manager->getAsset("python_scripts/");
@@ -1976,7 +1983,9 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
             NetworkingLobby::getInstance()->addMoreServerInfo(L"There was an error running the python script");
         }
 
-
+#else
+       NetworkingLobby::getInstance()->addMoreServerInfo(L"Your platform does not support python scripting");
+#endif
     }
     else
     {
@@ -1989,6 +1998,8 @@ void ClientLobby::handleClientCommand(const std::string& cmd)
     }
 #endif
 }   // handleClientCommand
+
+#ifdef STK_ENABLE_PYTHON
 
 /* Sends a command to the server */
 static PyObject* stkclientpy_addCommand(PyObject *self, PyObject *args)
@@ -2146,6 +2157,7 @@ static int pyrun(std::string filedir, std::string commandname, std::string cmd, 
     //}
     return retval;
 }
+#endif
 
 // ----------------------------------------------------------------------------
 void ClientLobby::getKartsTracksNetworkString(BareNetworkString* ns)

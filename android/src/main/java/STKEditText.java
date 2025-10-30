@@ -1,7 +1,7 @@
-package org.supertuxkart.stk_dbg;
+package org.nomagno.stktyremod_beta;
 
 import org.libsdl.app.SDLActivity;
-import org.supertuxkart.stk_dbg.STKInputConnection;
+import org.nomagno.stktyremod_beta.STKInputConnection;
 
 import android.content.Context;
 import android.text.InputType;

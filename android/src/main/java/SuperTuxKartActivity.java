@@ -1,6 +1,6 @@
-package org.supertuxkart.stk_dbg;
+package org.nomagno.stktyremod_beta;
 
-import org.supertuxkart.stk_dbg.STKEditText;
+import org.nomagno.stktyremod_beta.STKEditText;
 import org.libsdl.app.SDLActivity;
 import org.libsdl.app.SDL;
 

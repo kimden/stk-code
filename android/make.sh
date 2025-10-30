@@ -27,21 +27,21 @@ if [ -z "$STK_NDK_VERSION" ]; then
     export STK_NDK_VERSION=23.1.7779620
 fi
 
-export APP_NAME_RELEASE="SuperTuxKart"
-export PACKAGE_NAME_RELEASE="org.supertuxkart.stk"
+export APP_NAME_RELEASE="STK Tyre Mod"
+export PACKAGE_NAME_RELEASE="org.nomagno.stktyremod"
 export PACKAGE_CLASS_NAME_RELEASE="org/supertuxkart/stk"
 export APP_DIR_NAME_RELEASE="supertuxkart"
 export APP_ICON_RELEASE="$DIRNAME/icon.png"
 export APP_ICON_ADAPTIVE_BG_RELEASE="$DIRNAME/icon_adaptive_bg.png"
 export APP_ICON_ADAPTIVE_FG_RELEASE="$DIRNAME/icon_adaptive_fg.png"
 
-export APP_NAME_BETA="SuperTuxKart Beta"
-export PACKAGE_NAME_BETA="org.supertuxkart.stk_beta"
-export PACKAGE_CLASS_NAME_BETA="org/supertuxkart/stk_beta"
+export APP_NAME_BETA="STK Tyre Mod Beta"
+export PACKAGE_NAME_BETA="org.nomagno.stktyremod_beta"
+export PACKAGE_CLASS_NAME_BETA="org/nomagno/stktyremod_beta"
 export APP_DIR_NAME_BETA="supertuxkart-beta"
-export APP_ICON_BETA="$DIRNAME/icon-dbg.png"
-export APP_ICON_ADAPTIVE_BG_BETA="$DIRNAME/icon_adaptive_bg-dbg.png"
-export APP_ICON_ADAPTIVE_FG_BETA="$DIRNAME/icon_adaptive_fg-dbg.png"
+export APP_ICON_BETA="$DIRNAME/icon.png"
+export APP_ICON_ADAPTIVE_BG_BETA="$DIRNAME/icon_adaptive_bg.png"
+export APP_ICON_ADAPTIVE_FG_BETA="$DIRNAME/icon_adaptive_fg.png"
 
 export APP_NAME_DEBUG="SuperTuxKart Debug"
 export PACKAGE_NAME_DEBUG="org.supertuxkart.stk_dbg"
@@ -115,7 +115,7 @@ elif [ "$BUILD_TYPE" = "release" ] || [ "$BUILD_TYPE" = "Release" ]; then
     export APP_ICON_ADAPTIVE_BG="$APP_ICON_ADAPTIVE_BG_RELEASE"
     export APP_ICON_ADAPTIVE_FG="$APP_ICON_ADAPTIVE_FG_RELEASE"
 elif [ "$BUILD_TYPE" = "beta" ] || [ "$BUILD_TYPE" = "Beta" ]; then
-    export GRADLE_BUILD_TYPE="assembleRelease"
+    export GRADLE_BUILD_TYPE="assembleDebug"
     export IS_DEBUG_BUILD=0
     export APP_NAME="$APP_NAME_BETA"
     export PACKAGE_NAME="$PACKAGE_NAME_BETA"

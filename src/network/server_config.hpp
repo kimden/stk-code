@@ -743,13 +743,13 @@ namespace ServerConfig
         "is counted if existing, advanced - as standard for now."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_power_password
-        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        SERVER_CFG_DEFAULT(StringServerConfigParam("tme",
         "power-password",
         "Allows server owner (not crowned player!) to go to power mode "
         "to kick players using GUI and not be kicked, empty to disable."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_power_password_level_2
-        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        SERVER_CFG_DEFAULT(StringServerConfigParam("tme2",
         "power-password-level-2",
         "Allows server owner (not crowned player!) to use power commands, "
         "and also invoke any command as any other user, empty to disable."));
