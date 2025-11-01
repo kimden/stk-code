@@ -736,7 +736,7 @@ else()
 endif()
 
 # Common library dependencies
-if (NOT WIN32)
+if (PYTHON_SUPPORTED STREQUAL "on")
 	target_link_libraries(supertuxkart
 	    bulletdynamics
 	    bulletcollision
@@ -880,10 +880,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
 endif()
 
-if(NOT WIN32)
+if(PYTHON_SUPPORTED STREQUAL "on")
 	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/python3.11/config-3.11-x86_64-linux-gnu -ldl")
-else()
-	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl")
 endif()
 
 if(HAIKU)
