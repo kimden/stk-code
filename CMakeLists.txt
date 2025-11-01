@@ -27,7 +27,7 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 
 # root CMakeLists for the SuperTuxKart project
 project(SuperTuxKart)
-set(PROJECT_VERSION "2.0-git")
+set(PROJECT_VERSION "tme-git")
 
 add_definitions( -DSUPERTUXKART_VERSION="${PROJECT_VERSION}" )
 
@@ -38,6 +38,11 @@ include(BuildTypeSTKRelease)
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to STKRelease")
     set(CMAKE_BUILD_TYPE "STKRelease")
+endif()
+
+if(NOT PYTHON_SUPPORTED)
+    message(STATUS "No python support selected, default to off")
+    set(PYTHON_SUPPORTED "off")
 endif()
 
 CMAKE_DEPENDENT_OPTION(USE_SWITCH "Build targeting switch" OFF "NOT NINTENDO_SWITCH" ON)
@@ -313,16 +318,20 @@ endif()
 # MiniGLM is there
 include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/graphics_engine/include")
 
-
-find_package(Python COMPONENTS Interpreter Development REQUIRED)
-if(Python_FOUND)
-    message(STATUS "Python Found: ${Python_EXECUTABLE}")
-    message(STATUS "Python Found: ${Python_INCLUDE_DIRS}")
-    message(STATUS "Python Found: ${Python_LIBRARIES}")
-    message(STATUS "Python Found: ${Python_LIBRARY_DIRS}")
-    include_directories(${Python_INCLUDE_DIRS})
+if (PYTHON_SUPPORTED STREQUAL "on")
+	find_package(Python COMPONENTS Interpreter Development REQUIRED)
+	if(Python_FOUND)
+	    message(STATUS "Python Found: ${Python_EXECUTABLE}")
+	    message(STATUS "Python Found: ${Python_INCLUDE_DIRS}")
+	    message(STATUS "Python Found: ${Python_LIBRARIES}")
+	    message(STATUS "Python Found: ${Python_LIBRARY_DIRS}")
+	    include_directories(${Python_INCLUDE_DIRS})
+	else()
+		message(FATAL_ERROR "Python not found")
+	endif()
+else()
+	message("Python not being compiled")
 endif()
-
 
 if (NOT SERVER_ONLY)
     # Add jpeg library
@@ -334,7 +343,7 @@ if (BUILD_RECORDER)
     find_library(OPENGLRECORDER_LIBRARY NAMES openglrecorder libopenglrecorder PATHS "${PROJECT_SOURCE_DIR}/${DEPENDENCIES}/lib")
     find_path(OPENGLRECORDER_INCLUDEDIR NAMES openglrecorder.h PATHS "${PROJECT_SOURCE_DIR}/${DEPENDENCIES}/include")
     if (NOT OPENGLRECORDER_LIBRARY OR NOT OPENGLRECORDER_INCLUDEDIR)
-        if(PROJECT_VERSION STREQUAL "2.0-git")
+        if((PROJECT_VERSION STREQUAL "2.0-git") OR (PROJECT_VERSION STREQUAL "tme-git"))
             message(WARNING "libopenglrecorder not found, disabling in-game recorder. "
                 "To use recorder, install libopenglrecorder.")
             set(OPENGLRECORDER_LIBRARY CACHE INTERNAL "")
@@ -546,8 +555,11 @@ if(FATAL_WHEN_OLD_RECORDS)
 endif()
 
 # Set some compiler options
-if(UNIX OR MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -I/usr/include/python3.11 -fstack-protector-strong -fwrapv")
+if((UNIX OR MINGW) AND (PYTHON_SUPPORTED STREQUAL "on"))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSTK_ENABLE_PYTHON -std=gnu++17 -I/usr/include/python3.11 -fstack-protector-strong -fwrapv")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
+elseif(UNIX OR MINGW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
 endif()
 
@@ -724,17 +736,30 @@ else()
 endif()
 
 # Common library dependencies
-target_link_libraries(supertuxkart
-    bulletdynamics
-    bulletcollision
-    bulletmath
-    ${Python_LIBRARIES}
-    ${ENET_LIBRARIES}
-    stkirrlicht
-    ${Angelscript_LIBRARIES}
-    ${CURL_LIBRARIES}
-    ${MCPP_LIBRARY}
-    )
+if (NOT WIN32)
+	target_link_libraries(supertuxkart
+	    bulletdynamics
+	    bulletcollision
+	    bulletmath
+	    ${Python_LIBRARIES}
+	    ${ENET_LIBRARIES}
+	    stkirrlicht
+	    ${Angelscript_LIBRARIES}
+	    ${CURL_LIBRARIES}
+	    ${MCPP_LIBRARY}
+	    )
+else()
+	target_link_libraries(supertuxkart
+	    bulletdynamics
+	    bulletcollision
+	    bulletmath
+	    ${ENET_LIBRARIES}
+	    stkirrlicht
+	    ${Angelscript_LIBRARIES}
+	    ${CURL_LIBRARIES}
+	    ${MCPP_LIBRARY}
+	    )
+endif()
 
 if (USE_SWITCH)
   include(cmake/FindEGL.cmake)
@@ -855,7 +880,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
 endif()
 
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/python3.11/config-3.11-x86_64-linux-gnu -ldl")
+if(NOT WIN32)
+	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/python3.11/config-3.11-x86_64-linux-gnu -ldl")
+else()
+	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl")
+endif()
 
 if(HAIKU)
     target_link_libraries(supertuxkart -lbe -lnetwork)

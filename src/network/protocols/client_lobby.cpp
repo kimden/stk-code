@@ -761,6 +761,10 @@ void ClientLobby::handleServerInfo(Event* event)
 
     RaceManager::get()->setTyreModRules(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards, item_preview);
 
+	std::string str_ip;
+    data.decodeString(&str_ip);
+    RaceManager::get()->setItemPolicy(str_ip);
+
     uint8_t u_data;
     u_data = data.getUInt8();
     const core::stringw& difficulty_name =

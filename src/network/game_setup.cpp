@@ -125,6 +125,8 @@ void GameSetup::addServerInfo(NetworkString* ns)
     ns->addUInt8(wildcards);
     ns->addUInt8(item_preview);
 
+    ns->encodeString(RaceManager::get()->getItemPolicy()->toString());
+
     ns->addUInt8((uint8_t)sl->getDifficulty())
         .addUInt8((uint8_t)ServerConfig::m_server_max_players)
         // Reserve for extra spectators
