@@ -17,6 +17,7 @@ subject to the following restrictions:
 #define BT_COLLISION_OBJECT_H
 
 #include <cmath>
+#include <cstdint>
 
 #include "LinearMath/btTransform.h"
 
@@ -107,12 +108,20 @@ protected:
 	/// If some object should have elaborate collision filtering by sub-classes
 	int			m_checkCollideWith;
 
+	uint32_t m_tag;
+	bool (*m_collision_callback)(btCollisionObject *self, btCollisionObject *other);
+
 	virtual bool	checkCollideWithOverride(btCollisionObject* /* co */)
 	{
 		return true;
 	}
 
 public:
+	void setTag(uint32_t t) { m_tag = t; }
+	uint32_t getTag() { return m_tag; }
+	void setCollisionCallback(bool (*cb)(btCollisionObject *self, btCollisionObject *other)) {
+		m_collision_callback = cb;
+	}
 
 	BT_DECLARE_ALIGNED_ALLOCATOR();
 
@@ -443,6 +452,9 @@ public:
 
 	inline bool checkCollideWith(btCollisionObject* co)
 	{
+		if (m_collision_callback) {
+			return m_collision_callback(this, co);
+		}
 		if (m_checkCollideWith)
 			return checkCollideWithOverride(co);
 

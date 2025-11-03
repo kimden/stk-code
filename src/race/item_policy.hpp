@@ -88,7 +88,10 @@ enum ItemPolicyRules {
     IPT_AUTOMATIC_WEIGHTS =  1 << 14,
 
     // Stop time for all non-fuel tire changers will be m_tyre_change_time instead of their regular one
-    IPT_TYRE_CHANGE_TIME_OVERRIDE =  1 << 15
+    IPT_TYRE_CHANGE_TIME_OVERRIDE =  1 << 15,
+
+    // All karts are ghosted and can't be hit by bowls, 
+    IPT_GHOST_KARTS =  1 << 16
 
 };
 
@@ -106,7 +109,7 @@ struct ItemPolicySection {
     int m_section_start; 
 
     // Bitstring of IPT_XX rule bits
-    uint16_t m_rules;
+    uint32_t m_rules;
 
     float m_linear_mult;
     float m_items_per_lap;

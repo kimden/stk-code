@@ -127,6 +127,23 @@ Physics::~Physics()
     delete m_collision_conf;
 }   // ~Physics
 
+#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
+#define KART_TAG TAG('K','A','R','T')
+#define GHOST_TAG TAG('G','H','O','S')
+
+bool ghostAndKartCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
+	uint32_t st = self->getTag();
+	uint32_t ot = other->getTag();
+	// If one of the two is a ghost, and both are either ghosts or karts, don't collide
+	if (st == GHOST_TAG && (ot == KART_TAG || ot == GHOST_TAG)) {
+		return false;
+	} else if (st == KART_TAG && ot == GHOST_TAG) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
 // ----------------------------------------------------------------------------
 /** Adds a kart to the physics engine.
  *  This adds the rigid body and the vehicle but only if the kart is not
@@ -143,6 +160,7 @@ void Physics::addKart(const Kart *kart)
         if(btRigidBody::upcast(all_objs[i])== kart->getBody())
             return;
     }
+    kart->getBody()->setCollisionCallback(ghostAndKartCollisionCallback);
     m_dynamics_world->addRigidBody(kart->getBody());
     m_dynamics_world->addVehicle(kart->getVehicle());
 }   // addKart

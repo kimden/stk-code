@@ -67,7 +67,7 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
     int curr_item_amount = kart->getPowerup()->getNum();
     PowerupManager::PowerupType curr_item_type = kart->getPowerup()->getType();
 
-    int16_t rules = section.m_rules;
+    uint32_t rules = section.m_rules;
     bool overwrite = rules & ItemPolicyRules::IPT_OVERWRITE_ITEMS;
     bool linear_add = rules & ItemPolicyRules::IPT_LINEAR;
     bool linear_clear = rules & ItemPolicyRules::IPT_CLEAR;
@@ -294,7 +294,7 @@ std::string ItemPolicy::toString() {
             return "Time based sections not supported yet";
         }
         ss << m_policy_sections[i].m_section_start << " ";
-        std::string bs = std::bitset<16>(m_policy_sections[i].m_rules).to_string();
+        std::string bs = std::bitset<17>(m_policy_sections[i].m_rules).to_string();
         ss << bs << " ";
         ss << m_policy_sections[i].m_linear_mult << " ";
         ss << m_policy_sections[i].m_items_per_lap << " ";
@@ -402,8 +402,8 @@ int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemSt
     if (current_section <= -1)
         current_section = 0;
 
-    uint16_t rules_curr = m_policy_sections[current_section].m_rules;
-    uint16_t rules_prev;
+    uint32_t rules_curr = m_policy_sections[current_section].m_rules;
+    uint32_t rules_prev;
     if (current_section > 0)
         rules_prev = m_policy_sections[current_section-1].m_rules;
     else
@@ -503,7 +503,7 @@ void ItemPolicy::checkAndApplyVirtualPaceCarRules(Kart *kart, int kart_section, 
     if (kart->getPosition() == 1) {
         m_leader_section = kart_section;
         int start_lap = m_policy_sections[kart_section].m_section_start;
-        int16_t rules = m_policy_sections[kart_section].m_rules;
+        uint32_t rules = m_policy_sections[kart_section].m_rules;
         bool do_virtual_pace = rules & ItemPolicyRules::IPT_VIRTUAL_PACE;
         bool do_unlapping = rules & ItemPolicyRules::IPT_UNLAPPING;
         if (do_virtual_pace && start_lap == finished_laps) {

@@ -852,7 +852,7 @@ void PowerupManager::computeWeightsForRace(int num_karts)
 	int leader_section = item_policy->m_leader_section;
 	if (leader_section == -1) leader_section = 0;
 	ItemPolicySection *curr_sec = &item_policy->m_policy_sections[leader_section];
-	uint16_t rules = curr_sec->m_rules;
+	uint32_t rules = curr_sec->m_rules;
 	bool item_override = rules & ItemPolicyRules::IPT_BONUS_BOX_OVERRIDE;
 	bool item_automatic = rules & ItemPolicyRules::IPT_AUTOMATIC_WEIGHTS;
 

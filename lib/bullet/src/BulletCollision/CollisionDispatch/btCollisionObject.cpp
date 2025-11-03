@@ -37,7 +37,9 @@ btCollisionObject::btCollisionObject()
 		m_hitFraction(btScalar(1.)),
 		m_ccdSweptSphereRadius(btScalar(0.)),
 		m_ccdMotionThreshold(btScalar(0.)),
-		m_checkCollideWith(false)
+		m_checkCollideWith(false),
+		m_tag(0),
+		m_collision_callback(0)
 {
 	m_worldTransform.setIdentity();
 }

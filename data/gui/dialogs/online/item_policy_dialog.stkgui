@@ -245,6 +245,11 @@
                         <label id="tyre-change-override-val-label" proportion="3" text="Tyre change override val:" text_align="left" />
                         <textbox id="tyre-change-override-val-textbox" proportion="3" />
                     </div>
+
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="ghost-karts-label" proportion="9" text="Ghost karts" text_align="left" />
+                        <checkbox id="ghost-karts-checkbox" proportion="1" />
+                    </div>
             </div>
             </div>
         </box>

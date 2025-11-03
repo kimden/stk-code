@@ -109,6 +109,10 @@
 #  pragma warning(disable:4355)
 #endif
 
+#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
+#define KART_TAG TAG('K','A','R','T')
+#define GHOST_TAG TAG('G','H','O','S')
+
 void Kart::loadKartProperties(const std::string& new_ident,
                                       uint8_t handicap, unsigned starting_tyre,
                                       std::shared_ptr<GE::GERenderInfo> ri,
@@ -1789,12 +1793,15 @@ void Kart::update(int ticks)
     if(m_invulnerable_ticks>0)
         m_invulnerable_ticks -= ticks;
 
-    if(m_basket_squash_invulnerable_ticks>0)
+    if (m_basket_squash_invulnerable_ticks>0)
         m_basket_squash_invulnerable_ticks -= ticks;
 
-    if (!RewindManager::get()->isRewinding())
-        m_slipstream->update(ticks);
-    m_slipstream->updateSpeedIncrease();
+
+    if (getBody()->getTag() != GHOST_TAG) {
+	    if (!RewindManager::get()->isRewinding()) 
+	        m_slipstream->update(ticks);
+	    m_slipstream->updateSpeedIncrease();
+	}
 
     // TODO: hiker said this probably will be moved to btKart or so when updating bullet engine.
     // Neutralize any yaw change if the kart leaves the ground, so the kart falls more or less
@@ -3219,6 +3226,18 @@ void Kart::updatePhysics(int ticks)
     m_max_speed->setMinSpeed(min_speed);
     m_max_speed->update(ticks);
 
+	int leader_sec = item_policy->m_leader_section;
+	if (leader_sec == -1)
+		leader_sec = 0;
+
+	uint32_t rules = item_policy->m_policy_sections[leader_sec].m_rules;
+
+	if (rules & ItemPolicyRules::IPT_GHOST_KARTS) {
+		getBody()->setTag(GHOST_TAG);
+	} else {
+		getBody()->setTag(KART_TAG);
+	}
+
 #ifdef XX
     Log::info("Kart","angVel %f %f %f heading %f suspension %f %f %f %f"
        ,m_body->getAngularVelocity().getX()
@@ -3898,6 +3917,14 @@ void Kart::updateGraphics(float dt)
         m_node->getScale() != core::vector3df(1.0f, 1.0f, 1.0f))
         unsetSquash();
 #endif
+
+	// Ghosts are transparent
+	if (getBody()->getTag() == GHOST_TAG) {
+		m_kart_model->getRenderInfo()->setTransparent(true);
+	} else {
+		m_kart_model->getRenderInfo()->setTransparent(false);
+	}
+
 
     // Disable smoothing network body so it doesn't smooth the animation
     // for karts in client

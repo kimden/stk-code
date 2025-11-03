@@ -326,6 +326,8 @@ void ItemPolicyDialog::computePolicyFromGUI() {
     SETRULE(CHECKBOX("tyre-change-override")->getState(), IPT_TYRE_CHANGE_TIME_OVERRIDE);
     READ_TEXTBOX_FLOAT(cs->m_tyre_change_time, "tyre-change-override-val");
 
+    SETRULE(CHECKBOX("ghost-karts")->getState(), IPT_GHOST_KARTS);
+
     // Simultaneously rebuild the item policy and set the dependent GUI elements to visible/invisible
     cs->m_possible_types.clear();
     cs->m_weight_distribution.clear();
@@ -422,6 +424,8 @@ void ItemPolicyDialog::setGUIFromPolicy(){
     // give-at-start and give-per-lap because it wasn't really designed that way, but it should. It's fine for now.
     SET_CHECKBOX_RULE("tyre-change-override", IPT_TYRE_CHANGE_TIME_OVERRIDE);
     SET_TEXTBOX_FLOAT(cs->m_tyre_change_time, "tyre-change-override-val");
+
+    SET_CHECKBOX_RULE("ghost-karts", IPT_GHOST_KARTS);
 
     // Simultaneously rebuild the GUI and set the dependent GUI elements to visible/invisible
 
@@ -529,4 +533,7 @@ void ItemPolicyDialog::setVisibilityOfFuelAndTyresTab(bool visible) {
 
     LABEL("tyre-change-override-val")->setVisible(visible);
     TEXTBOX("tyre-change-override-val")->setVisible(visible);
+
+    LABEL("ghost-karts")->setVisible(visible);
+    CHECKBOX("ghost-karts")->setVisible(visible);
 }
