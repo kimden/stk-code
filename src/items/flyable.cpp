@@ -54,6 +54,21 @@
 
 #include <typeinfo>
 
+#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
+#define KART_TAG TAG('K','A','R','T')
+#define GHOST_TAG TAG('G','H','O','S')
+#define FLYABLE_TAG TAG('F','L','Y','!')
+
+static bool flyableCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
+    if (self->getTag() == FLYABLE_TAG && other->getTag() == GHOST_TAG) {
+        // Projectiles don't collide with ghosts
+        return false;
+    } else {
+        return true;
+    }
+}
+
+
 // static variables:
 float         Flyable::m_st_speed       [PowerupManager::POWERUP_MAX];
 scene::IMesh* Flyable::m_st_model       [PowerupManager::POWERUP_MAX];
@@ -158,6 +173,9 @@ void Flyable::createPhysics(float forw_offset, const Vec3 &velocity,
     m_shape = shape;
     createBody(m_mass, trans, m_shape, restitution);
     m_user_pointer.set(this);
+
+    getBody()->setTag(FLYABLE_TAG)    ;
+    getBody()->setCollisionCallback(flyableCollisionCallback);
     Physics::get()->addBody(getBody());
 
     m_body->setGravity(gravity);

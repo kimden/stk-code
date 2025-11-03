@@ -130,10 +130,15 @@ Physics::~Physics()
 #define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
 #define KART_TAG TAG('K','A','R','T')
 #define GHOST_TAG TAG('G','H','O','S')
+#define FLYABLE_TAG TAG('F','L','Y','!')
 
 bool ghostAndKartCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
 	uint32_t st = self->getTag();
 	uint32_t ot = other->getTag();
+	if (st == GHOST_TAG && ot == FLYABLE_TAG) {
+        // Projectiles don't collide with ghosts
+	    return false;
+	}
 	// If one of the two is a ghost, and both are either ghosts or karts, don't collide
 	if (st == GHOST_TAG && (ot == KART_TAG || ot == GHOST_TAG)) {
 		return false;
