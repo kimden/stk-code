@@ -77,6 +77,7 @@ void Powerup::saveState(BareNetworkString *buffer) const
 {
     buffer->addUInt8(uint8_t(m_type));
     buffer->addUInt8(m_number);   // number is <=255
+    buffer->addUInt8(uint8_t(m_mini_state));
 }   // saveState
 
 //-----------------------------------------------------------------------------
@@ -102,6 +103,11 @@ void Powerup::rewindTo(BareNetworkString *buffer)
         m_number = 0;
         set(new_type, n);
     }
+    uint8_t new_mini_state = buffer->getUInt8();
+    if (m_type == PowerupManager::POWERUP_MINI)
+        m_mini_state = (PowerupManager::MiniState)new_mini_state;
+    else
+        m_mini_state = PowerupManager::NOT_MINI;
 }   // rewindTo
 
 //-----------------------------------------------------------------------------
