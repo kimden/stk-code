@@ -56,12 +56,12 @@
 
 #define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
 #define KART_TAG TAG('K','A','R','T')
-#define GHOST_TAG TAG('G','H','O','S')
+#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
 #define FLYABLE_TAG TAG('F','L','Y','!')
 
 static bool flyableCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
-    if (self->getTag() == FLYABLE_TAG && other->getTag() == GHOST_TAG) {
-        // Projectiles don't collide with ghosts
+    if (self->getTag() == FLYABLE_TAG && other->getTag() == NO_COLLISION_KART_TAG) {
+        // Projectiles don't collide with no collision karts
         return false;
     } else {
         return true;

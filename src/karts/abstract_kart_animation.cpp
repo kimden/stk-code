@@ -77,6 +77,10 @@ AbstractKartAnimation::AbstractKartAnimation(Kart* kart,
         m_created_transform_compressed);
 }   // AbstractKartAnimation
 
+#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
+#define KART_TAG TAG('K','A','R','T')
+#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
+
 // ----------------------------------------------------------------------------
 AbstractKartAnimation::~AbstractKartAnimation()
 {
@@ -97,7 +101,11 @@ AbstractKartAnimation::~AbstractKartAnimation()
         m_kart->setTrans(transform);
         // Reset all btKart members (bounce back ticks / rotation ticks..)
         m_kart->getVehicle()->reset();
-        Physics::get()->addKart(m_kart);
+
+        if (m_kart->getBody()->getTag() == NO_COLLISION_KART_TAG)
+            Physics::get()->addKart(m_kart, true /*ghost*/);
+        else
+            Physics::get()->addKart(m_kart, false /*ghost*/);
     }
 }   // ~AbstractKartAnimation
 

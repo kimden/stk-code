@@ -159,7 +159,7 @@ public:
     static void destroy();
     // ----------------------------------------------------------------------------------------
     void  init             (const Vec3 &min_world, const Vec3 &max_world);
-    void  addKart          (const Kart *k);
+    void  addKart          (const Kart *k, bool ghost);
     void  addBody          (btRigidBody* b) {m_dynamics_world->addRigidBody(b);}
     void  removeKart       (const Kart *k);
     void  removeBody       (btRigidBody* b) {m_dynamics_world->removeRigidBody(b);}

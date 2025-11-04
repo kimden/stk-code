@@ -65,6 +65,7 @@
 #include "physics/triangle_mesh.hpp"
 #include "race/highscore_manager.hpp"
 #include "race/history.hpp"
+#include "race/item_policy.hpp"
 #include "race/race_manager.hpp"
 #include "replay/replay_play.hpp"
 #include "replay/replay_recorder.hpp"
@@ -576,7 +577,12 @@ std::shared_ptr<Kart> World::createKart
  *  \param index Index of kart ranging from 0 to kart_num-1. */
 const btTransform &World::getStartTransform(int index)
 {
-    return Track::getCurrentTrack()->getStartTransform(index);
+    ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+    uint32_t rules = item_policy->m_policy_sections[0].m_rules;
+    if (rules & ItemPolicyRules::IPT_GHOST_KARTS)
+        return Track::getCurrentTrack()->getStartTransform(0);
+    else
+        return Track::getCurrentTrack()->getStartTransform(index);
 }   // getStartTransform
 
 //-----------------------------------------------------------------------------

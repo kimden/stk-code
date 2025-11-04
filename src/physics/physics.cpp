@@ -129,20 +129,20 @@ Physics::~Physics()
 
 #define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
 #define KART_TAG TAG('K','A','R','T')
-#define GHOST_TAG TAG('G','H','O','S')
+#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
 #define FLYABLE_TAG TAG('F','L','Y','!')
 
-bool ghostAndKartCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
+bool noCollisionAndRegularKartCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
 	uint32_t st = self->getTag();
 	uint32_t ot = other->getTag();
-	if (st == GHOST_TAG && ot == FLYABLE_TAG) {
-        // Projectiles don't collide with ghosts
+	if (st == NO_COLLISION_KART_TAG && ot == FLYABLE_TAG) {
+        // Projectiles don't collide with no collision karts
 	    return false;
 	}
-	// If one of the two is a ghost, and both are either ghosts or karts, don't collide
-	if (st == GHOST_TAG && (ot == KART_TAG || ot == GHOST_TAG)) {
+	// If one of the two is a no collision kart, and both are either no collision karts or regular karts, don't collide
+	if (st == NO_COLLISION_KART_TAG && (ot == KART_TAG || ot == NO_COLLISION_KART_TAG)) {
 		return false;
-	} else if (st == KART_TAG && ot == GHOST_TAG) {
+	} else if (st == KART_TAG && ot == NO_COLLISION_KART_TAG) {
 		return false;
 	} else {
 		return true;
@@ -154,9 +154,9 @@ bool ghostAndKartCollisionCallback(btCollisionObject *self, btCollisionObject *o
  *  This adds the rigid body and the vehicle but only if the kart is not
  *  already in the physics world.
  *  \param kart The kart to add.
- *  \param vehicle The raycast vehicle object.
+ *  \param ghost If true, the kart is a no collision kart and has no collision.
  */
-void Physics::addKart(const Kart *kart)
+void Physics::addKart(const Kart *kart, bool ghost)
 {
     const btCollisionObjectArray &all_objs =
         m_dynamics_world->getCollisionObjectArray();
@@ -165,7 +165,12 @@ void Physics::addKart(const Kart *kart)
         if(btRigidBody::upcast(all_objs[i])== kart->getBody())
             return;
     }
-    kart->getBody()->setCollisionCallback(ghostAndKartCollisionCallback);
+
+    if (ghost)
+        kart->getBody()->setTag(NO_COLLISION_KART_TAG);
+    else
+        kart->getBody()->setTag(KART_TAG);
+    kart->getBody()->setCollisionCallback(noCollisionAndRegularKartCollisionCallback);
     m_dynamics_world->addRigidBody(kart->getBody());
     m_dynamics_world->addVehicle(kart->getVehicle());
 }   // addKart

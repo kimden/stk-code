@@ -111,7 +111,7 @@
 
 #define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
 #define KART_TAG TAG('K','A','R','T')
-#define GHOST_TAG TAG('G','H','O','S')
+#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
 
 void Kart::loadKartProperties(const std::string& new_ident,
                                       uint8_t handicap, unsigned starting_tyre,
@@ -478,7 +478,16 @@ void Kart::reset()
     if(m_body)
     {
         Physics::get()->removeKart(this);
-        Physics::get()->addKart(this);
+
+        // Item Policy No Collision Karts karts are different because they have bodies but can't collide with projectiles or with other karts
+        ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+    	uint32_t rules = item_policy->m_policy_sections[0].m_rules;
+
+    	if (rules & ItemPolicyRules::IPT_GHOST_KARTS) {
+            Physics::get()->addKart(this, true /*ghost*/);
+    	} else {
+            Physics::get()->addKart(this, false /*ghost*/);
+    	}
     }
 
     m_min_nitro_ticks = 0;
@@ -1797,7 +1806,7 @@ void Kart::update(int ticks)
         m_basket_squash_invulnerable_ticks -= ticks;
 
 
-    if (getBody()->getTag() != GHOST_TAG) {
+    if (getBody()->getTag() != NO_COLLISION_KART_TAG) {
 	    if (!RewindManager::get()->isRewinding()) 
 	        m_slipstream->update(ticks);
 	    m_slipstream->updateSpeedIncrease();
@@ -3233,7 +3242,7 @@ void Kart::updatePhysics(int ticks)
 	uint32_t rules = item_policy->m_policy_sections[leader_sec].m_rules;
 
 	if (rules & ItemPolicyRules::IPT_GHOST_KARTS) {
-		getBody()->setTag(GHOST_TAG);
+		getBody()->setTag(NO_COLLISION_KART_TAG);
 	} else {
 		getBody()->setTag(KART_TAG);
 	}
@@ -3918,8 +3927,24 @@ void Kart::updateGraphics(float dt)
         unsetSquash();
 #endif
 
+    bool ghost_override;
+
+    ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+	int leader_sec = item_policy->m_leader_section;
+	if (leader_sec == -1)
+		leader_sec = 0;
+
+	uint32_t rules = item_policy->m_policy_sections[leader_sec].m_rules;
+
+    // Local players are shown as non-ghosted visually only if we're in global ghosts mode
+	if (rules & ItemPolicyRules::IPT_GHOST_KARTS && m_controller->isLocalPlayerController()) {
+        ghost_override = true;
+	} else {
+        ghost_override = false;
+	}
+
 	// Ghosts are transparent
-	if (getBody()->getTag() == GHOST_TAG) {
+	if (!ghost_override && getBody()->getTag() == NO_COLLISION_KART_TAG) {
 		m_kart_model->getRenderInfo()->setTransparent(true);
 	} else {
 		m_kart_model->getRenderInfo()->setTransparent(false);
