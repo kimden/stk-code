@@ -2890,6 +2890,16 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         for (int i = angry_host; i > 0; --i)
             profile_name = StringUtils::utf32ToWide({0x1F528}) + profile_name;
 
+
+        // If the tyre's name has prefix CHEAT then reassign to the first valid tyre
+        std::string tyre_prefix = "CHEAT";
+        std::string compound_name = TyreUtils::getStringFromCompound(profile->getStartingTyre(), false /*shortver*/);
+        if (ServerConfig::m_server_ban_cheat_tyre && (compound_name.compare(0, tyre_prefix.size(), tyre_prefix) == 0)) {
+            std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+            if (tyre_mapping.size() > 0)
+                profile->setStartingTyre(tyre_mapping[0]);
+        }
+
         profile_name = StringUtils::utf8ToWide(profile->getTyreCircle()) + profile_name;
 
         auto peer = profile->getPeer();
@@ -2941,7 +2951,9 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
             boolean_combine |= (1 << 4);
         packet.mask = boolean_combine;
         packet.handicap = profile->getHandicap();
+
         packet.starting_tyre = profile->getStartingTyre();
+
         if (getSettings()->hasTeamChoosing())
             packet.kart_team = profile->getTeam();
         else

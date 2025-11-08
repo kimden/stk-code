@@ -127,7 +127,7 @@ namespace ServerConfig
         "wildcard picks that can be used per race. By default, the four allocation "
         "values are for the soft, medium, hard and CHEAT tyres."));
 
-    SERVER_CFG_PREFIX BoolServerConfigParam m_server_allow_cheat_tyre
+    SERVER_CFG_PREFIX BoolServerConfigParam m_server_ban_cheat_tyre
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ban-cheat-tyre",
         "If true, whenever a player attempts to select the CHEAT tyre, they "
         "will be auto-reassigned to the first other valid tyre. By default, "
