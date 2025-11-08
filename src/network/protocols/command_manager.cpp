@@ -48,6 +48,7 @@
 #include "utils/map_vote_handler.hpp"
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/version.hpp"
@@ -1266,13 +1267,21 @@ void CommandManager::process_config_assign(Context& context)
         context.say("Server is not configurable, this command cannot be invoked.");
         return;
     }
-    const auto& argv = context.m_argv;
+    std::vector<std::string> argv = context.m_argv;
     int difficulty = getLobby()->getDifficulty();
     int mode = getLobby()->getGameMode();
     bool goal_target = (getGameSetupFromCtx()->hasExtraServerInfo() ? getLobby()->isSoccerGoalTarget() : false);
     bool user_chose_difficulty = false;
     bool user_chose_mode = false;
     bool user_chose_target = false;
+
+    RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+
+    unsigned fuel_mode = tme_rules->fuel_mode;
+    bool item_preview = tme_rules->do_item_preview;
+    int wildcards = tme_rules->wildcards;
+    std::vector<int> tyre_alloc = tme_rules->tyre_allocation;
+
     // bool gp = false;
     for (unsigned i = 1; i < argv.size(); i++)
     {
@@ -1304,6 +1313,35 @@ void CommandManager::process_config_assign(Context& context)
                 }
             }
         }
+
+        if (argv[i] == "fuel_on") {
+            fuel_mode = 2;
+        } else if (argv[i] == "fuel_weightless") {
+            fuel_mode = 1;
+        } else if (argv[i] == "fuel_off") {
+            fuel_mode = 0;
+        }
+
+        if (argv[i] == "item_preview_on") {
+            item_preview = true;
+        } else if (argv[i] == "item_preview_off") {
+            item_preview = false;
+        }
+
+        // Tyre allocation vectors are of the form "alloc:num num num num;wildcard"
+        // Where ;wildcard is completely optional
+        std::string prefix = "alloc:";
+        // Check if argument has prefix "alloc:"
+        if (argv[i].compare(0, prefix.size(), prefix) == 0) {
+            std::vector<std::string> no_prefix = StringUtils::split(argv[i], ':');
+            if (no_prefix.size() <= 1) {
+                context.say("Config: Extremely weird format for allocation vector, make sure to quote it. Aborting");
+                return;
+            }
+            tyre_alloc.clear();
+            tyre_alloc = TyreUtils::stringToAlloc(no_prefix[1]);
+            wildcards = TyreUtils::stringToAllocWildcard(no_prefix[1]);
+        }
     }
     // if (mode != 6) {
     //     goal_target = false;
@@ -1326,7 +1364,7 @@ void CommandManager::process_config_assign(Context& context)
             vote(context, "config target", g_aux_goal_aliases[goal_target ? 1 : 0][0]);
         return;
     }
-    getLobby()->handleServerConfiguration(acting_peer, difficulty, mode, goal_target, ServerConfig::m_gp_track_count);
+    getLobby()->handleServerConfiguration(acting_peer, difficulty, mode, goal_target, ServerConfig::m_gp_track_count, fuel_mode, tyre_alloc, wildcards, item_preview);
 } // process_config_assign
 // ========================================================================
 

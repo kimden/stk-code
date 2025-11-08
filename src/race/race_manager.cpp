@@ -159,7 +159,7 @@ RaceManager::RaceManager()
     m_tme_rules.fuel_mode = 0;
     m_tme_rules.do_item_preview = 0;
     m_tme_rules.wildcards = 0;
-    m_tme_rules.tyre_allocation = {-1,-1,-1,-1,-1,-1,-1,-1,-1,0};
+    m_tme_rules.tyre_allocation = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
     setItemPolicy("normal");
 }   // RaceManager
@@ -361,29 +361,20 @@ void RaceManager::setTrack(const std::string& track)
     m_coin_target = 0;
 }   // setTrack
 
-void RaceManager::setTyreModRules(int fuel, int amount_1, int amount_2, int amount_3, int wildcard_amount, bool item_preview)
+void RaceManager::setTyreModRules(int fuel, const std::vector<int> &tyre_alloc, int wildcard_amount, bool item_preview)
 {
     printf("FUEL+ALLOC INFO WAS JUST SET:\n"
            "\tfuel         %d\n"
-           "\ttyre alloc   %d %d %d\n"
+           "\ttyre alloc   S%d; M%d; H%d\n"
            "\titem preview %s\n"
            "------------\n\n",
-           fuel, amount_1, amount_2, amount_3, item_preview ? "yes" : "no");
+           fuel, tyre_alloc[1], tyre_alloc[2], tyre_alloc[3], item_preview ? "yes" : "no");
     m_tme_rules.fuel_mode = fuel;
     m_tme_rules.wildcards = wildcard_amount;
     m_tme_rules.do_item_preview = item_preview;
 
     m_tme_rules.tyre_allocation.clear();
-    m_tme_rules.tyre_allocation.push_back(-1); // Infinite compound 1
-    m_tme_rules.tyre_allocation.push_back(amount_1);
-    m_tme_rules.tyre_allocation.push_back(amount_2);
-    m_tme_rules.tyre_allocation.push_back(amount_3);
-    m_tme_rules.tyre_allocation.push_back(-1); // Infinite compound 5
-    m_tme_rules.tyre_allocation.push_back(-1); // Infinite compound 6
-    m_tme_rules.tyre_allocation.push_back(-1); // Infinite compound 7
-    m_tme_rules.tyre_allocation.push_back(-1); // Infinite compound 8
-    m_tme_rules.tyre_allocation.push_back(-1); // Infinite compound 9
-    m_tme_rules.tyre_allocation.push_back(0); // Empty compound 10 (Can't pit for the no-degradation tyre under any circumstances, only start with it!)
+    m_tme_rules.tyre_allocation = tyre_alloc;
 }
 
 RaceManager::TyreModRules *RaceManager::getTyreModRules(void) {
@@ -625,8 +616,11 @@ static int selectTyre(int tyre_selection_mode, float length) {
     case 3: // Reserved
         return 3; // Medium tyre
         break;
+    case 4: // Reserved
+        return 3; // Medium tyre
+        break;
     default: // Fixed selection
-        return tyre_selection_mode - 3;
+        return tyre_selection_mode - 4;
         break;
     }
 }

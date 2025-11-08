@@ -107,14 +107,11 @@ void TrackInfoScreen::loadedFromFile()
     m_rules_spinner  = getWidget<SpinnerWidget>("rules-spinner");
     m_rules_label    = getWidget<LabelWidget>("rules-text");
 
-    m_allowed_compound_1_spinner  = getWidget<SpinnerWidget>("allowed-compound-1-spinner");
-    m_allowed_compound_1_label  = getWidget<LabelWidget>("allowed-compound-1-text");
+    m_allowed_compound_selection_spinner  = getWidget<SpinnerWidget>("allowed-compound-selection-spinner");
+    m_allowed_compound_selection_label  = getWidget<LabelWidget>("allowed-compound-selection-text");
 
-    m_allowed_compound_2_spinner  = getWidget<SpinnerWidget>("allowed-compound-2-spinner");
-    m_allowed_compound_2_label  = getWidget<LabelWidget>("allowed-compound-2-text");
-
-    m_allowed_compound_3_spinner  = getWidget<SpinnerWidget>("allowed-compound-3-spinner");
-    m_allowed_compound_3_label  = getWidget<LabelWidget>("allowed-compound-3-text");
+    m_allowed_compound_value_spinner  = getWidget<SpinnerWidget>("allowed-compound-value-spinner");
+    m_allowed_compound_value_label  = getWidget<LabelWidget>("allowed-compound-value-text");
 
     m_allowed_wildcards_spinner  = getWidget<SpinnerWidget>("allowed-wildcards-spinner");
     m_allowed_wildcards_label  = getWidget<LabelWidget>("allowed-wildcards-text");
@@ -223,8 +220,9 @@ void TrackInfoScreen::init()
     m_target_value_spinner->setVisible(false);
     m_target_value_label->setVisible(false);
 
+    RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
 
-    m_fuel_spinner->setValue(0);
+    m_fuel_spinner->setValue(tme_rules->fuel_mode);
     m_fuel_spinner->setVisible(true);
     m_fuel_label->setVisible(true);
     m_fuel_label->setText(_("Fuel mode (off/weightless/on)") , false);
@@ -236,37 +234,40 @@ void TrackInfoScreen::init()
     m_rules_label->setVisible(true);
     m_rules_label->setText(_("Rules:") , false);
 
-    m_allowed_compound_1_spinner->setValue(-1);
-    m_allowed_compound_1_spinner->setVisible(true);
-    m_allowed_compound_1_label->setVisible(true);
-    m_allowed_compound_1_label->setText(_("S alloc:"), false);
 
-    m_allowed_compound_2_spinner->setValue(-1);
-    m_allowed_compound_2_spinner->setVisible(true);
-    m_allowed_compound_2_label->setVisible(true);
-    m_allowed_compound_2_label->setText(_("M alloc:"), false);
+    std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
 
-    m_allowed_compound_3_spinner->setValue(-1);
-    m_allowed_compound_3_spinner->setVisible(true);
-    m_allowed_compound_3_label->setVisible(true);
-    m_allowed_compound_3_label->setText(_("H alloc:"), false);
+    m_allowed_compound_value_spinner->setVisible(true);
+    m_allowed_compound_value_label->setVisible(true);
+    m_allowed_compound_value_label->setText(_("Allowed amount:"), false);
 
-    m_allowed_wildcards_spinner->setValue(0);
+
+    bool first_value = true;
+    for (unsigned i = 0; i < tyre_mapping.size(); i++) {
+        std::string name = TyreUtils::getStringFromCompound(tyre_mapping[i], false);
+        irr::core::stringw label = _("%s", name.c_str());
+        m_allowed_compound_selection_spinner->addLabel(label);
+
+        if (first_value == true) {
+            first_value = false;
+            m_allowed_compound_selection_spinner->setValue(label);
+            m_allowed_compound_value_spinner->setValue(tme_rules->tyre_allocation[tyre_mapping[i]-1]);
+        }
+    }
+    m_allowed_compound_selection_spinner->setVisible(true);
+    m_allowed_compound_selection_label->setVisible(true);
+    m_allowed_compound_selection_label->setText(_("Tyre:"), false);
+
+    m_allowed_wildcards_spinner->setValue(tme_rules->wildcards);
     m_allowed_wildcards_spinner->setVisible(true);
     m_allowed_wildcards_label->setVisible(true);
     m_allowed_wildcards_label->setText(_("Wildcards:"), false);
 
-    m_item_preview_spinner->setValue(0);
+    m_item_preview_spinner->setValue((unsigned)tme_rules->do_item_preview);
     m_item_preview_spinner->setVisible(true);
     m_item_preview_label->setVisible(true);
     m_item_preview_label->setText(_("Global powerups?"), false);
 
-    RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
-                                            m_allowed_compound_1_spinner->getValue(),
-                                            m_allowed_compound_2_spinner->getValue(),
-                                            m_allowed_compound_3_spinner->getValue(),
-                                            m_allowed_wildcards_spinner->getValue(),
-                                            m_item_preview_spinner->getValue());
     RaceManager::get()->setItemPolicy("normal");
 
 // fuel fuel_regen fuel_stop fuel_weight fuel_rate amount_1 amount_2 amount_3
@@ -844,14 +845,25 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
             updateHighScores();
         }
     }
+    else if (name == "allowed-compound-selection-spinner")
+    {
+        // The compound selection spinner updates the compound alloc value spinner to match the real value
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+        RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+        std::vector<int> tyres_alloc = tme_rules->tyre_allocation;
+        m_allowed_compound_value_spinner->setValue(tyres_alloc[tyre_mapping[m_allowed_compound_selection_spinner->getValue()]-1]);
+    }
     else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" ||
-    		 name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-1-spinner" || 
-    		 name == "allowed-compound-2-spinner" || name == "allowed-compound-2-spinner" || name == "allowed-compound-3-spinner" || 
+    		 name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-value-spinner" ||
     		 name == "allowed-wildcards-spinner" || name == "item-preview-spinner") {
+        // All related spinners, including the compound alloc value spinner,
+        // update the rules immediately whenever set for simplicity
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+        RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+        std::vector<int> tyres_alloc = tme_rules->tyre_allocation;
+        tyres_alloc[tyre_mapping[m_allowed_compound_selection_spinner->getValue()]-1] = m_allowed_compound_value_spinner->getValue();
         RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
-                                                m_allowed_compound_1_spinner->getValue(),
-                                                m_allowed_compound_2_spinner->getValue(),
-                                                m_allowed_compound_3_spinner->getValue(),
+                                                tyres_alloc,
                                                 m_allowed_wildcards_spinner->getValue(),
                                                 m_item_preview_spinner->getValue());
     }

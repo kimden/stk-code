@@ -215,7 +215,8 @@ private:
 
 public: // I'll see if it should be private later
     void handleServerConfiguration(std::shared_ptr<STKPeer> peer,
-        int difficulty, int mode, bool soccer_goal_target, int gp_track_count);
+    int difficulty, int mode, bool soccer_goal_target, int gp_track_count,
+    unsigned fuel_mode, std::vector<int> tyre_alloc, int wildcards, bool item_preview);
 
 private:
     void updateMapsForMode();

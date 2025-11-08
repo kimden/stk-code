@@ -33,5 +33,17 @@ namespace TyreUtils
 
     std::vector<std::tuple<unsigned, unsigned>> stringToStints(std::string x);
     std::string stintsToString(std::vector<std::tuple<unsigned, unsigned>> x);
+
+
+    const std::vector<unsigned> getAllActiveCompounds(void);
+    // This pair of functions extracts data from a format in the form:
+    // -1 10 0 -1; 1
+    // where the numbers before the semicolon are a list of the tyre amount for
+    // each of the selectable tyres, and the number after the semicolon
+    // is the amount of wildcards
+    std::vector<int> stringToAlloc(const std::string &in);
+    int stringToAllocWildcard(const std::string &in);
+
+    std::string allocToString(const std::vector<int> &in);
 }
 #endif

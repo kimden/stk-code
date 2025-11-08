@@ -326,8 +326,8 @@ void Tyres::reset() {
             if (m_kart->m_wildcards > 0) { // One wildcard was spent, but do not penalize
                 m_kart->m_wildcards -= 1;
             } else { // No wildcards available, penalize
-                m_current_life_traction *= 0.5;
-                m_current_life_turning *= 0.5;
+                m_current_life_traction *= 0.05;
+                m_current_life_turning *= 0.05;
                 m_kart->m_wildcards = 0;
             }
         } else { // Tyre alloc is <= -1, which means infinite, nothing to do
@@ -348,7 +348,7 @@ void Tyres::saveState(BareNetworkString *buffer)
     buffer->addUInt8(m_kart->m_wildcards);
     buffer->addUInt8(m_kart->m_tyres_queue.size());
     for (long unsigned i = 0; i < m_kart->m_tyres_queue.size(); i++) {
-        buffer->addUInt8(m_kart->m_tyres_queue[i]+1);
+        buffer->addInt8(m_kart->m_tyres_queue[i]);
     }
 }
 
@@ -364,7 +364,7 @@ void Tyres::rewindTo(BareNetworkString *buffer)
     unsigned queue_size = buffer->getUInt8();
     std::vector<int> tmpvec;
     for (unsigned i = 0; i < queue_size; i++) {
-        int tmpint = buffer->getUInt8()-1;
+        int tmpint = buffer->getInt8();
         tmpvec.push_back(tmpint);
     }
     m_kart->m_tyres_queue = tmpvec;

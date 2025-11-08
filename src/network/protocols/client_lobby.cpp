@@ -75,6 +75,7 @@
 #include "tracks/track_manager.hpp"
 #include "utils/communication.hpp"
 #include "utils/log.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -751,15 +752,18 @@ void ClientLobby::handleServerInfo(Event* event)
     int fuel_info = data.getUInt8();
 
     int compound_amount[3];
-    compound_amount[0] = data.getUInt8()-1;
-    compound_amount[1] = data.getUInt8()-1;
-    compound_amount[2] = data.getUInt8()-1;
+
+    unsigned tyre_alloc_size = data.getUInt8();
+    std::vector<int> tyre_alloc;
+    for (unsigned i = 0; i < tyre_alloc_size; i++) {
+        tyre_alloc.push_back(data.getInt8());
+    }
 
     int wildcards = data.getUInt8();
 
     bool item_preview = data.getUInt8();
 
-    RaceManager::get()->setTyreModRules(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards, item_preview);
+    RaceManager::get()->setTyreModRules(fuel_info, tyre_alloc, wildcards, item_preview);
 
 	std::string str_ip;
     data.decodeString(&str_ip);
@@ -791,6 +795,23 @@ void ClientLobby::handleServerInfo(Event* event)
     core::stringw mode_name = ServerConfig::getModeName(u_data);
     total_lines += _("Game mode: %s", mode_name);
     total_lines += L"\n";
+
+    total_lines += _("Global powerups: %s", StringUtils::utf8ToWide(item_preview ? std::string("ON") : std::string("OFF")));
+    total_lines += L"\n";
+
+    total_lines += _("Fuel mode: %s", StringUtils::utf8ToWide(
+        (fuel_info == 0) ?  std::string("OFF")
+                         : ((fuel_info == 2) ? std::string("ON")
+                                             : std::string("ON, weightless"))));
+    total_lines += L"\n";
+
+    total_lines += _("Allocation: %s", StringUtils::utf8ToWide(TyreUtils::allocToString(tyre_alloc)));
+    total_lines += L"\n";
+
+    total_lines += _("Wildcards: %d", wildcards);
+    total_lines += L"\n";
+
+
 
     uint8_t extra_server_info = data.getUInt8();
     bool grand_prix_started = false;

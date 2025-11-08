@@ -213,6 +213,14 @@ public:
         return *this;
     }   // addUInt8
 
+    /** Add 8 bit signed int. */
+    BareNetworkString& addInt8(const uint8_t value)
+    {
+        m_buffer.push_back((uint8_t)value);
+        return *this;
+    }   // addUInt8
+
+
     // ------------------------------------------------------------------------
     /** Adds a single character to the string. */
     BareNetworkString& addChar(const char value)
@@ -347,11 +355,10 @@ public:
     {
         return m_buffer.at(m_current_offset++);
     }   // getUInt8
-    // ------------------------------------------------------------------------
-    /** Returns an unsigned 8-bit integer. */
+    /** Returns a signed 8-bit integer. */
     inline int8_t getInt8() const
     {
-        return m_buffer.at(m_current_offset++);
+        return (int8_t)m_buffer.at(m_current_offset++);
     }   // getInt8
     // ------------------------------------------------------------------------
     /** Gets a 4 byte floating point value. */

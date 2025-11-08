@@ -456,7 +456,7 @@ public:
      */
     void setTrack(const std::string& track);
 
-    void setTyreModRules(int fuel_mode, int allowed_1, int allowed_2, int allowed_3, int wildcards, bool item_preview);
+    void setTyreModRules(int fuel_mode, const std::vector<int> &tyre_alloc, int wildcards, bool item_preview);
 
     TyreModRules *getTyreModRules(void);
 

@@ -38,6 +38,7 @@
 #include "utils/lobby_asset_manager.hpp"
 #include "utils/lobby_queues.hpp"
 #include "utils/random_generator.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/tournament.hpp"
 
@@ -79,7 +80,11 @@ void LobbySettings::setupContextUser()
     loadPreservedSettings();
 
     RaceManager::get()->setItemPolicy(ServerConfig::m_item_policy);
-
+    
+    RaceManager::get()->setTyreModRules(ServerConfig::m_server_fuel_mode,
+                                        TyreUtils::stringToAlloc(ServerConfig::m_server_tyre_alloc),
+                                        TyreUtils::stringToAllocWildcard(ServerConfig::m_server_tyre_alloc),
+                                        ServerConfig::m_server_item_preview);
 
     m_live_players = ServerConfig::m_live_players;
 

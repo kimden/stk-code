@@ -46,8 +46,6 @@ namespace TyreUtils
     std::string getStringFromCompound(unsigned c, bool shortver) {
         if (c == 123) return std::string("FUEL");
 
-        const KartProperties *kp = kart_properties_manager->getKart("tux");
-
         std::vector<std::string> names;
         if (shortver) {
             // TODO: get this string from STKConfig instead
@@ -74,7 +72,7 @@ namespace TyreUtils
     std::vector<std::tuple<unsigned, unsigned>> stringToStints(std::string x) {
         std::vector<std::tuple<unsigned, unsigned>> retval;
         std::vector<std::string> items = StringUtils::split(x, ',');
-        for (int i = 0; i < items.size(); i++) {
+        for (unsigned i = 0; i < items.size(); i++) {
             retval.push_back(std::make_tuple(0, 0));
             if (items[i].at(0) == ' ') items[i].erase(0, 1);
             switch (items[i].at(0)) {
@@ -99,7 +97,7 @@ namespace TyreUtils
 
     std::string stintsToString(std::vector<std::tuple<unsigned, unsigned>> x) {
         std::string retval;
-        for (int i = 0; i < x.size(); i++) {
+        for (unsigned i = 0; i < x.size(); i++) {
             unsigned compval = std::get<0>(x[i]);
             std::string compstr = getStringFromCompound(compval, /*shortversion*/ true);
 
@@ -112,4 +110,90 @@ namespace TyreUtils
         }
         return retval;
     }
+
+    /** Returns a vector that maps each active tyre index to its absolute index */
+    const std::vector<unsigned> getAllActiveCompounds(void) {
+        std::vector<unsigned> retval;
+
+        const KartProperties *kp = kart_properties_manager->getKart("tux");
+        const unsigned compound_number = kp->getTyresCompoundNumber();
+        auto compound_colors = kp->getTyresDefaultColor();
+
+        for (unsigned i = 0; i < compound_number; i++) {
+            if (compound_colors[i] > -0.5f) {
+                retval.push_back(i+1);
+            }
+        }
+        return retval;
+    }
+
+
+    // This pair of functions extracts data from a format in the form:
+    // -1 10 0 -1; 1
+    // where the numbers before the semicolon are a list of the tyre amount for
+    // each of the selectable tyres, and the number after the semicolon
+    // is the amount of wildcards
+    std::vector<int> stringToAlloc(const std::string &in) {
+        std::vector<int> retval = {};
+
+        std::vector<unsigned> tyre_mapping = getAllActiveCompounds();
+        const KartProperties *kp = kart_properties_manager->getKart("tux");
+        const unsigned compound_number = kp->getTyresCompoundNumber();
+        for (unsigned i = 0; i < compound_number; i++) {
+            retval.push_back(-1);
+        }
+
+        std::vector<std::string> strs = StringUtils::split(in, ';');
+        if (strs.size() == 0) return retval;
+
+        std::vector<std::string> nums = StringUtils::split(strs[0], ' ');
+        if (nums.size() == 0) return retval;
+
+        // Remove all empty strings from the vector
+        nums.erase(std::remove(nums.begin(), nums.end(), ""), nums.end());
+
+        for (unsigned i = 0; i < nums.size(); i++) {
+            int val;
+            try         { val = std::stoi(nums[i]); }
+            catch (...) { val = -1; }
+
+            if (i < tyre_mapping.size()) {
+                if (tyre_mapping[i]-1 < retval.size()) {
+                    retval[tyre_mapping[i]-1] = val;
+                }
+            }
+        }
+        return retval;
+    }
+    int stringToAllocWildcard(const std::string &in) {
+        int retval;
+
+        std::vector<std::string> strs = StringUtils::split(in, ';');
+        if (strs.size() <= 1)
+            return 0;
+
+        try         { retval = std::stoi(strs[1]); }
+        catch (...) { retval = 0; }
+
+        return retval;        
+    }
+
+    std::string allocToString(const std::vector<int> &input) {
+        std::string retval = "{";
+        std::vector<unsigned> tyre_mapping = getAllActiveCompounds();
+        for (unsigned i = 0; i < tyre_mapping.size(); i++) {
+            if (tyre_mapping[i]-1 < input.size()) {
+                retval += std::to_string(input[tyre_mapping[i]-1]);
+                retval += " ";
+            }
+        }
+        // remove trailing space if needed
+        if (retval.size() > 1)
+            retval.pop_back();
+
+        retval += "}";
+
+        return retval;
+    }
+
 }

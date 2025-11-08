@@ -119,9 +119,12 @@ void GameSetup::addServerInfo(NetworkString* ns)
 
     ns->addUInt8(fuel_mode);
 
-    ns->addUInt8(alloc[1]);
-    ns->addUInt8(alloc[2]);
-    ns->addUInt8(alloc[3]);
+    unsigned tyre_alloc_size = alloc.size();
+    ns->addUInt8(tyre_alloc_size);
+    for (unsigned i = 0; i < tyre_alloc_size; i++) {
+        ns->addInt8(alloc[i]);
+    }
+
     ns->addUInt8(wildcards);
     ns->addUInt8(item_preview);
 

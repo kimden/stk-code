@@ -142,22 +142,17 @@ void NetworkPlayerDialog::beforeAddingWidgets()
     m_accept_widget = NULL;
 
     m_tyre_widget = getWidget<SpinnerWidget>("starting-tyre");
-
-    const KartProperties *kp = kart_properties_manager->getKart("tux");
-    const unsigned compound_number = kp->getTyresCompoundNumber();
-    auto compound_colors = kp->getTyresDefaultColor();
+    std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
 
     core::stringw label;
     bool first_label = true;
-    for (int i = 0; i < compound_number; i++) {
-        if (compound_colors[i] > -0.5f) {
-            std::string name = TyreUtils::getStringFromCompound(i+1, false);
-            label = _("%s", name.c_str());
-            m_tyre_widget->addLabel(label);
-            if (first_label) {
-                first_label = false;
-                m_tyre_widget->setValue(label);
-            }
+    for (int i = 0; i < tyre_mapping.size(); i++) {
+        std::string name = TyreUtils::getStringFromCompound(tyre_mapping[i], false);
+        label = _("%s", name.c_str());
+        m_tyre_widget->addLabel(label);
+        if (first_label) {
+            first_label = false;
+            m_tyre_widget->setValue(label);
         }
     }
 
@@ -304,23 +299,8 @@ GUIEngine::EventPropagation
             m_self_destroy = true;
             return GUIEngine::EVENT_BLOCK;
         } else if (m_accept_widget && selection == m_accept_widget->m_properties[PROP_ID]) {
-            unsigned new_tyre = TME_CONSTANT_DEFAULT_TYRE;
-            unsigned tyre_spinner_value = m_tyre_widget->getValue()+1;
-
-            const KartProperties *kp = kart_properties_manager->getKart("tux");
-            const unsigned compound_number = kp->getTyresCompoundNumber();
-            auto compound_colors = kp->getTyresDefaultColor();
-
-            unsigned valid_count = 0;
-            for (int i = 0; i < compound_number; i++) {
-                if (compound_colors[i] > -0.5f)
-                    valid_count += 1;
-                if (tyre_spinner_value == valid_count) {
-                    new_tyre = i+1;
-                    break;
-                }
-            }
-
+            std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+            unsigned new_tyre = tyre_mapping[m_tyre_widget->getValue()];
 
             unsigned new_handicap = (uint8_t)(m_handicap_widget->getValue() % HANDICAP_COUNT);
             NetworkString change_handicap(PROTOCOL_LOBBY_ROOM);

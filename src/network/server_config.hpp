@@ -106,6 +106,35 @@ namespace ServerConfig
         "4 time trial, 6 is soccer, 7 is free-for-all and "
         "8 is capture the flag."));
 
+    SERVER_CFG_PREFIX IntServerConfigParam m_server_fuel_mode
+        SERVER_CFG_DEFAULT(IntServerConfigParam(0, "fuel-mode",
+        "The initial fuel mode. "
+        "0 is off, "
+        "1 is on, but kart performance is not affected by fuel load "
+        "2 is on"));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_server_item_preview
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "item-preview",
+        "Item preview, also known as global powerups, makes powerups "
+        "show up above the bonus boxes, and be the same for everyone "
+        "regardless of race position."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_server_tyre_alloc
+        SERVER_CFG_DEFAULT(StringServerConfigParam("-1 -1 -1 -1; 0",
+        "tyre-alloc",
+        "Tyre allocation, each of the selectable tyres gets an amount they can be used "
+        "each race. -1 is infinite. After the semicolon is a single number: the number of "
+        "wildcard picks that can be used per race. By default, the four allocation "
+        "values are for the soft, medium, hard and CHEAT tyres."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_server_allow_cheat_tyre
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ban-cheat-tyre",
+        "If true, whenever a player attempts to select the CHEAT tyre, they "
+        "will be auto-reassigned to the first other valid tyre. By default, "
+        "this is the soft tyre."));
+
+
+
     SERVER_CFG_PREFIX IntServerConfigParam m_server_difficulty
         SERVER_CFG_DEFAULT(IntServerConfigParam(0, "server-difficulty",
         "Difficulty in server, 0 is novice, 1 is causal, 2 is intermediate,"

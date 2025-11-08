@@ -128,23 +128,17 @@ PlayerKartWidget::PlayerKartWidget(KartSelectionScreen* parent,
         m_starting_tyre_spinner->m_w = player_name_w;
         m_starting_tyre_spinner->m_h = player_name_h;
 
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+
         core::stringw label2 = _("TYRE: RANDOM");
         m_starting_tyre_spinner->addLabel(label2);
         m_starting_tyre_spinner->setValue(label2);
 
-        const KartProperties *kp = kart_properties_manager->getKart("tux");
-        const unsigned compound_number = kp->getTyresCompoundNumber();
-        auto compound_colors = kp->getTyresDefaultColor();
-
-        for (int i = 0; i < compound_number; i++) {
-            if (compound_colors[i] > -0.5f) {
-                std::string name = TyreUtils::getStringFromCompound(i+1, false);
-                label2 = _("TYRE: %s", name.c_str());
-                m_starting_tyre_spinner->addLabel(label2);
-            }
+        for (unsigned i = 0; i < tyre_mapping.size(); i++) {
+            std::string name = TyreUtils::getStringFromCompound(tyre_mapping[i], false);
+            label2 = _("TYRE: %s", name.c_str());
+            m_starting_tyre_spinner->addLabel(label2);
         }
-
-        //m_starting_tyre_spinner->setValue(0);
 
         m_starting_tyre_spinner->setPlayerID(m_player_id);
         m_starting_tyre_spinner->setPlayerIDSupport(true);
@@ -779,23 +773,13 @@ GUIEngine::EventPropagation PlayerKartWidget::transmitEvent(Widget* w,
     } // playerSpinnerID
 
     m_starting_tyre = 0;
-    int tyre_spinner_value = m_starting_tyre_spinner->getValue();
+    unsigned tyre_spinner_value = m_starting_tyre_spinner->getValue();
+
     if (tyre_spinner_value == 0) {
         m_starting_tyre = 0; // Random tyre
     } else {
-        const KartProperties *kp = kart_properties_manager->getKart("tux");
-        const unsigned compound_number = kp->getTyresCompoundNumber();
-        auto compound_colors = kp->getTyresDefaultColor();
-
-        unsigned valid_count = 0;
-        for (int i = 0; i < compound_number; i++) {
-            if (compound_colors[i] > -0.5f)
-                valid_count += 1;
-            if (tyre_spinner_value == valid_count) {
-                m_starting_tyre = i+1;
-                break;
-            }
-        }
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+        m_starting_tyre = tyre_mapping[tyre_spinner_value-1];
     }
 
 
@@ -944,5 +928,4 @@ void PlayerKartWidget::setHandicapForNetwork(uint8_t x)
 void PlayerKartWidget::setTyreForNetwork(unsigned x)
 {
     m_starting_tyre = x;
-    //m_starting_tyre_spinner->setValue(x);
 }   // enableHandicapForNetwork

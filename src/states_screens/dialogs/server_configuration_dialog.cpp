@@ -152,16 +152,22 @@ GUIEngine::EventPropagation
 
             change.addUInt8(m_fuel_spinner->getValue());
 
-            change.addUInt8(m_allowed_compounds_1_spinner->getValue()+1);
-            change.addUInt8(m_allowed_compounds_2_spinner->getValue()+1);
-            change.addUInt8(m_allowed_compounds_3_spinner->getValue()+1);
+            change.addInt8(m_allowed_compounds_1_spinner->getValue());
+            change.addInt8(m_allowed_compounds_2_spinner->getValue());
+            change.addInt8(m_allowed_compounds_3_spinner->getValue());
             change.addUInt8(m_allowed_wildcards_spinner->getValue());
             change.addUInt8(m_item_preview_spinner->getValue());
 
+/*
             RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
                                                     m_allowed_compounds_1_spinner->getValue(),
                                                     m_allowed_compounds_2_spinner->getValue(),
                                                     m_allowed_compounds_3_spinner->getValue(),
+                                                    m_allowed_wildcards_spinner->getValue(),
+                                                    m_item_preview_spinner->getValue());
+*/
+            RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
+                                                    {},
                                                     m_allowed_wildcards_spinner->getValue(),
                                                     m_item_preview_spinner->getValue());
 

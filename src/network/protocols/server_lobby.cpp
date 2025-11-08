@@ -3626,7 +3626,7 @@ uint8_t ServerLobby::getStartupBoostOrPenaltyForKart(uint32_t ping,
 //-----------------------------------------------------------------------------
 
 void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
-    int difficulty, int mode, bool soccer_goal_target, int gp_track_count)
+    int difficulty, int mode, bool soccer_goal_target, int gp_track_count, unsigned fuel_mode, std::vector<int> tyre_alloc, int wildcards, bool item_preview)
 {
     if (m_state != WAITING_FOR_START_GAME)
     {
@@ -3681,6 +3681,7 @@ void ServerLobby::handleServerConfiguration(std::shared_ptr<STKPeer> peer,
         m_game_setup->setSoccerGoalTarget(soccer_goal_target);
 
     bool teams_after = RaceManager::get()->teamEnabled();
+    RaceManager::get()->setTyreModRules(fuel_mode, tyre_alloc, wildcards, item_preview);
 
     if (NetworkConfig::get()->isWAN() &&
         (m_difficulty.load() != difficulty ||
@@ -3799,6 +3800,10 @@ void ServerLobby::handleServerConfiguration(Event* event)
     int new_game_mode = getSettings()->getServerMode();
     int new_gp_track_count = ServerConfig::m_gp_track_count;
     bool new_soccer_goal_target = getSettings()->isSoccerGoalTargetInConfig();
+    int fuel_info;
+    int wildcards;
+    bool item_preview;
+    std::vector<int> tyre_alloc;
     if (event != NULL)
     {
         NetworkString& data = event->data();
@@ -3810,18 +3815,16 @@ void ServerLobby::handleServerConfiguration(Event* event)
         }
 
         
-        int fuel_info = data.getUInt8();
+        fuel_info = data.getUInt8();
 
-        int compound_amount[3];
-        compound_amount[0] = data.getUInt8()-1;
-        compound_amount[1] = data.getUInt8()-1;
-        compound_amount[2] = data.getUInt8()-1;
+        unsigned tyre_alloc_size = data.getUInt8();
+        for (unsigned i = 0; i < tyre_alloc_size; i++) {
+            tyre_alloc.push_back(data.getInt8());
+        }
 
-        int wildcards = data.getUInt8();
+        wildcards = data.getUInt8();
+        item_preview = data.getUInt8();
 
-        bool item_preview = data.getUInt8();
-
-        RaceManager::get()->setTyreModRules(fuel_info, compound_amount[0], compound_amount[1], compound_amount[2], wildcards, item_preview);
 
         int received_new_game_mode = data.getUInt8();
         if (received_new_game_mode != new_game_mode) {
@@ -3844,7 +3847,7 @@ void ServerLobby::handleServerConfiguration(Event* event)
     if (change_config) {
         handleServerConfiguration(
             (event ? event->getPeerSP() : std::shared_ptr<STKPeer>()),
-            new_difficulty, new_game_mode, new_soccer_goal_target, new_gp_track_count);
+            new_difficulty, new_game_mode, new_soccer_goal_target, new_gp_track_count, fuel_info, tyre_alloc, wildcards, item_preview);
     }
 }   // handleServerConfiguration
 

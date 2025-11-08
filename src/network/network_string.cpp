@@ -266,10 +266,22 @@ void BareNetworkString::encode<uint8_t>(const uint8_t& value)
 }   // encode(uint8_t)
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
+void BareNetworkString::encode<int8_t>(const int8_t& value)
+{
+    addInt8(value);
+}   // encode(int8_t)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
 void BareNetworkString::decode<uint8_t>(uint8_t& value)
 {
     value = getUInt8();
 }   // decode(uint8_t)
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void BareNetworkString::decode<int8_t>(int8_t& value)
+{
+    value = getInt8();
+}   // decode(int8_t)
 //-----------------------------------------------------------------------------
 template<>
 void BareNetworkString::encode<irr::core::stringw>(const irr::core::stringw& value)

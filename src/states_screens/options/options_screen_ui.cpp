@@ -144,23 +144,18 @@ static unsigned realToSpinner(unsigned n) {
     case 3:
         return 0;
         break;
+    case 4:
+        return 0;
+        break;
     default:
-        const KartProperties *kp = kart_properties_manager->getKart("tux");
-        const unsigned compound_number = kp->getTyresCompoundNumber();
-        auto compound_colors = kp->getTyresDefaultColor();
-        unsigned target_tyre = n-3;
-
-        unsigned valid_count = 0;
-        for (int i = 0; i < compound_number; i++) {
-            if (compound_colors[i] > -0.5f)
-                valid_count += 1;
-            if (target_tyre == i+1) {
-                return valid_count+1;
-                break;
+        unsigned target_tyre = n-4;
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+        for (unsigned i = 0; i < tyre_mapping.size(); i++) {
+            if (tyre_mapping[i] == target_tyre) {
+                return 2 + i;
             }
         }
-
-        return n-2;
+        return 0;
         break;
     }
 }
@@ -289,16 +284,11 @@ void OptionsScreenUI::init()
     label = _("BASED ON RACE LENGTH");
     tyre_selection_mode->addLabel(label);
 
-    const KartProperties *kp = kart_properties_manager->getKart("tux");
-    const unsigned compound_number = kp->getTyresCompoundNumber();
-    auto compound_colors = kp->getTyresDefaultColor();
-
-    for (int i = 0; i < compound_number; i++) {
-        if (compound_colors[i] > -0.5f) {
-            std::string name = TyreUtils::getStringFromCompound(i+1, false);
-            label = _("FORCED: %s", name.c_str());
-            tyre_selection_mode->addLabel(label);
-        }
+    std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+    for (int i = 0; i < tyre_mapping.size(); i++) {
+        std::string name = TyreUtils::getStringFromCompound(tyre_mapping[i], false);
+        label = _("FORCED: %s", name.c_str());
+        tyre_selection_mode->addLabel(label);
     }
 
     tyre_selection_mode->setValue(realToSpinner(UserConfigParams::m_tyre_selection_mode));
@@ -544,24 +534,12 @@ void OptionsScreenUI::eventCallback(Widget* widget, const std::string& name, con
         unsigned mode = 0;
         int tyre_spinner_value = tyre_selection_mode->getValue();
         if (tyre_spinner_value <= 1) {
-            mode = tyre_spinner_value; // Random tyre
+            mode = tyre_spinner_value; // Random tyre or length-based
         } else {
-            const KartProperties *kp = kart_properties_manager->getKart("tux");
-            const unsigned compound_number = kp->getTyresCompoundNumber();
-            auto compound_colors = kp->getTyresDefaultColor();
-
-            unsigned valid_count = 0;
-            for (int i = 0; i < compound_number; i++) {
-                if (compound_colors[i] > -0.5f)
-                    valid_count += 1;
-                if (tyre_spinner_value-1 == valid_count) {
-                    mode = i+4;
-                    break;
-                }
-            }
+            std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+            mode = tyre_mapping[tyre_spinner_value-2]+4;
         }
         UserConfigParams::m_tyre_selection_mode = mode;
-
     }
     else if (name == "showfps")
     {
