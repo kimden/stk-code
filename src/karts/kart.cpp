@@ -481,13 +481,13 @@ void Kart::reset()
 
         // Item Policy No Collision Karts karts are different because they have bodies but can't collide with projectiles or with other karts
         ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
-    	uint32_t rules = item_policy->m_policy_sections[0].m_rules;
+        uint32_t rules = item_policy->m_policy_sections[0].m_rules;
 
-    	if (rules & ItemPolicyRules::IPT_GHOST_KARTS) {
+        if (rules & ItemPolicyRules::IPT_GHOST_KARTS) {
             Physics::get()->addKart(this, true /*ghost*/);
-    	} else {
+        } else {
             Physics::get()->addKart(this, false /*ghost*/);
-    	}
+        }
     }
 
     m_min_nitro_ticks = 0;
@@ -1340,6 +1340,9 @@ void Kart::collectedItem(ItemState *item_state)
     const Item::ItemType type = item_state->getType();
     bool is_mini;
     auto& stk_config = STKConfig::get();
+    uint32_t rules;
+    int sec;
+    ItemPolicy *item_policy = NULL;
 
     switch (type)
     {
@@ -1361,7 +1364,18 @@ void Kart::collectedItem(ItemState *item_state)
             break;
         }
 
-        m_tyres->commandChange(item_state->m_compound, item_state->m_stop_time);
+        item_policy = RaceManager::get()->getItemPolicy();
+        sec = item_policy->getSectionForKart(this);
+        if (sec == -1)
+            sec = 0;
+
+        rules = item_policy->m_policy_sections[sec].m_rules;
+
+        if (rules & ItemPolicyRules::IPT_TYRE_CHANGE_TIME_OVERRIDE) {
+            m_tyres->commandChange(item_state->m_compound, item_policy->m_policy_sections[sec].m_tyre_change_time);
+        } else {
+            m_tyres->commandChange(item_state->m_compound, item_state->m_stop_time);
+        }
 
         break;
     case Item::ITEM_BUBBLEGUM:

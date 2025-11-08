@@ -154,6 +154,7 @@ struct ItemPolicy {
                             int current_time, int prev_lap_item_amount);
 
     int applyRules(Kart *kart, int current_lap, int current_time, int total_laps_of_race);
+    int getSectionForKart(Kart *kart);
 
     bool isHitValid(float sender_distance, float sender_lap, int sender_position, float recv_distance, int recv_position, float recv_lap, float track_length);
 

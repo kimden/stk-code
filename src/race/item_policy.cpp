@@ -25,6 +25,7 @@
 #include "utils/string_utils.hpp"
 #include "race/item_policy.hpp"
 #include "modes/world.hpp"
+#include "modes/linear_world.hpp"
 #include "items/item.hpp"
 #include "items/powerup.hpp"
 #include "items/powerup_manager.hpp"
@@ -159,6 +160,7 @@ void ItemPolicy::applySectionRules(ItemPolicySection &section, Kart *kart, int n
 // Returns the section that was applied. Returns -1 if it tried to appply an unsupported section or if there are no sections
 int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time, int total_laps_of_race) {
     if (m_policy_sections.size() == 0) return -1;
+
     for (unsigned i = 0; i < m_policy_sections.size(); i++) {
         int next_section_start_laps = total_laps_of_race;
         int prev_lap_item_amount = kart->m_item_amount_last_lap;
@@ -191,6 +193,44 @@ int ItemPolicy::applyRules(Kart *kart, int current_lap, int current_time, int to
         }
     }
     return -1;
+}
+
+int ItemPolicy::getSectionForKart(Kart *kart) {
+    if (!World::getWorld()->raceHasLaps())
+        return -1;
+
+    LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
+    int current_lap = lin_world->getFinishedLapsOfKart(kart->getWorldKartId());
+    int current_time = World::getWorld()->getTime();
+
+    if (m_policy_sections.size() == 0) return -1;
+    for (unsigned i = 0; i < m_policy_sections.size(); i++) {
+        if (i+1 == m_policy_sections.size()) {
+            return i;
+            break;
+        } else if (m_policy_sections[i].m_section_type == IP_TIME_BASED) {
+            Log::error("ItemPolicy", "Time-implemented item policy sections are not implemented yet");
+            return i;
+            break;
+        } else if (m_policy_sections[i].m_section_type == IP_LAPS_BASED) {
+            if (m_policy_sections[i+1].m_section_type == IP_TIME_BASED) {
+                Log::error("ItemPolicy", "Time-implemented item policy sections are not implemented yet");
+                return i;
+                break;
+            } else if (m_policy_sections[i+1].m_section_type == IP_LAPS_BASED) {
+                if (current_lap >= m_policy_sections[i].m_section_start &&
+                    current_lap < m_policy_sections[i+1].m_section_start)
+                {
+                    return i;
+                    break;
+                } else {
+                    continue;
+                }
+            }
+        }
+    }
+    return -1;
+
 }
 //--------------------------------------------------
 static std::string fetch(std::vector<std::string>& strings, unsigned idx) {
