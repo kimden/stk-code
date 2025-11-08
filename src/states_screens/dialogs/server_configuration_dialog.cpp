@@ -27,6 +27,7 @@
 #include "network/stk_host.hpp"
 #include "states_screens/state_manager.hpp"
 #include "utils/communication.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 
@@ -56,26 +57,19 @@ void ServerConfigurationDialog::beforeAddingWidgets()
     m_gp_tracks_spinner->setValue(0);
     m_gp_tracks_text->setVisible(false);
 
-    m_allowed_compounds_1_text = getWidget<LabelWidget>("allowed-compound-1-label");
-    assert(m_allowed_compounds_1_text != NULL);
-    m_allowed_compounds_1_spinner = getWidget<SpinnerWidget>("allowed-compound-1-spinner");
-    assert(m_allowed_compounds_1_spinner != NULL);
-    m_allowed_compounds_1_spinner->setVisible(true);
-    m_allowed_compounds_1_text->setVisible(true);
+    m_allowed_selection_text = getWidget<LabelWidget>("allowed-selection-label");
+    assert(m_allowed_selection_text != NULL);
+    m_allowed_selection_spinner = getWidget<SpinnerWidget>("allowed-selection-spinner");
+    assert(m_allowed_selection_spinner != NULL);
+    m_allowed_selection_spinner->setVisible(true);
+    m_allowed_selection_text->setVisible(true);
 
-    m_allowed_compounds_2_text = getWidget<LabelWidget>("allowed-compound-2-label");
-    assert(m_allowed_compounds_2_text != NULL);
-    m_allowed_compounds_2_spinner = getWidget<SpinnerWidget>("allowed-compound-2-spinner");
-    assert(m_allowed_compounds_2_spinner != NULL);
-    m_allowed_compounds_2_spinner->setVisible(true);
-    m_allowed_compounds_2_text->setVisible(true);
-
-    m_allowed_compounds_3_text = getWidget<LabelWidget>("allowed-compound-3-label");
-    assert(m_allowed_compounds_3_text != NULL);
-    m_allowed_compounds_3_spinner = getWidget<SpinnerWidget>("allowed-compound-3-spinner");
-    assert(m_allowed_compounds_3_spinner != NULL);
-    m_allowed_compounds_3_spinner->setVisible(true);
-    m_allowed_compounds_3_text->setVisible(true);
+    m_allowed_value_text = getWidget<LabelWidget>("allowed-value-label");
+    assert(m_allowed_value_text != NULL);
+    m_allowed_value_spinner = getWidget<SpinnerWidget>("allowed-value-spinner");
+    assert(m_allowed_value_spinner != NULL);
+    m_allowed_value_spinner->setVisible(true);
+    m_allowed_value_text->setVisible(true);
 
     m_allowed_wildcards_text = getWidget<LabelWidget>("allowed-wildcards-label");
     assert(m_allowed_wildcards_text != NULL);
@@ -122,11 +116,29 @@ void ServerConfigurationDialog::init()
     m_options_widget->setFocusForPlayer(PLAYER_ID_GAME_MASTER);
     m_options_widget->select("cancel", PLAYER_ID_GAME_MASTER);
 
-    m_allowed_compounds_1_spinner->setValue(-1);
-    m_allowed_compounds_2_spinner->setValue(-1);
-    m_allowed_compounds_3_spinner->setValue(-1);
+    RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+    std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+
     m_allowed_wildcards_spinner->setValue(0);
-    m_item_preview_spinner->setValue(0);
+    m_item_preview_spinner->setValue((unsigned)tme_rules->do_item_preview);
+    m_fuel_spinner->setValue(tme_rules->fuel_mode);
+    m_previous_tyre_selection_value = 0;
+    m_tyre_alloc = tme_rules->tyre_allocation;
+
+    bool first_value = true;
+    for (unsigned i = 0; i < tyre_mapping.size(); i++) {
+        std::string name = TyreUtils::getStringFromCompound(tyre_mapping[i], false);
+        irr::core::stringw label = _("%s", name.c_str());
+        m_allowed_selection_spinner->addLabel(label);
+
+        if (first_value == true) {
+            first_value = false;
+            m_allowed_selection_spinner->setValue(label);
+            m_allowed_value_spinner->setValue(tme_rules->tyre_allocation[tyre_mapping[i]-1]);
+        }
+    }
+
+
 }   // init
 
 // ----------------------------------------------------------------------------
@@ -152,22 +164,16 @@ GUIEngine::EventPropagation
 
             change.addUInt8(m_fuel_spinner->getValue());
 
-            change.addInt8(m_allowed_compounds_1_spinner->getValue());
-            change.addInt8(m_allowed_compounds_2_spinner->getValue());
-            change.addInt8(m_allowed_compounds_3_spinner->getValue());
+            change.addUInt8(m_tyre_alloc.size());
+            for (unsigned i = 0; i < m_tyre_alloc.size(); i++) {
+                change.addInt8(m_tyre_alloc[i]);
+            }
+
             change.addUInt8(m_allowed_wildcards_spinner->getValue());
             change.addUInt8(m_item_preview_spinner->getValue());
 
-/*
             RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
-                                                    m_allowed_compounds_1_spinner->getValue(),
-                                                    m_allowed_compounds_2_spinner->getValue(),
-                                                    m_allowed_compounds_3_spinner->getValue(),
-                                                    m_allowed_wildcards_spinner->getValue(),
-                                                    m_item_preview_spinner->getValue());
-*/
-            RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
-                                                    {},
+                                                    m_tyre_alloc,
                                                     m_allowed_wildcards_spinner->getValue(),
                                                     m_item_preview_spinner->getValue());
 
@@ -278,3 +284,22 @@ void ServerConfigurationDialog::updateMoreOption(int game_mode)
         }
     }
 }   // updateMoreOption
+
+void ServerConfigurationDialog::onUpdate(float t) {
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+        int prev = m_previous_tyre_selection_value;
+        int curr = m_allowed_selection_spinner->getValue();
+        // If the selection spinner changed, update the value spinner
+        if (curr != prev) {
+            m_allowed_value_spinner->setValue(m_tyre_alloc[tyre_mapping[prev]-1]);
+            m_previous_tyre_selection_value = curr;
+        }
+
+        if (tyre_mapping[curr]-1 < m_tyre_alloc.size()) {
+            m_tyre_alloc[tyre_mapping[curr]-1] = m_allowed_value_spinner->getValue();
+        }
+
+
+        if (m_self_destroy)
+            ModalDialog::dismiss();
+}

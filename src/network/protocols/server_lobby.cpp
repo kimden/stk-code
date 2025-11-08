@@ -3800,10 +3800,11 @@ void ServerLobby::handleServerConfiguration(Event* event)
     int new_game_mode = getSettings()->getServerMode();
     int new_gp_track_count = ServerConfig::m_gp_track_count;
     bool new_soccer_goal_target = getSettings()->isSoccerGoalTargetInConfig();
-    int fuel_info;
-    int wildcards;
-    bool item_preview;
-    std::vector<int> tyre_alloc;
+    RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+    unsigned fuel_info = tme_rules->fuel_mode;
+    int wildcards = tme_rules->wildcards;
+    bool item_preview = tme_rules->do_item_preview;
+    std::vector<int> tyre_alloc = tme_rules->tyre_allocation;
     if (event != NULL)
     {
         NetworkString& data = event->data();
@@ -3815,15 +3816,32 @@ void ServerLobby::handleServerConfiguration(Event* event)
         }
 
         
-        fuel_info = data.getUInt8();
-
-        unsigned tyre_alloc_size = data.getUInt8();
-        for (unsigned i = 0; i < tyre_alloc_size; i++) {
-            tyre_alloc.push_back(data.getInt8());
+        unsigned received_fuel_info = data.getUInt8();
+        if (received_fuel_info != fuel_info) {
+            change_config = true;
+            fuel_info = received_fuel_info;
         }
 
-        wildcards = data.getUInt8();
-        item_preview = data.getUInt8();
+        std::vector<int> received_tyre_alloc;
+        unsigned tyre_alloc_size = data.getUInt8();
+        for (unsigned i = 0; i < tyre_alloc_size; i++)
+            received_tyre_alloc.push_back(data.getInt8());
+        if (received_tyre_alloc != tyre_alloc) {
+            change_config = true;
+            tyre_alloc = received_tyre_alloc;
+        }
+
+        int received_wildcards = data.getUInt8();
+        if (received_wildcards != wildcards) {
+            change_config = true;
+            wildcards = received_wildcards;
+        }
+
+        bool received_item_preview = data.getUInt8();
+        if (received_item_preview != item_preview) {
+            change_config = true;
+            item_preview = received_item_preview;
+        }
 
 
         int received_new_game_mode = data.getUInt8();

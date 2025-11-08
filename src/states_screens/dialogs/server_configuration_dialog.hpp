@@ -36,7 +36,8 @@ private:
     int m_prev_value;
     bool m_self_destroy;
 
-
+    int m_previous_tyre_selection_value;
+    std::vector<int> m_tyre_alloc;
 
     GUIEngine::SpinnerWidget* m_more_options_spinner;
     GUIEngine::LabelWidget* m_more_options_text;
@@ -48,14 +49,11 @@ private:
     GUIEngine::SpinnerWidget* m_fuel_spinner;
     GUIEngine::LabelWidget* m_fuel_text;
 
-    GUIEngine::SpinnerWidget* m_allowed_compounds_1_spinner;
-    GUIEngine::LabelWidget* m_allowed_compounds_1_text;
+    GUIEngine::SpinnerWidget* m_allowed_selection_spinner;
+    GUIEngine::LabelWidget* m_allowed_selection_text;
 
-    GUIEngine::SpinnerWidget* m_allowed_compounds_2_spinner;
-    GUIEngine::LabelWidget* m_allowed_compounds_2_text;
-
-    GUIEngine::SpinnerWidget* m_allowed_compounds_3_spinner;
-    GUIEngine::LabelWidget* m_allowed_compounds_3_text;
+    GUIEngine::SpinnerWidget* m_allowed_value_spinner;
+    GUIEngine::LabelWidget* m_allowed_value_text;
 
     GUIEngine::SpinnerWidget* m_allowed_wildcards_spinner;
     GUIEngine::LabelWidget* m_allowed_wildcards_text;
@@ -131,11 +129,7 @@ public:
         return false;
     }
     // ------------------------------------------------------------------------
-    void onUpdate(float dt)
-    {
-        if (m_self_destroy)
-            ModalDialog::dismiss();
-    }
+    void onUpdate(float dt) OVERRIDE;
 };   // class ServerConfigurationDialog
 
 #endif

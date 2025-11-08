@@ -145,13 +145,11 @@ void NetworkPlayerDialog::beforeAddingWidgets()
     std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
 
     core::stringw label;
-    bool first_label = true;
-    for (int i = 0; i < tyre_mapping.size(); i++) {
+    for (unsigned i = 0; i < tyre_mapping.size(); i++) {
         std::string name = TyreUtils::getStringFromCompound(tyre_mapping[i], false);
         label = _("%s", name.c_str());
         m_tyre_widget->addLabel(label);
-        if (first_label) {
-            first_label = false;
+        if (tyre_mapping[i] == m_starting_tyre_scalar) {
             m_tyre_widget->setValue(label);
         }
     }
@@ -161,8 +159,8 @@ void NetworkPlayerDialog::beforeAddingWidgets()
     m_accept_widget = getWidget<IconButtonWidget>("accept-2");
 
     m_handicap_widget = getWidget<SpinnerWidget>("handicap");
-    m_handicap_widget->setValue(0);
     m_handicap_label = getWidget<LabelWidget>("handicap-label");
+    m_handicap_widget->setValue(m_handicap);
 
     getWidget<IconButtonWidget>("remove")->setVisible(false);
 
