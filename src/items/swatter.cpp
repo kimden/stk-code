@@ -35,11 +35,13 @@
 #include "io/file_manager.hpp"
 #include "items/attachment_manager.hpp"
 #include "items/projectile_manager.hpp"
+#include "tracks/track.hpp"
 #include "karts/kart.hpp"
 #include "karts/controller/controller.hpp"
 #include "karts/explosion_animation.hpp"
 #include "karts/kart_properties.hpp"
 #include "modes/capture_the_flag.hpp"
+#include "modes/linear_world.hpp"
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include "utils/hit_processor.hpp"
@@ -326,12 +328,18 @@ bool Swatter::updateAndTestFinished()
     return false;
 }   // updateAndTestFinished
 
+#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
+#define KART_TAG TAG('K','A','R','T')
+#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
+
 // ----------------------------------------------------------------------------
 /** Determine the nearest kart or item and update the current target
  *  accordingly.
  */
 void Swatter::chooseTarget()
 {
+    if (m_kart->getBody()->getTag() == NO_COLLISION_KART_TAG) return;
+
     // TODO: for the moment, only handle karts...
     const World*  world         = World::getWorld();
     Kart* closest_kart  = NULL;

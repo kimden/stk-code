@@ -380,7 +380,7 @@ static bool isKartUnderVirtualPaceCarSlowdown(ItemPolicy *self, int position) {
 }
 
 
-bool ItemPolicy::isHitValid(float sender_distance, float sender_lap, int sender_position, float recv_distance, int recv_position, float recv_lap, float track_length) {
+bool ItemPolicy::isHitValid(float sender_distance, int sender_lap, int sender_position, float recv_distance, int recv_position, int recv_lap, float track_length) {
 
     int leader_section_idx = m_leader_section;
     // If leader is not in a valid section, allow the hit
