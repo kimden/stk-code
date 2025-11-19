@@ -289,6 +289,8 @@ private:
     void process_config(Context& context);
     void process_config_assign(Context& context);
     void process_spectate(Context& context);
+    void process_tyre(Context& context);
+    void process_handicap(Context& context);
     void process_addons(Context& context);
     void process_checkaddon(Context& context);
     void process_id(Context& context);

@@ -44,6 +44,16 @@ here later. For now, please refer to the code for the strings being used. -->
              permissions-verbose="everyone"
              description="Toggles autospectate mode. 0 corresponds to normal mode, 1 - to spectating mode, 2 - to staying permanently in the lobby and not watching."
     />
+    <command name="tyre"
+             usage="/tyre X | _X | NAME"
+             permissions-verbose="everyone"
+             description="Sets the starting tyre. X is the absolute id, _X is indexing into the list of active compounds, and NAME is its name"
+    />
+    <command name="handicap"
+             usage="/handicap X"
+             permissions-verbose="everyone"
+             description="Sets the handicap. X is the numerical level, by default 0-48"
+    />
     <command name="addons"
              usage="/addons [type]"
              permissions="UP_EVERYONE | PE_ALLOW_ANYONE"

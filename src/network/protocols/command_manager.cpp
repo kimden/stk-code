@@ -498,6 +498,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("config", &CM::process_config);
     applyFunctionIfPossible("config =", &CM::process_config_assign);
     applyFunctionIfPossible("spectate", &CM::process_spectate);
+    applyFunctionIfPossible("tyre", &CM::process_tyre);
+    applyFunctionIfPossible("handicap", &CM::process_handicap);
     applyFunctionIfPossible("addons", &CM::process_addons);
     applyFunctionIfPossible("moreaddons", &CM::process_addons);
     applyFunctionIfPossible("getaddons", &CM::process_addons);
@@ -1416,6 +1418,81 @@ void CommandManager::process_spectate(Context& context)
     getLobby()->updateServerOwner(true);
     getLobby()->updatePlayerList();
 } // process_spectate
+// ========================================================================
+static int readTyre(std::string tyrestr) {
+    unsigned value = 0;
+    if (tyrestr == "") return -1;
+    
+    if (StringUtils::fromString(tyrestr, value)) { // Active compound ID
+        return value;
+    } else if (tyrestr[0] == '_') { // Indexing into active compounds
+        tyrestr.erase(0, 1); // Remove first  character
+
+        if (!StringUtils::fromString(tyrestr, value))
+            return -1;
+
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+
+        if (value >= tyre_mapping.size())
+            return -1;
+
+        return tyre_mapping[value];
+    } else {
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+        for (unsigned i = 0; i < tyre_mapping.size(); i++) {
+            unsigned id = tyre_mapping[i];
+            if (tyrestr == TyreUtils::getStringFromCompound(id, false /*shortver*/))
+                return id;
+            else if (tyrestr == TyreUtils::getStringFromCompound(id, true /*shortver*/))
+                return id;
+        }
+        return -1;
+    }
+}
+
+void CommandManager::process_tyre(Context& context)
+{
+    std::string response = "";
+    auto& argv = context.m_argv;
+    auto acting_peer = context.actingPeer();
+    auto profile = acting_peer->getMainProfile();
+
+    if (argv.size() < 2) {
+        error(context);
+    }
+
+    int value = readTyre(argv[1]);
+    if (value <= 0) {
+        context.say("Unknown tyre compound handle: " + argv[1]);
+    } else {
+        profile->setStartingTyre(value);
+    }
+
+    getLobby()->updatePlayerList();
+} // process_tyre
+
+void CommandManager::process_handicap(Context& context)
+{
+    std::string response = "";
+    auto& argv = context.m_argv;
+    auto acting_peer = context.actingPeer();
+    auto profile = acting_peer->getMainProfile();
+
+    if (argv.size() < 2) {
+        error(context);
+    }
+
+    unsigned value = -1;
+    if (!StringUtils::fromString(argv[1], value)) {
+        context.say("Invalid handicap level: " + argv[1]);
+    } else {
+        profile->setHandicap(value);
+    }
+
+    getLobby()->updatePlayerList();
+} // process_handicap
+
+
 // ========================================================================
 
 void CommandManager::process_addons(Context& context)
