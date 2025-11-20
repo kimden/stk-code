@@ -3150,6 +3150,9 @@ void Kart::updatePhysics(int ticks)
     if (m_flying)
         updateFlying();
 
+    if (!m_kart_properties->getSkidEnabled())
+        m_controls.setSkidControl(KartControl::SC_NONE);
+
     m_skidding->update(ticks, isOnGround(), m_effective_steer,
                        m_controls.getSkidControl());
     if( ( m_skidding->getSkidState() == Skidding::SKID_ACCUMULATE_LEFT ||
