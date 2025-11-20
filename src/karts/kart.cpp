@@ -3755,8 +3755,9 @@ void Kart::applyEngineForce(float force)
     assert(!std::isnan(force));
     // Split power to simulate a 4WD 40-60, other values possible
     // FWD or RWD is a matter of putting a 0 and 1 in the right place
-    float frontForce = force*0.4f;
-    float rearForce = force*0.6f;
+    float rear_frac = m_kart_properties->getEngineRearForceFraction();
+    float frontForce = force * (1.0f - rear_frac);
+    float rearForce = force * (rear_frac);
     // Front wheels
     for(unsigned int i=0; i<2; i++)
     {

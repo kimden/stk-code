@@ -409,6 +409,7 @@ public:
     float getEngineBrakeFactor() const;
     float getEngineTimeFullBrake() const;
     float getEngineMaxSpeedReverseRatio() const;
+    float getEngineRearForceFraction() const;
 
     std::vector<float> getGearSwitchRatio() const;
     std::vector<float> getGearPowerIncrease() const;

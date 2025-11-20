@@ -99,6 +99,7 @@ public:
         ENGINE_BRAKE_FACTOR,
         ENGINE_TIME_FULL_BRAKE,
         ENGINE_MAX_SPEED_REVERSE_RATIO,
+        ENGINE_REAR_FORCE_FRACTION,
 
         // Gear
         GEAR_SWITCH_RATIO,
@@ -337,6 +338,7 @@ public:
     float getEngineBrakeFactor() const;
     float getEngineTimeFullBrake() const;
     float getEngineMaxSpeedReverseRatio() const;
+    float getEngineRearForceFraction() const;
 
     std::vector<float> getGearSwitchRatio() const;
     std::vector<float> getGearPowerIncrease() const;

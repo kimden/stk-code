@@ -316,7 +316,7 @@ void XmlCharacteristic::load(const XMLNode *node)
     // Please don't change the following tag. It will be automatically detected
     // by the script and replace the contained content.
     // To update the code, use tools/update_characteristics.py
-    /* <characteristics-start getXml> */
+    /* <characteristics-start loadXml> */
     if (const XMLNode *sub_node = node->getNode("suspension"))
     {
         sub_node->get("stiffness",
@@ -373,6 +373,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[ENGINE_TIME_FULL_BRAKE]);
         sub_node->get("max-speed-reverse-ratio",
             &m_values[ENGINE_MAX_SPEED_REVERSE_RATIO]);
+        sub_node->get("rear-force-fraction",
+            &m_values[ENGINE_REAR_FORCE_FRACTION]);
     }
 
     if (const XMLNode *sub_node = node->getNode("gear"))
@@ -728,5 +730,7 @@ void XmlCharacteristic::load(const XMLNode *node)
         sub_node->get("enabled",
             &m_values[SKID_ENABLED]);
     }
-    /* <characteristics-end getXml> */
+
+
+    /* <characteristics-end loadXml> */
 }   // load

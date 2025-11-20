@@ -882,6 +882,12 @@ float KartProperties::getEngineMaxSpeedReverseRatio() const
 }  // getEngineMaxSpeedReverseRatio
 
 // ----------------------------------------------------------------------------
+float KartProperties::getEngineRearForceFraction() const
+{
+    return m_cached_characteristic->getEngineRearForceFraction();
+}  // getEngineRearForceFraction
+
+// ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getGearSwitchRatio() const
 {
     return m_cached_characteristic->getGearSwitchRatio();

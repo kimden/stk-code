@@ -97,6 +97,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case ENGINE_MAX_SPEED_REVERSE_RATIO:
         return TYPE_FLOAT;
+    case ENGINE_REAR_FORCE_FRACTION:
+        return TYPE_FLOAT;
     case GEAR_SWITCH_RATIO:
         return TYPE_FLOAT_VECTOR;
     case GEAR_POWER_INCREASE:
@@ -425,6 +427,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "ENGINE_TIME_FULL_BRAKE";
     case ENGINE_MAX_SPEED_REVERSE_RATIO:
         return "ENGINE_MAX_SPEED_REVERSE_RATIO";
+    case ENGINE_REAR_FORCE_FRACTION:
+        return "ENGINE_REAR_FORCE_FRACTION";
     case GEAR_SWITCH_RATIO:
         return "GEAR_SWITCH_RATIO";
     case GEAR_POWER_INCREASE:
@@ -954,6 +958,18 @@ float AbstractCharacteristic::getEngineMaxSpeedReverseRatio() const
                     getName(ENGINE_MAX_SPEED_REVERSE_RATIO).c_str());
     return result;
 }  // getEngineMaxSpeedReverseRatio
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getEngineRearForceFraction() const
+{
+    float result;
+    bool is_set = false;
+    process(ENGINE_REAR_FORCE_FRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(ENGINE_REAR_FORCE_FRACTION).c_str());
+    return result;
+}  // getEngineRearForceFraction
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getGearSwitchRatio() const

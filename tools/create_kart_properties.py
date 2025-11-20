@@ -31,7 +31,7 @@ import sys
 characteristics = """Suspension: stiffness, rest, travel, expSpringResponse(bool), maxForce
 Stability: rollInfluence, chassisLinearDamping, chassisAngularDamping, downwardImpulseFactor, trackConnectionAccel, angularFactor(std::vector<float>/floatVector), smoothFlyingImpulse
 Turn: radius(InterpolationArray), timeResetSteer, timeFullSteer(InterpolationArray)
-Engine: power, maxSpeed, genericMaxSpeed, brakeFactor, timeFullBrake, maxSpeedReverseRatio
+Engine: power, maxSpeed, genericMaxSpeed, brakeFactor, timeFullBrake, maxSpeedReverseRatio, rearForceFraction
 Gear: switchRatio(std::vector<float>/floatVector), powerIncrease(std::vector<float>/floatVector)
 Mass
 Fuel: massReal, massVirtual, consumption, capacity, stopRate, maxSpeedDecrease

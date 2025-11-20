@@ -140,7 +140,7 @@ TEMPLATE
                 gear.
           -->
         <engine power="975" max-speed="27.75" generic-max-speed="27.75" brake-factor="36"
-                time-full-brake="0.35" max-speed-reverse-ratio="0.48" />
+                time-full-brake="0.35" max-speed-reverse-ratio="0.48" rear-force-fraction="0.6" />
 
         <!-- Simulated gears
             switch-ratio defines at what ratio of the maximum
