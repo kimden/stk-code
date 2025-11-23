@@ -566,6 +566,8 @@ public:
     float getSkidReduceTurnMax() const;
     bool getSkidEnabled() const;
 
+    float getItemBonusBoxCap() const;
+
     /* <characteristics-end kpdefs> */
     
     LEAK_CHECK()

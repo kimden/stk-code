@@ -563,7 +563,24 @@ void Powerup::hitBonusBox(const ItemState &item_state)
 
 	bool do_preview = RaceManager::get()->getTyreModRules()->do_item_preview;
 	if (do_preview) {
-	    set((PowerupManager::PowerupType)item_state.m_compound, item_state.m_stop_time);
+	    float cap = m_kart->getKartProperties()->getItemBonusBoxCap();
+	    cap = cap + 0.5 - (cap<0);
+	    int intcap = (int)cap;
+	    PowerupManager::PowerupType new_type = (PowerupManager::PowerupType)item_state.m_compound;
+	    int new_amount = item_state.m_stop_time;
+	    if (new_type == m_type) {
+            if (m_number >= intcap) {
+                /*Don't add anything*/;
+            } else if (m_number+new_amount <= intcap){
+                /*Add everything*/
+        	    set(new_type, new_amount);
+            } else {
+                /*Add only the needed amount to reach the cap*/
+        	    set(new_type, intcap - m_number);
+            }
+	    } else {
+    	    set(new_type, new_amount);
+	    }
 	    return;
 	}
 	/* The below gets skipped when Global Items/Item Preview is enabled, since the procedure is different*/

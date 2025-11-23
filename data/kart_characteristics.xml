@@ -258,6 +258,11 @@ TEMPLATE
 
         <!-- ********** Items ********** -->
 
+        <!-- Items
+            bonus-box-cap: *Global powerup mode* bonus boxes will not add any items of the same type if the current item amount is at or over this number
+            -->
+        <item bonus-box-cap="5" />
+
         <!-- Anvil
             weight: The additional weight an anvil adds to a kart.
             speed-factor: The additional slowdown caused by the anvil.

@@ -365,6 +365,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case SKID_ENABLED:
         return TYPE_BOOL;
+    case ITEM_BONUS_BOX_CAP:
+        return TYPE_FLOAT;
 
     /* <characteristics-end getType> */
     }   // switch (type)
@@ -695,6 +697,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "SKID_REDUCE_TURN_MAX";
     case SKID_ENABLED:
         return "SKID_ENABLED";
+    case ITEM_BONUS_BOX_CAP:
+        return "ITEM_BONUS_BOX_CAP";
 
     /* <characteristics-end getName> */
     }   // switch (type)
@@ -2566,6 +2570,18 @@ bool AbstractCharacteristic::getSkidEnabled() const
                     getName(SKID_ENABLED).c_str());
     return result;
 }  // getSkidEnabled
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getItemBonusBoxCap() const
+{
+    float result;
+    bool is_set = false;
+    process(ITEM_BONUS_BOX_CAP, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(ITEM_BONUS_BOX_CAP).c_str());
+    return result;
+}  // getItemBonusBoxCap
 
 
 /* <characteristics-end acgetter> */

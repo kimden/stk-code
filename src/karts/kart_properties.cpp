@@ -1685,6 +1685,12 @@ bool KartProperties::getSkidEnabled() const
     return m_cached_characteristic->getSkidEnabled();
 }  // getSkidEnabled
 
+// ----------------------------------------------------------------------------
+float KartProperties::getItemBonusBoxCap() const
+{
+    return m_cached_characteristic->getItemBonusBoxCap();
+}  // getItemBonusBoxCap
+
 
 /* <characteristics-end kpgetter> */
 

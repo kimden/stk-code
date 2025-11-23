@@ -731,6 +731,12 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[SKID_ENABLED]);
     }
 
+    if (const XMLNode *sub_node = node->getNode("item"))
+    {
+        sub_node->get("bonus-box-cap",
+            &m_values[ITEM_BONUS_BOX_CAP]);
+    }
+
 
     /* <characteristics-end loadXml> */
 }   // load

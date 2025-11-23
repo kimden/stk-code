@@ -278,6 +278,9 @@ public:
         SKID_REDUCE_TURN_MAX,
         SKID_ENABLED,
 
+        // Item
+        ITEM_BONUS_BOX_CAP,
+
         /* <characteristics-end enum> */
 
 
@@ -494,6 +497,8 @@ public:
     float getSkidReduceTurnMin() const;
     float getSkidReduceTurnMax() const;
     bool getSkidEnabled() const;
+
+    float getItemBonusBoxCap() const;
 
     /* <characteristics-end acdefs> */
 };
