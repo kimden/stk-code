@@ -433,6 +433,50 @@ void Tyres::commandChange(int compound, int time) {
         return;
     }
 
+    if (time > 0) {
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+    }
+
+
+    if (compound >= 124 && compound <= 126) {
+        std::string kart_to_change_to;
+        switch (compound) {
+        case 124:
+            kart_to_change_to = "kiki";
+            break;
+        case 125:
+            kart_to_change_to = "tux";
+            break;
+        case 126:
+            kart_to_change_to = "pidgin";
+            break;
+        default:
+            kart_to_change_to = "tux";
+            break;
+        }
+        m_kart->changeKartMidRace(kart_to_change_to, m_kart->getHandicap(), m_current_compound /*will be ignored*/, m_kart->getKartModel()->getRenderInfo());
+        return;
+    }
+
+    if (compound == 125) {
+        // 125 is the code for a change to medium kart
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+        m_kart->changeKartMidRace("tux",
+                         m_kart->getHandicap(), m_current_compound /*parameter will be more or less ignored*/,
+                         m_kart->getKartModel()->getRenderInfo());
+        return;
+    }
+
+    if (compound == 126) {
+        // 126 is the code for a change to heavy kart
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+        m_kart->changeKartMidRace("pidgin",
+                         m_kart->getHandicap(), m_current_compound /*parameter will be more or less ignored*/,
+                         m_kart->getKartModel()->getRenderInfo());
+        return;
+    }
+
+
     auto stint = m_kart->getStints();
     if ((std::get<0>(stint[0]) == 0) && (std::get<1>(stint[0]) == 0)) {
         stint.erase(stint.begin());
@@ -512,9 +556,6 @@ void Tyres::commandChange(int compound, int time) {
                 }
             }
         }
-    }
-    if (time > 0) {
-        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
     }
 }
 

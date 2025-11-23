@@ -369,6 +369,7 @@ void Kart::changeKart(const std::string& new_ident,
 {
     // Reset previous kart (including delete old animation above)
     reset();
+
     // Remove kart body
     Physics::get()->removeKart(this);
     loadKartProperties(new_ident, handicap, starting_tyre, ri, kart_data);
@@ -401,6 +402,57 @@ void Kart::changeKart(const std::string& new_ident,
     m_kart_model->setDefaultSuspension();
     startEngineSFX();
 }   // changeKart
+// ----------------------------------------------------------------------------
+void Kart::changeKartMidRace(const std::string& new_ident,
+                      uint8_t handicap, unsigned starting_tyre,
+                      std::shared_ptr<GE::GERenderInfo> ri,
+                      const KartData& kart_data)
+{
+    // Save vital state
+    unsigned co = m_tyres->m_current_compound;
+    float l_tra = m_tyres->m_current_life_traction;
+    float l_tur = m_tyres->m_current_life_turning;
+    std::vector <int> queue = m_tyres_queue;
+    int cards = m_wildcards;
+    Vec3 xyz = getXYZ();
+    m_reset_transform = btTransform(getTrans().getRotation(), xyz);
+    int pn = getNumPowerup();
+    auto pt = m_powerup->getType();
+    int lln = m_item_amount_last_lap;
+    auto llt = m_item_type_last_lap;
+    float steer = m_controls.getSteer();
+    float accel = m_controls.getAccel();
+    float nitro = m_collected_energy;
+    int pit_slowdown_ticks = m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_STOP);
+
+
+    changeKart(new_ident, handicap, starting_tyre, ri, kart_data);
+
+
+
+    // Restore vital state
+    m_tyres->m_current_compound = co;
+
+    m_tyres->m_reset_fuel = false;
+    m_tyres->m_reset_compound = false;
+    m_tyres->reset();
+
+    m_tyres->m_current_life_traction = l_tra;
+    m_tyres->m_current_life_turning = l_tur;
+    m_tyres_queue = queue;
+    m_wildcards = cards;
+
+    m_powerup->set(pt, pn);
+    m_item_amount_last_lap = lln;
+    m_item_type_last_lap = llt;
+    m_controls.setAccel(accel);
+    m_controls.setSteer(steer);
+    m_collected_energy = nitro;
+
+    auto& stk_config = STKConfig::get();
+    setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), pit_slowdown_ticks);
+
+}   // changeKartMidRace
 
 // ----------------------------------------------------------------------------
 /** The destructor frees the memory of this kart, but note that the actual kart

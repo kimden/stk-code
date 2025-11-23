@@ -470,6 +470,12 @@ public:
                             std::shared_ptr<GE::GERenderInfo> ri,
                             const KartData& kart_data = KartData());
     // ========================================================================
+    /** Change to new kart instancely for pit stops. */
+    virtual void changeKartMidRace(const std::string& new_ident,
+                            uint8_t handicap, unsigned starting_tyre,
+                            std::shared_ptr<GE::GERenderInfo> ri,
+                            const KartData& kart_data = KartData());
+    // ========================================================================
     // Access to the handicap.
     // ------------------------------------------------------------------------
     /** Returns the handicap of this kart. */

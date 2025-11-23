@@ -46,6 +46,10 @@ namespace TyreUtils
     std::string getStringFromCompound(unsigned c, bool shortver) {
         if (c == 123) return std::string("FUEL");
 
+        if (c == 124) return std::string("KART: KIKI");
+        if (c == 125) return std::string("KART: TUX");
+        if (c == 126) return std::string("KART: PIDGIN");
+
         std::vector<std::string> names;
         if (shortver) {
             // TODO: get this string from STKConfig instead
