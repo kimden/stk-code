@@ -325,23 +325,26 @@ void Powerup::use()
             {
                 Kart *kart = world->getKart(i);
 
-                if (kart->isEliminated() || kart->isInvulnerable())
+                if (kart->hasFinishedRace() || kart->isEliminated() || kart->isInvulnerable())
                     continue;
 
                 if (kart == m_kart)
                     continue;
 
-                if (kart->getPosition() == 1)
-                {
-                    // check if we are in team gp and hit a teammate and should punish the attacker
-                    auto hp = kart->getHitProcessor();
-                    if (hp && !kart->hasFinishedRace())
-                        hp->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
+                if (kart->getPosition() == 1) {
+                    if(kart->isShielded()) {
+                        kart->decreaseShieldTime();
+                    } else {
+                        // check if we are in team gp and hit a teammate and should punish the attacker
+                        auto hp = kart->getHitProcessor();
+                        if (hp)
+                            hp->handleAnvilHit(m_kart->getWorldKartId(), kart->getWorldKartId());
 
-                    kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
-                                               stk_config->
-                                               time2Ticks(kp->getAnvilDuration()) );
-                    kart->adjustSpeed(kp->getAnvilSpeedFactor() * 0.5f);
+                        kart->getAttachment()->set(Attachment::ATTACH_ANVIL,
+                                                   stk_config->
+                                                   time2Ticks(kp->getAnvilDuration()) );
+                        kart->adjustSpeed(kp->getAnvilSpeedFactor() * 0.5f);
+                    }
                     break;
                 }
             }
