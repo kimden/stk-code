@@ -203,6 +203,10 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case ELECTRO_FADE_OUT_TIME:
         return TYPE_FLOAT;
+    case TYRES_NAMES_LONG:
+        return TYPE_STRING;
+    case TYRES_NAMES_SHORT:
+        return TYPE_STRING;
     case TYRES_MAX_LIFE_TURNING:
         return TYPE_FLOAT_VECTOR;
     case TYRES_MAX_LIFE_TRACTION:
@@ -535,6 +539,10 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "ELECTRO_MAX_SPEED_INCREASE";
     case ELECTRO_FADE_OUT_TIME:
         return "ELECTRO_FADE_OUT_TIME";
+    case TYRES_NAMES_LONG:
+        return "TYRES_NAMES_LONG";
+    case TYRES_NAMES_SHORT:
+        return "TYRES_NAMES_SHORT";
     case TYRES_MAX_LIFE_TURNING:
         return "TYRES_MAX_LIFE_TURNING";
     case TYRES_MAX_LIFE_TRACTION:
@@ -1598,6 +1606,30 @@ float AbstractCharacteristic::getElectroFadeOutTime() const
                     getName(ELECTRO_FADE_OUT_TIME).c_str());
     return result;
 }  // getElectroFadeOutTime
+
+// ----------------------------------------------------------------------------
+std::string AbstractCharacteristic::getTyresNamesLong() const
+{
+    std::string result;
+    bool is_set = false;
+    process(TYRES_NAMES_LONG, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_NAMES_LONG).c_str());
+    return result;
+}  // getTyresNamesLong
+
+// ----------------------------------------------------------------------------
+std::string AbstractCharacteristic::getTyresNamesShort() const
+{
+    std::string result;
+    bool is_set = false;
+    process(TYRES_NAMES_SHORT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_NAMES_SHORT).c_str());
+    return result;
+}  // getTyresNamesShort
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getTyresMaxLifeTurning() const

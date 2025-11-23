@@ -61,6 +61,9 @@ void XmlCharacteristic::process(CharacteristicType type, Value value,
     case TYPE_BOOL:
         processBool(m_values[type], value.b, is_set);
         break;
+    case TYPE_STRING:
+        processString(m_values[type], value.str, is_set);
+        break;
     case TYPE_FLOAT_VECTOR:
     {
         const std::vector<std::string> processors =
@@ -307,6 +310,15 @@ void XmlCharacteristic::processBool(const std::string &processor, bool *value,
 }   // processBool
 
 // ----------------------------------------------------------------------------
+/** Executes an operation on an str value. */
+void XmlCharacteristic::processString(const std::string &processor, std::string *value,
+                                    bool *is_set)
+{
+    *value = processor;
+    *is_set = true;
+}   // processStr
+
+// ----------------------------------------------------------------------------
 /** Loads all commands from a given xml file.
  *  Non-existing tags will be omitted.
  */
@@ -543,6 +555,10 @@ void XmlCharacteristic::load(const XMLNode *node)
 
     if (const XMLNode *sub_node = node->getNode("tyres"))
     {
+        sub_node->get("names-long",
+            &m_values[TYRES_NAMES_LONG]);
+        sub_node->get("names-short",
+            &m_values[TYRES_NAMES_SHORT]);
         sub_node->get("max-life-turning",
             &m_values[TYRES_MAX_LIFE_TURNING]);
         sub_node->get("max-life-traction",

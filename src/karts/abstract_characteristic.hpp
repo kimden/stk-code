@@ -48,11 +48,13 @@ public:
         bool *b;
         std::vector<float> *fv;
         InterpolationArray *ia;
+        std::string *str;
 
         Value(float *f) : f(f) {}
         Value(bool *b) : b(b) {}
         Value(std::vector<float> *fv) : fv(fv) {}
         Value(InterpolationArray *ia) : ia(ia) {}
+        Value(std::string *str) : str(str) {}
     };
 
     enum ValueType
@@ -60,7 +62,8 @@ public:
         TYPE_FLOAT,
         TYPE_BOOL,
         TYPE_FLOAT_VECTOR,
-        TYPE_INTERPOLATION_ARRAY
+        TYPE_INTERPOLATION_ARRAY,
+        TYPE_STRING
     };
 
     enum CharacteristicType
@@ -184,6 +187,8 @@ public:
         ELECTRO_FADE_OUT_TIME,
 
         // Tyres
+        TYRES_NAMES_LONG,
+        TYRES_NAMES_SHORT,
         TYRES_MAX_LIFE_TURNING,
         TYRES_MAX_LIFE_TRACTION,
         TYRES_MIN_LIFE_TURNING,
@@ -410,6 +415,8 @@ public:
     float getElectroMaxSpeedIncrease() const;
     float getElectroFadeOutTime() const;
 
+    std::string getTyresNamesLong() const;
+    std::string getTyresNamesShort() const;
     std::vector<float> getTyresMaxLifeTurning() const;
     std::vector<float> getTyresMaxLifeTraction() const;
     std::vector<float> getTyresMinLifeTurning() const;

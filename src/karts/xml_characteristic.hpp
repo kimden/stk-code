@@ -42,6 +42,7 @@ public:
 private:
     static void processFloat(const std::string &processor, float *value, bool *is_set);
     static void processBool(const std::string &processor, bool *value, bool *is_set);
+    static void processString(const std::string &processor, std::string *value, bool *is_set);
 };
 
 #endif

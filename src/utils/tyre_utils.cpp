@@ -50,13 +50,12 @@ namespace TyreUtils
         if (c == 125) return std::string("KART: TUX");
         if (c == 126) return std::string("KART: PIDGIN");
 
+        const KartProperties *kp = kart_properties_manager->getKart("tux");
         std::vector<std::string> names;
         if (shortver) {
-            // TODO: get this string from STKConfig instead
-            names = StringUtils::split(std::string("C1 S M H C5 C6 C7 C8 C9 CHEAT"), ' ');
+            names = StringUtils::split(kp->getTyresNamesShort(), ' ');
         } else {
-            // TODO: get this string from STKConfig instead
-            names = StringUtils::split(std::string("COMPOUND1 SOFT MEDIUM HARD COMPOUND5 COMPOUND6 COMPOUND7 COMPOUND8 COMPOUND9 CHEAT"), ' ');
+            names = StringUtils::split(kp->getTyresNamesLong(), ' ');
         }
 
         // Compounds are 1-indexed

@@ -51,6 +51,9 @@ CachedCharacteristic::~CachedCharacteristic()
             case TYPE_BOOL:
                 delete static_cast<bool*>(v.content);
                 break;
+            case TYPE_STRING:
+                delete static_cast<std::string*>(v.content);
+                break;
             }
             v.content = nullptr;
         }
@@ -170,6 +173,31 @@ void CachedCharacteristic::updateSource()
             }
             break;
         }
+        case TYPE_STRING:
+        {
+            std::string value;
+            std::string *ptr = static_cast<std::string*>(v.content);
+            m_origin->process(static_cast<CharacteristicType>(i), &value, &is_set);
+            if (is_set)
+            {
+                if (!ptr)
+                {
+                    std::string *newPtr = new std::string();
+                    v.content = newPtr;
+                    ptr = newPtr;
+                }
+                *ptr = value;
+            }
+            else
+            {
+                if (ptr)
+                {
+                    delete ptr;
+                    v.content = nullptr;
+                }
+            }
+            break;
+        }
         }   // switch (type)
     }   // foreach characteristic
 }   // updateSource
@@ -195,6 +223,9 @@ void CachedCharacteristic::process(CharacteristicType type, Value value,
             break;
         case TYPE_BOOL:
             *value.b = *static_cast<bool*>(v);
+            break;
+        case TYPE_STRING:
+            *value.str = *static_cast<std::string*>(v);
             break;
         }
         *is_set = true;

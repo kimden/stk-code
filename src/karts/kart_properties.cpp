@@ -1200,6 +1200,18 @@ float KartProperties::getElectroFadeOutTime() const
 }  // getElectroFadeOutTime
 
 // ----------------------------------------------------------------------------
+std::string KartProperties::getTyresNamesLong() const
+{
+    return m_cached_characteristic->getTyresNamesLong();
+}  // getTyresNamesLong
+
+// ----------------------------------------------------------------------------
+std::string KartProperties::getTyresNamesShort() const
+{
+    return m_cached_characteristic->getTyresNamesShort();
+}  // getTyresNamesShort
+
+// ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getTyresMaxLifeTurning() const
 {
     return m_cached_characteristic->getTyresMaxLifeTurning();
