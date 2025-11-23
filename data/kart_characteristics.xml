@@ -26,12 +26,16 @@
     <characteristic name="base">
         <!-- ********** Physics ********** -->
 
+        <!--
+         change-kart-map is a mapping of tyre ID 124 to change to the first kart in the array, 125 the second, etc 
+        -->
         <tyres max-life-turning="750 750 1500 3200 3200 1000 1000 1000 1000 1000"
                max-life-traction="1360 1360 2720 3672 5280 1000 1000 1000 1000 1000"
                min-life-turning="150 150 300 640 640 100 100 100 100 100"
                min-life-traction="650 650 1300 2000 2400 100 100 100 100 100"
                names-long="COMPOUND1 SOFT MEDIUM HARD COMPOUND5 COMPOUND6 COMPOUND7 COMPOUND8 COMPOUND9 CHEAT"
                names-short="C1 S M H C5 C6 C7 C8 C9 CHEAT"
+               change-kart-map="kiki tux pidgin"               
                default-color="-1 1 12 63 -1 -1 -1 -1 -1 29"
                regular-transfer-turning="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"
                regular-transfer-traction="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"

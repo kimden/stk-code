@@ -29,6 +29,7 @@
 #include <irrTypes.h>
 namespace TyreUtils
 {
+    std::string getKartFromCompound(unsigned c);
     std::string getStringFromCompound(unsigned c, bool shortver);
 
     std::vector<std::tuple<unsigned, unsigned>> stringToStints(std::string x);

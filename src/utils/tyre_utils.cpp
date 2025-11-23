@@ -43,12 +43,21 @@
 
 namespace TyreUtils
 {
+    std::string getKartFromCompound(unsigned c) {
+        if(c < 124) return "ERROR";
+        const KartProperties *kp = kart_properties_manager->getKart("tux");
+        std::vector<std::string> names = StringUtils::split(kp->getTyresChangeKartMap(), ' ');
+        if (names.size() > c - 124) {
+            return names[c-124];
+        } else {
+            return "???";
+        }
+    }
+
     std::string getStringFromCompound(unsigned c, bool shortver) {
         if (c == 123) return std::string("FUEL");
 
-        if (c == 124) return std::string("KART: KIKI");
-        if (c == 125) return std::string("KART: TUX");
-        if (c == 126) return std::string("KART: PIDGIN");
+        if (c >= 124) return "KART: " + getKartFromCompound(c);
 
         const KartProperties *kp = kart_properties_manager->getKart("tux");
         std::vector<std::string> names;

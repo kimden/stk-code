@@ -203,6 +203,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case ELECTRO_FADE_OUT_TIME:
         return TYPE_FLOAT;
+    case TYRES_CHANGE_KART_MAP:
+        return TYPE_STRING;
     case TYRES_NAMES_LONG:
         return TYPE_STRING;
     case TYRES_NAMES_SHORT:
@@ -539,6 +541,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "ELECTRO_MAX_SPEED_INCREASE";
     case ELECTRO_FADE_OUT_TIME:
         return "ELECTRO_FADE_OUT_TIME";
+    case TYRES_CHANGE_KART_MAP:
+        return "TYRES_CHANGE_KART_MAP";
     case TYRES_NAMES_LONG:
         return "TYRES_NAMES_LONG";
     case TYRES_NAMES_SHORT:
@@ -1606,6 +1610,18 @@ float AbstractCharacteristic::getElectroFadeOutTime() const
                     getName(ELECTRO_FADE_OUT_TIME).c_str());
     return result;
 }  // getElectroFadeOutTime
+
+// ----------------------------------------------------------------------------
+std::string AbstractCharacteristic::getTyresChangeKartMap() const
+{
+    std::string result;
+    bool is_set = false;
+    process(TYRES_CHANGE_KART_MAP, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_CHANGE_KART_MAP).c_str());
+    return result;
+}  // getTyresChangeKartMap
 
 // ----------------------------------------------------------------------------
 std::string AbstractCharacteristic::getTyresNamesLong() const

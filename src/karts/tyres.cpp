@@ -32,6 +32,7 @@
 #include "config/stk_config.hpp"
 #include "network/network_config.hpp"
 #include "race/race_manager.hpp"
+#include "utils/tyre_utils.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -438,22 +439,11 @@ void Tyres::commandChange(int compound, int time) {
     }
 
 
-    if (compound >= 124 && compound <= 126) {
-        std::string kart_to_change_to;
-        switch (compound) {
-        case 124:
-            kart_to_change_to = "kiki";
-            break;
-        case 125:
-            kart_to_change_to = "tux";
-            break;
-        case 126:
-            kart_to_change_to = "pidgin";
-            break;
-        default:
-            kart_to_change_to = "tux";
-            break;
-        }
+    if (compound >= 124) {
+        std::string kart_to_change_to = TyreUtils::getKartFromCompound(compound);
+        if (kart_to_change_to == "???" || kart_to_change_to == "ERROR")
+            return;
+
         m_kart->changeKartMidRace(kart_to_change_to, m_kart->getHandicap(), m_current_compound /*will be ignored*/, m_kart->getKartModel()->getRenderInfo());
         return;
     }

@@ -478,6 +478,7 @@ public:
     float getElectroMaxSpeedIncrease() const;
     float getElectroFadeOutTime() const;
 
+    std::string getTyresChangeKartMap() const;
     std::string getTyresNamesLong() const;
     std::string getTyresNamesShort() const;
     std::vector<float> getTyresMaxLifeTurning() const;

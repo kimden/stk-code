@@ -242,8 +242,8 @@ bool PlayerController::action(PlayerAction action, int value, bool dry_run)
         break;
     case PA_PAUSE_RACE:
         if (value != 0) {
-            //printf("  <tyre-change compound=\"2\" stop-time=\"10\" id=\"tc0\" x=\"%f\" y=\"%f\" z=\"%f\" h=\"0.5\"/>\n"
-            //          , m_kart->getXYZ().getX(), m_kart->getXYZ().getY(), m_kart->getXYZ().getZ());
+            printf("  <tyre-change compound=\"2\" stop-time=\"10\" id=\"tc0\" x=\"%f\" y=\"%f\" z=\"%f\" h=\"0.5\"/>\n"
+                     , m_kart->getXYZ().getX(), m_kart->getXYZ().getY(), m_kart->getXYZ().getZ());
             StateManager::get()->escapePressed();
         }
         break;

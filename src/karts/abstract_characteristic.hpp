@@ -187,6 +187,7 @@ public:
         ELECTRO_FADE_OUT_TIME,
 
         // Tyres
+        TYRES_CHANGE_KART_MAP,
         TYRES_NAMES_LONG,
         TYRES_NAMES_SHORT,
         TYRES_MAX_LIFE_TURNING,
@@ -415,6 +416,7 @@ public:
     float getElectroMaxSpeedIncrease() const;
     float getElectroFadeOutTime() const;
 
+    std::string getTyresChangeKartMap() const;
     std::string getTyresNamesLong() const;
     std::string getTyresNamesShort() const;
     std::vector<float> getTyresMaxLifeTurning() const;

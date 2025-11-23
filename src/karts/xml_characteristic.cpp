@@ -555,6 +555,8 @@ void XmlCharacteristic::load(const XMLNode *node)
 
     if (const XMLNode *sub_node = node->getNode("tyres"))
     {
+        sub_node->get("change-kart-map",
+            &m_values[TYRES_CHANGE_KART_MAP]);
         sub_node->get("names-long",
             &m_values[TYRES_NAMES_LONG]);
         sub_node->get("names-short",
