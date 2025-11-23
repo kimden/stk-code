@@ -451,6 +451,19 @@ public:
     float getBubblegumTorque() const;
     float getBubblegumFadeInTime() const;
     float getBubblegumShieldDuration() const;
+    float getBubblegumMiniBoostEngineForce() const;
+    float getBubblegumMiniBoostAddedSpeed() const;
+    float getBubblegumMiniFadeOutTime() const;
+    float getBubblegumMiniBoostMaxSpeed() const;
+    float getBubblegumMiniBoostDuration() const;
+    float getBubblegumMiniBoostFadeOutTime() const;
+    float getBubblegumMiniCollectionDurationMultiplier() const;
+    float getBubblegumBoostEngineForce() const;
+    float getBubblegumBoostAddedSpeed() const;
+    float getBubblegumBoostMaxSpeed() const;
+    float getBubblegumBoostDuration() const;
+    float getBubblegumBoostFadeOutTime() const;
+    float getBubblegumCollectionDurationMultiplier() const;
 
     float getZipperDuration() const;
     float getZipperForce() const;
@@ -478,6 +491,7 @@ public:
     float getElectroMaxSpeedIncrease() const;
     float getElectroFadeOutTime() const;
 
+    float getTyresPitSpeedFraction() const;
     std::string getTyresChangeKartMap() const;
     std::string getTyresNamesLong() const;
     std::string getTyresNamesShort() const;
@@ -507,6 +521,7 @@ public:
     std::vector<float> getTyresTopspeedConstant() const;
     float getTyresCompoundNumber() const;
     std::vector<float> getTyresOffroadFactor() const;
+    std::vector<float> getTyresRollingResistance() const;
     std::vector<float> getTyresSkidFactor() const;
     std::vector<float> getTyresBrakeThreshold() const;
     std::vector<float> getTyresCrashPenalty() const;

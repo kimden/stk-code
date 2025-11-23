@@ -101,6 +101,9 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     float deg_tur_percent = 0.0f;
     float deg_tra_percent = 0.0f;
 
+    // Rolling resistance in l.u./meter (life units per meter travelled)
+    float rolling_resistance = m_kart->getKartProperties()->getTyresRollingResistance()[m_current_compound-1];
+
     // The weight used to compute degradation, which will be different from the real one
 
     float effective_mass = m_kart->getMass() - m_c_fuel_weight_real*m_current_fuel + m_c_fuel_weight_virtual*m_current_fuel;
@@ -139,7 +142,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     deg_tra = dt*std::abs(m_force_x)/100000.0f;
 
     // Apply rolling resistance as degradation to the traction health
-    deg_tra += dt*std::abs(speed)/50.0f;
+    deg_tra += dt*std::abs(speed)*rolling_resistance;
 
     // If braking input is above a certain threshold, multiply degradation by 1/threshold
     if (brake_amount > m_c_brake_threshold) {
@@ -429,13 +432,13 @@ void Tyres::commandChange(int compound, int time) {
         // 123 is the code for a refueling
         if (time <= 2.0)
             time = 2.0;
-        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, m_kart->getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
         m_kart->m_is_refueling = true;
         return;
     }
 
     if (time > 0) {
-        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, m_kart->getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
     }
 
 
@@ -445,24 +448,6 @@ void Tyres::commandChange(int compound, int time) {
             return;
 
         m_kart->changeKartMidRace(kart_to_change_to, m_kart->getHandicap(), m_current_compound /*will be ignored*/, m_kart->getKartModel()->getRenderInfo());
-        return;
-    }
-
-    if (compound == 125) {
-        // 125 is the code for a change to medium kart
-        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
-        m_kart->changeKartMidRace("tux",
-                         m_kart->getHandicap(), m_current_compound /*parameter will be more or less ignored*/,
-                         m_kart->getKartModel()->getRenderInfo());
-        return;
-    }
-
-    if (compound == 126) {
-        // 126 is the code for a change to heavy kart
-        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
-        m_kart->changeKartMidRace("pidgin",
-                         m_kart->getHandicap(), m_current_compound /*parameter will be more or less ignored*/,
-                         m_kart->getKartModel()->getRenderInfo());
         return;
     }
 

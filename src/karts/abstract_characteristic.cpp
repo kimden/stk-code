@@ -161,6 +161,32 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case BUBBLEGUM_SHIELD_DURATION:
         return TYPE_FLOAT;
+    case BUBBLEGUM_MINI_BOOST_ENGINE_FORCE:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_MINI_BOOST_ADDED_SPEED:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_MINI_FADE_OUT_TIME:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_MINI_BOOST_MAX_SPEED:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_MINI_BOOST_DURATION:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_MINI_BOOST_FADE_OUT_TIME:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_MINI_COLLECTION_DURATION_MULTIPLIER:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_BOOST_ENGINE_FORCE:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_BOOST_ADDED_SPEED:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_BOOST_MAX_SPEED:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_BOOST_DURATION:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_BOOST_FADE_OUT_TIME:
+        return TYPE_FLOAT;
+    case BUBBLEGUM_COLLECTION_DURATION_MULTIPLIER:
+        return TYPE_FLOAT;
     case ZIPPER_DURATION:
         return TYPE_FLOAT;
     case ZIPPER_FORCE:
@@ -202,6 +228,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
     case ELECTRO_MAX_SPEED_INCREASE:
         return TYPE_FLOAT;
     case ELECTRO_FADE_OUT_TIME:
+        return TYPE_FLOAT;
+    case TYRES_PIT_SPEED_FRACTION:
         return TYPE_FLOAT;
     case TYRES_CHANGE_KART_MAP:
         return TYPE_STRING;
@@ -260,6 +288,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
     case TYRES_COMPOUND_NUMBER:
         return TYPE_FLOAT;
     case TYRES_OFFROAD_FACTOR:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_ROLLING_RESISTANCE:
         return TYPE_FLOAT_VECTOR;
     case TYRES_SKID_FACTOR:
         return TYPE_FLOAT_VECTOR;
@@ -499,6 +529,32 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "BUBBLEGUM_FADE_IN_TIME";
     case BUBBLEGUM_SHIELD_DURATION:
         return "BUBBLEGUM_SHIELD_DURATION";
+    case BUBBLEGUM_MINI_BOOST_ENGINE_FORCE:
+        return "BUBBLEGUM_MINI_BOOST_ENGINE_FORCE";
+    case BUBBLEGUM_MINI_BOOST_ADDED_SPEED:
+        return "BUBBLEGUM_MINI_BOOST_ADDED_SPEED";
+    case BUBBLEGUM_MINI_FADE_OUT_TIME:
+        return "BUBBLEGUM_MINI_FADE_OUT_TIME";
+    case BUBBLEGUM_MINI_BOOST_MAX_SPEED:
+        return "BUBBLEGUM_MINI_BOOST_MAX_SPEED";
+    case BUBBLEGUM_MINI_BOOST_DURATION:
+        return "BUBBLEGUM_MINI_BOOST_DURATION";
+    case BUBBLEGUM_MINI_BOOST_FADE_OUT_TIME:
+        return "BUBBLEGUM_MINI_BOOST_FADE_OUT_TIME";
+    case BUBBLEGUM_MINI_COLLECTION_DURATION_MULTIPLIER:
+        return "BUBBLEGUM_MINI_COLLECTION_DURATION_MULTIPLIER";
+    case BUBBLEGUM_BOOST_ENGINE_FORCE:
+        return "BUBBLEGUM_BOOST_ENGINE_FORCE";
+    case BUBBLEGUM_BOOST_ADDED_SPEED:
+        return "BUBBLEGUM_BOOST_ADDED_SPEED";
+    case BUBBLEGUM_BOOST_MAX_SPEED:
+        return "BUBBLEGUM_BOOST_MAX_SPEED";
+    case BUBBLEGUM_BOOST_DURATION:
+        return "BUBBLEGUM_BOOST_DURATION";
+    case BUBBLEGUM_BOOST_FADE_OUT_TIME:
+        return "BUBBLEGUM_BOOST_FADE_OUT_TIME";
+    case BUBBLEGUM_COLLECTION_DURATION_MULTIPLIER:
+        return "BUBBLEGUM_COLLECTION_DURATION_MULTIPLIER";
     case ZIPPER_DURATION:
         return "ZIPPER_DURATION";
     case ZIPPER_FORCE:
@@ -541,6 +597,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "ELECTRO_MAX_SPEED_INCREASE";
     case ELECTRO_FADE_OUT_TIME:
         return "ELECTRO_FADE_OUT_TIME";
+    case TYRES_PIT_SPEED_FRACTION:
+        return "TYRES_PIT_SPEED_FRACTION";
     case TYRES_CHANGE_KART_MAP:
         return "TYRES_CHANGE_KART_MAP";
     case TYRES_NAMES_LONG:
@@ -599,6 +657,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_COMPOUND_NUMBER";
     case TYRES_OFFROAD_FACTOR:
         return "TYRES_OFFROAD_FACTOR";
+    case TYRES_ROLLING_RESISTANCE:
+        return "TYRES_ROLLING_RESISTANCE";
     case TYRES_SKID_FACTOR:
         return "TYRES_SKID_FACTOR";
     case TYRES_BRAKE_THRESHOLD:
@@ -1360,6 +1420,162 @@ float AbstractCharacteristic::getBubblegumShieldDuration() const
 }  // getBubblegumShieldDuration
 
 // ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumMiniBoostEngineForce() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_MINI_BOOST_ENGINE_FORCE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_MINI_BOOST_ENGINE_FORCE).c_str());
+    return result;
+}  // getBubblegumMiniBoostEngineForce
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumMiniBoostAddedSpeed() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_MINI_BOOST_ADDED_SPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_MINI_BOOST_ADDED_SPEED).c_str());
+    return result;
+}  // getBubblegumMiniBoostAddedSpeed
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumMiniFadeOutTime() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_MINI_FADE_OUT_TIME, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_MINI_FADE_OUT_TIME).c_str());
+    return result;
+}  // getBubblegumMiniFadeOutTime
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumMiniBoostMaxSpeed() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_MINI_BOOST_MAX_SPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_MINI_BOOST_MAX_SPEED).c_str());
+    return result;
+}  // getBubblegumMiniBoostMaxSpeed
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumMiniBoostDuration() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_MINI_BOOST_DURATION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_MINI_BOOST_DURATION).c_str());
+    return result;
+}  // getBubblegumMiniBoostDuration
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumMiniBoostFadeOutTime() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_MINI_BOOST_FADE_OUT_TIME, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_MINI_BOOST_FADE_OUT_TIME).c_str());
+    return result;
+}  // getBubblegumMiniBoostFadeOutTime
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumMiniCollectionDurationMultiplier() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_MINI_COLLECTION_DURATION_MULTIPLIER, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_MINI_COLLECTION_DURATION_MULTIPLIER).c_str());
+    return result;
+}  // getBubblegumMiniCollectionDurationMultiplier
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumBoostEngineForce() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_BOOST_ENGINE_FORCE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_BOOST_ENGINE_FORCE).c_str());
+    return result;
+}  // getBubblegumBoostEngineForce
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumBoostAddedSpeed() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_BOOST_ADDED_SPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_BOOST_ADDED_SPEED).c_str());
+    return result;
+}  // getBubblegumBoostAddedSpeed
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumBoostMaxSpeed() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_BOOST_MAX_SPEED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_BOOST_MAX_SPEED).c_str());
+    return result;
+}  // getBubblegumBoostMaxSpeed
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumBoostDuration() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_BOOST_DURATION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_BOOST_DURATION).c_str());
+    return result;
+}  // getBubblegumBoostDuration
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumBoostFadeOutTime() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_BOOST_FADE_OUT_TIME, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_BOOST_FADE_OUT_TIME).c_str());
+    return result;
+}  // getBubblegumBoostFadeOutTime
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getBubblegumCollectionDurationMultiplier() const
+{
+    float result;
+    bool is_set = false;
+    process(BUBBLEGUM_COLLECTION_DURATION_MULTIPLIER, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(BUBBLEGUM_COLLECTION_DURATION_MULTIPLIER).c_str());
+    return result;
+}  // getBubblegumCollectionDurationMultiplier
+
+// ----------------------------------------------------------------------------
 float AbstractCharacteristic::getZipperDuration() const
 {
     float result;
@@ -1610,6 +1826,18 @@ float AbstractCharacteristic::getElectroFadeOutTime() const
                     getName(ELECTRO_FADE_OUT_TIME).c_str());
     return result;
 }  // getElectroFadeOutTime
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTyresPitSpeedFraction() const
+{
+    float result;
+    bool is_set = false;
+    process(TYRES_PIT_SPEED_FRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_PIT_SPEED_FRACTION).c_str());
+    return result;
+}  // getTyresPitSpeedFraction
 
 // ----------------------------------------------------------------------------
 std::string AbstractCharacteristic::getTyresChangeKartMap() const
@@ -1958,6 +2186,18 @@ std::vector<float> AbstractCharacteristic::getTyresOffroadFactor() const
                     getName(TYRES_OFFROAD_FACTOR).c_str());
     return result;
 }  // getTyresOffroadFactor
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresRollingResistance() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_ROLLING_RESISTANCE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_ROLLING_RESISTANCE).c_str());
+    return result;
+}  // getTyresRollingResistance
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getTyresSkidFactor() const

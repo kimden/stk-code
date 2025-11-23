@@ -154,6 +154,19 @@ public:
         BUBBLEGUM_TORQUE,
         BUBBLEGUM_FADE_IN_TIME,
         BUBBLEGUM_SHIELD_DURATION,
+        BUBBLEGUM_MINI_BOOST_ENGINE_FORCE,
+        BUBBLEGUM_MINI_BOOST_ADDED_SPEED,
+        BUBBLEGUM_MINI_FADE_OUT_TIME,
+        BUBBLEGUM_MINI_BOOST_MAX_SPEED,
+        BUBBLEGUM_MINI_BOOST_DURATION,
+        BUBBLEGUM_MINI_BOOST_FADE_OUT_TIME,
+        BUBBLEGUM_MINI_COLLECTION_DURATION_MULTIPLIER,
+        BUBBLEGUM_BOOST_ENGINE_FORCE,
+        BUBBLEGUM_BOOST_ADDED_SPEED,
+        BUBBLEGUM_BOOST_MAX_SPEED,
+        BUBBLEGUM_BOOST_DURATION,
+        BUBBLEGUM_BOOST_FADE_OUT_TIME,
+        BUBBLEGUM_COLLECTION_DURATION_MULTIPLIER,
 
         // Zipper
         ZIPPER_DURATION,
@@ -187,6 +200,7 @@ public:
         ELECTRO_FADE_OUT_TIME,
 
         // Tyres
+        TYRES_PIT_SPEED_FRACTION,
         TYRES_CHANGE_KART_MAP,
         TYRES_NAMES_LONG,
         TYRES_NAMES_SHORT,
@@ -216,6 +230,7 @@ public:
         TYRES_TOPSPEED_CONSTANT,
         TYRES_COMPOUND_NUMBER,
         TYRES_OFFROAD_FACTOR,
+        TYRES_ROLLING_RESISTANCE,
         TYRES_SKID_FACTOR,
         TYRES_BRAKE_THRESHOLD,
         TYRES_CRASH_PENALTY,
@@ -389,6 +404,19 @@ public:
     float getBubblegumTorque() const;
     float getBubblegumFadeInTime() const;
     float getBubblegumShieldDuration() const;
+    float getBubblegumMiniBoostEngineForce() const;
+    float getBubblegumMiniBoostAddedSpeed() const;
+    float getBubblegumMiniFadeOutTime() const;
+    float getBubblegumMiniBoostMaxSpeed() const;
+    float getBubblegumMiniBoostDuration() const;
+    float getBubblegumMiniBoostFadeOutTime() const;
+    float getBubblegumMiniCollectionDurationMultiplier() const;
+    float getBubblegumBoostEngineForce() const;
+    float getBubblegumBoostAddedSpeed() const;
+    float getBubblegumBoostMaxSpeed() const;
+    float getBubblegumBoostDuration() const;
+    float getBubblegumBoostFadeOutTime() const;
+    float getBubblegumCollectionDurationMultiplier() const;
 
     float getZipperDuration() const;
     float getZipperForce() const;
@@ -416,6 +444,7 @@ public:
     float getElectroMaxSpeedIncrease() const;
     float getElectroFadeOutTime() const;
 
+    float getTyresPitSpeedFraction() const;
     std::string getTyresChangeKartMap() const;
     std::string getTyresNamesLong() const;
     std::string getTyresNamesShort() const;
@@ -445,6 +474,7 @@ public:
     std::vector<float> getTyresTopspeedConstant() const;
     float getTyresCompoundNumber() const;
     std::vector<float> getTyresOffroadFactor() const;
+    std::vector<float> getTyresRollingResistance() const;
     std::vector<float> getTyresSkidFactor() const;
     std::vector<float> getTyresBrakeThreshold() const;
     std::vector<float> getTyresCrashPenalty() const;

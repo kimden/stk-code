@@ -1074,6 +1074,84 @@ float KartProperties::getBubblegumShieldDuration() const
 }  // getBubblegumShieldDuration
 
 // ----------------------------------------------------------------------------
+float KartProperties::getBubblegumMiniBoostEngineForce() const
+{
+    return m_cached_characteristic->getBubblegumMiniBoostEngineForce();
+}  // getBubblegumMiniBoostEngineForce
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumMiniBoostAddedSpeed() const
+{
+    return m_cached_characteristic->getBubblegumMiniBoostAddedSpeed();
+}  // getBubblegumMiniBoostAddedSpeed
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumMiniFadeOutTime() const
+{
+    return m_cached_characteristic->getBubblegumMiniFadeOutTime();
+}  // getBubblegumMiniFadeOutTime
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumMiniBoostMaxSpeed() const
+{
+    return m_cached_characteristic->getBubblegumMiniBoostMaxSpeed();
+}  // getBubblegumMiniBoostMaxSpeed
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumMiniBoostDuration() const
+{
+    return m_cached_characteristic->getBubblegumMiniBoostDuration();
+}  // getBubblegumMiniBoostDuration
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumMiniBoostFadeOutTime() const
+{
+    return m_cached_characteristic->getBubblegumMiniBoostFadeOutTime();
+}  // getBubblegumMiniBoostFadeOutTime
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumMiniCollectionDurationMultiplier() const
+{
+    return m_cached_characteristic->getBubblegumMiniCollectionDurationMultiplier();
+}  // getBubblegumMiniCollectionDurationMultiplier
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumBoostEngineForce() const
+{
+    return m_cached_characteristic->getBubblegumBoostEngineForce();
+}  // getBubblegumBoostEngineForce
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumBoostAddedSpeed() const
+{
+    return m_cached_characteristic->getBubblegumBoostAddedSpeed();
+}  // getBubblegumBoostAddedSpeed
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumBoostMaxSpeed() const
+{
+    return m_cached_characteristic->getBubblegumBoostMaxSpeed();
+}  // getBubblegumBoostMaxSpeed
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumBoostDuration() const
+{
+    return m_cached_characteristic->getBubblegumBoostDuration();
+}  // getBubblegumBoostDuration
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumBoostFadeOutTime() const
+{
+    return m_cached_characteristic->getBubblegumBoostFadeOutTime();
+}  // getBubblegumBoostFadeOutTime
+
+// ----------------------------------------------------------------------------
+float KartProperties::getBubblegumCollectionDurationMultiplier() const
+{
+    return m_cached_characteristic->getBubblegumCollectionDurationMultiplier();
+}  // getBubblegumCollectionDurationMultiplier
+
+// ----------------------------------------------------------------------------
 float KartProperties::getZipperDuration() const
 {
     return m_cached_characteristic->getZipperDuration();
@@ -1198,6 +1276,12 @@ float KartProperties::getElectroFadeOutTime() const
 {
     return m_cached_characteristic->getElectroFadeOutTime();
 }  // getElectroFadeOutTime
+
+// ----------------------------------------------------------------------------
+float KartProperties::getTyresPitSpeedFraction() const
+{
+    return m_cached_characteristic->getTyresPitSpeedFraction();
+}  // getTyresPitSpeedFraction
 
 // ----------------------------------------------------------------------------
 std::string KartProperties::getTyresChangeKartMap() const
@@ -1372,6 +1456,12 @@ std::vector<float> KartProperties::getTyresOffroadFactor() const
 {
     return m_cached_characteristic->getTyresOffroadFactor();
 }  // getTyresOffroadFactor
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresRollingResistance() const
+{
+    return m_cached_characteristic->getTyresRollingResistance();
+}  // getTyresRollingResistance
 
 // ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getTyresSkidFactor() const

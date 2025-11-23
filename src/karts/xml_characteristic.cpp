@@ -489,6 +489,32 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[BUBBLEGUM_FADE_IN_TIME]);
         sub_node->get("shield-duration",
             &m_values[BUBBLEGUM_SHIELD_DURATION]);
+        sub_node->get("mini-boost-engine-force",
+            &m_values[BUBBLEGUM_MINI_BOOST_ENGINE_FORCE]);
+        sub_node->get("mini-boost-added-speed",
+            &m_values[BUBBLEGUM_MINI_BOOST_ADDED_SPEED]);
+        sub_node->get("mini-fade-out-time",
+            &m_values[BUBBLEGUM_MINI_FADE_OUT_TIME]);
+        sub_node->get("mini-boost-max-speed",
+            &m_values[BUBBLEGUM_MINI_BOOST_MAX_SPEED]);
+        sub_node->get("mini-boost-duration",
+            &m_values[BUBBLEGUM_MINI_BOOST_DURATION]);
+        sub_node->get("mini-boost-fade-out-time",
+            &m_values[BUBBLEGUM_MINI_BOOST_FADE_OUT_TIME]);
+        sub_node->get("mini-collection-duration-multiplier",
+            &m_values[BUBBLEGUM_MINI_COLLECTION_DURATION_MULTIPLIER]);
+        sub_node->get("boost-engine-force",
+            &m_values[BUBBLEGUM_BOOST_ENGINE_FORCE]);
+        sub_node->get("boost-added-speed",
+            &m_values[BUBBLEGUM_BOOST_ADDED_SPEED]);
+        sub_node->get("boost-max-speed",
+            &m_values[BUBBLEGUM_BOOST_MAX_SPEED]);
+        sub_node->get("boost-duration",
+            &m_values[BUBBLEGUM_BOOST_DURATION]);
+        sub_node->get("boost-fade-out-time",
+            &m_values[BUBBLEGUM_BOOST_FADE_OUT_TIME]);
+        sub_node->get("collection-duration-multiplier",
+            &m_values[BUBBLEGUM_COLLECTION_DURATION_MULTIPLIER]);
     }
 
     if (const XMLNode *sub_node = node->getNode("zipper"))
@@ -555,6 +581,8 @@ void XmlCharacteristic::load(const XMLNode *node)
 
     if (const XMLNode *sub_node = node->getNode("tyres"))
     {
+        sub_node->get("pit-speed-fraction",
+            &m_values[TYRES_PIT_SPEED_FRACTION]);
         sub_node->get("change-kart-map",
             &m_values[TYRES_CHANGE_KART_MAP]);
         sub_node->get("names-long",
@@ -613,6 +641,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_COMPOUND_NUMBER]);
         sub_node->get("offroad-factor",
             &m_values[TYRES_OFFROAD_FACTOR]);
+        sub_node->get("rolling-resistance",
+            &m_values[TYRES_ROLLING_RESISTANCE]);
         sub_node->get("skid-factor",
             &m_values[TYRES_SKID_FACTOR]);
         sub_node->get("brake-threshold",

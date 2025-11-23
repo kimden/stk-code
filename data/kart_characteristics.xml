@@ -35,7 +35,8 @@
                min-life-traction="650 650 1300 2000 2400 100 100 100 100 100"
                names-long="COMPOUND1 SOFT MEDIUM HARD COMPOUND5 COMPOUND6 COMPOUND7 COMPOUND8 COMPOUND9 CHEAT"
                names-short="C1 S M H C5 C6 C7 C8 C9 CHEAT"
-               change-kart-map="kiki tux pidgin"               
+               change-kart-map="kiki tux pidgin"
+               pit-speed-fraction="0.1"
                default-color="-1 1 12 63 -1 -1 -1 -1 -1 29"
                regular-transfer-turning="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"
                regular-transfer-traction="0.4 0.4 0.2 0.1 0.1 0 0 0 0 0"
@@ -49,6 +50,7 @@
                initial-bonus-mult-topspeed="1 1 1 1 1 1 1 1 1 1"
                offroad-factor="5 5 5 5 5 5 5 5 5 5"
                skid-factor="3 3 3 3 3 3 3 3 3 3"
+               rolling-resistance="0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02"
                brake-threshold="0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2"
                crash-penalty="0 0 0 0 0 0 0 0 0 0"
                do-grip-based-turning="0 0 0 0 0 0 0 0 0 0"
@@ -302,7 +304,20 @@ TEMPLATE
             fade-in-time: How quick the slowdown takes effect.
             shield-duration: How long the bubblegum shield lasts -->
         <bubblegum duration="1" speed-fraction="0.3" torque="500" fade-in-time="0.01"
-                   shield-duration="10.0" />
+                   shield-duration="10.0"
+                   mini-boost-engine-force="1.3"
+                   mini-boost-added-speed="1.0"
+                   mini-boost-max-speed="2.0"
+                   mini-boost-duration="1.0"
+                   mini-boost-fade-out-time="0.1"
+                   mini-collection-duration-multiplier="0.15"
+                   boost-engine-force="1.3"
+                   boost-added-speed="2.2"
+                   boost-max-speed="3.5"
+                   boost-duration="1.0"
+                   boost-fade-out-time="0.1"
+                   collection-duration-multiplier="0.3"
+                   />
 
         <!-- Zipper
             duration: Time a zipper is active.

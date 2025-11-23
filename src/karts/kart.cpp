@@ -450,7 +450,7 @@ void Kart::changeKartMidRace(const std::string& new_ident,
     m_collected_energy = nitro;
 
     auto& stk_config = STKConfig::get();
-    setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), pit_slowdown_ticks);
+    setSlowdown(MaxSpeed::MS_DECREASE_STOP, getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), pit_slowdown_ticks);
 
 }   // changeKartMidRace
 
@@ -1440,8 +1440,13 @@ void Kart::collectedItem(ItemState *item_state)
         // collect gum and give bonus
         if (isGumShielded()) {        
             m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_GUM,
-                is_mini ? 2.0 : 3.5, is_mini ? 1.0 : 2.2, 1.30f, stk_config->time2Ticks(1.0f), stk_config->time2Ticks(0.1f));
-            setShieldTime(0.30f*m_kart_properties->getBubblegumShieldDuration()*(is_mini ? 0.5f : 1.0f) + getShieldTime());
+                is_mini ? m_kart_properties->getBubblegumMiniBoostMaxSpeed() : m_kart_properties->getBubblegumBoostMaxSpeed(),
+                is_mini ? m_kart_properties->getBubblegumMiniBoostAddedSpeed() : m_kart_properties->getBubblegumBoostAddedSpeed(),
+                is_mini ? m_kart_properties->getBubblegumMiniBoostEngineForce() : m_kart_properties->getBubblegumBoostEngineForce(),
+                stk_config->time2Ticks(is_mini ? m_kart_properties->getBubblegumMiniBoostDuration() : m_kart_properties->getBubblegumBoostDuration()),
+                stk_config->time2Ticks(is_mini ? m_kart_properties->getBubblegumMiniBoostFadeOutTime() : m_kart_properties->getBubblegumBoostFadeOutTime())
+            );
+            setShieldTime((is_mini ? m_kart_properties->getBubblegumMiniCollectionDurationMultiplier() : m_kart_properties->getBubblegumCollectionDurationMultiplier())*m_kart_properties->getBubblegumShieldDuration() + getShieldTime());
         } else { // collect gum and give slowdown        
             m_bubblegum_ticks = (int16_t)stk_config->time2Ticks(
                 m_kart_properties->getBubblegumDuration());
@@ -3262,7 +3267,7 @@ void Kart::updatePhysics(int ticks)
 
         if (!m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP)) {
             m_is_refueling = false;
-            m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, 0.1f, stk_config->time2Ticks(0.1f), stk_config->time2Ticks(m_target_refuel*m_tyres->getFuelStopRatio()));
+            m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), stk_config->time2Ticks(m_target_refuel*m_tyres->getFuelStopRatio()));
             m_tyres->m_current_fuel += m_target_refuel;
             m_target_refuel = 0;
         }
