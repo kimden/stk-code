@@ -31,12 +31,19 @@
                     <spacer width="1" height="1%"/>
                     
                     <div width="100%" height="fit" layout="horizontal-row" >
-                        <div proportion="1" height="fit" layout="horizontal-row">
+                        <div proportion="2" height="fit" layout="horizontal-row">
                             <spinner id="target-value-spinner" width="100%" min_value="1" max_value="100" align="center"
                                      wrap_around="true" />
                         </div>
+                        <spacer width="1%"/>
+                        <label id="target-value-text" proportion="2" I18N="In the track info screen" text="Number of laps" text_align="left" align="center"/>
                         <spacer width="3%"/>
-                        <label id="target-value-text" proportion="3" I18N="In the track info screen" text="Number of laps" text_align="left" align="center"/>
+                        <div proportion="2" height="fit" layout="horizontal-row">
+                            <spinner id="ai-spinner" width="100%" min_value="1" max_value="20" align="center"
+                                     wrap_around="true" />
+                        </div>
+                        <spacer width="1%"/>
+                        <label id="ai-text" proportion="3" I18N="In the track info screen" text="Number of AI karts" text_align="left" align="center"/>
                     </div>
 
                     <div width="100%" height="20%" layout="horizontal-row" >
@@ -93,16 +100,6 @@
 	                        <label id="item-preview-text" proportion="3" I18N="In the track info screen" text="Global Powerups?" text_align="left" />
 	                    </div>
 
-                    <spacer width="1" height="1%"/>
-                    <div width="100%" height="fit" layout="horizontal-row" >
-                        <div proportion="1" height="fit" layout="horizontal-row">
-                            <spinner id="ai-spinner" width="100%" min_value="1" max_value="20" align="center"
-                                     wrap_around="true" />
-                        </div>
-                        <spacer width="3%"/>
-                        <label id="ai-text" proportion="3" I18N="In the track info screen" text="Number of AI karts" text_align="left" align="center"/>
-                    </div>
-                    
                     <spacer width="1" height="1%"/>
                     
                     <div width="100%" height="fit" layout="horizontal-row" id="ai-blue-div">
