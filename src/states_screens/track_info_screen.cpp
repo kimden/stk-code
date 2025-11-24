@@ -778,7 +778,6 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
             std::string name = "";
             new NamePromptDialog(_("Enter preset name:"),
             [](std::string x){
-                printf("FILE:%s\n", x.c_str());
                 if (x == " " || x == "") {
                     // Do nothing if the name was invalid (two sentinel values)
                 } else {

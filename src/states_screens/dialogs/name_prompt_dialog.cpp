@@ -96,7 +96,6 @@ void NamePromptDialog::onUpdate(float dt) {
         if (m_save) {
             std::wstring tmp1 = m_input_box->getText().c_str();
             std::string tmp2( tmp1.begin(), tmp1.end() );
-            printf("FILE:%s\n", tmp2.c_str());
             ModalDialog::dismiss();
             m_continuation(tmp2);
         } else {

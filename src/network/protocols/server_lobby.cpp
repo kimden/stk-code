@@ -3915,8 +3915,7 @@ void ServerLobby::changeHandicapAndTyre(Event* event)
     uint8_t tyre_id = data.getUInt8();
     unsigned t = tyre_id;
     player->setStartingTyre(t);
-    printf("Server received this, handicap, tyre: %u, %u\n", handicap_id, t);
-
+    //printf("Server received this, handicap, tyre: %u, %u\n", handicap_id, t);
     updatePlayerList();
 }   // changeHandicap
 

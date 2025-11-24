@@ -236,7 +236,6 @@ void ItemPolicyDialog::onUpdate(float dt) {
         updateMoreOption(m_current_config_tab);
     }
     computePolicyFromGUI();
-    printf("CURR POLICY: %s\n", m_item_policy.toString().c_str());
 }
 
 // ----------------------------------------------------------------------------

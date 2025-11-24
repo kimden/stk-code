@@ -363,12 +363,12 @@ void RaceManager::setTrack(const std::string& track)
 
 void RaceManager::setTyreModRules(int fuel, const std::vector<int> &tyre_alloc, int wildcard_amount, bool item_preview)
 {
-    printf("FUEL+ALLOC INFO WAS JUST SET:\n"
-           "\tfuel         %d\n"
-           "\ttyre alloc   S%d; M%d; H%d\n"
-           "\titem preview %s\n"
-           "------------\n\n",
-           fuel, tyre_alloc[1], tyre_alloc[2], tyre_alloc[3], item_preview ? "yes" : "no");
+    //printf("FUEL+ALLOC INFO WAS JUST SET:\n"
+    //       "\tfuel         %d\n"
+    //       "\ttyre alloc   S%d; M%d; H%d\n"
+    //       "\titem preview %s\n"
+    //       "------------\n\n",
+    //       fuel, tyre_alloc[1], tyre_alloc[2], tyre_alloc[3], item_preview ? "yes" : "no");
     m_tme_rules.fuel_mode = fuel;
     m_tme_rules.wildcards = wildcard_amount;
     m_tme_rules.do_item_preview = item_preview;

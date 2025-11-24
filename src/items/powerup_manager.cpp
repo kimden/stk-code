@@ -856,8 +856,6 @@ void PowerupManager::computeWeightsForRace(int num_karts)
 	bool item_override = rules & ItemPolicyRules::IPT_BONUS_BOX_OVERRIDE;
 	bool item_automatic = rules & ItemPolicyRules::IPT_AUTOMATIC_WEIGHTS;
 
-	printf("ACTIVATION: %u, %u\n", item_override, item_automatic);
-
 	if (item_override && !item_automatic) {
 		m_current_item_weights.reset();
 		WeightsData *newweight = new WeightsData();
