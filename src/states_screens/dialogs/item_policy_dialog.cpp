@@ -362,8 +362,13 @@ void ItemPolicyDialog::computePolicyFromGUI() {
     // Autorefresh the labels containing the percent textually, but only if needed
     for (std::string powerup_name : PowerupManager::powerup_names) {
         if (SPINNER("powerup-"+powerup_name)->isVisible() && CHECKBOX("powerup-"+powerup_name)->getState() == true) {
-            float percent = (float)cs->m_weight_distribution[idx]/(float)sum;
-            LABEL("powerup-"+powerup_name+"-autorefreshed")->setText(StringUtils::utf8ToWide(std::to_string(percent)+std::string("%")), true);
+            float percent = (float)cs->m_weight_distribution[idx]/(float)sum * 100.0f;
+
+            std::ostringstream out;
+            out.precision(2);
+            out << std::fixed << percent;
+            std::string percent_display = out.str() + "%";
+            LABEL("powerup-"+powerup_name+"-autorefreshed")->setText(StringUtils::utf8ToWide(percent_display), true);
             idx += 1;
         }
     }
