@@ -39,13 +39,13 @@
                         <label id="target-value-text" proportion="3" I18N="In the track info screen" text="Number of laps" text_align="left" align="center"/>
                     </div>
 
-	                    <div width="100%" height="fit" layout="horizontal-row">
-	                        <label id="rules-text" proportion="3" I18N="In the track info screen" text="Rules:" text_align="left" />
-                            <spinner id="rules-spinner" width="50%" align="center" wrap_around="true" />
-	                    </div>
-	                    
-                    <spacer width="1" height="1%"/>
-	                    <buttonbar id="rule-buttons" height="20%" width="30%" align="center">
+                    <div width="100%" height="20%" layout="horizontal-row" >
+	                    <div width="60%" height="100%" layout="horizontal-row">
+	                        <label id="rules-text" width="20%" I18N="In the track info screen" text="Rules:" text_align="left" />
+                            <spinner id="rules-spinner" width="80%" align="center" wrap_around="true" />
+	                    </div>	                    
+                        <spacer width="1%" height="100%"/>
+	                    <buttonbar id="rule-buttons" height="100%" width="40%" align="center">
 	                        <icon-button id="new" width="64" height="64" icon="gui/icons/blue_plus.png"
 	                                I18N="In the track info screen" text="New rule"/>
 	                        <icon-button id="edit" width="64" height="64" icon="gui/icons/edit.png"
@@ -53,6 +53,7 @@
 	                        <icon-button id="delete" width="64" height="64" icon="gui/icons/remove.png"
 	                                I18N="In the track info screen" text="Delete rule"/>
 	                    </buttonbar>
+                    </div>
 
 
 
@@ -121,19 +122,15 @@
                                 <checkbox id="option" align="center"/>
                             </div>
                         </div>
-                        <spacer width="3%"/>
+                        <spacer width="1%"/>
                         <label id="option-text" proportion="3" I18N="In the track info screen" text_align="left" align="center"/>
-                    </div>
-                   
-                    <spacer width="1" height="1%"/>
-                    
-                    <div width="100%" height="fit" layout="horizontal-row" >
+                        <spacer width="3%"/>
                         <div proportion="1" height="fit" layout="horizontal-row">
                             <div width="100%" height="fit" text-align="center" layout="vertical-row" >
                                 <checkbox id="record" align="center"/>
                             </div>
                         </div>
-                        <spacer width="3%"/>
+                        <spacer width="1%"/>
                         <label id="record-race-text" proportion="3" I18N="In the track info screen" text="Record the race for ghost replay" text_align="left" align="center"/>
                     </div>
                 </box><!-- Race options box -->
