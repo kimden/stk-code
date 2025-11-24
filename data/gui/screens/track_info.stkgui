@@ -46,11 +46,11 @@
 	                    
                     <spacer width="1" height="1%"/>
 	                    <buttonbar id="rule-buttons" height="20%" width="30%" align="center">
-	                        <icon-button id="edit" width="64" height="64" icon="gui/icons/green_check.png"
-	                                I18N="In the track info screen" text="Edit rules"/>
-	                        <icon-button id="new" width="64" height="64" icon="gui/icons/green_check.png"
+	                        <icon-button id="new" width="64" height="64" icon="gui/icons/blue_plus.png"
 	                                I18N="In the track info screen" text="New rule"/>
-	                        <icon-button id="delete" width="64" height="64" icon="gui/icons/green_check.png"
+	                        <icon-button id="edit" width="64" height="64" icon="gui/icons/edit.png"
+	                                I18N="In the track info screen" text="Edit rules"/>
+	                        <icon-button id="delete" width="64" height="64" icon="gui/icons/remove.png"
 	                                I18N="In the track info screen" text="Delete rule"/>
 	                    </buttonbar>
 
