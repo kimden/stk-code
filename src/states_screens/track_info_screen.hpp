@@ -109,9 +109,9 @@ class TrackInfoScreen : public GUIEngine::Screen,
     /** The label besides the wildcards spinner. */
     GUIEngine::LabelWidget* m_allowed_wildcards_label;
 
-    /** Spinner for the item preview mode (on/off)*/
-    GUIEngine::SpinnerWidget* m_item_preview_spinner;
-    /** The label besides the item preview spinner. */
+    /** Checkbox for the item preview mode (on/off)*/
+    GUIEngine::CheckBoxWidget* m_item_preview_checkbox;
+    /** The label besides the item preview checkbox. */
     GUIEngine::LabelWidget* m_item_preview_label;
 
 

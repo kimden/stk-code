@@ -24,6 +24,7 @@
 namespace GUIEngine
 {
     class SpinnerWidget;
+    class CheckBoxWidget;
     class LabelWidget;
     class RibbonWidget;
     class IconButtonWidget;
@@ -58,7 +59,7 @@ private:
     GUIEngine::SpinnerWidget* m_allowed_wildcards_spinner;
     GUIEngine::LabelWidget* m_allowed_wildcards_text;
 
-    GUIEngine::SpinnerWidget* m_item_preview_spinner;
+    GUIEngine::CheckBoxWidget* m_item_preview_checkbox;
     GUIEngine::LabelWidget* m_item_preview_text;
 
 

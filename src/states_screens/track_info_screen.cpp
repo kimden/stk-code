@@ -116,7 +116,7 @@ void TrackInfoScreen::loadedFromFile()
     m_allowed_wildcards_spinner  = getWidget<SpinnerWidget>("allowed-wildcards-spinner");
     m_allowed_wildcards_label  = getWidget<LabelWidget>("allowed-wildcards-text");
 
-    m_item_preview_spinner  = getWidget<SpinnerWidget>("item-preview-spinner");
+    m_item_preview_checkbox  = getWidget<CheckBoxWidget>("item-preview-checkbox");
     m_item_preview_label  = getWidget<LabelWidget>("item-preview-text");
 
 
@@ -263,8 +263,8 @@ void TrackInfoScreen::init()
     m_allowed_wildcards_label->setVisible(true);
     m_allowed_wildcards_label->setText(_("Wildcards:"), false);
 
-    m_item_preview_spinner->setValue((unsigned)tme_rules->do_item_preview);
-    m_item_preview_spinner->setVisible(true);
+    m_item_preview_checkbox->setState(tme_rules->do_item_preview);
+    m_item_preview_checkbox->setVisible(true);
     m_item_preview_label->setVisible(true);
     m_item_preview_label->setText(_("Global powerups?"), false);
 
@@ -854,7 +854,7 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
     }
     else if (name == "fuel-spinner" || name == "fuel-regen-spinner" || name == "fuel-stop-spinner" ||
     		 name == "fuel-weight-spinner" || name == "fuel-rate-spinner" || name == "allowed-compound-value-spinner" ||
-    		 name == "allowed-wildcards-spinner" || name == "item-preview-spinner") {
+    		 name == "allowed-wildcards-spinner" || name == "item-preview-checkbox") {
         // All related spinners, including the compound alloc value spinner,
         // update the rules immediately whenever set for simplicity
         std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
@@ -864,7 +864,7 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
         RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
                                                 tyres_alloc,
                                                 m_allowed_wildcards_spinner->getValue(),
-                                                m_item_preview_spinner->getValue());
+                                                m_item_preview_checkbox->getState());
     }
     else if (name == "option")
     {

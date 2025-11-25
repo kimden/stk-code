@@ -94,8 +94,7 @@
 	                        <label id="allowed-wildcards-text" proportion="3" I18N="In the track info screen" text="Wildcards:" text_align="left" />
 
 	                        <div proportion="3" height="fit" layout="horizontal-row">
-	                            <spinner id="item-preview-spinner" width="100%" min_value="0" max_value="1" align="center"
-	                                     wrap_around="true" />
+	                            <checkbox id="item-preview-checkbox" width="100%" />
 	                        </div>
 	                        <label id="item-preview-text" proportion="3" I18N="In the track info screen" text="Global Powerups?" text_align="left" />
 	                    </div>

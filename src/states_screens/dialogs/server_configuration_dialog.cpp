@@ -22,6 +22,7 @@
 #include "guiengine/widgets/label_widget.hpp"
 #include "guiengine/widgets/ribbon_widget.hpp"
 #include "guiengine/widgets/spinner_widget.hpp"
+#include "guiengine/widgets/check_box_widget.hpp"
 #include "network/network_string.hpp"
 #include "network/protocols/lobby_protocol.hpp"
 #include "network/stk_host.hpp"
@@ -80,9 +81,9 @@ void ServerConfigurationDialog::beforeAddingWidgets()
 
     m_item_preview_text = getWidget<LabelWidget>("item-preview-label");
     assert(m_item_preview_text != NULL);
-    m_item_preview_spinner = getWidget<SpinnerWidget>("item-preview-spinner");
-    assert(m_item_preview_spinner != NULL);
-    m_item_preview_spinner->setVisible(true);
+    m_item_preview_checkbox = getWidget<CheckBoxWidget>("item-preview-checkbox");
+    assert(m_item_preview_checkbox != NULL);
+    m_item_preview_checkbox->setVisible(true);
     m_item_preview_text->setVisible(true);
 
 
@@ -120,7 +121,7 @@ void ServerConfigurationDialog::init()
     std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
 
     m_allowed_wildcards_spinner->setValue(0);
-    m_item_preview_spinner->setValue((unsigned)tme_rules->do_item_preview);
+    m_item_preview_checkbox->setState(tme_rules->do_item_preview);
     m_fuel_spinner->setValue(tme_rules->fuel_mode);
     m_previous_tyre_selection_value = 0;
     m_tyre_alloc = tme_rules->tyre_allocation;
@@ -170,12 +171,12 @@ GUIEngine::EventPropagation
             }
 
             change.addUInt8(m_allowed_wildcards_spinner->getValue());
-            change.addUInt8(m_item_preview_spinner->getValue());
+            change.addUInt8(m_item_preview_checkbox->getState());
 
             RaceManager::get()->setTyreModRules(m_fuel_spinner->getValue(),
                                                     m_tyre_alloc,
                                                     m_allowed_wildcards_spinner->getValue(),
-                                                    m_item_preview_spinner->getValue());
+                                                    m_item_preview_checkbox->getState());
 
             switch (m_game_mode_widget->getSelection(PLAYER_ID_GAME_MASTER))
             {
