@@ -696,7 +696,81 @@ void LinearWorld::getKartsDisplayInfo(
         Kart* kart = m_karts[i].get();
 
         const int position = kart->getPosition();
+#define SHOW_LAP_GAPS
 
+#ifdef SHOW_LAP_GAPS
+        try
+        {
+            int own_ticks = getTicksAtLapForKart(kart->getWorldKartId());
+            if (raceHasLaps() && laps_of_leader > 0)
+            {
+                if (own_ticks >= ticks_of_leader)
+                {
+                    std::string str = "";
+                    if (position == 1)
+                    {
+                        if (getTimeTicks() - getTicksAtLapForKart(kart->getWorldKartId()) < STKConfig::get()->time2Ticks(8))
+                            str = " " + StringUtils::ticksTimeToString(
+                                            getTicksAtLapForKart(kart->getWorldKartId()) );
+                    }
+                    else
+                    {
+                        int ticks_behind;
+                        ticks_behind = getTicksAtLapForKart(kart->getWorldKartId()) - ticks_of_leader;
+                        if (rank_info.lap != laps_of_leader)
+                            str += StringUtils::insertValues("+%dL ", laps_of_leader - rank_info.lap);
+                        
+                        if (getTimeTicks() - getTicksAtLapForKart(kart->getWorldKartId()) < STKConfig::get()->time2Ticks(8))
+                            str += "+" + StringUtils::ticksTimeToString(ticks_behind);
+                    }
+                    rank_info.m_text = irr::core::stringw(str.c_str());
+                }
+                else
+                {
+                    rank_info.m_text = L"";
+                    if (position != 1)
+                    {
+                        std::string str = "";
+
+                        int ticks_behind;
+                        ticks_behind = getTimeTicks() - ticks_of_leader;
+
+                        if (rank_info.lap < laps_of_leader - 1)
+                            str += StringUtils::insertValues("+%dL ", laps_of_leader - rank_info.lap - 1);
+
+                        str += "+" + StringUtils::ticksTimeToString(ticks_behind);
+                        rank_info.m_text = irr::core::stringw(str.c_str());
+                    }
+                }
+
+                if (rank_info.m_text == L"")
+                {
+                    if (kart->hasFinishedRace())
+                    {
+                        rank_info.m_text = kart->getController()->getName();
+                        if (RaceManager::get()->getKartGlobalPlayerId(i) > -1)
+                        {
+                            const core::stringw& flag = StringUtils::getCountryFlag(
+                                RaceManager::get()->getKartInfo(i).getCountryCode());
+                            if (!flag.empty())
+                            {
+                                rank_info.m_text += L" ";
+                                rank_info.m_text += flag;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                rank_info.m_text = L"";
+            }
+        }
+        catch (...)
+        {
+            rank_info.m_text = L"you are stupid";
+        }
+#else
         // Don't compare times when crossing the start line first
         if(laps_of_leader>0                                                &&
            (getTimeTicks() - getTicksAtLapForKart(kart->getWorldKartId())  <
@@ -739,6 +813,7 @@ void LinearWorld::getKartsDisplayInfo(
         {
             rank_info.m_text = "";
         }
+#endif
 
         int numLaps = RaceManager::get()->getNumLaps();
 
