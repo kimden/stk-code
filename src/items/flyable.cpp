@@ -580,19 +580,10 @@ bool Flyable::hit(Kart *kart_hit, PhysicalObject* object)
         return true;
 
     // Now, if blue flags are enabled and the leader is in a valid section, that's when we start to question if the hit could be forbidden (a lapper illegally hitting a lapping or vice versa).
-    if (World::getWorld()->raceHasLaps()) {
-        LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
-        float track_length = Track::getCurrentTrack()->getTrackLength();
-        float sender_distance = std::fmod(lin_world->getOverallDistance(m_owner->getWorldKartId()), track_length);
-        float recv_distance = std::fmod(lin_world->getOverallDistance(kart_hit->getWorldKartId()), track_length);
-
-        int sender_lap = lin_world->getFinishedLapsOfKart(m_owner->getWorldKartId());
-        int recv_lap = lin_world->getFinishedLapsOfKart(kart_hit->getWorldKartId());
-     
+    if (World::getWorld()->raceHasLaps()) {     
         // Blue flag settings could make the hit invalid, if it's between a lapper and a lapped or vice versa. Let Itempolicy decide this
-     
         ItemPolicy *policy = RaceManager::get()->getItemPolicy(); 
-        return policy->isHitValid(sender_distance, sender_lap, m_owner->getPosition(), recv_distance, recv_lap, kart_hit->getPosition(), track_length);
+        return policy->isHitValid(m_owner, kart_hit);
     } else {
         return true;
     }

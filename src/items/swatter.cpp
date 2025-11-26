@@ -354,6 +354,9 @@ void Swatter::chooseTarget()
         // don't squash an already hurt kart
         if (kart->isInvulnerable() || kart->isSquashed())
             continue;
+        ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+        if (RaceManager::get()->modeHasLaps() && !item_policy->isHitValid(m_kart, kart))
+            continue;
 
         // Don't hit teammates in team world
         if (world->hasTeam() &&

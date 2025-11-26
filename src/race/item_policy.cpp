@@ -381,57 +381,48 @@ static bool isKartUnderVirtualPaceCarSlowdown(ItemPolicy *self, int position) {
 }
 
 
-bool ItemPolicy::isHitValid(float sender_distance, int sender_lap, int sender_position, float recv_distance, int recv_position, int recv_lap, float track_length) {
-
-    int leader_section_idx = m_leader_section;
-    // If leader is not in a valid section, allow the hit
-    if (leader_section_idx <= -1)
-        return true;
-    // If blue flags are not enabled, ALSO allow the hit
-    if (!(m_policy_sections[leader_section_idx].m_rules & ItemPolicyRules::IPT_BLUE_FLAGS))
-        return true;
+bool ItemPolicy::isHitValid(Kart *sender, Kart *receiver) {
+    if (sender == NULL || receiver == NULL) {
+        printf("HITCHECK: YES, BECAUSE ONE OR BOTH IS NULL: %p; %p\n", sender, receiver);
+        return false;
+    }
 
     // If one of the karts is under a virtual pace car restart, forbid the hit
-    if (isKartUnderVirtualPaceCarSlowdown(this, sender_position) || isKartUnderVirtualPaceCarSlowdown(this, recv_position))
+    if (isKartUnderVirtualPaceCarSlowdown(this, sender->getPosition()) || isKartUnderVirtualPaceCarSlowdown(this, receiver->getPosition())) {
+        printf("HITCHECK: NO, BECAUSE VPC\n");
         return false;
-
-    //float minimum_distance_empirical = 200.0f;
-
-    // for too short tracks we instead take 1/5th of the track
-    //if (track_length < 750.0f)
-    //    minimum_distance_empirical = track_length / 5.0f;
-
-    float distance_normal = std::fabs(sender_distance - recv_distance);
-    float distance_complimentary = track_length - distance_normal;
-
-    bool across_finish_line;
-    bool forwards_throw;
-    if (distance_complimentary < distance_normal) {
-        across_finish_line = true;
-        if (sender_distance > recv_distance)
-            forwards_throw = true;
-        else
-            forwards_throw = false;
-    } else {
-        across_finish_line = false;
     }
 
-    // if the distance is less than 5% from half the track length,
-    // it is nonsense to try to predict if the hit is across the finish line
-    if (distance_normal / track_length > 0.45 && distance_normal / track_length < 0.55)
-        across_finish_line = false;
-
-    bool hit_is_valid;
-    // sender with a 1 lap difference whose distance is less than an empirical number are almost certainly hitting each other across the start/finish line
-    if (across_finish_line && forwards_throw) {
-        hit_is_valid = (recv_lap - sender_lap) == 1;
-    } else if (across_finish_line && !forwards_throw) {
-        hit_is_valid = (sender_lap - recv_lap) == 1;
-    } else {
-        hit_is_valid = sender_lap == recv_lap;
+    if (sender == receiver) {
+        printf("HITCHECK: YES, BECAUSE HITTING SELF\n");
+        return true;
+    }
+    int leader_section_idx = m_leader_section;
+    // If leader is not in a valid section, allow the hit
+    if (leader_section_idx <= -1) {
+        printf("HITCHECK: YES, BECAUSE INVALID LEADER SECTION\n");
+        return true;
+    }
+    // If blue flags are not enabled, ALSO allow the hit
+    if (!(m_policy_sections[leader_section_idx].m_rules & ItemPolicyRules::IPT_BLUE_FLAGS)) {
+        printf("HITCHECK: YES, BECAUSE NO BLUE FLAGS\n");
+        return true;
     }
 
-    return hit_is_valid;
+    LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
+    //auto& stk_config = STKConfig::get();
+
+    int send_lap = lin_world->getFinishedLapsOfKart(sender->getWorldKartId());
+    int recv_lap = lin_world->getFinishedLapsOfKart(receiver->getWorldKartId());
+
+    bool retval = send_lap == recv_lap;
+
+    if (retval) {
+        printf("HITCHECK: YES, BECAUSE SEND LAP %u /// RECV LAP %u\n", send_lap, recv_lap);
+    } else {
+        printf("HITCHECK: NO, BECAUSE SEND LAP %u /// RECV LAP %u\n", send_lap, recv_lap);
+    }
+    return retval;
 } // isHitValid
 //--------------------------------------------------
 
