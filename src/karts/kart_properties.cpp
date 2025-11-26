@@ -1242,16 +1242,16 @@ float KartProperties::getPlungerInFaceTime() const
 }  // getPlungerInFaceTime
 
 // ----------------------------------------------------------------------------
-float KartProperties::getNitrohackDuration() const
+float KartProperties::getNitroHackDuration() const
 {
-    return m_cached_characteristic->getNitrohackDuration();
-}  // getNitrohackDuration
+    return m_cached_characteristic->getNitroHackDuration();
+}  // getNitroHackDuration
 
 // ----------------------------------------------------------------------------
-float KartProperties::getNitrohackFactor() const
+float KartProperties::getNitroHackFactor() const
 {
-    return m_cached_characteristic->getNitrohackFactor();
-}  // getNitrohackFactor
+    return m_cached_characteristic->getNitroHackFactor();
+}  // getNitroHackFactor
 
 // ----------------------------------------------------------------------------
 float KartProperties::getElectroDuration() const

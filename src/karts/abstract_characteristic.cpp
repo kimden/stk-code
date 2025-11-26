@@ -217,9 +217,9 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case PLUNGER_IN_FACE_TIME:
         return TYPE_FLOAT;
-    case NITROHACK_DURATION:
+    case NITRO_HACK_DURATION:
         return TYPE_FLOAT;
-    case NITROHACK_FACTOR:
+    case NITRO_HACK_FACTOR:
         return TYPE_FLOAT;
     case ELECTRO_DURATION:
         return TYPE_FLOAT;
@@ -585,10 +585,10 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "PLUNGER_BAND_FADE_OUT_TIME";
     case PLUNGER_IN_FACE_TIME:
         return "PLUNGER_IN_FACE_TIME";
-    case NITROHACK_DURATION:
-        return "NITROHACK_DURATION";
-    case NITROHACK_FACTOR:
-        return "NITROHACK_FACTOR";
+    case NITRO_HACK_DURATION:
+        return "NITRO_HACK_DURATION";
+    case NITRO_HACK_FACTOR:
+        return "NITRO_HACK_FACTOR";
     case ELECTRO_DURATION:
         return "ELECTRO_DURATION";
     case ELECTRO_ENGINE_MULT:
@@ -1756,28 +1756,28 @@ float AbstractCharacteristic::getPlungerInFaceTime() const
 }  // getPlungerInFaceTime
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getNitrohackDuration() const
+float AbstractCharacteristic::getNitroHackDuration() const
 {
     float result;
     bool is_set = false;
-    process(NITROHACK_DURATION, &result, &is_set);
+    process(NITRO_HACK_DURATION, &result, &is_set);
     if (!is_set)
         Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(NITROHACK_DURATION).c_str());
+                    getName(NITRO_HACK_DURATION).c_str());
     return result;
-}  // getNitrohackDuration
+}  // getNitroHackDuration
 
 // ----------------------------------------------------------------------------
-float AbstractCharacteristic::getNitrohackFactor() const
+float AbstractCharacteristic::getNitroHackFactor() const
 {
     float result;
     bool is_set = false;
-    process(NITROHACK_FACTOR, &result, &is_set);
+    process(NITRO_HACK_FACTOR, &result, &is_set);
     if (!is_set)
         Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(NITROHACK_FACTOR).c_str());
+                    getName(NITRO_HACK_FACTOR).c_str());
     return result;
-}  // getNitrohackFactor
+}  // getNitroHackFactor
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getElectroDuration() const

@@ -190,8 +190,8 @@ public:
         PLUNGER_IN_FACE_TIME,
 
         // Nitrohack
-        NITROHACK_DURATION,
-        NITROHACK_FACTOR,
+        NITRO_HACK_DURATION,
+        NITRO_HACK_FACTOR,
 
         // Electro
         ELECTRO_DURATION,
@@ -436,8 +436,8 @@ public:
     float getPlungerBandFadeOutTime() const;
     float getPlungerInFaceTime() const;
 
-    float getNitrohackDuration() const;
-    float getNitrohackFactor() const;
+    float getNitroHackDuration() const;
+    float getNitroHackFactor() const;
 
     float getElectroDuration() const;
     float getElectroEngineMult() const;

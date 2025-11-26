@@ -483,8 +483,8 @@ public:
     float getPlungerBandFadeOutTime() const;
     float getPlungerInFaceTime() const;
 
-    float getNitrohackDuration() const;
-    float getNitrohackFactor() const;
+    float getNitroHackDuration() const;
+    float getNitroHackFactor() const;
 
     float getElectroDuration() const;
     float getElectroEngineMult() const;

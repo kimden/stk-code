@@ -562,9 +562,9 @@ void XmlCharacteristic::load(const XMLNode *node)
     if (const XMLNode *sub_node = node->getNode("nitrohack"))
     {
         sub_node->get("duration",
-            &m_values[NITROHACK_DURATION]);
+            &m_values[NITRO_HACK_DURATION]);
         sub_node->get("factor",
-            &m_values[NITROHACK_FACTOR]);
+            &m_values[NITRO_HACK_FACTOR]);
     }
 
     if (const XMLNode *sub_node = node->getNode("electro"))
