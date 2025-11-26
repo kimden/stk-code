@@ -356,6 +356,9 @@ std::string ItemPolicy::toString() {
 //--------------------------------------------------
 
 static bool isKartUnderVirtualPaceCarSlowdown(ItemPolicy *self, int position) {
+    if (!World::getWorld()->raceHasLaps())
+        return false;
+
     bool start_of_race_vpc = self->m_leader_section <= -1 && (self->m_policy_sections[0].m_rules & ItemPolicyRules::IPT_VIRTUAL_PACE);
     // Not in a virtual pace car yet, but since it is on the start of the race, this is done to prevent overtaking
     if (start_of_race_vpc)
@@ -382,6 +385,9 @@ static bool isKartUnderVirtualPaceCarSlowdown(ItemPolicy *self, int position) {
 
 
 bool ItemPolicy::isHitValid(Kart *sender, Kart *receiver) {
+    if (!World::getWorld()->raceHasLaps())
+        return true;
+
     if (sender == NULL || receiver == NULL) {
         printf("HITCHECK: YES, BECAUSE ONE OR BOTH IS NULL: %p; %p\n", sender, receiver);
         return false;
@@ -490,6 +496,9 @@ int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemSt
 }
 
 void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
+    if (!World::getWorld()->raceHasLaps())
+        return;
+
     auto& stk_config = STKConfig::get();
 
     bool start_of_race_vpc = m_leader_section <= -1 && (m_policy_sections[0].m_rules & ItemPolicyRules::IPT_VIRTUAL_PACE);
@@ -532,6 +541,9 @@ void ItemPolicy::enforceVirtualPaceCarRulesForKart(Kart *kart) {
 }
 
 void ItemPolicy::checkAndApplyVirtualPaceCarRules(Kart *kart, int kart_section, int finished_laps) {
+    if (!World::getWorld()->raceHasLaps())
+        return;
+
     if (kart->getPosition() == 1) {
         m_leader_section = kart_section;
         int start_lap = m_policy_sections[kart_section].m_section_start;
