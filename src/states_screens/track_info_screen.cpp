@@ -787,8 +787,8 @@ void TrackInfoScreen::eventCallback(Widget* widget, const std::string& name,
             });
         } else if(button=="delete") {
             ; // TODO: implement a file deletal prompt
+            buildRulesFileListAndSpinner();
         }
-        buildRulesFileListAndSpinner();
     }
     else if (name == "back")
     {

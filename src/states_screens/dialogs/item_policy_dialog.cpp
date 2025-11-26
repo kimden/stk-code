@@ -74,7 +74,8 @@ std::string ItemPolicyDialog::loadConfig(const std::string &path, bool create_if
         if (create_if_missing) {
             Log::info("ItemPolicyDialog::loadConfig",
                     "Could not read item policy  file '%s'.  A new file will be created.", filename.c_str());
-            saveConfig(path, "normal");
+            bool success = saveConfig(path, "normal");
+            if (success) RaceManager::get()->setNumberOfRuleFiles(RaceManager::get()->getNumberOfRuleFiles()+1);
             root = file_manager->createXMLTree(filename);
         } else {
             Log::info("ItemPolicyDialog::loadConfig",
@@ -112,7 +113,6 @@ bool ItemPolicyDialog::saveConfig(const std::string &path, const std::string &po
             std::ofstream::out);
         configfile << ss.rdbuf();
         configfile.close();
-        RaceManager::get()->setNumberOfRuleFiles(RaceManager::get()->getNumberOfRuleFiles()+1);
         return true;
     }
     catch (std::runtime_error& e)
