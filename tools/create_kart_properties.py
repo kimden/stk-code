@@ -53,7 +53,7 @@ Rescue: duration, vertOffset, height
 Explosion: duration, radius, invulnerabilityTime
 Nitro: duration, engineForce, engineMult, consumption, smallContainer, bigContainer, maxSpeedIncrease, minBurst, fadeOutTime, max
 Slipstream: durationFactor, baseSpeed, length, width, innerFactor, minCollectTime, maxCollectTime, addPower, minSpeed, maxSpeedIncrease, fadeOutTime
-Skid: increase, decrease, max, timeTillMax, visual, visualTime, revertVisualTime, minSpeed, timeTillBonus(std::vector<float>/floatVector), bonusSpeed(std::vector<float>/floatVector), bonusTime(std::vector<float>/floatVector), fadeOutTime(std::vector<float>/floatVector), bonusForce(std::vector<float>/floatVector), physicalJumpTime, graphicalJumpTime, postSkidRotateFactor, reduceTurnMin, reduceTurnMax, enabled(bool)
+Skid: enabled(bool), mode(std::string/string), increase, decrease, max, timeTillMax, visual, visualTime, revertVisualTime, minSpeed, timeTillBonus(std::vector<float>/floatVector), bonusSpeed(std::vector<float>/floatVector), bonusTime(std::vector<float>/floatVector), fadeOutTime(std::vector<float>/floatVector), bonusForce(std::vector<float>/floatVector), physicalJumpTime, graphicalJumpTime, postSkidRotateFactor, reduceTurnMin, reduceTurnMax
 Item: bonusBoxCap"""
 
 """ A GroupMember is an attribute of a group.

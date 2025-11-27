@@ -1680,6 +1680,18 @@ float KartProperties::getSlipstreamFadeOutTime() const
 }  // getSlipstreamFadeOutTime
 
 // ----------------------------------------------------------------------------
+bool KartProperties::getSkidEnabled() const
+{
+    return m_cached_characteristic->getSkidEnabled();
+}  // getSkidEnabled
+
+// ----------------------------------------------------------------------------
+std::string KartProperties::getSkidMode() const
+{
+    return m_cached_characteristic->getSkidMode();
+}  // getSkidMode
+
+// ----------------------------------------------------------------------------
 float KartProperties::getSkidIncrease() const
 {
     return m_cached_characteristic->getSkidIncrease();
@@ -1786,12 +1798,6 @@ float KartProperties::getSkidReduceTurnMax() const
 {
     return m_cached_characteristic->getSkidReduceTurnMax();
 }  // getSkidReduceTurnMax
-
-// ----------------------------------------------------------------------------
-bool KartProperties::getSkidEnabled() const
-{
-    return m_cached_characteristic->getSkidEnabled();
-}  // getSkidEnabled
 
 // ----------------------------------------------------------------------------
 float KartProperties::getItemBonusBoxCap() const

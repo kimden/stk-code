@@ -739,6 +739,10 @@ void XmlCharacteristic::load(const XMLNode *node)
 
     if (const XMLNode *sub_node = node->getNode("skid"))
     {
+        sub_node->get("enabled",
+            &m_values[SKID_ENABLED]);
+        sub_node->get("mode",
+            &m_values[SKID_MODE]);
         sub_node->get("increase",
             &m_values[SKID_INCREASE]);
         sub_node->get("decrease",
@@ -775,8 +779,6 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[SKID_REDUCE_TURN_MIN]);
         sub_node->get("reduce-turn-max",
             &m_values[SKID_REDUCE_TURN_MAX]);
-        sub_node->get("enabled",
-            &m_values[SKID_ENABLED]);
     }
 
     if (const XMLNode *sub_node = node->getNode("item"))

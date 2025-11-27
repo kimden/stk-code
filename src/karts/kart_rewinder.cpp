@@ -279,6 +279,7 @@ BareNetworkString* KartRewinder::saveState(std::vector<std::string>* ru)
     // 6) Skidding
     // -----------
     m_skidding->saveState(buffer);
+    buffer->addFloat(m_retro_skidding_counter);
 
     // 7) Tyres
     // -----------
@@ -479,8 +480,9 @@ void KartRewinder::restoreState(BareNetworkString *buffer, int count)
     // 6) Skidding
     // -----------
     m_skidding->rewindTo(buffer);
+    m_retro_skidding_counter = buffer->getFloat();
 
-    // 6) Tyres
+    // 7) Tyres
     // -----------
     m_tyres->rewindTo(buffer);
 

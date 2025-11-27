@@ -279,6 +279,8 @@ public:
         SLIPSTREAM_FADE_OUT_TIME,
 
         // Skid
+        SKID_ENABLED,
+        SKID_MODE,
         SKID_INCREASE,
         SKID_DECREASE,
         SKID_MAX,
@@ -297,7 +299,6 @@ public:
         SKID_POST_SKID_ROTATE_FACTOR,
         SKID_REDUCE_TURN_MIN,
         SKID_REDUCE_TURN_MAX,
-        SKID_ENABLED,
 
         // Item
         ITEM_BONUS_BOX_CAP,
@@ -517,6 +518,8 @@ public:
     float getSlipstreamMaxSpeedIncrease() const;
     float getSlipstreamFadeOutTime() const;
 
+    bool getSkidEnabled() const;
+    std::string getSkidMode() const;
     float getSkidIncrease() const;
     float getSkidDecrease() const;
     float getSkidMax() const;
@@ -535,7 +538,6 @@ public:
     float getSkidPostSkidRotateFactor() const;
     float getSkidReduceTurnMin() const;
     float getSkidReduceTurnMax() const;
-    bool getSkidEnabled() const;
 
     float getItemBonusBoxCap() const;
 

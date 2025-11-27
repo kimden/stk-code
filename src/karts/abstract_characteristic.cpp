@@ -363,6 +363,10 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case SLIPSTREAM_FADE_OUT_TIME:
         return TYPE_FLOAT;
+    case SKID_ENABLED:
+        return TYPE_BOOL;
+    case SKID_MODE:
+        return TYPE_STRING;
     case SKID_INCREASE:
         return TYPE_FLOAT;
     case SKID_DECREASE:
@@ -399,8 +403,6 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case SKID_REDUCE_TURN_MAX:
         return TYPE_FLOAT;
-    case SKID_ENABLED:
-        return TYPE_BOOL;
     case ITEM_BONUS_BOX_CAP:
         return TYPE_FLOAT;
 
@@ -731,6 +733,10 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "SLIPSTREAM_MAX_SPEED_INCREASE";
     case SLIPSTREAM_FADE_OUT_TIME:
         return "SLIPSTREAM_FADE_OUT_TIME";
+    case SKID_ENABLED:
+        return "SKID_ENABLED";
+    case SKID_MODE:
+        return "SKID_MODE";
     case SKID_INCREASE:
         return "SKID_INCREASE";
     case SKID_DECREASE:
@@ -767,8 +773,6 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "SKID_REDUCE_TURN_MIN";
     case SKID_REDUCE_TURN_MAX:
         return "SKID_REDUCE_TURN_MAX";
-    case SKID_ENABLED:
-        return "SKID_ENABLED";
     case ITEM_BONUS_BOX_CAP:
         return "ITEM_BONUS_BOX_CAP";
 
@@ -2632,6 +2636,30 @@ float AbstractCharacteristic::getSlipstreamFadeOutTime() const
 }  // getSlipstreamFadeOutTime
 
 // ----------------------------------------------------------------------------
+bool AbstractCharacteristic::getSkidEnabled() const
+{
+    bool result;
+    bool is_set = false;
+    process(SKID_ENABLED, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_ENABLED).c_str());
+    return result;
+}  // getSkidEnabled
+
+// ----------------------------------------------------------------------------
+std::string AbstractCharacteristic::getSkidMode() const
+{
+    std::string result;
+    bool is_set = false;
+    process(SKID_MODE, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_MODE).c_str());
+    return result;
+}  // getSkidMode
+
+// ----------------------------------------------------------------------------
 float AbstractCharacteristic::getSkidIncrease() const
 {
     float result;
@@ -2846,18 +2874,6 @@ float AbstractCharacteristic::getSkidReduceTurnMax() const
                     getName(SKID_REDUCE_TURN_MAX).c_str());
     return result;
 }  // getSkidReduceTurnMax
-
-// ----------------------------------------------------------------------------
-bool AbstractCharacteristic::getSkidEnabled() const
-{
-    bool result;
-    bool is_set = false;
-    process(SKID_ENABLED, &result, &is_set);
-    if (!is_set)
-        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(SKID_ENABLED).c_str());
-    return result;
-}  // getSkidEnabled
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getItemBonusBoxCap() const

@@ -204,6 +204,7 @@ protected:
     /** This object handles all skidding. */
     std::unique_ptr<Skidding> m_skidding;
 
+
     /** For stars rotating around head effect */
     std::unique_ptr<Stars> m_stars_effect;
 
@@ -424,6 +425,10 @@ public:
     // amount in previous lap
     int m_item_amount_last_lap;
     PowerupManager::PowerupType m_item_type_last_lap;
+
+    /** For retro skidding*/
+    float m_retro_skidding_counter;
+    bool m_is_skidding;
 
     bool m_is_refueling;
     float m_target_refuel;
