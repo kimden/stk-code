@@ -462,8 +462,14 @@ int ItemPolicy::computeItemTicksTillReturn(ItemState::ItemType orig_type, ItemSt
 
 	RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
     int fuel_mode = tme_rules->fuel_mode;
+
     if (fuel_mode == 0 && curr_type==ItemState::ItemType::ITEM_TYRE_CHANGE && payload == 123) // If we're a fuel tyre changer and fuel is off, don't spawn
        forbid_curr = true;
+
+
+    // If we're a tyre changer of any sort and fuel is off, don't spawn    
+    if (STKConfig::get()->m_tme_enable_tyre_changers == false && curr_type==ItemState::ItemType::ITEM_TYRE_CHANGE)
+        forbid_curr = true;
 
 
     auto& stk_config = STKConfig::get();

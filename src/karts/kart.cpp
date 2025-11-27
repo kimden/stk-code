@@ -3293,7 +3293,8 @@ void Kart::updatePhysics(int ticks)
     to steer, however this doesn't really matter for balance purposes as it is
     unfair for a kart to degrade more simply because it is longer (as it is not really an STK mechanic)*/
     float tyres_steering = 0.872281*(fabs(steering)/(float)m_kart_properties->getWheelBase());
-    m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), is_skidding, is_zippered, do_slowdown, f, tyres_steering, m_controls.getAccel());
+    if (stk_config->m_tme_enable_tyre_degradation)
+        m_tyres->computeDegradation((float)1.0f/(float)stk_config->time2Ticks(ticks), isOnGround(), is_skidding, is_zippered, do_slowdown, f, tyres_steering, m_controls.getAccel());
 
     updateSliding();
 

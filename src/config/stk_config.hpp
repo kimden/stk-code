@@ -95,6 +95,8 @@ public:
     int   m_max_karts;                 /**<Maximum number of karts.            */
     bool  m_smooth_normals;            /**< If normals for raycasts for wheels
                                            should be interpolated.             */
+    bool m_tme_enable_tyre_changers; /**< If false, tyre changers will never spawn */
+    bool m_tme_enable_tyre_degradation; /**< If false, tyres will never degrade*/
 
     /** Prevent some items before this world time. */
     float m_limited_items_timeout;

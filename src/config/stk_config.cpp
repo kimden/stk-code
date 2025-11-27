@@ -223,6 +223,8 @@ void STKConfig::init_defaults()
     m_bubblegum_counter          = -100;
     m_shield_restrict_weapons    = false;
     m_shield_gum_boost           = false;
+    m_tme_enable_tyre_changers   = false;
+    m_tme_enable_tyre_degradation   = false;
     m_max_karts                  = -100;
     m_max_skidmarks              = -100;
     m_min_kart_version           = -100;
@@ -315,6 +317,13 @@ void STKConfig::getAllData(const XMLNode * root)
     {
         node->get("url", &m_server_hardware_report);
     }
+
+    if (const XMLNode *node = root->getNode("tme-rules"))
+    {
+        node->get("enable-tyre-changers", &m_tme_enable_tyre_changers);
+        node->get("enable-tyre-degradation", &m_tme_enable_tyre_degradation);
+    }
+
 
     if (const XMLNode *node = root->getNode("OnlineServer"))
     {
