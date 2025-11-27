@@ -389,29 +389,29 @@ bool ItemPolicy::isHitValid(Kart *sender, Kart *receiver) {
         return true;
 
     if (sender == NULL || receiver == NULL) {
-        printf("HITCHECK: YES, BECAUSE ONE OR BOTH IS NULL: %p; %p\n", sender, receiver);
+        // printf("HITCHECK: YES, BECAUSE ONE OR BOTH IS NULL: %p; %p\n", sender, receiver);
         return false;
     }
 
     // If one of the karts is under a virtual pace car restart, forbid the hit
     if (isKartUnderVirtualPaceCarSlowdown(this, sender->getPosition()) || isKartUnderVirtualPaceCarSlowdown(this, receiver->getPosition())) {
-        printf("HITCHECK: NO, BECAUSE VPC\n");
+        // printf("HITCHECK: NO, BECAUSE VPC\n");
         return false;
     }
 
     if (sender == receiver) {
-        printf("HITCHECK: YES, BECAUSE HITTING SELF\n");
+        // printf("HITCHECK: YES, BECAUSE HITTING SELF\n");
         return true;
     }
     int leader_section_idx = m_leader_section;
     // If leader is not in a valid section, allow the hit
     if (leader_section_idx <= -1) {
-        printf("HITCHECK: YES, BECAUSE INVALID LEADER SECTION\n");
+        // printf("HITCHECK: YES, BECAUSE INVALID LEADER SECTION\n");
         return true;
     }
     // If blue flags are not enabled, ALSO allow the hit
     if (!(m_policy_sections[leader_section_idx].m_rules & ItemPolicyRules::IPT_BLUE_FLAGS)) {
-        printf("HITCHECK: YES, BECAUSE NO BLUE FLAGS\n");
+        // printf("HITCHECK: YES, BECAUSE NO BLUE FLAGS\n");
         return true;
     }
 
@@ -424,9 +424,9 @@ bool ItemPolicy::isHitValid(Kart *sender, Kart *receiver) {
     bool retval = send_lap == recv_lap;
 
     if (retval) {
-        printf("HITCHECK: YES, BECAUSE SEND LAP %u /// RECV LAP %u\n", send_lap, recv_lap);
+        // printf("HITCHECK: YES, BECAUSE SEND LAP %u /// RECV LAP %u\n", send_lap, recv_lap);
     } else {
-        printf("HITCHECK: NO, BECAUSE SEND LAP %u /// RECV LAP %u\n", send_lap, recv_lap);
+        // printf("HITCHECK: NO, BECAUSE SEND LAP %u /// RECV LAP %u\n", send_lap, recv_lap);
     }
     return retval;
 } // isHitValid
