@@ -464,6 +464,9 @@ void ReplayPlay::readKartData(FILE *fd, char *next_line, bool second_replay)
                 bi.m_item_amount          = 0;    //not saved in version 3 replays
                 bi.m_item_type            = 0;    //not saved in version 3 replays
                 bi.m_special_value        = 0;    //not saved in version 3 replays
+                bi.m_current_life_turning = 100;
+                bi.m_current_life_traction= 100;
+                bi.m_current_compound     = TME_CONSTANT_DEFAULT_TYRE;
                 kre.m_distance            = 0.0f; //not saved in version 3 replays
                 kre.m_nitro_usage         = nitro;
                 kre.m_zipper_usage        = zipper!=0;
@@ -514,6 +517,9 @@ void ReplayPlay::readKartData(FILE *fd, char *next_line, bool second_replay)
                 bi.m_item_amount          = item_amount;
                 bi.m_item_type            = item_type;
                 bi.m_special_value        = special_value;
+                bi.m_current_life_turning = 100;
+                bi.m_current_life_traction= 100;
+                bi.m_current_compound     = TME_CONSTANT_DEFAULT_TYRE;
                 kre.m_distance            = distance;
                 kre.m_nitro_usage         = nitro;
                 kre.m_zipper_usage        = zipper!=0;
