@@ -539,7 +539,7 @@ void STKConfig::getAllData(const XMLNode * root)
     {
         bubblegum_node->get("disappear-counter", &m_bubblegum_counter      );
         bubblegum_node->get("restrict-weapons",  &m_shield_restrict_weapons);
-        bubblegum_node->get("gum-boos",  &m_shield_gum_boost);
+        bubblegum_node->get("gum-boost",  &m_shield_gum_boost);
     }
 
 

@@ -1438,7 +1438,7 @@ void Kart::collectedItem(ItemState *item_state)
              item_state->getPreviousOwner()->getIdent() == "nolok");
 
         // collect gum and give bonus
-        if (isGumShielded()) {        
+        if (isGumShielded()) {
             m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_GUM,
                 is_mini ? m_kart_properties->getBubblegumMiniBoostMaxSpeed() : m_kart_properties->getBubblegumBoostMaxSpeed(),
                 is_mini ? m_kart_properties->getBubblegumMiniBoostAddedSpeed() : m_kart_properties->getBubblegumBoostAddedSpeed(),

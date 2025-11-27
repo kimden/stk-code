@@ -395,6 +395,14 @@ Item* ItemManager::placeItem(ItemState::ItemType type, const Vec3& xyz,
 void ItemManager::collectedItem(ItemState *item, Kart *kart)
 {
     assert(item);
+
+    bool ignore_gums_if_shield = !STKConfig::get()->m_shield_gum_boost;
+    bool gum_shield_collision = kart->isGumShielded() && item->isBubblegum();
+
+    // Ignore collision
+    if (ignore_gums_if_shield && gum_shield_collision)
+        return;
+
     item->collected(kart);
     // Inform the world - used for Easter egg hunt
     World::getWorld()->collectedItem(kart, item);
