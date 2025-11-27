@@ -603,9 +603,11 @@ static int selectTyre(int tyre_selection_mode, float length) {
         return (rand() % 3) + 2;
         break;
     case 1: // Race distance based
-        if (length < 7500) {
+        if (length <= 1.0f) // Not a race mode
+            return TME_CONSTANT_DEFAULT_TYRE;
+        if (length < 7500.0f) {
             return 2; // Soft tyre
-        } else if (length < 15000) {
+        } else if (length < 15000.0f) {
             return 3; // Medium tyre
         } else {
             return 4; // Hard tyre
@@ -711,14 +713,13 @@ void RaceManager::startNextRace()
     {
         if (m_kart_status[i].m_kart_type == KT_AI)
         {
-            if (!isBattleMode() && m_minor_mode!=MINOR_MODE_SOCCER && m_minor_mode!=MINOR_MODE_EASTER_EGG) {
+            float length = 0.0f;
+            if (modeHasLaps()) {
                 auto track = TrackManager::get()->getTrack(m_tracks[m_track_number]);
                 track->loadDriveGraph(0, getReverseTrack(), false);
-                float length = ((float)m_num_laps[m_track_number])*track->getTrackLength();
-                m_kart_status[i].m_starting_tyre = selectTyre(UserConfigParams::m_tyre_selection_mode, length);
-            } else { // We are in a mode where it doesn't make sense to select a tyre other than fixed
-                m_kart_status[i].m_starting_tyre = TME_CONSTANT_DEFAULT_TYRE;
+                length = ((float)m_num_laps[m_track_number])*track->getTrackLength();
             }
+            m_kart_status[i].m_starting_tyre = selectTyre(UserConfigParams::m_tyre_selection_mode, length);
             
             printf("Selected tyre %u for AI\n", m_kart_status[i].m_starting_tyre); 
 
