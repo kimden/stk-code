@@ -3223,7 +3223,7 @@ void Kart::updatePhysics(int ticks)
 
     if (kp->getSkidMode() == "Retro") {
         KartControl::SkidControl sc = m_controls.getSkidControl();
-        bool is_skidding = (sc == KartControl::SC_LEFT || sc == KartControl::SC_RIGHT);
+        bool is_skidding = std::fabs(m_controls.getSteer()) > 0.01f && (sc == KartControl::SC_LEFT || sc == KartControl::SC_RIGHT);
         if (is_skidding) {
             m_retro_skidding_counter +=  kp->getSkidIncrease() * dt / kp->getSkidTimeTillMax();
             if (m_retro_skidding_counter > kp->getSkidMax())
