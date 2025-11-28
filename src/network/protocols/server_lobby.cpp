@@ -2894,8 +2894,9 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         // If the tyre's name has prefix CHEAT then reassign to the first valid tyre
         std::string tyre_prefix = "CHEAT";
         std::string compound_name = TyreUtils::getStringFromCompound(profile->getStartingTyre(), false /*shortver*/);
-        if (ServerConfig::m_server_ban_cheat_tyre && (compound_name.compare(0, tyre_prefix.size(), tyre_prefix) == 0)) {
-            std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds();
+        bool exclude = StringUtils::startsWith(compound_name, tyre_prefix);
+        if (ServerConfig::m_server_ban_cheat_tyre && exclude) {
+            std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds(ServerConfig::m_server_ban_cheat_tyre /*exclude_cheat*/);
             if (tyre_mapping.size() > 0)
                 profile->setStartingTyre(tyre_mapping[0]);
         }

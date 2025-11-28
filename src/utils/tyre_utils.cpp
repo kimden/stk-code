@@ -124,7 +124,7 @@ namespace TyreUtils
     }
 
     /** Returns a vector that maps each active tyre index to its absolute index */
-    const std::vector<unsigned> getAllActiveCompounds(void) {
+    const std::vector<unsigned> getAllActiveCompounds(bool exclude_cheat) {
         std::vector<unsigned> retval;
 
         const KartProperties *kp = kart_properties_manager->getKart("tux");
@@ -132,7 +132,8 @@ namespace TyreUtils
         auto compound_colors = kp->getTyresDefaultColor();
 
         for (unsigned i = 0; i < compound_number; i++) {
-            if (compound_colors[i] > -0.5f) {
+            bool excluded = exclude_cheat && StringUtils::startsWith(getStringFromCompound(i+1, false /*shortver*/), "CHEAT");
+            if (compound_colors[i] > -0.5f && !excluded) {
                 retval.push_back(i+1);
             }
         }

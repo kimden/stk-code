@@ -67,6 +67,7 @@
 #include "utils/ptr_vector.hpp"
 #include "utils/stk_process.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/tyre_utils.hpp"
 #include "utils/translation.hpp"
 #include "io/rich_presence.hpp"
 
@@ -597,10 +598,21 @@ void RaceManager::startNew(bool from_overworld)
     startNextRace();
 }   // startNew
 
-static int selectTyre(int tyre_selection_mode, float length) {
+static int selectTyre(int tyre_selection_mode, float length, RaceManager::TyreModRules &tme_rules) {
+    std::vector<unsigned> tyre_mapping;
+    unsigned selected;
+    unsigned count;
     switch (tyre_selection_mode) {
     case 0: // Random selection
-        return (rand() % 3) + 2;
+        tyre_mapping = TyreUtils::getAllActiveCompounds(true /*exclude_cheat*/);
+        count = 1; // Used to avoid an infinite loop if no tyre can be picked
+        selected = rand() % tyre_mapping.size();
+        // Select a tyre that has non-zero allocation
+        while (count < tyre_mapping.size() && tme_rules.tyre_allocation[tyre_mapping[selected]-1] == 0) {
+            selected = (selected + 1) % tyre_mapping.size();
+            count += 1;
+        }
+        return tyre_mapping[selected];
         break;
     case 1: // Race distance based
         if (length <= 1.0f) // Not a race mode
@@ -719,7 +731,7 @@ void RaceManager::startNextRace()
                 track->loadDriveGraph(0, getReverseTrack(), false);
                 length = ((float)m_num_laps[m_track_number])*track->getTrackLength();
             }
-            m_kart_status[i].m_starting_tyre = selectTyre(UserConfigParams::m_tyre_selection_mode, length);
+            m_kart_status[i].m_starting_tyre = selectTyre(UserConfigParams::m_tyre_selection_mode, length, m_tme_rules);
             
             printf("Selected tyre %u for AI\n", m_kart_status[i].m_starting_tyre); 
 

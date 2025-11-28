@@ -245,11 +245,27 @@ float Tyres::degTopSpeed(float initial_topspeed) {
 
 
 void Tyres::reset() {
+    if (m_reset_fuel) {
+    	RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
+        m_kart->m_tyres_queue = tme_rules->tyre_allocation;
+        m_kart->m_wildcards = tme_rules->wildcards;
+        m_current_fuel = m_c_fuel;
+        m_high_fuel_demand = false;
+    }
+
     if (m_reset_compound) {
         m_deg_mult = 1;
         const unsigned c = m_kart->getStartingTyre();
         if (c == 0) { /*0 -> random tyre*/
-            m_current_compound = ((int)rand() % 3) + 2; /*Should be modulo the compound number, but at the moment some compounds are not finished*/
+            std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds(true /*exclude_cheat*/);
+            unsigned count = 1; // Used to avoid an infinite loop if no tyre can be picked
+            unsigned selected = rand() % tyre_mapping.size();
+            // Select a tyre that has non-zero allocation
+            while (count < tyre_mapping.size() && m_kart->m_tyres_queue[tyre_mapping[selected]-1] == 0) {
+                selected = (selected + 1) % tyre_mapping.size();
+                count += 1;
+            }
+            m_current_compound = tyre_mapping[selected];
         } else {
             m_current_compound = ((int)(c-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber()) + 1;
         }
@@ -300,14 +316,6 @@ void Tyres::reset() {
         default:
             break;
         }
-    }
-
-    if (m_reset_fuel) {
-    	RaceManager::TyreModRules *tme_rules = RaceManager::get()->getTyreModRules();
-        m_kart->m_tyres_queue = tme_rules->tyre_allocation;
-        m_kart->m_wildcards = tme_rules->wildcards;
-        m_current_fuel = m_c_fuel;
-        m_high_fuel_demand = false;
     }
 
     m_lap_count = 0;

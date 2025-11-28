@@ -36,7 +36,7 @@ namespace TyreUtils
     std::string stintsToString(std::vector<std::tuple<unsigned, unsigned>> x);
 
 
-    const std::vector<unsigned> getAllActiveCompounds(void);
+    const std::vector<unsigned> getAllActiveCompounds(bool exclude_cheat=false);
     // This pair of functions extracts data from a format in the form:
     // -1 10 0 -1; 1
     // where the numbers before the semicolon are a list of the tyre amount for
