@@ -79,7 +79,6 @@ void SplitscreenPlayerDialog::beforeAddingWidgets()
     if (m_available_players.empty())
     {
         getWidget("name-text")->setVisible(false);
-        getWidget("handicap-row")->setVisible(false);
         m_add->setVisible(false);
         m_profiles->setVisible(false);
         m_options_widget->select("connect", PLAYER_ID_GAME_MASTER);
@@ -87,7 +86,6 @@ void SplitscreenPlayerDialog::beforeAddingWidgets()
     else
     {
         getWidget("name-text")->setVisible(true);
-        getWidget("handicap-row")->setVisible(true);
         m_add->setVisible(true);
         m_profiles->setVisible(true);
         m_options_widget->select("add", PLAYER_ID_GAME_MASTER);
