@@ -58,14 +58,6 @@ void SplitscreenPlayerDialog::beforeAddingWidgets()
 
     m_message = getWidget<LabelWidget>("message-label");
     assert(m_message != NULL);
-    m_handicap = getWidget<CheckBoxWidget>("handicap");
-    assert(m_handicap != NULL);
-
-    m_starting_tyre_label = getWidget<LabelWidget>("starting-tyre");
-    assert(m_starting_tyre_label != NULL);
-    m_starting_tyre = getWidget<SpinnerWidget>("starting-tyre");
-    assert(m_starting_tyre != NULL);
-    m_starting_tyre->setValue(TME_CONSTANT_DEFAULT_TYRE);
 
     m_options_widget = getWidget<RibbonWidget>("options");
     assert(m_options_widget != NULL);
@@ -98,9 +90,6 @@ void SplitscreenPlayerDialog::beforeAddingWidgets()
         getWidget("handicap-row")->setVisible(true);
         m_add->setVisible(true);
         m_profiles->setVisible(true);
-        m_handicap->setState(false);
-        //m_handicap->setActive(UserConfigParams::m_per_player_difficulty);
-        m_handicap->setActive(true); // For TME this always needs to be enabled
         m_options_widget->select("add", PLAYER_ID_GAME_MASTER);
     }
 
@@ -122,8 +111,8 @@ GUIEngine::EventPropagation
             const unsigned pid = m_profiles->getValue();
             assert(pid < PlayerManager::get()->getNumPlayers());
             PlayerProfile* p = m_available_players[pid];
-            const uint8_t h = m_handicap->getState() ? 1 : 0;
-            const unsigned t = m_starting_tyre->getValue();
+            const uint8_t h = 0;
+            const unsigned t = TME_CONSTANT_DEFAULT_TYRE;
             if (NetworkConfig::get()->addNetworkPlayer(m_device, p, h, t))
             {
                 core::stringw name = p->getName();

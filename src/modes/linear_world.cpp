@@ -579,16 +579,20 @@ void LinearWorld::newLap(unsigned int kart_index)
     video::SColor color = video::SColor(255, 255, 255, 255);
 
     if(! (raceHasLaps() && kart_info.m_finished_laps>0 && !isLiveJoinWorld()) ) {
-        goto ENDOFNEWLAP;
+        kart_info.m_lap_start_ticks = getTimeTicks();
+        kart->getController()->newLap(kart_info.m_finished_laps);
+        return;
     }
 
 
+    Kart *receiver = NULL;
     if (is_local) {
         m_last_local_lap = stk_config->ticks2Time(ticks_per_lap);
         m_last_local_position = kart->getPosition();
         m_last_local_index = kart_index;
         lap_message = _C("fastest_lap", "Last lap: %s by %s", s.c_str(), kart_name);
         color = video::SColor(255, 255, 255, 255);
+        receiver = kart;
     }
     kart->m_tyres->commandLap(ticks_per_lap);
     if (ticks_per_lap < m_fastest_lap_ticks ) {
@@ -600,9 +604,8 @@ void LinearWorld::newLap(unsigned int kart_index)
         lap_message = _C("fastest_lap", "New FL: %s by %s", s.c_str(), kart_name);
         color = video::SColor(255, 255, 255, 255);
     }
-     if (m_race_gui) m_race_gui->addMessage(lap_message, NULL, 4.0f, color, false);
+     if (m_race_gui) m_race_gui->addMessage(lap_message, receiver, 4.0f, color, false);
 
-    ENDOFNEWLAP:
     kart_info.m_lap_start_ticks = getTimeTicks();
     kart->getController()->newLap(kart_info.m_finished_laps);
 }   // newLap
