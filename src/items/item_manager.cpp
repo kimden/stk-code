@@ -36,6 +36,7 @@
 #include "tracks/arena_node.hpp"
 #include "tracks/track.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/kart_tags.hpp"
 
 #include <IMesh.h>
 #include <IAnimatedMesh.h>
@@ -402,6 +403,10 @@ void ItemManager::collectedItem(ItemState *item, Kart *kart)
     // Ignore collision
     if (ignore_gums_if_shield && gum_shield_collision)
         return;
+
+    if (kart->getBody()->getTag() == GHOST_NO_COLLECTIBLE_KART_TAG)
+        return;
+
 
     item->collected(kart);
     // Inform the world - used for Easter egg hunt

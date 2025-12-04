@@ -43,6 +43,7 @@
 #include "tracks/track.hpp"
 #include "tracks/track_object.hpp"
 #include "utils/profiler.hpp"
+#include "utils/kart_tags.hpp"
 #include "utils/stk_process.hpp"
 
 #include <IVideoDriver.h>
@@ -127,22 +128,17 @@ Physics::~Physics()
     delete m_collision_conf;
 }   // ~Physics
 
-#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
-#define KART_TAG TAG('K','A','R','T')
-#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
-#define FLYABLE_TAG TAG('F','L','Y','!')
-
 bool noCollisionAndRegularKartCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
 	uint32_t st = self->getTag();
 	uint32_t ot = other->getTag();
-	if (st == NO_COLLISION_KART_TAG && ot == FLYABLE_TAG) {
+	if ((st == NO_COLLISION_KART_TAG || st == GHOST_NO_COLLECTIBLE_KART_TAG) && ot == FLYABLE_TAG) {
         // Projectiles don't collide with no collision karts
 	    return false;
 	}
 	// If one of the two is a no collision kart, and both are either no collision karts or regular karts, don't collide
-	if (st == NO_COLLISION_KART_TAG && (ot == KART_TAG || ot == NO_COLLISION_KART_TAG)) {
+	if (st == NO_COLLISION_KART_TAG && (ot == KART_TAG || ot == NO_COLLISION_KART_TAG || ot == GHOST_NO_COLLECTIBLE_KART_TAG)) {
 		return false;
-	} else if (st == KART_TAG && ot == NO_COLLISION_KART_TAG) {
+	} else if (st == KART_TAG && (ot == NO_COLLISION_KART_TAG || ot == GHOST_NO_COLLECTIBLE_KART_TAG)) {
 		return false;
 	} else {
 		return true;

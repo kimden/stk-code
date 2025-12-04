@@ -42,6 +42,7 @@
 #include "physics/triangle_mesh.hpp"
 #include "tracks/track.hpp"
 #include "utils/constants.hpp"
+#include "utils/kart_tags.hpp"
 
 #include "irrMath.h"
 #include <IAnimatedMeshSceneNode.h>
@@ -357,7 +358,10 @@ void Attachment::hitBanana(ItemState *item_state)
         // so play the character sound ("Uh-Oh")
         m_kart->playCustomSFX(SFXManager::CUSTOM_ATTACH);
 
-        if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL)
+        // The parachute is the only attachment type that behaves well for ghosts
+        if(m_kart->getBody() && m_kart->getBody()->getTag() != KART_TAG )
+            new_attachment = ATTACH_PARACHUTE;
+        else if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL)
             new_attachment = AttachmentType(ticks % 2);
         else
             new_attachment = AttachmentType(ticks % 3);
@@ -746,9 +750,9 @@ float Attachment::weightAdjust() const
  */
 void Attachment::popGumShield()
 {
-    // Neither sound nor actual ground gum should be left behind by a ghost kart
+    // Neither sound nor actual ground gum should be left behind by a ghost kart nor by a no-collision kart
     // TODO: when replay of normal races is supported, drop a "ghost ground gum"?
-    if (m_kart->isGhostKart())
+    if (m_kart->isGhostKart() || (m_kart->getBody() && m_kart->getBody()->getTag() != KART_TAG))
         return;
 
     if (!RewindManager::get()->isRewinding())

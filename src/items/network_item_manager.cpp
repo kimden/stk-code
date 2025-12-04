@@ -26,6 +26,7 @@
 #include "network/rewind_manager.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "utils/kart_tags.hpp"
 
 bool NetworkItemManager::m_network_item_debugging = false;
 // ============================================================================
@@ -96,13 +97,15 @@ void NetworkItemManager::collectedItem(ItemState *item, Kart *kart)
     {
         ItemManager::collectedItem(item, kart);
         // The server saves the collected item as item event info
-        m_item_events.lock();
-        m_item_events.getData().emplace_back(World::getWorld()->getTicksSinceStart(),
-                                             item->getItemId(),
-                                             kart->getWorldKartId(),
-                                             item->getTicksTillReturn(),
-                                             item->m_compound, item->m_stop_time);
-        m_item_events.unlock();
+        if (kart->getBody()->getTag() != GHOST_NO_COLLECTIBLE_KART_TAG) {
+            m_item_events.lock();
+            m_item_events.getData().emplace_back(World::getWorld()->getTicksSinceStart(),
+                                                 item->getItemId(),
+                                                 kart->getWorldKartId(),
+                                                 item->getTicksTillReturn(),
+                                                 item->m_compound, item->m_stop_time);
+            m_item_events.unlock();
+        }
     }
     else
     {

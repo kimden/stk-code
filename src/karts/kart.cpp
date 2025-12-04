@@ -93,6 +93,7 @@
 #include "utils/string_utils.hpp"
 #include "utils/translation.hpp"
 #include "utils/vs.hpp"
+#include "utils/kart_tags.hpp"
 
 #include <ICameraSceneNode.h>
 #include <IDummyTransformationSceneNode.h>
@@ -108,10 +109,6 @@
    // Disable warning for using 'this' in base member initializer list
 #  pragma warning(disable:4355)
 #endif
-
-#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
-#define KART_TAG TAG('K','A','R','T')
-#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
 
 void Kart::loadKartProperties(const std::string& new_ident,
                                       uint8_t handicap, unsigned starting_tyre,
@@ -256,6 +253,7 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_is_refueling = false;
     m_target_refuel = 0.0f;
     m_crash_cooldown_ticks = 0;
+    m_ghost_collect_cooldown_ticks = 0;
     m_refuel_press_cooldown_ticks = 0;
     m_nitro_hack_ticks     = 0;
     m_nitro_hack_factor    = 1.0f;
@@ -1397,6 +1395,11 @@ void Kart::collectedItem(ItemState *item_state)
     uint32_t rules;
     int sec;
     ItemPolicy *item_policy = NULL;
+    if (getBody()->getTag() == GHOST_NO_COLLECTIBLE_KART_TAG)
+        return;
+
+    if (getBody()->getTag() == NO_COLLISION_KART_TAG && m_ghost_collect_cooldown_ticks > 0)
+        return;
 
     switch (type)
     {
@@ -1434,6 +1437,9 @@ void Kart::collectedItem(ItemState *item_state)
         break;
     case Item::ITEM_BUBBLEGUM:
     case Item::ITEM_BUBBLEGUM_SMALL:
+        if (getBody()->getTag() != KART_TAG)
+            return;
+
         is_mini = type == Item::ITEM_BUBBLEGUM_SMALL;
         m_has_caught_nolok_bubblegum = 
             (item_state->getPreviousOwner()&&
@@ -1472,6 +1478,8 @@ void Kart::collectedItem(ItemState *item_state)
     if ( m_collected_energy > m_kart_properties->getNitroMax())
         m_collected_energy = m_kart_properties->getNitroMax();
 
+    // If ghosted, and collected the item, can't collect any other items again until 0.2 seconds into the future
+    m_ghost_collect_cooldown_ticks = stk_config->time2Ticks(0.2f);
     // Play sound effects if the kart is controlled by a local player
     m_controller->collectedItem(*item_state, old_energy);
 
@@ -1879,7 +1887,7 @@ void Kart::update(int ticks)
         m_basket_squash_invulnerable_ticks -= ticks;
 
 
-    if (getBody()->getTag() != NO_COLLISION_KART_TAG) {
+    if (getBody()->getTag() == KART_TAG) {
 	    if (!RewindManager::get()->isRewinding()) 
 	        m_slipstream->update(ticks);
 	    m_slipstream->updateSpeedIncrease();
@@ -2374,6 +2382,12 @@ bool Kart::isSquashed() const
     return
         m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_SQUASH) == 1;
 }   // setSquash
+
+bool Kart::isSquashable() const
+{
+    return getBody() && getBody()->getTag() == KART_TAG;
+}   // setSquash
+
 
 //-----------------------------------------------------------------------------
 /** Plays any terrain specific sound effect.
@@ -3296,6 +3310,13 @@ void Kart::updatePhysics(int ticks)
             }
     }
 
+    if (m_ghost_collect_cooldown_ticks > 0) {
+        m_ghost_collect_cooldown_ticks -= ticks;
+    }
+    if (m_ghost_collect_cooldown_ticks <= 0) {
+        m_ghost_collect_cooldown_ticks = 0;
+    }
+
     if (m_is_refueling) {
         bool can_increase_fuel = false;
         if (m_refuel_press_cooldown_ticks > 0) {
@@ -4062,7 +4083,7 @@ void Kart::updateGraphics(float dt)
 	}
 
 	// Ghosts are transparent
-	if (!ghost_override && getBody()->getTag() == NO_COLLISION_KART_TAG) {
+	if (!ghost_override && (getBody()->getTag() == NO_COLLISION_KART_TAG || getBody()->getTag() == GHOST_NO_COLLECTIBLE_KART_TAG)) {
 		m_kart_model->getRenderInfo()->setTransparent(true);
 	} else {
 		m_kart_model->getRenderInfo()->setTransparent(false);

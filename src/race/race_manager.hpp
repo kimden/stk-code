@@ -319,6 +319,40 @@ public:
 		int wildcards; /*Amount of wildcards*/
 	}; // TyreModRules
 
+    struct RallyPlayer {
+        std::string username;
+        std::string kart;
+        bool skipped_round;
+        float gap_to_leader;
+        std::vector<int> remaining_tyre_allocation;
+        int remaining_wildcards;
+        unsigned current_tyre;
+        float current_life_traction; /*AS FRACTION OF MAX HEALTH*/
+        float current_life_turning; /*AS FRACTION OF MAX HEALTH*/
+        float current_fuel;
+    };
+
+    /** Holds information concerning rally mode */
+    struct RallyOrder {
+        unsigned warmup_cutoff; /*When the gap_to_leader > warmuo_cutoff, warmup mode. Else, wait mode*/
+        unsigned new_player_penalty; /*Newcomers to a Rally start this many seconds behind last place*/
+        unsigned new_player_alloc; /*0 = full alloc,
+                                     1 = most popular alloc, 
+                                     2 = last place's alloc, 3 = middle place's, 4 = first place's*/
+        unsigned new_player_fuel_load; /*0 = full tank,
+                                         1 = median fuel load,
+                                         2 = last place's fuel load, 3 = middle place's, 4 = first place's*/
+        unsigned skip_policy; /*0 = preserve: those who skip/leave a round are marked and will start
+                                               next race as per new_player_penalty, but their fuel load,
+                                               alloc and kart is preserved
+                                1 = forget:   those who skip/leave a round are deleted from the rally order*/
+        unsigned kart_policy; /*0 = preserve: can't change kart mid rally,
+                                1 = forget:   can change kart freely*/
+        unsigned tyre_policy; /*0 = preserve: tyres is preserved between races and can't be changed,
+                                1 = forget:   tyre set is thrown away at the end of a race*/
+        std::vector<RallyPlayer> players;
+    };
+
 private:
 
     /** The kart status data for each kart. */

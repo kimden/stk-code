@@ -191,6 +191,8 @@ protected:
 
     int16_t m_refuel_press_cooldown_ticks;
 
+    int16_t m_ghost_collect_cooldown_ticks;
+
     /** Stores information about the terrain the kart is on. */
     TerrainInfo *m_terrain_info;
 
@@ -828,6 +830,9 @@ public:
     // ----------------------------------------------------------------------------------------
     /** Returns if the kart is currently being squashed. */
     virtual bool isSquashed() const;
+    // ----------------------------------------------------------------------------------------
+    /** Returns if the kart can be squashed. */
+    virtual bool isSquashable() const;
 
     // ========================================================================================
     // CONTROLLER related functions

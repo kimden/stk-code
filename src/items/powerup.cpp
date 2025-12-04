@@ -38,6 +38,7 @@
 #include "physics/triangle_mesh.hpp"
 #include "tracks/track.hpp"
 #include "utils/hit_processor.hpp"
+#include "utils/kart_tags.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/log.hpp" //TODO: remove after debugging is done
 
@@ -437,9 +438,14 @@ int Powerup::useBubblegum(bool mini)
     // use the bubble gum the traditional way, if the kart is looking back
     if (m_kart->getControls().getLookBack())
     {
-        Item *new_item = im->dropNewItem(mini ? Item::ITEM_BUBBLEGUM_SMALL :
-                                                Item::ITEM_BUBBLEGUM, m_kart);
-        // There may not be a new item if e.g. ground is not found in raycast.
+        Item *new_item = NULL;
+        if (m_kart->getBody() && m_kart->getBody()->getTag() != KART_TAG) {
+            ;
+        } else {
+            new_item = im->dropNewItem(mini ? Item::ITEM_BUBBLEGUM_SMALL :
+                                                    Item::ITEM_BUBBLEGUM, m_kart);
+        }
+        // There may not be a new item if e.g. ground is not found in raycast or the kart is a no collision kart.
         if(new_item)
             sound_type = 1;
     }

@@ -50,17 +50,14 @@
 #include "tracks/track.hpp"
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/kart_tags.hpp"
 #include "utils/vs.hpp"
 
 #include <typeinfo>
 
-#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
-#define KART_TAG TAG('K','A','R','T')
-#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
-#define FLYABLE_TAG TAG('F','L','Y','!')
-
 static bool flyableCollisionCallback(btCollisionObject *self, btCollisionObject *other) {
-    if (self->getTag() == FLYABLE_TAG && other->getTag() == NO_COLLISION_KART_TAG) {
+    if (self->getTag() == FLYABLE_TAG && (other->getTag() == NO_COLLISION_KART_TAG ||
+                                          other->getTag() == GHOST_NO_COLLECTIBLE_KART_TAG) ) {
         // Projectiles don't collide with no collision karts
         return false;
     } else {

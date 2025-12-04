@@ -45,6 +45,7 @@
 #include "network/network_string.hpp"
 #include "network/rewind_manager.hpp"
 #include "utils/hit_processor.hpp"
+#include "utils/kart_tags.hpp"
 #include <IAnimatedMeshSceneNode.h>
 
 #define SWAT_POS_OFFSET        core::vector3df(0.0, 0.2f, -0.4f)
@@ -328,17 +329,13 @@ bool Swatter::updateAndTestFinished()
     return false;
 }   // updateAndTestFinished
 
-#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
-#define KART_TAG TAG('K','A','R','T')
-#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
-
 // ----------------------------------------------------------------------------
 /** Determine the nearest kart or item and update the current target
  *  accordingly.
  */
 void Swatter::chooseTarget()
 {
-    if (m_kart->getBody()->getTag() == NO_COLLISION_KART_TAG) return;
+    if (m_kart->getBody()->getTag() != KART_TAG) return;
 
     // TODO: for the moment, only handle karts...
     const World*  world         = World::getWorld();
@@ -348,9 +345,14 @@ void Swatter::chooseTarget()
     for(unsigned int i=0; i<world->getNumKarts(); i++)
     {
         Kart *kart = world->getKart(i);
-        // TODO: isSwatterReady(), isSquashable()?
+
+        // TODO: isSwatterReady()?
         if(kart->isEliminated() || kart==m_kart || kart->getKartAnimation())
             continue;
+
+        if (!kart->isSquashable())
+            continue;
+
         // don't squash an already hurt kart
         if (kart->isInvulnerable() || kart->isSquashed())
             continue;

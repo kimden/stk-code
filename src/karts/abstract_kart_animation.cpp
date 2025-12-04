@@ -30,6 +30,7 @@
 #include "physics/triangle_mesh.hpp"
 #include "tracks/track.hpp"
 #include "mini_glm.hpp"
+#include "utils/kart_tags.hpp"
 
 #include <limits>
 
@@ -76,10 +77,6 @@ AbstractKartAnimation::AbstractKartAnimation(Kart* kart,
     MiniGLM::compressbtTransform(m_created_transform,
         m_created_transform_compressed);
 }   // AbstractKartAnimation
-
-#define TAG(__a,__b,__c,__d) ((__a & 0xFF) << 24) + ((__b & 0xFF) << 16) + ((__c & 0xFF) << 8) + (__d & 0xFF)
-#define KART_TAG TAG('K','A','R','T')
-#define NO_COLLISION_KART_TAG TAG('G','H','O','S')
 
 // ----------------------------------------------------------------------------
 AbstractKartAnimation::~AbstractKartAnimation()

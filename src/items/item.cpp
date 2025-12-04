@@ -38,6 +38,7 @@
 #include "utils/constants.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/tyre_utils.hpp"
+#include "utils/kart_tags.hpp"
 #include "font/bold_face.hpp"
 #include "font/font_manager.hpp"
 #include "items/powerup_manager.hpp"
@@ -203,7 +204,10 @@ void ItemState::update(int ticks)
 void ItemState::collected(const Kart *kart)
 {
     auto& stk_config = STKConfig::get();
-    
+
+    if (kart->getBody()->getTag() != KART_TAG)
+        return;
+
     if (m_type == ITEM_EASTER_EGG)
     {
         // They will disappear 'forever'
