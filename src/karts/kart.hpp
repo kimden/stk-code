@@ -443,6 +443,8 @@ public:
     bool m_is_disqualified;
     float m_initial_color;
 
+    bool m_rally_start;
+    bool m_rally_wait_mode;
     
     const core::stringw& getName() const { return m_name; }
 

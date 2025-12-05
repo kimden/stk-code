@@ -116,6 +116,11 @@ void CheckStructure::update(float dt)
     {
         const Vec3 &xyz = world->getKart(i)->getFrontXYZ();
         if(world->getKart(i)->getKartAnimation()) continue;
+
+        // In rally warmup mode, checklines aren't counted
+        if (world->getKart(i) && world->getKart(i)->m_rally_wait_mode)
+            continue;
+
         // Only check active checklines.
         if(m_is_active[i] && isTriggered(m_previous_position[i], xyz, i))
         {
@@ -222,6 +227,10 @@ void CheckStructure::trigger(unsigned int kart_index)
     switch(m_check_type)
     {
     case CT_NEW_LAP :
+        // Don't start new laps if rally warmup mode is active
+        if (World::getWorld()->getKart(kart_index)->m_rally_wait_mode)
+            break;
+
         World::getWorld()->newLap(kart_index);
         if(UserConfigParams::m_check_debug)
         {

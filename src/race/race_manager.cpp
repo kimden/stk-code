@@ -157,6 +157,7 @@ RaceManager::RaceManager()
     setNumPlayers(0);
     setSpareTireKartNum(0);
 
+    m_rally_mode = false;
     m_tme_rules.fuel_mode = 0;
     m_tme_rules.do_item_preview = 0;
     m_tme_rules.wildcards = 0;

@@ -245,6 +245,8 @@ Kart::Kart (const std::string& ident, unsigned int world_kart_id,
     m_controller           = NULL;
     m_tyres                = new Tyres(this);
     m_is_disqualified = false;
+    m_rally_start = false;
+    m_rally_wait_mode = false;
     m_is_under_tme_ruleset = true;
     m_initial_color        = 0.0f;
     m_saved_controller     = NULL;
@@ -3364,6 +3366,57 @@ void Kart::updatePhysics(int ticks)
     // Cap speed if necessary
     const Material *m = getMaterial();
 
+    bool wait_mode = false;
+
+    RaceManager::RallyOrder *rally_order = RaceManager::get()->getRallyOrder();
+    RaceManager::RallyPlayer *current_player = NULL;
+    LinearWorld* lw = dynamic_cast<LinearWorld*>(World::getWorld());
+    std::string name = StringUtils::wideToUtf8(getController()->getName());
+    if (lw && rally_order) {
+        for (RaceManager::RallyPlayer &p : rally_order->players) {
+            if (p.username == name) {
+                current_player = &p;
+                break;
+            }
+        }
+    }
+
+    if (!current_player) {
+        //TODO: Build a fake player as per the strategy variables - need a support procedure for this
+    }
+
+    float time = World::getWorld()->getTime();
+    if (current_player) {
+        if (current_player->gap_to_leader
+            <=
+            (float)rally_order->warmup_cutoff)
+        {
+            if (time < current_player->gap_to_leader) {
+                setSlowdown(MaxSpeed::MS_DECREASE_STOP, getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), -1);
+                m_rally_start = true;
+            } else {
+                setSlowdown(MaxSpeed::MS_DECREASE_STOP, getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), 0);
+                m_rally_start = false;
+            }
+        } else {
+            if (time < current_player->gap_to_leader) {
+                m_rally_wait_mode = true;
+                m_rally_start = true;
+            } else {
+                m_rally_wait_mode = false;
+                m_rally_start = false;
+            }
+        }
+    }
+
+    //TODO: ACTUALLY MAKE THE RALLYORDER BE FILLED UP PROPERLY
+    // SO THIS HACK OF A TEST FOR WARMUP MODE ISN'T NEEDED
+    //if (time < 40.0) {
+    //    m_rally_wait_mode = true;
+    //} else {
+    //    m_rally_wait_mode = false;
+    //}
+
 
     ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
     item_policy->enforceVirtualPaceCarRulesForKart(this);
@@ -3379,7 +3432,9 @@ void Kart::updatePhysics(int ticks)
 
 	uint32_t rules = item_policy->m_policy_sections[leader_sec].m_rules;
 
-	if (rules & ItemPolicyRules::IPT_GHOST_KARTS) {
+    if (m_rally_start) {
+		getBody()->setTag(GHOST_NO_COLLECTIBLE_KART_TAG);    
+	} else if (rules & ItemPolicyRules::IPT_GHOST_KARTS) {
 		getBody()->setTag(NO_COLLISION_KART_TAG);
 	} else {
 		getBody()->setTag(KART_TAG);

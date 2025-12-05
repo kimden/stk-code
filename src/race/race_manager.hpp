@@ -355,6 +355,9 @@ public:
 
 private:
 
+    bool m_rally_mode;
+    RallyOrder m_rally_order;
+
     /** The kart status data for each kart. */
     std::vector<KartStatus>          m_kart_status;
 
@@ -491,6 +494,10 @@ public:
     void setTrack(const std::string& track);
 
     void setTyreModRules(int fuel_mode, const std::vector<int> &tyre_alloc, int wildcards, bool item_preview);
+
+    void setRallyMode(bool a) { m_rally_mode = a; }
+    bool getRallyMode() const { return m_rally_mode; }
+    RallyOrder *getRallyOrder() { return getRallyMode() ? &m_rally_order : NULL; }
 
     TyreModRules *getTyreModRules(void);
 
