@@ -81,9 +81,9 @@ std::shared_ptr<Command> Context::command()
 }   // command
 //-----------------------------------------------------------------------------
 
-void Context::say(const std::string& s)
+void Context::say(const std::string& s, bool allow_nullptr)
 {
-    if (m_peer.expired())
+    if (!allow_nullptr && m_peer.expired())
         throw std::logic_error("Context::say: Peer has expired");
 
     auto peer = m_peer.lock();

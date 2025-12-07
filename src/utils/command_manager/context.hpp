@@ -68,7 +68,9 @@ struct Context
     std::shared_ptr<STKPeer> actingPeerMaybeNull();
     std::shared_ptr<Command> command();
 
-    void say(const std::string& s);
+    // Might be better to introduce a separate function
+    // instead of 2nd param for readability
+    void say(const std::string& s, bool allow_nullptr = false);
 
     void error(bool is_error = false);
 };

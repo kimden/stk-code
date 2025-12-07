@@ -1568,7 +1568,8 @@ void CommandManager::process_kick(Context& context)
         Log::info("CommandManager", "%s is now banned", player_name.c_str());
         getSettings()->tempBan(player_name);
         context.say(StringUtils::insertValues(
-                "%s is now banned", player_name.c_str()));
+                "%s is now banned", player_name.c_str()),
+                true);
     }
 } // process_kick
 // ========================================================================
@@ -2571,11 +2572,12 @@ void CommandManager::process_randomteams(Context& context)
             msg = "No one can play!";
         else
             msg = "Teams are currently not allowed";
-        context.say(msg);
+        context.say(msg, true);
         return;
     }
     context.say(StringUtils::insertValues(
-            "Created %d teams for %d players", final_number, players_number));
+            "Created %d teams for %d players", final_number, players_number),
+            true);
     getLobby()->updatePlayerList();
 } // process_randomteams
 // ========================================================================
