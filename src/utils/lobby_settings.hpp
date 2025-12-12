@@ -101,6 +101,8 @@ public:
                                         // { m_battle_hit_capture_limit = value; }
     // void setBattleTimeLimit(float value)       { m_battle_time_limit = value; }
     void setLobbyCooldown(int value)              { m_lobby_cooldown = value; }
+    void setForceRandomTeamsStart(float value)
+                                        { m_force_random_teams_start = value; }
 
     bool isCooldown() const;
 
@@ -183,6 +185,8 @@ public:
     // server), however, it might be useful regardless
     bool isLegacyGPMode()                  const { return m_legacy_gp_mode;                 }
     bool isLegacyGPModeStarted()           const { return m_legacy_gp_mode_started;         }
+
+    float forceRandomTeamsStart() const { return m_force_random_teams_start; }
 
 private:
 
@@ -267,6 +271,7 @@ private:
     std::string m_power_password_level_2;
     std::string m_register_table_name;
     int m_lobby_cooldown;
+    float m_force_random_teams_start;
 
     SetWithFlip<std::string> m_reserve_slots_for_players;
 

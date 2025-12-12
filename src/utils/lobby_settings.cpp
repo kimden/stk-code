@@ -125,6 +125,7 @@ void LobbySettings::setupContextUser()
     m_power_password_level_2         = ServerConfig::m_power_password_level_2;
     m_register_table_name            = ServerConfig::m_register_table_name;
     m_lobby_cooldown                 = ServerConfig::m_lobby_cooldown;
+    m_force_random_teams_start       = ServerConfig::m_force_random_teams_start;
 
     m_reserve_slots_for_players.fromVector(
             StringUtils::split(ServerConfig::m_reserve_slots_for_players, ' '));

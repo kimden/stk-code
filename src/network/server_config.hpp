@@ -813,6 +813,10 @@ namespace ServerConfig
             "and take the playable slots of the server, even if the server "
             "is full. Make sure to not specify too many of them!"));
 
+    SERVER_CFG_PREFIX FloatServerConfigParam m_force_random_teams_start
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(0.0f, "force-random-teams-start-probability",
+        "With this probability, the teams will be randomly assigned upon selection start."));
+
     // ========================================================================
     /** Server version, will be advanced if there are protocol changes. */
     static const uint32_t m_server_version = 6;

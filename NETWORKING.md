@@ -406,6 +406,9 @@ A typical current server configuration xml that fits the current code version is
     <!-- Official players with these usernames will be allowed to enter and take the playable slots of the server, even if the server is full. Make sure to not specify too many of them! -->
     <reserve-slots-for-players value="" />
 
+    <!-- With this probability, the teams will be randomly assigned upon selection start. -->
+    <force-random-teams-start-probability value="0.0" />
+
 </server-config>
 ```
 

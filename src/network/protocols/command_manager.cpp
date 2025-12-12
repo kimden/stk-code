@@ -423,6 +423,8 @@ void CommandManager::initCommands()
     applyFunctionIfPossible("availableteams =", &CM::process_available_teams_assign);
     applyFunctionIfPossible("cooldown", &CM::process_cooldown);
     applyFunctionIfPossible("cooldown =", &CM::process_cooldown_assign);
+    applyFunctionIfPossible("forcerandom", &CM::process_forcerandom);
+    applyFunctionIfPossible("forcerandom =", &CM::process_forcerandom_assign);
     applyFunctionIfPossible("countteams", &CM::process_countteams);
     applyFunctionIfPossible("network", &CM::process_net);
     applyFunctionIfPossible("everynet", &CM::process_everynet);
@@ -3556,11 +3558,42 @@ void CommandManager::process_cooldown_assign(Context& context)
 } // process_cooldown_assign
 // ========================================================================
 
+void CommandManager::process_forcerandom(Context& context)
+{
+    context.say(StringUtils::insertValues(
+            "The probability of forcing random teams is: %f",
+            getSettings()->forceRandomTeamsStart()));
+} // process_cooldown
+// ========================================================================
+
+void CommandManager::process_forcerandom_assign(Context& context)
+{
+    auto& argv = context.m_argv;
+
+    if (argv.size() < 2)
+    {
+        context.error();
+        return;
+    }
+    float new_probability = -1;
+    if (!StringUtils::parseString<float>(argv[1], &new_probability))
+    {
+        context.error();
+        return;
+    }
+    getSettings()->setForceRandomTeamsStart(new_probability);
+
+    context.say(StringUtils::insertValues(
+            "Set probability for force shuffling teams to %s",
+            new_probability));
+} // process_forcerandom_assign
+// ========================================================================
+
 void CommandManager::process_countteams(Context& context)
 {
     context.say(StringUtils::insertValues("Teams composition: %s",
             getTeamManager()->countTeamsAsString().c_str()));
-} // process_cooldown
+} // process_countteams
 // ========================================================================
 
 void CommandManager::process_net(Context& context)

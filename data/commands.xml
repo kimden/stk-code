@@ -1214,6 +1214,21 @@ here later. For now, please refer to the code for the strings being used. -->
                  permissions="UP_HAMMER"
         />
     </command>
+    <command name="forcerandom"
+             usage="/forcerandom"
+             description="The probability with which the teams are randomly shuffled when the game starts (limited to the segment [0, 1])."
+             permissions="UP_EVERYONE | PE_ALLOW_ANYONE"
+             permissions-verbose="everyone; invokable for another player"
+             state-scope="SS_ALWAYS"
+    >
+        <command name="="
+                 usage="/forcerandom (float probability)"
+                 omit-name="true"
+                 permissions-verbose="hammers"
+                 description="Allows to set the probability of forcing random teams."
+                 permissions="UP_HAMMER"
+        />
+    </command>
     <command name="countteams"
              usage="/countteams"
              description="Shows the number of people in each team."

@@ -1865,6 +1865,18 @@ void ServerLobby::startSelection(const Event *event)
             peer->setWaitingForGame(true);
     }
 
+    // Bad but enough for the purpose
+    auto& rg = GlobalMt19937::get();
+    double random_value = rg() % (0xFFFF) / (double)0x10000;
+    bool shuffled_teams = false;
+    if (random_value < getSettings()->forceRandomTeamsStart())
+    {
+        shuffled_teams = true;
+        int final_number, players_number;
+        getTeamManager()->clearTeams();
+        getTeamManager()->assignRandomTeams(-1, &final_number, &players_number);
+    }
+    
     getAssetManager()->eraseAssetsWithPeers(erasingPeers);
 
     max_player = 0;
@@ -1949,8 +1961,22 @@ void ServerLobby::startSelection(const Event *event)
         peer->sendPacket(ns, PRM_RELIABLE);
         delete ns;
 
+        std::string message = "";
+        const auto main_profile = peer->getMainProfile();
+
+        if (shuffled_teams && main_profile)
+            message += StringUtils::insertValues(
+                "You are now in team %s\n",
+                TeamUtils::getTeamByIndex(main_profile->getTemporaryTeam()).getNameWithEmoji().c_str());
+
         if (getQueues()->areKartFiltersIgnoringKarts())
-            Comm::sendStringToPeer(peer, "The server will ignore your kart choice");
+            message += "The server will ignore your kart choice\n";
+        
+        if (!message.empty())
+        {
+            message.pop_back();            
+            Comm::sendStringToPeer(peer, message);
+        }
     }
 
     m_state = SELECTING;

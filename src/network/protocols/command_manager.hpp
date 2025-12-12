@@ -208,6 +208,8 @@ private:
     void process_available_teams_assign(Context& context);
     void process_cooldown(Context& context);
     void process_cooldown_assign(Context& context);
+    void process_forcerandom(Context& context);
+    void process_forcerandom_assign(Context& context);
     void process_countteams(Context& context);
     void process_net(Context& context);
     void process_everynet(Context& context);

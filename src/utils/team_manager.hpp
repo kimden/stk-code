@@ -80,7 +80,8 @@ public:
     // The functions below reset/set ASM_NO_TEAM if needed by team changing procedure.
     void checkNoTeamSpectator(std::shared_ptr<STKPeer> peer);
 
-    bool assignRandomTeams(int intended_number, int* final_number, int* player_number);
+    bool assignRandomTeams(int intended_number,
+        int* final_number, int* player_number);
     std::string countTeamsAsString();
 
     void swapRedBlueTeams();
