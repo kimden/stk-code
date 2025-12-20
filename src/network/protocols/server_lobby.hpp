@@ -188,6 +188,8 @@ private:
 
     std::atomic<bool> m_reset_to_default_mode_later;
 
+    mutable std::atomic_int m_dummy_counter = 0;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);

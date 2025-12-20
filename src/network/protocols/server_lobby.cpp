@@ -1362,8 +1362,22 @@ void ServerLobby::update(int ticks)
         m_state.load() <= RACING && m_server_has_loaded_world.load();
     bool all_players_in_world_disconnected = (w != NULL && world_started);
     int sec = getSettings()->getKickIdlePlayerSeconds();
+    
+    const LinearWorld* linear_world = dynamic_cast<LinearWorld*>(World::getWorld());
+    std::string naive_log = "";
+    bool log_ok = false;
+
     if (world_started)
     {
+        ++m_dummy_counter;
+        if (m_dummy_counter % 100 == 0)
+        {
+            m_dummy_counter = 0;
+            log_ok = true;
+        }
+
+        if (log_ok)
+            naive_log += StringUtils::toString(RaceManager::get()->getNumPlayers());
         for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
         {
             RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
@@ -1376,6 +1390,36 @@ void ServerLobby::update(int ticks)
             }
             else
                 continue;
+
+            if (log_ok)
+            {
+                if (RaceManager::get()->isLinearRaceMode() && linear_world)
+                {
+                    try
+                    {
+                        naive_log += StringUtils::insertValues(
+                            ",%d,%d,%s,%d,%f",
+                            linear_world->getKart(i)->getPosition(),
+                            (int)round(rki.getDefaultKartColor() * 100),
+                            StringUtils::wideToUtf8(rki.getPlayerName()).c_str(),
+                            linear_world->getFinishedLapsOfKart(i),
+                            linear_world->getDistanceDownTrackForKart(i, true) / Track::getCurrentTrack()->getTrackLength() * 100.0
+                        );
+                    }
+                    catch (std::exception& ex)
+                    {
+                        naive_log = "";
+                        log_ok = false;
+                        Log::error("ServerLobby", "RaceStatus: Error: %s", ex.what());
+                    }
+                }
+                else
+                {
+                    Log::warn("ServerLobby", "RaceStatus: No linear world");
+                    log_ok = false;
+                }
+            }
+
             auto peer = player->getPeer();
             if (!peer)
                 continue;
@@ -1436,6 +1480,9 @@ void ServerLobby::update(int ticks)
             }
             getHitProcessor()->punishSwatterHits();
         }
+
+        if (log_ok)
+            Log::info("ServerLobby", "RaceStatus: %s", naive_log.c_str());
     }
     if (m_state.load() == WAITING_FOR_START_GAME) {
         sec = getSettings()->getKickIdleLobbyPlayerSeconds();
