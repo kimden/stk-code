@@ -357,6 +357,14 @@
            trying to collect an item (if an item is selected for
            collection in the first place).
     -->
+    <!-- The default avlues used for AI to decide
+        how to pit if not specified per-track
+    -->
+    <pit
+        default-time-pit-drivethrough="10.0"
+        default-time-pit-tyrechange="10.0"
+        default-time-pit-refuel="5.0"
+    />
     <ai>
         <easy   straight-length-for-zipper="35"
                 use-slipstream="false"

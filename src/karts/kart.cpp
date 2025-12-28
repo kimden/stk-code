@@ -3440,6 +3440,13 @@ void Kart::updatePhysics(int ticks)
 		getBody()->setTag(KART_TAG);
 	}
 
+	// AIs are ALWAYS no collectible ghost karts if they currently have pit-related slowdown
+	if (!item_policy->isKartUnderVirtualPaceCarSlowdown(getPosition())
+	    && !m_controller->isPlayerController()
+	    && m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_STOP)) {
+		getBody()->setTag(GHOST_NO_COLLECTIBLE_KART_TAG);    
+	}
+
 #ifdef XX
     Log::info("Kart","angVel %f %f %f heading %f suspension %f %f %f %f"
        ,m_body->getAngularVelocity().getX()

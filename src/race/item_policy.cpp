@@ -355,20 +355,20 @@ std::string ItemPolicy::toString() {
 } // toString
 //--------------------------------------------------
 
-static bool isKartUnderVirtualPaceCarSlowdown(ItemPolicy *self, int position) {
+bool ItemPolicy::isKartUnderVirtualPaceCarSlowdown(int position) {
     if (!World::getWorld()->raceHasLaps())
         return false;
 
-    bool start_of_race_vpc = self->m_leader_section <= -1 && (self->m_policy_sections[0].m_rules & ItemPolicyRules::IPT_VIRTUAL_PACE);
+    bool start_of_race_vpc = m_leader_section <= -1 && (m_policy_sections[0].m_rules & ItemPolicyRules::IPT_VIRTUAL_PACE);
     // Not in a virtual pace car yet, but since it is on the start of the race, this is done to prevent overtaking
     if (start_of_race_vpc)
         return true;
 
-    bool is_restart = self->m_virtual_pace_code <= -3;
+    bool is_restart = m_virtual_pace_code <= -3;
     bool did_restart = false;
     if (is_restart) {
-        int restart_time = -(self->m_virtual_pace_code + 3);
-        float gap = self->m_policy_sections[self->m_leader_section].m_virtual_pace_gaps;
+        int restart_time = -(m_virtual_pace_code + 3);
+        float gap = m_policy_sections[m_leader_section].m_virtual_pace_gaps;
         gap *= position;
         restart_time += gap;
         int current_time = World::getWorld()->getTime();
@@ -394,7 +394,7 @@ bool ItemPolicy::isHitValid(Kart *sender, Kart *receiver) {
     }
 
     // If one of the karts is under a virtual pace car restart, forbid the hit
-    if (isKartUnderVirtualPaceCarSlowdown(this, sender->getPosition()) || isKartUnderVirtualPaceCarSlowdown(this, receiver->getPosition())) {
+    if (isKartUnderVirtualPaceCarSlowdown(sender->getPosition()) || isKartUnderVirtualPaceCarSlowdown(receiver->getPosition())) {
         // printf("HITCHECK: NO, BECAUSE VPC\n");
         return false;
     }

@@ -273,6 +273,7 @@ private:
     void  handleRescue(const float dt);
     void  handleBraking(float max_turn_speed, float min_speed);
     void  handleNitroAndZipper(float max_safe_speed);
+    void  handleTyreChangeAndRefuel();
     void  computeNearestKarts();
     void  handleItemCollectionAndAvoidance(Vec3 *aim_point,
                                            int last_node);

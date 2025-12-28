@@ -241,6 +241,16 @@ private:
      *  certain track versions. */
     int                      m_version;
 
+    /** Aprox. time lost driving through the pitlane in this track*/
+    float m_time_pit_drivethrough;
+    
+    /** Aprox. time lost changing tyres in this track */
+    float m_time_pit_tyrechange;
+
+    /** Aprox. INITIAL time lost refueling in this track (time if 0 fuel is added) */
+    float m_time_pit_refuel;
+
+
     /** Far value for cameras for this track. */
     float                    m_camera_far;
 
@@ -504,6 +514,11 @@ public:
     // ------------------------------------------------------------------------
     /** Returns true if this race can be driven in reverse. */
     bool reverseAvailable() const { return m_reverse_available; }
+
+    float getTimePitDrivethrough() const { return m_time_pit_drivethrough; }
+    float getTimePitTyrechange() const { return m_time_pit_tyrechange; }
+    float getTimePitRefuel() const { return m_time_pit_refuel; }
+
     // ------------------------------------------------------------------------
     /** Returns true if this track navmesh. */
     bool hasNavMesh() const { return m_has_navmesh; }

@@ -162,6 +162,8 @@ struct ItemPolicy {
 
     void enforceVirtualPaceCarRulesForKart(Kart *k);
     void checkAndApplyVirtualPaceCarRules(Kart *kart, int kart_section, int finished_laps);
+    bool isKartUnderVirtualPaceCarSlowdown(int position);
+
 
     void fromString(std::string& str);
     std::string toString();

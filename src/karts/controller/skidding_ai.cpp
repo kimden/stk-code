@@ -348,6 +348,7 @@ void SkiddingAI::update(int ticks)
     handleAccelerationAndBraking(ticks);
     handleSteering(dt);
     handleRescue(dt);
+    handleTyreChangeAndRefuel();
 
     // Make sure that not all AI karts use the zipper at the same
     // time in time trial at start up, so disable it during the 5 first seconds
@@ -2175,6 +2176,68 @@ void SkiddingAI::handleRescue(const float dt)
         m_time_since_stuck = 0.0f;
     }
 }   // handleRescue
+
+//-----------------------------------------------------------------------------
+void SkiddingAI::handleTyreChangeAndRefuel()
+{
+    bool can_pit = true;
+    if (World::getWorld()->raceHasLaps()) {
+        LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
+        float track_length = Track::getCurrentTrack()->getTrackLength();
+        float distance = std::fmod(lin_world->getOverallDistance(m_kart->getWorldKartId()), track_length); 
+        // Can only pit if the distance is within 10% of the finish line
+        can_pit = distance > 0.90*track_length;
+    }
+    if (!can_pit)
+        return;
+
+    float max_life_traction = m_kart->m_tyres->m_c_max_life_traction;
+    float min_life_traction = m_kart->m_tyres->m_c_min_life_traction;
+    float curr_life_traction = m_kart->m_tyres->m_current_life_traction;
+    float current_fuel = m_kart->m_tyres->m_current_fuel;
+    float capacity = m_kart->m_tyres->m_c_max_fuel;
+
+    bool is_fuel_on = RaceManager::get()->getTyreModRules()->fuel_mode != 0;
+
+
+    // TODO: turn used_fuel_last_lap into m_used_fuel_last_lap and update it each lap with the difference between the m_fuel_last_lap and the current fuel
+    float used_fuel_last_lap = 0.0;
+
+    bool will_pit = false;
+    float accrued_slowdown = 0.0f;
+
+    auto& stk_config = STKConfig::get();
+
+    if (is_fuel_on && current_fuel <= used_fuel_last_lap) {
+        will_pit = true;
+        accrued_slowdown += Track::getCurrentTrack()->getTimePitDrivethrough();
+        accrued_slowdown += stk_config->time2Ticks(capacity*m_kart->m_tyres->getFuelStopRatio());
+    }
+
+    // It's almost always worth it to take new tyres if within 10% of the pit threshold AND will already refuel anyways
+    if (curr_life_traction <= min_life_traction
+         || (will_pit
+             && (curr_life_traction-min_life_traction)/min_life_traction <= 0.1)) {
+        if (!will_pit) {
+            accrued_slowdown += Track::getCurrentTrack()->getTimePitDrivethrough();
+            will_pit = true;
+        }
+        accrued_slowdown += Track::getCurrentTrack()->getTimePitTyrechange();
+    }
+
+    if (will_pit) {
+        m_kart->setSlowdown(
+            MaxSpeed::MS_DECREASE_STOP,
+            m_kart->getKartProperties()->getTyresPitSpeedFraction(),
+            stk_config->time2Ticks(0.1f),
+            accrued_slowdown
+        );
+        // TODO:
+        // m_has_pitted_this_lap = true
+        // and set it to false when a new lap is completed
+    }
+}   // handleTyreChangeAndRefuel
+
 
 //-----------------------------------------------------------------------------
 /** Decides wether to use nitro and zipper or not.
