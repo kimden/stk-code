@@ -383,6 +383,7 @@ void LinearWorld::newLap(unsigned int kart_index)
 {
     KartInfo &kart_info = m_kart_info[kart_index];
     Kart *kart  = m_karts[kart_index].get();
+    kart->getController()->newLapTyres();
 
     // Reset reset-after-lap achievements
     PlayerProfile *p = PlayerManager::getCurrentPlayer();

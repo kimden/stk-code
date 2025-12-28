@@ -159,6 +159,10 @@ private:
 
     float m_time_since_stuck;
 
+    float m_fuel_level_last_lap;
+    float m_fuel_used_last_lap;
+    bool m_has_pitted_this_lap;
+
     /** Direction of crash: -1 = left, 1 = right, 0 = no crash. */
     int m_start_kart_crash_direction;
 
@@ -303,6 +307,7 @@ public:
                  SkiddingAI(Kart *kart);
                 ~SkiddingAI();
     virtual void update      (int ticks);
+    virtual void newLapTyres ();
     virtual void reset       ();
     virtual const irr::core::stringw& getNamePostfix() const;
 };

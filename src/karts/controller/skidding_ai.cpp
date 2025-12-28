@@ -46,6 +46,7 @@
 #include "utils/constants.hpp"
 #include "utils/log.hpp"
 #include "utils/vs.hpp"
+#include "utils/tyre_utils.hpp"
 
 #include <line2d.h>
 
@@ -165,6 +166,9 @@ void SkiddingAI::reset()
     m_start_kart_crash_direction = 0;
     m_start_delay                = -1;
     m_time_since_stuck           = 0.0f;
+    m_fuel_level_last_lap        = -1.0f;
+    m_fuel_used_last_lap         = -1.0f;
+    m_has_pitted_this_lap        = false;
     m_kart_ahead                 = NULL;
     m_distance_ahead             = 0.0f;
     m_distance_leader            = 999.9f;
@@ -194,6 +198,23 @@ void SkiddingAI::reset()
 
     AIBaseLapController::reset();
 }   // reset
+
+void SkiddingAI::newLapTyres() {
+    m_has_pitted_this_lap = false;
+
+    bool is_fuel_on = RaceManager::get()->getTyreModRules()->fuel_mode != 0;
+    if (!is_fuel_on)
+        return;
+    float current_fuel = m_kart->m_tyres->m_current_fuel;
+    // This is being called on lap 0
+    if (m_fuel_level_last_lap < -0.5) {
+        m_fuel_level_last_lap = current_fuel;
+        m_fuel_used_last_lap = 0.0f;
+    } else if (m_fuel_level_last_lap >= 0.0f) {
+        m_fuel_used_last_lap = m_fuel_level_last_lap - current_fuel;
+        m_fuel_level_last_lap = current_fuel;
+    }
+} // newLapTyres
 
 //-----------------------------------------------------------------------------
 /** Returns a name for the AI.
@@ -2181,12 +2202,16 @@ void SkiddingAI::handleRescue(const float dt)
 void SkiddingAI::handleTyreChangeAndRefuel()
 {
     bool can_pit = true;
+
+    float track_length = 0.0f;;
+    float distance = 0.0f;
+    
     if (World::getWorld()->raceHasLaps()) {
         LinearWorld *lin_world = dynamic_cast<LinearWorld*>(World::getWorld());
-        float track_length = Track::getCurrentTrack()->getTrackLength();
-        float distance = std::fmod(lin_world->getOverallDistance(m_kart->getWorldKartId()), track_length); 
+        track_length = Track::getCurrentTrack()->getTrackLength();
+        distance = std::fmod(lin_world->getOverallDistance(m_kart->getWorldKartId()), track_length); 
         // Can only pit if the distance is within 10% of the finish line
-        can_pit = distance > 0.90*track_length;
+        can_pit = distance > 0.90*track_length && distance < 0.98*track_length;
     }
     if (!can_pit)
         return;
@@ -2200,19 +2225,23 @@ void SkiddingAI::handleTyreChangeAndRefuel()
     bool is_fuel_on = RaceManager::get()->getTyreModRules()->fuel_mode != 0;
 
 
-    // TODO: turn used_fuel_last_lap into m_used_fuel_last_lap and update it each lap with the difference between the m_fuel_last_lap and the current fuel
-    float used_fuel_last_lap = 0.0;
-
     bool will_pit = false;
+    bool will_change_compound = false;
+    unsigned new_compound = 0;
     float accrued_slowdown = 0.0f;
 
     auto& stk_config = STKConfig::get();
 
-    if (is_fuel_on && current_fuel <= used_fuel_last_lap) {
+    if (is_fuel_on && current_fuel <= m_fuel_used_last_lap) {
         will_pit = true;
         accrued_slowdown += Track::getCurrentTrack()->getTimePitDrivethrough();
-        accrued_slowdown += stk_config->time2Ticks(capacity*m_kart->m_tyres->getFuelStopRatio());
+        accrued_slowdown += Track::getCurrentTrack()->getTimePitRefuel();
+        accrued_slowdown += (capacity-current_fuel)*m_kart->m_tyres->getFuelStopRatio();
+        m_kart->m_tyres->m_current_fuel = capacity;
     }
+
+    // printf("AI: %d / Tyre health %f, minimum %f / Distance %fm of %fm / Penalties %fsec + %fsec\n", m_has_pitted_this_lap, curr_life_traction, min_life_traction, distance, track_length, Track::getCurrentTrack()->getTimePitDrivethrough(), Track::getCurrentTrack()->getTimePitTyrechange());
+    
 
     // It's almost always worth it to take new tyres if within 10% of the pit threshold AND will already refuel anyways
     if (curr_life_traction <= min_life_traction
@@ -2223,18 +2252,30 @@ void SkiddingAI::handleTyreChangeAndRefuel()
             will_pit = true;
         }
         accrued_slowdown += Track::getCurrentTrack()->getTimePitTyrechange();
+        // For now, select a random tyre
+        std::vector<unsigned> tyre_mapping = TyreUtils::getAllActiveCompounds(true /*exclude_cheat*/);
+        unsigned count = 1; // Used to avoid an infinite loop if no tyre can be picked
+        unsigned selected = rand() % tyre_mapping.size();
+        // Select a tyre that has non-zero allocation
+        while (count < tyre_mapping.size()*2 && m_kart->m_tyres_queue[tyre_mapping[selected]-1] == 0) {
+            selected = (selected + 1) % tyre_mapping.size();
+            count += 1;
+        }
+        new_compound = tyre_mapping[selected];
+        will_change_compound = true;
     }
 
-    if (will_pit) {
+    if ((!World::getWorld()->raceHasLaps() || !m_has_pitted_this_lap) && will_pit) {
+        m_has_pitted_this_lap = true;
+        if (will_change_compound) {
+            m_kart->m_tyres->commandChange(new_compound, 0);
+        }
         m_kart->setSlowdown(
             MaxSpeed::MS_DECREASE_STOP,
             m_kart->getKartProperties()->getTyresPitSpeedFraction(),
             stk_config->time2Ticks(0.1f),
-            accrued_slowdown
+            stk_config->time2Ticks(accrued_slowdown)
         );
-        // TODO:
-        // m_has_pitted_this_lap = true
-        // and set it to false when a new lap is completed
     }
 }   // handleTyreChangeAndRefuel
 
