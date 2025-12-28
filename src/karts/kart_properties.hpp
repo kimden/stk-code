@@ -499,6 +499,8 @@ public:
     std::vector<float> getTyresMaxLifeTraction() const;
     std::vector<float> getTyresMinLifeTurning() const;
     std::vector<float> getTyresMinLifeTraction() const;
+    std::vector<float> getTyresMinLifeTurningGui() const;
+    std::vector<float> getTyresMinLifeTractionGui() const;
     std::vector<float> getTyresRegularTransferTurning() const;
     std::vector<float> getTyresRegularTransferTraction() const;
     std::vector<float> getTyresLimitingTransferTurning() const;

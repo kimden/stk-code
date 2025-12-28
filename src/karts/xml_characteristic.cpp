@@ -597,6 +597,10 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_MIN_LIFE_TURNING]);
         sub_node->get("min-life-traction",
             &m_values[TYRES_MIN_LIFE_TRACTION]);
+        sub_node->get("min-life-turning-gui",
+            &m_values[TYRES_MIN_LIFE_TURNING_GUI]);
+        sub_node->get("min-life-traction-gui",
+            &m_values[TYRES_MIN_LIFE_TRACTION_GUI]);
         sub_node->get("regular-transfer-turning",
             &m_values[TYRES_REGULAR_TRANSFER_TURNING]);
         sub_node->get("regular-transfer-traction",

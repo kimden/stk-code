@@ -208,6 +208,8 @@ public:
         TYRES_MAX_LIFE_TRACTION,
         TYRES_MIN_LIFE_TURNING,
         TYRES_MIN_LIFE_TRACTION,
+        TYRES_MIN_LIFE_TURNING_GUI,
+        TYRES_MIN_LIFE_TRACTION_GUI,
         TYRES_REGULAR_TRANSFER_TURNING,
         TYRES_REGULAR_TRANSFER_TRACTION,
         TYRES_LIMITING_TRANSFER_TURNING,
@@ -453,6 +455,8 @@ public:
     std::vector<float> getTyresMaxLifeTraction() const;
     std::vector<float> getTyresMinLifeTurning() const;
     std::vector<float> getTyresMinLifeTraction() const;
+    std::vector<float> getTyresMinLifeTurningGui() const;
+    std::vector<float> getTyresMinLifeTractionGui() const;
     std::vector<float> getTyresRegularTransferTurning() const;
     std::vector<float> getTyresRegularTransferTraction() const;
     std::vector<float> getTyresLimitingTransferTurning() const;

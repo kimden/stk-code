@@ -245,6 +245,10 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_MIN_LIFE_TRACTION:
         return TYPE_FLOAT_VECTOR;
+    case TYRES_MIN_LIFE_TURNING_GUI:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_MIN_LIFE_TRACTION_GUI:
+        return TYPE_FLOAT_VECTOR;
     case TYRES_REGULAR_TRANSFER_TURNING:
         return TYPE_FLOAT_VECTOR;
     case TYRES_REGULAR_TRANSFER_TRACTION:
@@ -615,6 +619,10 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_MIN_LIFE_TURNING";
     case TYRES_MIN_LIFE_TRACTION:
         return "TYRES_MIN_LIFE_TRACTION";
+    case TYRES_MIN_LIFE_TURNING_GUI:
+        return "TYRES_MIN_LIFE_TURNING_GUI";
+    case TYRES_MIN_LIFE_TRACTION_GUI:
+        return "TYRES_MIN_LIFE_TRACTION_GUI";
     case TYRES_REGULAR_TRANSFER_TURNING:
         return "TYRES_REGULAR_TRANSFER_TURNING";
     case TYRES_REGULAR_TRANSFER_TRACTION:
@@ -1926,6 +1934,30 @@ std::vector<float> AbstractCharacteristic::getTyresMinLifeTraction() const
                     getName(TYRES_MIN_LIFE_TRACTION).c_str());
     return result;
 }  // getTyresMinLifeTraction
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresMinLifeTurningGui() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_MIN_LIFE_TURNING_GUI, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_MIN_LIFE_TURNING_GUI).c_str());
+    return result;
+}  // getTyresMinLifeTurningGui
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresMinLifeTractionGui() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_MIN_LIFE_TRACTION_GUI, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_MIN_LIFE_TRACTION_GUI).c_str());
+    return result;
+}  // getTyresMinLifeTractionGui
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getTyresRegularTransferTurning() const
