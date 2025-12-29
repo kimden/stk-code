@@ -360,13 +360,18 @@ bool TeamManager::assignRandomTeams(int intended_number,
     int teams_number = intended_number;
     *final_number = teams_number;
     int player_number = 0;
+    int ingame_player_number = 0;
     for (auto& p : STKHost::get()->getPeers())
     {
         if (!getCrownManager()->canRace(p))
             continue;
         if (p->alwaysSpectateButNotNeutral())
             continue;
-        player_number += p->getPlayerProfiles().size();
+        
+        size_t size = p->getPlayerProfiles().size();
+        player_number += size;
+        if (!p->isWaitingForGame())
+            ingame_player_number += size;
     }
     if (player_number == 0) {
         *final_number = teams_number;
@@ -403,20 +408,28 @@ bool TeamManager::assignRandomTeams(int intended_number,
     for (int i = 0; i < player_number; ++i)
         profile_colors.push_back(available_colors[i % teams_number]);
 
-    std::shuffle(profile_colors.begin(), profile_colors.end(), g);
+    const auto it = profile_colors.begin() + ingame_player_number;
+    std::shuffle(profile_colors.begin(), it, g);
+    std::shuffle(it, profile_colors.end(), g);
+    std::reverse(profile_colors.begin(), profile_colors.end());
 
     clearTemporaryTeams();
-    for (auto& p : STKHost::get()->getPeers())
+    for (int group = 0; group < 2; ++group)
     {
-        if (!getCrownManager()->canRace(p))
-            continue;
-        if (p->alwaysSpectateButNotNeutral())
-            continue;
-        for (auto& profile : p->getPlayerProfiles())
+        for (auto& p : STKHost::get()->getPeers())
         {
-            setTemporaryTeamInLobby(profile, profile_colors.back());
-            if (profile_colors.size() > 1) // prevent crash just in case
-                profile_colors.pop_back();
+            if (!getCrownManager()->canRace(p))
+                continue;
+            if (p->alwaysSpectateButNotNeutral())
+                continue;
+            if ((!p->isWaitingForGame()) ^ (group == 0))
+                continue;
+            for (auto& profile : p->getPlayerProfiles())
+            {
+                setTemporaryTeamInLobby(profile, profile_colors.back());
+                if (profile_colors.size() > 1) // prevent crash just in case
+                    profile_colors.pop_back();
+            }
         }
     }
     return true;

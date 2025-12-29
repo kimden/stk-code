@@ -255,7 +255,33 @@ namespace StringUtils
 
         return ans;
     }   // quoteEscape
+
+
+    std::string quoteEscapeArray(const std::vector<std::string>::const_iterator begin,
+                                 const std::vector<std::string>::const_iterator end,
+                                 char c, char d, char e, char f)
+    {
+        std::string res = "";
+        for (auto it = begin; it != end; ++it)
+        {
+            if (it != begin) {
+                res.push_back(c);
+            }
+            res += StringUtils::quoteEscape(*it, c, d, e, f);
+        }
+        return res;
+    }   // quoteEscapeArray
     //-------------------------------------------------------------------------
+
+    void restoreCmdFromArgv(std::string& cmd,
+                          const std::vector<std::string>& argv,
+                          char c, char d, char e, char f,
+                          int from)
+    {
+        cmd = quoteEscapeArray(argv.begin() + from, argv.end(), c, d, e, f);
+    }   // restoreCmdFromArgv
+    //-------------------------------------------------------------------------
+
     /** Splits a string into substrings separated by a certain character, and
      *  returns a std::vector of all those substring. E.g.:
      *  split("a b=c d=e",' ')  --> ["a", "b=c", "d=e"]

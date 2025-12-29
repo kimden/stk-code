@@ -41,6 +41,13 @@ void SetTypoFixer::remove(const std::string& key)
 }   // remove
 //-----------------------------------------------------------------------------
 
+void SetTypoFixer::clear()
+{
+    m_set.clear();
+    m_map.clear();
+}   // clear
+//-----------------------------------------------------------------------------
+
 std::vector<std::pair<std::string, int>> SetTypoFixer::getClosest(
     const std::string& query, int count, bool case_sensitive) const
 {

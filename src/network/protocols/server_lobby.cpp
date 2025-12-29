@@ -61,6 +61,7 @@
 #include "utils/lobby_queues.hpp"
 #include "utils/map_vote_handler.hpp"
 #include "utils/name_decorators/generic_decorator.hpp"
+#include "utils/public_player_value_storage.hpp"
 #include "utils/team_manager.hpp"
 #include "utils/tournament.hpp"
 #include "utils/translation.hpp"
@@ -1866,6 +1867,18 @@ void ServerLobby::startSelection(const Event *event)
             peer->setWaitingForGame(true);
     }
 
+    // Bad but enough for the purpose
+    auto& rg = GlobalMt19937::get();
+    double random_value = rg() % (0xFFFF) / (double)0x10000;
+    bool shuffled_teams = false;
+    if (random_value < getSettings()->forceRandomTeamsStart())
+    {
+        shuffled_teams = true;
+        int final_number, players_number;
+        getTeamManager()->clearTeams();
+        getTeamManager()->assignRandomTeams(-1, &final_number, &players_number);
+    }
+    
     getAssetManager()->eraseAssetsWithPeers(erasingPeers);
 
     max_player = 0;
@@ -1950,8 +1963,22 @@ void ServerLobby::startSelection(const Event *event)
         peer->sendPacket(ns, PRM_RELIABLE);
         delete ns;
 
+        std::string message = "";
+        const auto main_profile = peer->getMainProfile();
+
+        if (shuffled_teams && main_profile)
+            message += StringUtils::insertValues(
+                "You are now in team %s\n",
+                TeamUtils::getTeamByIndex(main_profile->getTemporaryTeam()).getNameWithEmoji().c_str());
+
         if (getQueues()->areKartFiltersIgnoringKarts())
-            Comm::sendStringToPeer(peer, "The server will ignore your kart choice");
+            message += "The server will ignore your kart choice\n";
+        
+        if (!message.empty())
+        {
+            message.pop_back();            
+            Comm::sendStringToPeer(peer, message);
+        }
     }
 
     m_state = SELECTING;
@@ -2926,6 +2953,11 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         if (team != 0 && !RaceManager::get()->teamEnabled()) {
             prefix = TeamUtils::getTeamByIndex(team).getEmoji() + " " + prefix;
         }
+
+        PublicPlayerValueStorage::tryUpdate();
+        std::string public_values = PublicPlayerValueStorage::get(utf8_profile_name);
+        if (!public_values.empty())
+            prefix = "{" + public_values + "} " + prefix;
 
         profile_name = StringUtils::utf8ToWide(prefix) + profile_name;
 
@@ -4647,8 +4679,8 @@ int ServerLobby::getCurrentStateScope()
         || state > RESULT_DISPLAY)
         return 0;
     if (state == WAITING_FOR_START_GAME)
-        return CommandManager::StateScope::SS_LOBBY;
-    return CommandManager::StateScope::SS_INGAME;
+        return StateScope::SS_LOBBY;
+    return StateScope::SS_INGAME;
 }   // getCurrentStateScope
 //-----------------------------------------------------------------------------
 

@@ -59,6 +59,13 @@ namespace StringUtils
                                         char d, char e, char f);
     std::string                     quoteEscape(const std::string& s, char c,
                                         char d, char e, char f);
+    std::string                     quoteEscapeArray(const std::vector<std::string>::const_iterator begin,
+                                                     const std::vector<std::string>::const_iterator end,
+                                                     char c, char d, char e, char f);
+    void                            restoreCmdFromArgv(std::string& cmd,
+                                                     const std::vector<std::string>& argv,
+                                                     char c, char d, char e, char f,
+                                                     int from = 0);
     std::vector<std::string>        split(const std::string& s, char c,
                                           bool keepSplitChar=false);
     std::vector<std::u32string>     split(const std::u32string& s, char32_t c,

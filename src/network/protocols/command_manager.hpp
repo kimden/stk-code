@@ -40,7 +40,11 @@
 
 #include "network/protocols/command_voting.hpp"
 #include "network/protocols/command_permissions.hpp"
-#include "utils/enum_extended_reader.hpp"
+#include "utils/command_manager/auth_resource.hpp"
+#include "utils/command_manager/command.hpp"
+#include "utils/command_manager/context.hpp"
+#include "utils/command_manager/file_resource.hpp"
+#include "utils/command_manager/text_resource.hpp"
 #include "utils/lobby_context.hpp"
 #include "utils/set_typo_fixer.hpp"
 #include "utils/team_utils.hpp"
@@ -55,165 +59,11 @@ class STKPeer;
 
 class CommandManager: public LobbyContextComponent
 {
-public:
-    enum ModeScope: int
-    {
-        MS_DEFAULT = 1,
-        MS_SOCCER_TOURNAMENT = 2
-        // add more powers of two if needed
-    };
-
-    enum StateScope: int
-    {
-        SS_LOBBY = 1,
-        SS_INGAME = 2,
-        SS_ALWAYS = SS_LOBBY | SS_INGAME
-    };
-
 private:
-    struct FileResource
-    {
-        std::string m_file_name;
-        uint64_t m_interval;
-        uint64_t m_last_invoked;
-        std::string m_contents;
-
-        FileResource(std::string file_name = "", uint64_t interval = 0);
-
-        void read();
-
-        std::string get();
-    };
-
-    struct AuthResource
-    {
-        std::string m_secret;
-        std::string m_server;
-        std::string m_link_format;
-
-        AuthResource(std::string secret = "", std::string server = "",
-            std::string link_format = "");
-
-        std::string get(const std::string& username, int online_id) const;
-    };
-
-    static EnumExtendedReader permission_reader;
-    static EnumExtendedReader mode_scope_reader;
-    static EnumExtendedReader state_scope_reader;
-
     std::deque<std::shared_ptr<Filter>>& get_queue(int x) const;
 
     template<typename T>
     void add_to_queue(int x, int mask, bool to_front, std::string& s) const;
-
-    struct Command;
-
-    struct Context
-    {
-        ServerLobby* m_lobby;
-
-        Event* m_event;
-
-        std::weak_ptr<STKPeer> m_peer;
-
-        std::weak_ptr<STKPeer> m_target_peer;
-
-        std::vector<std::string> m_argv;
-
-        std::string m_cmd;
-
-        std::weak_ptr<Command> m_command;
-
-        int m_user_permissions;
-
-        int m_acting_user_permissions;
-
-        bool m_voting;
-
-        Context(ServerLobby* lobby, Event* event, std::shared_ptr<STKPeer> peer):
-                m_lobby(lobby),
-                m_event(event), m_peer(peer), m_target_peer(peer), m_argv(),
-                m_cmd(""), m_user_permissions(0), m_acting_user_permissions(0), m_voting(false) {}
-
-        Context(ServerLobby* lobby, Event* event, std::shared_ptr<STKPeer> peer,
-            std::vector<std::string>& argv, std::string& cmd,
-            int user_permissions, int acting_user_permissions, bool voting):
-                m_lobby(lobby),
-                m_event(event), m_peer(peer), m_target_peer(peer), m_argv(argv),
-                m_cmd(cmd), m_user_permissions(user_permissions),
-                m_acting_user_permissions(acting_user_permissions), m_voting(voting) {}
-
-        std::shared_ptr<STKPeer> peer();
-        std::shared_ptr<STKPeer> peerMaybeNull();
-        std::shared_ptr<STKPeer> actingPeer();
-        std::shared_ptr<STKPeer> actingPeerMaybeNull();
-        std::shared_ptr<Command> command();
-
-        void say(const std::string& s);
-    };
-
-    struct CommandDescription
-    {
-        std::string m_usage;
-        std::string m_permissions;
-        std::string m_description;
-        CommandDescription(std::string usage = "", std::string permissions = "",
-            std::string description = ""): m_usage(usage),
-            m_permissions(permissions), m_description(description) {}
-
-        std::string getUsage() const { return "Usage: " + m_usage; }
-
-        std::string getHelp() const
-        {
-            return "Usage: " + m_usage
-                + "\nAvailable to: " + m_permissions
-                + "\n" + m_description;
-        }
-    };
-
-    struct Command
-    {
-        std::string m_name;
-
-        std::string m_prefix_name;
-
-        void (CommandManager::*m_action)(Context& context);
-
-        int m_permissions;
-
-        int m_mode_scope;
-
-        int m_state_scope;
-
-        bool m_omit_name;
-
-        CommandDescription m_description;
-
-        std::weak_ptr<Command> m_parent;
-
-        std::map<std::string, std::weak_ptr<Command>> m_name_to_subcommand;
-
-        std::vector<std::shared_ptr<Command>> m_subcommands;
-
-        SetTypoFixer m_stf_subcommand_names;
-
-        Command() {}
-
-        Command(std::string name,
-                void (CommandManager::*f)(Context& context),
-                int permissions = UP_EVERYONE,
-                int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
-
-        void changeFunction(void (CommandManager::*f)(Context& context))
-                                                              { m_action = f; }
-        void changePermissions(int permissions = UP_EVERYONE,
-                                int mode_scope = MS_DEFAULT,
-                                int state_scope = SS_ALWAYS);
-
-        std::string getUsage() const       { return m_description.getUsage(); }
-        std::string getHelp() const         { return m_description.getHelp(); }
-        std::string getFullName() const               { return m_prefix_name; }
-    };
 
 private:
 
@@ -224,12 +74,6 @@ private:
     std::shared_ptr<Command> m_root_command;
 
     std::multiset<std::string> m_users;
-
-    std::map<std::string, std::string> m_text_response;
-
-    std::map<std::string, FileResource> m_file_resources;
-
-    std::map<std::string, AuthResource> m_auth_resources;
 
     std::map<std::string, CommandVoting> m_votables;
 
@@ -275,14 +119,10 @@ private:
 
     void vote(Context& context, std::string category, std::string value);
     void update();
-    void error(Context& context, bool is_error = false);
 
     void execute(std::shared_ptr<Command> command, Context& context);
 
     void process_help(Context& context);
-    void process_text(Context& context);
-    void process_file(Context& context);
-    void process_auth(Context& context);
     void process_commands(Context& context);
     void process_replay(Context& context);
     void process_start(Context& context);
@@ -372,6 +212,8 @@ private:
     void process_available_teams_assign(Context& context);
     void process_cooldown(Context& context);
     void process_cooldown_assign(Context& context);
+    void process_forcerandom(Context& context);
+    void process_forcerandom_assign(Context& context);
     void process_countteams(Context& context);
     void process_net(Context& context);
     void process_everynet(Context& context);
@@ -388,23 +230,9 @@ public:
 
     void handleCommand(Event* event, std::shared_ptr<STKPeer> peer);
 
-    template<typename T>
-    void addTextResponse(std::string key, T&& value)
-                                              { m_text_response[key] = value; }
-
-    void addFileResource(std::string key, std::string file, uint64_t interval)
-                      { m_file_resources[key] = FileResource(file, interval); }
-
-    void addAuthResource(std::string key, std::string secret, std::string server, std::string link_format)
-         { m_auth_resources[key] = AuthResource(secret, server, link_format); }
-
     void addUser(std::string& s);
 
     void deleteUser(std::string& s);
-
-    static void restoreCmdByArgv(std::string& cmd,
-            std::vector<std::string>& argv, char c, char d, char e, char f,
-            int from = 0);
 
     // A simple version of hasTypo for validating simple arguments.
     // Returns the opposite bool value.
@@ -422,15 +250,13 @@ public:
 
     std::vector<std::string> getCurrentArgv()         { return m_current_argv; }
 
-    std::shared_ptr<Command> addChildCommand(std::shared_ptr<Command> target, std::string name,
-             void (CommandManager::*f)(Context& context), int permissions = UP_EVERYONE,
-             int mode_scope = MS_DEFAULT, int state_scope = SS_ALWAYS);
-
     // Helper functions, unrelated to CommandManager inner structure
     std::string getAddonPreferredType() const;
 
     void shift(std::string& cmd, std::vector<std::string>& argv,
         const std::string& username, int count);
+
+    std::function<void(Context&)> getDefaultAction();
 
 };
 

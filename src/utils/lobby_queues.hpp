@@ -49,11 +49,8 @@ public:
 
 private:
     Queue m_onetime_tracks_queue;
-
     Queue m_cyclic_tracks_queue;
-
     Queue m_onetime_karts_queue;
-
     Queue m_cyclic_karts_queue;
 
 // Temporary reference getters
