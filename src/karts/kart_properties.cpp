@@ -1326,6 +1326,18 @@ std::vector<float> KartProperties::getTyresMinLifeTraction() const
 }  // getTyresMinLifeTraction
 
 // ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresMinLifeTurningGui() const
+{
+    return m_cached_characteristic->getTyresMinLifeTurningGui();
+}  // getTyresMinLifeTurningGui
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresMinLifeTractionGui() const
+{
+    return m_cached_characteristic->getTyresMinLifeTractionGui();
+}  // getTyresMinLifeTractionGui
+
+// ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getTyresRegularTransferTurning() const
 {
     return m_cached_characteristic->getTyresRegularTransferTurning();

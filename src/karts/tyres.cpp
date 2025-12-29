@@ -477,7 +477,10 @@ void Tyres::commandChange(int compound, int time) {
     if (compound >= 1) {
         m_current_compound = ((compound-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber())+1;
     } else {
-        m_current_compound = rand() % (int)m_kart->getKartProperties()->getTyresCompoundNumber();
+        std::wstring namew(m_kart->getController()->getName().c_str());
+        std::string name( namew.begin(), namew.end() );
+        Log::fatal("[Tyres]", "Forbidden tyre ID '0' for kart %s %s", name.c_str(), m_kart->getIdent().c_str());
+        //m_current_compound = rand() % (int)m_kart->getKartProperties()->getTyresCompoundNumber();
     }
     if (!(NetworkConfig::get()->isServer())){
         std::wstring namew(m_kart->getController()->getName().c_str());
@@ -485,7 +488,7 @@ void Tyres::commandChange(int compound, int time) {
 
         // Logs will be clutter unless this check is ran
         if (!m_kart->isGhostKart()) {
-            Log::info("[RunRecord]", "C %s %s %s %s", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(m_current_compound).c_str(), std::to_string(time).c_str());
+            Log::info("[RunRecord]", "C %s %s %s %s", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(compound).c_str(), std::to_string(time).c_str());
         }
     }
 

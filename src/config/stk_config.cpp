@@ -551,6 +551,12 @@ void STKConfig::getAllData(const XMLNode * root)
         bubblegum_node->get("gum-boost",  &m_shield_gum_boost);
     }
 
+    if(const XMLNode *pit_node= root->getNode("pit")) {
+        pit_node->get("default-time-pit-drivethrough", &m_default_time_pit_drivethrough);
+        pit_node->get("default-time-pit-tyrechange", &m_default_time_pit_tyrechange);
+        pit_node->get("default-time-pit-refuel", &m_default_time_pit_refuel);
+    }
+
 
     if(const XMLNode *explosion_node= root->getNode("explosion"))
     {

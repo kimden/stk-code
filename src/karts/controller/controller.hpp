@@ -62,6 +62,7 @@ public:
     virtual      ~Controller         () {};
     virtual void  reset              () = 0;
     virtual void  update             (int ticks) = 0;
+    virtual void  newLapTyres        () {};
     virtual void  handleZipper       (bool play_sound) = 0;
     // This function is only used by the local controller to play sounds
     virtual void  collectedItem      (const ItemState &item,

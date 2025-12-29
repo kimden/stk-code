@@ -58,8 +58,6 @@ private:
     float m_c_fuel_weight;
 
     float m_c_mass;
-    float m_c_min_life_traction;
-    float m_c_min_life_turning;
     float m_c_limiting_transfer_traction;
     float m_c_regular_transfer_traction;
     float m_c_limiting_transfer_turning;
@@ -90,9 +88,11 @@ private:
 public:
     float m_current_life_traction;
     float m_c_max_life_traction;
+    float m_c_min_life_traction;
 
     float m_current_life_turning;
     float m_c_max_life_turning;
+    float m_c_min_life_turning;
 
     float m_c_fuel;
     float m_c_fuel_rate_base;

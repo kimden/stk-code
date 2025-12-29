@@ -84,6 +84,11 @@ public:
     bool  m_shield_restrict_weapons;   /**<Wether weapon usage is punished. */
     bool  m_shield_gum_boost;        /**<Wether running over gums causes them to get
                                              collected and gives a minor boost. */
+
+    float m_default_time_pit_drivethrough; /** For AI pitting */
+    float m_default_time_pit_tyrechange;
+    float m_default_time_pit_refuel;
+    
     float m_explosion_impulse_objects; /**<Impulse of explosion on moving
                                             objects, e.g. road cones, ...      */
     int   m_penalty_ticks;              /**< Penalty time when starting too

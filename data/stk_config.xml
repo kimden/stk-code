@@ -288,6 +288,15 @@
   <steer disable-while-unskid="false"
          camera-follow-skid="true"     />
 
+    <!-- The default values used for AI to decide
+        how to pit if not specified per-track
+    -->
+    <pit
+        default-time-pit-drivethrough="10.0"
+        default-time-pit-tyrechange="10.0"
+        default-time-pit-refuel="5.0"
+    />
+
   <!-- Default values for all karts
        ============================ -->
   <general-kart-defaults>

@@ -587,6 +587,17 @@ void Track::loadTrackInfo()
     root->get("color-level-in",        &m_color_inlevel);
     root->get("color-level-out",       &m_color_outlevel);
 
+    if (!root->get("time-pit-drivethrough", &m_time_pit_drivethrough)) {
+        m_time_pit_drivethrough = STKConfig::get()->m_default_time_pit_drivethrough;
+    }
+    if (!root->get("time-pit-tyrechange", &m_time_pit_tyrechange)) {
+        m_time_pit_tyrechange = STKConfig::get()->m_default_time_pit_tyrechange;
+    }
+    if (!root->get("time-pit-refuel", &m_time_pit_refuel)) {
+        m_time_pit_refuel = STKConfig::get()->m_default_time_pit_refuel;
+    }
+
+
     getMusicInformation(filenames, m_music);
     if (m_default_number_of_laps <= 0)
         m_default_number_of_laps = 3;
