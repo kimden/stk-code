@@ -2770,6 +2770,9 @@ void Track::itemCommand(const XMLNode *node)
     node->getXYZ(&xyz);
     bool drop=true;
     node->get("drop", &drop);
+    std::string attached = "";
+    node->get("attached", &attached);
+    
 
     // Some modes (e.g. time trial) don't have any bonus boxes
     if(type==Item::ITEM_BONUS_BOX &&
@@ -2843,7 +2846,7 @@ void Track::itemCommand(const XMLNode *node)
         stop_time = 0;
     }
 
-    m_item_manager->placeItem(type, drop ? hit_point : loc, normal, compound, stop_time);
+    m_item_manager->placeItem(type, drop ? hit_point : loc, normal, compound, stop_time, attached);
 }   // itemCommand
 
 // ----------------------------------------------------------------------------
@@ -3074,7 +3077,13 @@ void Track::copyFromMainProcess()
     {
         ItemState* it = m_item_manager->getItem(i);
         nim->insertItem(new Item(it->getType(), it->getXYZ(), it->getNormal(),
-            NULL/*mesh*/, NULL/*lowres_mesh*/, "", NULL/*owner*/, it->m_compound, it->m_stop_time));
+            //TODO: ATTACH FIX: Currently just getting the attached ID, meaning parent libraries aren't
+            // supported in copyFromMainProcess for now (and hence not at all, this is the
+            // last non-working data funnel for support to be achieved)
+            // the stupid part is it requires a recursive function to build the full path, which is easy but annoying
+            // also, overall I do not believe that multiple parents are supported in the item.cpp code
+            // (it's just the code that uses StringUtilsSplit), fix that
+            NULL/*mesh*/, NULL/*lowres_mesh*/, "", NULL/*owner*/, it->m_compound, it->m_stop_time, it->m_attached->getID()));
     }
     m_item_manager = nim;
 }   // copyFromMainProcess

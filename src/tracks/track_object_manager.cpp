@@ -127,10 +127,11 @@ TrackObject* TrackObjectManager::getTrackObject(const std::string& libraryInstan
 {
     for (TrackObject* curr : m_all_objects)
     {
-        //if (curr->getParentLibrary() != NULL)
-        //    Log::info("TrackObjectManager", "Found %s::%s", curr->getParentLibrary()->getID().c_str(), curr->getID().c_str());
-        //else
-        //    Log::info("TrackObjectManager", "Found ::%s", curr->getID().c_str());
+        Log::info("TrackObjectManager", "Requested %s::%s", libraryInstance.c_str(), name.c_str());
+        if (curr->getParentLibrary() != NULL)
+            Log::info("TrackObjectManager", "Checked %s::%s", curr->getParentLibrary()->getID().c_str(), curr->getID().c_str());
+        else
+            Log::info("TrackObjectManager", "Checked ::%s", curr->getID().c_str());
 
         if (curr->getParentLibrary() == NULL)
         {
@@ -145,6 +146,7 @@ TrackObject* TrackObjectManager::getTrackObject(const std::string& libraryInstan
 
         if (curr->getID() == name)
         {
+            Log::info("TrackObjectManager", "END\n");
             return curr;
         }
     }

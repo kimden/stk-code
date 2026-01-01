@@ -80,6 +80,7 @@ public:
     virtual void update(float dt) {assert(false); };
     void         setInitialTransform(const Vec3 &xyz,
                                      const Vec3 &hpr);
+    Vec3 getInitialPos() { return m_initial_xyz; };
     void         reset();
     // ------------------------------------------------------------------------
     /** Disables or enables an animation. */

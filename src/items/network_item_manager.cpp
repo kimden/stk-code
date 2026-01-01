@@ -415,7 +415,8 @@ void NetworkItemManager::restoreState(BareNetworkString *buffer, int count)
             Kart *kart = world->getKart(iei.getKartId());
             ItemState *is = new ItemState(iei.getNewItemType(), kart,
                                           iei.getIndex()             );
-            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), iei.m_compound, iei.m_stop_time);
+            // TODO: ATTACH FIX must store attached object in the item event too
+            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), iei.m_compound, iei.m_stop_time, "");
             if (m_switch_ticks >= 0)
             {
                 ItemState::ItemType new_type = m_switch_to[is->getType()];

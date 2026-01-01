@@ -342,7 +342,9 @@ Item* ItemManager::dropNewItem(ItemState::ItemType type,
 
     Item* item = new Item(type, pos, normal, m_item_mesh[mesh_type],
                           m_item_lowres_mesh[mesh_type], m_icon[mesh_type],
-                          /*prev_owner*/kart, 0, 0);
+                          /*prev_owner*/kart, 0, 0,
+                          //TODO: ATTACH FIX make a droped item be attached to the moving object the kart is on top of, if it exists
+                          "");
 
     // restoreState in NetworkItemManager will handle the insert item
     if (!server_xyz)
@@ -364,7 +366,7 @@ Item* ItemManager::dropNewItem(ItemState::ItemType type,
  *  \param normal The normal of the terrain to set roll and pitch.
  */
 Item* ItemManager::placeItem(ItemState::ItemType type, const Vec3& xyz,
-                             const Vec3 &normal, int compound, int stop_time)
+                             const Vec3 &normal, int compound, int stop_time, const std::string &attached)
 {
     // Make sure this subroutine is not used otherwise (since networking
     // needs to be aware of items added to the track, so this would need
@@ -375,7 +377,7 @@ Item* ItemManager::placeItem(ItemState::ItemType type, const Vec3& xyz,
 
     Item* item = new Item(type, xyz, normal, m_item_mesh[mesh_type],
                           m_item_lowres_mesh[mesh_type], m_icon[mesh_type],
-                          /*prev_owner*/NULL, compound, stop_time);
+                          /*prev_owner*/NULL, compound, stop_time, attached);
 
     insertItem(item);
     if (m_switch_ticks >= 0)
@@ -729,15 +731,16 @@ bool ItemManager::randomItemsForArena(const AlignedArray<btTransform>& pos)
         bool success = tm.castRay(loc, an->getCenter() + (-10000*quad_normal),
                                    &hit_point, &m, &normal);
 
+        // TODO: ATTACH FIX: raycasting in general should take into account moving objects for setting attached, but it's not currently the case
         if (success)
         {
-            placeItem(type, hit_point, normal, 0, 0);
+            placeItem(type, hit_point, normal, 0, 0, "");
         }
         else
         {
             Log::warn("ItemManager","Raycast to surface failed"
                       "from node %d", used_location[i]);
-            placeItem(type, an->getCenter(), quad_normal, 0, 0);
+            placeItem(type, an->getCenter(), quad_normal, 0, 0, "");
         }
     }
 

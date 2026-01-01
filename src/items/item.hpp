@@ -33,6 +33,7 @@
 #include "graphics/stk_text_billboard.hpp"
 
 #include "items/powerup_manager.hpp"
+#include "tracks/track_object_manager.hpp"
 
 #include <line3d.h>
 
@@ -114,6 +115,9 @@ private:
     /** The position of this ItemState. */
     Vec3 m_xyz;
 
+    /** The position of this ItemState initially. */
+    Vec3 m_xyz_init;
+
     /** The original rotation of the item. While this is technically a visual
      *  only value (atm, it could be used for collision detection), it is
      *  required to make sure a client can display items with the right normal
@@ -158,11 +162,15 @@ public:
     // ------------------------------------------------------------------------
          ItemState(const BareNetworkString& buffer);
     // ------------------------------------------------------------------------
-    void initItem(ItemType type, const Vec3& xyz, const Vec3& normal, int compound, int stop_time);
+    void initItem(ItemType type, const Vec3 &xyz, const Vec3 &normal,
+                  int compound, int stop_time, const std::string &attached);
     void update(int ticks);
     void setDisappearCounter();
     int m_compound;
     int m_stop_time;
+    TrackObject *m_attached;
+    Vec3 m_distance_to_attached;
+    Vec3 m_attached_initial_pos;
     void respawnBonusBox(unsigned itemid);
 
     /** The text displayed above this itemState*/
@@ -379,14 +387,16 @@ private:
      *  would not be collected. Used by the AI to avoid items. */
     Vec3 *m_avoidance_points[2];
 
-    void          initItem(ItemType type, const Vec3 &xyz, const Vec3 &normal, int compound, int stop_time);
+    void          initItem(ItemType type, const Vec3 &xyz, const Vec3 &normal,
+                           int compound, int stop_time, const std::string &attached);
     void          setMesh(scene::IMesh* mesh, scene::IMesh* lowres_mesh);
     void          handleNewMesh(ItemType type);
 
 public:
                   Item(ItemType type, const Vec3& xyz, const Vec3& normal,
                        scene::IMesh* mesh, scene::IMesh* lowres_mesh,
-                       const std::string& icon, const Kart *owner, int compound, int stop_time);
+                       const std::string& icon, const Kart *owner,
+                       int compound, int stop_time, const std::string &attached);
     virtual       ~Item ();
     virtual void  updateGraphics(float dt) OVERRIDE;
     virtual void  reset() OVERRIDE;
