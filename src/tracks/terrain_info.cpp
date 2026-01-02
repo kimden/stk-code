@@ -62,7 +62,12 @@ void TerrainInfo::update(const Vec3 &from)
     // Now also raycast against all track objects (that are driveable).
     Track::getCurrentTrack()->getTrackObjectManager()
                      ->castRay(from, to, &m_hit_point, &m_material,
-                               &m_normal, /*interpolate*/false);
+                               &m_normal,
+                               // TODO: ATTACH FIX: It makes sense that this NULL should be a
+                               // &m_track_object stored inside the TerrainInfo instance.
+                               // however, also no real use for now 
+                               NULL,
+                               /*interpolate*/false);
 }   // update
 
 //-----------------------------------------------------------------------------
@@ -89,7 +94,12 @@ void TerrainInfo::update(const btMatrix3x3 &rotation, const Vec3 &from)
     // mesh), its data will be returned.
     Track::getCurrentTrack()->getTrackObjectManager()
                             ->castRay(from, to, &m_hit_point, &m_material,
-                                      &m_normal, /*interpolate*/true);
+                                      &m_normal,
+                                       // TODO: ATTACH FIX: It makes sense that this NULL should be a
+                                       // &m_track_object stored inside the TerrainInfo instance.
+                                       // however, also no real use for now 
+                                       NULL,
+                                      /*interpolate*/true);
 }   // update
 //-----------------------------------------------------------------------------
 /** Update the terrain information based on the latest position.

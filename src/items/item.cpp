@@ -68,6 +68,7 @@ ItemState::ItemState(ItemType type, const Kart *owner, int id)
     m_previous_owner = owner;
     m_compound = 0;
     m_stop_time = 0;
+    m_attached = NULL;
     m_used_up_counter = -1;
     //printf("Constructor for item %u\n", id);
     if (owner)
@@ -87,6 +88,7 @@ ItemState::ItemState(const BareNetworkString& buffer)
     m_item_id = buffer.getUInt32();
     m_deactive_ticks = buffer.getUInt32();
     m_used_up_counter = buffer.getUInt32();
+    m_xyz_init = buffer.getVec3();
     m_xyz = buffer.getVec3();
     m_original_rotation = buffer.getQuat();
     m_previous_owner = NULL;
@@ -95,6 +97,21 @@ ItemState::ItemState(const BareNetworkString& buffer)
         m_previous_owner = World::getWorld()->getKart(kart_id);
     m_compound = buffer.getUInt8();
     m_stop_time = buffer.getUInt8();
+
+    std::string attached = "";
+    buffer.decodeString(&attached);
+
+    auto object_manager =  TrackManager::get()->getTrack(RaceManager::get()->getTrackName())->getTrackObjectManager();
+    m_attached = NULL;
+
+    std::vector<std::string> attachedl = StringUtils::split(attached, ':');
+    if (attachedl.size() == 0) {
+      ;
+    } else if (attachedl.size() == 1) {
+        m_attached = object_manager->getTrackObject("", attachedl[0]);
+    } else if (attachedl.size() == 3) { // "a::b" split by ':' ===> "a","","b"
+        m_attached = object_manager->getTrackObject(attachedl[0], attachedl[2]);
+    }
 
     //printf("Restored for %u: powerup %u\n", m_item_id, m_compound);
 }   // ItemState(const BareNetworkString& buffer)
@@ -163,24 +180,7 @@ void ItemState::initItem(ItemType type, const Vec3& xyz, const Vec3& normal,
         m_attached = object_manager->getTrackObject(attachedl[0], attachedl[2]);
     }
     if (m_attached) {
-        ThreeDAnimation *anim = m_attached->getAnimator();
-        if (anim) {
-            float curr_time = stk_config->ticks2Time(world->getTicksSinceStart());
-
-            // AnimationBase::getAt() 's implementation doesn't actually update position properly.
-            // Instead it seemingly applies the position change that would apply to the center.
-            // The consequence is we need to calculate the real position of other points ourselves 
-            // There is another optional scale parameter to getAt(), but we'll
-            // not concern ourselves with dynamic scaling for now
-
-            Vec3 hpr_initial;
-            Vec3 anim_initial_pos;
-            anim->getAt(0.0f, &anim_initial_pos, &hpr_initial);
-
-            anim_initial_pos += Vec3(m_attached->getPosition());
-            m_distance_to_attached = m_xyz_init - anim_initial_pos;
-            m_attached_initial_pos = anim_initial_pos;
-        }
+        ;
     } else if (attached != ""){
         Log::warn("Item", "No attachment but it is specified as %s\n", attached.c_str());
     }
@@ -254,21 +254,26 @@ void ItemState::update(int ticks)
             // We take the initial orientation of the animation to be 0, since it's relative this works fine
             Vec3 hpr_initial(0, 0, 0);
             Vec3 hpr_curr(0, 0, 0);
-            Vec3 anim_initial_pos = m_attached_initial_pos;
+            Vec3 anim_initial_pos = Vec3(m_attached->getInitXYZ());
+
+            Vec3 obj_pos = Vec3(m_attached->getPosition());
 
             Vec3 anim_curr_pos;
             anim->getAt(curr_time, &anim_curr_pos, &hpr_curr);
-            anim_curr_pos += Vec3(m_attached->getPosition());
+            anim_curr_pos += obj_pos;
 
             Vec3 hpr = hpr_curr - hpr_initial;
             Vec3 diff = anim_curr_pos - anim_initial_pos;
-            Vec3 diff_base = m_distance_to_attached;
+            Vec3 diff_base = m_xyz_init - anim_initial_pos;
 
             diff_base = diff_base.rotate(Vec3(1, 0, 0), DEGREE_TO_RAD*hpr.x());
             diff_base = diff_base.rotate(Vec3(0, 1, 0), DEGREE_TO_RAD*hpr.y());
             diff_base = diff_base.rotate(Vec3(0, 0, 1), DEGREE_TO_RAD*hpr.z());
-            //printf("OBJECT POSITIONS: %f %f %f / %f %f %f\n", anim_initial_pos.x(), anim_initial_pos.y(), anim_initial_pos.z(), anim_curr_pos.x(), anim_curr_pos.y(), anim_curr_pos.z());
-            //printf("Z: %f DIFFS: %f %f %f / %f %f %f\n\n", m_xyz_init.z(), diff_base.x(), diff_base.y(), diff_base.z(), diff.x(), diff.y(), diff.z());
+            if (!NetworkConfig::get()->isServer()) {
+                // printf("ATTACHMENT %s\nObject without anim: %f %f %f\n", m_attached->getID().c_str(), obj_pos.x(), obj_pos.y(), obj_pos.z());
+                // printf("OBJECT POSITIONS: %f %f %f / %f %f %f\n", anim_initial_pos.x(), anim_initial_pos.y(), anim_initial_pos.z(), anim_curr_pos.x(), anim_curr_pos.y(), anim_curr_pos.z());
+                // printf("Z: %f DIFFS: %f %f %f / %f %f %f\n\n", m_xyz_init.z(), diff_base.x(), diff_base.y(), diff_base.z(), diff.x(), diff.y(), diff.z());
+            }
             m_xyz = anim_initial_pos + diff_base + diff;
         }
     }
@@ -331,12 +336,19 @@ Item::ItemType ItemState::getGraphicalType() const
  */
 void ItemState::saveCompleteState(BareNetworkString* buffer) const
 {
+    //TODO: ATTACH FIX: Currently just getting the attached ID, meaning parent libraries aren't
+    // supported here for now (and hence not at all)
+    // the stupid part is it requires a recursive function to build the full path, which is easy but annoying
+    std::string object_name = "";
+    if (m_attached) object_name = m_attached->getID();
+
     buffer->addUInt8((uint8_t)m_type).addUInt8((uint8_t)m_original_type)
         .addUInt32(m_ticks_till_return).addUInt32(m_item_id)
         .addUInt32(m_deactive_ticks).addUInt32(m_used_up_counter)
-        .add(m_xyz).add(m_original_rotation)
-        .addUInt8(m_previous_owner ?
-            (int8_t)m_previous_owner->getWorldKartId() : (int8_t)-1).addUInt8(m_compound).addUInt8(m_stop_time);
+        .add(m_xyz_init).add(m_xyz).add(m_original_rotation)
+        .addUInt8(m_previous_owner ? (int8_t)m_previous_owner->getWorldKartId() : (int8_t)-1)
+        .addUInt8(m_compound).addUInt8(m_stop_time)
+        .encodeString(object_name);
 }   // saveCompleteState
 
 // ============================================================================

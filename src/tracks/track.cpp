@@ -2721,7 +2721,7 @@ Vec3 Track::flagCommand(const XMLNode *node)
 #endif
 
     m_track_object_manager->castRay
-        (loc, loc + (-10000 * quad_normal), &hit_point, &m, &normal,
+        (loc, loc + (-10000 * quad_normal), &hit_point, &m, &normal, NULL,
          /*interpolate*/false);
 
     const std::string &name = node->getName();
@@ -2817,13 +2817,13 @@ void Track::itemCommand(const XMLNode *node)
         m_track_mesh->castRay(loc, loc + (-10000 * quad_normal), &hit_point,
             &m, &normal);
         m_track_object_manager->castRay(loc,
-            loc + (-10000 * quad_normal), &hit_point, &m, &normal,
+            loc + (-10000 * quad_normal), &hit_point, &m, &normal, NULL,
             /*interpolate*/false);
 #else
         bool drop_success = m_track_mesh->castRay(loc, loc +
             (-10000 * quad_normal), &hit_point, &m, &normal);
         bool over_driveable = m_track_object_manager->castRay(loc,
-            loc + (-10000 * quad_normal), &hit_point, &m, &normal,
+            loc + (-10000 * quad_normal), &hit_point, &m, &normal, NULL,
             /*interpolate*/false);
         if (!drop_success && !over_driveable)
         {
@@ -2919,7 +2919,7 @@ bool Track::isOnGround(const Vec3& xyz, const Vec3& down, Vec3* hit_point,
     // mesh), its data will be returned.
     // From TerrainInfo::update
     bool over_driveable = m_track_object_manager->castRay(xyz, down,
-        hit_point, &m, normal, /*interpolate*/false);
+        hit_point, &m, normal, NULL, /*interpolate*/false);
 
     if (!over_ground && !over_driveable)
     {

@@ -444,13 +444,12 @@ bool CaptureTheFlag::getDroppedFlagTrans(const btTransform& kt,
 
     // From TerrainInfo::update
     const TriangleMesh &tm = Track::getCurrentTrack()->getTriangleMesh();
-    bool ret = tm.castRay(from, to, &hit_point, &material, &normal,
-        /*interpolate*/false);
+    bool ret = tm.castRay(from, to, &hit_point, &material, &normal, /*interpolate*/false);
     if (!ret || material == NULL)
         return false;
 
     Track::getCurrentTrack()->getTrackObjectManager()->castRay
-        (from, to, &hit_point, &material, &normal, /*interpolate*/false);
+        (from, to, &hit_point, &material, &normal, NULL, /*interpolate*/false);
     *out = btTransform(shortestArcQuat(Vec3(0, 1, 0), normal),
         hit_point);
     return true;

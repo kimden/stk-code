@@ -127,11 +127,11 @@ TrackObject* TrackObjectManager::getTrackObject(const std::string& libraryInstan
 {
     for (TrackObject* curr : m_all_objects)
     {
-        Log::info("TrackObjectManager", "Requested %s::%s", libraryInstance.c_str(), name.c_str());
-        if (curr->getParentLibrary() != NULL)
-            Log::info("TrackObjectManager", "Checked %s::%s", curr->getParentLibrary()->getID().c_str(), curr->getID().c_str());
-        else
-            Log::info("TrackObjectManager", "Checked ::%s", curr->getID().c_str());
+        // Log::info("TrackObjectManager", "Requested %s::%s", libraryInstance.c_str(), name.c_str());
+        // if (curr->getParentLibrary() != NULL)
+        //     Log::info("TrackObjectManager", "Checked %s::%s", curr->getParentLibrary()->getID().c_str(), curr->getID().c_str());
+        // else
+        //     Log::info("TrackObjectManager", "Checked ::%s", curr->getID().c_str());
 
         if (curr->getParentLibrary() == NULL)
         {
@@ -146,7 +146,7 @@ TrackObject* TrackObjectManager::getTrackObject(const std::string& libraryInstan
 
         if (curr->getID() == name)
         {
-            Log::info("TrackObjectManager", "END\n");
+            // Log::info("TrackObjectManager", "END\n");
             return curr;
         }
     }
@@ -222,6 +222,7 @@ void TrackObjectManager::resetAfterRewind()
  *  \param xyz The position in world where the ray hit.
  *  \param material The material of the mesh that was hit.
  *  \param normal The intrapolated normal at that position.
+ *  \param track_object The driveable object that was hit, or NULL
  *  \param interpolate_normal If true, the returned normal is the interpolated
  *         based on the three normals of the triangle and the location of the
  *         hit point (which is more compute intensive, but results in much
@@ -234,16 +235,18 @@ bool TrackObjectManager::castRay(const btVector3 &from,
                                  const btVector3 &to, btVector3 *hit_point,
                                  const Material **material,
                                  btVector3 *normal,
+                                 TrackObject **track_object,
                                  bool interpolate_normal) const
 {
     bool result = false;
     float distance = 9999.9f;
+    bool hit_track_object = false;
     // If there was a hit already, compute the current distance
     if(*material)
     {
         distance = hit_point->distance(from);
     }
-    for (const TrackObject* curr : m_driveable_objects)
+    for (TrackObject* curr : m_driveable_objects)
     {
         if (!curr->isEnabled())
         {
@@ -265,10 +268,15 @@ bool TrackObjectManager::castRay(const btVector3 &from,
                 *hit_point = new_hit_point;
                 *normal    = new_normal;
                 distance   = new_distance;
+                bool hit_track_object = true;
+                if (track_object)
+                    *track_object = curr;
                 result = true;
             }   // if new_distance < distance
         }   // if hit
     }   // for all track objects.
+    if (!hit_track_object && track_object)
+        *track_object = NULL;
     return result;
 }   // castRay
 

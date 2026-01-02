@@ -67,6 +67,7 @@ public:
     bool castRay(const btVector3 &from,
                  const btVector3 &to, btVector3 *hit_point,
                  const Material **material, btVector3 *normal = NULL,
+                 TrackObject **track_object = NULL,
                  bool interpolate_normal = false) const;
 
     void insertObject(TrackObject* object);

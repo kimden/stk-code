@@ -303,6 +303,7 @@ Item* ItemManager::dropNewItem(ItemState::ItemType type,
 {
     Vec3 normal, pos;
     const Material* material_hit;
+    TrackObject *object_hit = NULL;
     if (!server_xyz)
     {
         // We are doing a new drop locally, i.e. not based on
@@ -314,7 +315,7 @@ Item* ItemManager::dropNewItem(ItemState::ItemType type,
         Track::getCurrentTrack()->getTriangleMesh().castRay(pos, to,
                                                             &hit_point,
                                                             &material_hit,
-                                                            &normal);
+                                                            &normal, &object_hit);
 
         // We will get no material if the kart is 'over nothing' when dropping
         // the bubble gum. In most cases this means that the item does not need
@@ -340,11 +341,16 @@ Item* ItemManager::dropNewItem(ItemState::ItemType type,
     if (type == ItemState::ITEM_BUBBLEGUM_SMALL && kart->getIdent() == "nolok")
         mesh_type = ItemState::ITEM_BUBBLEGUM_SMALL_NOLOK;
 
+    std::string object_name = "";
+    if (object_hit) object_name = object_hit->getID();
+
     Item* item = new Item(type, pos, normal, m_item_mesh[mesh_type],
                           m_item_lowres_mesh[mesh_type], m_icon[mesh_type],
                           /*prev_owner*/kart, 0, 0,
-                          //TODO: ATTACH FIX make a droped item be attached to the moving object the kart is on top of, if it exists
-                          "");
+                        //TODO: ATTACH FIX: Currently just getting the attached ID, meaning parent libraries aren't
+                        // supported here for now (and hence not at all)
+                        // the stupid part is it requires a recursive function to build the full path, which is easy but annoying
+                          object_name);
 
     // restoreState in NetworkItemManager will handle the insert item
     if (!server_xyz)
@@ -731,7 +737,7 @@ bool ItemManager::randomItemsForArena(const AlignedArray<btTransform>& pos)
         bool success = tm.castRay(loc, an->getCenter() + (-10000*quad_normal),
                                    &hit_point, &m, &normal);
 
-        // TODO: ATTACH FIX: raycasting in general should take into account moving objects for setting attached, but it's not currently the case
+        // TODO: ATTACH FIX: raycasting for arenas should take also into account moving objects for setting attached, but it's not currently the case (just for tracks)
         if (success)
         {
             placeItem(type, hit_point, normal, 0, 0, "");

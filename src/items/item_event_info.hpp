@@ -60,13 +60,16 @@ private:
     int16_t m_ticks_till_return;
 
 public:
+    int m_compound;
+    int m_stop_time;
+    std::string m_attached;
+    
+
     /** Constructor for collecting an existing item.
      *  \param ticks Time of the event.
      *  \param item_id The index of the item that was collected.
      *  \param kart_id the kart that collected the item.
     *   \param ttr Ticks till return after being collected. */
-    int m_compound;
-    int m_stop_time;
 
     ItemEventInfo(int ticks, int index, int kart_id, int16_t ttr, int compound, int stop_time)
         : m_ticks(ticks), m_index(index), m_kart_id(kart_id),
@@ -83,12 +86,13 @@ public:
      *  need to encode the new item type.
      */
     ItemEventInfo(int ticks, ItemState::ItemType type, int index,
-                  int kart_id, const Vec3 &xyz, const Vec3 &normal, int compound, int stop_time)
+                  int kart_id, const Vec3 &xyz, const Vec3 &normal, int compound, int stop_time, const std::string &attached)
         : m_ticks(ticks), m_index(index), m_kart_id(kart_id), m_xyz(xyz),
           m_normal(normal), m_ticks_till_return(0)
     {
         m_compound = compound;
         m_stop_time = stop_time;
+        m_attached = attached;
         m_type = IEI_NEW;
     }   // ItemEventInfo(new item)
 

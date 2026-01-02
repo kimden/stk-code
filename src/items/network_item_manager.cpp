@@ -156,11 +156,16 @@ Item* NetworkItemManager::dropNewItem(ItemState::ItemType type,
     assert(!server_xyz);
     // Server: store the data for this event:
     m_item_events.lock();
+    //TODO: ATTACH FIX: Currently just getting the attached ID, meaning parent libraries aren't
+    // supported here for now (and hence not at all)
+    // the stupid part is it requires a recursive function to build the full path, which is easy but annoying
+    std::string object_name = "";
+    if (item->m_attached) object_name = item->m_attached->getID();
     m_item_events.getData().emplace_back(World::getWorld()->getTicksSinceStart(),
                                          type, item->getItemId(),
                                          kart->getWorldKartId(),
                                          item->getXYZ(),
-                                         item->getNormal(), item->m_compound, item->m_stop_time);
+                                         item->getNormal(), item->m_compound, item->m_stop_time, object_name);
     m_item_events.unlock();
     return item;
 }   // dropNewItem
@@ -415,8 +420,10 @@ void NetworkItemManager::restoreState(BareNetworkString *buffer, int count)
             Kart *kart = world->getKart(iei.getKartId());
             ItemState *is = new ItemState(iei.getNewItemType(), kart,
                                           iei.getIndex()             );
-            // TODO: ATTACH FIX must store attached object in the item event too
-            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), iei.m_compound, iei.m_stop_time, "");
+            //TODO: ATTACH FIX: Currently just getting the attached ID, meaning parent libraries aren't
+            // supported here for now (and hence not at all)
+            // the stupid part is it requires a recursive function to build the full path, which is easy but annoying
+            is->initItem(iei.getNewItemType(), iei.getXYZ(), iei.getNormal(), iei.m_compound, iei.m_stop_time, iei.m_attached);
             if (m_switch_ticks >= 0)
             {
                 ItemState::ItemType new_type = m_switch_to[is->getType()];

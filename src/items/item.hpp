@@ -169,8 +169,6 @@ public:
     int m_compound;
     int m_stop_time;
     TrackObject *m_attached;
-    Vec3 m_distance_to_attached;
-    Vec3 m_attached_initial_pos;
     void respawnBonusBox(unsigned itemid);
 
     /** The text displayed above this itemState*/
