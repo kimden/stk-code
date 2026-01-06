@@ -188,7 +188,9 @@ namespace Scripting
           */
         int getDifficulty()
         {
-            return RaceManager::get()->getDifficulty();
+            unsigned diff = RaceManager::get()->getDifficulty();
+            if (diff <= 1) return 0;
+            else           return diff - 1;
         }
 
         int getMajorRaceMode()
