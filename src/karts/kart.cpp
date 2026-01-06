@@ -3234,7 +3234,7 @@ void Kart::updatePhysics(int ticks)
 
 
     // If braking and not accelerating, skid a little
-    bool brake_skid = m_controls.getBrake() && m_controls.getAccel() < 0.2f;
+    bool brake_skid = m_controls.getBrake() && m_controls.getAccel() < 0.2f && m_speed > 0.0f;
     bool skidding_sound = false;
 
     if (kp->getSkidMode() == "Retro") {
