@@ -427,10 +427,12 @@ public:
     // amount in previous lap
     int m_item_amount_last_lap;
     PowerupManager::PowerupType m_item_type_last_lap;
+    KartControl::SkidControl m_prev_skid_control;
 
     /** For retro skidding*/
     float m_retro_skidding_counter;
     bool m_is_skidding;
+    
 
     bool m_is_refueling;
     float m_target_refuel;

@@ -199,7 +199,7 @@ TEMPLATE
         <!-- Skidding
             mode: string indicating the skid mode
                 - "Retro": sharp turn mechanic as in STK 0.6.
-                    Only the first four parameters are used.
+                    Only the first five parameters are used.
                 - "Modern": skid mechanic as in STK 1.0
                     All paremeters are used
                 - "Realistic": the kart can't skid with a button press, but it can lose grip
@@ -207,10 +207,11 @@ TEMPLATE
             decrease: multiplicative decrease of skidding factor in each frame.
             max: maximum skidding factor = maximum increase of steering angle.
             time-till-max: Time till maximum skidding is reached.
+            visual-time: How long it takes for the visual skid to reach maximum.
+                         It is also the cooldown time after a skid
             visual: Additional graphical rotation of kart. The graphical rotation
                 of the kart also determines the direction the kart is driving to
                 when skidding is stopped.
-            visual-time: How long it takes for the visual skid to reach maximum.
             revert-visual-time: how long it takes when stopping a skid to revert
                 the visual skid and bring visuals and physics in sync again.
             min-speed: Minimum speed a kart must have before it can skid. Must be
@@ -242,8 +243,9 @@ TEMPLATE
               decrease="0.95"
               time-till-max="0.5"
               max="2.5"
+              visual-time="0.7"
 
-              visual="1.25" visual-time="0.7" revert-visual-time="0.7"
+              visual="1.25" revert-visual-time="0.7"
               min-speed="10"  time-till-bonus="1.0 2.7 4.0"
               bonus-speed="4.0 6.0 8.0" bonus-time="3.2 4.2 5.6"
               fade-out-time="0.9 1.1 1.3" bonus-force="300 420 600"

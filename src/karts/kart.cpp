@@ -598,6 +598,7 @@ void Kart::reset()
     m_item_amount_last_lap = 0;
     m_item_type_last_lap = PowerupManager::POWERUP_NOTHING;
 
+    m_prev_skid_control = KartControl::SC_NONE;
     m_last_used_powerup    = PowerupManager::POWERUP_NOTHING;
     m_race_position        = m_initial_position;
     m_finished_race        = false;
@@ -3240,6 +3241,10 @@ void Kart::updatePhysics(int ticks)
     if (kp->getSkidMode() == "Retro") {
         KartControl::SkidControl sc = m_controls.getSkidControl();
         bool is_skidding = std::fabs(m_controls.getSteer()) > 0.01f && (sc == KartControl::SC_LEFT || sc == KartControl::SC_RIGHT);
+        if (sc != m_prev_skid_control)
+            m_retro_skidding_counter = 1.0f;
+        m_prev_skid_control = sc;
+
         if (is_skidding) {
             m_retro_skidding_counter +=  kp->getSkidIncrease() * dt / kp->getSkidTimeTillMax();
             if (m_retro_skidding_counter > kp->getSkidMax())
