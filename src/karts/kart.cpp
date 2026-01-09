@@ -3192,6 +3192,8 @@ bool Kart::playCustomSFX(unsigned int type)
     return ret;
      */
 }
+
+#define IPINPUT(__x) ItemPolicyInputs::IPT_INPUT_##__x
 // ----------------------------------------------------------------------------
 /** Updates the physics for this kart: computing the driving force, set
  *  steering, handles skidding, terrain impact on kart, ...
@@ -3199,6 +3201,25 @@ bool Kart::playCustomSFX(unsigned int type)
  */
 void Kart::updatePhysics(int ticks)
 {
+    {
+        ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+        int sec = item_policy->getSectionForKart(this);
+        if (sec == -1)
+            sec = 0;
+        uint32_t forbidden_inputs = item_policy->m_policy_sections[sec].m_forbidden_inputs;
+
+        if (forbidden_inputs & IPINPUT(BRAKE))
+            m_controls.setBrake(false);
+        if (forbidden_inputs & IPINPUT(NITRO))
+            m_controls.setNitro(false);
+        if (forbidden_inputs & IPINPUT(SKID))
+            m_controls.setSkidControl(KartControl::SC_NONE);
+        if (forbidden_inputs & IPINPUT(LOOKBACK))
+            m_controls.setLookBack(false);
+        if (forbidden_inputs & IPINPUT(FIRE))
+            m_controls.setFire(false);
+    }
+
     const auto& kp = m_kart_properties;
     auto& stk_config = STKConfig::get();
 

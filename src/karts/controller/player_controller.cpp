@@ -285,6 +285,7 @@ void PlayerController::skidBonusTriggered()
     m_controls->setSteer(0);
 }   // skidBonusTriggered
 
+#define IPINPUT(__x) ItemPolicyInputs::IPT_INPUT_##__x
 //-----------------------------------------------------------------------------
 /** Updates the player kart, called once each timestep.
  */
@@ -324,8 +325,17 @@ void PlayerController::update(int ticks)
     // starting any other animation).
     if ( m_controls->getRescue() && !m_kart->getKartAnimation() )
     {
-        RescueAnimation::create(m_kart);
-        m_controls->setRescue(false);
+        ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+        int sec = item_policy->getSectionForKart(m_kart);
+        if (sec == -1)
+            sec = 0;
+        uint32_t forbidden_inputs = item_policy->m_policy_sections[sec].m_forbidden_inputs;
+        if (forbidden_inputs & IPINPUT(RESCUE)) {
+            m_controls->setRescue(false);
+        } else {
+            RescueAnimation::create(m_kart);
+            m_controls->setRescue(false);
+        }
     }
 }   // update
 
