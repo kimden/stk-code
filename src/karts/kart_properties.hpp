@@ -417,6 +417,8 @@ public:
 
     float getMass() const;
 
+    float getVirtualMass() const;
+
     float getFuelMassReal() const;
     float getFuelMassVirtual() const;
     float getFuelConsumption() const;

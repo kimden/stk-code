@@ -112,6 +112,9 @@ public:
         // Mass
         MASS,
 
+        // Virtualmass
+        VIRTUAL_MASS,
+
         // Fuel
         FUEL_MASS_REAL,
         FUEL_MASS_VIRTUAL,
@@ -377,6 +380,8 @@ public:
     std::vector<float> getGearPowerIncrease() const;
 
     float getMass() const;
+
+    float getVirtualMass() const;
 
     float getFuelMassReal() const;
     float getFuelMassVirtual() const;

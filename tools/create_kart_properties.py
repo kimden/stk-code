@@ -34,6 +34,7 @@ Turn: radius(InterpolationArray), timeResetSteer, timeFullSteer(InterpolationArr
 Engine: power, maxSpeed, genericMaxSpeed, brakeFactor, timeFullBrake, maxSpeedReverseRatio, rearForceFraction
 Gear: switchRatio(std::vector<float>/floatVector), powerIncrease(std::vector<float>/floatVector)
 Mass
+VirtualMass
 Fuel: massReal, massVirtual, consumption, capacity, stopRate, maxSpeedDecrease
 Wheels: dampingRelaxation, dampingCompression
 Jump: animationTime

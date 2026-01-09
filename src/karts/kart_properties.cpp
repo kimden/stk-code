@@ -912,6 +912,12 @@ float KartProperties::getMass() const
 }  // getMass
 
 // ----------------------------------------------------------------------------
+float KartProperties::getVirtualMass() const
+{
+    return m_cached_characteristic->getVirtualMass();
+}  // getVirtualMass
+
+// ----------------------------------------------------------------------------
 float KartProperties::getFuelMassReal() const
 {
     return m_cached_characteristic->getFuelMassReal();

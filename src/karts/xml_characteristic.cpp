@@ -405,6 +405,12 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[MASS]);
     }
 
+    if (const XMLNode *sub_node = node->getNode("virtualmass"))
+    {
+        sub_node->get("value",
+            &m_values[VIRTUAL_MASS]);
+    }
+
     if (const XMLNode *sub_node = node->getNode("fuel"))
     {
         sub_node->get("mass-real",

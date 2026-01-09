@@ -107,6 +107,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case MASS:
         return TYPE_FLOAT;
+    case VIRTUAL_MASS:
+        return TYPE_FLOAT;
     case FUEL_MASS_REAL:
         return TYPE_FLOAT;
     case FUEL_MASS_VIRTUAL:
@@ -491,6 +493,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "GEAR_POWER_INCREASE";
     case MASS:
         return "MASS";
+    case VIRTUAL_MASS:
+        return "VIRTUAL_MASS";
     case FUEL_MASS_REAL:
         return "FUEL_MASS_REAL";
     case FUEL_MASS_VIRTUAL:
@@ -1126,6 +1130,18 @@ float AbstractCharacteristic::getMass() const
                     getName(MASS).c_str());
     return result;
 }  // getMass
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getVirtualMass() const
+{
+    float result;
+    bool is_set = false;
+    process(VIRTUAL_MASS, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(VIRTUAL_MASS).c_str());
+    return result;
+}  // getVirtualMass
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getFuelMassReal() const

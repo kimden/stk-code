@@ -242,6 +242,9 @@
         <!-- Mass of a kart -->
         <mass value="350" />
 
+        <!-- Mass of a kart as seen by tyre degradation physics, can be changed to decouple the weight as felt by the player from the degradation (also for balance purposes) -->
+        <virtualmass value="350" />
+
         <!-- Fuel parameters
             mass-real:       The mass per liter used for the physics 
             mass-virtual:    The mass per liter used for the degradation 
@@ -582,6 +585,7 @@
             <gear switch-ratio="0.1 0.25 0.45 0.7 1.0 4.0"
                   power-increase="2.95 2.42 1.99 1.56 1.28 1.0" />
             <mass value="*0.6" />
+            <virtualmass value="*0.6" />
             <fuel mass-real="*1" mass-virtual="*1.2" consumption="*1" capacity="*0.97" />
             <skid reduce-turn-min="0.2" reduce-turn-max="0.895" bonus-force="*0.8 *0.8 *0.8" />
             <startup boost="*1 *1" />
@@ -599,6 +603,7 @@
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.5 2.08 1.76 1.44 1.22 1" />
             <mass value="*0.75" />
+            <virtualmass value="*0.75" />
             <fuel mass-real="*1" mass-virtual="*1.0" consumption="*1" capacity="*1" />
             <skid reduce-turn-min="0.2475" reduce-turn-max="0.895" bonus-force="*0.875 *0.875 *0.875" />
             <startup boost="*0.875 *0.875" />
@@ -615,6 +620,7 @@
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.05 1.74 1.53 1.32 1.16 1" />
             <mass value="*1" />
+            <virtualmass value="*1" />
             <fuel mass-real="*1" mass-virtual="*0.8" consumption="*1" capacity="*1.03" />
             <skid reduce-turn-min="0.285" reduce-turn-max="0.895" bonus-force="*1.0 *1.0 *1.0" />
             <startup boost="*0.8 *0.8" />

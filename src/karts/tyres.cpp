@@ -108,6 +108,9 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, un
     // The weight used to compute degradation, which will be different from the real one
 
     float effective_mass = m_kart->getMass() - m_c_fuel_weight_real*m_current_fuel + m_c_fuel_weight_virtual*m_current_fuel;
+    effective_mass -= m_kart->getKartProperties()->getMass();
+    effective_mass += m_kart->getKartProperties()->getVirtualMass();
+    
     // Longitudinal force
     m_force_x = m_acceleration*effective_mass;
 
