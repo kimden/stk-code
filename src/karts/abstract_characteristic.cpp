@@ -85,6 +85,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case TURN_TIME_FULL_STEER:
         return TYPE_INTERPOLATION_ARRAY;
+    case TURN_BRAKE_MULTIPLIER:
+        return TYPE_FLOAT;
     case ENGINE_POWER:
         return TYPE_FLOAT;
     case ENGINE_MAX_SPEED:
@@ -467,6 +469,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TURN_TIME_RESET_STEER";
     case TURN_TIME_FULL_STEER:
         return "TURN_TIME_FULL_STEER";
+    case TURN_BRAKE_MULTIPLIER:
+        return "TURN_BRAKE_MULTIPLIER";
     case ENGINE_POWER:
         return "ENGINE_POWER";
     case ENGINE_MAX_SPEED:
@@ -990,6 +994,18 @@ InterpolationArray AbstractCharacteristic::getTurnTimeFullSteer() const
                     getName(TURN_TIME_FULL_STEER).c_str());
     return result;
 }  // getTurnTimeFullSteer
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTurnBrakeMultiplier() const
+{
+    float result;
+    bool is_set = false;
+    process(TURN_BRAKE_MULTIPLIER, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TURN_BRAKE_MULTIPLIER).c_str());
+    return result;
+}  // getTurnBrakeMultiplier
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getEnginePower() const

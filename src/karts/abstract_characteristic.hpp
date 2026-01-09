@@ -94,6 +94,7 @@ public:
         TURN_RADIUS,
         TURN_TIME_RESET_STEER,
         TURN_TIME_FULL_STEER,
+        TURN_BRAKE_MULTIPLIER,
 
         // Engine
         ENGINE_POWER,
@@ -362,6 +363,7 @@ public:
     InterpolationArray getTurnRadius() const;
     float getTurnTimeResetSteer() const;
     InterpolationArray getTurnTimeFullSteer() const;
+    float getTurnBrakeMultiplier() const;
 
     float getEnginePower() const;
     float getEngineMaxSpeed() const;

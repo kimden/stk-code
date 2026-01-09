@@ -402,6 +402,7 @@ public:
     InterpolationArray getTurnRadius() const;
     float getTurnTimeResetSteer() const;
     InterpolationArray getTurnTimeFullSteer() const;
+    float getTurnBrakeMultiplier() const;
 
     float getEnginePower() const;
     float getEngineMaxSpeed() const;

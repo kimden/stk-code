@@ -3290,9 +3290,25 @@ void Kart::updatePhysics(int ticks)
         ;
     }
 
+    float brake_time = stk_config->ticks2Time(m_brake_ticks);
+    float brake_pressure = 0.0f;
 
-    m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 0);
-    m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 1);
+    if(m_controls.getBrake() && m_speed > 0.0f) {
+        if (brake_time >= kp->getEngineTimeFullBrake())
+            brake_pressure = 1.0f;
+        else
+            brake_pressure = brake_time * (0.35f + 0.65f / kp->getEngineTimeFullBrake());
+    }
+
+    if (brake_pressure > 1.0f) brake_pressure = 1.0f;
+
+
+    float final_steering = m_tyres->degTurnRadius(steering);
+    // interpolate based on brake pressure, which is in range [0, 1]
+    float brake_mult = 1.0f + brake_pressure*(getKartProperties()->getTurnBrakeMultiplier() - 1.0f);
+
+    m_vehicle->setSteeringValue(brake_mult*final_steering, 0);
+    m_vehicle->setSteeringValue(brake_mult*final_steering, 1);
 
     if (skidding_sound && !m_skidding->isJumping())
     {
@@ -3305,13 +3321,6 @@ void Kart::updatePhysics(int ticks)
         m_skid_sound->stop();
     }
 
-    float f = stk_config->ticks2Time(m_brake_ticks);
-    if(m_controls.getBrake() && m_speed > 0.0f) {
-        if (f >= kp->getEngineTimeFullBrake())
-            f = 1.0f;
-        else
-            f = f * (0.35f + 0.65f / kp->getEngineTimeFullBrake());
-    }
     if (m_crash_cooldown_ticks > 0) {
         m_crash_cooldown_ticks -= ticks;
             if (m_crash_cooldown_ticks <= 0) {
@@ -3366,8 +3375,7 @@ void Kart::updatePhysics(int ticks)
     unfair for a kart to degrade more simply because it is longer (as it is not really an STK mechanic)*/
     float tyres_steering = 0.872281*(fabs(steering)/(float)kp->getWheelBase());
     if (stk_config->m_tme_enable_tyre_degradation)
-        m_tyres->computeDegradation(dt, isOnGround(), m_is_skidding, skid_level, is_zippered, do_slowdown, f, tyres_steering, m_controls.getAccel());
-
+        m_tyres->computeDegradation(dt, isOnGround(), m_is_skidding, skid_level, is_zippered, do_slowdown, brake_pressure, tyres_steering, m_controls.getAccel());
     updateSliding();
 
     // Cap speed if necessary

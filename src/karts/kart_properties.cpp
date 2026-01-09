@@ -846,6 +846,12 @@ InterpolationArray KartProperties::getTurnTimeFullSteer() const
 }  // getTurnTimeFullSteer
 
 // ----------------------------------------------------------------------------
+float KartProperties::getTurnBrakeMultiplier() const
+{
+    return m_cached_characteristic->getTurnBrakeMultiplier();
+}  // getTurnBrakeMultiplier
+
+// ----------------------------------------------------------------------------
 float KartProperties::getEnginePower() const
 {
     return m_cached_characteristic->getEnginePower();

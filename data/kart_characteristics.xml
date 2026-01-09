@@ -204,10 +204,13 @@
                 oversteering (by pressing the key for too long)
                 If the kart is currently in the direction opposite to the
                 required steering ("negative steering"), the time-full-steer
+            brake-multiplier: When brake-pressure is 100%, turn radius will be multiplied by this parameter.
+                              Before it reaches 100%, it'll be interpolated to gradually ease into the desired multiplier
+                              (if it's <1, it'll ease from above, and if it's >1, it'll ease from below).
                 at 0 is used.
                  -->
         <turn radius="-100:4.2 -1:4.2 0:2.5 5:4 12:8 20:14 30:22 50:38.5"
-              time-full-steer="0:0.1 0.3:0.1 0.3:0.14 0.6:0.14 0.6:0.21 1.0:0.21" />
+              time-full-steer="0:0.1 0.3:0.1 0.3:0.14 0.6:0.14 0.6:0.21 1.0:0.21" brake-multiplier="1.0" />
 
         <!-- Speed and acceleration
             power: The power of the kart (the engine power needed to accelerate
