@@ -552,6 +552,8 @@ void STKConfig::getAllData(const XMLNode * root)
     }
 
     if(const XMLNode *pit_node= root->getNode("pit")) {
+        pit_node->get("alloc-penalties", &m_alloc_penalties);
+        
         pit_node->get("default-time-pit-drivethrough", &m_default_time_pit_drivethrough);
         pit_node->get("default-time-pit-tyrechange", &m_default_time_pit_tyrechange);
         pit_node->get("default-time-pit-refuel", &m_default_time_pit_refuel);

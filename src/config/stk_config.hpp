@@ -85,6 +85,7 @@ public:
     bool  m_shield_gum_boost;        /**<Wether running over gums causes them to get
                                              collected and gives a minor boost. */
 
+    bool m_alloc_penalties; /** Illegal stop penalties OFF/ON*/
     float m_default_time_pit_drivethrough; /** For AI pitting */
     float m_default_time_pit_tyrechange;
     float m_default_time_pit_refuel;

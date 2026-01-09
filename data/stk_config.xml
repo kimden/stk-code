@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+ç<?xml version="1.0"?>
 
 <config>
   <!--  Minimum and maximum kart versions that can be used by this binary.
@@ -289,12 +289,24 @@
          camera-follow-skid="true"     />
 
     <!-- The default values used for AI to decide
-        how to pit if not specified per-track
+        how to pit if not specified per-track, and some global rules
+        default-time-pit-drivethrough: X
+        default-time-pit-tyrechange: Z. when AI changes tyres, X+Z second stop
+        default-time-pit-refuel: Y. when AI refuels, X+Y+(refuel time that depends on amount being put in the tank) second stop
+
+        alloc-penalties: if true:
+                            when trying to change to a disallowed (through its tyre allocation being 0) tyre,
+                            the tyre's health will be reduced to be extremely low
+                         if false:
+                            disallowed tyre changes will just be ignored and not performed
+                            
     -->
     <pit
         default-time-pit-drivethrough="10.0"
         default-time-pit-tyrechange="10.0"
         default-time-pit-refuel="5.0"
+
+        alloc-penalties="false"
     />
 
   <!-- Default values for all karts

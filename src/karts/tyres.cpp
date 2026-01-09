@@ -435,6 +435,13 @@ void Tyres::commandEnd(void) {
 }
 
 void Tyres::commandChange(int compound, int time) {
+    if (compound <= 0) {
+        std::wstring namew(m_kart->getController()->getName().c_str());
+        std::string name( namew.begin(), namew.end() );
+        Log::fatal("[Tyres]", "Forbidden tyre ID '0' for kart %s %s", name.c_str(), m_kart->getIdent().c_str());
+        //m_current_compound = rand() % (int)m_kart->getKartProperties()->getTyresCompoundNumber();
+    }
+
     auto& stk_config = STKConfig::get();
     if (compound == 123) {
         // 123 is the code for a refueling
@@ -445,15 +452,16 @@ void Tyres::commandChange(int compound, int time) {
         return;
     }
 
-    if (time > 0) {
-        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, m_kart->getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
-    }
 
 
     if (compound >= 124) {
         std::string kart_to_change_to = TyreUtils::getKartFromCompound(compound);
         if (kart_to_change_to == "???" || kart_to_change_to == "ERROR")
             return;
+
+        if (time > 0) {
+            m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, m_kart->getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+        }
 
         m_kart->changeKartMidRace(kart_to_change_to, m_kart->getHandicap(), m_current_compound /*will be ignored*/, m_kart->getKartModel()->getRenderInfo());
         return;
@@ -473,41 +481,21 @@ void Tyres::commandChange(int compound, int time) {
     unsigned prev_compound = m_current_compound;
     float prev_trac = m_current_life_traction/m_c_max_life_traction;
     float prev_tur = m_current_life_turning/m_c_max_life_turning;
-    
-    if (compound >= 1) {
-        m_current_compound = ((compound-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber())+1;
-    } else {
-        std::wstring namew(m_kart->getController()->getName().c_str());
-        std::string name( namew.begin(), namew.end() );
-        Log::fatal("[Tyres]", "Forbidden tyre ID '0' for kart %s %s", name.c_str(), m_kart->getIdent().c_str());
-        //m_current_compound = rand() % (int)m_kart->getKartProperties()->getTyresCompoundNumber();
-    }
-    if (!(NetworkConfig::get()->isServer())){
-        std::wstring namew(m_kart->getController()->getName().c_str());
-        std::string name( namew.begin(), namew.end() );
+    unsigned new_compound = ((compound-1) % (int)m_kart->getKartProperties()->getTyresCompoundNumber())+1;
+    bool do_pit = true;
+    bool do_penalize = false;
 
-        // Logs will be clutter unless this check is ran
-        if (!m_kart->isGhostKart()) {
-            Log::info("[RunRecord]", "C %s %s %s %s", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(compound).c_str(), std::to_string(time).c_str());
-        }
-    }
-
-    m_reset_compound = false;
-    m_reset_fuel = false;
-    Tyres::reset();
 
     if (/*m_kart->m_is_under_tme_ruleset*/ true) {
-        if (!m_kart->m_tyres_queue.empty() && m_kart->m_tyres_queue.size() >= m_current_compound) { /*Empty queue just means it wasn't initialized*/
-            bool pitting_for_same = prev_compound == m_current_compound;
+        if (!m_kart->m_tyres_queue.empty() && m_kart->m_tyres_queue.size() >= new_compound) { /*Empty queue just means it wasn't initialized*/
+            bool pitting_for_same = prev_compound == new_compound;
             bool old_tyres_were_fresh = prev_trac > 0.98f && prev_tur > 0.98f;
-            bool new_tyre_is_available = m_kart->m_tyres_queue[m_current_compound-1] != 0;
-            bool new_tyre_is_infinite = m_kart->m_tyres_queue[m_current_compound-1] == -1;
+            bool new_tyre_is_available = m_kart->m_tyres_queue[new_compound-1] != 0;
+            bool new_tyre_is_infinite = m_kart->m_tyres_queue[new_compound-1] == -1;
             bool prev_tyre_is_infinite = m_kart->m_tyres_queue[prev_compound-1] == -1;
 
 
             // This system is extremely lenient, it will never take away a tyre from the user unless it's clearly breaking the rules and it can't be "corrected for the user".
-            // TODO: This system adds a bit of spice by penalizing if you mess up, but instead the stop could just never happen if the tyre isn't available.
-            //       That should be made configurable in the game settings.
 
             // Accidental pitstop for the same compound while it is unused is not punished (see below)
             bool same_pitstop_twice = (pitting_for_same && old_tyres_were_fresh);
@@ -529,20 +517,52 @@ void Tyres::commandChange(int compound, int time) {
             }
 
             if (reduce_current && !new_tyre_is_infinite) {
-                m_kart->m_tyres_queue[m_current_compound-1] -= 1;
+                m_kart->m_tyres_queue[new_compound-1] -= 1;
             }
 
             if (should_disqualify) {
                 if (m_kart->m_wildcards > 0) { // Spend a wildcard and don't penalize
                     ;
                 } else { /*Penalty for pitting with no available compound*/ 
-                    m_kart->m_is_disqualified = true;
-                    m_current_life_turning *= 0.5;
-                    m_current_life_traction *= 0.5;
+                    if (!stk_config->m_alloc_penalties) {
+                        do_pit = false;
+                    } else {
+                        do_penalize = true;
+                        m_kart->m_is_disqualified = true;
+                    }
                 }
             }
         }
     }
+
+    if (!do_pit) {
+        return;
+    }
+
+    if (time > 0) {
+        m_kart->m_max_speed->setSlowdown(MaxSpeed::MS_DECREASE_STOP, m_kart->getKartProperties()->getTyresPitSpeedFraction(), stk_config->time2Ticks(0.1f), stk_config->time2Ticks(time));
+    }
+
+    if (!(NetworkConfig::get()->isServer())){
+        // Logs will be cluttered unless this check is ran
+        std::wstring namew(m_kart->getController()->getName().c_str());
+        std::string name( namew.begin(), namew.end() );
+        if (!m_kart->isGhostKart()) {
+            Log::info("[RunRecord]", "C %s %s %s %s", name.c_str(), RaceManager::get()->getTrackName().c_str(), std::to_string(compound).c_str(), std::to_string(time).c_str());
+        }
+    }
+
+    m_current_compound = new_compound;
+
+    m_reset_compound = false;
+    m_reset_fuel = false;
+    Tyres::reset();
+
+    if (do_penalize) {
+        m_current_life_turning *= 0.2;
+        m_current_life_traction *= 0.2;
+    }
+
 }
 
 std::vector<uint8_t> Tyres::encodeStints(std::vector<std::tuple<unsigned, unsigned>>& s) {
