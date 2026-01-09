@@ -241,8 +241,8 @@ static std::string fetch(std::vector<std::string>& strings, unsigned idx) {
 }
 //--------------------------------------------------
 void ItemPolicy::fromString(std::string& input) {
-    std::string normal_race_preset = "1 0 0000000000 0 0 0 0 1 1 0 0";
-    std::string tt_preset = "1 0 0010000001 1 0 0 0 1 1 0 1 zipper 1";
+    std::string normal_race_preset = "1 0 0000000000 000000 0 0 0 0 1 1 0 0";
+    std::string tt_preset = "1 0 0010000001 000000 1 0 0 0 1 1 0 1 zipper 1";
     if (input.empty()) {
         fromString(normal_race_preset);
         return;
@@ -298,6 +298,14 @@ void ItemPolicy::fromString(std::string& input) {
             tmp.m_rules |= (bitstring[j] != '0') << (bitstring.size() - j - 1);
         }
 
+        bitstring = fetch(params, idx);
+        idx++;
+
+        tmp.m_forbidden_inputs = 0;
+        for (unsigned j = 0; j < bitstring.size(); j++) {
+            tmp.m_forbidden_inputs |= (bitstring[j] != '0') << (bitstring.size() - j - 1);
+        }
+
         retrieve_float(tmp.m_linear_mult);
         retrieve_float(tmp.m_items_per_lap);
         retrieve_float(tmp.m_progressive_cap);
@@ -335,8 +343,12 @@ std::string ItemPolicy::toString() {
             return "Time based sections not supported yet";
         }
         ss << m_policy_sections[i].m_section_start << " ";
+
         std::string bs = std::bitset<17>(m_policy_sections[i].m_rules).to_string();
         ss << bs << " ";
+        bs = std::bitset<17>(m_policy_sections[i].m_forbidden_inputs).to_string();
+        ss << bs << " ";
+
         ss << m_policy_sections[i].m_linear_mult << " ";
         ss << m_policy_sections[i].m_items_per_lap << " ";
         ss << m_policy_sections[i].m_progressive_cap << " ";

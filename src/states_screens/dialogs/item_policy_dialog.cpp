@@ -156,6 +156,7 @@ void ItemPolicyDialog::init()
     m_config_mode_spinner->addLabel(_("Powerup pool"));
     m_config_mode_spinner->addLabel(_("Rules"));
     m_config_mode_spinner->addLabel(_("Fuel & Tyres"));
+    m_config_mode_spinner->addLabel(_("Inputs"));
 
     m_config_mode_spinner->setValue(0);
     m_current_section_spinner->setValue(0);
@@ -250,24 +251,35 @@ void ItemPolicyDialog::updateMoreOption(int config_mode)
             setVisibilityOfPowerupPoolTab(false);
             setVisibilityOfRulesTab(false);
             setVisibilityOfFuelAndTyresTab(false);
+            setVisibilityOfInputTab(false);
             break;
         case 1:
             setVisibilityOfPowerupTab(false);
             setVisibilityOfPowerupPoolTab(true);
             setVisibilityOfRulesTab(false);
             setVisibilityOfFuelAndTyresTab(false);
+            setVisibilityOfInputTab(false);
             break;
         case 2:
             setVisibilityOfPowerupTab(false);
             setVisibilityOfPowerupPoolTab(false);
             setVisibilityOfRulesTab(true);
             setVisibilityOfFuelAndTyresTab(false);
+            setVisibilityOfInputTab(false);
             break;
         case 3:
             setVisibilityOfPowerupTab(false);
             setVisibilityOfPowerupPoolTab(false);
             setVisibilityOfRulesTab(false);
             setVisibilityOfFuelAndTyresTab(true);
+            setVisibilityOfInputTab(false);
+            break;
+        case 4:
+            setVisibilityOfPowerupTab(false);
+            setVisibilityOfPowerupPoolTab(false);
+            setVisibilityOfRulesTab(false);
+            setVisibilityOfFuelAndTyresTab(false);
+            setVisibilityOfInputTab(true);
             break;
         default:
             break;
@@ -283,6 +295,7 @@ void ItemPolicyDialog::updateMoreOption(int config_mode)
 
 
 #define SETRULE(__x, __y) if (__x) { cs->m_rules |= (ItemPolicyRules::__y); } else { cs->m_rules &= ~(ItemPolicyRules::__y); } 
+#define SETINPUT(__x, __y) if (__x) { cs->m_forbidden_inputs |= (ItemPolicyInputs::__y); } else { cs->m_forbidden_inputs &= ~(ItemPolicyInputs::__y); } 
 #define READ_TEXTBOX_FLOAT(__y, __x) { std::string __tmp = StringUtils::wideToUtf8(TEXTBOX(__x)->getText()); try { __y = std::stof(__tmp);  } catch(...) { __y = 0; } } 
 #define READ_SPINNER(__y, __x) __y = SPINNER(__x)->getValue(); 
 
@@ -326,6 +339,13 @@ void ItemPolicyDialog::computePolicyFromGUI() {
     READ_TEXTBOX_FLOAT(cs->m_tyre_change_time, "tyre-change-override-val");
 
     SETRULE(CHECKBOX("ghost-karts")->getState(), IPT_GHOST_KARTS);
+
+    SETINPUT(CHECKBOX("forbid-brake")->getState(), IPT_INPUT_BRAKE);
+    SETINPUT(CHECKBOX("forbid-nitrouse")->getState(), IPT_INPUT_NITRO);
+    SETINPUT(CHECKBOX("forbid-skid")->getState(), IPT_INPUT_SKID);
+    SETINPUT(CHECKBOX("forbid-lookback")->getState(), IPT_INPUT_LOOKBACK);
+    SETINPUT(CHECKBOX("forbid-fire")->getState(), IPT_INPUT_FIRE);
+    SETINPUT(CHECKBOX("forbid-rescue")->getState(), IPT_INPUT_RESCUE);
 
     // Simultaneously rebuild the item policy and set the dependent GUI elements to visible/invisible
     cs->m_possible_types.clear();
@@ -374,6 +394,8 @@ void ItemPolicyDialog::computePolicyFromGUI() {
 }
 
 #define GETRULE(__z) (cs->m_rules & ItemPolicyRules::__z)
+#define GETINPUT(__z) (cs->m_forbidden_inputs & ItemPolicyInputs::__z)
+#define SET_CHECKBOX_INPUT(__x, __y) CHECKBOX(__x)->setState(GETINPUT(__y));
 #define SET_CHECKBOX_RULE(__x, __y) CHECKBOX(__x)->setState(GETRULE(__y));
 #define SET_TEXTBOX_FLOAT(__y, __x) TEXTBOX(__x)->setText(StringUtils::utf8ToWide(std::to_string(__y)));
 #define SET_SPINNER(__y, __x) SPINNER(__x)->setValue(__y); 
@@ -452,6 +474,13 @@ void ItemPolicyDialog::setGUIFromPolicy(){
 
         idx += 1;
     }
+
+    SET_CHECKBOX_INPUT("forbid-brake", IPT_INPUT_BRAKE);
+    SET_CHECKBOX_INPUT("forbid-nitrouse", IPT_INPUT_NITRO);
+    SET_CHECKBOX_INPUT("forbid-skid", IPT_INPUT_SKID);
+    SET_CHECKBOX_INPUT("forbid-lookback", IPT_INPUT_LOOKBACK);
+    SET_CHECKBOX_INPUT("forbid-fire", IPT_INPUT_FIRE);
+    SET_CHECKBOX_INPUT("forbid-rescue", IPT_INPUT_RESCUE);
 }
 
 
@@ -540,4 +569,26 @@ void ItemPolicyDialog::setVisibilityOfFuelAndTyresTab(bool visible) {
 
     LABEL("ghost-karts")->setVisible(visible);
     CHECKBOX("ghost-karts")->setVisible(visible);
+}
+
+
+
+void ItemPolicyDialog::setVisibilityOfInputTab(bool visible) {
+    LABEL("forbid-brake")->setVisible(visible);
+    CHECKBOX("forbid-brake")->setVisible(visible);
+
+    LABEL("forbid-nitrouse")->setVisible(visible);
+    CHECKBOX("forbid-nitrouse")->setVisible(visible);
+
+    LABEL("forbid-skid")->setVisible(visible);
+    CHECKBOX("forbid-skid")->setVisible(visible);
+
+    LABEL("forbid-lookback")->setVisible(visible);
+    CHECKBOX("forbid-lookback")->setVisible(visible);
+
+    LABEL("forbid-fire")->setVisible(visible);
+    CHECKBOX("forbid-fire")->setVisible(visible);
+
+    LABEL("forbid-rescue")->setVisible(visible);
+    CHECKBOX("forbid-rescue")->setVisible(visible);
 }

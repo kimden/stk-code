@@ -95,6 +95,14 @@ enum ItemPolicyRules {
 
 };
 
+enum ItemPolicyInputs {
+    IPT_INPUT_BRAKE = 1 << 0,
+    IPT_INPUT_NITRO = 1 << 1,
+    IPT_INPUT_SKID = 1 << 2,
+    IPT_INPUT_LOOKBACK = 1 << 3,
+    IPT_INPUT_FIRE = 1 << 4,
+    IPT_INPUT_RESCUE = 1 << 5
+};
 
 
 // An event can have several sections which each run by different rules.
@@ -110,6 +118,9 @@ struct ItemPolicySection {
 
     // Bitstring of IPT_XX rule bits
     uint32_t m_rules;
+
+    // Bitstring of IPT_XX input forbidding bits
+    uint32_t m_forbidden_inputs;
 
     float m_linear_mult;
     float m_items_per_lap;
