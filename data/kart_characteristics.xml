@@ -74,6 +74,16 @@
         (ARRAY) skid-factor-full: multiply degradation by this factor when skidding with red/purple sparks
         (ARRAY) rolling resistance: for every meter travelled, substract this much health from the tyre's traction health
         (ARRAY) brake-threshold: Let the parameter be X. Let the brake pressure be Y. When Y, which is in the range [0, 1], increases above X, multiply degradation by (Y/X)
+
+        (ARRAY) usage-multiplier-(turning/traction): see below
+                reference-speed-mult: degradation_turning += degradation_turning * usage_multiplier_turning * (current_speed - (reference_speed_mult * base_speed))
+                                      degradation_traction += degradation_traction * usage_multiplier_traction * (current_speed - (reference_speed_mult * base_speed))
+                The usage-muliplier/reference-speed-mult allows to set a fraction of the kart's base speed as reference,
+                and declare that degradation will increase X% for every meter/second speed increase above that reference.
+                The formula IS NOT APPLIED when below reference_speed_mult * base_speed.
+                It's a way to make degradation increase (or decrease) along with speed, it already happens with the physics but this is a way to exaggerate/modify that behaviour.
+                By default it's all set to 0.
+
         (ARRAY) crash-penalty: Let the parameter be X. When the kart collides strongly with the track (2 second cooldown for detection), X% is substracted from both the traction and turning healths.
                                This is meant to be used as a penalty for wallriding/wallturning.
         (ARRAY) do-grip-based-turning: If this parameter is 1, grip based turning is enabled. If it's 0, it's disabled. For now, it does nothing, but it might do something then the "Realistic" skid mode is more complete.
@@ -126,6 +136,9 @@
                skid-factor-full="3 3 3 3 3 3 3 3 3 3"
                rolling-resistance="0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02"
                brake-threshold="0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2"
+               usage-multiplier-turning="0 0 0 0 0 0 0 0 0 0"
+               usage-multiplier-traction="0 0 0 0 0 0 0 0 0 0"
+               reference-speed-mult="0 0 0 0 0 0 0 0 0 0"
                crash-penalty="0 0 0 0 0 0 0 0 0 0"
                do-grip-based-turning="0 0 0 0 0 0 0 0 0 0"
                do-substractive-turning="0 0 0 0 0 0 0 0 0 0"

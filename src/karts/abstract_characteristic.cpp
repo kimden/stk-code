@@ -299,6 +299,12 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_SKID_FACTOR_FULL:
         return TYPE_FLOAT_VECTOR;
+    case TYRES_USAGE_MULTIPLIER_TURNING:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_USAGE_MULTIPLIER_TRACTION:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_REFERENCE_SPEED_MULT:
+        return TYPE_FLOAT_VECTOR;
     case TYRES_BRAKE_THRESHOLD:
         return TYPE_FLOAT_VECTOR;
     case TYRES_CRASH_PENALTY:
@@ -675,6 +681,12 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_SKID_FACTOR_PARTIAL";
     case TYRES_SKID_FACTOR_FULL:
         return "TYRES_SKID_FACTOR_FULL";
+    case TYRES_USAGE_MULTIPLIER_TURNING:
+        return "TYRES_USAGE_MULTIPLIER_TURNING";
+    case TYRES_USAGE_MULTIPLIER_TRACTION:
+        return "TYRES_USAGE_MULTIPLIER_TRACTION";
+    case TYRES_REFERENCE_SPEED_MULT:
+        return "TYRES_REFERENCE_SPEED_MULT";
     case TYRES_BRAKE_THRESHOLD:
         return "TYRES_BRAKE_THRESHOLD";
     case TYRES_CRASH_PENALTY:
@@ -2262,6 +2274,42 @@ std::vector<float> AbstractCharacteristic::getTyresSkidFactorFull() const
                     getName(TYRES_SKID_FACTOR_FULL).c_str());
     return result;
 }  // getTyresSkidFactorFull
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresUsageMultiplierTurning() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_USAGE_MULTIPLIER_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_USAGE_MULTIPLIER_TURNING).c_str());
+    return result;
+}  // getTyresUsageMultiplierTurning
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresUsageMultiplierTraction() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_USAGE_MULTIPLIER_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_USAGE_MULTIPLIER_TRACTION).c_str());
+    return result;
+}  // getTyresUsageMultiplierTraction
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresReferenceSpeedMult() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_REFERENCE_SPEED_MULT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_REFERENCE_SPEED_MULT).c_str());
+    return result;
+}  // getTyresReferenceSpeedMult
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getTyresBrakeThreshold() const

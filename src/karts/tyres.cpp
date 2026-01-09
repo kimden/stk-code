@@ -95,6 +95,7 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, un
         }
     }
     
+    float reference_speed = m_c_reference_speed_mult*m_kart->getKartProperties()->getEngineMaxSpeed();
     float turn_radius = 1.0f/steer_amount; // not really the "turn radius" but proportional
     float deg_tur = 0.0f;
     float deg_tra = 0.0f;
@@ -154,6 +155,12 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, un
         deg_tra *= m_c_offroad_factor;
     }
 
+    // Speed degradation, for every m/s increase in speed above a reference speed set as a fraction of the kart's base speed, increase degradation by a certain fraction
+    if (speed > reference_speed) {
+        deg_tra += deg_tra*m_c_usage_multiplier_turning * (speed - reference_speed);
+        deg_tur += deg_tra*m_c_usage_multiplier_traction * (speed - reference_speed);
+    }
+
     // Apply centripetal force as degradation to the turning health
     deg_tur = dt*std::abs(m_force_y)/10000.0f;
 
@@ -184,6 +191,8 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, un
         m_current_life_traction -= deg_tur_percent*m_c_limiting_transfer_turning*m_c_max_life_traction;
     }
 
+    if (deg_tra < 0.0f) deg_tra = 0.0f;
+    if (deg_tur < 0.0f) deg_tur = 0.0f;
     // Apply degradation
     m_current_life_traction -= deg_tra;
     m_current_life_turning -= deg_tur;

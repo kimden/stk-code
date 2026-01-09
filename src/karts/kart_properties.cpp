@@ -1488,6 +1488,24 @@ std::vector<float> KartProperties::getTyresSkidFactorFull() const
 }  // getTyresSkidFactorFull
 
 // ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresUsageMultiplierTurning() const
+{
+    return m_cached_characteristic->getTyresUsageMultiplierTurning();
+}  // getTyresUsageMultiplierTurning
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresUsageMultiplierTraction() const
+{
+    return m_cached_characteristic->getTyresUsageMultiplierTraction();
+}  // getTyresUsageMultiplierTraction
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresReferenceSpeedMult() const
+{
+    return m_cached_characteristic->getTyresReferenceSpeedMult();
+}  // getTyresReferenceSpeedMult
+
+// ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getTyresBrakeThreshold() const
 {
     return m_cached_characteristic->getTyresBrakeThreshold();

@@ -83,6 +83,9 @@ private:
     float m_c_skid_factor_partial;
     float m_c_skid_factor_full;
     float m_c_brake_threshold;
+    float m_c_usage_multiplier_turning;
+    float m_c_usage_multiplier_traction;
+    float m_c_reference_speed_mult;
     float m_c_crash_penalty;
 
 

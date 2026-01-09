@@ -235,6 +235,9 @@ public:
         TYRES_ROLLING_RESISTANCE,
         TYRES_SKID_FACTOR_PARTIAL,
         TYRES_SKID_FACTOR_FULL,
+        TYRES_USAGE_MULTIPLIER_TURNING,
+        TYRES_USAGE_MULTIPLIER_TRACTION,
+        TYRES_REFERENCE_SPEED_MULT,
         TYRES_BRAKE_THRESHOLD,
         TYRES_CRASH_PENALTY,
         TYRES_DEFAULT_COLOR,
@@ -483,6 +486,9 @@ public:
     std::vector<float> getTyresRollingResistance() const;
     std::vector<float> getTyresSkidFactorPartial() const;
     std::vector<float> getTyresSkidFactorFull() const;
+    std::vector<float> getTyresUsageMultiplierTurning() const;
+    std::vector<float> getTyresUsageMultiplierTraction() const;
+    std::vector<float> getTyresReferenceSpeedMult() const;
     std::vector<float> getTyresBrakeThreshold() const;
     std::vector<float> getTyresCrashPenalty() const;
     std::vector<float> getTyresDefaultColor() const;
