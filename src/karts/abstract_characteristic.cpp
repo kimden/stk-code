@@ -391,6 +391,12 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case SKID_TIME_TILL_MAX:
         return TYPE_FLOAT;
+    case SKID_SLOWDOWN:
+        return TYPE_FLOAT;
+    case SKID_FADE_IN:
+        return TYPE_FLOAT;
+    case SKID_FADE_OUT:
+        return TYPE_FLOAT;
     case SKID_VISUAL:
         return TYPE_FLOAT;
     case SKID_VISUAL_TIME:
@@ -777,6 +783,12 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "SKID_MAX";
     case SKID_TIME_TILL_MAX:
         return "SKID_TIME_TILL_MAX";
+    case SKID_SLOWDOWN:
+        return "SKID_SLOWDOWN";
+    case SKID_FADE_IN:
+        return "SKID_FADE_IN";
+    case SKID_FADE_OUT:
+        return "SKID_FADE_OUT";
     case SKID_VISUAL:
         return "SKID_VISUAL";
     case SKID_VISUAL_TIME:
@@ -2834,6 +2846,42 @@ float AbstractCharacteristic::getSkidTimeTillMax() const
                     getName(SKID_TIME_TILL_MAX).c_str());
     return result;
 }  // getSkidTimeTillMax
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getSkidSlowdown() const
+{
+    float result;
+    bool is_set = false;
+    process(SKID_SLOWDOWN, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_SLOWDOWN).c_str());
+    return result;
+}  // getSkidSlowdown
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getSkidFadeIn() const
+{
+    float result;
+    bool is_set = false;
+    process(SKID_FADE_IN, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_FADE_IN).c_str());
+    return result;
+}  // getSkidFadeIn
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getSkidFadeOut() const
+{
+    float result;
+    bool is_set = false;
+    process(SKID_FADE_OUT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_FADE_OUT).c_str());
+    return result;
+}  // getSkidFadeOut
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getSkidVisual() const

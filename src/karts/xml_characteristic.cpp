@@ -771,6 +771,12 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[SKID_MAX]);
         sub_node->get("time-till-max",
             &m_values[SKID_TIME_TILL_MAX]);
+        sub_node->get("slowdown",
+            &m_values[SKID_SLOWDOWN]);
+        sub_node->get("fade-in",
+            &m_values[SKID_FADE_IN]);
+        sub_node->get("fade-out",
+            &m_values[SKID_FADE_OUT]);
         sub_node->get("visual",
             &m_values[SKID_VISUAL]);
         sub_node->get("visual-time",

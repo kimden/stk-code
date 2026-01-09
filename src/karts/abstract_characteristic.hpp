@@ -295,6 +295,9 @@ public:
         SKID_DECREASE,
         SKID_MAX,
         SKID_TIME_TILL_MAX,
+        SKID_SLOWDOWN,
+        SKID_FADE_IN,
+        SKID_FADE_OUT,
         SKID_VISUAL,
         SKID_VISUAL_TIME,
         SKID_REVERT_VISUAL_TIME,
@@ -543,6 +546,9 @@ public:
     float getSkidDecrease() const;
     float getSkidMax() const;
     float getSkidTimeTillMax() const;
+    float getSkidSlowdown() const;
+    float getSkidFadeIn() const;
+    float getSkidFadeOut() const;
     float getSkidVisual() const;
     float getSkidVisualTime() const;
     float getSkidRevertVisualTime() const;

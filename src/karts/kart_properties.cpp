@@ -1764,6 +1764,24 @@ float KartProperties::getSkidTimeTillMax() const
 }  // getSkidTimeTillMax
 
 // ----------------------------------------------------------------------------
+float KartProperties::getSkidSlowdown() const
+{
+    return m_cached_characteristic->getSkidSlowdown();
+}  // getSkidSlowdown
+
+// ----------------------------------------------------------------------------
+float KartProperties::getSkidFadeIn() const
+{
+    return m_cached_characteristic->getSkidFadeIn();
+}  // getSkidFadeIn
+
+// ----------------------------------------------------------------------------
+float KartProperties::getSkidFadeOut() const
+{
+    return m_cached_characteristic->getSkidFadeOut();
+}  // getSkidFadeOut
+
+// ----------------------------------------------------------------------------
 float KartProperties::getSkidVisual() const
 {
     return m_cached_characteristic->getSkidVisual();

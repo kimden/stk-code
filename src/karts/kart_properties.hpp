@@ -579,6 +579,9 @@ public:
     float getSkidDecrease() const;
     float getSkidMax() const;
     float getSkidTimeTillMax() const;
+    float getSkidSlowdown() const;
+    float getSkidFadeIn() const;
+    float getSkidFadeOut() const;
     float getSkidVisual() const;
     float getSkidVisualTime() const;
     float getSkidRevertVisualTime() const;

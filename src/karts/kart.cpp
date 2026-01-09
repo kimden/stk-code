@@ -3362,6 +3362,14 @@ void Kart::updatePhysics(int ticks)
         }
     }
 
+    if (getKartProperties()->getSkidSlowdown() < 0.99f || getKartProperties()->getSkidSlowdown() > 1.01f ) {
+        if (m_is_skidding && !m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_SKID))
+            setSlowdown(MaxSpeed::MS_DECREASE_SKID, getKartProperties()->getSkidSlowdown(), stk_config->time2Ticks(getKartProperties()->getSkidFadeIn()), -1);
+        else if (!m_is_skidding && m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_SKID) && m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_SKID) == -1) {
+            setSlowdown(MaxSpeed::MS_DECREASE_SKID, getKartProperties()->getSkidSlowdown(), stk_config->time2Ticks(0.05f), stk_config->time2Ticks(getKartProperties()->getSkidFadeOut()));
+        }
+    }
+
     bool do_slowdown = getMaterial() && getMaterial()->getMaxSpeedFraction();
     bool is_zippered = m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0;
 
