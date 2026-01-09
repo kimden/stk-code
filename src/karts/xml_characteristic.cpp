@@ -647,8 +647,10 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_OFFROAD_FACTOR]);
         sub_node->get("rolling-resistance",
             &m_values[TYRES_ROLLING_RESISTANCE]);
-        sub_node->get("skid-factor",
-            &m_values[TYRES_SKID_FACTOR]);
+        sub_node->get("skid-factor-partial",
+            &m_values[TYRES_SKID_FACTOR_PARTIAL]);
+        sub_node->get("skid-factor-full",
+            &m_values[TYRES_SKID_FACTOR_FULL]);
         sub_node->get("brake-threshold",
             &m_values[TYRES_BRAKE_THRESHOLD]);
         sub_node->get("crash-penalty",

@@ -233,7 +233,8 @@ public:
         TYRES_COMPOUND_NUMBER,
         TYRES_OFFROAD_FACTOR,
         TYRES_ROLLING_RESISTANCE,
-        TYRES_SKID_FACTOR,
+        TYRES_SKID_FACTOR_PARTIAL,
+        TYRES_SKID_FACTOR_FULL,
         TYRES_BRAKE_THRESHOLD,
         TYRES_CRASH_PENALTY,
         TYRES_DEFAULT_COLOR,
@@ -480,7 +481,8 @@ public:
     float getTyresCompoundNumber() const;
     std::vector<float> getTyresOffroadFactor() const;
     std::vector<float> getTyresRollingResistance() const;
-    std::vector<float> getTyresSkidFactor() const;
+    std::vector<float> getTyresSkidFactorPartial() const;
+    std::vector<float> getTyresSkidFactorFull() const;
     std::vector<float> getTyresBrakeThreshold() const;
     std::vector<float> getTyresCrashPenalty() const;
     std::vector<float> getTyresDefaultColor() const;

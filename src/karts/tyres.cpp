@@ -70,7 +70,7 @@ float Tyres::correct(float f) {
     return (100.0f*(float)(m_current_compound-1)+(float)(m_current_compound-1))+f;
 }
 
-void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_amount, float steer_amount, float throttle_amount) {
+void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, unsigned skid_level, bool is_using_zipper, float slowdown, float brake_amount, float steer_amount, float throttle_amount) {
     m_debug_cycles += 1;
     m_time_elapsed += dt;
     float speed = m_kart->getSpeed();
@@ -158,8 +158,10 @@ void Tyres::computeDegradation(float dt, bool is_on_ground, bool is_skidding, bo
     deg_tur = dt*std::abs(m_force_y)/10000.0f;
 
     // If skidding, the turning deg is multiplied by the skid factor
-    if (is_skidding) {
-        deg_tur *= m_c_skid_factor;
+    if (is_skidding && skid_level <= 1) { // if yellow or none, apply one factor
+        deg_tur *= m_c_skid_factor_partial;
+    } else if (is_skidding) { // if red or above, apply another
+        deg_tur *= m_c_skid_factor_full;
     }
 
     if (m_current_fuel > m_kart->getKartProperties()->getFuelCapacity()) m_current_fuel = m_kart->getKartProperties()->getFuelCapacity();

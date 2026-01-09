@@ -3272,6 +3272,7 @@ void Kart::updatePhysics(int ticks)
 // at at current speed, which is below, kart steers 60º
 // if we want kart to steer 30º at current speed, we need to steer
     float steering;
+    unsigned skid_level = 0;
     if (kp->getSkidMode() == "Modern") {
         if (m_is_skidding && getSpeed() < kp->getSkidMinSpeed()) {
             // When below the minimum skidding speed, skid as if it was the minimum speed but without any boost
@@ -3279,6 +3280,7 @@ void Kart::updatePhysics(int ticks)
         } else {
             steering = getMaxSteerAngle() * m_skidding->getSteeringFraction();
         }
+        skid_level = m_skidding->getSkidLevel(getKartProperties());
     } else if (kp->getSkidMode() == "Retro") {
         const float brake_mul = (brake_skid) ? 1.08f : 1.00f;
         steering = getMaxSteerAngle()*m_controls.getSteer()*m_retro_skidding_counter*brake_mul;
@@ -3364,7 +3366,7 @@ void Kart::updatePhysics(int ticks)
     unfair for a kart to degrade more simply because it is longer (as it is not really an STK mechanic)*/
     float tyres_steering = 0.872281*(fabs(steering)/(float)kp->getWheelBase());
     if (stk_config->m_tme_enable_tyre_degradation)
-        m_tyres->computeDegradation(dt, isOnGround(), m_is_skidding, is_zippered, do_slowdown, f, tyres_steering, m_controls.getAccel());
+        m_tyres->computeDegradation(dt, isOnGround(), m_is_skidding, skid_level, is_zippered, do_slowdown, f, tyres_steering, m_controls.getAccel());
 
     updateSliding();
 

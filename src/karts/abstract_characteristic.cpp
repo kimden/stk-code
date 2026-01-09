@@ -295,7 +295,9 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_ROLLING_RESISTANCE:
         return TYPE_FLOAT_VECTOR;
-    case TYRES_SKID_FACTOR:
+    case TYRES_SKID_FACTOR_PARTIAL:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_SKID_FACTOR_FULL:
         return TYPE_FLOAT_VECTOR;
     case TYRES_BRAKE_THRESHOLD:
         return TYPE_FLOAT_VECTOR;
@@ -669,8 +671,10 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_OFFROAD_FACTOR";
     case TYRES_ROLLING_RESISTANCE:
         return "TYRES_ROLLING_RESISTANCE";
-    case TYRES_SKID_FACTOR:
-        return "TYRES_SKID_FACTOR";
+    case TYRES_SKID_FACTOR_PARTIAL:
+        return "TYRES_SKID_FACTOR_PARTIAL";
+    case TYRES_SKID_FACTOR_FULL:
+        return "TYRES_SKID_FACTOR_FULL";
     case TYRES_BRAKE_THRESHOLD:
         return "TYRES_BRAKE_THRESHOLD";
     case TYRES_CRASH_PENALTY:
@@ -2236,16 +2240,28 @@ std::vector<float> AbstractCharacteristic::getTyresRollingResistance() const
 }  // getTyresRollingResistance
 
 // ----------------------------------------------------------------------------
-std::vector<float> AbstractCharacteristic::getTyresSkidFactor() const
+std::vector<float> AbstractCharacteristic::getTyresSkidFactorPartial() const
 {
     std::vector<float> result;
     bool is_set = false;
-    process(TYRES_SKID_FACTOR, &result, &is_set);
+    process(TYRES_SKID_FACTOR_PARTIAL, &result, &is_set);
     if (!is_set)
         Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_SKID_FACTOR).c_str());
+                    getName(TYRES_SKID_FACTOR_PARTIAL).c_str());
     return result;
-}  // getTyresSkidFactor
+}  // getTyresSkidFactorPartial
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresSkidFactorFull() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_SKID_FACTOR_FULL, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_SKID_FACTOR_FULL).c_str());
+    return result;
+}  // getTyresSkidFactorFull
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getTyresBrakeThreshold() const

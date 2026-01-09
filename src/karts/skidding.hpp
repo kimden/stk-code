@@ -104,7 +104,6 @@ private:
 
     unsigned int getSkidBonus(float *bonus_time, float *fade_out_time,
                               float *bonus_speed, float *bonus_force) const;
-    unsigned int getSkidLevel(const KartProperties *kp) const;
     float updateSteering(float steer, int ticks);
 public:
          Skidding(Kart *kart);
@@ -141,6 +140,7 @@ public:
     // ------------------------------------------------------------------------
     /** Returns the skidding state. */
     SkidState getSkidState() const { return m_skid_state; }
+    unsigned int getSkidLevel(const KartProperties *kp) const;
     // ------------------------------------------------------------------------
     float getSteeringWhenSkidding(float steering) const;
     // ------------------------------------------------------------------------

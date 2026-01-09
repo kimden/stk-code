@@ -1476,10 +1476,16 @@ std::vector<float> KartProperties::getTyresRollingResistance() const
 }  // getTyresRollingResistance
 
 // ----------------------------------------------------------------------------
-std::vector<float> KartProperties::getTyresSkidFactor() const
+std::vector<float> KartProperties::getTyresSkidFactorPartial() const
 {
-    return m_cached_characteristic->getTyresSkidFactor();
-}  // getTyresSkidFactor
+    return m_cached_characteristic->getTyresSkidFactorPartial();
+}  // getTyresSkidFactorPartial
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresSkidFactorFull() const
+{
+    return m_cached_characteristic->getTyresSkidFactorFull();
+}  // getTyresSkidFactorFull
 
 // ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getTyresBrakeThreshold() const
