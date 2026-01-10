@@ -27,9 +27,90 @@
         <!-- ********** Physics ********** -->
 
         <!--
-         change-kart-map is a mapping of tyre ID 124 to change to the first kart in the array, 125 the second, etc 
+        **** Characteristics related to tyre simulation ****
+        compound-number: the amount of compounds for characteristics marked ARRAY, which define one value for each compound
+        (ARRAY) max-life-turning:     the starting health of the tyre in the aspect of transversal grip
+        (ARRAY) min-life-turning:     the recommended minimum health of the tyre in the aspect of transversal grip at which to pit, only used by AI to decide when to pit
+        (ARRAY) min-life-turning-gui: in the Race GUI health bar, this is the 0% marker. It can still go below, but won't be represented
+
+        (ARRAY) max-life-traction:     the starting health of the tyre in the aspect of longitudinal grip
+        (ARRAY) min-life-traction:     the recommended minimum health of the tyre in the aspect of longitudinal grip at which to pit, only used by AI to decide when to pit
+        (ARRAY) min-life-traction-gui: in the Race GUI health bar, this is the 0% marker. It can still go below, but won't be represented
+
+        Tyres degrade and their health decreases as the race goes on.
+        The stats from the the turning response curve are applied based on the current turning health.
+        The stats from the the traction & topspeed response curve are applied based on the current traction health.
+
+        (ARRAY) names-long: the names of each compound
+        (ARRAY) names-short: the names of each compound, used for display in the leaderboard icon mid-race in the top left corner of the screen
+
+
+                             if a tyre change collectible has ID 123, it'll be interpreted as a refuel instead of a tyre change
+        (ARRAY, **but size independent of the amount of compounds**)
+            change-kart-map: if a tyre change collectible has ID 124, it'll be interpreted as a swap to the first kart of this array instead of a tyre change
+                             if a tyre change collectible has ID 125, it'll be interpreted as a swap to the second kart of this array instead of a tyre change
+                             ...
+                             etc
+
+        pit-speed-fraction: when doing a pit stop/refuel/kart change, depending on other factors (usually tyre changer parameters in the scene.xml, or the track.xml in the case of AI pit stops).
+                            the kart might be slowed down for some amount of time. Its top speed is capped to Tux's base speed multiplied by this number.
+
+        (ARRAY) default-color: -1 indicates the tyre is disabled and can't be selected in-game, 1-99 indicates the tyre's color.
+
+
+        from now on, the notation property-for-(turning/traction) will be used as shorthand for two parameters that only vary in the target property. Note the order used in the text matters
+
+        (ARRAY) regular-transfer-(turning/traction): when the (turning/traction) health is GREATER than (the OTHER, so traction/turning) health,
+                                                     for every 1% degraded of (turning/traction) health, X% of (the OTHER, so traction/turning) health is degraded
+        (ARRAY) limiting-transfer-(turning/traction): same as regular transfer, but for when (turning/traction) health is LOWER than (the OTHER, so traction/turning) health.
+
+        (ARRAY) initial-bonus-add-(turning/traction/topspeed): if this parameter is X, and f(Y) is the value that will be applied in the associated response curve, instead apply f(X+Z*Y).
+                                                               Useful if you want to increase/decrease the performance of a tyre quickly without editing the entire array
+        (ARRAY) initial-bonus-mult-(turning/traction/topspeed): if this parameter is Z, and f(Y) is the value that will be applied in the associated response curve, instead apply f(X+Z*Y).
+                                                                Useful if you want to increase/decrease the performance of a tyre quickly without editing its entire response curve
+
+        (ARRAY) offroad-factor: multiply degradation by this factor when a track slowdown effect is active
+        (ARRAY) skid-factor-partial: multiply degradation by this factor when skidding with no/yellow sparks
+        (ARRAY) skid-factor-full: multiply degradation by this factor when skidding with red/purple sparks
+        (ARRAY) rolling resistance: for every meter travelled, substract this much health from the tyre's traction health
+        (ARRAY) brake-threshold: Let the parameter be X. Let the brake pressure be Y. When Y, which is in the range [0, 1], increases above X, multiply degradation by (Y/X)
+
+        (ARRAY) usage-multiplier-(turning/traction): see below
+                reference-speed-mult: degradation_turning += degradation_turning * usage_multiplier_turning * (current_speed - (reference_speed_mult * base_speed))
+                                      degradation_traction += degradation_traction * usage_multiplier_traction * (current_speed - (reference_speed_mult * base_speed))
+                The usage-muliplier/reference-speed-mult allows to set a fraction of the kart's base speed as reference,
+                and declare that degradation will increase X% for every meter/second speed increase above that reference.
+                The formula IS NOT APPLIED when below reference_speed_mult * base_speed.
+                It's a way to make degradation increase (or decrease) along with speed, it already happens with the physics but this is a way to exaggerate/modify that behaviour.
+                By default it's all set to 0.
+
+        (ARRAY) crash-penalty: Let the parameter be X. When the kart collides strongly with the track (2 second cooldown for detection), X% is substracted from both the traction and turning healths.
+                               This is meant to be used as a penalty for wallriding/wallturning.
+        (ARRAY) do-grip-based-turning: If this parameter is 1, grip based turning is enabled. If it's 0, it's disabled. For now, it does nothing, but it might do something then the "Realistic" skid mode is more complete.
+        (ARRAY) do-substractive-(turning/traction/topspeed): if this property is 0, the value obtained from the response curve will be multiplied with the property. If it's 1, it will be substracted from the property.
+                                                             it's the difference between degraded tyres multiplying topspeed by 0.5, or substracting 0.5m/s from the topspeed.
+        (ARRAY) (turning/traction/topspeed)-constant: if this parameter is W, and f(X+Z*Y) is the value that will be applied in the associated response curve, instead apply W*f(X+Z*Y).
+
+        (ARRAY) response-curve-(turning/traction/topspeed): a mapping from each tyre health percent to the modification done to the property (turning = turn radius, traction = engine force, topspeed = topspeed),
+        as per this template:
+          Edit x.xxx in each row to change the number that is used when the tyre is at 100%, 95%, ..., until 0%.
+          (each row is compound 1,2,3,4,5)
+          Then remove the first row with the percentages. Then replace all line jumps with spaces, and all pipes (`|` symbol) with spaces too. Then copy paste into the response curve value, replacing the old.
+
+        FOR BETTER TOOLING THAN THIS TEMPLATE, SEE compound_response_curves.ods WHICH AUTO-GENERATES THE RESPONSE CURVES AND THEY CAN BE EASILY COPY PASTED INTO THEIR XML VALUES
+        **** TEMPLATE: ***
+        00%      |05%      |10%      |15%      |20%      |25%      |30%      |35%      |40%      |45%      |50%      |55%      |60%      |65%      |70%      |75%      |80%      |85%      |90%      |95%      |100%     
+        000:x.xxx|005:x.xxx|010:x.xxx|015:x.xxx|020:x.xxx|025:x.xxx|030:x.xxx|035:x.xxx|040:x.xxx|045:x.xxx|050:x.xxx|055:x.xxx|060:x.xxx|065:x.xxx|070:x.xxx|075:x.xxx|080:x.xxx|085:x.xxx|090:x.xxx|095:x.xxx|100:x.xxx
+        101:x.xxx|106:x.xxx|111:x.xxx|116:x.xxx|121:x.xxx|126:x.xxx|131:x.xxx|136:x.xxx|141:x.xxx|146:x.xxx|151:x.xxx|156:x.xxx|161:x.xxx|166:x.xxx|171:x.xxx|176:x.xxx|181:x.xxx|186:x.xxx|191:x.xxx|196:x.xxx|201:x.xxx
+        202:x.xxx|207:x.xxx|212:x.xxx|217:x.xxx|222:x.xxx|227:x.xxx|232:x.xxx|237:x.xxx|242:x.xxx|247:x.xxx|252:x.xxx|257:x.xxx|262:x.xxx|267:x.xxx|272:x.xxx|277:x.xxx|282:x.xxx|287:x.xxx|292:x.xxx|297:x.xxx|302:x.xxx
+        303:x.xxx|308:x.xxx|313:x.xxx|318:x.xxx|323:x.xxx|328:x.xxx|333:x.xxx|338:x.xxx|343:x.xxx|348:x.xxx|353:x.xxx|358:x.xxx|363:x.xxx|368:x.xxx|373:x.xxx|378:x.xxx|383:x.xxx|388:x.xxx|393:x.xxx|398:x.xxx|403:x.xxx
+        404:x.xxx|409:x.xxx|414:x.xxx|419:x.xxx|424:x.xxx|429:x.xxx|434:x.xxx|439:x.xxx|444:x.xxx|449:x.xxx|454:x.xxx|459:x.xxx|464:x.xxx|469:x.xxx|474:x.xxx|479:x.xxx|484:x.xxx|489:x.xxx|494:x.xxx|499:x.xxx|504:x.xxx
+
+
         -->
-        <tyres max-life-turning="750 750 1500 3200 3200 1000 1000 1000 1000 1000"
+        <tyres 
+               compound-number="10"
+               max-life-turning="750 750 1500 3200 3200 1000 1000 1000 1000 1000"
                min-life-turning="150 150 300 640 640 100 100 100 100 100"
                min-life-turning-gui="150 150 300 640 640 100 100 100 100 100"
                max-life-traction="1360 1360 2720 3672 5280 1000 1000 1000 1000 1000"
@@ -51,9 +132,13 @@
                initial-bonus-add-topspeed="0 0 0 0 0 0 0 0 0 0"
                initial-bonus-mult-topspeed="1 1 1 1 1 1 1 1 1 1"
                offroad-factor="5 5 5 5 5 5 5 5 5 5"
-               skid-factor="3 3 3 3 3 3 3 3 3 3"
+               skid-factor-partial="3 3 3 3 3 3 3 3 3 3"
+               skid-factor-full="3 3 3 3 3 3 3 3 3 3"
                rolling-resistance="0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02"
                brake-threshold="0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2"
+               usage-multiplier-turning="0 0 0 0 0 0 0 0 0 0"
+               usage-multiplier-traction="0 0 0 0 0 0 0 0 0 0"
+               reference-speed-mult="0 0 0 0 0 0 0 0 0 0"
                crash-penalty="0 0 0 0 0 0 0 0 0 0"
                do-grip-based-turning="0 0 0 0 0 0 0 0 0 0"
                do-substractive-turning="0 0 0 0 0 0 0 0 0 0"
@@ -65,19 +150,7 @@
                response-curve-turning="000:0.300 030:0.350 040:0.500 050:0.600 060:0.850 070:0.900 085:0.920 090:0.980 095:1.100 100:1.200 101:0.300 131:0.350 141:0.500 151:0.600 161:0.850 171:0.900 186:0.920 191:0.980 196:1.100 201:1.200 202:0.300 232:0.350 242:0.400 252:0.500 262:0.550 272:0.650 287:0.850 292:0.950 297:0.980 302:1.000 303:0.300 333:0.350 343:0.400 353:0.450 363:0.500 373:0.600 388:0.780 393:0.830 398:0.930 403:0.850 404:0.300 434:0.350 444:0.400 454:0.450 464:0.500 474:0.600 489:0.780 494:0.830 499:0.930 504:0.850 505:0.000 510:0.000 515:0.000 520:0.000 525:0.000 530:0.000 535:0.000 540:0.000 545:0.000 550:0.000 555:0.000 560:0.000 565:0.000 570:0.000 575:0.000 580:0.000 585:0.000 590:0.000 595:0.000 600:0.000 605:0.000 606:0.000 611:0.000 616:0.000 621:0.000 626:0.000 631:0.000 636:0.000 641:0.000 646:0.000 651:0.000 656:0.000 661:0.000 666:0.000 671:0.000 676:0.000 681:0.000 686:0.000 691:0.000 696:0.000 701:0.000 706:0.000 707:0.000 712:0.000 717:0.000 722:0.000 727:0.000 732:0.000 737:0.000 742:0.000 747:0.000 752:0.000 757:0.000 762:0.000 767:0.000 772:0.000 777:0.000 782:0.000 787:0.000 792:0.000 797:0.000 802:0.000 807:0.000 808:0.000 813:0.000 818:0.000 823:0.000 828:0.000 833:0.000 838:0.000 843:0.000 848:0.000 853:0.000 858:0.000 863:0.000 868:0.000 873:0.000 878:0.000 883:0.000 888:0.000 893:0.000 898:0.000 903:0.000 908:0.000 909:1.000 914:1.000 919:1.000 924:1.000 929:1.000 934:1.000 939:1.000 944:1.000 949:1.000 954:1.000 959:1.000 964:1.000 969:1.000 974:1.000 979:1.000 984:1.000 989:1.000 994:1.000 999:1.000 1004:1.000 1009:1.000"
                response-curve-traction="000:0.200 030:0.300 040:0.400 050:0.500 060:0.650 070:0.850 080:0.900 090:0.950 095:1.500 100:1.200 101:0.200 131:0.300 141:0.400 151:0.500 161:0.650 171:0.850 181:0.900 191:0.950 196:1.500 201:1.200 202:0.200 232:0.300 242:0.400 252:0.500 262:0.600 272:0.800 282:0.850 292:0.950 297:1.000 302:1.000 303:0.200 333:0.350 343:0.400 353:0.530 363:0.670 373:0.750 383:0.800 393:0.800 398:0.900 403:0.850 404:0.200 434:0.350 444:0.400 454:0.530 464:0.670 474:0.750 484:0.800 494:0.800 499:0.900 504:0.850 505:0.000 510:0.000 515:0.000 520:0.000 525:0.000 530:0.000 535:0.000 540:0.000 545:0.000 550:0.000 555:0.000 560:0.000 565:0.000 570:0.000 575:0.000 580:0.000 585:0.000 590:0.000 595:0.000 600:0.000 605:0.000 606:0.000 611:0.000 616:0.000 621:0.000 626:0.000 631:0.000 636:0.000 641:0.000 646:0.000 651:0.000 656:0.000 661:0.000 666:0.000 671:0.000 676:0.000 681:0.000 686:0.000 691:0.000 696:0.000 701:0.000 706:0.000 707:0.000 712:0.000 717:0.000 722:0.000 727:0.000 732:0.000 737:0.000 742:0.000 747:0.000 752:0.000 757:0.000 762:0.000 767:0.000 772:0.000 777:0.000 782:0.000 787:0.000 792:0.000 797:0.000 802:0.000 807:0.000 808:0.000 813:0.000 818:0.000 823:0.000 828:0.000 833:0.000 838:0.000 843:0.000 848:0.000 853:0.000 858:0.000 863:0.000 868:0.000 873:0.000 878:0.000 883:0.000 888:0.000 893:0.000 898:0.000 903:0.000 908:0.000 909:1.000 914:1.000 919:1.000 924:1.000 929:1.000 934:1.000 939:1.000 944:1.000 949:1.000 954:1.000 959:1.000 964:1.000 969:1.000 974:1.000 979:1.000 984:1.000 989:1.000 994:1.000 999:1.000 1004:1.000 1009:1.000"
                response-curve-topspeed="000:0.400 050:0.450 060:0.750 080:0.870 090:1.050 100:1.200 101:0.400 151:0.450 161:0.750 181:0.870 191:1.050 201:1.200 202:0.500 252:0.500 262:0.700 282:0.850 292:0.900 302:1.000 303:0.400 353:0.600 363:0.670 383:0.840 393:0.865 403:0.900 404:0.400 454:0.600 464:0.650 484:0.800 494:0.830 504:0.855 505:0.000 510:0.000 515:0.000 520:0.000 525:0.000 530:0.000 535:0.000 540:0.000 545:0.000 550:0.000 555:0.000 560:0.000 565:0.000 570:0.000 575:0.000 580:0.000 585:0.000 590:0.000 595:0.000 600:0.000 605:0.000 606:0.000 611:0.000 616:0.000 621:0.000 626:0.000 631:0.000 636:0.000 641:0.000 646:0.000 651:0.000 656:0.000 661:0.000 666:0.000 671:0.000 676:0.000 681:0.000 686:0.000 691:0.000 696:0.000 701:0.000 706:0.000 707:0.000 712:0.000 717:0.000 722:0.000 727:0.000 732:0.000 737:0.000 742:0.000 747:0.000 752:0.000 757:0.000 762:0.000 767:0.000 772:0.000 777:0.000 782:0.000 787:0.000 792:0.000 797:0.000 802:0.000 807:0.000 808:0.000 813:0.000 818:0.000 823:0.000 828:0.000 833:0.000 838:0.000 843:0.000 848:0.000 853:0.000 858:0.000 863:0.000 868:0.000 873:0.000 878:0.000 883:0.000 888:0.000 893:0.000 898:0.000 903:0.000 908:0.000 909:1.000 914:1.000 919:1.000 924:1.000 929:1.000 934:1.000 939:1.000 944:1.000 949:1.000 954:1.000 959:1.000 964:1.000 969:1.000 974:1.000 979:1.000 984:1.000 989:1.000 994:1.000 999:1.000 1004:1.000 1009:1.000"
-               compound-number="10"
                />
-<!--
-FOR BETTER TOOLING THAN THIS TEMPLATE, SEE compound_response_curves.ods
-
-TEMPLATE
-00%      |05%      |10%      |15%      |20%      |25%      |30%      |35%      |40%      |45%      |50%      |55%      |60%      |65%      |70%      |75%      |80%      |85%      |90%      |95%      |100%     
-000:x.xxx|005:x.xxx|010:x.xxx|015:x.xxx|020:x.xxx|025:x.xxx|030:x.xxx|035:x.xxx|040:x.xxx|045:x.xxx|050:x.xxx|055:x.xxx|060:x.xxx|065:x.xxx|070:x.xxx|075:x.xxx|080:x.xxx|085:x.xxx|090:x.xxx|095:x.xxx|100:x.xxx
-101:x.xxx|106:x.xxx|111:x.xxx|116:x.xxx|121:x.xxx|126:x.xxx|131:x.xxx|136:x.xxx|141:x.xxx|146:x.xxx|151:x.xxx|156:x.xxx|161:x.xxx|166:x.xxx|171:x.xxx|176:x.xxx|181:x.xxx|186:x.xxx|191:x.xxx|196:x.xxx|201:x.xxx
-202:x.xxx|207:x.xxx|212:x.xxx|217:x.xxx|222:x.xxx|227:x.xxx|232:x.xxx|237:x.xxx|242:x.xxx|247:x.xxx|252:x.xxx|257:x.xxx|262:x.xxx|267:x.xxx|272:x.xxx|277:x.xxx|282:x.xxx|287:x.xxx|292:x.xxx|297:x.xxx|302:x.xxx
-303:x.xxx|308:x.xxx|313:x.xxx|318:x.xxx|323:x.xxx|328:x.xxx|333:x.xxx|338:x.xxx|343:x.xxx|348:x.xxx|353:x.xxx|358:x.xxx|363:x.xxx|368:x.xxx|373:x.xxx|378:x.xxx|383:x.xxx|388:x.xxx|393:x.xxx|398:x.xxx|403:x.xxx
-404:x.xxx|409:x.xxx|414:x.xxx|419:x.xxx|424:x.xxx|429:x.xxx|434:x.xxx|439:x.xxx|444:x.xxx|449:x.xxx|454:x.xxx|459:x.xxx|464:x.xxx|469:x.xxx|474:x.xxx|479:x.xxx|484:x.xxx|489:x.xxx|494:x.xxx|499:x.xxx|504:x.xxx
--->
         <!-- Suspension
             stiffness: kart's suspension stiffness.
             rest: Length of suspension when at rest.
@@ -131,10 +204,13 @@ TEMPLATE
                 oversteering (by pressing the key for too long)
                 If the kart is currently in the direction opposite to the
                 required steering ("negative steering"), the time-full-steer
+            brake-multiplier: When brake-pressure is 100%, turn radius will be multiplied by this parameter.
+                              Before it reaches 100%, it'll be interpolated to gradually ease into the desired multiplier
+                              (if it's <1, it'll ease from above, and if it's >1, it'll ease from below).
                 at 0 is used.
                  -->
         <turn radius="-100:4.2 -1:4.2 0:2.5 5:4 12:8 20:14 30:22 50:38.5"
-              time-full-steer="0:0.1 0.3:0.1 0.3:0.14 0.6:0.14 0.6:0.21 1.0:0.21" />
+              time-full-steer="0:0.1 0.3:0.1 0.3:0.14 0.6:0.14 0.6:0.21 1.0:0.21" brake-multiplier="1.0" />
 
         <!-- Speed and acceleration
             power: The power of the kart (the engine power needed to accelerate
@@ -165,6 +241,9 @@ TEMPLATE
 
         <!-- Mass of a kart -->
         <mass value="350" />
+
+        <!-- Mass of a kart as seen by tyre degradation physics, can be changed to decouple the weight as felt by the player from the degradation (also for balance purposes) -->
+        <virtualmass value="350" />
 
         <!-- Fuel parameters
             mass-real:       The mass per liter used for the physics 
@@ -199,7 +278,7 @@ TEMPLATE
         <!-- Skidding
             mode: string indicating the skid mode
                 - "Retro": sharp turn mechanic as in STK 0.6.
-                    Only the first five parameters are used.
+                    Only the first six parameters are used.
                 - "Modern": skid mechanic as in STK 1.0
                     All paremeters are used
                 - "Realistic": the kart can't skid with a button press, but it can lose grip
@@ -209,6 +288,10 @@ TEMPLATE
             time-till-max: Time till maximum skidding is reached.
             visual-time: How long it takes for the visual skid to reach maximum.
                          It is also the cooldown time after a skid
+            slowdown: how much speed is decreased when skidding, as a fraction of max speed
+            fade-in: the fade in time for the decrease
+            fade-out: the fade oout time for the decrease
+
             visual: Additional graphical rotation of kart. The graphical rotation
                 of the kart also determines the direction the kart is driving to
                 when skidding is stopped.
@@ -244,6 +327,9 @@ TEMPLATE
               time-till-max="0.5"
               max="2.5"
               visual-time="0.7"
+              slowdown="1.0"
+              fade-in="0.0"
+              fade-out="0.0"
 
               visual="1.25" revert-visual-time="0.7"
               min-speed="10"  time-till-bonus="1.0 2.7 4.0"
@@ -506,6 +592,7 @@ TEMPLATE
             <gear switch-ratio="0.1 0.25 0.45 0.7 1.0 4.0"
                   power-increase="2.95 2.42 1.99 1.56 1.28 1.0" />
             <mass value="*0.6" />
+            <virtualmass value="*0.6" />
             <fuel mass-real="*1" mass-virtual="*1.2" consumption="*1" capacity="*0.97" />
             <skid reduce-turn-min="0.2" reduce-turn-max="0.895" bonus-force="*0.8 *0.8 *0.8" />
             <startup boost="*1 *1" />
@@ -523,6 +610,7 @@ TEMPLATE
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.5 2.08 1.76 1.44 1.22 1" />
             <mass value="*0.75" />
+            <virtualmass value="*0.75" />
             <fuel mass-real="*1" mass-virtual="*1.0" consumption="*1" capacity="*1" />
             <skid reduce-turn-min="0.2475" reduce-turn-max="0.895" bonus-force="*0.875 *0.875 *0.875" />
             <startup boost="*0.875 *0.875" />
@@ -539,6 +627,7 @@ TEMPLATE
             <gear switch-ratio="0.1 0.25 0.45 0.7 1 4"
                   power-increase="2.05 1.74 1.53 1.32 1.16 1" />
             <mass value="*1" />
+            <virtualmass value="*1" />
             <fuel mass-real="*1" mass-virtual="*0.8" consumption="*1" capacity="*1.03" />
             <skid reduce-turn-min="0.285" reduce-turn-max="0.895" bonus-force="*1.0 *1.0 *1.0" />
             <startup boost="*0.8 *0.8" />

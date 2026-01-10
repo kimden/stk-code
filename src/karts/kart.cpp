@@ -3192,6 +3192,8 @@ bool Kart::playCustomSFX(unsigned int type)
     return ret;
      */
 }
+
+#define IPINPUT(__x) ItemPolicyInputs::IPT_INPUT_##__x
 // ----------------------------------------------------------------------------
 /** Updates the physics for this kart: computing the driving force, set
  *  steering, handles skidding, terrain impact on kart, ...
@@ -3199,6 +3201,25 @@ bool Kart::playCustomSFX(unsigned int type)
  */
 void Kart::updatePhysics(int ticks)
 {
+    {
+        ItemPolicy *item_policy = RaceManager::get()->getItemPolicy();
+        int sec = item_policy->getSectionForKart(this);
+        if (sec == -1)
+            sec = 0;
+        uint32_t forbidden_inputs = item_policy->m_policy_sections[sec].m_forbidden_inputs;
+
+        if (forbidden_inputs & IPINPUT(BRAKE))
+            m_controls.setBrake(false);
+        if (forbidden_inputs & IPINPUT(NITRO))
+            m_controls.setNitro(false);
+        if (forbidden_inputs & IPINPUT(SKID))
+            m_controls.setSkidControl(KartControl::SC_NONE);
+        if (forbidden_inputs & IPINPUT(LOOKBACK))
+            m_controls.setLookBack(false);
+        if (forbidden_inputs & IPINPUT(FIRE))
+            m_controls.setFire(false);
+    }
+
     const auto& kp = m_kart_properties;
     auto& stk_config = STKConfig::get();
 
@@ -3272,6 +3293,7 @@ void Kart::updatePhysics(int ticks)
 // at at current speed, which is below, kart steers 60º
 // if we want kart to steer 30º at current speed, we need to steer
     float steering;
+    unsigned skid_level = 0;
     if (kp->getSkidMode() == "Modern") {
         if (m_is_skidding && getSpeed() < kp->getSkidMinSpeed()) {
             // When below the minimum skidding speed, skid as if it was the minimum speed but without any boost
@@ -3279,6 +3301,7 @@ void Kart::updatePhysics(int ticks)
         } else {
             steering = getMaxSteerAngle() * m_skidding->getSteeringFraction();
         }
+        skid_level = m_skidding->getSkidLevel(getKartProperties());
     } else if (kp->getSkidMode() == "Retro") {
         const float brake_mul = (brake_skid) ? 1.08f : 1.00f;
         steering = getMaxSteerAngle()*m_controls.getSteer()*m_retro_skidding_counter*brake_mul;
@@ -3288,9 +3311,25 @@ void Kart::updatePhysics(int ticks)
         ;
     }
 
+    float brake_time = stk_config->ticks2Time(m_brake_ticks);
+    float brake_pressure = 0.0f;
 
-    m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 0);
-    m_vehicle->setSteeringValue(m_tyres->degTurnRadius(steering), 1);
+    if(m_controls.getBrake() && m_speed > 0.0f) {
+        if (brake_time >= kp->getEngineTimeFullBrake())
+            brake_pressure = 1.0f;
+        else
+            brake_pressure = brake_time * (0.35f + 0.65f / kp->getEngineTimeFullBrake());
+    }
+
+    if (brake_pressure > 1.0f) brake_pressure = 1.0f;
+
+
+    float final_steering = m_tyres->degTurnRadius(steering);
+    // interpolate based on brake pressure, which is in range [0, 1]
+    float brake_mult = 1.0f + brake_pressure*(getKartProperties()->getTurnBrakeMultiplier() - 1.0f);
+
+    m_vehicle->setSteeringValue(brake_mult*final_steering, 0);
+    m_vehicle->setSteeringValue(brake_mult*final_steering, 1);
 
     if (skidding_sound && !m_skidding->isJumping())
     {
@@ -3303,13 +3342,6 @@ void Kart::updatePhysics(int ticks)
         m_skid_sound->stop();
     }
 
-    float f = stk_config->ticks2Time(m_brake_ticks);
-    if(m_controls.getBrake() && m_speed > 0.0f) {
-        if (f >= kp->getEngineTimeFullBrake())
-            f = 1.0f;
-        else
-            f = f * (0.35f + 0.65f / kp->getEngineTimeFullBrake());
-    }
     if (m_crash_cooldown_ticks > 0) {
         m_crash_cooldown_ticks -= ticks;
             if (m_crash_cooldown_ticks <= 0) {
@@ -3351,6 +3383,14 @@ void Kart::updatePhysics(int ticks)
         }
     }
 
+    if (getKartProperties()->getSkidSlowdown() < 0.99f || getKartProperties()->getSkidSlowdown() > 1.01f ) {
+        if (m_is_skidding && !m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_SKID))
+            setSlowdown(MaxSpeed::MS_DECREASE_SKID, getKartProperties()->getSkidSlowdown(), stk_config->time2Ticks(getKartProperties()->getSkidFadeIn()), -1);
+        else if (!m_is_skidding && m_max_speed->isSpeedDecreaseActive(MaxSpeed::MS_DECREASE_SKID) && m_max_speed->getSpeedDecreaseTicksLeft(MaxSpeed::MS_DECREASE_SKID) == -1) {
+            setSlowdown(MaxSpeed::MS_DECREASE_SKID, getKartProperties()->getSkidSlowdown(), stk_config->time2Ticks(0.05f), stk_config->time2Ticks(getKartProperties()->getSkidFadeOut()));
+        }
+    }
+
     bool do_slowdown = getMaterial() && getMaterial()->getMaxSpeedFraction();
     bool is_zippered = m_max_speed->isSpeedIncreaseActive(MaxSpeed::MS_INCREASE_ZIPPER) > 0;
 
@@ -3364,8 +3404,7 @@ void Kart::updatePhysics(int ticks)
     unfair for a kart to degrade more simply because it is longer (as it is not really an STK mechanic)*/
     float tyres_steering = 0.872281*(fabs(steering)/(float)kp->getWheelBase());
     if (stk_config->m_tme_enable_tyre_degradation)
-        m_tyres->computeDegradation(dt, isOnGround(), m_is_skidding, is_zippered, do_slowdown, f, tyres_steering, m_controls.getAccel());
-
+        m_tyres->computeDegradation(dt, isOnGround(), m_is_skidding, skid_level, is_zippered, do_slowdown, brake_pressure, tyres_steering, m_controls.getAccel());
     updateSliding();
 
     // Cap speed if necessary

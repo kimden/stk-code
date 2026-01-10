@@ -94,6 +94,7 @@ public:
         TURN_RADIUS,
         TURN_TIME_RESET_STEER,
         TURN_TIME_FULL_STEER,
+        TURN_BRAKE_MULTIPLIER,
 
         // Engine
         ENGINE_POWER,
@@ -110,6 +111,9 @@ public:
 
         // Mass
         MASS,
+
+        // Virtualmass
+        VIRTUAL_MASS,
 
         // Fuel
         FUEL_MASS_REAL,
@@ -233,7 +237,11 @@ public:
         TYRES_COMPOUND_NUMBER,
         TYRES_OFFROAD_FACTOR,
         TYRES_ROLLING_RESISTANCE,
-        TYRES_SKID_FACTOR,
+        TYRES_SKID_FACTOR_PARTIAL,
+        TYRES_SKID_FACTOR_FULL,
+        TYRES_USAGE_MULTIPLIER_TURNING,
+        TYRES_USAGE_MULTIPLIER_TRACTION,
+        TYRES_REFERENCE_SPEED_MULT,
         TYRES_BRAKE_THRESHOLD,
         TYRES_CRASH_PENALTY,
         TYRES_DEFAULT_COLOR,
@@ -287,6 +295,9 @@ public:
         SKID_DECREASE,
         SKID_MAX,
         SKID_TIME_TILL_MAX,
+        SKID_SLOWDOWN,
+        SKID_FADE_IN,
+        SKID_FADE_OUT,
         SKID_VISUAL,
         SKID_VISUAL_TIME,
         SKID_REVERT_VISUAL_TIME,
@@ -358,6 +369,7 @@ public:
     InterpolationArray getTurnRadius() const;
     float getTurnTimeResetSteer() const;
     InterpolationArray getTurnTimeFullSteer() const;
+    float getTurnBrakeMultiplier() const;
 
     float getEnginePower() const;
     float getEngineMaxSpeed() const;
@@ -371,6 +383,8 @@ public:
     std::vector<float> getGearPowerIncrease() const;
 
     float getMass() const;
+
+    float getVirtualMass() const;
 
     float getFuelMassReal() const;
     float getFuelMassVirtual() const;
@@ -480,7 +494,11 @@ public:
     float getTyresCompoundNumber() const;
     std::vector<float> getTyresOffroadFactor() const;
     std::vector<float> getTyresRollingResistance() const;
-    std::vector<float> getTyresSkidFactor() const;
+    std::vector<float> getTyresSkidFactorPartial() const;
+    std::vector<float> getTyresSkidFactorFull() const;
+    std::vector<float> getTyresUsageMultiplierTurning() const;
+    std::vector<float> getTyresUsageMultiplierTraction() const;
+    std::vector<float> getTyresReferenceSpeedMult() const;
     std::vector<float> getTyresBrakeThreshold() const;
     std::vector<float> getTyresCrashPenalty() const;
     std::vector<float> getTyresDefaultColor() const;
@@ -528,6 +546,9 @@ public:
     float getSkidDecrease() const;
     float getSkidMax() const;
     float getSkidTimeTillMax() const;
+    float getSkidSlowdown() const;
+    float getSkidFadeIn() const;
+    float getSkidFadeOut() const;
     float getSkidVisual() const;
     float getSkidVisualTime() const;
     float getSkidRevertVisualTime() const;

@@ -207,7 +207,7 @@
                     </div>
 
                     <div width="90%" height="fit" layout="horizontal-row">
-                        <label id="forbid-nitro-label" proportion="9" text="Forbid nitro" text_align="left" />
+                        <label id="forbid-nitro-label" proportion="9" text="Forbid nitro?" text_align="left" />
                         <checkbox id="forbid-nitro-checkbox" proportion="1" />
                     </div>
 
@@ -249,6 +249,33 @@
                     <div width="90%" height="fit" layout="horizontal-row">
                         <label id="ghost-karts-label" proportion="9" text="Ghost karts" text_align="left" />
                         <checkbox id="ghost-karts-checkbox" proportion="1" />
+                    </div>
+            </div>
+
+            <div x="10%" y="0" width="96%" height="96%" layout="vertical-row">
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-brake-label" proportion="9" text="Forbid brake?" text_align="left" />
+                        <checkbox id="forbid-brake-checkbox" proportion="1" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-nitrouse-label" proportion="9" text="Forbid nitro usage?" text_align="left" />
+                        <checkbox id="forbid-nitrouse-checkbox" proportion="1" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-skid-label" proportion="9" text="Forbid skid?" text_align="left" />
+                        <checkbox id="forbid-skid-checkbox" proportion="1" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-lookback-label" proportion="9" text="Forbid lookback?" text_align="left" />
+                        <checkbox id="forbid-lookback-checkbox" proportion="1" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-fire-label" proportion="9" text="Forbid fire?" text_align="left" />
+                        <checkbox id="forbid-fire-checkbox" proportion="1" />
+                    </div>
+                    <div width="90%" height="fit" layout="horizontal-row">
+                        <label id="forbid-rescue-label" proportion="9" text="Forbid rescue?" text_align="left" />
+                        <checkbox id="forbid-rescue-checkbox" proportion="1" />
                     </div>
             </div>
             </div>

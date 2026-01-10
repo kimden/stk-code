@@ -846,6 +846,12 @@ InterpolationArray KartProperties::getTurnTimeFullSteer() const
 }  // getTurnTimeFullSteer
 
 // ----------------------------------------------------------------------------
+float KartProperties::getTurnBrakeMultiplier() const
+{
+    return m_cached_characteristic->getTurnBrakeMultiplier();
+}  // getTurnBrakeMultiplier
+
+// ----------------------------------------------------------------------------
 float KartProperties::getEnginePower() const
 {
     return m_cached_characteristic->getEnginePower();
@@ -904,6 +910,12 @@ float KartProperties::getMass() const
 {
     return m_cached_characteristic->getMass();
 }  // getMass
+
+// ----------------------------------------------------------------------------
+float KartProperties::getVirtualMass() const
+{
+    return m_cached_characteristic->getVirtualMass();
+}  // getVirtualMass
 
 // ----------------------------------------------------------------------------
 float KartProperties::getFuelMassReal() const
@@ -1476,10 +1488,34 @@ std::vector<float> KartProperties::getTyresRollingResistance() const
 }  // getTyresRollingResistance
 
 // ----------------------------------------------------------------------------
-std::vector<float> KartProperties::getTyresSkidFactor() const
+std::vector<float> KartProperties::getTyresSkidFactorPartial() const
 {
-    return m_cached_characteristic->getTyresSkidFactor();
-}  // getTyresSkidFactor
+    return m_cached_characteristic->getTyresSkidFactorPartial();
+}  // getTyresSkidFactorPartial
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresSkidFactorFull() const
+{
+    return m_cached_characteristic->getTyresSkidFactorFull();
+}  // getTyresSkidFactorFull
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresUsageMultiplierTurning() const
+{
+    return m_cached_characteristic->getTyresUsageMultiplierTurning();
+}  // getTyresUsageMultiplierTurning
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresUsageMultiplierTraction() const
+{
+    return m_cached_characteristic->getTyresUsageMultiplierTraction();
+}  // getTyresUsageMultiplierTraction
+
+// ----------------------------------------------------------------------------
+std::vector<float> KartProperties::getTyresReferenceSpeedMult() const
+{
+    return m_cached_characteristic->getTyresReferenceSpeedMult();
+}  // getTyresReferenceSpeedMult
 
 // ----------------------------------------------------------------------------
 std::vector<float> KartProperties::getTyresBrakeThreshold() const
@@ -1726,6 +1762,24 @@ float KartProperties::getSkidTimeTillMax() const
 {
     return m_cached_characteristic->getSkidTimeTillMax();
 }  // getSkidTimeTillMax
+
+// ----------------------------------------------------------------------------
+float KartProperties::getSkidSlowdown() const
+{
+    return m_cached_characteristic->getSkidSlowdown();
+}  // getSkidSlowdown
+
+// ----------------------------------------------------------------------------
+float KartProperties::getSkidFadeIn() const
+{
+    return m_cached_characteristic->getSkidFadeIn();
+}  // getSkidFadeIn
+
+// ----------------------------------------------------------------------------
+float KartProperties::getSkidFadeOut() const
+{
+    return m_cached_characteristic->getSkidFadeOut();
+}  // getSkidFadeOut
 
 // ----------------------------------------------------------------------------
 float KartProperties::getSkidVisual() const

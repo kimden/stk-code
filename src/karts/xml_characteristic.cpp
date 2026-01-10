@@ -369,6 +369,8 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TURN_TIME_RESET_STEER]);
         sub_node->get("time-full-steer",
             &m_values[TURN_TIME_FULL_STEER]);
+        sub_node->get("brake-multiplier",
+            &m_values[TURN_BRAKE_MULTIPLIER]);
     }
 
     if (const XMLNode *sub_node = node->getNode("engine"))
@@ -401,6 +403,12 @@ void XmlCharacteristic::load(const XMLNode *node)
     {
         sub_node->get("value",
             &m_values[MASS]);
+    }
+
+    if (const XMLNode *sub_node = node->getNode("virtualmass"))
+    {
+        sub_node->get("value",
+            &m_values[VIRTUAL_MASS]);
     }
 
     if (const XMLNode *sub_node = node->getNode("fuel"))
@@ -647,8 +655,16 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[TYRES_OFFROAD_FACTOR]);
         sub_node->get("rolling-resistance",
             &m_values[TYRES_ROLLING_RESISTANCE]);
-        sub_node->get("skid-factor",
-            &m_values[TYRES_SKID_FACTOR]);
+        sub_node->get("skid-factor-partial",
+            &m_values[TYRES_SKID_FACTOR_PARTIAL]);
+        sub_node->get("skid-factor-full",
+            &m_values[TYRES_SKID_FACTOR_FULL]);
+        sub_node->get("usage-multiplier-turning",
+            &m_values[TYRES_USAGE_MULTIPLIER_TURNING]);
+        sub_node->get("usage-multiplier-traction",
+            &m_values[TYRES_USAGE_MULTIPLIER_TRACTION]);
+        sub_node->get("reference-speed-mult",
+            &m_values[TYRES_REFERENCE_SPEED_MULT]);
         sub_node->get("brake-threshold",
             &m_values[TYRES_BRAKE_THRESHOLD]);
         sub_node->get("crash-penalty",
@@ -755,6 +771,12 @@ void XmlCharacteristic::load(const XMLNode *node)
             &m_values[SKID_MAX]);
         sub_node->get("time-till-max",
             &m_values[SKID_TIME_TILL_MAX]);
+        sub_node->get("slowdown",
+            &m_values[SKID_SLOWDOWN]);
+        sub_node->get("fade-in",
+            &m_values[SKID_FADE_IN]);
+        sub_node->get("fade-out",
+            &m_values[SKID_FADE_OUT]);
         sub_node->get("visual",
             &m_values[SKID_VISUAL]);
         sub_node->get("visual-time",

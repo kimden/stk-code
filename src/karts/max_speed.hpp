@@ -55,6 +55,7 @@ public:
           MS_DECREASE_BUBBLE,
           MS_DECREASE_SQUASH,
           MS_DECREASE_STOP,
+          MS_DECREASE_SKID,
           MS_DECREASE_MAX};
 
 private:

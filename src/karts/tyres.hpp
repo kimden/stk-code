@@ -80,8 +80,12 @@ private:
     float m_c_topspeed_constant;
 
     float m_c_offroad_factor;
-    float m_c_skid_factor;
+    float m_c_skid_factor_partial;
+    float m_c_skid_factor_full;
     float m_c_brake_threshold;
+    float m_c_usage_multiplier_turning;
+    float m_c_usage_multiplier_traction;
+    float m_c_reference_speed_mult;
     float m_c_crash_penalty;
 
 
@@ -129,7 +133,7 @@ public:
     bool getGripBasedTurning(void) { return m_c_do_grip_based_turning; };
 
     float correct(float);
-    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, bool is_using_zipper, float slowdown, float brake_force, float steer_amount, float throttle_amount);
+    void computeDegradation(float dt, bool is_on_ground, bool is_skidding, unsigned skid_level, bool is_using_zipper, float slowdown, float brake_force, float steer_amount, float throttle_amount);
 
     void applyCrashPenalty(void);
 

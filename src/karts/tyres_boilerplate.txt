@@ -30,6 +30,10 @@
     m_c_topspeed_constant = m_kart->getKartProperties()->getTyresTopspeedConstant()[m_current_compound-1];
 
     m_c_offroad_factor = m_kart->getKartProperties()->getTyresOffroadFactor()[m_current_compound-1];
-    m_c_skid_factor = m_kart->getKartProperties()->getTyresSkidFactor()[m_current_compound-1];
+    m_c_skid_factor_partial = m_kart->getKartProperties()->getTyresSkidFactorPartial()[m_current_compound-1];
+    m_c_skid_factor_full = m_kart->getKartProperties()->getTyresSkidFactorFull()[m_current_compound-1];
     m_c_brake_threshold = m_kart->getKartProperties()->getTyresBrakeThreshold()[m_current_compound-1];
+    m_c_usage_multiplier_turning = m_kart->getKartProperties()->getTyresUsageMultiplierTurning()[m_current_compound-1];
+    m_c_usage_multiplier_traction = m_kart->getKartProperties()->getTyresUsageMultiplierTraction()[m_current_compound-1];
+    m_c_reference_speed_mult = m_kart->getKartProperties()->getTyresReferenceSpeedMult()[m_current_compound-1];
     m_c_crash_penalty = m_kart->getKartProperties()->getTyresCrashPenalty()[m_current_compound-1];

@@ -85,6 +85,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case TURN_TIME_FULL_STEER:
         return TYPE_INTERPOLATION_ARRAY;
+    case TURN_BRAKE_MULTIPLIER:
+        return TYPE_FLOAT;
     case ENGINE_POWER:
         return TYPE_FLOAT;
     case ENGINE_MAX_SPEED:
@@ -104,6 +106,8 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
     case GEAR_POWER_INCREASE:
         return TYPE_FLOAT_VECTOR;
     case MASS:
+        return TYPE_FLOAT;
+    case VIRTUAL_MASS:
         return TYPE_FLOAT;
     case FUEL_MASS_REAL:
         return TYPE_FLOAT;
@@ -295,7 +299,15 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT_VECTOR;
     case TYRES_ROLLING_RESISTANCE:
         return TYPE_FLOAT_VECTOR;
-    case TYRES_SKID_FACTOR:
+    case TYRES_SKID_FACTOR_PARTIAL:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_SKID_FACTOR_FULL:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_USAGE_MULTIPLIER_TURNING:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_USAGE_MULTIPLIER_TRACTION:
+        return TYPE_FLOAT_VECTOR;
+    case TYRES_REFERENCE_SPEED_MULT:
         return TYPE_FLOAT_VECTOR;
     case TYRES_BRAKE_THRESHOLD:
         return TYPE_FLOAT_VECTOR;
@@ -379,6 +391,12 @@ AbstractCharacteristic::ValueType AbstractCharacteristic::getType(
         return TYPE_FLOAT;
     case SKID_TIME_TILL_MAX:
         return TYPE_FLOAT;
+    case SKID_SLOWDOWN:
+        return TYPE_FLOAT;
+    case SKID_FADE_IN:
+        return TYPE_FLOAT;
+    case SKID_FADE_OUT:
+        return TYPE_FLOAT;
     case SKID_VISUAL:
         return TYPE_FLOAT;
     case SKID_VISUAL_TIME:
@@ -459,6 +477,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TURN_TIME_RESET_STEER";
     case TURN_TIME_FULL_STEER:
         return "TURN_TIME_FULL_STEER";
+    case TURN_BRAKE_MULTIPLIER:
+        return "TURN_BRAKE_MULTIPLIER";
     case ENGINE_POWER:
         return "ENGINE_POWER";
     case ENGINE_MAX_SPEED:
@@ -479,6 +499,8 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "GEAR_POWER_INCREASE";
     case MASS:
         return "MASS";
+    case VIRTUAL_MASS:
+        return "VIRTUAL_MASS";
     case FUEL_MASS_REAL:
         return "FUEL_MASS_REAL";
     case FUEL_MASS_VIRTUAL:
@@ -669,8 +691,16 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "TYRES_OFFROAD_FACTOR";
     case TYRES_ROLLING_RESISTANCE:
         return "TYRES_ROLLING_RESISTANCE";
-    case TYRES_SKID_FACTOR:
-        return "TYRES_SKID_FACTOR";
+    case TYRES_SKID_FACTOR_PARTIAL:
+        return "TYRES_SKID_FACTOR_PARTIAL";
+    case TYRES_SKID_FACTOR_FULL:
+        return "TYRES_SKID_FACTOR_FULL";
+    case TYRES_USAGE_MULTIPLIER_TURNING:
+        return "TYRES_USAGE_MULTIPLIER_TURNING";
+    case TYRES_USAGE_MULTIPLIER_TRACTION:
+        return "TYRES_USAGE_MULTIPLIER_TRACTION";
+    case TYRES_REFERENCE_SPEED_MULT:
+        return "TYRES_REFERENCE_SPEED_MULT";
     case TYRES_BRAKE_THRESHOLD:
         return "TYRES_BRAKE_THRESHOLD";
     case TYRES_CRASH_PENALTY:
@@ -753,6 +783,12 @@ std::string AbstractCharacteristic::getName(CharacteristicType type)
         return "SKID_MAX";
     case SKID_TIME_TILL_MAX:
         return "SKID_TIME_TILL_MAX";
+    case SKID_SLOWDOWN:
+        return "SKID_SLOWDOWN";
+    case SKID_FADE_IN:
+        return "SKID_FADE_IN";
+    case SKID_FADE_OUT:
+        return "SKID_FADE_OUT";
     case SKID_VISUAL:
         return "SKID_VISUAL";
     case SKID_VISUAL_TIME:
@@ -976,6 +1012,18 @@ InterpolationArray AbstractCharacteristic::getTurnTimeFullSteer() const
 }  // getTurnTimeFullSteer
 
 // ----------------------------------------------------------------------------
+float AbstractCharacteristic::getTurnBrakeMultiplier() const
+{
+    float result;
+    bool is_set = false;
+    process(TURN_BRAKE_MULTIPLIER, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TURN_BRAKE_MULTIPLIER).c_str());
+    return result;
+}  // getTurnBrakeMultiplier
+
+// ----------------------------------------------------------------------------
 float AbstractCharacteristic::getEnginePower() const
 {
     float result;
@@ -1094,6 +1142,18 @@ float AbstractCharacteristic::getMass() const
                     getName(MASS).c_str());
     return result;
 }  // getMass
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getVirtualMass() const
+{
+    float result;
+    bool is_set = false;
+    process(VIRTUAL_MASS, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(VIRTUAL_MASS).c_str());
+    return result;
+}  // getVirtualMass
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getFuelMassReal() const
@@ -2236,16 +2296,64 @@ std::vector<float> AbstractCharacteristic::getTyresRollingResistance() const
 }  // getTyresRollingResistance
 
 // ----------------------------------------------------------------------------
-std::vector<float> AbstractCharacteristic::getTyresSkidFactor() const
+std::vector<float> AbstractCharacteristic::getTyresSkidFactorPartial() const
 {
     std::vector<float> result;
     bool is_set = false;
-    process(TYRES_SKID_FACTOR, &result, &is_set);
+    process(TYRES_SKID_FACTOR_PARTIAL, &result, &is_set);
     if (!is_set)
         Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
-                    getName(TYRES_SKID_FACTOR).c_str());
+                    getName(TYRES_SKID_FACTOR_PARTIAL).c_str());
     return result;
-}  // getTyresSkidFactor
+}  // getTyresSkidFactorPartial
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresSkidFactorFull() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_SKID_FACTOR_FULL, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_SKID_FACTOR_FULL).c_str());
+    return result;
+}  // getTyresSkidFactorFull
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresUsageMultiplierTurning() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_USAGE_MULTIPLIER_TURNING, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_USAGE_MULTIPLIER_TURNING).c_str());
+    return result;
+}  // getTyresUsageMultiplierTurning
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresUsageMultiplierTraction() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_USAGE_MULTIPLIER_TRACTION, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_USAGE_MULTIPLIER_TRACTION).c_str());
+    return result;
+}  // getTyresUsageMultiplierTraction
+
+// ----------------------------------------------------------------------------
+std::vector<float> AbstractCharacteristic::getTyresReferenceSpeedMult() const
+{
+    std::vector<float> result;
+    bool is_set = false;
+    process(TYRES_REFERENCE_SPEED_MULT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(TYRES_REFERENCE_SPEED_MULT).c_str());
+    return result;
+}  // getTyresReferenceSpeedMult
 
 // ----------------------------------------------------------------------------
 std::vector<float> AbstractCharacteristic::getTyresBrakeThreshold() const
@@ -2738,6 +2846,42 @@ float AbstractCharacteristic::getSkidTimeTillMax() const
                     getName(SKID_TIME_TILL_MAX).c_str());
     return result;
 }  // getSkidTimeTillMax
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getSkidSlowdown() const
+{
+    float result;
+    bool is_set = false;
+    process(SKID_SLOWDOWN, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_SLOWDOWN).c_str());
+    return result;
+}  // getSkidSlowdown
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getSkidFadeIn() const
+{
+    float result;
+    bool is_set = false;
+    process(SKID_FADE_IN, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_FADE_IN).c_str());
+    return result;
+}  // getSkidFadeIn
+
+// ----------------------------------------------------------------------------
+float AbstractCharacteristic::getSkidFadeOut() const
+{
+    float result;
+    bool is_set = false;
+    process(SKID_FADE_OUT, &result, &is_set);
+    if (!is_set)
+        Log::fatal("AbstractCharacteristic", "Can't get characteristic %s",
+                    getName(SKID_FADE_OUT).c_str());
+    return result;
+}  // getSkidFadeOut
 
 // ----------------------------------------------------------------------------
 float AbstractCharacteristic::getSkidVisual() const
