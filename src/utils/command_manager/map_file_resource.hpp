@@ -21,6 +21,7 @@
 #define MAP_FILE_RESOURCE_HPP
 
 #include "utils/types.hpp"
+#include "utils/set_typo_fixer.hpp"
 #include "utils/command_manager/file_resource.hpp"
 #include <string>
 
