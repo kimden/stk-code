@@ -45,7 +45,7 @@ public:
     void add(const std::string& key);
     void add(const std::string& key, const std::string& value);
     void remove(const std::string& key);
-    void clear();
+    void clear() { m_set.clear(); m_map.clear(); }
 
     std::vector<std::pair<std::string, int>> getClosest(
             const std::string& query, int count = 3,
