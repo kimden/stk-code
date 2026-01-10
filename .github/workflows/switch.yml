@@ -24,7 +24,7 @@ jobs:
           path: "./stk-code"
       - name: Grab assets
         run: |
-          wget -q https://github.com/supertuxkart/stk-assets-mobile/releases/download/git/stk-assets-full.zip
+          wget -q https://github.com/kimden/stk-dependencies/releases/download/preview/stk-assets-full.zip
           unzip -q stk-assets-full.zip -d stk-assets
           rm stk-assets-full.zip
       - name: Restore modified date

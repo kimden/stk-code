@@ -35,7 +35,7 @@ jobs:
           wget https://github.com/kimden/stk-dependencies/releases/download/cctools/cctools-14.1.tar.xz
           tar xf cctools-14.1.tar.xz
           rm cctools-14.1.tar.xz
-          wget https://github.com/supertuxkart/dependencies/releases/download/preview/ispc-cross-1.26.0.tar.xz
+          wget https://github.com/kimden/stk-dependencies/releases/download/preview/ispc-cross-1.26.0.tar.xz
           tar xf ispc-cross-1.26.0.tar.xz
           rm ispc-cross-1.26.0.tar.xz
       - name: Restore timestamps
@@ -161,7 +161,7 @@ jobs:
           # We use SDL_Vulkan_LoadLibrary for 10.9 compatibility, so otool -L supertuxkart has no libMoltenVK.dylib
           cp ./dependencies-macosx/lib/libMoltenVK.dylib ./macosx-arm64/supertuxkart.app/Contents/libs/
           cd ./macosx-arm64/supertuxkart.app/Contents/Resources/data
-          wget https://github.com/supertuxkart/stk-assets-mobile/releases/download/git/stk-assets-full.zip
+          wget https://github.com/kimden/stk-dependencies/releases/download/preview/stk-assets-full.zip
           unzip stk-assets-full.zip
           rm stk-assets-full.zip
           cd ../../../../..

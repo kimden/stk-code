@@ -193,7 +193,7 @@
   <urls stk-website="https://supertuxkart.net/Main_Page"
 		donate="https://supertuxkart.net/Donate"
         password-reset="https://online.supertuxkart.net/password-reset.php"
-        assets-download="https://github.com/supertuxkart/stk-assets-mobile/releases/download/"/>
+        assets-download="https://github.com/kimden/stk-dependencies/releases/download/"/>
 
   <!-- STK will use dns query of the SRV records with these domains to get the list of
        stun servers to use for IPv4 and IPv6. -->
