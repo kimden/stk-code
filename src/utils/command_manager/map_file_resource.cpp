@@ -17,8 +17,6 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "utils/command_manager/map_file_resource.hpp"
-#include "utils/set_typo_fixer.hpp"
-#include "utils/string_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/public_player_value_storage.hpp"
 #include <optional>
