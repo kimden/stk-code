@@ -996,9 +996,10 @@ void ServerLobby::asynchronousUpdate()
                     }
                 }
             }
-            m_game_info = std::make_shared<GameInfo>();
-            m_game_info->setContext(m_lobby_context.get());
-            m_game_info->fillFromRaceManager();
+            if (m_game_info)
+                m_game_info->fillFromRaceManager();
+            else
+                Log::error("ServerLobby", "No GameInfo available for fillFromRaceManager??");
         }
         break;
     }
@@ -1299,7 +1300,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
         if (m_game_info)
             points = m_game_info->onLiveJoinedPlayer(id, rki, w);
         else
-            Log::warn("ServerLobby", "GameInfo is not accessible??");
+            Log::error("ServerLobby", "No GameInfo available for onLiveJoinedPlayer??");
 
         // If the mode is not battle/CTF, points are 0.
         // I assume it's fine like that for now
@@ -1924,6 +1925,9 @@ void ServerLobby::startSelection(const Event *event)
 
     startVotingPeriod(getSettings()->getVotingTimeout());
 
+    m_game_info = std::make_shared<GameInfo>();
+    m_game_info->setContext(m_lobby_context.get());
+
     peers = STKHost::get()->getPeers();
     for (auto& peer: peers)
     {
@@ -2130,7 +2134,7 @@ void ServerLobby::checkRaceFinished()
         if (m_game_info)
             m_game_info->fillAndStoreResults();
         else
-            Log::warn("ServerLobby", "GameInfo is not accessible??");
+            Log::error("ServerLobby", "No GameInfo available for fillAndStoreResults??");
     }
 
     if (getSettings()->isRanked())
@@ -2221,8 +2225,8 @@ void ServerLobby::clientDisconnected(Event* event)
         if (w)
             m_game_info->saveDisconnectingPeerInfo(peer);
     }
-    else
-        Log::warn("ServerLobby", "GameInfo is not accessible??");
+    else if (m_state.load() != WAITING_FOR_START_GAME)
+        Log::error("ServerLobby", "No GameInfo available for saveDisconnectingPeerInfo in clientDisconnected??");
 
     NetworkString* msg = getNetworkString(2);
     const bool waiting_peer_disconnected =
@@ -3114,17 +3118,19 @@ void ServerLobby::handlePlayerVote(Event* event)
 
     // Remove / adjust any invalid settings
     if (isTournament())
-    {
         getTournament()->applyRestrictionsOnVote(&vote);
-    }
     else
-    {
         getSettings()->applyRestrictionsOnVote(&vote, t);
-    }
 
     // Store vote:
-    vote.m_player_name = event->getPeer()->getMainProfile()->getName();
-    addVote(event->getPeer()->getHostId(), vote);
+    auto peer = event->getPeerSP();
+    vote.m_player_name = peer->getMainProfile()->getName();
+    addVote(peer->getHostId(), vote);
+
+    if (m_game_info)
+        m_game_info->addVote(peer, vote);
+    else
+        Log::error("ServerLobby", "No GameInfo available for setVote??");
 
     // After adding the vote, show decorated name instead
     vote.m_player_name = event->getPeer()->getMainProfile()->getDecoratedName(m_name_decorator);
@@ -3890,8 +3896,8 @@ void ServerLobby::handlePlayerDisconnection() const
 
         if (m_game_info)
             m_game_info->saveDisconnectingIdInfo(i);
-        else
-            Log::warn("ServerLobby", "GameInfo is not accessible??");
+        else if (m_state.load() != WAITING_FOR_START_GAME)
+            Log::error("ServerLobby", "No GameInfo available for saveDisconnectingIdInfo in handlePlayerDisconnection??");
 
         rki.makeReserved();
 
@@ -3988,6 +3994,7 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPee
 {
     unsigned player_count = ns.getUInt8();
     player_count = std::min(player_count, (unsigned)peer->getPlayerProfiles().size());
+    std::vector<std::string> final_kart_names;
     for (unsigned i = 0; i < player_count; i++)
     {
         std::string kart;
@@ -4009,9 +4016,20 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, std::shared_ptr<STKPee
         if (getQueues()->areKartFiltersIgnoringKarts())
             current_kart = "";
         std::string name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName());
-        peer->getPlayerProfiles()[i]->setKartName(
-                getAssetManager()->getKartForBadKartChoice(peer, name, current_kart));
+
+        std::string set_kart_name = getAssetManager()->getKartForBadKartChoice(peer, name, current_kart);
+        final_kart_names.push_back(set_kart_name);
+        peer->getPlayerProfiles()[i]->setKartName(set_kart_name);
     }
+
+    if (m_game_info)
+    {
+        for (unsigned i = 0; i < player_count; i++)
+            m_game_info->setKarts(peer, final_kart_names);
+    }
+    else
+        Log::error("ServerLobby", "No GameInfo available for setKart??");
+
     if (peer->getClientCapabilities().find("real_addon_karts") ==
         peer->getClientCapabilities().end() || ns.size() == 0)
         return;
@@ -4116,7 +4134,7 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
     if (m_game_info)
         m_game_info->saveDisconnectingPeerInfo(peer);
     else
-        Log::warn("ServerLobby", "GameInfo is not accessible??");
+        Log::error("ServerLobby", "No GameInfo available for saveDisconnectingPeerInfo in clientInGameWantsToBackLobby??");
 
     for (const int id : peer->getAvailableKartIDs())
     {
