@@ -74,6 +74,7 @@ public:
 
     std::set<std::string> getAvailableKarts() const
                                               { return m_available_kts.first; }
+    void setMustHaveKarts(const std::string& input);
     void setMustHaveMaps(const std::string& input);
     void gameFinishedOn(const std::string& map_name);
 
@@ -141,6 +142,7 @@ public:
      *  with data in server first. */
     std::pair<std::set<std::string>, std::set<std::string> > m_entering_kts;
 
+    std::vector<std::string> m_must_have_karts;
     std::vector<std::string> m_must_have_maps;
 
     std::vector<std::string> m_map_history;
@@ -149,6 +151,7 @@ public:
 
     KartFilter m_global_karts_filter;
 
+    std::vector<std::string> m_play_requirement_karts;
     std::vector<std::string> m_play_requirement_tracks;
 
     float m_official_karts_play_threshold;
