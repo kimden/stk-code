@@ -376,8 +376,20 @@ bool LobbyAssetManager::handleAssetsForPeer(std::shared_ptr<STKPeer> peer,
 
     bool bad = false;
 
+    bool has_required_karts = true;
+    for (const std::string& required_kart: m_must_have_karts)
+    {
+        if (client_karts.find(required_kart) == client_karts.end())
+        {
+            has_required_karts = false;
+            bad = true;
+            Log::verbose("LobbyAssetManager", "Player does not have a required kart '%s'.", required_kart.c_str());
+            break;
+        }
+    }
+
     bool has_required_tracks = true;
-    for (const std::string& required_track : m_must_have_maps)
+    for (const std::string& required_track: m_must_have_maps)
     {
         if (client_tracks.find(required_track) == client_tracks.end())
         {
@@ -578,6 +590,12 @@ std::string LobbyAssetManager::getRandomAddonMap() const
 }   // getRandomAddonMap
 //-----------------------------------------------------------------------------
 
+void LobbyAssetManager::setMustHaveKarts(const std::string& input)
+{
+    m_must_have_karts = StringUtils::split(input, ' ', false);
+}   // setMustHaveKarts
+//-----------------------------------------------------------------------------
+
 void LobbyAssetManager::setMustHaveMaps(const std::string& input)
 {
     m_must_have_maps = StringUtils::split(input, ' ', false);
@@ -736,19 +754,28 @@ void LobbyAssetManager::initAvailableTracks()
 {
     m_global_filter = TrackFilter(ServerConfig::m_only_played_tracks_string);
     m_global_karts_filter = KartFilter(ServerConfig::m_only_played_karts_string);
+    setMustHaveKarts(ServerConfig::m_must_have_karts_string);
     setMustHaveMaps(ServerConfig::m_must_have_tracks_string);
+    m_play_requirement_karts = StringUtils::split(
+            ServerConfig::m_play_requirement_karts_string, ' ', false);
     m_play_requirement_tracks = StringUtils::split(
             ServerConfig::m_play_requirement_tracks_string, ' ', false);
 }   // initAvailableTracks
 //-----------------------------------------------------------------------------
 
+// Initially it was only for maps, but for the current purposes
+// I guess it's fine to list both karts and maps at once without separating
 std::vector<std::string> LobbyAssetManager::getMissingAssets(
         std::shared_ptr<STKPeer> peer) const
 {
-    if (m_play_requirement_tracks.empty())
+    if (m_play_requirement_karts.empty() && m_play_requirement_tracks.empty())
         return {};
 
     std::vector<std::string> ans;
+    for (const std::string& required_kart : m_play_requirement_karts)
+        if (peer->getClientAssets().first.count(required_kart) == 0)
+            ans.push_back(required_kart);
+
     for (const std::string& required_track : m_play_requirement_tracks)
         if (peer->getClientAssets().second.count(required_track) == 0)
             ans.push_back(required_track);

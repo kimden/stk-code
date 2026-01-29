@@ -296,10 +296,20 @@ namespace ServerConfig
         "Clients below this value will be rejected from playing games. "
         "It's determined by number of addon soccer fields in client"));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_must_have_karts_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+        "must-have-karts", "Karts needed to enter the server, "
+        "leave empty for no restriction."));
+
     SERVER_CFG_PREFIX StringServerConfigParam m_must_have_tracks_string
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
         "must-have-tracks", "Tracks needed to enter the server, "
         "leave empty for no restriction."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_play_requirement_karts_string
+        SERVER_CFG_DEFAULT(StringServerConfigParam("",
+       "play-requirement-karts", "Karts needed to be able to play, "
+       "leave empty for no restriction."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_play_requirement_tracks_string
         SERVER_CFG_DEFAULT(StringServerConfigParam("",

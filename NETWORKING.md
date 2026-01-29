@@ -148,8 +148,14 @@ A typical current server configuration xml that fits the current code version is
     <!-- Clients below this value will be rejected from playing games. It's determined by number of addon soccer fields in client -->
     <addon-soccers-play-threshold value="0" />
 
+    <!-- Karts needed to enter the server, leave empty for no restriction. -->
+    <must-have-karts value="" />
+
     <!-- Tracks needed to enter the server, leave empty for no restriction. -->
     <must-have-tracks value="" />
+
+    <!-- Karts needed to be able to play, leave empty for no restriction. -->
+    <play-requirement-karts value="" />
 
     <!-- Tracks needed to be able to play, leave empty for no restriction. -->
     <play-requirement-tracks value="" />
