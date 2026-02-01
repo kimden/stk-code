@@ -672,6 +672,12 @@ std::string LobbyAssetManager::getKartForBadKartChoice(
             const std::string& username,
             const std::string& check_choice) const
 {
+    // Note that this crashes if the live join is enabled, bots are
+    // present, and filters exclude standard karts - as available karts
+    // are equal to standard ones, then. Probably should be extended with
+    // play-requirement-karts, but if they are changeable from the lobby,
+    // not sure if it will be ok. Or the bots should get a kart in another
+    // way, many solutions are possible.
     std::set<std::string> karts;
     if (peer->isAIPeer())
         karts = getAvailableKarts();
