@@ -2,6 +2,20 @@ This page lists the major changes of this repository compared to standard STK co
 
 You can find more information such as explanations and minor details in [wiki](https://github.com/kimden/stk-code/wiki/). It will be probably filled with even more data in the future.
 
+---
+
+## Important February 2026 update
+
+As I am [leaving](<https://youtu.be/a1kPc_G2QVw>) the game, the fork maintenance has stopped.
+
+It doesn't mean there were no more plans for it, vice versa, there were a lot of plans from what you can see in this document. However, inacceptance of major forks even on the level of ideas by the upstream repository makes it harder to develop (consider merge conflicts!), and the departure reasons themselves make it quite useless for me to continue.
+
+Feel free to fork this fork, and do whatever under the open license it provides — just as the main game itself. Despite several known bugs, I guess it's a good example how much you can actually do to host community things out of the code that doesn't support that, and how much it can be refactored (compare ServerLobby!)
+
+I hope the list of changes from this document makes it easier for you to look around. Cheers!
+
+---
+
 ## Improved Grand Prix mode
 
 * Server doesn't become private

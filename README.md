@@ -1,3 +1,14 @@
+
+---
+
+## Note
+The fork is no longer maintained, as kimden has [left](<https://youtu.be/a1kPc_G2QVw>) the game.
+
+However, kimden encourages you to look around at this code, as it's a food example of how much STK code can be refactored. Check out the [fork changes](/FORK_CHANGES.md), too.
+
+---
+
+
 [![Linux build status](https://github.com/kimden/stk-code/actions/workflows/linux.yml/badge.svg)](https://github.com/kimden/stk-code/actions/workflows/linux.yml)
 [![Apple build status](https://github.com/kimden/stk-code/actions/workflows/apple.yml/badge.svg)](https://github.com/kimden/stk-code/actions/workflows/apple.yml)
 [![Windows build status](https://github.com/kimden/stk-code/actions/workflows/windows.yml/badge.svg)](https://github.com/kimden/stk-code/actions/workflows/windows.yml)
