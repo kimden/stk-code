@@ -24,7 +24,7 @@
 #include "tracks/graph.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_sector.hpp"
-#include "utils/gp_scoring.hpp"
+#include "utils/scoring/scoring.hpp"
 #include "utils/log.hpp"
 
 #include <iostream>

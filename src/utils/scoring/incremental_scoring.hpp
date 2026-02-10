@@ -16,35 +16,30 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#ifndef GP_SCORING_HPP
-#define GP_SCORING_HPP
+#ifndef INCREMENTAL_SCORING_HPP
+#define INCREMENTAL_SCORING_HPP
 
-#include "irrString.h"
+#include "utils/scoring/scoring.hpp"
 
-#include <string>
-#include <vector>
-#include <map>
-#include <set>
-#include <memory>
-
-class GPScoring
+class IncrementalScoring: public Scoring
 {
 public:
-    static std::shared_ptr<GPScoring> createFromIntParamString(const std::string& input);
-    bool isStandard() const;
-    void refreshCustomScores(int num_karts,
-            std::vector<int>& score_for_position);
-    int getPolePoints() const;
-    int getFastestLapPoints() const;
+    void fromIntParamString(const std::string& input) final;
+
+    void fromString(const std::string& input) final;
+
+    bool isStandard() const final { return false; }
+
+    void refreshCustomScores(int num_karts, std::vector<int>& score_for_position) final;
+
     int getScoreForPosition(int p, float time,
             std::map<int, float>& race_times,
-            const std::vector<int>& score_for_position) const;
-    bool canGetScoreForPosition(int p, const std::map<int, float>& race_times) const;
-    std::string toString() const;
+            const std::vector<int>& score_for_position) const final;
 
-private:
-    std::vector<int> m_params;
-    std::string      m_type;
+    bool canGetScoreForPosition(int p, const std::map<int, float>& race_times) const final;
+
+    std::string toString() const;
 };
 
-#endif // GP_SCORING_HPP
+
+#endif // INCREMENTAL_SCORING_HPP
