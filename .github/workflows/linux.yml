@@ -89,6 +89,7 @@ jobs:
         run: |
           # Something funky happens with freetype if mono is left
           sudo mv /Library/Frameworks/Mono.framework /Library/Frameworks/Mono.framework-disabled
+          # This dependency doesn't exist in the upstream either, as this branch of instructions wasn't executed for a long time.
           wget https://github.com/supertuxkart/dependencies/releases/download/preview/dependencies-mac.tar.xz
           # Remove any existing installation to avoid conflict with bundled dependencies
           rm -rf /usr/local/include/*
@@ -147,7 +148,7 @@ jobs:
         working-directory: build
         run: |
           /usr/local/opt/dylibbundler/bin/dylibbundler -od -b -x ./bin/SuperTuxKart.app/Contents/MacOS/supertuxkart -d ./bin/SuperTuxKart.app/Contents/libs/ -p @executable_path/../libs/
-          wget https://github.com/supertuxkart/stk-assets-mobile/releases/download/git/stk-assets-full.zip
+          wget https://github.com/kimden/stk-dependencies/releases/download/preview/stk-assets-full.zip
           unzip stk-assets-full.zip -d ../data
           rm stk-assets-full.zip
           cd bin

@@ -82,7 +82,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           cd /opt
-          wget https://github.com/supertuxkart/dependencies/releases/download/preview/ispc-cross-1.26.0.tar.xz
+          wget https://github.com/kimden/stk-dependencies/releases/download/preview/ispc-cross-1.26.0.tar.xz
           tar xf ispc-cross-1.26.0.tar.xz
           rm ispc-cross-1.26.0.tar.xz
       - name: Install MinGW for i686 or x86_64
@@ -239,7 +239,7 @@ jobs:
       - name: Downloading stk-assets
         if: ${{ env.release_tag != '' }}
         run: |
-          C:\msys64\usr\bin\wget.exe https://github.com/supertuxkart/stk-assets-mobile/releases/download/git/stk-assets-full.zip
+          C:\msys64\usr\bin\wget.exe https://github.com/kimden/stk-dependencies/releases/download/preview/stk-assets-full.zip
           mkdir stk-assets
           cd stk-assets
           unzip ..\stk-assets-full.zip

@@ -39,7 +39,7 @@ Additionally some dependencies for optimize_data script:
     advancecomp, libjpeg-progs, optipng
 
 Before compilation you must download dependencies-android-src.tar.xz from:
-https://github.com/supertuxkart/dependencies/releases
+https://github.com/kimden/stk-dependencies/releases
 Choose the corresponding STK version you are compiling, use "preview" for git.
 It contains sources of libraries that are used in STK, but are not available
 in stk-code repository (curl, freetype, openal...).
